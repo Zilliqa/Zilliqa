@@ -121,7 +121,7 @@ struct CommitPointHash : public Serializable {
   CommitPointHash(const CommitPoint& point);
 
   /// Constructor for loading existing hash from a byte stream.
-  CommitPointHash(const std::vector<unsigned char>& src, unsigned int offset);
+  CommitPointHash(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   CommitPointHash(const CommitPointHash& src);
@@ -133,11 +133,10 @@ struct CommitPointHash : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Sets the hash point value based on the specified CommitPoint.
   void Set(const CommitPoint& point);
