@@ -992,7 +992,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       DSBlock dsblk = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
       // empty object for DSBlock and DSBlockheader().
       if (dsblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER) {
         LOG_GENERAL(WARNING,
@@ -1129,7 +1130,8 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blockNum);
-      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
       // empty object for TxBlock and TxBlockheader().
       if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
           txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
@@ -1307,7 +1309,12 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
                         << microblock.GetBlockHash());
   unsigned int i = 0;
 
-  if (txblk == TxBlock()) {
+  // TODO
+  // Workaround to identify dummy block as == comparator does not work on
+  // empty object for TxBlock and TxBlockheader().
+  // if (txblk == TxBlock()) {
+  if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
     LOG_GENERAL(WARNING, "Failed to fetch Txblock");
     return false;
   }
@@ -1623,8 +1630,14 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     }
 
     for (const auto& dsblock : dsBlocks) {
-      if (!(m_mediator.m_dsBlockChain.GetBlock(
-                dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
+      // empty object for DSBlock and DSBlockheader().
+      // if (!(m_mediator.m_dsBlockChain.GetBlock(
+      //           dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
+      if (m_mediator.m_dsBlockChain.GetBlock(dsblock.GetHeader().GetBlockNum())
+              .GetHeader()
+              .GetBlockNum() != INIT_BLOCK_NUMBER) {
         continue;
       }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
