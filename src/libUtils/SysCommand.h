@@ -35,9 +35,12 @@
 #define READ 0
 #define WRITE 1
 
+static std::string cmd_output_place_holder;
+static int pid_place_holder;
+
 class SysCommand {
  public:
-  static FILE* popen2(std::string command, std::string type, int& pid) {
+  static FILE* popen_with_pid(std::string command, std::string type, int& pid) {
     pid_t child_pid;
     int fd[2];
     if (pipe(fd) != 0) {
@@ -85,7 +88,7 @@ class SysCommand {
     return fdopen(fd[WRITE], "w");
   }
 
-  static int pclose2(FILE* fp, int pid) {
+  static int popen_with_pid(FILE* fp, int pid) {
     int stat;
 
     fclose(fp);
@@ -140,7 +143,8 @@ class SysCommand {
     // Log the stderr into stdout as well
     cmd += " 2>&1 ";
     std::unique_ptr<FILE, std::function<void(FILE*)>> proc(
-        popen2(cmd.c_str(), "r", pid), [pid](FILE* ptr) { pclose2(ptr, pid); });
+        popen_with_pid(cmd.c_str(), "r", pid),
+        [pid](FILE* ptr) { popen_with_pid(ptr, pid); });
 
     LOG_GENERAL(INFO, "ExecuteCmdWithOutputPID pid: " << pid);
 
@@ -156,6 +160,23 @@ class SysCommand {
     }
 
     return true;
+  }
+
+  enum SYSCMD_OPTION { WITHOUT_OUTPUT, WITH_OUTPUT, WITH_OUTPUT_PID };
+
+  static bool ExecuteCmd(const SYSCMD_OPTION& option, const std::string& cmd,
+                         std::string& output = cmd_output_place_holder,
+                         int& pid = pid_place_holder) {
+    switch (option) {
+      case WITHOUT_OUTPUT:
+        return ExecuteCmdWithoutOutput(cmd);
+      case WITH_OUTPUT:
+        return ExecuteCmdWithOutput(cmd, output);
+      case WITH_OUTPUT_PID:
+        return ExecuteCmdWithOutputPID(cmd, output, pid);
+      default:
+        return false;
+    }
   }
 };
 

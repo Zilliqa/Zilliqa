@@ -191,9 +191,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (ret) {
       int pid = -1;
       auto func1 = [this, &checkerPrint, &ret_checker, &pid]() mutable -> void {
-        if (!SysCommand::ExecuteCmdWithOutputPID(
-                GetContractCheckerCmdStr(m_root_w_version), checkerPrint,
-                pid)) {
+        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
+                                    GetContractCheckerCmdStr(m_root_w_version),
+                                    checkerPrint, pid)) {
           LOG_GENERAL(WARNING,
                       "ExecuteCmd failed: "
                           << GetContractCheckerCmdStr(m_root_w_version));
@@ -232,7 +232,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       int pid = -1;
       auto func2 = [this, &runnerPrint, &ret, &pid,
                     gasRemained]() mutable -> void {
-        if (!SysCommand::ExecuteCmdWithOutputPID(
+        if (!SysCommand::ExecuteCmd(
+                SysCommand::WITH_OUTPUT_PID,
                 GetCreateContractCmdStr(m_root_w_version, gasRemained),
                 runnerPrint, pid)) {
           LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCreateContractCmdStr(
@@ -381,7 +382,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     auto func = [this, &runnerPrint, &ret, &pid,
                  gasRemained]() mutable -> void {
-      if (!SysCommand::ExecuteCmdWithOutputPID(
+      if (!SysCommand::ExecuteCmd(
+              SysCommand::WITH_OUTPUT_PID,
               GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
               pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
@@ -980,7 +982,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   int pid = -1;
   auto func = [this, &runnerPrint, &result, &pid,
                gasRemained]() mutable -> void {
-    if (!SysCommand::ExecuteCmdWithOutputPID(
+    if (!SysCommand::ExecuteCmd(
+            SysCommand::WITH_OUTPUT_PID,
             GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
             pid)) {
       LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
