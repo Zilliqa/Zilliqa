@@ -7407,7 +7407,7 @@ bool Messenger::SetSeedNodeHistoricalDB(
                                   *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    vector<unsigned char> tmp(result.data().ByteSize());
+    bytes tmp(result.data().ByteSize());
     result.data().SerializeToArray(tmp.data(), tmp.size());
     Signature signature;
     if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
@@ -7443,7 +7443,7 @@ bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
   ProtobufByteArrayToSerializable(result.pubkey(), archivalPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
-  vector<unsigned char> tmp(result.data().ByteSize());
+  bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
                                      archivalPubKey)) {

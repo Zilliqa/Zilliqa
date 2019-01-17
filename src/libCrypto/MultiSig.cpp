@@ -238,8 +238,7 @@ CommitPointHash::CommitPointHash(const CommitPoint& point)
   }
 }
 
-CommitPointHash::CommitPointHash(const vector<unsigned char>& src,
-                                 unsigned int offset) {
+CommitPointHash::CommitPointHash(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init CommitPointHash.");
   }
@@ -263,8 +262,7 @@ CommitPointHash::~CommitPointHash() {}
 
 bool CommitPointHash::Initialized() const { return m_initialized; }
 
-unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
-                                        unsigned int offset) const {
+unsigned int CommitPointHash::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -274,8 +272,7 @@ unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
   return COMMIT_POINT_HASH_SIZE;
 }
 
-int CommitPointHash::Deserialize(const vector<unsigned char>& src,
-                                 unsigned int offset) {
+int CommitPointHash::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -301,7 +298,7 @@ void CommitPointHash::Set(const CommitPoint& point) {
   }
 
   m_initialized = false;
-  vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+  bytes buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
@@ -328,7 +325,7 @@ void CommitPointHash::Set(const CommitPoint& point) {
 
   // compute H(0x01||point)
   sha2.Update(buf);
-  vector<unsigned char> digest = sha2.Finalize();
+  bytes digest = sha2.Finalize();
 
   // Build the PointHash
   if ((BN_bin2bn(digest.data(), digest.size(), m_h.get())) == NULL) {
@@ -957,7 +954,7 @@ bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
     // setting the first byte to 0x11.
     sha2.Update({THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
 
-    vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+    bytes buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
 
     bool err = false;
     bool err2 = false;
@@ -1043,7 +1040,7 @@ bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
 
       // 4.3 Hash message
       sha2.Update(message, offset, size);
-      vector<unsigned char> digest = sha2.Finalize();
+      bytes digest = sha2.Finalize();
 
       // 5. return r' == r
       err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==
