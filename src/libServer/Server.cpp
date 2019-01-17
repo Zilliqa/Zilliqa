@@ -1120,7 +1120,12 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-  if (txBlock == TxBlock()) {
+  // TODO
+  // Workaround to identify dummy block as == comparator does not work on
+  // empty object for TxBlock and TxBlockheader().
+  // if (txBlock == TxBlock()) {
+  if (txBlock.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txBlock.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Tx Block does not exist");
   }
 
