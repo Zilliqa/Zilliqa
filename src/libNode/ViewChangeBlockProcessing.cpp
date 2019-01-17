@@ -242,11 +242,10 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     LOG_STATE("[VCBLK] DS = " << vcblock.GetHeader().GetViewChangeDSEpochNo()
                               << " Tx = "
                               << vcblock.GetHeader().GetViewChangeEpochNo());
-    LOG_STATE("[VCBLK] Leader = " << vcblock.GetHeader()
-                                         .GetCandidateLeaderNetworkInfo()
-                                         .GetPrintableIPAddress());
+    LOG_STATE("[VCBLK] Leader = "
+              << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
     for (const auto& faulty : vcblock.GetHeader().GetFaultyLeaders()) {
-      LOG_STATE("[VCBLK] Faulty = " << faulty.second.GetPrintableIPAddress());
+      LOG_STATE("[VCBLK] Faulty = " << faulty.second);
     }
   }
 
