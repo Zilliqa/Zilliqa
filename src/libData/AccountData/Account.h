@@ -48,7 +48,7 @@ static uint32_t scilla_version_place_holder;
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
-class AccountBase {
+class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version;
   boost::multiprecision::uint128_t m_balance;
@@ -61,6 +61,12 @@ class AccountBase {
 
   AccountBase(const boost::multiprecision::uint128_t& balance,
               const uint64_t& nonce, const uint32_t& version);
+
+  /// Implements the Serialize function inherited from Serializable.
+  bool Serialize(bytes& dst, unsigned int offset) const;
+
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   void SetVersion(const uint32_t& version);
 
@@ -113,7 +119,7 @@ inline std::ostream& operator<<(std::ostream& out,
   return out;
 }
 
-class Account : public SerializableDataBlock, public AccountBase {
+class Account : public AccountBase {
   // The associated code for this account.
   bytes m_codeCache;
   Address m_address;  // used by contract account only

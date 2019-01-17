@@ -270,7 +270,7 @@ bool ContractStorage::GetContractStateJson(
     if (!Messenger::GetStateData(bytes(rawState.begin(), rawState.end()), 0,
                                  entry, version)) {
       LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
-      continue;
+      return false;
     }
 
     if (version != CONTRACT_STATE_VERSION) {

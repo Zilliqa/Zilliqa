@@ -63,11 +63,15 @@ class Messenger {
                                        const DequeOfShard& shards,
                                        ShardingHash& dst);
 
+  static bool SetAccountBase(bytes& dst, const unsigned int offset,
+                             const AccountBase& accountbase);
+  static bool GetAccountBase(const bytes& src, const unsigned int offset,
+                             AccountBase& accountbase);
+
   static bool SetAccount(bytes& dst, const unsigned int offset,
                          const Account& account);
-  [[gnu::unused]] static bool GetAccount(const bytes& src,
-                                         const unsigned int offset,
-                                         Account& account);
+  static bool GetAccount(const bytes& src, const unsigned int offset,
+                         Account& account);
 
   static bool SetAccountDelta(bytes& dst, const unsigned int offset,
                               Account* oldAccount, const Account& newAccount);

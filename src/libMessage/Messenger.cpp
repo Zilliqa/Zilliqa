@@ -2162,6 +2162,39 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
   return true;
 }
 
+bool Messenger::SetAccountBase(bytes& dst, const unsigned int offset,
+                               const AccountBase& accountbase) {
+  ProtoAccountBase result;
+
+  AccountBaseToProtobuf(accountbase, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountBase initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetAccountBase(const bytes& src, const unsigned int offset,
+                               AccountBase& accountbase) {
+  ProtoAccountBase result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
+    return false;
+  }
+
+  if (!ProtobufToAccountBase(result, accountbase)) {
+    LOG_GENERAL(WARNING, "ProtobufToAccountBase failed");
+    return false;
+  }
+
+  return true;
+}
+
 bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
                            const Account& account) {
   ProtoAccount result;

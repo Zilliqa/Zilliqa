@@ -46,6 +46,29 @@ AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
       m_storageRoot(h256()),
       m_codeHash(h256()) {}
 
+bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
+  if (!Messenger::SetAccountBase(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
+  LOG_MARKER();
+
+  LOG_GENERAL(WARNING, "Account::Deserialize temporarily disabled");
+  return false;
+
+  if (!Messenger::GetAccountBase(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
 void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
 
 const uint32_t& AccountBase::GetVersion() const { return m_version; }
@@ -178,6 +201,9 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
 
 bool Account::Deserialize(const bytes& src, unsigned int offset) {
   LOG_MARKER();
+
+  LOG_GENERAL(WARNING, "Account::Deserialize temporarily disabled");
+  return false;
 
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
