@@ -246,8 +246,7 @@ class Messenger {
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,
-      const std::vector<DSPowSolution>& dsPowSolutions,
-      const std::PairOfKey& keys);
+      const std::vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys);
 
   static bool GetDSPowPacketSubmission(
       const bytes& src, const unsigned int offset,
@@ -851,11 +850,11 @@ class Messenger {
 
   static bool SetLookupGetNewDSGuardNetworkInfoFromLookup(
       bytes& dst, const unsigned int offset, const uint32_t portNo,
-      const uint64_t dsEpochNumber);
+      const uint64_t dsEpochNumber, const PairOfKey& lookupKey);
 
   static bool GetLookupGetNewDSGuardNetworkInfoFromLookup(
       const bytes& src, const unsigned int offset, uint32_t& portNo,
-      uint64_t& dsEpochNumber);
+      uint64_t& dsEpochNumber, PubKey& lookupPubKey);
 
   static bool SetNodeSetNewDSGuardNetworkInfo(
       bytes& dst, unsigned int offset,

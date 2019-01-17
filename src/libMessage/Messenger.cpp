@@ -3256,8 +3256,7 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
 // ============================================================================
 
 bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
-                           const PairOfKey& key,
-                           const uint32_t listenPort) {
+                           const PairOfKey& key, const uint32_t listenPort) {
   LOG_MARKER();
 
   PMHello result;
@@ -3419,8 +3418,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
 
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
-    const vector<DSPowSolution>& dsPowSolutions,
-    const PairOfKey& keys) {
+    const vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
@@ -4864,7 +4862,6 @@ bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
 
   result.set_lowblocknum(lowBlockNum);
   result.set_highblocknum(highBlockNum);
-
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dsblock : dsBlocks) {
@@ -7272,14 +7269,26 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
     bytes& dst, const unsigned int offset, const uint32_t portNo,
-    const uint64_t dsEpochNumber) {
+    const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
-  result.set_portno(portNo);
-  result.set_dsepochnumber(dsEpochNumber);
+  result.mutable_data()->set_portno(portNo);
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  if (!result.IsInitialized()) {
+  if (result.IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
     LOG_GENERAL(
         WARNING,
         "SetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
@@ -7290,21 +7299,35 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
 
 bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
     const bytes& src, const unsigned int offset, uint32_t& portNo,
-    uint64_t& dsEpochNumber) {
+    uint64_t& dsEpochNumber, PubKey& lookupPubKey) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.IsInitialized()) {
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "GetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
     return false;
   }
 
-  portNo = result.portno();
-  dsEpochNumber = result.dsepochnumber();
+  // First deserialize the fields needed just for signature check
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     lookupPubKey)) {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong.");
+    return false;
+  }
+
+  portNo = result.data().portno();
+  dsEpochNumber = result.data().dsepochnumber();
 
   return true;
 }
@@ -7395,10 +7418,10 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   return true;
 }
 
-bool Messenger::SetSeedNodeHistoricalDB(
-    bytes& dst, const unsigned int offset,
-    const PairOfKey& archivalKeys, const uint32_t code,
-    const string& path) {
+bool Messenger::SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
+                                        const PairOfKey& archivalKeys,
+                                        const uint32_t code,
+                                        const string& path) {
   SeedSetHistoricalDB result;
 
   result.mutable_data()->set_code(code);
