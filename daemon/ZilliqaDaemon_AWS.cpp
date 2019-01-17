@@ -37,18 +37,19 @@
 using namespace std;
 
 const vector<string> programName = {"zilliqa"};
-
 const string restart_zilliqa =
     "python /zilliqa/tests/Zilliqa/daemon_restart.py";
-
 const string proj_dir = "~/zilliqa-test";
+const string logName = "epochinfo-00001-log.txt";
+const string PRIVKEY_OPT = "--privk";
+const string PUBKEY_OPT = "--pubk";
+const string IP_OPT = "--address";
+const string PORT_OPT = "--port";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
-
-const string logName = "epochinfo-00001-log.txt";
 
 static uint32_t launchDelay = 0;
 
@@ -132,26 +133,50 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
           // Compare against requested process name
           if (procName == cmdLine) {
             result.push_back(id);
-            size_t pubkey_pos = fullLine.find('\0');
-            fullLine = fullLine.substr(pubkey_pos + 1);
-            size_t privkey_pos = fullLine.find('\0');
-            string publicKey = fullLine.substr(0, privkey_pos);
-            PubKey[id] = publicKey;
+            fullLine = fullLine.substr(fullLine.find('\0') + 1);
+            size_t space_pos;
 
-            fullLine = fullLine.substr(privkey_pos + 1);
-            size_t privkey_pos_end = fullLine.find('\0');
-            string privKey = fullLine.substr(0, privkey_pos_end);
+            while (!fullLine.empty() &&
+                   (string::npos != (space_pos = fullLine.find('\0')))) {
+              string token = fullLine.substr(0, space_pos);
+              fullLine = fullLine.substr(space_pos + 1);
 
-            PrivKey[id] = privKey;
+              if (token == PRIVKEY_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                PrivKey[id] = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
 
-            fullLine = fullLine.substr(privkey_pos_end + 1);
-            size_t ip_end = fullLine.find('\0');
-            string ip = fullLine.substr(0, ip_end);
+              if (token == PUBKEY_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                PubKey[id] = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
 
-            fullLine = fullLine.substr(ip_end + 1);
-            size_t port_end = fullLine.find('\0');
-            string port = fullLine.substr(0, port_end);
-            Port[id] = port;
+              if (token == IP_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                string ip = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
+
+              if (token == PORT_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                Port[id] = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
+            }
 
             Path[id] = path;
             log << " id: " << id << " Path: " << path << endl;
