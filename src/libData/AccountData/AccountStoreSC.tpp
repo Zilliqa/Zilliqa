@@ -388,13 +388,13 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
   }
 
   std::pair<Json::Value, Json::Value> roots;
-  if (!contract.GetStorageJson(roots)) {
+  uint32_t scilla_version;
+  if (!contract.GetStorageJson(roots, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
 
-  if (!PrepareRootPathWVersion(boost::lexical_cast<uint32_t>(
-          roots.first["_scilla_version"]["value"].asString()))) {
+  if (!PrepareRootPathWVersion(scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
     return false;
   }
@@ -431,13 +431,13 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   }
 
   std::pair<Json::Value, Json::Value> roots;
-  if (!contract.GetStorageJson(roots)) {
+  uint32_t scilla_version;
+  if (!contract.GetStorageJson(roots, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
 
-  if (!PrepareRootPathWVersion(boost::lexical_cast<uint32_t>(
-          roots.first["_scilla_version"]["value"].asString()))) {
+  if (!PrepareRootPathWVersion(scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
     return false;
   }

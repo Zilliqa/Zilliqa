@@ -104,7 +104,8 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Get the json formatted data of the states for a contract account
   bool GetContractStateJson(const dev::h160& address,
-                            std::pair<Json::Value, Json::Value>& roots);
+                            std::pair<Json::Value, Json::Value>& roots,
+                            uint32_t& scilla_version);
 
   /// Get the state hash of a contract account
   dev::h256 GetContractStateHash(const dev::h160& address);

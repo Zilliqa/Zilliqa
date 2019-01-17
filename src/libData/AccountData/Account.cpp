@@ -55,11 +55,13 @@ bool Account::isContract() const { return m_codeHash != dev::h256(); }
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum) {
-  // LOG_MARKER();
+  LOG_MARKER();
   if (!SetCode(code)) {
     LOG_GENERAL(WARNING, "SetCode failed");
     return false;
   }
+
+  SetAddress(addr);
 
   Json::Value initDataJson;
   if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson)) {
@@ -85,6 +87,13 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     writer->write(v["value"], &oss);
     string value = oss.str();
 
+    if (value.front() == '"') {
+      value.erase(0, 1);
+    }
+    if (value.back() == '"') {
+      value.erase(value.size() - 1);
+    }
+
     state_entries.push_back(std::make_tuple(vname, false, type, value));
   }
 
@@ -93,8 +102,6 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
     return false;
   }
-
-  SetAddress(addr);
 
   return true;
 }
@@ -282,7 +289,8 @@ Json::Value Account::GetStateJson() const {
   return roots.second;
 }
 
-bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots) const {
+bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
+                             uint32_t& scilla_version) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
                 "Not contract account, why call Account::GetStorageJson!");
@@ -290,8 +298,8 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots) const {
   }
 
   // Init, Other
-  if (!ContractStorage::GetContractStorage().GetContractStateJson(m_address,
-                                                                  roots)) {
+  if (!ContractStorage::GetContractStorage().GetContractStateJson(
+          m_address, roots, scilla_version)) {
     LOG_GENERAL(WARNING, "ContractStorage::GetContractStateJson failed");
     return false;
   }

@@ -43,6 +43,8 @@
 /// DB storing trie storage information for all accounts.
 // static OverlayDB contractStatesDB("contractStates");
 
+static uint32_t scilla_version_place_holder;
+
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
@@ -141,7 +143,9 @@ class Account : public SerializableDataBlock {
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
-  bool GetStorageJson(std::pair<Json::Value, Json::Value>& roots) const;
+  bool GetStorageJson(
+      std::pair<Json::Value, Json::Value>& roots,
+      uint32_t& scilla_version = scilla_version_place_holder) const;
 
   /// Computes an account address from a specified PubKey.
   static Address GetAddressFromPublicKey(const PubKey& pubKey);

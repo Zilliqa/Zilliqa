@@ -81,7 +81,6 @@ bool ContractStorage::PutContractState(const dev::h160& address,
                                        dev::h256& stateHash) {
   // LOG_MARKER();
   vector<pair<Index, bytes>> entries;
-  dev::RLPStream rlpStream(ITEMS_NUM);
   for (const auto& state : states) {
     Index index = GetNewIndex(address, std::get<VNAME>(state));
 
@@ -102,13 +101,16 @@ bool ContractStorage::PutContractState(
     dev::h256& stateHash) {
   LOG_MARKER();
 
-  vector<Index> new_entry_indexes;
+  vector<Index> entry_indexes = GetContractStateIndexes(address);
 
   unordered_map<string, string> batch;
 
   for (const auto& entry : entries) {
     // Append the new index to the existing indexes
-    new_entry_indexes.emplace_back(entry.first);
+    if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
+        entry_indexes.end()) {
+      entry_indexes.emplace_back(entry.first);
+    }
 
     batch.insert(
         {entry.first.hex(), DataConversion::CharArrayToString(entry.second)});
@@ -120,7 +122,7 @@ bool ContractStorage::PutContractState(
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, new_entry_indexes)) {
+  if (!SetContractStateIndexes(address, entry_indexes)) {
     // for (const auto& index : new_entry_indexes) {
     //   t_stateDataDB.DeleteKey(index.hex());
     // }
@@ -184,9 +186,11 @@ vector<string> ContractStorage::GetContractStatesData(
   for (const auto& index : indexes) {
     if (t_stateDataDB.Exists(index.hex())) {
       rawStates.push_back(t_stateDataDB.Lookup(index.hex()));
-      continue;
+    } else if (m_stateDataDB.Exists(index.hex())) {
+      rawStates.push_back(m_stateDataDB.Lookup(index.hex()));
+    } else {
+      rawStates.push_back("");
     }
-    rawStates.push_back(m_stateDataDB.Lookup(index.hex()));
   }
 
   return rawStates;
@@ -252,7 +256,8 @@ bool ContractStorage::CommitTempStateDB() {
 }
 
 bool ContractStorage::GetContractStateJson(
-    const dev::h160& address, pair<Json::Value, Json::Value>& roots) {
+    const dev::h160& address, pair<Json::Value, Json::Value>& roots,
+    uint32_t& scilla_version) {
   // LOG_MARKER();
   // iterate and deserialize the vector of raw protobuf string
   vector<string> rawStates = GetContractStatesData(address);
@@ -274,7 +279,6 @@ bool ContractStorage::GetContractStateJson(
 
     if (!hasScillaVersion && tVname == "_scilla_version" && tType == "Uint32" &&
         !tMutable) {
-      [[gnu::unused]] uint32_t scilla_version;
       try {
         scilla_version = boost::lexical_cast<uint32_t>(tValue);
       } catch (...) {
