@@ -1309,7 +1309,12 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
                         << microblock.GetBlockHash());
   unsigned int i = 0;
 
-  if (txblk == TxBlock()) {
+  // TODO
+  // Workaround to identify dummy block as == comparator does not work on
+  // empty object for TxBlock and TxBlockheader().
+  // if (txblk == TxBlock()) {
+  if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
     LOG_GENERAL(WARNING, "Failed to fetch Txblock");
     return false;
   }
@@ -1630,10 +1635,9 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
       // empty object for DSBlock and DSBlockheader().
       // if (!(m_mediator.m_dsBlockChain.GetBlock(
       //           dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
-      if (!(m_mediator.m_dsBlockChain
-                .GetBlock(dsblock.GetHeader().GetBlockNum())
-                .GetHeader()
-                .GetBlockNum() == INIT_BLOCK_NUMBER)) {
+      if (m_mediator.m_dsBlockChain.GetBlock(dsblock.GetHeader().GetBlockNum())
+              .GetHeader()
+              .GetBlockNum() != INIT_BLOCK_NUMBER) {
         continue;
       }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
