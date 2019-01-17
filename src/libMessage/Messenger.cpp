@@ -370,7 +370,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       protoAccount.base();
 
   if (!ProtobufToAccountBase(protoAccountBase, account)) {
-    LOG_GENERAL(WARNING, "ProtobufToBlockHeaderBase failed");
+    LOG_GENERAL(WARNING, "ProtobufToAccountBase failed");
     return false;
   }
 
@@ -486,7 +486,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       protoAccount.base();
 
   if (!ProtobufToAccountBase(protoAccountBase, accbase)) {
-    LOG_GENERAL(WARNING, "ProtobufToBlockHeaderBase failed");
+    LOG_GENERAL(WARNING, "ProtobufToAccountBase failed");
     return false;
   }
 
