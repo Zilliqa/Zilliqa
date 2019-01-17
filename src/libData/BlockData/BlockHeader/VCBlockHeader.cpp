@@ -70,7 +70,7 @@ bool VCBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-const uint64_t& VCBlockHeader::GetVieWChangeDSEpochNo() const {
+const uint64_t& VCBlockHeader::GetViewChangeDSEpochNo() const {
   return m_VieWChangeDSEpochNo;
 }
 

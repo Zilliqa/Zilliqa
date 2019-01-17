@@ -1678,7 +1678,7 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   BlockHeaderBaseToProtobuf(vcBlockHeader, *protoBlockHeaderBase);
 
   protoVCBlockHeader.set_viewchangedsepochno(
-      vcBlockHeader.GetVieWChangeDSEpochNo());
+      vcBlockHeader.GetViewChangeDSEpochNo());
   protoVCBlockHeader.set_viewchangeepochno(
       vcBlockHeader.GetViewChangeEpochNo());
   protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
