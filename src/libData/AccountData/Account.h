@@ -48,43 +48,19 @@ static uint32_t scilla_version_place_holder;
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
-class Account : public SerializableDataBlock {
+class AccountBase {
+ protected:
   uint32_t m_version;
   boost::multiprecision::uint128_t m_balance;
   uint64_t m_nonce;
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
-  // The associated code for this account.
-  bytes m_codeCache;
-  Address m_address;  // used by contract account only
-
-  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
-                           const uint64_t& blockNum, Json::Value& root);
-
-  AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
  public:
-  Account();
+  AccountBase() {}
 
-  /// Constructor for loading account information from a byte stream.
-  Account(const bytes& src, unsigned int offset);
-
-  /// Constructor for a account.
-  Account(const boost::multiprecision::uint128_t& balance,
-          const uint64_t& nonce, const uint32_t& version = ACCOUNT_VERSION);
-
-  /// Returns true if account is a contract account
-  bool isContract() const;
-
-  /// Parse the Immutable Data at Constract Initialization Stage
-  bool InitContract(const bytes& code, const bytes& initData,
-                    const Address& addr, const uint64_t& blockNum);
-
-  /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
-
-  /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  AccountBase(const boost::multiprecision::uint128_t& balance,
+              const uint64_t& nonce, const uint32_t& version);
 
   void SetVersion(const uint32_t& version);
 
@@ -103,22 +79,71 @@ class Account : public SerializableDataBlock {
   /// Returns the account balance.
   const boost::multiprecision::uint128_t& GetBalance() const;
 
-  /// Increases account nonce by 1.
-  bool IncreaseNonce();
-
-  bool IncreaseNonceBy(const uint64_t& nonceDelta);
-
   void SetNonce(const uint64_t& nonce);
 
   /// Returns the account nonce.
   const uint64_t& GetNonce() const;
 
-  void SetStorageRoot(const dev::h256& root);
+  /// Increases account nonce by 1.
+  bool IncreaseNonce();
 
-  void SetAddress(const Address& addr);
+  bool IncreaseNonceBy(const uint64_t& nonceDelta);
+
+  void SetStorageRoot(const dev::h256& root);
 
   /// Returns the storage root.
   const dev::h256& GetStorageRoot() const;
+
+  void SetCodeHash(const dev::h256& codeHash);
+
+  /// Returns the code hash.
+  const dev::h256& GetCodeHash() const;
+
+  /// Returns true if account is a contract account
+  bool isContract() const;
+
+  friend inline std::ostream& operator<<(std::ostream& out,
+                                         AccountBase const& account);
+};
+
+inline std::ostream& operator<<(std::ostream& out,
+                                AccountBase const& accountbase) {
+  out << accountbase.GetBalance() << " " << accountbase.GetNonce() << " "
+      << accountbase.GetStorageRoot() << " " << accountbase.GetCodeHash();
+  return out;
+}
+
+class Account : public SerializableDataBlock, public AccountBase {
+  // The associated code for this account.
+  bytes m_codeCache;
+  Address m_address;  // used by contract account only
+
+  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
+                           const uint64_t& blockNum, Json::Value& root);
+
+  AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
+
+ public:
+  Account() {}
+
+  /// Constructor for loading account information from a byte stream.
+  Account(const bytes& src, unsigned int offset);
+
+  /// Constructor for a account.
+  Account(const boost::multiprecision::uint128_t& balance,
+          const uint64_t& nonce, const uint32_t& version = ACCOUNT_VERSION);
+
+  /// Parse the Immutable Data at Constract Initialization Stage
+  bool InitContract(const bytes& code, const bytes& initData,
+                    const Address& addr, const uint64_t& blockNum);
+
+  /// Implements the Serialize function inherited from Serializable.
+  bool Serialize(bytes& dst, unsigned int offset) const;
+
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const bytes& src, unsigned int offset);
+
+  void SetAddress(const Address& addr);
 
   /// Set the code
   bool SetCode(const bytes& code);
@@ -126,9 +151,6 @@ class Account : public SerializableDataBlock {
   const bytes GetCode() const;
 
   void CleanCodeCache();
-
-  /// Returns the code hash.
-  const dev::h256& GetCodeHash() const;
 
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries);
@@ -153,15 +175,6 @@ class Account : public SerializableDataBlock {
   /// Computes an account address from a sender and its nonce
   static Address GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce);
-
-  friend inline std::ostream& operator<<(std::ostream& out,
-                                         Account const& account);
 };
-
-inline std::ostream& operator<<(std::ostream& out, Account const& account) {
-  out << account.m_balance << " " << account.m_nonce << " "
-      << account.m_storageRoot << " " << account.m_codeHash;
-  return out;
-}
 
 #endif  // __ACCOUNT_H__
