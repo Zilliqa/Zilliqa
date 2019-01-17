@@ -89,7 +89,7 @@ class SWInfo : public Serializable {
 
   static void LogBrand() {
     std::cout
-        << "Copyright (C) Zilliqa. Version 3.2.2 (Durian - Mao Shan Wang). "
+        << "Copyright (C) Zilliqa. Version 4.0.0 (Durian - Mao Shan Wang). "
            "<https://www.zilliqa.com/> "
         << std::endl;
   }
