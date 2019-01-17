@@ -1903,7 +1903,7 @@ bool ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber, const bytes& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey) {
+    const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   // Set the consensus parameters
@@ -3256,7 +3256,7 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
 // ============================================================================
 
 bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
-                           const pair<PrivKey, PubKey>& key,
+                           const PairOfKey& key,
                            const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -3327,7 +3327,7 @@ bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
 bool Messenger::SetDSPoWSubmission(
     bytes& dst, const unsigned int offset, const uint64_t blockNumber,
     const uint8_t difficultyLevel, const Peer& submitterPeer,
-    const pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
+    const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
     const uint32_t& lookupId, const uint128_t& gasPrice) {
   LOG_MARKER();
@@ -3420,7 +3420,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
     const vector<DSPowSolution>& dsPowSolutions,
-    const pair<PrivKey, PubKey>& keys) {
+    const PairOfKey& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
@@ -3576,7 +3576,7 @@ bool Messenger::GetDSMicroBlockSubmission(
 bool Messenger::SetDSDSBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
+    const PairOfKey& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs, bytes& messageToCosign) {
   LOG_MARKER();
@@ -3720,7 +3720,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 bool Messenger::SetDSFinalBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    const PairOfKey& leaderKey, const TxBlock& txBlock,
     const shared_ptr<MicroBlock>& microBlock, bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -3821,7 +3821,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 bool Messenger::SetDSVCBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const VCBlock& vcBlock,
+    const PairOfKey& leaderKey, const VCBlock& vcBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4265,7 +4265,7 @@ bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
 bool Messenger::SetNodeMicroBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const MicroBlock& microBlock,
+    const PairOfKey& leaderKey, const MicroBlock& microBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4351,7 +4351,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 bool Messenger::SetNodeFallbackBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const FallbackBlock& fallbackBlock,
+    const PairOfKey& leaderKey, const FallbackBlock& fallbackBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -6260,7 +6260,7 @@ bool Messenger::SetConsensusCommit(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
     const CommitPoint& commitPoint, const CommitPointHash& commitPointHash,
-    const pair<PrivKey, PubKey>& backupKey) {
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -6395,7 +6395,7 @@ bool Messenger::SetConsensusChallenge(
     const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
     const uint16_t leaderID, const CommitPoint& aggregatedCommit,
     const PubKey& aggregatedKey, const Challenge& challenge,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -6530,7 +6530,7 @@ bool Messenger::SetConsensusResponse(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
     const uint16_t backupID, const Response& response,
-    const pair<PrivKey, PubKey>& backupKey) {
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6659,7 +6659,7 @@ bool Messenger::SetConsensusCollectiveSig(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
     const Signature& collectiveSig, const vector<bool>& bitmap,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusCollectiveSig result;
@@ -6788,7 +6788,7 @@ bool Messenger::GetConsensusCollectiveSig(
 bool Messenger::SetConsensusCommitFailure(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
-    const bytes& errorMsg, const pair<PrivKey, PubKey>& backupKey) {
+    const bytes& errorMsg, const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -6914,7 +6914,7 @@ bool Messenger::GetConsensusCommitFailure(
 bool Messenger::SetConsensusConsensusFailure(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusConsensusFailure result;
@@ -7195,7 +7195,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
     const Peer& dsGuardNewNetworkInfo, const uint64_t timestamp,
-    const pair<PrivKey, PubKey>& dsguardkey) {
+    const PairOfKey& dsguardkey) {
   LOG_MARKER();
   DSLookupSetDSGuardNetworkInfoUpdate result;
 
@@ -7397,7 +7397,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
 
 bool Messenger::SetSeedNodeHistoricalDB(
     bytes& dst, const unsigned int offset,
-    const pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
+    const PairOfKey& archivalKeys, const uint32_t code,
     const string& path) {
   SeedSetHistoricalDB result;
 
