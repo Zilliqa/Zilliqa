@@ -3,4 +3,4 @@ protobuf_generate_cpp(PROTO_SRC PROTO_HEADER ServerRequest.proto ServerResponse.
 add_library(ProtoServer ${PROTO_HEADER} ${PROTO_SRC} Server.cpp)
 target_compile_options(ProtoServer PRIVATE "-Wno-unused-parameter")
 target_include_directories(ProtoServer PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src/libProtoServer ${CMAKE_BINARY_DIR}/src/libMessage)
-target_link_libraries (ProtoServer PUBLIC ${PROTOBUF_LIBRARY} AccountData Messenger)
+target_link_libraries (ProtoServer PUBLIC ${PROTOBUF_LIBRARY} AccountData)
