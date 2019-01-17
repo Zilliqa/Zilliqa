@@ -81,16 +81,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::string GetCallContractCmdStr(const std::string& root_w_version,
                                     const uint64_t& available_gas);
 
-  bool PrepareRootPathWVersion(std::string& root_w_version,
-                               const uint32_t& scilla_version);
+  bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
   // Generate input for interpreter to check the correctness of contract
-  void ExportCreateContractFiles(const Account& contract);
+  bool ExportCreateContractFiles(const Account& contract);
 
-  void ExportContractFiles(const Account& contract);
+  bool ExportContractFiles(const Account& contract);
   bool ExportCallContractFiles(const Account& contract,
                                const Transaction& transaction);
-  void ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(const Account& contract,
                                const Json::Value& contractData);
 
   bool TransferBalanceAtomic(const Address& from, const Address& to,

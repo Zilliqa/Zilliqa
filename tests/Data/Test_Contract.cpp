@@ -422,14 +422,14 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
 
   // Fetch the states of both ping and pong and verify "count" is 0.
-  Json::Value pingState = accountPing->GetStorageJson();
+  Json::Value pingState = accountPing->GetStateJson();
   int pingCount = -1;
   for (auto& it : pingState) {
     if (it["vname"] == "count") {
       pingCount = atoi(it["value"].asCString());
     }
   }
-  Json::Value pongState = accountPing->GetStorageJson();
+  Json::Value pongState = accountPing->GetStateJson();
   int pongCount = -1;
   for (auto& it : pongState) {
     if (it["vname"] == "count") {
@@ -1269,7 +1269,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     // - sender's balance should have decreased, because the DEX contract will
     // have taken custody of the token.
     // - there should be an additional order in simple-dex.
-    Json::Value token1State = token1Account->GetStorageJson();
+    Json::Value token1State = token1Account->GetStateJson();
     for (auto& s : token1State) {
       if (s["vname"] == "balances") {
         for (auto& hodl : s["value"]) {
@@ -1286,7 +1286,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
     LOG_GENERAL(INFO, "New order ID = " << id);
 
-    Json::Value simpleDexState = dexAccount->GetStorageJson();
+    Json::Value simpleDexState = dexAccount->GetStateJson();
     bool hasNewOrder = false;
 
     for (auto& s : simpleDexState) {

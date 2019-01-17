@@ -433,7 +433,7 @@ Json::Value Server::GetSmartContractState(const string& address) {
                              "Address does not exist");
     }
 
-    return account->GetStorageJson();
+    return account->GetStateJson();
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -552,7 +552,7 @@ Json::Value Server::GetSmartContracts(const string& address) {
 
       Json::Value tmpJson;
       tmpJson["address"] = contractAddr.hex();
-      tmpJson["state"] = contractAccount->GetStorageJson();
+      tmpJson["state"] = GetSmartContractState(contractAddr.hex());
 
       _json.append(tmpJson);
     }

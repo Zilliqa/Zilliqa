@@ -89,9 +89,6 @@ class Server {
   ZilliqaMessage::GetSmartContractStateResponse GetSmartContractState(
       ZilliqaMessage::ProtoAddress& protoAddress);
 
-  ZilliqaMessage::GetSmartContractInitResponse GetSmartContractInit(
-      ZilliqaMessage::ProtoAddress& protoAddress);
-
   ZilliqaMessage::GetSmartContractCodeResponse GetSmartContractCode(
       ZilliqaMessage::ProtoAddress& protoAddress);
 
