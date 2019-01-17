@@ -164,7 +164,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // Check is block latest
   if (!m_mediator.CheckWhetherBlockIsLatest(
-          vcblock.GetHeader().GetVieWChangeDSEpochNo(),
+          vcblock.GetHeader().GetViewChangeDSEpochNo(),
           vcblock.GetHeader().GetViewChangeEpochNo())) {
     LOG_GENERAL(WARNING, "ProcessVCBlockCore CheckWhetherBlockIsLatest failed");
     return false;
@@ -224,7 +224,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
   m_mediator.m_blocklinkchain.AddBlockLink(
-      latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
+      latestInd, vcblock.GetHeader().GetViewChangeDSEpochNo(), BlockType::VC,
       vcblock.GetBlockHash());
 
   bytes dst;
@@ -237,6 +237,18 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   }
 
   UpdateDSCommiteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_STATE("[VCBLK] DS = " << vcblock.GetHeader().GetViewChangeDSEpochNo()
+                              << " Tx = "
+                              << vcblock.GetHeader().GetViewChangeEpochNo());
+    LOG_STATE("[VCBLK] Leader = " << vcblock.GetHeader()
+                                         .GetCandidateLeaderNetworkInfo()
+                                         .GetPrintableIPAddress());
+    for (const auto& faulty : vcblock.GetHeader().GetFaultyLeaders()) {
+      LOG_STATE("[VCBLK] Faulty = " << faulty.second.GetPrintableIPAddress());
+    }
+  }
 
   return true;
 }
