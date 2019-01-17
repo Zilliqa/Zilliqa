@@ -75,11 +75,6 @@ BOOST_AUTO_TEST_CASE(testInit) {
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
   acc1.InitContract({'s'}, data, Address(), 0);
-
-  BOOST_CHECK_EQUAL(std::to_string(0),
-                    acc1.GetInitJson()["_creation_block"]["value"].asString());
-  BOOST_CHECK_EQUAL(std::to_string(0),
-                    acc1.GetInitJson()["_scilla_version"]["value"].asString());
 }
 
 BOOST_AUTO_TEST_CASE(testStorage) {

@@ -87,13 +87,6 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     writer->write(v["value"], &oss);
     string value = oss.str();
 
-    if (value.front() == '"') {
-      value.erase(0, 1);
-    }
-    if (value.back() == '"') {
-      value.erase(value.size() - 1);
-    }
-
     state_entries.push_back(std::make_tuple(vname, false, type, value));
   }
 

@@ -697,7 +697,28 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
   protoStateData.set_vname(std::get<Contract::VNAME>(entry));
   protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
   protoStateData.set_type(std::get<Contract::TYPE>(entry));
-  protoStateData.set_value(std::get<Contract::VALUE>(entry));
+
+  string value = std::get<Contract::VALUE>(entry);
+  if (value.front() == '"') {
+    value.erase(0, 1);
+  }
+  if (value.back() == '"') {
+    value.erase(value.size() - 1);
+  }
+  value.erase(std::remove_if(value.begin(), value.end(),
+                             [](char c) {
+                               switch (c) {
+                                 case '\t':
+                                 case ' ':
+                                 case '\n':
+                                   return true;
+                                 default:
+                                   return false;
+                               }
+                             }),
+              value.end());
+
+  protoStateData.set_value(value);
 }
 
 bool ProtobufToStateData(const ProtoStateData& protoStateData,
