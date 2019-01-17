@@ -180,7 +180,7 @@ class Messenger {
   static bool SetStateData(bytes& dst, const unsigned int offset,
                            const Contract::StateEntry& entry);
   static bool GetStateData(const bytes& src, const unsigned int offset,
-                           Contract::StateEntry& entry);
+                           Contract::StateEntry& entry, uint32_t& version);
 
   static bool SetPeer(bytes& dst, const unsigned int offset, const Peer& peer);
   static bool GetPeer(const bytes& src, const unsigned int offset, Peer& peer);

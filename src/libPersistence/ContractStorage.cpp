@@ -266,10 +266,19 @@ bool ContractStorage::GetContractStateJson(
   pair<Json::Value, Json::Value> t_roots;
   for (const auto& rawState : rawStates) {
     StateEntry entry;
+    uint32_t version;
     if (!Messenger::GetStateData(bytes(rawState.begin(), rawState.end()), 0,
-                                 entry)) {
+                                 entry, version)) {
       LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
       continue;
+    }
+
+    if (version != CONTRACT_STATE_VERSION) {
+      LOG_GENERAL(WARNING, "state data version "
+                               << version
+                               << " is not match to CONTRACT_STATE_VERSION "
+                               << CONTRACT_STATE_VERSION);
+      return false;
     }
 
     string tVname = std::get<VNAME>(entry);

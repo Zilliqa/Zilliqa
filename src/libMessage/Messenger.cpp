@@ -661,6 +661,7 @@ bool ProtobufToStateIndex(const ProtoStateIndex& protoStateIndex,
 
 void StateDataToProtobuf(const Contract::StateEntry& entry,
                          ProtoStateData& protoStateData) {
+  protoStateData.set_version(CONTRACT_STATE_VERSION);
   protoStateData.set_vname(std::get<Contract::VNAME>(entry));
   protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
   protoStateData.set_type(std::get<Contract::TYPE>(entry));
@@ -689,11 +690,13 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
 }
 
 bool ProtobufToStateData(const ProtoStateData& protoStateData,
-                         Contract::StateEntry& indexes) {
+                         Contract::StateEntry& indexes, uint32_t& version) {
   if (!CheckRequiredFieldsProtoStateData(protoStateData)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoStateData failed.");
     return false;
   }
+
+  version = protoStateData.version();
 
   indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
                             protoStateData.type(), protoStateData.value());
@@ -3022,7 +3025,7 @@ bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
-                             Contract::StateEntry& entry) {
+                             Contract::StateEntry& entry, uint32_t& version) {
   ProtoStateData result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -3032,7 +3035,7 @@ bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  return ProtobufToStateData(result, entry);
+  return ProtobufToStateData(result, entry, version);
 }
 
 bool Messenger::SetPeer(bytes& dst, const unsigned int offset,
