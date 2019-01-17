@@ -17,6 +17,7 @@
 #include <chrono>
 
 #include <boost/filesystem.hpp>
+#include <chrono>
 
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -30,6 +31,7 @@ const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
+  m_txnProcessTimeout = false;
 }
 
 template <class MAP>
@@ -41,6 +43,7 @@ void AccountStoreSC<MAP>::Init() {
   m_curAmount = 0;
   m_curGasLimit = 0;
   m_curGasPrice = 0;
+  m_txnProcessTimeout = false;
 }
 
 template <class MAP>
@@ -50,9 +53,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
   // LOG_MARKER();
-  m_curIsDS = isDS;
-
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+
+  m_curIsDS = isDS;
+  m_txnProcessTimeout = false;
 
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -171,21 +175,79 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     // Undergo scilla checker
     bool ret_checker = true;
     std::string checkerPrint;
-    if (ret && !SysCommand::ExecuteCmdWithOutput(
-                   GetContractCheckerCmdStr(m_root_w_version), checkerPrint)) {
+    if (ret) {
+      int pid = -1;
+      auto func1 = [this, &checkerPrint, &ret_checker, &pid]() mutable -> void {
+        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
+                                    GetContractCheckerCmdStr(m_root_w_version),
+                                    checkerPrint, pid)) {
+          LOG_GENERAL(WARNING,
+                      "ExecuteCmd failed: "
+                          << GetContractCheckerCmdStr(m_root_w_version));
+          ret_checker = false;
+        }
+        cv_callContract.notify_all();
+      };
+      DetachedFunction(1, func1);
+
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
+
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(
+            WARNING,
+            "Txn processing timeout! Interrupt current contract check, pid: "
+                << pid);
+        if (pid >= 0) {
+          kill(-pid, SIGKILL);
+        }
+        ret_checker = false;
+      }
+    } else {
       ret_checker = false;
     }
+
     if (ret && ret_checker && !ParseContractCheckerOutput(checkerPrint)) {
       ret_checker = false;
     }
 
     // Undergo scilla runner
     std::string runnerPrint;
-    if (ret && !SysCommand::ExecuteCmdWithOutput(
-                   GetCreateContractCmdStr(m_root_w_version, gasRemained),
-                   runnerPrint)) {
-      ret = false;
+    if (ret) {
+      int pid = -1;
+      auto func2 = [this, &runnerPrint, &ret, &pid,
+                    gasRemained]() mutable -> void {
+        if (!SysCommand::ExecuteCmd(
+                SysCommand::WITH_OUTPUT_PID,
+                GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                runnerPrint, pid)) {
+          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCreateContractCmdStr(
+                                   m_root_w_version, gasRemained));
+          ret = false;
+        }
+        cv_callContract.notify_all();
+      };
+      DetachedFunction(1, func2);
+
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
+
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(WARNING,
+                    "Txn processing timeout! Interrupt current contract "
+                    "deployment, pid: "
+                        << pid);
+        if (pid >= 0) {
+          kill(-pid, SIGKILL);
+        }
+        ret = false;
+      }
     }
+
     if (ret && !ParseCreateContract(gasRemained, runnerPrint)) {
       ret = false;
     }
@@ -287,7 +349,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    bool ret = true;
     m_curGasLimit = transaction.GetGasLimit();
     m_curGasPrice = transaction.GetGasPrice();
     m_curContractAddr = toAddr;
@@ -299,10 +360,39 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       tpStart = r_timer_start();
     }
+
     std::string runnerPrint;
-    if (ret && !SysCommand::ExecuteCmdWithOutput(
-                   GetCallContractCmdStr(m_root_w_version, gasRemained),
-                   runnerPrint)) {
+    bool ret = true;
+    int pid = -1;
+
+    auto func = [this, &runnerPrint, &ret, &pid,
+                 gasRemained]() mutable -> void {
+      if (!SysCommand::ExecuteCmd(
+              SysCommand::WITH_OUTPUT_PID,
+              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
+              pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                 m_root_w_version, gasRemained));
+        ret = false;
+      }
+      cv_callContract.notify_all();
+    };
+
+    DetachedFunction(1, func);
+
+    {
+      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+      cv_callContract.wait(lk);
+    }
+
+    if (m_txnProcessTimeout) {
+      LOG_GENERAL(
+          WARNING,
+          "Txn processing timeout! Interrupt current contract call, pid: "
+              << pid);
+      if (pid >= 0) {
+        kill(-pid, SIGKILL);
+      }
       ret = false;
     }
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -908,17 +998,51 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
 
   std::string runnerPrint;
+  bool result = true;
+  int pid = -1;
+  auto func = [this, &runnerPrint, &result, &pid,
+               gasRemained]() mutable -> void {
+    if (!SysCommand::ExecuteCmd(
+            SysCommand::WITH_OUTPUT_PID,
+            GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
+            pid)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                               m_root_w_version, gasRemained));
+      result = false;
+    }
+    cv_callContract.notify_all();
+  };
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
   }
-  if (!SysCommand::ExecuteCmdWithOutput(
-          GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint)) {
-    return false;
+
+  DetachedFunction(1, func);
+
+  {
+    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+    cv_callContract.wait(lk);
   }
+
+  if (m_txnProcessTimeout) {
+    LOG_GENERAL(WARNING,
+                "Txn processing timeout! Interrupt current contract call, pid: "
+                    << pid);
+    if (pid >= 0) {
+      kill(-pid, SIGKILL);
+    }
+    result = false;
+  }
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
                                    << r_timer_end(tpStart) << " microseconds");
   }
+
+  if (!result) {
+    return false;
+  }
+
   Address t_address = m_curContractAddr;
   m_curContractAddr = recipient;
   if (!ParseCallContract(gasRemained, runnerPrint)) {
@@ -957,4 +1081,11 @@ template <class MAP>
 void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::NotifyTimeout() {
+  LOG_MARKER();
+  m_txnProcessTimeout = true;
+  cv_callContract.notify_all();
 }

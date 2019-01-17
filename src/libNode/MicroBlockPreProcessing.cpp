@@ -253,6 +253,22 @@ bool Node::OnCommitFailure([
   return true;
 }
 
+void Node::NotifyTimeout(bool& txnProcTimeout) {
+  int timeout_time = std::max(
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT) /
+             2);
+  LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
+                        << timeout_time << " seconds");
+  unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+  if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
+      cv_status::timeout) {
+    txnProcTimeout = true;
+    AccountStore::GetInstance().NotifyTimeout();
+  }
+}
+
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
@@ -262,6 +278,14 @@ void Node::ProcessTransactionWhenShardLeader() {
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
   m_TxnOrder.clear();
+
+  bool txnProcTimeout = false;
+
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+    NotifyTimeout(txnProcTimeout);
+  };
+
+  DetachedFunction(1, txnProcTimer);
 
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
@@ -294,6 +318,10 @@ void Node::ProcessTransactionWhenShardLeader() {
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+    if (txnProcTimeout) {
+      break;
+    }
+
     Transaction t;
     TransactionReceipt tr;
 
@@ -395,6 +423,8 @@ void Node::ProcessTransactionWhenShardLeader() {
       break;
     }
   }
+
+  cv_TxnProcFinished.notify_all();
   // Put txns in map back into pool
   for (const auto& kv : t_addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
@@ -460,6 +490,14 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
 
+  bool txnProcTimeout = false;
+
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+    NotifyTimeout(txnProcTimeout);
+  };
+
+  DetachedFunction(1, txnProcTimer);
+
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
          std::map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap)
@@ -493,6 +531,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+    if (txnProcTimeout) {
+      break;
+    }
+
     Transaction t;
     TransactionReceipt tr;
 
@@ -578,8 +620,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  // Put remaining txns back in pool
+  cv_TxnProcFinished.notify_all();
 
+  // Put remaining txns back in pool
   for (const auto& kv : t_addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
