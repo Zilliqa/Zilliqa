@@ -282,7 +282,8 @@ bool ContractStorage::GetContractStateJson(
       try {
         scilla_version = boost::lexical_cast<uint32_t>(tValue);
       } catch (...) {
-        LOG_GENERAL(WARNING, "_scilla_version is not a number");
+        LOG_GENERAL(WARNING,
+                    "_scilla_version " << tValue << " is not a number");
         return false;
       }
 

@@ -516,7 +516,8 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
   }
 
   if (!boost::filesystem::exists(m_root_w_version)) {
-    LOG_GENERAL(WARNING, "Folder for desired version doesn't exists");
+    LOG_GENERAL(WARNING, "Folder for desired version (" << m_root_w_version
+                                                        << ") doesn't exists");
     return false;
   }
 
