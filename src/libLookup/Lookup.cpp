@@ -836,7 +836,12 @@ bool Lookup::ProcessEntireShardingStructure() {
 
 bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  //#ifndef IS_LOOKUP_NODE
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessSetLookupOnline not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -881,8 +886,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   Peer requestingNode(ipAddr, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
-  //#endif // IS_LOOKUP_NODE
-
   return true;
 }
 
@@ -911,7 +914,12 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
 // highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
-  //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetDSBlockFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -947,8 +955,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
-
-  //#endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -1019,6 +1025,13 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
 bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                      const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetStateFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
+
   LOG_MARKER();
 
   uint32_t portNo = 0;
@@ -1042,7 +1055,6 @@ bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
   }
 
   P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
-  // #endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -1053,7 +1065,12 @@ bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
 // highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
-  // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetTxBlockFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -1088,8 +1105,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
-
-  // #endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -1159,6 +1174,14 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
 bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::ProcessGetStateDeltaFromSeed not expected to be called "
+        "from other than the LookUp node.");
+    return true;
+  }
+
   LOG_MARKER();
 
   uint64_t blockNum = 0;
@@ -2894,11 +2917,18 @@ bool Lookup::GetOfflineLookupNodes() {
 bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
                                                unsigned int offset,
                                                const Peer& from) {
-  uint64_t index_num;
-  uint32_t portNo;
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::ProcessGetDirectoryBlocksFromSeed not expected to be called "
+        "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
+  uint64_t index_num;
+  uint32_t portNo;
   if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
                                                       index_num)) {
     LOG_GENERAL(WARNING,
