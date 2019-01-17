@@ -838,7 +838,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Lookup::ProcessSetLookupOnline not expected to be called "
+                "Lookup::ProcessGetDSInfoFromSeed not expected to be called "
                 "from other than the LookUp node.");
     return true;
   }
