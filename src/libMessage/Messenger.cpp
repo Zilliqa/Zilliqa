@@ -291,6 +291,29 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
          protoBlockHeaderBase.has_prevhash();
 }
 
+inline bool CheckRequiredFieldsProtoAccountDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_version() && protoAccount.has_balance() &&
+         protoAccount.has_nonce() && protoAccount.has_storageroot();
+}
+
+inline bool CheckRequiredFieldsProtoAccountContract(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_codehash() && protoAccount.has_createblocknum() &&
+         protoAccount.has_initdata() && protoAccount.has_code();
+}
+
+inline bool CheckRequiredFieldsProtoAccountDeltaDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_version() && protoAccount.has_numbersign() &&
+         protoAccount.has_balance() && protoAccount.has_nonce();
+}
+
+inline bool CheckRequiredFieldsProtoAccountDeltaContractDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_storageroot();
+}
+
 inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
   return protoStateData.has_vname() && protoStateData.has_ismutable() &&
@@ -302,6 +325,7 @@ inline bool CheckRequiredFieldsProtoStateData(
 // ============================================================================
 
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
+  protoAccount.set_version(account.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       account.GetBalance(), *protoAccount.mutable_balance());
   protoAccount.set_nonce(account.GetNonce());
@@ -326,8 +350,14 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr) {
-  uint128_t tmpNumber;
+  if (!CheckRequiredFieldsProtoAccountDefault(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountDefault failed.");
+    return false;
+  }
 
+  account.SetVersion(protoAccount.version());
+
+  uint128_t tmpNumber;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
   account.SetBalance(tmpNumber);
@@ -340,7 +370,12 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                (unsigned int)tmpStorageRoot.size),
        tmpStorageRoot.asArray().begin());
 
-  if (protoAccount.code().size() > 0) {
+  if (protoAccount.has_code() && protoAccount.code().size() > 0) {
+    if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
+      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed.");
+      return false;
+    }
+
     bytes tmpVec;
     tmpVec.resize(protoAccount.code().size());
     copy(protoAccount.code().begin(), protoAccount.code().end(),
@@ -354,18 +389,9 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
     }
 
     if (account.GetCodeHash() != tmpHash) {
-      std::string codehashStr, tmphashStr;
-      if (!DataConversion::charArrToHexStr(account.GetCodeHash().asArray(),
-                                           codehashStr)) {
-        return false;
-      }
-
-      if (!DataConversion::charArrToHexStr(tmpHash.asArray(), tmphashStr)) {
-        return false;
-      }
-
       LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
-                               << codehashStr << " Actual: " << tmphashStr);
+                               << account.GetCodeHash().hex()
+                               << " Actual: " << tmpHash.hex());
       return false;
     }
 
@@ -434,6 +460,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
     fullCopy = true;
   }
 
+  protoAccount.set_version(newAccount.GetVersion());
+
   int256_t balanceDelta =
       int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
   protoAccount.set_numbersign(balanceDelta > 0);
@@ -457,15 +485,18 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
       protoAccount.set_initdata(newAccount.GetInitData().data(),
                                 newAccount.GetInitData().size());
       protoAccount.set_createblocknum(newAccount.GetCreateBlockNum());
+      protoAccount.set_codehash(newAccount.GetCodeHash().data(),
+                                newAccount.GetCodeHash().size);
     }
 
-    if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
+    if (fullCopy ||
+        newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       protoAccount.set_storageroot(newAccount.GetStorageRoot().data(),
                                    newAccount.GetStorageRoot().size);
 
       for (const auto& keyHash : newAccount.GetStorageKeyHashes()) {
         string rlpStr = newAccount.GetRawStorage(keyHash);
-        if (rlpStr != oldAccount->GetRawStorage(keyHash)) {
+        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash)) {
           ProtoAccount::StorageData* entry = protoAccount.add_storage();
           entry->set_keyhash(keyHash.data(), keyHash.size);
           entry->set_data(rlpStr);
@@ -477,6 +508,18 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                             const Address& addr, const bool fullCopy) {
+  if (!CheckRequiredFieldsProtoAccountDeltaDefault(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountDeltaDefault failed");
+    return false;
+  }
+
+  if (protoAccount.version() != ACCOUNT_VERSION) {
+    LOG_GENERAL(WARNING, "Account delta version doesn't match, expected "
+                             << ACCOUNT_VERSION << " received "
+                             << protoAccount.version());
+    return false;
+  }
+
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -493,6 +536,16 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     bool doInitContract = false;
 
     if (fullCopy) {
+      if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
+        LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed");
+        return false;
+      }
+      if (!CheckRequiredFieldsProtoAccountDeltaContractDefault(protoAccount)) {
+        LOG_GENERAL(
+            WARNING,
+            "CheckRequiredFieldsProtoAccountDeltaContractDefault failed");
+        return false;
+      }
       bytes tmpVec;
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
@@ -506,6 +559,19 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
            tmpVec.begin());
       if (tmpVec != account.GetCode()) {
         account.SetCode(tmpVec);
+      }
+
+      dev::h256 tmpHash;
+      if (!Messenger::CopyWithSizeCheck(protoAccount.codehash(),
+                                        tmpHash.asArray())) {
+        return false;
+      }
+
+      if (account.GetCodeHash() != tmpHash) {
+        LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
+                                 << account.GetCodeHash().hex()
+                                 << " Actual: " << tmpHash.hex());
+        return false;
       }
 
       if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
@@ -3148,7 +3214,7 @@ bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
                                   const uint32_t& shardingStructureVersion,
                                   const DequeOfShard& shards,
                                   const uint32_t& dsCommitteeVersion,
-                                  const DequeOfDSNode& dsCommittee) {
+                                  const DequeOfNode& dsCommittee) {
   ProtoDiagnosticData result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
@@ -3168,7 +3234,7 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
                                   uint32_t& shardingStructureVersion,
                                   DequeOfShard& shards,
                                   uint32_t& dsCommitteeVersion,
-                                  DequeOfDSNode& dsCommittee) {
+                                  DequeOfNode& dsCommittee) {
   ProtoDiagnosticData result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -5115,127 +5181,6 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetTxBodyFromSeed(bytes& dst,
-                                           const unsigned int offset,
-                                           const bytes& txHash,
-                                           const uint32_t listenPort) {
-  LOG_MARKER();
-
-  LookupGetTxBodyFromSeed result;
-
-  result.set_txhash(txHash.data(), txHash.size());
-  result.set_listenport(listenPort);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupGetTxBodyFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           TxnHash& txHash,
-                                           uint32_t& listenPort) {
-  LOG_MARKER();
-
-  LookupGetTxBodyFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    return false;
-  }
-
-  listenPort = result.listenport();
-
-  return true;
-}
-
-bool Messenger::SetLookupSetTxBodyFromSeed(
-    bytes& dst, const unsigned int offset, const TxnHash& txHash,
-    const TransactionWithReceipt& txBody) {
-  LOG_MARKER();
-
-  LookupSetTxBodyFromSeed result;
-
-  result.set_txhash(txHash.data(), txHash.size);
-  SerializableToProtobufByteArray(txBody, *result.mutable_txbody());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetTxBodyFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           TxnHash& txHash,
-                                           TransactionWithReceipt& txBody) {
-  LOG_MARKER();
-
-  LookupSetTxBodyFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    return false;
-  }
-
-  ProtobufByteArrayToSerializable(result.txbody(), txBody);
-
-  return true;
-}
-
-bool Messenger::SetLookupSetNetworkIDFromSeed(bytes& dst,
-                                              const unsigned int offset,
-                                              const string& networkID) {
-  LOG_MARKER();
-
-  LookupSetNetworkIDFromSeed result;
-
-  result.set_networkid(networkID);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetNetworkIDFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetNetworkIDFromSeed(const bytes& src,
-                                              const unsigned int offset,
-                                              string& networkID) {
-  LOG_MARKER();
-
-  LookupSetNetworkIDFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetNetworkIDFromSeed initialization failed.");
-    return false;
-  }
-
-  networkID = result.networkid();
-
-  return true;
-}
-
 bool Messenger::SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
                                           const uint32_t listenPort) {
   LOG_MARKER();
@@ -5337,12 +5282,32 @@ bool Messenger::GetLookupSetStateFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
-                                          const uint32_t listenPort) {
+                                          const uint8_t msgType,
+                                          const uint32_t listenPort,
+                                          const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
 
-  result.set_listenport(listenPort);
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_listenport(listenPort);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign set lookup offline message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed.");
+    return false;
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
@@ -5354,7 +5319,9 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetLookupSetLookupOffline(const bytes& src,
                                           const unsigned int offset,
-                                          uint32_t& listenPort) {
+                                          uint8_t& msgType,
+                                          uint32_t& listenPort,
+                                          PubKey& lookupPubkey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
@@ -5366,20 +5333,51 @@ bool Messenger::GetLookupSetLookupOffline(const bytes& src,
     return false;
   }
 
-  listenPort = result.listenport();
+  listenPort = result.data().listenport();
+  msgType = result.data().msgtype();
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubkey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubkey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetLookupOffline.");
+    return false;
+  }
 
   return true;
 }
 
 bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+                                         const uint8_t msgType,
                                          const uint32_t listenPort,
-                                         const PubKey& pubKey) {
+                                         const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
 
-  result.set_listenport(listenPort);
-  SerializableToProtobufByteArray(pubKey, *result.mutable_pubkey());
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_listenport(listenPort);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign set lookup online message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed.");
+    return false;
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
@@ -5391,7 +5389,8 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetLookupSetLookupOnline(const bytes& src,
                                          const unsigned int offset,
-                                         uint32_t& listenPort, PubKey& pubKey) {
+                                         uint8_t& msgType, uint32_t& listenPort,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
@@ -5403,10 +5402,21 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
     return false;
   }
 
-  listenPort = result.listenport();
+  msgType = result.data().msgtype();
+  listenPort = result.data().listenport();
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
   ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
 
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetLookupOnline.");
+    return false;
+  }
   return true;
 }
 
@@ -5581,7 +5591,6 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
       LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
       return false;
     }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
   } else {
     LOG_GENERAL(WARNING, "LookupRaiseStartPoW.Data initialization failed.");
     return false;
@@ -5599,12 +5608,33 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
 
 bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
                                              const unsigned int offset,
-                                             const uint32_t listenPort) {
+                                             const uint32_t listenPort,
+                                             const uint64_t blockNumber,
+                                             const PairOfKey& keys) {
   LOG_MARKER();
 
   LookupGetStartPoWFromSeed result;
 
-  result.set_listenport(listenPort);
+  result.mutable_data()->set_listenport(listenPort);
+  result.mutable_data()->set_blocknumber(blockNumber);
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign GetStartPoWFromSeed message.");
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupGetStartPoWFromSeed.Data initialization failed.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
@@ -5616,19 +5646,34 @@ bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
 
 bool Messenger::GetLookupGetStartPoWFromSeed(const bytes& src,
                                              const unsigned int offset,
-                                             uint32_t& listenPort) {
+                                             uint32_t& listenPort,
+                                             uint64_t& blockNumber) {
   LOG_MARKER();
 
   LookupGetStartPoWFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.IsInitialized()) {
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
     return false;
   }
 
-  listenPort = result.listenport();
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  PubKey pubKey;
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetStartPoWFromSeed message.");
+    return false;
+  }
+
+  listenPort = result.data().listenport();
+  blockNumber = result.data().blocknumber();
 
   return true;
 }
@@ -5693,6 +5738,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
@@ -5710,6 +5756,7 @@ bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
@@ -5729,6 +5776,7 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupSetShardsFromSeed(
     bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
@@ -5823,6 +5871,7 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetMicroBlockFromLookup(
     const bytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
@@ -5929,6 +5978,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
                                            const unsigned int offset,
                                            const vector<TxnHash>& txnhashes,
@@ -5951,6 +6001,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
                                            const unsigned int offset,
                                            vector<TxnHash>& txnhashes,
@@ -5977,6 +6028,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupSetTxnsFromLookup(
     bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<TransactionWithReceipt>& txns) {
@@ -6014,6 +6066,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupSetTxnsFromLookup(
     const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
     vector<TransactionWithReceipt>& txns) {
@@ -7354,7 +7407,7 @@ bool Messenger::SetSeedNodeHistoricalDB(
                                   *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    vector<unsigned char> tmp(result.data().ByteSize());
+    bytes tmp(result.data().ByteSize());
     result.data().SerializeToArray(tmp.data(), tmp.size());
     Signature signature;
     if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
@@ -7390,7 +7443,7 @@ bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
   ProtobufByteArrayToSerializable(result.pubkey(), archivalPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
-  vector<unsigned char> tmp(result.data().ByteSize());
+  bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
                                      archivalPubKey)) {

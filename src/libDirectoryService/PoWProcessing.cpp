@@ -262,18 +262,18 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   // Log all values
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Winner Public_key             = " << submitterPubKey);
+            "Winner Public_key   = " << submitterPubKey);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Winner Peer ip addr           = " << submitterPeer);
+            "Winner Peer ip addr = " << submitterPeer);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Difficulty                    = " << to_string(difficultyLevel));
+            "Difficulty          = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock_num                  = " << blockNumber);
+            "dsblock_num         = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;

@@ -39,7 +39,7 @@ void PrintShard(const DequeOfShard& shards) {
   }
 }
 
-void PrintDSCommittee(const DequeOfDSNode& dsCommittee) {
+void PrintDSCommittee(const DequeOfNode& dsCommittee) {
   LOG_GENERAL(INFO, "DS Committee:")
   for (const auto& dsnode : dsCommittee) {
     LOG_GENERAL(INFO, "  Node: " << dsnode.second << " " << dsnode.first);
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
 
   vector<uint64_t> histDSBlockNum;
   vector<DequeOfShard> histShards;
-  vector<DequeOfDSNode> histDSCommittee;
+  vector<DequeOfNode> histDSCommittee;
 
   const unsigned int NUM_ENTRIES = 15;
 
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
   // Look-up by block number
   for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     DequeOfShard shardsDeserialized;
-    DequeOfDSNode dsCommitteeDeserialized;
+    DequeOfNode dsCommitteeDeserialized;
 
     BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
         histDSBlockNum.at(i), shardsDeserialized, dsCommitteeDeserialized));
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
   for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     // First, check the entry is still there
     DequeOfShard shardsDeserialized;
-    DequeOfDSNode dsCommitteeDeserialized;
+    DequeOfNode dsCommitteeDeserialized;
 
     BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
         histDSBlockNum.at(i), shardsDeserialized, dsCommitteeDeserialized));

@@ -373,7 +373,7 @@ void DirectoryService::StartFirstTxEpoch() {
     for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
       if (i.second == Peer()) {
         LOG_GENERAL(INFO, "m_consensusMyID = " << index);
-        m_mediator.m_node->m_consensusMyID = index;
+        m_mediator.m_node->SetConsensusMyID(index);
       }
 
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -385,10 +385,10 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
+    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
 
-    if (m_mediator.m_node->m_consensusMyID ==
-        m_mediator.m_node->m_consensusLeaderID) {
+    if (m_mediator.m_node->GetConsensusMyID() ==
+        m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am leader of the DS shard");
@@ -419,7 +419,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_stopRecvNewMBSubmission = false;
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -569,7 +569,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     };
 
     auto sendDSBlockToLookupNodesAndNewDSMembers =
-        [this]([[gnu::unused]] const VectorOfLookupNode& lookups,
+        [this]([[gnu::unused]] const VectorOfNode& lookups,
                const bytes& message) -> void {
       SendDSBlockToLookupNodesAndNewDSMembers(message);
     };

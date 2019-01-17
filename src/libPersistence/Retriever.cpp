@@ -66,7 +66,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   /// current TX epoch
   for (const auto& block : blocks) {
     if (block->GetHeader().GetBlockNum() >= lastBlockNum + 1 - extra_txblocks) {
-      std::vector<unsigned char> stateDelta;
+      bytes stateDelta;
       BlockStorage::GetBlockStorage().GetStateDelta(
           block->GetHeader().GetBlockNum(), stateDelta);
 

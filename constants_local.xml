@@ -6,7 +6,7 @@
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
-        <CHAIN_ID>63</CHAIN_ID>
+        <CHAIN_ID>2</CHAIN_ID>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -19,6 +19,7 @@
         <BLOCKLINK_VERSION>1</BLOCKLINK_VERSION>
         <DSCOMMITTEE_VERSION>1</DSCOMMITTEE_VERSION>
         <SHARDINGSTRUCTURE_VERSION>1</SHARDINGSTRUCTURE_VERSION>
+        <ACCOUNT_VERSION>1</ACCOUNT_VERSION>
     </version>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
@@ -55,7 +56,7 @@
         <POWPACKETSUBMISSION_WINDOW_IN_SECONDS>30</POWPACKETSUBMISSION_WINDOW_IN_SECONDS>
         <RECOVERY_SYNC_TIMEOUT>5</RECOVERY_SYNC_TIMEOUT>
         <TX_DISTRIBUTE_TIME_IN_MS>10000</TX_DISTRIBUTE_TIME_IN_MS>
-        <NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>60</NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>
+        <NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>300</NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>
     </epoch_timing>
     <fallback>
         <ENABLE_FALLBACK>false</ENABLE_FALLBACK>
@@ -94,7 +95,7 @@
         <NUM_GOSSIP_RECEIVERS>5</NUM_GOSSIP_RECEIVERS>
         <ROUND_TIME_IN_MS>100</ROUND_TIME_IN_MS>
         <SIMULATED_NETWORK_DELAY_IN_MS>0</SIMULATED_NETWORK_DELAY_IN_MS>
-        <KEEP_RAWMSG_FROM_LAST_N_ROUNDS>9</KEEP_RAWMSG_FROM_LAST_N_ROUNDS>
+        <KEEP_RAWMSG_FROM_LAST_N_ROUNDS>3000</KEEP_RAWMSG_FROM_LAST_N_ROUNDS>
         <SIGN_VERIFY_EMPTY_MSGTYP>false</SIGN_VERIFY_EMPTY_MSGTYP>
         <SIGN_VERIFY_NONEMPTY_MSGTYP>true</SIGN_VERIFY_NONEMPTY_MSGTYP>
     </gossip>
@@ -214,7 +215,7 @@
         <PACKET_EPOCH_LATE_ALLOW>1</PACKET_EPOCH_LATE_ALLOW>
     </transactions>
     <verifier>
-        <VERIFIER_PATH/>
+        <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
         <SEED_PORT>30303</SEED_PORT>
     </verifier>
@@ -233,6 +234,7 @@
     <!-- For constants.xml, the remaining constants below are auto-populated -->
     <lookups>
         <peer>
+            <hostname/>
             <ip>127.0.0.1</ip>
             <port>4001</port>
             <pubkey/>
@@ -249,6 +251,7 @@
     </multipliers>
     <upper_seed>
         <peer>
+            <hostname/>
             <ip>127.0.0.1</ip>
             <port>4001</port>
             <pubkey/>

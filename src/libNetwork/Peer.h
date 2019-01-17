@@ -35,6 +35,9 @@ struct Peer : public Serializable {
   /// Peer listen port (host-encoded)
   uint32_t m_listenPortHost;  // host-encoded
 
+  /// Peer hostname
+  std::string m_hostname;  // optional
+
   /// Default constructor.
   Peer();
 
@@ -69,9 +72,13 @@ struct Peer : public Serializable {
   /// Implements the Deserialize function inherited from Serializable.
   int Deserialize(const bytes& src, unsigned int offset);
 
+  /// Setter
+  void SetHostname(const std::string& hostname);
+
   /// Getters.
   const boost::multiprecision::uint128_t& GetIpAddress() const;
   const uint32_t& GetListenPortHost() const;
+  const std::string GetHostname() const;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Peer& p) {

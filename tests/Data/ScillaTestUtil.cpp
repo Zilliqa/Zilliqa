@@ -39,6 +39,22 @@ bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   return reader->parse(fstr.c_str(), fstr.c_str() + fstr.size(), &j, &errors);
 }
 
+uint64_t ScillaTestUtil::GetFileSize(std::string filename) {
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT is empty.");
+    return 0;
+  }
+
+  std::string filepath = SCILLA_FILES + "/" + filename;
+
+  if (!boost::filesystem::exists(filepath)) {
+    LOG_GENERAL(WARNING, filename << " does not exist!");
+    return 0;
+  }
+
+  return boost::filesystem::file_size(filepath);
+}
+
 // Get ScillaTest for contract "name" and test numbered "i".
 bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
                                    unsigned int i) {

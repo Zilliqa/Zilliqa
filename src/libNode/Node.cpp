@@ -136,22 +136,23 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
     for (const auto& ds : *m_mediator.m_DSCommittee) {
       if (ds.first == m_mediator.m_selfKey.second) {
-        m_mediator.m_ds->m_consensusMyID = 0;
+        m_mediator.m_ds->SetConsensusMyID(0);
 
         for (auto const& i : *m_mediator.m_DSCommittee) {
           if (i.first == m_mediator.m_selfKey.second) {
             LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                       "My node ID for this PoW consensus is "
-                          << m_mediator.m_ds->m_consensusMyID);
+                          << m_mediator.m_ds->GetConsensusMyID());
             break;
           }
 
-          ++m_mediator.m_ds->m_consensusMyID;
+          m_mediator.m_ds->IncrementConsensusMyID();
         }
 
-        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
+        m_consensusMyID = m_mediator.m_ds->GetConsensusMyID();
 
-        if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
+        if (m_mediator.m_DSCommittee
+                ->at(m_mediator.m_ds->GetConsensusLeaderID())
                 .first == m_mediator.m_selfKey.second) {
           m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
           LOG_GENERAL(INFO, "Set as DS leader: "
@@ -171,7 +172,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+                               << m_mediator.m_ds->GetConsensusMyID()
+                               << "] DSBK");
         }
 
         break;
@@ -222,7 +224,7 @@ void Node::Init() {
   AccountStore::GetInstance().Init();
 
   {
-    std::deque<std::pair<PubKey, Peer>> buildDSComm;
+    DequeOfNode buildDSComm;
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
@@ -420,7 +422,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
   {
-    std::deque<std::pair<PubKey, Peer>> buildDSComm;
+    DequeOfNode buildDSComm;
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
@@ -443,7 +445,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
                                                  ds_consensusLeaderID);
 
-  m_mediator.m_ds->m_consensusLeaderID = ds_consensusLeaderID;
+  m_mediator.m_ds->SetConsensusLeaderID(ds_consensusLeaderID);
 
   unordered_map<string, Peer> ipMapping;
   GetIpMapping(ipMapping);
@@ -750,7 +752,7 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -840,7 +842,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -856,7 +858,7 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -1353,11 +1355,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
-  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+  uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
   LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_ds->m_consensusMyID == dm_test_id) {
+      m_mediator.m_ds->GetConsensusMyID() == dm_test_id) {
     LOG_GENERAL(WARNING,
                 "Letting one of the backups accept less txns from lookup "
                 "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
@@ -1527,6 +1529,20 @@ void Node::SetState(NodeState state) {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State is now " << GetStateString() << " at epoch "
                                  << m_mediator.m_currentEpochNum);
+}
+
+// Set m_consensusMyID
+void Node::SetConsensusMyID(uint16_t id) { m_consensusMyID = id; }
+
+// Get m_consensusMyID
+uint16_t Node::GetConsensusMyID() const { return m_consensusMyID.load(); }
+
+// Set m_consensusLeaderID
+void Node::SetConsensusLeaderID(uint16_t id) { m_consensusLeaderID = id; }
+
+// Get m_consensusLeaderID
+uint16_t Node::GetConsensusLeaderID() const {
+  return m_consensusLeaderID.load();
 }
 
 void Node::AddBlock(const TxBlock& block) {
@@ -1948,7 +1964,7 @@ bool Node::Execute(const bytes& message, unsigned int offset,
       &Node::ProcessStartPoW,
       &Node::ProcessVCDSBlocksMessage,
       &Node::ProcessSubmitTransaction,
-      &Node::ProcessMicroblockConsensus,
+      &Node::ProcessMicroBlockConsensus,
       &Node::ProcessFinalBlock,
       &Node::ProcessMBnForwardTransaction,
       &Node::ProcessVCBlock,
@@ -2026,7 +2042,7 @@ std::string Node::GetActionString(Action action) const {
 
 /*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
                                   const DSBlock& latestDSBlock,
-                                  const DequeOfDSNode& dsCommittee,
+                                  const DequeOfNode& dsCommittee,
                                   const uint64_t epochNumber,
                                   pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
@@ -2068,7 +2084,7 @@ std::string Node::GetActionString(Action action) const {
   return true;
 }
 
-void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+void Node::GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                     std::vector<PubKey>& pubKeys) {
   peers.clear();
   pubKeys.clear();

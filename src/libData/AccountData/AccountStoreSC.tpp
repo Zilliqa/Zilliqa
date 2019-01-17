@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <chrono>
 
 #include <boost/filesystem.hpp>
 #include <chrono>
@@ -23,6 +24,9 @@
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
+
+// 5mb
+const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {
@@ -49,7 +53,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
   // LOG_MARKER();
-
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -97,14 +100,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   Account* fromAccount = this->GetAccount(fromAddr);
   if (fromAccount == nullptr) {
-    // FIXME: remove this, temporary way to test transactions, should return
-    // false
-    LOG_GENERAL(WARNING,
-                "AddAccount... FIXME: remove this, temporary way to "
-                "test transactions, should return false in the future");
-    this->AddAccount(fromAddr, {10000000000, 0});
-    fromAccount = this->GetAccount(fromAddr);
-    // return false;
+    LOG_GENERAL(WARNING, "Sender has no balance, reject");
+    return false;
   }
 
   if (transaction.GetCode().size() > 0) {
@@ -373,11 +370,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     m_curNumShards = numShards;
     m_curTranReceipt.clear();
 
-    // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
-    // {
-    //     this->IncreaseBalance(fromAddr, gasDeposit);
-    //     return false;
-    // }
+    std::chrono::system_clock::time_point tpStart;
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      tpStart = r_timer_start();
+    }
 
     std::string runnerPrint;
     bool ret = true;
@@ -411,6 +407,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         kill(-pid, SIGKILL);
       }
       ret = false;
+    }
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      LOG_GENERAL(DEBUG, "Executed root transition in " << r_timer_end(tpStart)
+                                                        << " microseconds");
     }
 
     if (ret && !ParseCallContract(gasRemained, runnerPrint)) {
@@ -507,6 +507,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 template <class MAP>
 void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   LOG_MARKER();
+  std::chrono::system_clock::time_point tpStart;
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
   boost::filesystem::create_directories("./" + SCILLA_FILES);
@@ -515,6 +516,9 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
     boost::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = r_timer_start();
+  }
   // Scilla code
   // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
   std::ofstream os(INPUT_CODE);
@@ -530,6 +534,10 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
                              GetBlockStateJson(m_curBlockNum));
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
+  }
 }
 
 template <class MAP>
@@ -614,7 +622,8 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       " -istate " + INPUT_STATE_JSON + " -iblockchain " +
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
       OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas);
+      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
+      " -disable-pp-json" + " -disable-validate-json";
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
@@ -671,7 +680,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
     outStr = {std::istreambuf_iterator<char>(in),
               std::istreambuf_iterator<char>()};
   }
-  LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
+
+  LOG_GENERAL(
+      INFO,
+      "Output: " << std::endl
+                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                               "\n ... "
+                         : outStr));
 
   Json::CharReaderBuilder builder;
   std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -739,7 +755,10 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint) {
   // LOG_MARKER();
-
+  std::chrono::system_clock::time_point tpStart;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = r_timer_start();
+  }
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
   std::string outStr;
 
@@ -765,6 +784,10 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 
   if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
                     &errors)) {
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
+                             << r_timer_end(tpStart));
+    }
     return true;
   }
   LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
@@ -775,6 +798,11 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                                                       uint64_t& gasRemained) {
   // LOG_MARKER();
+  std::chrono::system_clock::time_point tpStart;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = r_timer_start();
+  }
+
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
         WARNING,
@@ -786,6 +814,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
     return false;
   }
+  uint64_t startGas = gasRemained;
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
   if (!_json.isMember("_accepted")) {
@@ -848,6 +877,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     if (!contractAccount->SetStorage(state_entries)) {
       LOG_GENERAL(WARNING, "SetStorage failed");
     }
+  }
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
+    LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
   }
 
   for (const auto& e : _json["events"]) {
@@ -956,6 +990,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     cv_callContract.notify_all();
   };
 
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = r_timer_start();
+  }
+
   DetachedFunction(1, func);
 
   {
@@ -971,6 +1009,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
       kill(-pid, SIGKILL);
     }
     result = false;
+  }
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
+                                   << r_timer_end(tpStart) << " microseconds");
   }
 
   if (!result) {

@@ -71,7 +71,7 @@ Server::~Server() {
   // destructor
 }
 
-string Server::GetNetworkId() { return "TestNet"; }
+string Server::GetNetworkId() { return to_string(CHAIN_ID); }
 
 bool Server::StartCollectorThread() {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {

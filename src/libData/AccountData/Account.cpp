@@ -43,8 +43,10 @@ Account::Account(const bytes& src, unsigned int offset) {
   }
 }
 
-Account::Account(const uint128_t& balance, const uint64_t& nonce)
-    : m_balance(balance),
+Account::Account(const uint128_t& balance, const uint64_t& nonce,
+                 const uint32_t& version)
+    : m_version(version),
+      m_balance(balance),
       m_nonce(nonce),
       m_storageRoot(h256()),
       m_codeHash(h256()) {}
@@ -191,6 +193,10 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
 
   return true;
 }
+
+void Account::SetVersion(const uint32_t& version) { m_version = version; }
+
+const uint32_t& Account::GetVersion() const { return m_version; }
 
 bool Account::IncreaseBalance(const uint128_t& delta) {
   return SafeMath<uint128_t>::add(m_balance, delta, m_balance);

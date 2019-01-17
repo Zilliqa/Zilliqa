@@ -244,18 +244,19 @@ message ProtoAccount
 {
     message StorageData
     {
-        required bytes keyhash       = 1;
-        required string data         = 2;
+        required bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
+        required string data         = 2; // Added in: v1.0, Deprecated in: N/A
     }
-    optional bool numbersign       = 1; // For account delta (false=neg, true=pos)
-    required ByteArray balance     = 2;
-    required uint64 nonce          = 3;
-    optional bytes storageroot     = 4;
-    optional bytes codehash        = 5;
-    optional uint64 createblocknum = 6;
-    optional bytes initdata        = 7;
-    optional bytes code            = 8;
-    repeated StorageData storage   = 9;
+    optional uint32 version        = 1;  // Added in: v1.0, Deprecated in: N/A
+    optional bool numbersign       = 2;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    required ByteArray balance     = 3;  // Added in: v1.0, Deprecated in: N/A
+    required uint64 nonce          = 4;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes storageroot     = 5;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes codehash        = 6;  // Added in: v1.0, Deprecated in: N/A
+    optional uint64 createblocknum = 7;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes initdata        = 8;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes code            = 9;  // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage   = 10; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex
@@ -628,28 +629,6 @@ message LookupSetStateDeltaFromSeed
     required ByteArray signature = 4;
 }
 
-message LookupGetTxBodyFromSeed
-{
-    required bytes txhash      = 1;
-    required uint32 listenport = 2;
-}
-
-message LookupSetTxBodyFromSeed
-{
-    required bytes txhash     = 1;
-    required ByteArray txbody = 2;
-}
-
-message LookupGetNetworkIDFromSeed
-{
-    // Unused
-}
-
-message LookupSetNetworkIDFromSeed
-{
-    required string networkid = 1;
-}
-
 message LookupGetStateFromSeed
 {
     required uint32 listenport = 1;
@@ -662,15 +641,30 @@ message LookupSetStateFromSeed
     required ByteArray signature             = 3;
 }
 
+// msgtype is used to prevent replay attacks
 message LookupSetLookupOffline
 {
-    required uint32 listenport = 1;
+    message Data
+    {
+        required uint32 msgtype     = 1; // Only LSB used
+        required uint32 listenport  = 2;
+    }
+    required Data data              = 1;
+    required ByteArray pubkey       = 2;
+    required ByteArray signature    = 3;
 }
 
+// msgtype and blocknumber are used to prevent replay attacks
 message LookupSetLookupOnline
 {
-    required uint32 listenport = 1;
-    required ByteArray pubkey  = 2;
+    message Data
+    {
+        required uint32 msgtype     = 1; // Only LSB used
+        required uint32 listenport  = 2;
+    }
+    required Data data              = 1;
+    required ByteArray pubkey       = 2;
+    required ByteArray signature    = 3;
 }
 
 message LookupGetOfflineLookups
@@ -685,6 +679,7 @@ message LookupSetOfflineLookups
     required ByteArray signature = 3;
 }
 
+// msgtype and blocknumber is used to prevent replay attacks
 message LookupRaiseStartPoW
 {
     message Data
@@ -699,7 +694,14 @@ message LookupRaiseStartPoW
 
 message LookupGetStartPoWFromSeed
 {
-    required uint32 listenport = 1;
+    message Data
+    {
+        required uint32 listenport  = 1;
+        required uint64 blocknumber = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupSetStartPoWFromSeed
@@ -772,7 +774,7 @@ message ConsensusAnnouncement
         required uint32 consensusid           = 1;
         required uint64 blocknumber           = 2;
         required bytes blockhash              = 3; // 32 bytes
-        required uint32 leaderid              = 4; // only lower 2 bytes used    
+        required uint32 leaderid              = 4; // only lower 2 bytes used
     }
     required ConsensusInfo consensusinfo      = 1;
     oneof announcement

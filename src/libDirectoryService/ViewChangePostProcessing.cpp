@@ -38,8 +38,7 @@
 
 using namespace std;
 
-bool DirectoryService::ComposeVCBlockForSender(
-    vector<unsigned char>& vcblock_message) {
+bool DirectoryService::ComposeVCBlockForSender(bytes& vcblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeVCBlockForSender not "
@@ -96,7 +95,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  vector<unsigned char> message;
+  bytes message;
   if (!m_pendingVCBlock->GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
     return;
@@ -229,10 +228,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
     }
-    m_mediator.m_node->m_consensusMyID = m_consensusMyID.load();
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
-    if (m_mediator.m_node->m_consensusMyID ==
-        m_mediator.m_node->m_consensusLeaderID) {
+    m_mediator.m_node->SetConsensusMyID(m_consensusMyID.load());
+    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
+    if (m_mediator.m_node->GetConsensusMyID() ==
+        m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am leader of the DS shard");
@@ -253,7 +252,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       latestInd, m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
       BlockType::VC, m_pendingVCBlock->GetBlockHash());
 
-  vector<unsigned char> dst;
+  bytes dst;
   m_pendingVCBlock->Serialize(dst, 0);
 
   if (!BlockStorage::GetBlockStorage().PutVCBlock(
@@ -293,8 +292,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   if (t_sendDataToLookupFunc) {
-    auto composeVCBlockForSender =
-        [this](vector<unsigned char>& vcblock_message) -> bool {
+    auto composeVCBlockForSender = [this](bytes& vcblock_message) -> bool {
       return ComposeVCBlockForSender(vcblock_message);
     };
 
@@ -346,9 +344,9 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
   }
 }
 
-bool DirectoryService::ProcessViewChangeConsensus(
-    const vector<unsigned char>& message, unsigned int offset,
-    const Peer& from) {
+bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
+                                                  unsigned int offset,
+                                                  const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessViewChangeConsensus not expected "

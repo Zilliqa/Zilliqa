@@ -71,7 +71,7 @@ class Mediator {
   // of queue (new leader) Oldest member will be pushed out from tail of queue
 
   /// The public keys and current members of the DS committee.
-  std::shared_ptr<DequeOfDSNode> m_DSCommittee;
+  std::shared_ptr<DequeOfNode> m_DSCommittee;
   std::mutex m_mutexDSCommittee;
 
   std::shared_ptr<std::vector<PubKey>> m_initialDSCommittee;

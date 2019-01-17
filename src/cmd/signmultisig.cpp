@@ -19,7 +19,7 @@
 
 #include <boost/program_options.hpp>
 
-#include "libCrypto/Schnorr.h"
+#include "libCrypto/MultiSig.h"
 #include "libUtils/SWInfo.h"
 
 #define SUCCESS 0
@@ -70,14 +70,8 @@ int main(int argc, const char* argv[]) {
 
     bytes message(message_.begin(), message_.end());
 
-    vector<uint8_t> v;
-    v.push_back(53);
-
-    PrivKey pk(v, 0);
-
-    string line;
     try {
-      bytes key_v;
+      string line;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
         try {
@@ -100,7 +94,7 @@ int main(int argc, const char* argv[]) {
     }
 
     try {
-      bytes key_v;
+      string line;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
@@ -127,27 +121,48 @@ int main(int argc, const char* argv[]) {
       return -1;
     }
 
-    for (unsigned int i = 0; i < privKeys.size(); ++i) {
-      Signature sig;
-      if (!Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i),
-                                       sig)) {
-        std::cerr << "Failed to sign message" << endl;
-        std::cerr << "Either private key or public key on line " << i + 1
-                  << " are corrupted." << endl;
-        return ERROR_IN_COMMAND_LINE;
-      }
-      bytes result;
-      sig.Serialize(result, 0);
+    /// Aggregate public keys
+    shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubKeys);
 
-      std::string output;
-      if (!DataConversion::Uint8VecToHexStr(result, output)) {
-        SWInfo::LogBrandBugReport();
-        std::cerr << "Failed signature conversion" << endl;
-        return -1;
-      }
-      cout << output;
+    /// Generate individual commitments
+    vector<CommitSecret> secrets(pubKeys.size());
+    vector<CommitPoint> points;
+    for (unsigned int i = 0; i < pubKeys.size(); i++) {
+      points.emplace_back(secrets.at(i));
     }
 
+    /// Aggregate commits
+    shared_ptr<CommitPoint> aggregatedCommit =
+        MultiSig::AggregateCommits(points);
+
+    /// Generate challenge
+    Challenge challenge(*aggregatedCommit, *aggregatedPubkey, message);
+
+    /// Generate responses
+    vector<Response> responses;
+    for (unsigned int i = 0; i < pubKeys.size(); i++) {
+      responses.emplace_back(secrets.at(i), challenge, privKeys.at(i));
+    }
+
+    /// Aggregate responses
+    shared_ptr<Response> aggregatedResponse =
+        MultiSig::AggregateResponses(responses);
+
+    /// Generate the aggregated signature
+    shared_ptr<Signature> signature =
+        MultiSig::AggregateSign(challenge, *aggregatedResponse);
+
+    bytes result;
+    signature->Serialize(result, 0);
+
+    std::string output;
+    if (!DataConversion::Uint8VecToHexStr(result, output)) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "Failed signature conversion" << endl;
+      return -1;
+    }
+
+    cout << output;
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;

@@ -29,6 +29,13 @@
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
+namespace ZilliqaMessage {
+class ByteArray;
+}
+
+void ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
+                                     Serializable& serializable);
+
 class Messenger {
  public:
   template <class K, class V>
@@ -48,7 +55,7 @@ class Messenger {
   // Primitives
   // ============================================================================
 
-  static bool GetDSCommitteeHash(const DequeOfDSNode& dsCommittee,
+  static bool GetDSCommitteeHash(const DequeOfNode& dsCommittee,
                                  CommitteeHash& dst);
   static bool GetShardHash(const Shard& shard, CommitteeHash& dst);
 
@@ -200,12 +207,12 @@ class Messenger {
                                 const uint32_t& shardingStructureVersion,
                                 const DequeOfShard& shards,
                                 const uint32_t& dsCommitteeVersion,
-                                const DequeOfDSNode& dsCommittee);
+                                const DequeOfNode& dsCommittee);
   static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
                                 uint32_t& shardingStructureVersion,
                                 DequeOfShard& shards,
                                 uint32_t& dsCommitteeVersion,
-                                DequeOfDSNode& dsCommittee);
+                                DequeOfNode& dsCommittee);
 
   // ============================================================================
   // Peer Manager messages
@@ -424,14 +431,16 @@ class Messenger {
   static bool GetLookupGetDSInfoFromSeed(const bytes& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort, bool& initialDS);
-  static bool SetLookupSetDSInfoFromSeed(
-      bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
-      const uint32_t& dsCommitteeVersion,
-      const std::deque<std::pair<PubKey, Peer>>& dsNodes, const bool initialDS);
-  static bool GetLookupSetDSInfoFromSeed(
-      const bytes& src, const unsigned int offset, PubKey& senderPubKey,
-      uint32_t& dsCommitteeVersion,
-      std::deque<std::pair<PubKey, Peer>>& dsNodes, bool& initialDS);
+  static bool SetLookupSetDSInfoFromSeed(bytes& dst, const unsigned int offset,
+                                         const PairOfKey& senderKey,
+                                         const uint32_t& dsCommitteeVersion,
+                                         const DequeOfNode& dsNodes,
+                                         const bool initialDS);
+  static bool GetLookupSetDSInfoFromSeed(const bytes& src,
+                                         const unsigned int offset,
+                                         PubKey& senderPubKey,
+                                         uint32_t& dsCommitteeVersion,
+                                         DequeOfNode& dsNodes, bool& initialDS);
   static bool SetLookupGetDSBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
@@ -490,25 +499,6 @@ class Messenger {
                                              uint64_t& blockNum,
                                              PubKey& lookupPubKey,
                                              bytes& stateDelta);
-  static bool SetLookupGetTxBodyFromSeed(bytes& dst, const unsigned int offset,
-                                         const bytes& txHash,
-                                         const uint32_t listenPort);
-  static bool GetLookupGetTxBodyFromSeed(const bytes& src,
-                                         const unsigned int offset,
-                                         TxnHash& txHash, uint32_t& listenPort);
-  static bool SetLookupSetTxBodyFromSeed(bytes& dst, const unsigned int offset,
-                                         const TxnHash& txHash,
-                                         const TransactionWithReceipt& txBody);
-  static bool GetLookupSetTxBodyFromSeed(const bytes& src,
-                                         const unsigned int offset,
-                                         TxnHash& txHash,
-                                         TransactionWithReceipt& txBody);
-  static bool SetLookupSetNetworkIDFromSeed(bytes& dst,
-                                            const unsigned int offset,
-                                            const std::string& networkID);
-  static bool GetLookupSetNetworkIDFromSeed(const bytes& src,
-                                            const unsigned int offset,
-                                            std::string& networkID);
   static bool SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
                                         const uint32_t listenPort);
   static bool GetLookupGetStateFromSeed(const bytes& src,
@@ -522,16 +512,21 @@ class Messenger {
                                         PubKey& lookupPubKey,
                                         bytes& accountStoreBytes);
   static bool SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
-                                        const uint32_t listenPort);
+                                        const uint8_t msgType,
+                                        const uint32_t listenPort,
+                                        const PairOfKey& lookupKey);
   static bool GetLookupSetLookupOffline(const bytes& src,
                                         const unsigned int offset,
-                                        uint32_t& listenPort);
+                                        uint8_t& msgType, uint32_t& listenPort,
+                                        PubKey& lookupPubkey);
   static bool SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+                                       const uint8_t msgType,
                                        const uint32_t listenPort,
-                                       const PubKey& pubKey);
+                                       const PairOfKey& lookupKey);
   static bool GetLookupSetLookupOnline(const bytes& src,
                                        const unsigned int offset,
-                                       uint32_t& listenPort, PubKey& pubKey);
+                                       uint8_t& msgType, uint32_t& listenPort,
+                                       PubKey& pubKey);
   static bool SetLookupGetOfflineLookups(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
   static bool GetLookupGetOfflineLookups(const bytes& src,
@@ -554,10 +549,13 @@ class Messenger {
                                         const PairOfKey& dsKey);
   static bool SetLookupGetStartPoWFromSeed(bytes& dst,
                                            const unsigned int offset,
-                                           const uint32_t listenPort);
+                                           const uint32_t listenPort,
+                                           const uint64_t blockNumber,
+                                           const PairOfKey& keys);
   static bool GetLookupGetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
-                                           uint32_t& listenPort);
+                                           uint32_t& listenPort,
+                                           uint64_t& blockNumber);
   static bool SetLookupSetStartPoWFromSeed(bytes& dst,
                                            const unsigned int offset,
                                            const uint64_t blockNumber,
@@ -565,14 +563,15 @@ class Messenger {
   static bool GetLookupSetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey);
-
+  // UNUSED
   static bool SetLookupGetShardsFromSeed(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
 
+  // UNUSED
   static bool GetLookupGetShardsFromSeed(const bytes& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort);
-
+  // UNUSED
   static bool SetLookupSetShardsFromSeed(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const uint32_t& shardingStructureVersion, const DequeOfShard& shards);
@@ -587,6 +586,7 @@ class Messenger {
       bytes& dst, const unsigned int offset,
       const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
+  // UNUSED
   static bool GetLookupGetMicroBlockFromLookup(
       const bytes& src, const unsigned int offset,
       std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
@@ -599,7 +599,7 @@ class Messenger {
                                                const unsigned int offset,
                                                PubKey& lookupPubKey,
                                                std::vector<MicroBlock>& mbs);
-
+  // UNUSED
   static bool SetLookupGetTxnsFromLookup(bytes& dst, const unsigned int offset,
                                          const std::vector<TxnHash>& txnhashes,
                                          uint32_t portNo);
@@ -607,9 +607,12 @@ class Messenger {
                                          const unsigned int offset,
                                          std::vector<TxnHash>& txnhashes,
                                          uint32_t& portNo);
+  // UNUSED
   static bool SetLookupSetTxnsFromLookup(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const std::vector<TransactionWithReceipt>& txns);
+
+  // USUSED
   static bool GetLookupSetTxnsFromLookup(
       const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
       std::vector<TransactionWithReceipt>& txns);
@@ -643,8 +646,10 @@ class Messenger {
   // ============================================================================
 
   template <class T>
-  static bool GetConsensusID(const bytes& src, const unsigned int offset,
-                             uint32_t& consensusID) {
+  static bool GetLeaderConsensusID(const bytes& src, const unsigned int offset,
+                                   const DequeOfNode& commNodes,
+                                   const Peer& from, uint32_t& consensusID,
+                                   PubKey& senderPubKey) {
     LOG_MARKER();
 
     T consensus_message;
@@ -656,7 +661,85 @@ class Messenger {
       return false;
     }
 
+    const auto leaderId = consensus_message.consensusinfo().leaderid();
+    if (leaderId >= commNodes.size()) {
+      LOG_GENERAL(WARNING, "The leader id "
+                               << leaderId
+                               << " is out of my committee member size "
+                               << commNodes.size());
+      return false;
+    }
+
+    if (commNodes.end() ==
+        std::find_if(commNodes.begin(), commNodes.end(),
+                     [from](const PairOfNode& pairOfNode) {
+                       return from.GetIpAddress() ==
+                              pairOfNode.second.GetIpAddress();
+                     })) {
+      LOG_GENERAL(WARNING, "The sender address "
+                               << from
+                               << " is not in my committee member list");
+      return false;
+    }
+
     consensusID = consensus_message.consensusinfo().consensusid();
+    senderPubKey = commNodes[leaderId].first;
+
+    return true;
+  }
+
+  template <class T>
+  static bool GetBackupConsensusID(const bytes& src, const unsigned int offset,
+                                   const DequeOfNode& commNodes,
+                                   const Peer& from, uint32_t& consensusID,
+                                   PubKey& senderPubKey) {
+    LOG_MARKER();
+
+    T consensus_message;
+
+    consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!consensus_message.IsInitialized()) {
+      LOG_GENERAL(WARNING, "Consensus message initialization failed.");
+      return false;
+    }
+
+    const auto backupId = consensus_message.consensusinfo().backupid();
+    if (backupId >= commNodes.size()) {
+      LOG_GENERAL(WARNING, "The backup id "
+                               << backupId
+                               << " is out of my committee member size "
+                               << commNodes.size());
+      return false;
+    }
+
+    if (commNodes.end() ==
+        std::find_if(commNodes.begin(), commNodes.end(),
+                     [from](const PairOfNode& pairOfNode) {
+                       return from.GetIpAddress() ==
+                              pairOfNode.second.GetIpAddress();
+                     })) {
+      LOG_GENERAL(WARNING, "The sender address "
+                               << from
+                               << " is not in my committee member list");
+      return false;
+    }
+
+    bytes tmp(consensus_message.consensusinfo().ByteSize());
+    consensus_message.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(consensus_message.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature,
+                                       commNodes[backupId].first)) {
+      LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
+      return false;
+    }
+
+    consensusID = consensus_message.consensusinfo().consensusid();
+    senderPubKey = commNodes[backupId].first;
 
     return true;
   }
@@ -666,11 +749,13 @@ class Messenger {
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t backupID, const CommitPoint& commitPoint,
       const CommitPointHash& commitPointHash, const PairOfKey& backupKey);
-  static bool GetConsensusCommit(
-      const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      CommitPoint& commitPoint, CommitPointHash& commitPointHash,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+  static bool GetConsensusCommit(const bytes& src, const unsigned int offset,
+                                 const uint32_t consensusID,
+                                 const uint64_t blockNumber,
+                                 const bytes& blockHash, uint16_t& backupID,
+                                 CommitPoint& commitPoint,
+                                 CommitPointHash& commitPointHash,
+                                 const DequeOfNode& committeeKeys);
 
   static bool SetConsensusChallenge(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
@@ -689,11 +774,12 @@ class Messenger {
       const uint64_t blockNumber, const uint16_t subsetID,
       const bytes& blockHash, const uint16_t backupID, const Response& response,
       const PairOfKey& backupKey);
-  static bool GetConsensusResponse(
-      const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      uint16_t& subsetID, Response& response,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+  static bool GetConsensusResponse(const bytes& src, const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const uint64_t blockNumber,
+                                   const bytes& blockHash, uint16_t& backupID,
+                                   uint16_t& subsetID, Response& response,
+                                   const DequeOfNode& committeeKeys);
 
   static bool SetConsensusCollectiveSig(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
@@ -716,8 +802,7 @@ class Messenger {
   static bool GetConsensusCommitFailure(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      bytes& errorMsg,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+      bytes& errorMsg, const DequeOfNode& committeeKeys);
 
   static bool SetConsensusConsensusFailure(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,

@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include "Peer.h"
+#include "ShardStruct.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -48,7 +49,7 @@ class PeerStore {
   Peer GetPeer(const PubKey& key);
 
   /// Returns a list of all public keys and peers in the table.
-  std::vector<std::pair<PubKey, Peer>> GetAllPeerPairs() const;
+  VectorOfNode GetAllPeerPairs() const;
 
   /// Returns a list of all peers in the table.
   std::vector<Peer> GetAllPeers() const;

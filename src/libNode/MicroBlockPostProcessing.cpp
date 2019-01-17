@@ -82,29 +82,29 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
   return true;
 }
 
-bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
+bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Node::ProcessMicroblockConsensus not expected to be "
+                "Node::ProcessMicroBlockConsensus not expected to be "
                 "called from LookUp node.");
     return true;
   }
 
   uint32_t consensus_id = 0;
+  PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id)) {
+  if (!m_consensusObject->GetConsensusID(message, offset, from, consensus_id,
+                                         senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
   }
 
   if (m_state != MICROBLOCK_CONSENSUS) {
-    lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
-
-    m_microBlockConsensusBuffer[consensus_id].push_back(
-        make_pair(from, message));
+    AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
+                                   senderPubKey);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process micro block arrived early, saved to buffer");
@@ -120,12 +120,10 @@ bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
 
-      lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
-
-      m_microBlockConsensusBuffer[consensus_id].push_back(
-          make_pair(from, message));
+      AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
+                                     senderPubKey);
     } else {
-      return ProcessMicroblockConsensusCore(message, offset, from);
+      return ProcessMicroBlockConsensusCore(message, offset, from);
     }
   }
 
@@ -137,10 +135,46 @@ void Node::CommitMicroBlockConsensusBuffer() {
 
   for (const auto i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
-      ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY, i.first);
+      ProcessMicroBlockConsensusCore(std::get<NODE_MSG>(i), MessageOffset::BODY,
+                                     std::get<NODE_PEER>(i));
     };
     DetachedFunction(1, runconsensus);
   }
+}
+
+void Node::AddToMicroBlockConsensusBuffer(uint32_t consensusId,
+                                          const bytes& message,
+                                          unsigned int offset, const Peer& peer,
+                                          const PubKey& senderPubKey) {
+  if (message.size() <= offset) {
+    LOG_GENERAL(WARNING, "The message size " << message.size()
+                                             << " is less than the offset "
+                                             << offset);
+    return;
+  }
+  lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
+  auto& vecNodeMsg = m_microBlockConsensusBuffer[consensusId];
+  const auto consensusMsgType = message[offset];
+  // Check if the node send the same consensus message already, prevent
+  // malicious node send unlimited message to crash the other nodes
+  if (vecNodeMsg.end() !=
+      std::find_if(
+          vecNodeMsg.begin(), vecNodeMsg.end(),
+          [senderPubKey, consensusMsgType, offset](const NodeMsg& nodeMsg) {
+            return senderPubKey == std::get<NODE_PUBKEY>(nodeMsg) &&
+                   consensusMsgType == std::get<NODE_MSG>(nodeMsg)[offset];
+          })) {
+    LOG_GENERAL(
+        WARNING,
+        "The node "
+            << senderPubKey
+            << " already send micro block consensus message for consensus id "
+            << consensusId << " message type "
+            << std::to_string(consensusMsgType));
+    return;
+  }
+
+  vecNodeMsg.push_back(make_tuple(senderPubKey, peer, message));
 }
 
 void Node::CleanMicroblockConsensusBuffer() {
@@ -148,7 +182,7 @@ void Node::CleanMicroblockConsensusBuffer() {
   m_microBlockConsensusBuffer.clear();
 }
 
-bool Node::ProcessMicroblockConsensusCore(const bytes& message,
+bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
   LOG_MARKER();
@@ -287,15 +321,13 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
             ConsensusCommon::INITIAL);
 
         auto reprocessconsensus = [this, message, offset, from]() {
-          ProcessMicroblockConsensusCore(message, offset, from);
+          ProcessMicroBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, reprocessconsensus);
         return true;
       }
-    } else {
     }
 
-    // return false;
     // TODO: Optimize state transition.
     LOG_GENERAL(WARNING, "ConsensusCommon::State::ERROR here, but we move on.");
 

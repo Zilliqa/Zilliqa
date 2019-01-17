@@ -110,7 +110,7 @@ DefaultResponse Server::GetClientVersion() {
 
 DefaultResponse Server::GetNetworkId() {
   DefaultResponse ret;
-  ret.set_result("TestNet");
+  ret.set_result(to_string(CHAIN_ID));
   return ret;
 }
 

@@ -213,7 +213,7 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   block = DSBlockSharedPtr(
       new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
 
@@ -229,7 +229,7 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   block = VCBlockSharedPtr(
       new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
 
@@ -257,7 +257,7 @@ bool BlockStorage::GetFallbackBlock(
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
 
   fallbackblockwsharding =
       FallbackBlockSharedPtr(new FallbackBlockWShardingStructure(
@@ -275,7 +275,7 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
   if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()), 0,
                                blnk)) {
@@ -516,7 +516,7 @@ bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   return true;
 }
 
-bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfDSNode>& dsCommittee,
+bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
                                   const uint16_t& consensusLeaderID) {
   LOG_MARKER();
 
@@ -678,7 +678,7 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
 
 bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
                                      const DequeOfShard& shards,
-                                     const DequeOfDSNode& dsCommittee) {
+                                     const DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   bytes data;
@@ -703,7 +703,7 @@ bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
 
 bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
                                      DequeOfShard& shards,
-                                     DequeOfDSNode& dsCommittee) {
+                                     DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   string dataStr;

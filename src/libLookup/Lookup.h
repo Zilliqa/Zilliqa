@@ -36,6 +36,7 @@
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 #include <condition_variable>
@@ -51,10 +52,10 @@ class Lookup : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Info about lookup node
-  VectorOfLookupNode m_lookupNodes;
-  VectorOfLookupNode m_lookupNodesOffline;
-  VectorOfLookupNode m_seedNodes;
-  VectorOfLookupNode m_multipliers;
+  VectorOfNode m_lookupNodes;
+  VectorOfNode m_lookupNodesOffline;
+  VectorOfNode m_seedNodes;
+  VectorOfNode m_multipliers;
   std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
@@ -147,10 +148,10 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  VectorOfLookupNode GetLookupNodes() const;
+  VectorOfNode GetLookupNodes() const;
 
   // Getter for m_seedNodes
-  VectorOfLookupNode GetSeedNodes() const;
+  VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
@@ -164,6 +165,9 @@ class Lookup : public Executable, public Broadcastable {
                     std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
+
+  // Try resolving ip from the given peer's DNS
+  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
@@ -189,14 +193,18 @@ class Lookup : public Executable, public Broadcastable {
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
-  bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
   bool GetStateFromSeedNodes();
-  bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
+  // UNUSED
+  bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
+                               [[gnu::unused]] unsigned int offset,
+                               [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
+                               [[gnu::unused]] unsigned int offset,
+                               [[gnu::unused]] const Peer& from);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
-  bool ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
+  // UNUSED
   bool GetShardFromLookup();
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -241,26 +249,29 @@ class Lookup : public Executable, public Broadcastable {
                                  const Peer& from);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
-  bool ProcessGetTxBodyFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-
-  bool ProcessGetNetworkId(const bytes& message, unsigned int offset,
-                           const Peer& from);
-
-  bool ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  bool ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
+  // UNUSED
+  bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                [[gnu::unused]] unsigned int offset,
+                                [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
+  // UNUSED
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  bool ProcessGetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
-  bool ProcessSetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+  // UNUSED
+  bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from);
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
@@ -275,8 +286,6 @@ class Lookup : public Executable, public Broadcastable {
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
-  bool ProcessSetTxBodyFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
   bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
 
@@ -315,7 +324,7 @@ class Lookup : public Executable, public Broadcastable {
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
 
-  static bool VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
+  static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
