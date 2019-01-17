@@ -71,6 +71,8 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
     }
     // Storage Root
     it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
+    // Address
+    it2.first->second.SetAddress(address);
   }
 
   return &it2.first->second;

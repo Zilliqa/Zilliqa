@@ -24,17 +24,8 @@
 using namespace std;
 
 namespace Contract {
-
-Index GetIndex(const dev::h160& address, const string& key,
-               unsigned int counter) {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(address.asBytes());
-  sha2.Update(DataConversion::StringToCharArray(key));
-  if (counter != 0) {
-    sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
-  }
-  return dev::h256(sha2.Finalize());
-}
+// Code
+// ======================================
 
 bool ContractStorage::PutContractCode(const dev::h160& address,
                                       const bytes& code) {
@@ -52,6 +43,20 @@ const bytes ContractStorage::GetContractCode(const dev::h160& address) {
 
 bool ContractStorage::DeleteContractCode(const dev::h160& address) {
   return m_codeDB.DeleteKey(address.hex()) == 0;
+}
+
+// State
+// ========================================
+
+Index GetIndex(const dev::h160& address, const string& key,
+               unsigned int counter) {
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(address.asBytes());
+  sha2.Update(DataConversion::StringToCharArray(key));
+  if (counter != 0) {
+    sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
+  }
+  return dev::h256(sha2.Finalize());
 }
 
 bool ContractStorage::CheckIndexExists(const Index& index) {
@@ -96,13 +101,16 @@ bool ContractStorage::PutContractState(
     dev::h256& stateHash) {
   LOG_MARKER();
 
-  vector<Index> new_entry_indexes;
+  vector<Index> entry_indexes = GetContractStateIndexes(address);
 
   unordered_map<string, string> batch;
 
   for (const auto& entry : entries) {
     // Append the new index to the existing indexes
-    new_entry_indexes.emplace_back(entry.first);
+    if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
+        entry_indexes.end()) {
+      entry_indexes.emplace_back(entry.first);
+    }
 
     batch.insert(
         {entry.first.hex(), DataConversion::CharArrayToString(entry.second)});
@@ -114,7 +122,7 @@ bool ContractStorage::PutContractState(
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, new_entry_indexes)) {
+  if (!SetContractStateIndexes(address, entry_indexes)) {
     // for (const auto& index : new_entry_indexes) {
     //   t_stateDataDB.DeleteKey(index.hex());
     // }
@@ -178,9 +186,11 @@ vector<string> ContractStorage::GetContractStatesData(
   for (const auto& index : indexes) {
     if (t_stateDataDB.Exists(index.hex())) {
       rawStates.push_back(t_stateDataDB.Lookup(index.hex()));
-      continue;
+    } else if (m_stateDataDB.Exists(index.hex())) {
+      rawStates.push_back(m_stateDataDB.Lookup(index.hex()));
+    } else {
+      rawStates.push_back("");
     }
-    rawStates.push_back(m_stateDataDB.Lookup(index.hex()));
   }
 
   return rawStates;
@@ -245,12 +255,15 @@ bool ContractStorage::CommitTempStateDB() {
   return true;
 }
 
-Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
+bool ContractStorage::GetContractStateJson(
+    const dev::h160& address, pair<Json::Value, Json::Value>& roots,
+    uint32_t& scilla_version) {
   // LOG_MARKER();
   // iterate and deserialize the vector of raw protobuf string
   vector<string> rawStates = GetContractStatesData(address);
 
-  Json::Value root;
+  bool hasScillaVersion = false;
+  pair<Json::Value, Json::Value> t_roots;
   for (const auto& rawState : rawStates) {
     StateEntry entry;
     if (!Messenger::GetStateData(bytes(rawState.begin(), rawState.end()), 0,
@@ -264,8 +277,17 @@ Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
     string tType = std::get<TYPE>(entry);
     string tValue = std::get<VALUE>(entry);
 
-    if (!tMutable) {
-      continue;
+    if (!hasScillaVersion && tVname == "_scilla_version" && tType == "Uint32" &&
+        !tMutable) {
+      try {
+        scilla_version = boost::lexical_cast<uint32_t>(tValue);
+      } catch (...) {
+        LOG_GENERAL(WARNING,
+                    "_scilla_version " << tValue << " is not a number");
+        return false;
+      }
+
+      hasScillaVersion = true;
     }
 
     Json::Value item;
@@ -288,9 +310,22 @@ Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
     } else {
       item["value"] = tValue;
     }
-    root.append(item);
+
+    if (!tMutable) {
+      t_roots.first.append(item);
+    } else {
+      t_roots.second.append(item);
+    }
   }
-  return root;
+
+  if (!hasScillaVersion) {
+    LOG_GENERAL(WARNING, "_scilla_version is not found in initData");
+    return false;
+  }
+
+  roots = t_roots;
+
+  return true;
 }
 
 dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
@@ -305,8 +340,6 @@ dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
 }
 
 void ContractStorage::Reset() {
-  m_stateDB.ResetDB();
-
   m_codeDB.ResetDB();
   m_stateIndexDB.ResetDB();
   m_stateDataDB.ResetDB();

@@ -67,13 +67,8 @@ message GetBalanceResponse
 message GetSmartContractStateResponse
 {
     optional string error = 1;
-    optional string storagejson = 2;
-}
-
-message GetSmartContractInitResponse
-{
-    optional string error = 1;
     optional string initjson = 2;
+    optional string storagejson = 3;
 }
 
 message GetSmartContractCodeResponse
