@@ -1134,15 +1134,13 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
       continue;
     }
 
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(
-            mbInfo.m_microBlockHash, mbptr)) {
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
       if (!m_mediator.m_lookup->m_historicalDB) {
-        throw JsonRpcException(RPC_DATABASE_ERROR,
-                                "Failed to get Microblock");
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
-                      mbInfo.m_microBlockHash, mbptr)) {
-        throw JsonRpcException(RPC_DATABASE_ERROR,
-                                "Failed to get Microblock");
+                     mbInfo.m_microBlockHash, mbptr)) {
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       }
     }
 
