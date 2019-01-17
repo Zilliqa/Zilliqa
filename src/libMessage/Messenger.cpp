@@ -459,6 +459,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
   if (!newAccount.GetCode().empty()) {
     if (fullCopy) {
+      LOG_GENERAL(INFO, "full copy");
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
       protoAccount.set_codehash(newAccount.GetCodeHash().data(),
@@ -508,7 +509,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
   account.IncreaseNonceBy(protoAccount.nonce());
 
-  if (protoAccount.code().size() > 0 || account.isContract()) {
+  if ((protoAccount.has_code() && protoAccount.code().size() > 0) ||
+      account.isContract()) {
     if (fullCopy) {
       if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
         LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed");
