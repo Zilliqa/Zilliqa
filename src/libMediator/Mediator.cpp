@@ -28,7 +28,7 @@
 
 using namespace std;
 
-Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
+Mediator::Mediator(const PairOfKey& key, const Peer& peer)
     : m_selfKey(key),
       m_selfPeer(peer),
       m_ds(nullptr),
@@ -39,7 +39,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
       m_txBlockChain(),
       m_blocklinkchain(),
       m_consensusID(0),
-      m_DSCommittee(make_shared<std::deque<pair<PubKey, Peer>>>()),
+      m_DSCommittee(make_shared<DequeOfNode>()),
       m_initialDSCommittee(make_shared<vector<PubKey>>()),
       m_dsBlockRand({0}),
       m_txBlockRand({0}),

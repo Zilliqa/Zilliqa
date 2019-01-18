@@ -90,11 +90,11 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
+void Node::UpdateDSCommiteeComposition(DequeOfNode& dsComm,
                                        const DSBlock& dsblock) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
-  deque<pair<PubKey, Peer>>::iterator it;
+  DequeOfNode::iterator it;
 
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
@@ -217,7 +217,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
   {
     lock_guard<mutex> g(m_mutexShardMember);
     // m_myShardMembers->clear();
-    m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
+    m_myShardMembers.reset(new DequeOfNode);
     for (const auto& shardNode : my_shard) {
       m_myShardMembers->emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode),
                                      std::get<SHARD_NODE_PEER>(shardNode));

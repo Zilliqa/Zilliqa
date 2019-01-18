@@ -1072,8 +1072,7 @@ bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
   }
 }
 
-bool MultiSig::SignKey(const bytes& messageWithPubKey,
-                       const pair<PrivKey, PubKey>& keyPair,
+bool MultiSig::SignKey(const bytes& messageWithPubKey, const PairOfKey& keyPair,
                        Signature& signature) {
   // This function is only used by Messenger::SetDSPoWSubmission for
   // Proof-of-Possession (PoP) phase

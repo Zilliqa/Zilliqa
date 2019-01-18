@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(test_keys) {
   unique_ptr<EC_POINT, void (*)(EC_POINT*)> P(
       EC_POINT_new(schnorr.GetCurve().m_group.get()), EC_POINT_clear_free);
 
-  pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+  PairOfKey keypair = schnorr.GenKeyPair();
 
   BOOST_CHECK_MESSAGE(
       BN_cmp(keypair.first.m_d.get(), schnorr.GetCurve().m_order.get()) == -1,
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(test_keys) {
 BOOST_AUTO_TEST_CASE(test_sign_verif) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
-  pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+  PairOfKey keypair = schnorr.GenKeyPair();
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
 BOOST_AUTO_TEST_CASE(test_performance) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
-  pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+  PairOfKey keypair = schnorr.GenKeyPair();
 
   const unsigned int message_sizes[] = {
       128 * 1024,      256 * 1024,       512 * 1024,
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(test_performance) {
 BOOST_AUTO_TEST_CASE(test_serialization) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
-  pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+  PairOfKey keypair = schnorr.GenKeyPair();
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
 
   /// Deserialize keys and signature using Deserialize functions (first,
   /// initialize the keys and sig with different values)
-  pair<PrivKey, PubKey> keypair2 = schnorr.GenKeyPair();
+  PairOfKey keypair2 = schnorr.GenKeyPair();
   bytes message_rand(message_size);
   Signature signature2;
   BOOST_CHECK_MESSAGE(schnorr.Sign(message_rand, keypair2.first,

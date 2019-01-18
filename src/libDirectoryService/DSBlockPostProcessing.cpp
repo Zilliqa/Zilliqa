@@ -307,7 +307,7 @@ void DirectoryService::UpdateDSCommiteeComposition() {
 
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
-  deque<pair<PubKey, Peer>>::iterator it;
+  DequeOfNode::iterator it;
 
   for (const auto& DSPowWinner : NewDSMembers) {
     m_allPoWConns.erase(DSPowWinner.first);

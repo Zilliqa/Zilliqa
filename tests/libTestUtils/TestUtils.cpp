@@ -150,7 +150,7 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
   Peer candidateLeaderNetworkInfo = GenerateRandomPeer();
   PubKey candidateLeaderPubKey = GenerateRandomPubKey();
   uint32_t vcCounter = DistUint32();
-  vector<pair<PubKey, Peer>> faultyLeaders;
+  VectorOfNode faultyLeaders;
   CommitteeHash committeeHash;
   BlockHash prevHash;
 

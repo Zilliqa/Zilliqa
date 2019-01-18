@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(ps.GetAllPeers().size() == 0,
                       "PeerStore initial state check #2 failed");
 
-  pair<PrivKey, PubKey> keypair1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey keypair1 = Schnorr::GetInstance().GenKeyPair();
   Peer peer(std::rand(), std::rand());
 
   ps.AddPeerPair(keypair1.second, peer);
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(peer == peer2,
                       "PeerStore peer replacement check #2 failed");
 
-  pair<PrivKey, PubKey> keypair2 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey keypair2 = Schnorr::GetInstance().GenKeyPair();
   ps.AddPeerPair(keypair2.second, peer);
   BOOST_CHECK_MESSAGE(ps.GetPeerCount() == 2,
                       "PeerStore AddPeer check #2 failed");
