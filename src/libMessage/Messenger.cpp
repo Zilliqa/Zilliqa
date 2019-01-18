@@ -500,7 +500,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
-                            const Address& addr, const bool fullCopy) {
+                            const Address& addr, const bool fullCopy,
+                            bool temp) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
@@ -575,7 +576,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                              DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, true)) {
+      if (!account.SetStorage(addr, entries, temp)) {
         return false;
       }
 
@@ -2434,7 +2435,7 @@ bool Messenger::StateDeltaToAddressMap(
 bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
-                                     const bool reversible) {
+                                     const bool reversible, bool temp) {
   ProtoAccountStore result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2471,7 +2472,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     }
 
     account = *oriAccount;
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
+                                temp)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -2487,7 +2489,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
 bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
-                                     AccountStoreTemp& accountStoreTemp) {
+                                     AccountStoreTemp& accountStoreTemp,
+                                     bool temp) {
   ProtoAccountStore result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2527,7 +2530,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     account = *oriAccount;
 
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
+                                temp)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());

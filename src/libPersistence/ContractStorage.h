@@ -64,7 +64,7 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   Index GetNewIndex(const dev::h160& address, const std::string& key);
 
-  bool CheckIndexExists(const Index& index, bool temp);
+  bool CheckIndexExists(const Index& index);
 
  public:
   /// Returns the singleton ContractStorage instance.
@@ -87,7 +87,8 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool DeleteContractCode(const dev::h160& address);
 
   /// Get the indexes of all the states of an contract account
-  std::vector<Index> GetContractStateIndexes(const dev::h160& address, bool temp);
+  std::vector<Index> GetContractStateIndexes(const dev::h160& address,
+                                             bool temp);
 
   /// Get the raw rlp string of the state by a index
   std::string GetContractStateData(const Index& index, bool temp);
@@ -103,7 +104,7 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   bool CommitStateDB();
 
-  bool CommitTempState();
+  void InitTempState();
 
   /// Get the json formatted data of the states for a contract account
   bool GetContractStateJson(const dev::h160& address,

@@ -151,7 +151,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     bool init = true;
     // Store the immutable states
     if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
-                                 toAddr, blockNum)) {
+                                 toAddr, blockNum, true)) {
       LOG_GENERAL(WARNING, "InitContract failed");
       init = false;
     }

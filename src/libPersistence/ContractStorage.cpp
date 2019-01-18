@@ -59,9 +59,11 @@ Index GetIndex(const dev::h160& address, const string& key,
   return dev::h256(sha2.Finalize());
 }
 
-bool ContractStorage::CheckIndexExists(const Index& index, bool temp) {
-  auto found = m_stateDataMap.find(index.hex());
-  return found != m_stateDataMap.end() || m_stateDataDB.Exists(index.hex());
+bool ContractStorage::CheckIndexExists(const Index& index) {
+  auto t_found = t_stateDataMap.find(index.hex());
+  auto m_found = m_stateDataMap.find(index.hex());
+  return t_found != t_stateDataMap.end() || m_found != m_stateDataMap.end() ||
+         m_stateDataDB.Exists(index.hex());
 }
 
 Index ContractStorage::GetNewIndex(const dev::h160& address,
@@ -78,8 +80,7 @@ Index ContractStorage::GetNewIndex(const dev::h160& address,
 
 bool ContractStorage::PutContractState(const dev::h160& address,
                                        const vector<StateEntry>& states,
-                                       dev::h256& stateHash,
-                                       bool temp) {
+                                       dev::h256& stateHash, bool temp) {
   // LOG_MARKER();
   vector<pair<Index, bytes>> entries;
   for (const auto& state : states) {
@@ -118,7 +119,11 @@ bool ContractStorage::PutContractState(
       entry_indexes.emplace_back(entry.first);
     }
 
-    m_stateDataMap[entry.first.hex()] = entry.second;
+    if (temp) {
+      t_stateDataMap[entry.first.hex()] = entry.second;
+    } else {
+      m_stateDataMap[entry.first.hex()] = entry.second;
+    }
   }
 
   // Update the stateIndexDB
@@ -130,13 +135,14 @@ bool ContractStorage::PutContractState(
     return false;
   }
 
-  stateHash = GetContractStateHash(address);
+  stateHash = GetContractStateHash(address, temp);
 
   return true;
 }
 
-bool ContractStorage::SetContractStateIndexes(
-    const dev::h160& address, const std::vector<Index>& indexes, bool temp) {
+bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
+                                              const std::vector<Index>& indexes,
+                                              bool temp) {
   // LOG_MARKER();
 
   bytes rawBytes;
@@ -145,13 +151,17 @@ bool ContractStorage::SetContractStateIndexes(
     return false;
   }
 
-  m_stateIndexMap[address.hex()] = rawBytes;
+  if (temp) {
+    t_stateIndexMap[address.hex()] = rawBytes;
+  } else {
+    m_stateIndexMap[address.hex()] = rawBytes;
+  }
 
   return true;
 }
 
-vector<Index> ContractStorage::GetContractStateIndexes(
-    const dev::h160& address, bool temp) {
+vector<Index> ContractStorage::GetContractStateIndexes(const dev::h160& address,
+                                                       bool temp) {
   // get from stateIndexDB
   // return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
   // LOG_MARKER();
@@ -159,9 +169,12 @@ vector<Index> ContractStorage::GetContractStateIndexes(
 
   bytes rawBytes;
 
-  auto found = m_stateIndexMap.find(address.hex());
-  if (found != m_stateIndexMap.end()) {
-    rawBytes = found->second;
+  auto t_found = t_stateIndexMap.find(address.hex());
+  auto m_found = m_stateIndexMap.find(address.hex());
+  if (temp && t_found != t_stateIndexMap.end()) {
+    rawBytes = t_found->second;
+  } else if (m_found != m_stateIndexMap.end()) {
+    rawBytes = m_found->second;
   } else if (m_stateIndexDB.Exists(address.hex())) {
     std::string rawString = m_stateIndexDB.Lookup(address.hex());
     rawBytes = bytes(rawString.begin(), rawString.end());
@@ -177,7 +190,8 @@ vector<Index> ContractStorage::GetContractStateIndexes(
   return indexes;
 }
 
-vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address, bool temp) {
+vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address,
+                                                     bool temp) {
   // LOG_MARKER();
   // get indexes
   if (address == Address()) {
@@ -191,9 +205,12 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address, b
 
   // return vector of raw protobuf string
   for (const auto& index : indexes) {
-    auto found = m_stateDataMap.find(index.hex());
-    if (found != m_stateDataMap.end()) {
-      rawStates.push_back(found->second);
+    auto t_found = t_stateDataMap.find(index.hex());
+    auto m_found = m_stateDataMap.find(index.hex());
+    if (temp && t_found != t_stateDataMap.end()) {
+      rawStates.push_back(t_found->second);
+    } else if (m_found != m_stateDataMap.end()) {
+      rawStates.push_back(m_found->second);
     } else if (m_stateDataDB.Exists(index.hex())) {
       std::string rawString = m_stateDataDB.Lookup(index.hex());
       rawStates.push_back(bytes(rawString.begin(), rawString.end()));
@@ -207,9 +224,13 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address, b
 
 string ContractStorage::GetContractStateData(const Index& index, bool temp) {
   // LOG_MARKER();
-  auto found = m_stateDataMap.find(index.hex());
-  if (found != m_stateDataMap.end()) {
-    return DataConversion::CharArrayToString(found->second);
+  auto t_found = t_stateDataMap.find(index.hex());
+  auto m_found = m_stateDataMap.find(index.hex());
+  if (temp && t_found != t_stateDataMap.end()) {
+    return DataConversion::CharArrayToString(t_found->second);
+  }
+  if (m_found != m_stateDataMap.end()) {
+    return DataConversion::CharArrayToString(m_found->second);
   }
   return m_stateDataDB.Lookup(index.hex());
 }
@@ -260,7 +281,16 @@ bool ContractStorage::CommitStateDB() {
   m_stateIndexMap.clear();
   m_stateDataMap.clear();
 
+  InitTempState();
+
   return true;
+}
+
+void ContractStorage::InitTempState() {
+  LOG_MARKER();
+
+  t_stateIndexMap.clear();
+  t_stateDataMap.clear();
 }
 
 bool ContractStorage::GetContractStateJson(
@@ -350,7 +380,8 @@ bool ContractStorage::GetContractStateJson(
   return true;
 }
 
-dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address, bool temp) {
+dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address,
+                                                bool temp) {
   // LOG_MARKER();
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");

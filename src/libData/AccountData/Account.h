@@ -165,9 +165,11 @@ class Account : public AccountBase {
   void CleanCodeCache();
 
   bool SetStorage(const Address& addr,
-                  const std::vector<std::pair<dev::h256, bytes>>& entries);
+                  const std::vector<std::pair<dev::h256, bytes>>& entries,
+                  bool temp);
 
-  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries, bool temp);
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries,
+                  bool temp);
 
   std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
 
@@ -178,8 +180,7 @@ class Account : public AccountBase {
   std::vector<dev::h256> GetStorageKeyHashes(bool temp) const;
 
   bool GetStorageJson(
-      std::pair<Json::Value, Json::Value>& roots,
-      bool temp,
+      std::pair<Json::Value, Json::Value>& roots, bool temp,
       uint32_t& scilla_version = scilla_version_place_holder) const;
 
   /// Computes an account address from a specified PubKey.

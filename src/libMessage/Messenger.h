@@ -92,9 +92,10 @@ class Messenger {
                                    AccountStore& accountStore);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStore& accountStore,
-                                   const bool reversible);
+                                   const bool reversible, bool temp);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
-                                   AccountStoreTemp& accountStoreTemp);
+                                   AccountStoreTemp& accountStoreTemp,
+                                   bool temp);
 
   static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
                             MBInfoHash& dst);

@@ -142,7 +142,8 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
     : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
-                           const Address& addr, const uint64_t& blockNum, bool temp) {
+                           const Address& addr, const uint64_t& blockNum,
+                           bool temp) {
   LOG_MARKER();
   if (!SetCode(code)) {
     LOG_GENERAL(WARNING, "SetCode failed");
@@ -217,7 +218,7 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries, temp) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
   if (!isContract()) {
     return false;
   }
@@ -227,13 +228,14 @@ bool Account::SetStorage(const vector<StateEntry>& state_entries, temp) {
 }
 
 bool Account::SetStorage(const Address& addr,
-                         const vector<pair<dev::h256, bytes>>& entries) {
+                         const vector<pair<dev::h256, bytes>>& entries,
+                         bool temp) {
   if (!isContract()) {
     return false;
   }
 
-  if (!ContractStorage::GetContractStorage().PutContractState(addr, entries,
-                                                              m_storageRoot, false)) {
+  if (!ContractStorage::GetContractStorage().PutContractState(
+          addr, entries, m_storageRoot, temp)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -249,7 +251,8 @@ string Account::GetRawStorage(const h256& k_hash, bool temp) const {
     //             "Not contract account, why call Account::GetRawStorage!");
     return "";
   }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash, temp);
+  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
+                                                                    temp);
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
@@ -325,8 +328,7 @@ Json::Value Account::GetStateJson(bool temp) const {
   return roots.second;
 }
 
-bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
-                             bool temp,
+bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
                              uint32_t& scilla_version) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,

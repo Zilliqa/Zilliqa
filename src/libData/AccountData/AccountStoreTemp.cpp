@@ -47,7 +47,7 @@ Account* AccountStoreTemp::GetAccount(const Address& address) {
 bool AccountStoreTemp::DeserializeDelta(const bytes& src, unsigned int offset) {
   LOG_MARKER();
 
-  if (!Messenger::GetAccountStoreDelta(src, offset, *this)) {
+  if (!Messenger::GetAccountStoreDelta(src, offset, *this, true)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
     return false;
   }
