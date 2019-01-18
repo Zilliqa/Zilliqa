@@ -98,10 +98,12 @@ DataSender& DataSender::GetInstance() {
   return datasender;
 }
 
-void DataSender::DetermineShardToSendDataTo(
-    unsigned int& my_cluster_num, unsigned int& my_shards_lo,
-    unsigned int& my_shards_hi, const DequeOfShard& shards,
-    const deque<pair<PubKey, Peer>>& tmpCommittee, const uint16_t& indexB2) {
+void DataSender::DetermineShardToSendDataTo(unsigned int& my_cluster_num,
+                                            unsigned int& my_shards_lo,
+                                            unsigned int& my_shards_hi,
+                                            const DequeOfShard& shards,
+                                            const DequeOfNode& tmpCommittee,
+                                            const uint16_t& indexB2) {
   // Multicast block to my assigned shard's nodes - send BLOCK message
   // Message = [block]
 
@@ -231,8 +233,7 @@ void DataSender::DetermineNodesToSendDataTo(
 }
 
 bool DataSender::SendDataToOthers(
-    const BlockBase& blockwcosigSender,
-    const deque<pair<PubKey, Peer>>& sendercommittee,
+    const BlockBase& blockwcosigSender, const DequeOfNode& sendercommittee,
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
     const VectorOfNode& lookups, const BlockHash& hashForRandom,
@@ -257,7 +258,7 @@ bool DataSender::SendDataToOthers(
     return false;
   }
 
-  deque<pair<PubKey, Peer>> tmpCommittee;
+  DequeOfNode tmpCommittee;
   for (unsigned int i = 0; i < blockwcosigSender.GetB2().size(); i++) {
     if (blockwcosigSender.GetB2().at(i)) {
       tmpCommittee.push_back(sendercommittee.at(i));

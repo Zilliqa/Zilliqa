@@ -41,7 +41,7 @@ VCBlockHeader::VCBlockHeader(
     const uint64_t& vieWChangeDSEpochNo, const uint64_t& viewChangeEpochNo,
     const unsigned char viewChangeState, const Peer& candidateLeaderNetworkInfo,
     const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-    const vector<pair<PubKey, Peer>>& faultyLeaders, const uint32_t version,
+    const VectorOfNode& faultyLeaders, const uint32_t version,
     const CommitteeHash& committeeHash, const BlockHash& prevHash)
     : BlockHeaderBase(version, committeeHash, prevHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
@@ -92,7 +92,7 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const {
 
 uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
-const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const {
+const VectorOfNode& VCBlockHeader::GetFaultyLeaders() const {
   return m_FaultyLeaders;
 };
 

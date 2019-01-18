@@ -600,7 +600,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 }
 
 void DSCommitteeToProtobuf(const uint32_t version,
-                           const deque<pair<PubKey, Peer>>& dsCommittee,
+                           const DequeOfNode& dsCommittee,
                            ProtoDSCommittee& protoDSCommittee) {
   protoDSCommittee.set_version(version);
   for (const auto& node : dsCommittee) {
@@ -611,8 +611,7 @@ void DSCommitteeToProtobuf(const uint32_t version,
 }
 
 bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
-                           uint32_t& version,
-                           deque<pair<PubKey, Peer>>& dsCommittee) {
+                           uint32_t& version, DequeOfNode& dsCommittee) {
   if (!CheckRequiredFieldsProtoDSCommittee(protoDSCommittee)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSCommittee failed.");
     return false;
@@ -637,7 +636,7 @@ bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   return true;
 }
 
-void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
+void FaultyLeaderToProtobuf(const VectorOfNode& faultyLeaders,
                             ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
   for (const auto& node : faultyLeaders) {
     ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
@@ -648,7 +647,7 @@ void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
 
 void ProtobufToFaultyDSMembers(
     const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-    vector<pair<PubKey, Peer>>& faultyDSMembers) {
+    VectorOfNode& faultyDSMembers) {
   for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
     PubKey pubkey;
     Peer peer;
@@ -659,7 +658,7 @@ void ProtobufToFaultyDSMembers(
   }
 }
 
-void DSCommitteeToProtoCommittee(const deque<pair<PubKey, Peer>>& dsCommittee,
+void DSCommitteeToProtoCommittee(const DequeOfNode& dsCommittee,
                                  ProtoCommittee& protoCommittee) {
   for (const auto& node : dsCommittee) {
     SerializableToProtobufByteArray(node.first, *protoCommittee.add_members());
@@ -1720,7 +1719,7 @@ bool ProtobufToVCBlockHeader(
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
   CommitteeHash committeeHash;
-  vector<pair<PubKey, Peer>> faultyLeaders;
+  VectorOfNode faultyLeaders;
 
   ProtobufByteArrayToSerializable(
       protoVCBlockHeader.candidateleadernetworkinfo(),
@@ -1879,7 +1878,7 @@ bool ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber, const bytes& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey) {
+    const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   // Set the consensus parameters
@@ -2111,7 +2110,7 @@ bool GetConsensusAnnouncementCore(
 // Primitives
 // ============================================================================
 
-bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
+bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
                                    CommitteeHash& dst) {
   ProtoCommittee protoCommittee;
 
@@ -3232,8 +3231,7 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
 // ============================================================================
 
 bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
-                           const pair<PrivKey, PubKey>& key,
-                           const uint32_t listenPort) {
+                           const PairOfKey& key, const uint32_t listenPort) {
   LOG_MARKER();
 
   PMHello result;
@@ -3303,7 +3301,7 @@ bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
 bool Messenger::SetDSPoWSubmission(
     bytes& dst, const unsigned int offset, const uint64_t blockNumber,
     const uint8_t difficultyLevel, const Peer& submitterPeer,
-    const pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
+    const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
     const uint32_t& lookupId, const uint128_t& gasPrice) {
   LOG_MARKER();
@@ -3395,8 +3393,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
 
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
-    const vector<DSPowSolution>& dsPowSolutions,
-    const pair<PrivKey, PubKey>& keys) {
+    const vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
@@ -3552,7 +3549,7 @@ bool Messenger::GetDSMicroBlockSubmission(
 bool Messenger::SetDSDSBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
+    const PairOfKey& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs, bytes& messageToCosign) {
   LOG_MARKER();
@@ -3696,7 +3693,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 bool Messenger::SetDSFinalBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    const PairOfKey& leaderKey, const TxBlock& txBlock,
     const shared_ptr<MicroBlock>& microBlock, bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -3797,7 +3794,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 bool Messenger::SetDSVCBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const VCBlock& vcBlock,
+    const PairOfKey& leaderKey, const VCBlock& vcBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4241,7 +4238,7 @@ bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
 bool Messenger::SetNodeMicroBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const MicroBlock& microBlock,
+    const PairOfKey& leaderKey, const MicroBlock& microBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4327,7 +4324,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 bool Messenger::SetNodeFallbackBlockAnnouncement(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey, const FallbackBlock& fallbackBlock,
+    const PairOfKey& leaderKey, const FallbackBlock& fallbackBlock,
     bytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4704,10 +4701,12 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSInfoFromSeed(
-    bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
-    const uint32_t& dsCommitteeVersion,
-    const deque<pair<PubKey, Peer>>& dsNodes, const bool initialDS) {
+bool Messenger::SetLookupSetDSInfoFromSeed(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& senderKey,
+                                           const uint32_t& dsCommitteeVersion,
+                                           const DequeOfNode& dsNodes,
+                                           const bool initialDS) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
@@ -4742,12 +4741,9 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetDSInfoFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           PubKey& senderPubKey,
-                                           uint32_t& dsCommitteeVersion,
-                                           deque<pair<PubKey, Peer>>& dsNodes,
-                                           bool& initialDS) {
+bool Messenger::GetLookupSetDSInfoFromSeed(
+    const bytes& src, const unsigned int offset, PubKey& senderPubKey,
+    uint32_t& dsCommitteeVersion, DequeOfNode& dsNodes, bool& initialDS) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
@@ -6272,7 +6268,7 @@ bool Messenger::SetConsensusCommit(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
     const CommitPoint& commitPoint, const CommitPointHash& commitPointHash,
-    const pair<PrivKey, PubKey>& backupKey) {
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -6316,11 +6312,13 @@ bool Messenger::SetConsensusCommit(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetConsensusCommit(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    CommitPoint& commitPoint, CommitPointHash& commitPointHash,
-    const deque<pair<PubKey, Peer>>& committeeKeys) {
+bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const uint64_t blockNumber,
+                                   const bytes& blockHash, uint16_t& backupID,
+                                   CommitPoint& commitPoint,
+                                   CommitPointHash& commitPointHash,
+                                   const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -6407,7 +6405,7 @@ bool Messenger::SetConsensusChallenge(
     const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
     const uint16_t leaderID, const CommitPoint& aggregatedCommit,
     const PubKey& aggregatedKey, const Challenge& challenge,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -6542,7 +6540,7 @@ bool Messenger::SetConsensusResponse(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
     const uint16_t backupID, const Response& response,
-    const pair<PrivKey, PubKey>& backupKey) {
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6585,8 +6583,7 @@ bool Messenger::SetConsensusResponse(
 bool Messenger::GetConsensusResponse(
     const bytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    uint16_t& subsetID, Response& response,
-    const deque<pair<PubKey, Peer>>& committeeKeys) {
+    uint16_t& subsetID, Response& response, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6671,7 +6668,7 @@ bool Messenger::SetConsensusCollectiveSig(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
     const Signature& collectiveSig, const vector<bool>& bitmap,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusCollectiveSig result;
@@ -6800,7 +6797,7 @@ bool Messenger::GetConsensusCollectiveSig(
 bool Messenger::SetConsensusCommitFailure(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
-    const bytes& errorMsg, const pair<PrivKey, PubKey>& backupKey) {
+    const bytes& errorMsg, const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -6842,7 +6839,7 @@ bool Messenger::SetConsensusCommitFailure(
 bool Messenger::GetConsensusCommitFailure(
     const bytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    bytes& errorMsg, const deque<pair<PubKey, Peer>>& committeeKeys) {
+    bytes& errorMsg, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -6926,7 +6923,7 @@ bool Messenger::GetConsensusCommitFailure(
 bool Messenger::SetConsensusConsensusFailure(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const pair<PrivKey, PubKey>& leaderKey) {
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusConsensusFailure result;
@@ -7207,7 +7204,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
     const Peer& dsGuardNewNetworkInfo, const uint64_t timestamp,
-    const pair<PrivKey, PubKey>& dsguardkey) {
+    const PairOfKey& dsguardkey) {
   LOG_MARKER();
   DSLookupSetDSGuardNetworkInfoUpdate result;
 
@@ -7339,25 +7336,24 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
     proto_DSGuardUpdateStruct->set_timestamp(dsguardupdate.m_timestamp);
   }
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
-      return false;
-    }
-    SerializableToProtobufByteArray(lookupKey.second,
-                                    *result.mutable_lookuppubkey());
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "NodeSetGuardNodeNetworkInfoUpdate.Data initialization failed.");
     return false;
   }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+    return false;
+  }
+  SerializableToProtobufByteArray(lookupKey.second,
+                                  *result.mutable_lookuppubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -7407,10 +7403,10 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   return true;
 }
 
-bool Messenger::SetSeedNodeHistoricalDB(
-    bytes& dst, const unsigned int offset,
-    const pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
-    const string& path) {
+bool Messenger::SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
+                                        const PairOfKey& archivalKeys,
+                                        const uint32_t code,
+                                        const string& path) {
   SeedSetHistoricalDB result;
 
   result.mutable_data()->set_code(code);
@@ -7418,20 +7414,21 @@ bool Messenger::SetSeedNodeHistoricalDB(
   SerializableToProtobufByteArray(archivalKeys.second,
                                   *result.mutable_pubkey());
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-    Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
-                                     archivalKeys.second, signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign SeedSetHistoricalDB");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "SeedSetHistoricalDB.Data initialization failed");
     return false;
   }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first, archivalKeys.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign SeedSetHistoricalDB");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed.");
     return false;

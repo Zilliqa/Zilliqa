@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
   CommitPoint commitPoint = CommitPoint(CommitSecret());
   CommitPointHash commitPointHash(commitPoint);
-  pair<PrivKey, PubKey> backupKey;
+  PairOfKey backupKey;
   backupKey.first = PrivKey();
   backupKey.second = PubKey(backupKey.first);
 
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
       dst, offset, consensusID, blockNumber, blockHash, backupID, commitPoint,
       commitPointHash, backupKey));
 
-  deque<pair<PubKey, Peer>> committeeKeys;
+  DequeOfNode committeeKeys;
   for (unsigned int i = 0, count = max((unsigned int)backupID + 1,
                                        (unsigned int)TestUtils::Dist1to99());
        i < count; i++) {
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
   PubKey aggregatedKey = PubKey(PrivKey());
   Challenge challenge(aggregatedCommit, aggregatedKey,
                       bytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
-  pair<PrivKey, PubKey> leaderKey;
+  PairOfKey leaderKey;
   leaderKey.first = PrivKey();
   leaderKey.second = PubKey(leaderKey.first);
 
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusConsensusFailure) {
   uint64_t blockNumber = TestUtils::DistUint32();
   bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
-  pair<PrivKey, PubKey> leaderKey;
+  PairOfKey leaderKey;
   leaderKey.first = PrivKey();
   leaderKey.second = PubKey(leaderKey.first);
 

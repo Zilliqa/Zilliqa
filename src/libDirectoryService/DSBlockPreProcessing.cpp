@@ -884,7 +884,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
           bytes& dst, unsigned int offset, const uint32_t consensusID,
           const uint64_t blockNumber, const bytes& blockHash,
-          const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+          const uint16_t leaderID, const PairOfKey& leaderKey,
           bytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
