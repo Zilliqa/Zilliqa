@@ -112,7 +112,7 @@ bool ContractStorage::PutContractState(
       entry_indexes.emplace_back(entry.first);
     }
 
-    t_stateDataMap.insert({entry.first.hex(), entry.second});
+    t_stateDataMap[entry.first.hex()] = entry.second;
   }
 
   // Update the stateIndexDB
@@ -139,7 +139,9 @@ bool ContractStorage::SetContractStateIndexes(
     return false;
   }
 
-  return t_stateIndexMap.insert({address.hex(), rawBytes}).second;
+  t_stateIndexMap[address.hex()] = rawBytes;
+
+  return true;
 }
 
 vector<Index> ContractStorage::GetContractStateIndexes(
