@@ -657,6 +657,7 @@ class DirectoryService : public Executable, public Broadcastable {
       const RunFinalBlockConsensusOptions& options);
   bool CheckIfDSNode(const PubKey& submitterPubKey);
   bool CheckIfShardNode(const PubKey& submitterPubKey);
+  void RemoveDSMicroBlock();
 };
 
 #endif  // __DIRECTORYSERVICE_H__
