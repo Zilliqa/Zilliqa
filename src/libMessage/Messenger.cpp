@@ -470,9 +470,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   }
   accbase.SetNonce(nonceDelta);
 
-  if (!newAccount.isContract()) {
+  if (newAccount.isContract()) {
     if (fullCopy) {
-      LOG_GENERAL(INFO, "full copy");
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
