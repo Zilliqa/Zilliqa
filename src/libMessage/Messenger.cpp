@@ -332,6 +332,14 @@ inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
          protoTxnCoreInfo.has_gaslimit();
 }
 
+inline bool CheckRequiredFieldsProtoTransactionReceipt(const ProtoTransactionReceipt& protoTransactionReceipt) {
+  return protoTransactionReceipt.has_receipt() && protoTransactionReceipt.has_cumgas();
+}
+
+inline bool CheckRequiredFieldsProtoTransactionWithReceipt(const ProtoTransactionWithReceipt& protoTxnWReceipt) {
+  return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
+}
+
 // ============================================================================
 // Protobuf <-> Primitives conversion functions
 // ============================================================================
@@ -1145,15 +1153,21 @@ void TransactionReceiptToProtobuf(const TransactionReceipt& transReceipt,
   protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
 }
 
-void ProtobufToTransactionReceipt(
+bool ProtobufToTransactionReceipt(
     const ProtoTransactionReceipt& protoTransactionReceipt,
     TransactionReceipt& transactionReceipt) {
+  if (!CheckRequiredFieldsProtoTransactionReceipt(protoTransactionReceipt)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransactionReceipt failed");
+    return false;
+  }
   std::string tranReceiptStr;
   tranReceiptStr.resize(protoTransactionReceipt.receipt().size());
   copy(protoTransactionReceipt.receipt().begin(),
        protoTransactionReceipt.receipt().end(), tranReceiptStr.begin());
   transactionReceipt.SetString(tranReceiptStr);
   transactionReceipt.SetCumGas(protoTransactionReceipt.cumgas());
+
+  return true;
 }
 
 void TransactionWithReceiptToProtobuf(
@@ -1177,7 +1191,10 @@ bool ProtobufToTransactionWithReceipt(
   }
 
   TransactionReceipt receipt;
-  ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt);
+  if (!ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionReceipt failed");
+    return false; 
+  }
 
   transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
 
@@ -3017,9 +3034,7 @@ bool Messenger::GetTransactionReceipt(const bytes& src,
     return false;
   }
 
-  ProtobufToTransactionReceipt(result, transactionReceipt);
-
-  return true;
+  return ProtobufToTransactionReceipt(result, transactionReceipt);
 }
 
 bool Messenger::SetTransactionWithReceipt(

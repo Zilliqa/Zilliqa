@@ -354,14 +354,14 @@ message ProtoTransactionArray
 
 message ProtoTransactionReceipt
 {
-    required bytes receipt    = 1;
-    required uint64 cumgas = 2;
+    optional bytes receipt    = 1;
+    optional uint64 cumgas = 2;
 }
 
 message ProtoTransactionWithReceipt
 {
-    required ProtoTransaction transaction    = 1;
-    required ProtoTransactionReceipt receipt = 2;
+    optional ProtoTransaction transaction    = 1;
+    optional ProtoTransactionReceipt receipt = 2;
 }
 
 message ProtoSWInfo
