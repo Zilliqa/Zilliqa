@@ -149,6 +149,12 @@ class Account : public AccountBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Serialize function inherited from Serializable.
+  bool SerializeBase(bytes& dst, unsigned int offset) const;
+
+  /// Implements the Deserialize function inherited from Serializable.
+  bool DeserializeBase(const bytes& src, unsigned int offset);
+
   void SetAddress(const Address& addr);
 
   /// Set the code

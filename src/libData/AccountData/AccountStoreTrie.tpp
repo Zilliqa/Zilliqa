@@ -32,6 +32,7 @@ void AccountStoreTrie<DB, MAP>::Init() {
 
 template <class DB, class MAP>
 Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
+  // LOG_MARKER();
   using namespace boost::multiprecision;
 
   Account* account = AccountStoreBase<MAP>::GetAccount(address);
@@ -44,9 +45,9 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
     return nullptr;
   }
 
-  if (!((AccountBase)(*account))
-           .Deserialize(bytes(rawAccountBase.begin(), rawAccountBase.end()),
-                        0)) {
+  account = new Account();
+  if (!account->DeserializeBase(
+          bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountBase failed");
     return nullptr;
   }
@@ -77,7 +78,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
                                                 const Account& account) {
   // LOG_MARKER();
   bytes rawBytes;
-  if (!((AccountBase)account).Serialize(rawBytes, 0)) {
+  if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
     return false;
   }

@@ -56,10 +56,7 @@ bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
-  LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "Account::Deserialize temporarily disabled");
-  return false;
+  // LOG_MARKER();
 
   if (!Messenger::GetAccountBase(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
@@ -200,10 +197,7 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 bool Account::Deserialize(const bytes& src, unsigned int offset) {
-  LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "Account::Deserialize temporarily disabled");
-  return false;
+  // LOG_MARKER();
 
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
@@ -211,6 +205,16 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
   }
 
   return true;
+}
+
+bool Account::SerializeBase(bytes& dst, unsigned int offset) const {
+  return AccountBase::Serialize(dst, offset);
+}
+
+bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
+  // LOG_MARKER();
+
+  return AccountBase::Deserialize(src, offset);
 }
 
 bool Account::SetStorage(const vector<StateEntry>& state_entries) {
