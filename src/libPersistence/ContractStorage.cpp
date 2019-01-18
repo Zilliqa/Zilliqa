@@ -99,7 +99,12 @@ bool ContractStorage::PutContractState(const dev::h160& address,
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
     dev::h256& stateHash) {
-  LOG_MARKER();
+  // LOG_MARKER();
+
+  if (address == Address()) {
+    LOG_GENERAL(WARNING, "Null address rejected");
+    return false;
+  }
 
   vector<Index> entry_indexes = GetContractStateIndexes(address);
 
@@ -174,6 +179,11 @@ vector<Index> ContractStorage::GetContractStateIndexes(
 vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address) {
   // LOG_MARKER();
   // get indexes
+  if (address == Address()) {
+    LOG_GENERAL(WARNING, "Null address rejected");
+    return {};
+  }
+
   vector<Index> indexes = GetContractStateIndexes(address);
 
   vector<bytes> rawStates;
@@ -256,6 +266,12 @@ bool ContractStorage::GetContractStateJson(
     const dev::h160& address, pair<Json::Value, Json::Value>& roots,
     uint32_t& scilla_version) {
   // LOG_MARKER();
+
+  if (address == Address()) {
+    LOG_GENERAL(WARNING, "Null address rejected");
+    return false;
+  }
+
   // iterate and deserialize the vector of raw protobuf string
   vector<bytes> rawStates = GetContractStatesData(address);
 
@@ -335,6 +351,11 @@ bool ContractStorage::GetContractStateJson(
 
 dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
   // LOG_MARKER();
+  if (address == Address()) {
+    LOG_GENERAL(WARNING, "Null address rejected");
+    return dev::h256();
+  }
+
   // iterate the raw protobuf string and hash
   vector<bytes> rawStates = GetContractStatesData(address);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
