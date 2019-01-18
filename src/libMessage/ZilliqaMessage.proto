@@ -242,7 +242,7 @@ message ProtoDiagnosticData
 
 message ProtoAccountBase
 {
-    required uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
     optional ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
     optional uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
     optional bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
@@ -270,7 +270,7 @@ message ProtoStateIndex
 
 message ProtoStateData
 {
-    required uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
     optional string vname   = 2; // Added in: v1.0, Deprecated in: N/A
     optional bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
     optional string type    = 4; // Added in: v1.0, Deprecated in: N/A

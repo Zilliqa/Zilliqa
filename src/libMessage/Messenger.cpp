@@ -293,7 +293,8 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
 
 inline bool CheckRequiredFieldsProtoAccountBase(
     const ProtoAccountBase& protoAccountBase) {
-  return protoAccountBase.has_balance() && protoAccountBase.has_nonce();
+  return protoAccountBase.has_version() && protoAccountBase.has_balance() &&
+         protoAccountBase.has_nonce();
 }
 
 inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount& protoAccount) {
@@ -302,8 +303,9 @@ inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount& protoAccount) {
 
 inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
-  return protoStateData.has_vname() && protoStateData.has_ismutable() &&
-         protoStateData.has_type() && protoStateData.has_value();
+  return protoStateData.has_version() && protoStateData.has_vname() &&
+         protoStateData.has_ismutable() && protoStateData.has_type() &&
+         protoStateData.has_value();
 }
 
 // ============================================================================
