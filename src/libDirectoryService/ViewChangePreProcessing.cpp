@@ -74,7 +74,7 @@ bool DirectoryService::ViewChangeValidator(
   }
 
   if (!m_mediator.CheckWhetherBlockIsLatest(
-          m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
+          m_pendingVCBlock->GetHeader().GetViewChangeDSEpochNo(),
           m_pendingVCBlock->GetHeader().GetViewChangeEpochNo())) {
     LOG_GENERAL(WARNING,
                 "ViewChangeValidator CheckWhetherBlockIsLatest failed");

@@ -215,8 +215,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
-                           "param01", jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_INTEGER, NULL),
+                           "param01", jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetTransactionsForTxBlockI);
   }
 
@@ -381,8 +380,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   }
   inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
                                                  Json::Value& response) {
-    response = this->GetTransactionsForTxBlock(request[0u].asString(),
-                                               request[1u].asUInt());
+    response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
@@ -419,8 +417,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetSmartContractState(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractInit(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
-  virtual Json::Value GetTransactionsForTxBlock(const std::string& param01,
-                                                unsigned int param02) = 0;
+  virtual Json::Value GetTransactionsForTxBlock(const std::string& param01) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -481,6 +478,5 @@ class Server : public AbstractZServer {
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
-  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
-                                        unsigned int shardID);
+  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
 };

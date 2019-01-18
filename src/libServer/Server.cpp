@@ -1107,10 +1107,9 @@ string Server::GetNumTxnsDSEpoch() {
   }
 }
 
-Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
-                                              unsigned int shardID) {
+Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
   LOG_MARKER();
-  LOG_GENERAL(INFO, txBlockNum << " " << shardID);
+  // LOG_GENERAL(INFO, txBlockNum << " " << shardID);
   uint64_t txNum;
   Json::Value _json = Json::arrayValue;
   try {
@@ -1121,36 +1120,47 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-  if (txBlock == TxBlock()) {
+  // TODO
+  // Workaround to identify dummy block as == comparator does not work on
+  // empty object for TxBlock and TxBlockheader().
+  // if (txBlock == TxBlock()) {
+  if (txBlock.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txBlock.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Tx Block does not exist");
   }
 
   auto microBlockInfos = txBlock.GetMicroBlockInfos();
 
+  bool hasTransactions = false;
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
-    if (mbInfo.m_txnRootHash == TxnHash() && mbInfo.m_shardId == shardID) {
-      throw JsonRpcException(RPC_DATABASE_ERROR,
-                             "Shard microblock has no transactions");
-    }
-    if (mbInfo.m_shardId == shardID) {
-      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
-              mbInfo.m_microBlockHash, mbptr)) {
-        if (!m_mediator.m_lookup->m_historicalDB) {
-          throw JsonRpcException(RPC_DATABASE_ERROR,
-                                 "Failed to get Microblock");
-        } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
-                       mbInfo.m_microBlockHash, mbptr)) {
-          throw JsonRpcException(RPC_DATABASE_ERROR,
-                                 "Failed to get Microblock");
-        }
-      }
-      auto tranHashes = mbptr->GetTranHashes();
+    _json[mbInfo.m_shardId] = Json::arrayValue;
 
-      for (const auto& tranHash : tranHashes) {
-        _json.append(tranHash.hex());
+    if (mbInfo.m_txnRootHash == TxnHash()) {
+      continue;
+    }
+
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      if (!m_mediator.m_lookup->m_historicalDB) {
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
+      } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
+                     mbInfo.m_microBlockHash, mbptr)) {
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       }
     }
+
+    const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+    if (tranHashes.size() > 0) {
+      hasTransactions = true;
+      for (const auto& tranHash : tranHashes) {
+        _json[mbInfo.m_shardId].append(tranHash.hex());
+      }
+    }
+  }
+
+  if (!hasTransactions) {
+    throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
   }
 
   return _json;

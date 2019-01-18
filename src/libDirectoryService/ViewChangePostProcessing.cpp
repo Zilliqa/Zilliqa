@@ -249,7 +249,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   // Store to blockLink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
   m_mediator.m_blocklinkchain.AddBlockLink(
-      latestInd, m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
+      latestInd, m_pendingVCBlock->GetHeader().GetViewChangeDSEpochNo(),
       BlockType::VC, m_pendingVCBlock->GetBlockHash());
 
   bytes dst;

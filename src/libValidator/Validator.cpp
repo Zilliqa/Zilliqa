@@ -287,12 +287,12 @@ bool Validator::CheckDirBlocks(
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
-      if (vcblock.GetHeader().GetVieWChangeDSEpochNo() != prevdsblocknum + 1) {
+      if (vcblock.GetHeader().GetViewChangeDSEpochNo() != prevdsblocknum + 1) {
         LOG_GENERAL(WARNING,
                     "VC block ds epoch number does not match the number being "
                     "processed "
                         << prevdsblocknum << " "
-                        << vcblock.GetHeader().GetVieWChangeDSEpochNo());
+                        << vcblock.GetHeader().GetViewChangeDSEpochNo());
         ret = false;
         break;
       }
