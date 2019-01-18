@@ -308,6 +308,31 @@ inline bool CheckRequiredFieldsProtoStateData(
          protoStateData.has_value();
 }
 
+inline bool CheckRequiredFieldsProtoTransaction(
+    const ProtoTransaction& protoTransaction) {
+  return protoTransaction.has_tranid() && protoTransaction.has_info() &&
+         protoTransaction.has_signature();
+}
+
+inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
+    const ProtoTransactionCoreInfo& protoTxnCoreInfo) {
+  return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() &&
+         protoTxnCoreInfo.has_toaddr() && protoTxnCoreInfo.has_senderpubkey() &&
+         protoTxnCoreInfo.has_amount() && protoTxnCoreInfo.has_gasprice() &&
+         protoTxnCoreInfo.has_gaslimit();
+}
+
+inline bool CheckRequiredFieldsProtoTransactionReceipt(
+    const ProtoTransactionReceipt& protoTransactionReceipt) {
+  return protoTransactionReceipt.has_receipt() &&
+         protoTransactionReceipt.has_cumgas();
+}
+
+inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
+    const ProtoTransactionWithReceipt& protoTxnWReceipt) {
+  return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
+}
+
 // ============================================================================
 // Protobuf <-> Primitives conversion functions
 // ============================================================================
@@ -977,13 +1002,21 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       txnCoreInfo.gasPrice, *protoTxnCoreInfo.mutable_gasprice());
   protoTxnCoreInfo.set_gaslimit(txnCoreInfo.gasLimit);
-  protoTxnCoreInfo.set_code(txnCoreInfo.code.data(), txnCoreInfo.code.size());
-  protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
+  if (!txnCoreInfo.code.empty()) {
+    protoTxnCoreInfo.set_code(txnCoreInfo.code.data(), txnCoreInfo.code.size());
+  }
+  if (!txnCoreInfo.data.empty()) {
+    protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
+  }
 }
 
-void ProtobufToTransactionCoreInfo(
+bool ProtobufToTransactionCoreInfo(
     const ProtoTransactionCoreInfo& protoTxnCoreInfo,
     TransactionCoreInfo& txnCoreInfo) {
+  if (!CheckRequiredFieldsProtoTransactionCoreInfo(protoTxnCoreInfo)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransactionCoreInfo failed");
+    return false;
+  }
   txnCoreInfo.version = protoTxnCoreInfo.version();
   txnCoreInfo.nonce = protoTxnCoreInfo.nonce();
   copy(protoTxnCoreInfo.toaddr().begin(),
@@ -998,12 +1031,17 @@ void ProtobufToTransactionCoreInfo(
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
   txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
-  txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
-  copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
-       txnCoreInfo.code.begin());
-  txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
-  copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
-       txnCoreInfo.data.begin());
+  if (protoTxnCoreInfo.has_code() && protoTxnCoreInfo.code().size() > 0) {
+    txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
+    copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
+         txnCoreInfo.code.begin());
+  }
+  if (protoTxnCoreInfo.has_data() && protoTxnCoreInfo.data().size() > 0) {
+    txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
+    copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
+         txnCoreInfo.data.begin());
+  }
+  return true;
 }
 
 void TransactionToProtobuf(const Transaction& transaction,
@@ -1017,8 +1055,13 @@ void TransactionToProtobuf(const Transaction& transaction,
                                   *protoTransaction.mutable_signature());
 }
 
-void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
+bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                            Transaction& transaction) {
+  if (!CheckRequiredFieldsProtoTransaction(protoTransaction)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransaction failed");
+    return false;
+  }
+
   TxnHash tranID;
   TransactionCoreInfo txnCoreInfo;
   Signature signature;
@@ -1029,14 +1072,17 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                (unsigned int)tranID.size),
        tranID.asArray().begin());
 
-  ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo);
+  if (!ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionCoreInfo failed");
+    return false;
+  }
 
   ProtobufByteArrayToSerializable(protoTransaction.signature(), signature);
 
   bytes txnData;
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
     LOG_GENERAL(WARNING, "Serialize Proto transaction core info failed.");
-    return;
+    return false;
   }
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -1048,20 +1094,22 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     copy(hash.begin(), hash.end(), expected.asArray().begin());
     LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
                              << expected << " Actual: " << tranID);
-    return;
+    return false;
   }
 
   // Verify signature
   if (!Schnorr::GetInstance().Verify(txnData, signature,
                                      txnCoreInfo.senderPubKey)) {
     LOG_GENERAL(WARNING, "Signature verification failed.");
-    return;
+    return false;
   }
 
   transaction = Transaction(
       tranID, txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
       txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
       txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
+
+  return true;
 }
 
 void TransactionOffsetToProtobuf(const std::vector<uint32_t>& txnOffsets,
@@ -1091,7 +1139,9 @@ void ProtobufToTransactionArray(
     std::vector<Transaction>& txns) {
   for (const auto& protoTransaction : protoTransactionArray.transactions()) {
     Transaction txn;
-    ProtobufToTransaction(protoTransaction, txn);
+    if (!ProtobufToTransaction(protoTransaction, txn)) {
+      continue;
+    }
     txns.push_back(txn);
   }
 }
@@ -1103,15 +1153,21 @@ void TransactionReceiptToProtobuf(const TransactionReceipt& transReceipt,
   protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
 }
 
-void ProtobufToTransactionReceipt(
+bool ProtobufToTransactionReceipt(
     const ProtoTransactionReceipt& protoTransactionReceipt,
     TransactionReceipt& transactionReceipt) {
+  if (!CheckRequiredFieldsProtoTransactionReceipt(protoTransactionReceipt)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransactionReceipt failed");
+    return false;
+  }
   std::string tranReceiptStr;
   tranReceiptStr.resize(protoTransactionReceipt.receipt().size());
   copy(protoTransactionReceipt.receipt().begin(),
        protoTransactionReceipt.receipt().end(), tranReceiptStr.begin());
   transactionReceipt.SetString(tranReceiptStr);
   transactionReceipt.SetCumGas(protoTransactionReceipt.cumgas());
+
+  return true;
 }
 
 void TransactionWithReceiptToProtobuf(
@@ -1125,16 +1181,24 @@ void TransactionWithReceiptToProtobuf(
                                *protoTranReceipt);
 }
 
-void ProtobufToTransactionWithReceipt(
+bool ProtobufToTransactionWithReceipt(
     const ProtoTransactionWithReceipt& protoWithTransaction,
     TransactionWithReceipt& transactionWithReceipt) {
   Transaction transaction;
-  ProtobufToTransaction(protoWithTransaction.transaction(), transaction);
+  if (!ProtobufToTransaction(protoWithTransaction.transaction(), transaction)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
+    return false;
+  }
 
   TransactionReceipt receipt;
-  ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt);
+  if (!ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionReceipt failed");
+    return false;
+  }
 
   transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
+
+  return true;
 }
 
 void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
@@ -2923,9 +2987,7 @@ bool Messenger::GetTransaction(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  ProtobufToTransaction(result, transaction);
-
-  return true;
+  return ProtobufToTransaction(result, transaction);
 }
 
 bool Messenger::SetTransactionFileOffset(
@@ -3008,9 +3070,7 @@ bool Messenger::GetTransactionReceipt(const bytes& src,
     return false;
   }
 
-  ProtobufToTransactionReceipt(result, transactionReceipt);
-
-  return true;
+  return ProtobufToTransactionReceipt(result, transactionReceipt);
 }
 
 bool Messenger::SetTransactionWithReceipt(
@@ -3039,9 +3099,7 @@ bool Messenger::GetTransactionWithReceipt(
     return false;
   }
 
-  ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
-
-  return true;
+  return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 }
 
 bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
@@ -3209,6 +3267,13 @@ bool Messenger::GetFallbackBlockWShardingStructure(
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
+  if (!result.has_fallbackblock() || !result.has_sharding()) {
+    LOG_GENERAL(
+        WARNING,
+        "GetFallbackBlockWShardingStructure check required field failed");
     return false;
   }
 
@@ -4257,7 +4322,9 @@ bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
 
     for (const auto& txn : result.transactions()) {
       Transaction t;
-      ProtobufToTransaction(txn, t);
+      if (!ProtobufToTransaction(txn, t)) {
+        continue;
+      }
       txns.emplace_back(t);
     }
   }
