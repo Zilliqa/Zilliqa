@@ -39,23 +39,21 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
 
-  LevelDB t_stateIndexDB;
-  LevelDB t_stateDataDB;
-
   LevelDB m_stateIndexDB;
   LevelDB m_stateDataDB;
+
+  std::unordered_map<std::string, bytes> t_stateIndexMap;
+  std::unordered_map<std::string, bytes> t_stateDataMap;
 
   /// Set the indexes of all the states of an contract account
   bool SetContractStateIndexes(const dev::h160& address,
                                const std::vector<Index>& indexes);
 
   /// Get the raw rlp string of the states of an account
-  std::vector<std::string> GetContractStatesData(const dev::h160& address);
+  std::vector<bytes> GetContractStatesData(const dev::h160& address);
 
   ContractStorage()
       : m_codeDB("contractCode"),
-        t_stateIndexDB("tempContractStateIndex"),
-        t_stateDataDB("tempContractStateData"),
         m_stateIndexDB("contractStateIndex"),
         m_stateDataDB("contractStateData"){};
 
