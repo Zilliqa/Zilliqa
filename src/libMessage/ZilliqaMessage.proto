@@ -366,16 +366,16 @@ message ProtoTransactionWithReceipt
 
 message ProtoSWInfo
 {
-    required uint32 zilliqamajorversion        = 1;
-    required uint32 zilliqaminorversion        = 2;
-    required uint32 zilliqafixversion          = 3;
-    required uint64 zilliqaupgradeds           = 4;
-    required uint32 zilliqacommit              = 5;
-    required uint32 scillamajorversion         = 6;
-    required uint32 scillaminorversion         = 7;
-    required uint32 scillafixversion           = 8;
-    required uint64 scillaupgradeds            = 9;
-    required uint32 scillacommit               = 10;
+    optional uint32 zilliqamajorversion        = 1;
+    optional uint32 zilliqaminorversion        = 2;
+    optional uint32 zilliqafixversion          = 3;
+    optional uint64 zilliqaupgradeds           = 4;
+    optional uint32 zilliqacommit              = 5;
+    optional uint32 scillamajorversion         = 6;
+    optional uint32 scillaminorversion         = 7;
+    optional uint32 scillafixversion           = 8;
+    optional uint64 scillaupgradeds            = 9;
+    optional uint32 scillacommit               = 10;
 }
 
 message ProtoFallbackBlockWShardingStructure
