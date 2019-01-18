@@ -503,7 +503,7 @@ GetSmartContractStateResponse Server::GetSmartContractState(
     }
 
     pair<Json::Value, Json::Value> roots;
-    if (!account->GetStorageJson(roots)) {
+    if (!account->GetStorageJson(roots, false)) {
       ret.set_error("Scilla_version not set properly");
       return ret;
     }
@@ -615,7 +615,7 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       auto protoContractAccount = ret.add_address();
       protoContractAccount->set_address(contractAddr.hex());
       protoContractAccount->set_state(
-          contractAccount->GetStateJson().toStyledString());
+          contractAccount->GetStateJson(false).toStyledString());
     }
 
   } catch (exception& e) {

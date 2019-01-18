@@ -17,8 +17,6 @@
 
 #include "libPersistence/ContractStorage.h"
 
-#define RLP_ITEM_COUNT 4
-
 template <class DB, class MAP>
 AccountStoreTrie<DB, MAP>::AccountStoreTrie()
     : m_db(std::is_same<DB, dev::OverlayDB>::value ? "state" : "") {
@@ -34,6 +32,7 @@ void AccountStoreTrie<DB, MAP>::Init() {
 
 template <class DB, class MAP>
 Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
+  // LOG_MARKER();
   using namespace boost::multiprecision;
 
   Account* account = AccountStoreBase<MAP>::GetAccount(address);
@@ -41,36 +40,32 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
     return account;
   }
 
-  std::string accountDataString = m_state.at(address);
-  if (accountDataString.empty()) {
+  std::string rawAccountBase = m_state.at(address);
+  if (rawAccountBase.empty()) {
     return nullptr;
   }
 
-  dev::RLP accountDataRLP(accountDataString);
-  if (accountDataRLP.itemCount() != RLP_ITEM_COUNT) {
-    LOG_GENERAL(WARNING, "Account data corrupted");
+  account = new Account();
+  if (!account->DeserializeBase(
+          bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountBase failed");
     return nullptr;
   }
 
-  auto it2 = this->m_addressToAccount->emplace(
-      std::piecewise_construct, std::forward_as_tuple(address),
-      std::forward_as_tuple(accountDataRLP[0].toInt<uint128_t>(),
-                            accountDataRLP[1].toInt<uint64_t>()));
+  auto it2 = this->m_addressToAccount->emplace(address, *account);
 
   // Code Hash
-  if (accountDataRLP[3].toHash<dev::h256>() != dev::h256()) {
+  if (account->GetCodeHash() != dev::h256()) {
+    dev::h256 tmpCodeHash = it2.first->second.GetCodeHash();
     // Extract Code Content
     it2.first->second.SetCode(
         Contract::ContractStorage::GetContractStorage().GetContractCode(
             address));
-    if (accountDataRLP[3].toHash<dev::h256>() !=
-        it2.first->second.GetCodeHash()) {
+    if (tmpCodeHash != it2.first->second.GetCodeHash()) {
       LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
       this->m_addressToAccount->erase(it2.first);
       return nullptr;
     }
-    // Storage Root
-    it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
     // Address
     it2.first->second.SetAddress(address);
   }
@@ -82,10 +77,13 @@ template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
                                                 const Account& account) {
   // LOG_MARKER();
-  dev::RLPStream rlpStream(RLP_ITEM_COUNT);
-  rlpStream << account.GetBalance() << account.GetNonce()
-            << account.GetStorageRoot() << account.GetCodeHash();
-  m_state.insert(address, &rlpStream.out());
+  bytes rawBytes;
+  if (!account.SerializeBase(rawBytes, 0)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
+    return false;
+  }
+
+  m_state.insert(address, rawBytes);
 
   return true;
 }

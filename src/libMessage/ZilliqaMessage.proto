@@ -240,6 +240,15 @@ message ProtoDiagnosticData
 // Primitives
 // ============================================================================
 
+message ProtoAccountBase
+{
+    optional uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
+    optional ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
+    optional bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
+    optional bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
+}
+
 message ProtoAccount
 {
     message StorageData
@@ -247,14 +256,11 @@ message ProtoAccount
         required bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
         required string data         = 2; // Added in: v1.0, Deprecated in: N/A
     }
-    optional uint32 version        = 1;  // Added in: v1.0, Deprecated in: N/A
-    optional bool numbersign       = 2;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
-    required ByteArray balance     = 3;  // Added in: v1.0, Deprecated in: N/A
-    required uint64 nonce          = 4;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes storageroot     = 5;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes codehash        = 6;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes code            = 7;  // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage   = 8; // Added in: v1.0, Deprecated in: N/A
+    optional ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
+
+    optional bytes code            = 2;  // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A
+    optional bool numbersign       = 4;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex
@@ -264,10 +270,11 @@ message ProtoStateIndex
 
 message ProtoStateData
 {
-    optional string vname = 1; // Added in: v1.0, Deprecated in: N/A
-    optional bool ismutable = 2; // Added in: v1.0, Deprecated in: N/A
-    optional string type  = 3; // Added in: v1.0, Deprecated in: N/A
-    optional string value = 4; // Added in: v1.0, Deprecated in: N/A 
+    optional uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
+    optional string vname   = 2; // Added in: v1.0, Deprecated in: N/A
+    optional bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
+    optional string type    = 4; // Added in: v1.0, Deprecated in: N/A
+    optional string value   = 5; // Added in: v1.0, Deprecated in: N/A 
 }
 
 message ProtoAccountStore

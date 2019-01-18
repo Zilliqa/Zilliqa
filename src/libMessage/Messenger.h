@@ -63,11 +63,15 @@ class Messenger {
                                        const DequeOfShard& shards,
                                        ShardingHash& dst);
 
+  static bool SetAccountBase(bytes& dst, const unsigned int offset,
+                             const AccountBase& accountbase);
+  static bool GetAccountBase(const bytes& src, const unsigned int offset,
+                             AccountBase& accountbase);
+
   static bool SetAccount(bytes& dst, const unsigned int offset,
                          const Account& account);
-  [[gnu::unused]] static bool GetAccount(const bytes& src,
-                                         const unsigned int offset,
-                                         Account& account);
+  static bool GetAccount(const bytes& src, const unsigned int offset,
+                         Account& account);
 
   static bool SetAccountDelta(bytes& dst, const unsigned int offset,
                               Account* oldAccount, const Account& newAccount);
@@ -88,9 +92,10 @@ class Messenger {
                                    AccountStore& accountStore);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStore& accountStore,
-                                   const bool reversible);
+                                   const bool reversible, bool temp);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
-                                   AccountStoreTemp& accountStoreTemp);
+                                   AccountStoreTemp& accountStoreTemp,
+                                   bool temp);
 
   static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
                             MBInfoHash& dst);
@@ -180,7 +185,7 @@ class Messenger {
   static bool SetStateData(bytes& dst, const unsigned int offset,
                            const Contract::StateEntry& entry);
   static bool GetStateData(const bytes& src, const unsigned int offset,
-                           Contract::StateEntry& entry);
+                           Contract::StateEntry& entry, uint32_t& version);
 
   static bool SetPeer(bytes& dst, const unsigned int offset, const Peer& peer);
   static bool GetPeer(const bytes& src, const unsigned int offset, Peer& peer);

@@ -138,6 +138,7 @@ extern const unsigned int BLOCKLINK_VERSION;
 extern const unsigned int DSCOMMITTEE_VERSION;
 extern const unsigned int SHARDINGSTRUCTURE_VERSION;
 extern const unsigned int ACCOUNT_VERSION;
+extern const unsigned int CONTRACT_STATE_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
