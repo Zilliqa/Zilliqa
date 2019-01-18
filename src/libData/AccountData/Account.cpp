@@ -142,7 +142,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
     : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
-                           const Address& addr, const uint64_t& blockNum) {
+                           const Address& addr, const uint64_t& blockNum, bool temp) {
   LOG_MARKER();
   if (!SetCode(code)) {
     LOG_GENERAL(WARNING, "SetCode failed");
@@ -179,7 +179,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          m_address, state_entries, m_storageRoot)) {
+          m_address, state_entries, m_storageRoot, temp)) {
     LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
     return false;
   }
@@ -217,13 +217,13 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries, temp) {
   if (!isContract()) {
     return false;
   }
 
   return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot);
+      m_address, state_entries, m_storageRoot, temp);
 }
 
 bool Account::SetStorage(const Address& addr,
@@ -233,7 +233,7 @@ bool Account::SetStorage(const Address& addr,
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(addr, entries,
-                                                              m_storageRoot)) {
+                                                              m_storageRoot, false)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -243,13 +243,13 @@ bool Account::SetStorage(const Address& addr,
   return true;
 }
 
-string Account::GetRawStorage(const h256& k_hash) const {
+string Account::GetRawStorage(const h256& k_hash, bool temp) const {
   if (!isContract()) {
     // LOG_GENERAL(WARNING,
     //             "Not contract account, why call Account::GetRawStorage!");
     return "";
   }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash);
+  return ContractStorage::GetContractStorage().GetContractStateData(k_hash, temp);
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
@@ -296,29 +296,29 @@ Json::Value Account::GetInitJson() const {
   }
 
   pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots)) {
+  if (!GetStorageJson(roots, false)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return Json::arrayValue;
   }
   return roots.first;
 }
 
-vector<h256> Account::GetStorageKeyHashes() const {
+vector<h256> Account::GetStorageKeyHashes(bool temp) const {
   if (!isContract()) {
     return {};
   }
 
   return ContractStorage::GetContractStorage().GetContractStateIndexes(
-      m_address);
+      m_address, temp);
 }
 
-Json::Value Account::GetStateJson() const {
+Json::Value Account::GetStateJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
   }
 
   pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots)) {
+  if (!GetStorageJson(roots, temp)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return Json::arrayValue;
   }
@@ -326,6 +326,7 @@ Json::Value Account::GetStateJson() const {
 }
 
 bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
+                             bool temp,
                              uint32_t& scilla_version) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
@@ -335,7 +336,7 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
 
   // Init, Other
   if (!ContractStorage::GetContractStorage().GetContractStateJson(
-          m_address, roots, scilla_version)) {
+          m_address, roots, scilla_version, temp)) {
     LOG_GENERAL(WARNING, "ContractStorage::GetContractStateJson failed");
     return false;
   }

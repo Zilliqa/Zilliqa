@@ -894,7 +894,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
   }
 
-  if (!contractAccount->SetStorage(state_entries)) {
+  if (!contractAccount->SetStorage(state_entries, true)) {
     LOG_GENERAL(WARNING, "SetStorage failed");
   }
 

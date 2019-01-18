@@ -433,7 +433,7 @@ Json::Value Server::GetSmartContractState(const string& address) {
                              "Address does not exist");
     }
 
-    return account->GetStateJson();
+    return account->GetStateJson(false);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {

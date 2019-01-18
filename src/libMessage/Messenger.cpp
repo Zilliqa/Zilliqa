@@ -372,10 +372,10 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
   if (protoAccountBase->has_codehash()) {
     protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
-    for (const auto& keyHash : account.GetStorageKeyHashes()) {
+    for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
       ProtoAccount::StorageData* entry = protoAccount.add_storage();
       entry->set_keyhash(keyHash.data(), keyHash.size);
-      entry->set_data(account.GetRawStorage(keyHash));
+      entry->set_data(account.GetRawStorage(keyHash, false));
     }
   }
 }
@@ -427,7 +427,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                            DataConversion::StringToCharArray(entry.data()));
     }
 
-    if (!account.SetStorage(addr, entries)) {
+    if (!account.SetStorage(addr, entries, false)) {
       return false;
     }
 
@@ -470,7 +470,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   }
   accbase.SetNonce(nonceDelta);
 
-  if (!newAccount.GetCode().empty()) {
+  if (!newAccount.isContract()) {
     if (fullCopy) {
       LOG_GENERAL(INFO, "full copy");
       accbase.SetCodeHash(newAccount.GetCodeHash());
@@ -482,9 +482,9 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
         newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
-      for (const auto& keyHash : newAccount.GetStorageKeyHashes()) {
-        string rlpStr = newAccount.GetRawStorage(keyHash);
-        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash)) {
+      for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
+        string rlpStr = newAccount.GetRawStorage(keyHash, true);
+        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
           ProtoAccount::StorageData* entry = protoAccount.add_storage();
           entry->set_keyhash(keyHash.data(), keyHash.size);
           entry->set_data(rlpStr);
@@ -575,7 +575,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                              DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries)) {
+      if (!account.SetStorage(addr, entries, true)) {
         return false;
       }
 

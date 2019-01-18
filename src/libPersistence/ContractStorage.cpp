@@ -59,9 +59,9 @@ Index GetIndex(const dev::h160& address, const string& key,
   return dev::h256(sha2.Finalize());
 }
 
-bool ContractStorage::CheckIndexExists(const Index& index) {
-  auto found = t_stateDataMap.find(index.hex());
-  return found != t_stateDataMap.end() || m_stateDataDB.Exists(index.hex());
+bool ContractStorage::CheckIndexExists(const Index& index, bool temp) {
+  auto found = m_stateDataMap.find(index.hex());
+  return found != m_stateDataMap.end() || m_stateDataDB.Exists(index.hex());
 }
 
 Index ContractStorage::GetNewIndex(const dev::h160& address,
@@ -78,7 +78,8 @@ Index ContractStorage::GetNewIndex(const dev::h160& address,
 
 bool ContractStorage::PutContractState(const dev::h160& address,
                                        const vector<StateEntry>& states,
-                                       dev::h256& stateHash) {
+                                       dev::h256& stateHash,
+                                       bool temp) {
   // LOG_MARKER();
   vector<pair<Index, bytes>> entries;
   for (const auto& state : states) {
@@ -93,12 +94,12 @@ bool ContractStorage::PutContractState(const dev::h160& address,
     entries.emplace_back(index, rawBytes);
   }
 
-  return PutContractState(address, entries, stateHash);
+  return PutContractState(address, entries, stateHash, temp);
 }
 
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
-    dev::h256& stateHash) {
+    dev::h256& stateHash, bool temp) {
   // LOG_MARKER();
 
   if (address == Address()) {
@@ -106,7 +107,7 @@ bool ContractStorage::PutContractState(
     return false;
   }
 
-  vector<Index> entry_indexes = GetContractStateIndexes(address);
+  vector<Index> entry_indexes = GetContractStateIndexes(address, temp);
 
   unordered_map<string, string> batch;
 
@@ -117,11 +118,11 @@ bool ContractStorage::PutContractState(
       entry_indexes.emplace_back(entry.first);
     }
 
-    t_stateDataMap[entry.first.hex()] = entry.second;
+    m_stateDataMap[entry.first.hex()] = entry.second;
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes)) {
+  if (!SetContractStateIndexes(address, entry_indexes, temp)) {
     // for (const auto& index : new_entry_indexes) {
     //   t_stateDataDB.DeleteKey(index.hex());
     // }
@@ -135,7 +136,7 @@ bool ContractStorage::PutContractState(
 }
 
 bool ContractStorage::SetContractStateIndexes(
-    const dev::h160& address, const std::vector<Index>& indexes) {
+    const dev::h160& address, const std::vector<Index>& indexes, bool temp) {
   // LOG_MARKER();
 
   bytes rawBytes;
@@ -144,13 +145,13 @@ bool ContractStorage::SetContractStateIndexes(
     return false;
   }
 
-  t_stateIndexMap[address.hex()] = rawBytes;
+  m_stateIndexMap[address.hex()] = rawBytes;
 
   return true;
 }
 
 vector<Index> ContractStorage::GetContractStateIndexes(
-    const dev::h160& address) {
+    const dev::h160& address, bool temp) {
   // get from stateIndexDB
   // return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
   // LOG_MARKER();
@@ -158,8 +159,8 @@ vector<Index> ContractStorage::GetContractStateIndexes(
 
   bytes rawBytes;
 
-  auto found = t_stateIndexMap.find(address.hex());
-  if (found != t_stateIndexMap.end()) {
+  auto found = m_stateIndexMap.find(address.hex());
+  if (found != m_stateIndexMap.end()) {
     rawBytes = found->second;
   } else if (m_stateIndexDB.Exists(address.hex())) {
     std::string rawString = m_stateIndexDB.Lookup(address.hex());
@@ -176,7 +177,7 @@ vector<Index> ContractStorage::GetContractStateIndexes(
   return indexes;
 }
 
-vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address) {
+vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address, bool temp) {
   // LOG_MARKER();
   // get indexes
   if (address == Address()) {
@@ -184,14 +185,14 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address) {
     return {};
   }
 
-  vector<Index> indexes = GetContractStateIndexes(address);
+  vector<Index> indexes = GetContractStateIndexes(address, temp);
 
   vector<bytes> rawStates;
 
   // return vector of raw protobuf string
   for (const auto& index : indexes) {
-    auto found = t_stateDataMap.find(index.hex());
-    if (found != t_stateDataMap.end()) {
+    auto found = m_stateDataMap.find(index.hex());
+    if (found != m_stateDataMap.end()) {
       rawStates.push_back(found->second);
     } else if (m_stateDataDB.Exists(index.hex())) {
       std::string rawString = m_stateDataDB.Lookup(index.hex());
@@ -204,23 +205,23 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address) {
   return rawStates;
 }
 
-string ContractStorage::GetContractStateData(const Index& index) {
+string ContractStorage::GetContractStateData(const Index& index, bool temp) {
   // LOG_MARKER();
-  auto found = t_stateDataMap.find(index.hex());
-  if (found != t_stateDataMap.end()) {
+  auto found = m_stateDataMap.find(index.hex());
+  if (found != m_stateDataMap.end()) {
     return DataConversion::CharArrayToString(found->second);
   }
   return m_stateDataDB.Lookup(index.hex());
 }
 
-bool ContractStorage::CommitTempStateDB() {
+bool ContractStorage::CommitStateDB() {
   LOG_MARKER();
   // copy everything into m_stateXXDB;
   // Index
   unordered_map<string, std::string> batch;
   unordered_map<string, std::string> reset_buffer;
 
-  for (const auto& i : t_stateIndexMap) {
+  for (const auto& i : m_stateIndexMap) {
     batch.insert({i.first, DataConversion::CharArrayToString(i.second)});
     reset_buffer.insert({i.first, m_stateIndexDB.Lookup(i.first)});
   }
@@ -231,7 +232,7 @@ bool ContractStorage::CommitTempStateDB() {
   }
   batch.clear();
   // Data
-  for (const auto& i : t_stateDataMap) {
+  for (const auto& i : m_stateDataMap) {
     batch.insert({i.first, DataConversion::CharArrayToString(i.second)});
   }
   if (!m_stateDataDB.BatchInsert(batch)) {
@@ -256,15 +257,15 @@ bool ContractStorage::CommitTempStateDB() {
     return false;
   }
 
-  t_stateIndexMap.clear();
-  t_stateDataMap.clear();
+  m_stateIndexMap.clear();
+  m_stateDataMap.clear();
 
   return true;
 }
 
 bool ContractStorage::GetContractStateJson(
     const dev::h160& address, pair<Json::Value, Json::Value>& roots,
-    uint32_t& scilla_version) {
+    uint32_t& scilla_version, bool temp) {
   // LOG_MARKER();
 
   if (address == Address()) {
@@ -273,7 +274,7 @@ bool ContractStorage::GetContractStateJson(
   }
 
   // iterate and deserialize the vector of raw protobuf string
-  vector<bytes> rawStates = GetContractStatesData(address);
+  vector<bytes> rawStates = GetContractStatesData(address, temp);
 
   bool hasScillaVersion = false;
   pair<Json::Value, Json::Value> t_roots;
@@ -349,7 +350,7 @@ bool ContractStorage::GetContractStateJson(
   return true;
 }
 
-dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
+dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address, bool temp) {
   // LOG_MARKER();
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");
@@ -357,7 +358,7 @@ dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
   }
 
   // iterate the raw protobuf string and hash
-  vector<bytes> rawStates = GetContractStatesData(address);
+  vector<bytes> rawStates = GetContractStatesData(address, temp);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   for (const auto& rawState : rawStates) {
     sha2.Update(rawState);

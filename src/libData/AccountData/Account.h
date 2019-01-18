@@ -141,7 +141,7 @@ class Account : public AccountBase {
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
-                    const Address& addr, const uint64_t& blockNum);
+                    const Address& addr, const uint64_t& blockNum, bool temp);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -167,18 +167,19 @@ class Account : public AccountBase {
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries);
 
-  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries, bool temp);
 
-  std::string GetRawStorage(const dev::h256& k_hash) const;
+  std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
 
   Json::Value GetInitJson() const;
 
-  Json::Value GetStateJson() const;
+  Json::Value GetStateJson(bool temp) const;
 
-  std::vector<dev::h256> GetStorageKeyHashes() const;
+  std::vector<dev::h256> GetStorageKeyHashes(bool temp) const;
 
   bool GetStorageJson(
       std::pair<Json::Value, Json::Value>& roots,
+      bool temp,
       uint32_t& scilla_version = scilla_version_place_holder) const;
 
   /// Computes an account address from a specified PubKey.

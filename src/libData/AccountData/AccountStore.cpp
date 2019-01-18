@@ -196,7 +196,7 @@ bool AccountStore::MoveUpdatesToDisk() {
   bool ret = true;
 
   if (ret) {
-    if (!ContractStorage::GetContractStorage().CommitTempStateDB()) {
+    if (!ContractStorage::GetContractStorage().CommitStateDB()) {
       LOG_GENERAL(WARNING,
                   "CommitTempStateDB failed. need to rever the change on "
                   "ContractCode");
