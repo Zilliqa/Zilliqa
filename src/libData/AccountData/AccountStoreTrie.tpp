@@ -46,7 +46,7 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   if (!((AccountBase)(*account))
            .Deserialize(bytes(rawAccountBase.begin(), rawAccountBase.end()),
-                        0) == false) {
+                        0)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountBase failed");
     return nullptr;
   }

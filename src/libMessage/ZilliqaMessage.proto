@@ -242,11 +242,11 @@ message ProtoDiagnosticData
 
 message ProtoAccountBase
 {
-    required uint32 version    = 1;
-    required ByteArray balance = 2;
-    required uint64 nonce      = 3;
-    optional bytes codehash    = 4;
-    optional bytes storageroot = 5;
+    required uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
+    optional ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
+    optional bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
+    optional bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoAccount
@@ -256,7 +256,7 @@ message ProtoAccount
         required bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
         required string data         = 2; // Added in: v1.0, Deprecated in: N/A
     }
-    required ProtoAccountBase base = 1; 
+    optional ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
 
     optional bytes code            = 2;  // Added in: v1.0, Deprecated in: N/A
     repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A

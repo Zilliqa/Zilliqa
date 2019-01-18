@@ -291,6 +291,15 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
          protoBlockHeaderBase.has_prevhash();
 }
 
+inline bool CheckRequiredFieldsProtoAccountBase(
+    const ProtoAccountBase& protoAccountBase) {
+  return protoAccountBase.has_balance() && protoAccountBase.has_nonce();
+}
+
+inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount& protoAccount) {
+  return protoAccount.has_base();
+}
+
 inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
   return protoStateData.has_vname() && protoStateData.has_ismutable() &&
@@ -319,6 +328,11 @@ void AccountBaseToProtobuf(const AccountBase& accountbase,
 
 bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
                            AccountBase& accountBase) {
+  if (!CheckRequiredFieldsProtoAccountBase(protoAccountBase)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountBase failed");
+    return false;
+  }
+
   accountBase.SetVersion(protoAccountBase.version());
 
   uint128_t tmpNumber;
@@ -366,6 +380,11 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr) {
+  if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
+    return false;
+  }
+
   const ZilliqaMessage::ProtoAccountBase& protoAccountBase =
       protoAccount.base();
 
@@ -480,6 +499,11 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                             const Address& addr, const bool fullCopy) {
+  if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
+    return false;
+  }
+
   AccountBase accbase;
 
   const ZilliqaMessage::ProtoAccountBase& protoAccountBase =
