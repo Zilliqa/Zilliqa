@@ -3030,7 +3030,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return true;
   }
 
-  deque<pair<PubKey, Peer>> newDScomm;
+  DequeOfNode newDScomm;
 
   uint64_t dsblocknumbefore =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();

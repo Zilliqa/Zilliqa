@@ -553,9 +553,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
   return true;
 }
 
-bool BlockStorage::GetDSCommittee(
-    shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
-    uint16_t& consensusLeaderID) {
+bool BlockStorage::GetDSCommittee(shared_ptr<DequeOfNode>& dsCommittee,
+                                  uint16_t& consensusLeaderID) {
   LOG_MARKER();
 
   unsigned int index = 0;

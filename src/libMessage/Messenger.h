@@ -251,8 +251,7 @@ class Messenger {
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,
-      const std::vector<DSPowSolution>& dsPowSolutions,
-      const std::pair<PrivKey, PubKey>& keys);
+      const std::vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys);
 
   static bool GetDSPowPacketSubmission(
       const bytes& src, const unsigned int offset,

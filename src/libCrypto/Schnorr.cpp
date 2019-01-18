@@ -587,7 +587,7 @@ Schnorr& Schnorr::GetInstance() {
 
 const Curve& Schnorr::GetCurve() const { return m_curve; }
 
-pair<PrivKey, PubKey> Schnorr::GenKeyPair() {
+PairOfKey Schnorr::GenKeyPair() {
   // LOG_MARKER();
 
   // This mutex is to prevent multi-threaded issues with the use of openssl

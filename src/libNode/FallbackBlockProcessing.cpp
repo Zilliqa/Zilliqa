@@ -44,7 +44,7 @@ using namespace std;
 void Node::UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
                                           const PubKey& leaderPubKey,
                                           const Peer& leaderNetworkInfo,
-                                          deque<pair<PubKey, Peer>>& dsComm,
+                                          DequeOfNode& dsComm,
                                           const DequeOfShard& shards) {
   dsComm.clear();
   for (auto const& shardNode : shards[shard_id]) {

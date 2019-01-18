@@ -741,7 +741,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   auto announcementGeneratorFunc =
       [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
              const uint64_t blockNumber, const bytes& blockHash,
-             const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+             const uint16_t leaderID, const PairOfKey& leaderKey,
              bytes& messageToCosign) mutable -> bool {
     return Messenger::SetNodeMicroBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
@@ -789,7 +789,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                                messageToCosign);
   };
 
-  deque<pair<PubKey, Peer>> peerList;
+  DequeOfNode peerList;
 
   {
     lock_guard<mutex> g(m_mutexShardMember);

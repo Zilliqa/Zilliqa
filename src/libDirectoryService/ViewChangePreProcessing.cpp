@@ -143,7 +143,7 @@ bool DirectoryService::ViewChangeValidator(
   // Create a temporary local structure of ds committee and change 0.0.0.0 to
   // node's ip
   // Used range based loop due to clang tidy  enforcement
-  vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
+  VectorOfNode cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
   unsigned int indexToLeader = 0;
   for (const auto& node : cumlativeFaultyLeaders) {
     if (node.second == Peer()) {
@@ -625,7 +625,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
   auto announcementGeneratorFunc =
       [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
              const uint64_t blockNumber, const bytes& blockHash,
-             const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+             const uint16_t leaderID, const PairOfKey& leaderKey,
              bytes& messageToCosign) mutable -> bool {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     return Messenger::SetDSVCBlockAnnouncement(
