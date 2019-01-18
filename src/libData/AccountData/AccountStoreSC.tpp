@@ -479,7 +479,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 
   std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, scilla_version)) {
+  if (!contract.GetStorageJson(roots, true, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
@@ -522,7 +522,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
 
   std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, scilla_version)) {
+  if (!contract.GetStorageJson(roots, true, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
