@@ -324,22 +324,22 @@ message ProtoDSWinnerPoW
 
 message ProtoTransactionCoreInfo
 {
-    required uint32 version         = 1;
-    required uint64 nonce           = 2;
-    required bytes toaddr           = 3;
-    required ByteArray senderpubkey = 4;
-    required ByteArray amount       = 5;
-    required ByteArray gasprice     = 6;
-    required uint64 gaslimit        = 7;
-    required bytes code             = 8;
-    required bytes data             = 9;
+    optional uint32 version         = 1;
+    optional uint64 nonce           = 2;
+    optional bytes toaddr           = 3;
+    optional ByteArray senderpubkey = 4;
+    optional ByteArray amount       = 5;
+    optional ByteArray gasprice     = 6;
+    optional uint64 gaslimit        = 7;
+    optional bytes code             = 8;
+    optional bytes data             = 9;
 }
 
 message ProtoTransaction
 {
-    required bytes tranid                  = 1;
-    required ProtoTransactionCoreInfo info = 2;
-    required ByteArray signature           = 3;
+    optional bytes tranid                  = 1;
+    optional ProtoTransactionCoreInfo info = 2;
+    optional ByteArray signature           = 3;
 }
 
 message ProtoTxnFileOffset
