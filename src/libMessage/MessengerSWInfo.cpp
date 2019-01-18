@@ -34,12 +34,15 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
                                        protoMessage.ByteSize());
 }
 
-inline bool CheckRequiredFieldsProtoSWInfo(
-    const ProtoSWInfo& protoSWInfo) {
-  return protoSWInfo.has_zilliqamajorversion() && protoSWInfo.has_zilliqaminorversion() &&
-         protoSWInfo.has_zilliqafixversion() && protoSWInfo.has_zilliqaupgradeds() &&
-         protoSWInfo.has_zilliqacommit() && protoSWInfo.has_scillamajorversion() &&
-         protoSWInfo.has_scillaminorversion() && protoSWInfo.has_scillafixversion() &&
+inline bool CheckRequiredFieldsProtoSWInfo(const ProtoSWInfo& protoSWInfo) {
+  return protoSWInfo.has_zilliqamajorversion() &&
+         protoSWInfo.has_zilliqaminorversion() &&
+         protoSWInfo.has_zilliqafixversion() &&
+         protoSWInfo.has_zilliqaupgradeds() &&
+         protoSWInfo.has_zilliqacommit() &&
+         protoSWInfo.has_scillamajorversion() &&
+         protoSWInfo.has_scillaminorversion() &&
+         protoSWInfo.has_scillafixversion() &&
          protoSWInfo.has_scillaupgradeds() && protoSWInfo.has_scillacommit();
 }
 

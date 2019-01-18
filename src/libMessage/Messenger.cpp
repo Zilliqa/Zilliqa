@@ -319,24 +319,28 @@ inline bool CheckRequiredFieldsProtoStateData(
          protoStateData.has_type() && protoStateData.has_value();
 }
 
-inline bool CheckRequiredFieldsProtoTransaction(const ProtoTransactionCoreInfo& protoTransaction) {
-  return protoTransaction.has_tranid() && protoTransaction.has_info() && 
+inline bool CheckRequiredFieldsProtoTransaction(
+    const ProtoTransaction& protoTransaction) {
+  return protoTransaction.has_tranid() && protoTransaction.has_info() &&
          protoTransaction.has_signature();
 }
 
 inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
     const ProtoTransactionCoreInfo& protoTxnCoreInfo) {
-  return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() && 
+  return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() &&
          protoTxnCoreInfo.has_toaddr() && protoTxnCoreInfo.has_senderpubkey() &&
          protoTxnCoreInfo.has_amount() && protoTxnCoreInfo.has_gasprice() &&
          protoTxnCoreInfo.has_gaslimit();
 }
 
-inline bool CheckRequiredFieldsProtoTransactionReceipt(const ProtoTransactionReceipt& protoTransactionReceipt) {
-  return protoTransactionReceipt.has_receipt() && protoTransactionReceipt.has_cumgas();
+inline bool CheckRequiredFieldsProtoTransactionReceipt(
+    const ProtoTransactionReceipt& protoTransactionReceipt) {
+  return protoTransactionReceipt.has_receipt() &&
+         protoTransactionReceipt.has_cumgas();
 }
 
-inline bool CheckRequiredFieldsProtoTransactionWithReceipt(const ProtoTransactionWithReceipt& protoTxnWReceipt) {
+inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
+    const ProtoTransactionWithReceipt& protoTxnWReceipt) {
   return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
 }
 
@@ -1193,7 +1197,7 @@ bool ProtobufToTransactionWithReceipt(
   TransactionReceipt receipt;
   if (!ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt)) {
     LOG_GENERAL(WARNING, "ProtobufToTransactionReceipt failed");
-    return false; 
+    return false;
   }
 
   transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
@@ -3235,7 +3239,9 @@ bool Messenger::GetFallbackBlockWShardingStructure(
   }
 
   if (!result.has_fallbackblock() || !result.has_sharding()) {
-    LOG_GENERAL(WARNING, "GetFallbackBlockWShardingStructure check required field failed");
+    LOG_GENERAL(
+        WARNING,
+        "GetFallbackBlockWShardingStructure check required field failed");
     return false;
   }
 
