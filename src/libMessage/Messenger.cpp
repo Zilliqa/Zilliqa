@@ -3234,6 +3234,11 @@ bool Messenger::GetFallbackBlockWShardingStructure(
     return false;
   }
 
+  if (!result.has_fallbackblock() || !result.has_sharding()) {
+    LOG_GENERAL(WARNING, "GetFallbackBlockWShardingStructure check required field failed");
+    return false;
+  }
+
   ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
 
   return ProtobufToShardingStructure(result.sharding(),

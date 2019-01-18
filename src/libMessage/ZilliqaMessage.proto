@@ -380,8 +380,8 @@ message ProtoSWInfo
 
 message ProtoFallbackBlockWShardingStructure
 {
-    required ProtoFallbackBlock fallbackblock   = 1;
-    required ProtoShardingStructure sharding    = 2;
+    optional ProtoFallbackBlock fallbackblock   = 1;
+    optional ProtoShardingStructure sharding    = 2;
 }
 
 message ProtoSingleDirectoryBlock
