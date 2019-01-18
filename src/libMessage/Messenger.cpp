@@ -4838,28 +4838,30 @@ bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
 
   LookupSetDSBlockFromSeed result;
 
-  result.set_lowblocknum(lowBlockNum);
-  result.set_highblocknum(highBlockNum);
+  result.mutable_data()->set_lowblocknum(lowBlockNum);
+  result.mutable_data()->set_highblocknum(highBlockNum);
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dsblock : dsBlocks) {
-    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   Signature signature;
-  if (result.dsblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
       LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
       return false;
     }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupSetDSBlockFromSeed.Data initialization failed.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -4886,11 +4888,11 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     return false;
   }
 
-  lowBlockNum = result.lowblocknum();
-  highBlockNum = result.highblocknum();
+  lowBlockNum = result.data().lowblocknum();
+  highBlockNum = result.data().highblocknum();
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
-  for (const auto& proto_dsblock : result.dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
       continue;
@@ -4898,20 +4900,15 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     dsBlocks.emplace_back(dsblock);
   }
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (result.dsblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
-
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in DS blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetDSBlockFromSeed.");
+    return false;
   }
 
   return true;
@@ -4971,28 +4968,30 @@ bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
 
   LookupSetTxBlockFromSeed result;
 
-  result.set_lowblocknum(lowBlockNum);
-  result.set_highblocknum(highBlockNum);
+  result.mutable_data()->set_lowblocknum(lowBlockNum);
+  result.mutable_data()->set_highblocknum(highBlockNum);
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.add_txblocks());
+    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  if (result.txblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
       LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
       return false;
     }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupSetTxBlockFromSeed.Data initialization failed.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -5019,10 +5018,10 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     return false;
   }
 
-  lowBlockNum = result.lowblocknum();
-  highBlockNum = result.highblocknum();
+  lowBlockNum = result.data().lowblocknum();
+  highBlockNum = result.data().highblocknum();
 
-  for (const auto& txblock : result.txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!ProtobufToTxBlock(txblock, block)) {
       continue;
@@ -5030,21 +5029,16 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     txBlocks.emplace_back(block);
   }
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (result.txblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetTxBlockFromSeed.");
+    return false;
   }
 
   return true;
@@ -5099,17 +5093,26 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
 
   LookupSetStateDeltaFromSeed result;
 
-  result.set_blocknum(blockNum);
+  result.mutable_data()->set_blocknum(blockNum);
 
-  result.set_statedelta(stateDelta.data(), stateDelta.size());
+  result.mutable_data()->set_statedelta(stateDelta.data(), stateDelta.size());
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (!Schnorr::GetInstance().Sign(stateDelta, lookupKey.first,
-                                   lookupKey.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign state delta.");
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupSetStateDeltaFromSeed.Data initialization failed.");
     return false;
   }
 
@@ -5139,17 +5142,20 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
     return false;
   }
 
-  blockNum = result.blocknum();
+  blockNum = result.data().blocknum();
 
-  stateDelta.resize(result.statedelta().size());
-  std::copy(result.statedelta().begin(), result.statedelta().end(),
-            stateDelta.begin());
+  stateDelta.resize(result.data().statedelta().size());
+  std::copy(result.data().statedelta().begin(),
+            result.data().statedelta().end(), stateDelta.begin());
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (!Schnorr::GetInstance().Verify(stateDelta, signature, lookupPubKey)) {
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in state delta.");
     return false;
   }
@@ -7101,37 +7107,30 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
   VCNodeSetDSTxBlockFromSeed result;
 
   for (const auto& dsblock : DSBlocks) {
-    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.add_txblocks());
+    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  bytes tmp;
-  if (result.dsblocks().size() > 0) {
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize ds blocks.");
-      return false;
-    }
-  }
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (result.txblocks().size() > 0) {
-    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-  }
-
-  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
+      LOG_GENERAL(WARNING, "Failed to sign DS and Tx blocks.");
       return false;
     }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "VCNodeSetDSTxBlockFromSeed.Data initialization failed.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -7158,7 +7157,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
     return false;
   }
 
-  for (const auto& proto_dsblock : result.dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
       continue;
@@ -7166,7 +7165,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
     dsBlocks.emplace_back(dsblock);
   }
 
-  for (const auto& txblock : result.txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!ProtobufToTxBlock(txblock, block)) {
       continue;
@@ -7176,29 +7175,15 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  bytes tmp;
-  if (result.dsblocks().size() > 0) {
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
-  }
-
-  if (result.txblocks().size() > 0) {
-    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-  }
-
-  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in VCNodeSetDSTxBlockFromSeed.");
+    return false;
   }
 
   return true;
