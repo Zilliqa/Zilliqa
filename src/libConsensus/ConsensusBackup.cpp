@@ -413,7 +413,7 @@ bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
 ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
                                  const bytes& block_hash, uint16_t node_id,
                                  uint16_t leader_id, const PrivKey& privkey,
-                                 const deque<pair<PubKey, Peer>>& committee,
+                                 const DequeOfNode& committee,
                                  uint8_t class_byte, uint8_t ins_byte,
                                  MsgContentValidatorFunc msg_validator)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,

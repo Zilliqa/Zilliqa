@@ -62,8 +62,8 @@ bool ConsensusUser::ProcessSetLeader(const bytes& message, unsigned int offset,
   peerstore.AddPeerPair(m_selfKey.second,
                         Peer());  // Add myself, but with dummy IP info
 
-  vector<pair<PubKey, Peer>> tmp = peerstore.GetAllPeerPairs();
-  deque<pair<PubKey, Peer>> peerList(tmp.size());
+  VectorOfNode tmp = peerstore.GetAllPeerPairs();
+  DequeOfNode peerList(tmp.size());
   copy(tmp.begin(), tmp.end(),
        peerList.begin());                  // This will be sorted by PubKey
   peerstore.RemovePeer(m_selfKey.second);  // Remove myself
@@ -190,7 +190,7 @@ bool ConsensusUser::ProcessConsensusMessage(const bytes& message,
   return result;
 }
 
-ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
+ConsensusUser::ConsensusUser(const PairOfKey& key, const Peer& peer)
     : m_selfKey(key),
       m_selfPeer(peer),
       m_leaderOrBackup(false),

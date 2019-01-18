@@ -25,5 +25,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
-    && pip install urllib3==1.23 kubernetes netaddr
+    && pip install urllib3 kubernetes netaddr boto3
 

@@ -298,7 +298,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   auto announcementGeneratorFunc =
       [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
              const uint64_t blockNumber, const bytes& blockHash,
-             const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+             const uint16_t leaderID, const PairOfKey& leaderKey,
              bytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSFinalBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
@@ -1221,21 +1221,8 @@ void DirectoryService::RunConsensusOnFinalBlock(
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Initiated final block view change.");
       auto func2 = [this]() -> void {
-        // Remove DS microblock from my list of microblocks
-        {
-          lock_guard<mutex> g(m_mutexMicroBlocks);
-          auto& microBlocksAtEpoch =
-              m_microBlocks[m_mediator.m_currentEpochNum];
-          auto dsmb =
-              find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
-                      [this](const MicroBlock& mb) -> bool {
-                        return mb.GetHeader().GetShardId() == m_shards.size();
-                      });
-          if (dsmb != microBlocksAtEpoch.end()) {
-            LOG_GENERAL(INFO, "Removed DS microblock from list of microblocks");
-            microBlocksAtEpoch.erase(dsmb);
-          }
-        }
+        RemoveDSMicroBlock();  // Remove DS microblock from my list of
+                               // microblocks
         RunConsensusOnViewChange();
       };
       DetachedFunction(1, func2);
@@ -1243,4 +1230,20 @@ void DirectoryService::RunConsensusOnFinalBlock(
   };
 
   DetachedFunction(1, func1);
+}
+
+void DirectoryService::RemoveDSMicroBlock() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexMicroBlocks);
+
+  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
+  auto dsmb = find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+                      [this](const MicroBlock& mb) -> bool {
+                        return mb.GetHeader().GetShardId() == m_shards.size();
+                      });
+  if (dsmb != microBlocksAtEpoch.end()) {
+    LOG_GENERAL(INFO, "Removed DS microblock from list of microblocks");
+    microBlocksAtEpoch.erase(dsmb);
+  }
 }

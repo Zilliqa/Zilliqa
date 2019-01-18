@@ -243,9 +243,9 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
 bool Validator::CheckDirBlocks(
     const vector<boost::variant<DSBlock, VCBlock,
                                 FallbackBlockWShardingStructure>>& dirBlocks,
-    const deque<pair<PubKey, Peer>>& initDsComm, const uint64_t& index_num,
-    deque<pair<PubKey, Peer>>& newDSComm) {
-  deque<pair<PubKey, Peer>> mutable_ds_comm = initDsComm;
+    const DequeOfNode& initDsComm, const uint64_t& index_num,
+    DequeOfNode& newDSComm) {
+  DequeOfNode mutable_ds_comm = initDsComm;
 
   bool ret = true;
 
@@ -378,7 +378,7 @@ bool Validator::CheckDirBlocks(
 }
 
 ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
-    const vector<TxBlock>& txBlocks, const deque<pair<PubKey, Peer>>& dsComm,
+    const vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
     const BlockLink& latestBlockLink) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);

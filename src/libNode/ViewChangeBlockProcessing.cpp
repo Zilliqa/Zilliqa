@@ -255,15 +255,15 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 /// This function asssume ddsComm to indicate 0.0.0.0 for current node
 /// If you change this function remember to change
 /// UpdateRetrieveDSCommiteeCompositionAfterVC()
-void Node::UpdateDSCommiteeCompositionAfterVC(
-    const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
+void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
+                                              DequeOfNode& dsComm) {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
     return;
   }
 
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
-    deque<pair<PubKey, Peer>>::iterator it;
+    DequeOfNode::iterator it;
 
     // If faulty leader is current node, look for 0.0.0.0 is ds committee
     if (faultyLeader.first == m_mediator.m_selfKey.second &&
@@ -286,8 +286,8 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
 }
 
 // Only compares the pubkeys to kickout
-void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(
-    const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
+void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
+                                                      DequeOfNode& dsComm) {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
     return;
