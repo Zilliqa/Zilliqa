@@ -483,7 +483,9 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
       for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
         string rlpStr = newAccount.GetRawStorage(keyHash, true);
+        LOG_GENERAL(INFO, "keyHash " << keyHash);
         if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
+          LOG_GENERAL(INFO, "added");
           ProtoAccount::StorageData* entry = protoAccount.add_storage();
           entry->set_keyhash(keyHash.data(), keyHash.size);
           entry->set_data(rlpStr);
@@ -570,6 +572,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
           return false;
         }
+
+        LOG_GENERAL(INFO, "tmpHash " << tmpHash);
 
         entries.emplace_back(tmpHash,
                              DataConversion::StringToCharArray(entry.data()));
