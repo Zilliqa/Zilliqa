@@ -45,7 +45,7 @@ const string PRIVKEY_OPT = "--privk";
 const string PUBKEY_OPT = "--pubk";
 const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
-const string SUSPEND_LAUNCH = "SUSPEND_LAUNCH";
+const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
