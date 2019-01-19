@@ -63,7 +63,7 @@ echo -e "\n\n\033[0;32mConfigure testing environment successfully.\033[0m\n"
 
 # Start testing
 cd build
-./tests/Node/test_node_validateBackupDB.py
+./tests/Node/test_node_validateBackupDB.sh
 
 
 # Verify testing result
