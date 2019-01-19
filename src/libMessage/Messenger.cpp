@@ -375,15 +375,15 @@ bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
       return false;
     }
     accountBase.SetCodeHash(tmpCodeHash);
+  }
 
-    if (tmpCodeHash != dev::h256() && protoAccountBase.has_storageroot()) {
-      dev::h256 tmpStorageRoot;
-      if (!Messenger::CopyWithSizeCheck(protoAccountBase.storageroot(),
-                                        tmpStorageRoot.asArray())) {
-        return false;
-      }
-      accountBase.SetStorageRoot(tmpStorageRoot);
+  if (protoAccountBase.has_storageroot()) {
+    dev::h256 tmpStorageRoot;
+    if (!Messenger::CopyWithSizeCheck(protoAccountBase.storageroot(),
+                                      tmpStorageRoot.asArray())) {
+      return false;
     }
+    accountBase.SetStorageRoot(tmpStorageRoot);
   }
 
   return true;
@@ -508,9 +508,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
       for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
         string rlpStr = newAccount.GetRawStorage(keyHash, true);
-        LOG_GENERAL(INFO, "keyHash " << keyHash);
         if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
-          LOG_GENERAL(INFO, "added");
           ProtoAccount::StorageData* entry = protoAccount.add_storage();
           entry->set_keyhash(keyHash.data(), keyHash.size);
           entry->set_data(rlpStr);
@@ -597,8 +595,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
           return false;
         }
-
-        LOG_GENERAL(INFO, "tmpHash " << tmpHash);
 
         entries.emplace_back(tmpHash,
                              DataConversion::StringToCharArray(entry.data()));
@@ -731,7 +727,6 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
                              [](char c) {
                                switch (c) {
                                  case '\t':
-                                 case ' ':
                                  case '\n':
                                    return true;
                                  default:
