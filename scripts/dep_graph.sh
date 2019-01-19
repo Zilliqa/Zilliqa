@@ -16,7 +16,7 @@
 
 # Usage: ./scripts/dep_graph.sh
 #
-# Result will be savied in deps.pdf
+# Result will be saved in deps.pdf
 # Change CMakeGraphVizOptions.cmake to customize
 # See more in https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/Graphviz
 
