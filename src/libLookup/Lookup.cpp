@@ -41,6 +41,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -3562,10 +3563,10 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
     return false;
   }
 
-  if (!IsLookupNode(senderPubKey)) {
+  if (!Guard::GetInstance().IsNodeInShardGuardList(senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
-                  << senderPubKey << " is not in my lookup node list.");
+                  << senderPubKey << " is not in my Shard Guard node list.");
     return false;
   }
 
