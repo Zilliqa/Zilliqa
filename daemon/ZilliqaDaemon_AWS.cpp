@@ -45,13 +45,12 @@ const string PRIVKEY_OPT = "--privk";
 const string PUBKEY_OPT = "--pubk";
 const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
+const string SUSPEND_LAUNCH = "SUSPEND_LAUNCH";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
-
-static uint32_t launchDelay = 0;
 
 enum SyncType : unsigned int {
   NO_SYNC = 0,
@@ -244,6 +243,13 @@ void StartNewProcess(const string pubKey, const string privKey,
   pid_t pid;
 
   if (0 == (pid = fork())) {
+    while (ifstream(SUSPEND_LAUNCH).good()) {
+      log << "Temporarily suspend launch new zilliqa process, please wait "
+             "until \""
+          << SUSPEND_LAUNCH << "\" file disappeared." << endl;
+      sleep(1);
+    }
+
     log << "\" "
         << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
                    " " + syncType + " " + path + " 2>&1")
@@ -294,9 +300,6 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
-      log << "Sleep " << launchDelay
-          << " seconds before re-launch a new process..." << endl;
-      sleep(launchDelay);
       StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
                       to_string(getRestartValue(pid)), Path[pid], log);
       died.erase(pid);
@@ -308,11 +311,7 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-int main(int argc, const char* argv[]) {
-  if (argc > 1) {
-    launchDelay = stoull(argv[1]);
-  }
-
+int main() {
   pid_t pid_parent, sid;
   ofstream log;
   log.open("daemon-log.txt", fstream::out | fstream::trunc);
