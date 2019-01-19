@@ -34,6 +34,18 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
                                        protoMessage.ByteSize());
 }
 
+inline bool CheckRequiredFieldsProtoSWInfo(const ProtoSWInfo& protoSWInfo) {
+  return protoSWInfo.has_zilliqamajorversion() &&
+         protoSWInfo.has_zilliqaminorversion() &&
+         protoSWInfo.has_zilliqafixversion() &&
+         protoSWInfo.has_zilliqaupgradeds() &&
+         protoSWInfo.has_zilliqacommit() &&
+         protoSWInfo.has_scillamajorversion() &&
+         protoSWInfo.has_scillaminorversion() &&
+         protoSWInfo.has_scillafixversion() &&
+         protoSWInfo.has_scillaupgradeds() && protoSWInfo.has_scillacommit();
+}
+
 void SWInfoToProtobuf(const SWInfo& swInfo, ProtoSWInfo& protoSWInfo) {
   protoSWInfo.set_zilliqamajorversion(swInfo.GetZilliqaMajorVersion());
   protoSWInfo.set_zilliqaminorversion(swInfo.GetZilliqaMinorVersion());
@@ -47,13 +59,18 @@ void SWInfoToProtobuf(const SWInfo& swInfo, ProtoSWInfo& protoSWInfo) {
   protoSWInfo.set_scillacommit(swInfo.GetScillaCommit());
 }
 
-void ProtobufToSWInfo(const ProtoSWInfo& protoSWInfo, SWInfo& swInfo) {
+bool ProtobufToSWInfo(const ProtoSWInfo& protoSWInfo, SWInfo& swInfo) {
+  if (!CheckRequiredFieldsProtoSWInfo(protoSWInfo)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoSWInfo failed");
+    return false;
+  }
   swInfo = SWInfo(
       protoSWInfo.zilliqamajorversion(), protoSWInfo.zilliqaminorversion(),
       protoSWInfo.zilliqafixversion(), protoSWInfo.zilliqaupgradeds(),
       protoSWInfo.zilliqacommit(), protoSWInfo.scillamajorversion(),
       protoSWInfo.scillaminorversion(), protoSWInfo.scillafixversion(),
       protoSWInfo.scillaupgradeds(), protoSWInfo.scillacommit());
+  return false;
 }
 
 bool MessengerSWInfo::SetSWInfo(bytes& dst, const unsigned int offset,
@@ -81,7 +98,5 @@ bool MessengerSWInfo::GetSWInfo(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  ProtobufToSWInfo(result, swInfo);
-
-  return true;
+  return ProtobufToSWInfo(result, swInfo);
 }

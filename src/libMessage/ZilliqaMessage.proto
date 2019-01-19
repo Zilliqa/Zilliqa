@@ -331,22 +331,22 @@ message ProtoDSWinnerPoW
 
 message ProtoTransactionCoreInfo
 {
-    required uint32 version         = 1;
-    required uint64 nonce           = 2;
-    required bytes toaddr           = 3;
-    required ByteArray senderpubkey = 4;
-    required ByteArray amount       = 5;
-    required ByteArray gasprice     = 6;
-    required uint64 gaslimit        = 7;
-    required bytes code             = 8;
-    required bytes data             = 9;
+    optional uint32 version         = 1;
+    optional uint64 nonce           = 2;
+    optional bytes toaddr           = 3;
+    optional ByteArray senderpubkey = 4;
+    optional ByteArray amount       = 5;
+    optional ByteArray gasprice     = 6;
+    optional uint64 gaslimit        = 7;
+    optional bytes code             = 8;
+    optional bytes data             = 9;
 }
 
 message ProtoTransaction
 {
-    required bytes tranid                  = 1;
-    required ProtoTransactionCoreInfo info = 2;
-    required ByteArray signature           = 3;
+    optional bytes tranid                  = 1;
+    optional ProtoTransactionCoreInfo info = 2;
+    optional ByteArray signature           = 3;
 }
 
 message ProtoTxnFileOffset
@@ -361,34 +361,34 @@ message ProtoTransactionArray
 
 message ProtoTransactionReceipt
 {
-    required bytes receipt    = 1;
-    required uint64 cumgas = 2;
+    optional bytes receipt    = 1;
+    optional uint64 cumgas = 2;
 }
 
 message ProtoTransactionWithReceipt
 {
-    required ProtoTransaction transaction    = 1;
-    required ProtoTransactionReceipt receipt = 2;
+    optional ProtoTransaction transaction    = 1;
+    optional ProtoTransactionReceipt receipt = 2;
 }
 
 message ProtoSWInfo
 {
-    required uint32 zilliqamajorversion        = 1;
-    required uint32 zilliqaminorversion        = 2;
-    required uint32 zilliqafixversion          = 3;
-    required uint64 zilliqaupgradeds           = 4;
-    required uint32 zilliqacommit              = 5;
-    required uint32 scillamajorversion         = 6;
-    required uint32 scillaminorversion         = 7;
-    required uint32 scillafixversion           = 8;
-    required uint64 scillaupgradeds            = 9;
-    required uint32 scillacommit               = 10;
+    optional uint32 zilliqamajorversion        = 1;
+    optional uint32 zilliqaminorversion        = 2;
+    optional uint32 zilliqafixversion          = 3;
+    optional uint64 zilliqaupgradeds           = 4;
+    optional uint32 zilliqacommit              = 5;
+    optional uint32 scillamajorversion         = 6;
+    optional uint32 scillaminorversion         = 7;
+    optional uint32 scillafixversion           = 8;
+    optional uint64 scillaupgradeds            = 9;
+    optional uint32 scillacommit               = 10;
 }
 
 message ProtoFallbackBlockWShardingStructure
 {
-    required ProtoFallbackBlock fallbackblock   = 1;
-    required ProtoShardingStructure sharding    = 2;
+    optional ProtoFallbackBlock fallbackblock   = 1;
+    optional ProtoShardingStructure sharding    = 2;
 }
 
 message ProtoSingleDirectoryBlock

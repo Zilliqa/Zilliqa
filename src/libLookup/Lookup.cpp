@@ -50,6 +50,7 @@
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -1800,6 +1801,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
   }
 
+  bool isVacuousEpoch =
+      (0 == (m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
+                NUM_FINAL_BLOCK_PER_POW);
   m_mediator.m_currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
@@ -1820,6 +1824,19 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
+
+  if (isVacuousEpoch) {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().InstallScilla();
+    }
+  }
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,

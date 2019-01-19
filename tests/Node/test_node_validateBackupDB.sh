@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/bash
 # Copyright (C) 2019 Zilliqa
 #
 # This program is free software: you can redistribute it and/or modify
