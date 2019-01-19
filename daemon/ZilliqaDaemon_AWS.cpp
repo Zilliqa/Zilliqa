@@ -243,10 +243,14 @@ void StartNewProcess(const string pubKey, const string privKey,
   pid_t pid;
 
   if (0 == (pid = fork())) {
+    bool bSuspend = false;
     while (ifstream(SUSPEND_LAUNCH).good()) {
-      log << "Temporarily suspend launch new zilliqa process, please wait "
-             "until \""
-          << SUSPEND_LAUNCH << "\" file disappeared." << endl;
+      if (!bSuspend) {
+        log << "Temporarily suspend launch new zilliqa process, please wait "
+               "until \""
+            << SUSPEND_LAUNCH << "\" file disappeared." << endl;
+        bSuspend = true;
+      }
       sleep(1);
     }
 
