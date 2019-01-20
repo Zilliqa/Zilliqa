@@ -41,8 +41,8 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_consensusID(0),
       m_DSCommittee(make_shared<DequeOfNode>()),
       m_initialDSCommittee(make_shared<vector<PubKey>>()),
-      m_dsBlockRand({0}),
-      m_txBlockRand({0}),
+      m_dsBlockRand({{0}}),
+      m_txBlockRand({{0}}),
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
       m_curSWInfo() {}
