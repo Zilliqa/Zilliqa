@@ -650,10 +650,8 @@ class Messenger {
   // ============================================================================
 
   template <class T>
-  static bool GetLeaderConsensusID(const bytes& src, const unsigned int offset,
-                                   const DequeOfNode& commNodes,
-                                   const Peer& from, uint32_t& consensusID,
-                                   PubKey& senderPubKey) {
+  static bool GetConsensusID(const bytes& src, const unsigned int offset,
+                             const Peer& from, uint32_t& consensusID) {
     LOG_MARKER();
 
     T consensus_message;
@@ -665,85 +663,7 @@ class Messenger {
       return false;
     }
 
-    const auto leaderId = consensus_message.consensusinfo().leaderid();
-    if (leaderId >= commNodes.size()) {
-      LOG_GENERAL(WARNING, "The leader id "
-                               << leaderId
-                               << " is out of my committee member size "
-                               << commNodes.size());
-      return false;
-    }
-
-    if (commNodes.end() ==
-        std::find_if(commNodes.begin(), commNodes.end(),
-                     [from](const PairOfNode& pairOfNode) {
-                       return from.GetIpAddress() ==
-                              pairOfNode.second.GetIpAddress();
-                     })) {
-      LOG_GENERAL(WARNING, "The sender address "
-                               << from
-                               << " is not in my committee member list");
-      return false;
-    }
-
     consensusID = consensus_message.consensusinfo().consensusid();
-    senderPubKey = commNodes[leaderId].first;
-
-    return true;
-  }
-
-  template <class T>
-  static bool GetBackupConsensusID(const bytes& src, const unsigned int offset,
-                                   const DequeOfNode& commNodes,
-                                   const Peer& from, uint32_t& consensusID,
-                                   PubKey& senderPubKey) {
-    LOG_MARKER();
-
-    T consensus_message;
-
-    consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
-
-    if (!consensus_message.IsInitialized()) {
-      LOG_GENERAL(WARNING, "Consensus message initialization failed.");
-      return false;
-    }
-
-    const auto backupId = consensus_message.consensusinfo().backupid();
-    if (backupId >= commNodes.size()) {
-      LOG_GENERAL(WARNING, "The backup id "
-                               << backupId
-                               << " is out of my committee member size "
-                               << commNodes.size());
-      return false;
-    }
-
-    if (commNodes.end() ==
-        std::find_if(commNodes.begin(), commNodes.end(),
-                     [from](const PairOfNode& pairOfNode) {
-                       return from.GetIpAddress() ==
-                              pairOfNode.second.GetIpAddress();
-                     })) {
-      LOG_GENERAL(WARNING, "The sender address "
-                               << from
-                               << " is not in my committee member list");
-      return false;
-    }
-
-    bytes tmp(consensus_message.consensusinfo().ByteSize());
-    consensus_message.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-
-    ProtobufByteArrayToSerializable(consensus_message.signature(), signature);
-
-    if (!Schnorr::GetInstance().Verify(tmp, signature,
-                                       commNodes[backupId].first)) {
-      LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
-      return false;
-    }
-
-    consensusID = consensus_message.consensusinfo().consensusid();
-    senderPubKey = commNodes[backupId].first;
 
     return true;
   }

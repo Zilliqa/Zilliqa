@@ -428,8 +428,7 @@ class DirectoryService : public Executable, public Broadcastable {
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
-                                      const Peer& peer,
-                                      const PubKey& senderPubKey);
+                                      const Peer& peer);
   void CleanFinalBlockConsensusBuffer();
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);

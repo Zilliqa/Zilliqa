@@ -288,10 +288,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   }
 
   uint32_t consensus_id = 0;
-  PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, from, consensus_id,
-                                         senderPubKey)) {
+  if (!m_consensusObject->GetConsensusID(message, offset, from, consensus_id)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
   }
@@ -313,8 +311,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
       return false;
     }
 
-    AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                   senderPubKey);
+    AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
@@ -339,8 +336,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
                 "Buffer final block with larger consensus ID ("
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
-      AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                     senderPubKey);
+      AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from);
     } else {
       return ProcessFinalBlockConsensusCore(message, offset, from);
     }
@@ -354,16 +350,16 @@ void DirectoryService::CommitFinalBlockConsensusBuffer() {
 
   for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
-      ProcessFinalBlockConsensusCore(std::get<NODE_MSG>(i), MessageOffset::BODY,
-                                     std::get<NODE_PEER>(i));
+      ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY, i.first);
     };
     DetachedFunction(1, runconsensus);
   }
 }
 
-void DirectoryService::AddToFinalBlockConsensusBuffer(
-    uint32_t consensusId, const bytes& message, unsigned int offset,
-    const Peer& peer, const PubKey& senderPubKey) {
+void DirectoryService::AddToFinalBlockConsensusBuffer(uint32_t consensusId,
+                                                      const bytes& message,
+                                                      unsigned int offset,
+                                                      const Peer& peer) {
   if (message.size() <= offset) {
     LOG_GENERAL(WARNING, "The message size " << message.size()
                                              << " is less than the offset "
@@ -376,23 +372,23 @@ void DirectoryService::AddToFinalBlockConsensusBuffer(
   // Check if the node send the same consensus message already, prevent
   // malicious node send unlimited message to crash the other nodes
   if (vecNodeMsg.end() !=
-      std::find_if(
-          vecNodeMsg.begin(), vecNodeMsg.end(),
-          [senderPubKey, consensusMsgType, offset](const NodeMsg& nodeMsg) {
-            return senderPubKey == std::get<NODE_PUBKEY>(nodeMsg) &&
-                   consensusMsgType == std::get<NODE_MSG>(nodeMsg)[offset];
-          })) {
+      std::find_if(vecNodeMsg.begin(), vecNodeMsg.end(),
+                   [peer, consensusMsgType, offset](const NodeMsg& nodeMsg) {
+                     return peer.GetIpAddress() ==
+                                nodeMsg.first.GetIpAddress() &&
+                            consensusMsgType == nodeMsg.second[offset];
+                   })) {
     LOG_GENERAL(
         WARNING,
         "The node "
-            << senderPubKey
+            << peer
             << " already send final block consensus message for consensus id "
             << consensusId << " message type "
             << std::to_string(consensusMsgType));
     return;
   }
 
-  vecNodeMsg.push_back(make_tuple(senderPubKey, peer, message));
+  vecNodeMsg.emplace_back(make_pair(peer, message));
 }
 
 void DirectoryService::CleanFinalBlockConsensusBuffer() {

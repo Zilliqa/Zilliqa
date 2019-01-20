@@ -474,8 +474,7 @@ class Node : public Executable, public Broadcastable {
 
   void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
-                                      const Peer& peer,
-                                      const PubKey& senderPubKey);
+                                      const Peer& peer);
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
