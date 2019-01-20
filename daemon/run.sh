@@ -14,10 +14,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: bash run.sh delay"
-    return 1
-fi
-
 pkill ZilliqaDaemon_AWS
-ZilliqaDaemon_AWS $1
+ZilliqaDaemon_AWS
