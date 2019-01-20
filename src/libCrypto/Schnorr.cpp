@@ -21,8 +21,6 @@
  * Refer to Section 4.2.3, page 24.
  **/
 
-#include <openssl/bn.h>
-#include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/obj_mac.h>
 #include <openssl/opensslv.h>
