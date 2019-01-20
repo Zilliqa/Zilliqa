@@ -37,8 +37,6 @@ using PairOfNode = std::pair<PubKey, Peer>;
 using VectorOfNode = std::vector<PairOfNode>;
 using DequeOfNode = std::deque<PairOfNode>;
 
-enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG };
-
 using NodeMsg = std::pair<Peer, bytes>;
 using VectorOfNodeMsg = std::vector<NodeMsg>;
 

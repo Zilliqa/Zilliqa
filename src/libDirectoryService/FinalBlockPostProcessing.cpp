@@ -368,25 +368,29 @@ void DirectoryService::AddToFinalBlockConsensusBuffer(uint32_t consensusId,
   }
   lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
   auto& vecNodeMsg = m_finalBlockConsensusBuffer[consensusId];
-  const auto consensusMsgType = message[offset];
-  // Check if the node send the same consensus message already, prevent
-  // malicious node send unlimited message to crash the other nodes
-  if (vecNodeMsg.end() !=
-      std::find_if(vecNodeMsg.begin(), vecNodeMsg.end(),
-                   [peer, consensusMsgType, offset](const NodeMsg& nodeMsg) {
-                     return peer.GetIpAddress() ==
-                                nodeMsg.first.GetIpAddress() &&
-                            consensusMsgType == nodeMsg.second[offset];
-                   })) {
-    LOG_GENERAL(
-        WARNING,
-        "The node "
-            << peer
-            << " already send final block consensus message for consensus id "
-            << consensusId << " message type "
-            << std::to_string(consensusMsgType));
-    return;
-  }
+
+  // TODO: See #1245
+
+  // const auto consensusMsgType = message[offset];
+  // // Check if the node send the same consensus message already, prevent
+  // // malicious node send unlimited message to crash the other nodes
+  // if (vecNodeMsg.end() !=
+  //     std::find_if(vecNodeMsg.begin(), vecNodeMsg.end(),
+  //                  [peer, consensusMsgType, offset](const NodeMsg& nodeMsg) {
+  //                    return peer.GetIpAddress() ==
+  //                               nodeMsg.first.GetIpAddress() &&
+  //                           consensusMsgType == nodeMsg.second[offset];
+  //                  })) {
+  //   LOG_GENERAL(
+  //       WARNING,
+  //       "The node "
+  //           << peer
+  //           << " already send final block consensus message for consensus id
+  //           "
+  //           << consensusId << " message type "
+  //           << std::to_string(consensusMsgType));
+  //   return;
+  // }
 
   vecNodeMsg.emplace_back(make_pair(peer, message));
 }
