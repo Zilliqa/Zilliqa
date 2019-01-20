@@ -595,11 +595,15 @@ message LookupGetDSBlockFromSeed
 // From lookup nodes to new join lookup node or new join normal node.
 message LookupSetDSBlockFromSeed
 {
-    required uint64 lowblocknum    = 1;
-    required uint64 highblocknum   = 2;
-    repeated ProtoDSBlock dsblocks = 3;
-    required ByteArray pubkey      = 4;
-    required ByteArray signature   = 5;
+    message Data
+    {
+        required uint64 lowblocknum    = 1;
+        required uint64 highblocknum   = 2;
+        repeated ProtoDSBlock dsblocks = 3;
+    }
+    required Data data             = 1;
+    required ByteArray pubkey      = 2;
+    required ByteArray signature   = 3;
 }
 
 // From new join lookup node or new join normal node to existing lookup node.
@@ -613,11 +617,15 @@ message LookupGetTxBlockFromSeed
 // From lookup nodes to new join lookup node or new join normal node.
 message LookupSetTxBlockFromSeed
 {
-    required uint64 lowblocknum    = 1;
-    required uint64 highblocknum   = 2;
-    repeated ProtoTxBlock txblocks = 3;
-    required ByteArray pubkey      = 4;
-    required ByteArray signature   = 5;
+    message Data
+    {
+        required uint64 lowblocknum    = 1;
+        required uint64 highblocknum   = 2;
+        repeated ProtoTxBlock txblocks = 3;
+    }
+    required Data data             = 1;
+    required ByteArray pubkey      = 2;
+    required ByteArray signature   = 3;
 }
 
 message LookupGetStateDeltaFromSeed
@@ -628,10 +636,14 @@ message LookupGetStateDeltaFromSeed
 
 message LookupSetStateDeltaFromSeed
 {
-    required uint64 blocknum     = 1;
-    required bytes statedelta    = 2;
-    required ByteArray pubkey    = 3;
-    required ByteArray signature = 4;
+    message Data
+    {
+        required uint64 blocknum     = 1;
+        required bytes statedelta    = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupGetStateFromSeed
@@ -905,10 +917,14 @@ message LookupGetDSTxBlockFromSeed
 // From lookup nodes to node under going vc pre check
 message VCNodeSetDSTxBlockFromSeed
 {
-    repeated ProtoDSBlock dsblocks   = 1;
-    repeated ProtoTxBlock txblocks   = 2;
-    required ByteArray pubkey        = 3;
-    required ByteArray signature     = 4;
+    message Data
+    {
+        repeated ProtoDSBlock dsblocks   = 1;
+        repeated ProtoTxBlock txblocks   = 2;
+    }
+    required Data data               = 1;
+    required ByteArray pubkey        = 2;
+    required ByteArray signature     = 3;
 }
 
 // ============================================================================
