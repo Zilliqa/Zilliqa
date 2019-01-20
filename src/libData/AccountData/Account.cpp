@@ -111,13 +111,7 @@ void Account::SetAddress(const Address& addr) {
   }
 }
 
-void AccountBase::SetStorageRoot(const h256& root) {
-  if (!isContract()) {
-    return;
-  }
-
-  m_storageRoot = root;
-}
+void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
 
 const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
 

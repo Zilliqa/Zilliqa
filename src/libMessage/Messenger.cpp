@@ -375,15 +375,15 @@ bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
       return false;
     }
     accountBase.SetCodeHash(tmpCodeHash);
+  }
 
-    if (tmpCodeHash != dev::h256() && protoAccountBase.has_storageroot()) {
-      dev::h256 tmpStorageRoot;
-      if (!Messenger::CopyWithSizeCheck(protoAccountBase.storageroot(),
-                                        tmpStorageRoot.asArray())) {
-        return false;
-      }
-      accountBase.SetStorageRoot(tmpStorageRoot);
+  if (protoAccountBase.has_storageroot()) {
+    dev::h256 tmpStorageRoot;
+    if (!Messenger::CopyWithSizeCheck(protoAccountBase.storageroot(),
+                                      tmpStorageRoot.asArray())) {
+      return false;
     }
+    accountBase.SetStorageRoot(tmpStorageRoot);
   }
 
   return true;
@@ -495,9 +495,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   }
   accbase.SetNonce(nonceDelta);
 
-  if (!newAccount.isContract()) {
+  if (newAccount.isContract()) {
     if (fullCopy) {
-      LOG_GENERAL(INFO, "full copy");
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
@@ -728,7 +727,6 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
                              [](char c) {
                                switch (c) {
                                  case '\t':
-                                 case ' ':
                                  case '\n':
                                    return true;
                                  default:
