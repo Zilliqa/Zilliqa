@@ -102,6 +102,36 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
   BOOST_CHECK(challenge == challengeDeserialized);
 }
 
+BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommitFailure) {
+  bytes dst;
+  unsigned int offset = 0;
+  uint32_t consensusID = TestUtils::DistUint32();
+  uint64_t blockNumber = TestUtils::DistUint32();
+  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
+  uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
+  PairOfKey backupKey;
+  backupKey.first = PrivKey();
+  backupKey.second = PubKey(backupKey.first);
+  bytes errorMsg = DataConversion::StringToCharArray("Commit failture");
+
+  BOOST_CHECK(Messenger::SetConsensusCommitFailure(
+      dst, offset, consensusID, blockNumber, blockHash, backupID, errorMsg,
+      backupKey));
+
+  DequeOfNode committeeKeys;
+  for (unsigned int i = 0, count = max((unsigned int)backupID + 1,
+                                       (unsigned int)TestUtils::Dist1to99());
+       i < count; i++) {
+    committeeKeys.emplace_back(
+        (i == backupID) ? backupKey.second : TestUtils::GenerateRandomPubKey(),
+        TestUtils::GenerateRandomPeer());
+  }
+
+  BOOST_CHECK(Messenger::GetConsensusCommitFailure(
+      dst, offset, consensusID, blockNumber, blockHash, backupID, errorMsg,
+      committeeKeys));
+}
+
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusConsensusFailure) {
   bytes dst;
   unsigned int offset = 0;
