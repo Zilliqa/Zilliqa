@@ -37,17 +37,17 @@ class IncrementalDB : public Singleton<IncrementalDB> {
   const std::string m_txBodyDBName;
   const std::string m_microBlockDBName;
 
-  IncrementalDB(const std::string& path)
-      : m_path(path),
+ public:
+  IncrementalDB()
+      : m_path(INCR_DB_PATH),
         m_txBodyDBName("txBodies"),
         m_microBlockDBName("microBlockDB") {
-    const std::string path_abs = "./" + path;
+    const std::string path_abs = "./" + m_path;
     if (!boost::filesystem::exists(path_abs)) {
       boost::filesystem::create_directories(path_abs);
     }
   }
 
- public:
   bool PutTxBody(const dev::h256& txID, const bytes& body,
                  const std::string& dsEpoch);
   bool PutMicroBlock(const BlockHash& blockHash, const bytes& body,

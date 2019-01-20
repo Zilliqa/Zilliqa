@@ -45,6 +45,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -1346,6 +1347,13 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
                                                      body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
     return false;
+  }
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutMicroBlock(
+        microblock.GetBlockHash(), body,
+        to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum()));
   }
 
   return true;

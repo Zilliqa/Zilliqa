@@ -464,3 +464,9 @@ const std::string VERIFIER_PUBKEY{
     ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
 const unsigned int SEED_PORT{
     ReadConstantNumeric("SEED_PORT", "node.verifier.")};
+
+// Incremental DB constants
+const bool ENABLE_INCR_DB{
+    ReadConstantString("ENABLE_INCR_DB", "node.incrementaldb.") == "true"};
+const std::string INCR_DB_PATH{
+    ReadConstantString("INCR_DB_PATH", "node.incrementaldb.")};

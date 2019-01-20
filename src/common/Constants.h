@@ -342,4 +342,9 @@ extern const std::vector<std::string> GENESIS_KEYS;
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
 extern const unsigned int SEED_PORT;
+
+// Incremental DB constants
+extern const bool ENABLE_INCR_DB;
+extern const std::string INCR_DB_PATH;
+
 #endif  // __CONSTANTS_H__
