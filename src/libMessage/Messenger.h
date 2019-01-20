@@ -651,7 +651,8 @@ class Messenger {
 
   template <class T>
   static bool GetConsensusID(const bytes& src, const unsigned int offset,
-                             const Peer& from, uint32_t& consensusID) {
+                             [[gnu::unused]] const Peer& from,
+                             uint32_t& consensusID) {
     LOG_MARKER();
 
     T consensus_message;
