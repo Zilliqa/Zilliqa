@@ -304,7 +304,7 @@ def run_start_validateBackupDB():
 	shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
 	shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/dsnodes.xml')
 	shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/config.xml')
-	os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + 0) + ' 1 5 1 > ./error_log_zilliqa 2>&1 &')
+	os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + 0) + ' --loadconfig 1 --synctype 5 --recovery 1 > ./error_log_zilliqa 2>&1 &')
 
 def run_connect(numnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
