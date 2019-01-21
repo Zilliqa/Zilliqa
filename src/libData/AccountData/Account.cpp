@@ -418,5 +418,3 @@ const bytes Account::GetCode() const {
     return m_codeCache;
   }
 }
-
-void Account::CleanCodeCache() { m_codeCache.clear(); }
