@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(init) {
 }
 
 BOOST_AUTO_TEST_CASE(test_GetDSCommitteeHash) {
-  deque<pair<PubKey, Peer>> dsCommittee;
+  DequeOfNode dsCommittee;
   CommitteeHash dst;
 
   for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {

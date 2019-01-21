@@ -44,8 +44,8 @@ Peer PeerStore::GetPeer(const PubKey& key) {
   }
 }
 
-vector<pair<PubKey, Peer>> PeerStore::GetAllPeerPairs() const {
-  vector<pair<PubKey, Peer>> result;
+VectorOfNode PeerStore::GetAllPeerPairs() const {
+  VectorOfNode result;
 
   lock_guard<mutex> g(m_mutexStore);
 

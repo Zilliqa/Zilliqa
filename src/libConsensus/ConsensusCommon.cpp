@@ -68,7 +68,7 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                                  const bytes& block_hash, uint16_t my_id,
                                  const PrivKey& privkey,
-                                 const deque<pair<PubKey, Peer>>& committee,
+                                 const DequeOfNode& committee,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
     : m_consensusErrorCode(NO_ERROR),
@@ -123,7 +123,7 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool>& peer_map) {
   LOG_MARKER();
 
   vector<PubKey> keys;
-  deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
+  DequeOfNode::const_iterator j = m_committee.begin();
   for (unsigned int i = 0; i < peer_map.size(); i++, j++) {
     if (peer_map.at(i)) {
       keys.emplace_back(j->first);

@@ -34,7 +34,6 @@ using namespace std;
 #define CONSTANT_FILE_NAME "constants.xml"
 #define CONSTANT_LOOKUP_FILE_NAME "constants.xml_lookup"
 #define CONSTANT_SEED_FILE_NAME "constants.xml_archivallookup"
-#define PUBLIC_KEY_LENGTH 66
 #define ZILLIQA_PACKAGE_FILE_EXTENSION "-Zilliqa.deb"
 #define SCILLA_PACKAGE_FILE_EXTENSION "-Scilla.deb"
 #define DPKG_BINARY_PATH "/usr/bin/dpkg"
@@ -287,7 +286,7 @@ bool UpgradeManager::HasNewSW() {
               << pubKeys.size() + 1 << endl;
   }
 
-  LOG_GENERAL(INFO, "Parsing public key file completed.");
+  LOG_GENERAL(INFO, "Public key file has been parsed successfully.");
   shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubKeys);
 
   string zilliqaShaStr, zilliqaSigStr, scillaShaStr, scillaSigStr;
@@ -312,7 +311,7 @@ bool UpgradeManager::HasNewSW() {
     }
   }
 
-  LOG_GENERAL(INFO, "Parsing version file completed.");
+  LOG_GENERAL(INFO, "Version file has been parsed successfully.");
 
   if (zilliqaSigStr != "0") {
     const bytes zilliqaSha(zilliqaShaStr.begin(), zilliqaShaStr.end());
@@ -546,7 +545,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
 
   auto func = [this, &mediator]() mutable -> void {
     if (LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO, "Lookup node, upgrade after "
+      LOG_GENERAL(INFO, "Lookup node, will be upgraded after "
                             << TERMINATION_COUNTDOWN_IN_SECONDS +
                                    TERMINATION_COUNTDOWN_OFFSET_LOOKUP
                             << " seconds...");
@@ -558,7 +557,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                                                   {'0'});
     } else {
       if (DirectoryService::IDLE == mediator.m_ds->m_mode) {
-        LOG_GENERAL(INFO, "Shard node, upgrade after "
+        LOG_GENERAL(INFO, "Shard node, will be upgraded after "
                               << TERMINATION_COUNTDOWN_IN_SECONDS +
                                      TERMINATION_COUNTDOWN_OFFSET_SHARD
                               << " seconds...");
@@ -566,7 +565,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
             chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
                             TERMINATION_COUNTDOWN_OFFSET_SHARD));
       } else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode) {
-        LOG_GENERAL(INFO, "DS backup node, upgrade after "
+        LOG_GENERAL(INFO, "DS backup node, will be upgraded after "
                               << TERMINATION_COUNTDOWN_IN_SECONDS +
                                      TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
                               << " seconds...");
@@ -574,7 +573,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
             chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
                             TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
       } else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode) {
-        LOG_GENERAL(INFO, "DS leader node, upgrade after "
+        LOG_GENERAL(INFO, "DS leader node, will be upgraded after "
                               << TERMINATION_COUNTDOWN_IN_SECONDS +
                                      TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
                               << " seconds...");
@@ -698,7 +697,7 @@ bool UpgradeManager::InstallScilla() {
         return;
       }
 
-      LOG_GENERAL(INFO, "Start to install Scilla...");
+      LOG_GENERAL(INFO, "Installing Scilla...");
 
       pid_t pid = fork();
 
@@ -714,7 +713,7 @@ bool UpgradeManager::InstallScilla() {
           if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
             perror("wait() error");
           } else if (pid == 0) {
-            LOG_GENERAL(INFO, "Still under installing scilla...");
+            LOG_GENERAL(INFO, "Keeping installing scilla...");
             this_thread::sleep_for(chrono::seconds(1));
           } else {
             if (WIFEXITED(status)) {

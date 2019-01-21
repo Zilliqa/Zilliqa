@@ -41,10 +41,10 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   Account acc1(TestUtils::DistUint64(), 0);
 
   bytes code, data;
-  acc1.InitContract(code, data, Address(), 0);
+  acc1.InitContract(code, data, Address(), 0, true);
 
   Account acc2(data, 0);
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0, true));
   BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
 
@@ -56,25 +56,25 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   std::string invalidmessage = "[{\"vname\"]";
   bytes data(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0);
+  acc1.InitContract({'s'}, data, Address(), 0, true);
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0);
+  acc1.InitContract({'s'}, data, Address(), 0, true);
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0);
+  acc1.InitContract({'s'}, data, Address(), 0, true);
 
   invalidmessage =
       "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0);
+  acc1.InitContract({'s'}, data, Address(), 0, true);
 
   std::string message =
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
-  acc1.InitContract({'s'}, data, Address(), 0);
+  acc1.InitContract({'s'}, data, Address(), 0, true);
 }
 
 BOOST_AUTO_TEST_CASE(testStorage) {
@@ -83,9 +83,9 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   Account acc1 = Account();
   std::pair<Json::Value, Json::Value> roots;
-  acc1.GetStorageJson(roots);  // Improve coverage
+  acc1.GetStorageJson(roots, true);  // Improve coverage
 
-  Json::Value root = acc1.GetStateJson();
+  Json::Value root = acc1.GetStateJson(true);
 
   bytes code;
   acc1.SetCode(code);
@@ -93,10 +93,10 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   dev::h256 hash;
 
-  acc1.SetStorage(Address(), {});
-  acc1.SetStorage({});
+  acc1.SetStorage(Address(), {}, true);
+  acc1.SetStorage({}, true);
   acc1.SetStorageRoot(hash);
-  acc1.GetRawStorage(hash);
+  acc1.GetRawStorage(hash, true);
 
   size_t CODE_LEN = TestUtils::DistUint16() + 1;
   code.resize(CODE_LEN, '0');
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   dev::h256 storageRoot = acc1.GetStorageRoot();
   acc1.SetStorageRoot(storageRoot);
 
-  acc1.GetRawStorage(hash);
-  std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
+  acc1.GetRawStorage(hash, true);
+  std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes(true);
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {

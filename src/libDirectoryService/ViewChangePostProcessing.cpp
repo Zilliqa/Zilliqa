@@ -146,7 +146,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       for (const auto& faultyLeader :
            m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
         // find the faulty leader and identify the index
-        deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
+        DequeOfNode::iterator iterFaultyLeader;
         if (faultyLeader.second == m_mediator.m_selfPeer) {
           iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
                                   m_mediator.m_DSCommittee->end(),
@@ -183,7 +183,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     pair<PubKey, Peer> selfPubKPeerPair =
         make_pair(m_mediator.m_selfKey.second, Peer());
 
-    deque<pair<PubKey, Peer>>::iterator iterConsensusMyID =
+    DequeOfNode::iterator iterConsensusMyID =
         find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
              selfPubKPeerPair);
 
@@ -204,7 +204,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
       m_consensusLeaderID = m_consensusMyID.load();
     } else {
-      deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
+      DequeOfNode::iterator iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
                m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
 

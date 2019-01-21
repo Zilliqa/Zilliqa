@@ -214,7 +214,7 @@ void ConsensusLeader::StartConsensusSubsets() {
       } else {
         // Multicast challenge to all nodes who send validated commits
         vector<Peer> commit_peers;
-        deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
+        DequeOfNode::const_iterator j = m_committee.begin();
 
         for (unsigned int i = 0; i < subset.commitMap.size(); i++, j++) {
           if ((subset.commitMap.at(i)) && (i != m_myID)) {
@@ -778,9 +778,8 @@ bool ConsensusLeader::ProcessMessageFinalResponse(const bytes& finalresponse,
 
 ConsensusLeader::ConsensusLeader(
     uint32_t consensus_id, uint64_t block_number, const bytes& block_hash,
-    uint16_t node_id, const PrivKey& privkey,
-    const deque<pair<PubKey, Peer>>& committee, unsigned char class_byte,
-    unsigned char ins_byte,
+    uint16_t node_id, const PrivKey& privkey, const DequeOfNode& committee,
+    unsigned char class_byte, unsigned char ins_byte,
     NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
     ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,

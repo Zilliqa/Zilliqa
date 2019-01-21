@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(test_multisig) {
   vector<PrivKey> privkeys;
   vector<PubKey> pubkeys;
   for (unsigned int i = 0; i < nbsigners; i++) {
-    pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+    PairOfKey keypair = schnorr.GenKeyPair();
     privkeys.emplace_back(keypair.first);
     pubkeys.emplace_back(keypair.second);
   }
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   vector<PrivKey> privkeys;
   vector<PubKey> pubkeys;
   for (unsigned int i = 0; i < nbsigners; i++) {
-    pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
+    PairOfKey keypair = schnorr.GenKeyPair();
     privkeys.emplace_back(keypair.first);
     pubkeys.emplace_back(keypair.second);
   }

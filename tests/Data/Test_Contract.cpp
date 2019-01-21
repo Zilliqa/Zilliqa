@@ -422,14 +422,14 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
 
   // Fetch the states of both ping and pong and verify "count" is 0.
-  Json::Value pingState = accountPing->GetStateJson();
+  Json::Value pingState = accountPing->GetStateJson(true);
   int pingCount = -1;
   for (auto& it : pingState) {
     if (it["vname"] == "count") {
       pingCount = atoi(it["value"].asCString());
     }
   }
-  Json::Value pongState = accountPing->GetStateJson();
+  Json::Value pongState = accountPing->GetStateJson(true);
   int pongCount = -1;
   for (auto& it : pongState) {
     if (it["vname"] == "count") {
@@ -552,7 +552,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries);
+    account->SetStorage(state_entries, true);
 
     bytes dataTransfer;
     uint64_t amount =
@@ -687,7 +687,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries);
+    account->SetStorage(state_entries, true);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -884,7 +884,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries);
+    account->SetStorage(state_entries, true);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -1069,8 +1069,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       token_state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    token1Account->SetStorage(token_state_entries);
-    token2Account->SetStorage(token_state_entries);
+    token1Account->SetStorage(token_state_entries, true);
+    token2Account->SetStorage(token_state_entries, true);
 
     // Deploy DEX
     // Deploy the DEX contract with the 0th test case, but use custom messages
@@ -1177,7 +1177,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     dex_state_entries.push_back(std::make_tuple(
         "orderInfo", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
         JSONUtils::convertJsontoStr(orderInfo)));
-    dexAccount->SetStorage(dex_state_entries);
+    dexAccount->SetStorage(dex_state_entries, true);
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;
@@ -1269,7 +1269,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     // - sender's balance should have decreased, because the DEX contract will
     // have taken custody of the token.
     // - there should be an additional order in simple-dex.
-    Json::Value token1State = token1Account->GetStateJson();
+    Json::Value token1State = token1Account->GetStateJson(true);
     for (auto& s : token1State) {
       if (s["vname"] == "balances") {
         for (auto& hodl : s["value"]) {
@@ -1286,7 +1286,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
     LOG_GENERAL(INFO, "New order ID = " << id);
 
-    Json::Value simpleDexState = dexAccount->GetStateJson();
+    Json::Value simpleDexState = dexAccount->GetStateJson(true);
     bool hasNewOrder = false;
 
     for (auto& s : simpleDexState) {

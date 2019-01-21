@@ -35,8 +35,96 @@ using namespace dev;
 
 using namespace Contract;
 
-Account::Account() {}
+// =======================================
+// AccountBase
 
+AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
+                         const uint32_t& version)
+    : m_version(version),
+      m_balance(balance),
+      m_nonce(nonce),
+      m_storageRoot(h256()),
+      m_codeHash(h256()) {}
+
+bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
+  if (!Messenger::SetAccountBase(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
+  // LOG_MARKER();
+
+  if (!Messenger::GetAccountBase(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
+void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
+
+const uint32_t& AccountBase::GetVersion() const { return m_version; }
+
+bool AccountBase::IncreaseBalance(const uint128_t& delta) {
+  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
+}
+
+bool AccountBase::DecreaseBalance(const uint128_t& delta) {
+  if (m_balance < delta) {
+    return false;
+  }
+
+  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
+}
+
+bool AccountBase::ChangeBalance(const int256_t& delta) {
+  return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
+                      : DecreaseBalance(uint128_t(-delta));
+}
+
+void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
+
+const uint128_t& AccountBase::GetBalance() const { return m_balance; }
+
+bool AccountBase::IncreaseNonce() {
+  ++m_nonce;
+  return true;
+}
+
+bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
+  m_nonce += nonceDelta;
+  return true;
+}
+
+void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
+
+const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
+
+void Account::SetAddress(const Address& addr) {
+  if (m_address == Address()) {
+    m_address = addr;
+  }
+}
+
+void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
+
+const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
+
+void AccountBase::SetCodeHash(const dev::h256& codeHash) {
+  m_codeHash = codeHash;
+}
+
+const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
+
+bool AccountBase::isContract() const { return m_codeHash != dev::h256(); }
+
+// =======================================
+// Account
 Account::Account(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Account.");
@@ -45,16 +133,11 @@ Account::Account(const bytes& src, unsigned int offset) {
 
 Account::Account(const uint128_t& balance, const uint64_t& nonce,
                  const uint32_t& version)
-    : m_version(version),
-      m_balance(balance),
-      m_nonce(nonce),
-      m_storageRoot(h256()),
-      m_codeHash(h256()) {}
-
-bool Account::isContract() const { return m_codeHash != dev::h256(); }
+    : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
-                           const Address& addr, const uint64_t& blockNum) {
+                           const Address& addr, const uint64_t& blockNum,
+                           bool temp) {
   LOG_MARKER();
   if (!SetCode(code)) {
     LOG_GENERAL(WARNING, "SetCode failed");
@@ -91,7 +174,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          m_address, state_entries, m_storageRoot)) {
+          m_address, state_entries, m_storageRoot, temp)) {
     LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
     return false;
   }
@@ -109,7 +192,7 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 bool Account::Deserialize(const bytes& src, unsigned int offset) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
@@ -119,78 +202,34 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-void Account::SetVersion(const uint32_t& version) { m_version = version; }
-
-const uint32_t& Account::GetVersion() const { return m_version; }
-
-bool Account::IncreaseBalance(const uint128_t& delta) {
-  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
+bool Account::SerializeBase(bytes& dst, unsigned int offset) const {
+  return AccountBase::Serialize(dst, offset);
 }
 
-bool Account::DecreaseBalance(const uint128_t& delta) {
-  if (m_balance < delta) {
-    return false;
-  }
+bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
+  // LOG_MARKER();
 
-  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
+  return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::ChangeBalance(const int256_t& delta) {
-  return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
-                      : DecreaseBalance(uint128_t(-delta));
-}
-
-void Account::SetBalance(const uint128_t& balance) { m_balance = balance; }
-
-const uint128_t& Account::GetBalance() const { return m_balance; }
-
-bool Account::IncreaseNonce() {
-  ++m_nonce;
-  return true;
-}
-
-bool Account::IncreaseNonceBy(const uint64_t& nonceDelta) {
-  m_nonce += nonceDelta;
-  return true;
-}
-
-void Account::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
-
-const uint64_t& Account::GetNonce() const { return m_nonce; }
-
-void Account::SetAddress(const Address& addr) {
-  if (m_address == Address()) {
-    m_address = addr;
-  }
-}
-
-void Account::SetStorageRoot(const h256& root) {
-  if (!isContract()) {
-    return;
-  }
-
-  m_storageRoot = root;
-}
-
-const dev::h256& Account::GetStorageRoot() const { return m_storageRoot; }
-
-bool Account::SetStorage(const vector<StateEntry>& state_entries) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
   if (!isContract()) {
     return false;
   }
 
   return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot);
+      m_address, state_entries, m_storageRoot, temp);
 }
 
 bool Account::SetStorage(const Address& addr,
-                         const vector<pair<dev::h256, bytes>>& entries) {
+                         const vector<pair<dev::h256, bytes>>& entries,
+                         bool temp) {
   if (!isContract()) {
     return false;
   }
 
-  if (!ContractStorage::GetContractStorage().PutContractState(addr, entries,
-                                                              m_storageRoot)) {
+  if (!ContractStorage::GetContractStorage().PutContractState(
+          addr, entries, m_storageRoot, temp)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -200,13 +239,14 @@ bool Account::SetStorage(const Address& addr,
   return true;
 }
 
-string Account::GetRawStorage(const h256& k_hash) const {
+string Account::GetRawStorage(const h256& k_hash, bool temp) const {
   if (!isContract()) {
     // LOG_GENERAL(WARNING,
     //             "Not contract account, why call Account::GetRawStorage!");
     return "";
   }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash);
+  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
+                                                                    temp);
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
@@ -253,36 +293,36 @@ Json::Value Account::GetInitJson() const {
   }
 
   pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots)) {
+  if (!GetStorageJson(roots, false)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return Json::arrayValue;
   }
   return roots.first;
 }
 
-vector<h256> Account::GetStorageKeyHashes() const {
+vector<h256> Account::GetStorageKeyHashes(bool temp) const {
   if (!isContract()) {
     return {};
   }
 
   return ContractStorage::GetContractStorage().GetContractStateIndexes(
-      m_address);
+      m_address, temp);
 }
 
-Json::Value Account::GetStateJson() const {
+Json::Value Account::GetStateJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
   }
 
   pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots)) {
+  if (!GetStorageJson(roots, temp)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return Json::arrayValue;
   }
   return roots.second;
 }
 
-bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
+bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
                              uint32_t& scilla_version) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
@@ -292,7 +332,7 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots,
 
   // Init, Other
   if (!ContractStorage::GetContractStorage().GetContractStateJson(
-          m_address, roots, scilla_version)) {
+          m_address, roots, scilla_version, temp)) {
     LOG_GENERAL(WARNING, "ContractStorage::GetContractStateJson failed");
     return false;
   }
@@ -362,7 +402,7 @@ bool Account::SetCode(const bytes& code) {
   m_codeCache = code;
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(code);
-  m_codeHash = dev::h256(sha2.Finalize());
+  SetCodeHash(dev::h256(sha2.Finalize()));
   // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
   return true;
 }
@@ -380,5 +420,3 @@ const bytes Account::GetCode() const {
 }
 
 void Account::CleanCodeCache() { m_codeCache.clear(); }
-
-const dev::h256& Account::GetCodeHash() const { return m_codeHash; }

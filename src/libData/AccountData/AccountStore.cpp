@@ -68,6 +68,8 @@ void AccountStore::InitTemp() {
 
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
+
+  ContractStorage::GetContractStorage().InitTempState();
 }
 
 void AccountStore::InitReversibles() {
@@ -141,14 +143,16 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
     unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
     lock_guard<mutex> g2(m_mutexReversibles, adopt_lock);
 
-    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible,
+                                         false)) {
       LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
       return false;
     }
   } else {
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible,
+                                         false)) {
       LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
       return false;
     }
@@ -196,7 +200,7 @@ bool AccountStore::MoveUpdatesToDisk() {
   bool ret = true;
 
   if (ret) {
-    if (!ContractStorage::GetContractStorage().CommitTempStateDB()) {
+    if (!ContractStorage::GetContractStorage().CommitStateDB()) {
       LOG_GENERAL(WARNING,
                   "CommitTempStateDB failed. need to rever the change on "
                   "ContractCode");

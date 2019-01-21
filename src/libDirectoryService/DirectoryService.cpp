@@ -199,7 +199,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     dsstore.AddPeerPair(
         m_mediator.m_selfKey.second,
         m_mediator.m_selfPeer);  // Add myself, but with dummy IP info
-    vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
+    VectorOfNode ds = dsstore.GetAllPeerPairs();
     m_mediator.m_DSCommittee->resize(ds.size());
     copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
 
@@ -222,7 +222,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   peerstore.AddPeerPair(m_mediator.m_selfKey.second,
                         Peer());  // Add myself, but with dummy IP info
 
-  vector<pair<PubKey, Peer>> tmp1 = peerstore.GetAllPeerPairs();
+  VectorOfNode tmp1 = peerstore.GetAllPeerPairs();
   m_mediator.m_DSCommittee->resize(tmp1.size());
   copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
   peerstore.RemovePeer(m_mediator.m_selfKey.second);  // Remove myself

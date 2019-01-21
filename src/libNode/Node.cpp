@@ -260,7 +260,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
 }
 
 bool Node::ValidateDB() {
-  deque<pair<PubKey, Peer>> dsComm;
+  DequeOfNode dsComm;
   const string lookupIp = "127.0.0.1";
   const unsigned int port = SEED_PORT;
 
@@ -1598,7 +1598,7 @@ bool Node::CleanVariables() {
   AccountStore::GetInstance().InitSoft();
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
+    m_myShardMembers.reset(new DequeOfNode);
   }
   m_isPrimary = false;
   m_stillMiningPrimary = false;

@@ -151,7 +151,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     bool init = true;
     // Store the immutable states
     if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
-                                 toAddr, blockNum)) {
+                                 toAddr, blockNum, true)) {
       LOG_GENERAL(WARNING, "InitContract failed");
       init = false;
     }
@@ -479,7 +479,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 
   std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, scilla_version)) {
+  if (!contract.GetStorageJson(roots, true, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
@@ -522,7 +522,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
 
   std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, scilla_version)) {
+  if (!contract.GetStorageJson(roots, true, scilla_version)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return false;
   }
@@ -894,7 +894,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
   }
 
-  if (!contractAccount->SetStorage(state_entries)) {
+  if (!contractAccount->SetStorage(state_entries, true)) {
     LOG_GENERAL(WARNING, "SetStorage failed");
   }
 

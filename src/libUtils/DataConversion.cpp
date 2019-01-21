@@ -46,7 +46,7 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
 
 bool DataConversion::HexStrToStdArray(const string& hex_input,
                                       array<uint8_t, 32>& d) {
-  d = {0};
+  d = {{0}};
   bytes v;
   if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
@@ -58,7 +58,7 @@ bool DataConversion::HexStrToStdArray(const string& hex_input,
 
 bool DataConversion::HexStrToStdArray64(const string& hex_input,
                                         array<uint8_t, 64>& d) {
-  d = {0};
+  d = {{0}};
   bytes v;
   if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
