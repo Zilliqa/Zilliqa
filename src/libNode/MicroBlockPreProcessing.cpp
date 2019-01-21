@@ -287,6 +287,8 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   DetachedFunction(1, txnProcTimer);
 
+  this_thread::sleep_for(chrono::milliseconds(100));
+
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
          map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
@@ -497,6 +499,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   };
 
   DetachedFunction(1, txnProcTimer);
+
+  this_thread::sleep_for(chrono::milliseconds(100));
 
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
