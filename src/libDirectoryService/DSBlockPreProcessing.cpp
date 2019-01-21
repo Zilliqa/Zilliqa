@@ -1189,11 +1189,14 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
     return;
   }
 
+  LOG_MARKER();
+
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Number of PoW recvd: " << m_allPoWs.size() << ", DS PoW recvd: "
                                     << m_allDSPoWs.size());
 
-  LOG_MARKER();
+  LOG_STATE("[POW][" << m_mediator.m_currentEpochNum << "] DS PoW = "
+                     << m_allDSPoWs.size() << " PoW = " << m_allPoWs.size());
 
   if (m_doRejoinAtDSConsensus) {
     RejoinAsDS();

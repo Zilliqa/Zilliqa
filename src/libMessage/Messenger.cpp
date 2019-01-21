@@ -1955,6 +1955,21 @@ bool SetConsensusAnnouncementCore(
     return false;
   }
 
+  bytes tmp(announcement.consensusinfo().ByteSize());
+  announcement.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+
+  if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign commit.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(leaderKey.second,
+                                  *announcement.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *announcement.mutable_signature());
+
   // Sign the announcement
 
   bytes inputToSigning;
@@ -2034,14 +2049,15 @@ bool SetConsensusAnnouncementCore(
       return false;
   }
 
-  Signature signature;
+  Signature finalsignature;
   if (!Schnorr::GetInstance().Sign(inputToSigning, leaderKey.first,
-                                   leaderKey.second, signature)) {
+                                   leaderKey.second, finalsignature)) {
     LOG_GENERAL(WARNING, "Failed to sign announcement.");
     return false;
   }
 
-  SerializableToProtobufByteArray(signature, *announcement.mutable_signature());
+  SerializableToProtobufByteArray(finalsignature,
+                                  *announcement.mutable_finalsignature());
 
   return announcement.IsInitialized();
 }
@@ -2153,11 +2169,12 @@ bool GetConsensusAnnouncementCore(
     return false;
   }
 
-  Signature signature;
+  Signature finalsignature;
 
-  ProtobufByteArrayToSerializable(announcement.signature(), signature);
+  ProtobufByteArrayToSerializable(announcement.finalsignature(),
+                                  finalsignature);
 
-  if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
+  if (!Schnorr::GetInstance().Verify(tmp, finalsignature, leaderKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in announcement. leaderID = "
                              << leaderID << " leaderKey = " << leaderKey);
     return false;
@@ -3337,21 +3354,20 @@ bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
                                   *result.mutable_data()->mutable_pubkey());
   result.mutable_data()->set_listenport(listenPort);
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, key.first, key.second, signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign PMHello.data.");
-      return false;
-    }
-
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "PMHello.Data initialization failed.");
     return false;
   }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, key.first, key.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign PMHello.data.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "PMHello initialization failed.");
@@ -3421,21 +3437,23 @@ bool Messenger::SetDSPoWSubmission(
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       gasPrice, *result.mutable_data()->mutable_gasprice());
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign PoW.");
-      return false;
-    }
-
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "DSPoWSubmission.Data initialization failed.");
     return false;
   }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  // We use MultiSig::SignKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
+  Signature signature;
+  if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign PoW.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "DSPoWSubmission initialization failed.");
@@ -3480,6 +3498,8 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  // We use MultiSig::VerifyKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
   if (!MultiSig::GetInstance().VerifyKey(tmp, signature, submitterPubKey)) {
     LOG_GENERAL(WARNING, "PoW submission signature wrong.");
     return false;
@@ -3573,21 +3593,21 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
                                            stateDelta.size());
   }
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.mutable_data()->ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign DSMicroBlockSubmission.");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission.Data initialization failed.");
     return false;
   }
 
+  bytes tmp(result.mutable_data()->ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DSMicroBlockSubmission.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
   SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
   if (!result.IsInitialized()) {
@@ -4933,28 +4953,28 @@ bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
 
   LookupSetDSBlockFromSeed result;
 
-  result.set_lowblocknum(lowBlockNum);
-  result.set_highblocknum(highBlockNum);
+  result.mutable_data()->set_lowblocknum(lowBlockNum);
+  result.mutable_data()->set_highblocknum(highBlockNum);
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dsblock : dsBlocks) {
-    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   Signature signature;
-  if (result.dsblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDSBlockFromSeed.Data initialization failed.");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -4981,11 +5001,11 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     return false;
   }
 
-  lowBlockNum = result.lowblocknum();
-  highBlockNum = result.highblocknum();
+  lowBlockNum = result.data().lowblocknum();
+  highBlockNum = result.data().highblocknum();
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
-  for (const auto& proto_dsblock : result.dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
       continue;
@@ -4993,20 +5013,15 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     dsBlocks.emplace_back(dsblock);
   }
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (result.dsblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
-
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in DS blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetDSBlockFromSeed.");
+    return false;
   }
 
   return true;
@@ -5066,28 +5081,29 @@ bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
 
   LookupSetTxBlockFromSeed result;
 
-  result.set_lowblocknum(lowBlockNum);
-  result.set_highblocknum(highBlockNum);
+  result.mutable_data()->set_lowblocknum(lowBlockNum);
+  result.mutable_data()->set_highblocknum(highBlockNum);
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.add_txblocks());
+    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  if (result.txblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetTxBlockFromSeed.Data initialization failed.");
+    return false;
+  }
 
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
-      return false;
-    }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -5114,10 +5130,10 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     return false;
   }
 
-  lowBlockNum = result.lowblocknum();
-  highBlockNum = result.highblocknum();
+  lowBlockNum = result.data().lowblocknum();
+  highBlockNum = result.data().highblocknum();
 
-  for (const auto& txblock : result.txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!ProtobufToTxBlock(txblock, block)) {
       continue;
@@ -5125,21 +5141,16 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     txBlocks.emplace_back(block);
   }
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (result.txblocks().size() > 0) {
-    bytes tmp;
-    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetTxBlockFromSeed.");
+    return false;
   }
 
   return true;
@@ -5194,17 +5205,24 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
 
   LookupSetStateDeltaFromSeed result;
 
-  result.set_blocknum(blockNum);
+  result.mutable_data()->set_blocknum(blockNum);
 
-  result.set_statedelta(stateDelta.data(), stateDelta.size());
+  result.mutable_data()->set_statedelta(stateDelta.data(), stateDelta.size());
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetStateDeltaFromSeed.Data initialization failed.");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (!Schnorr::GetInstance().Sign(stateDelta, lookupKey.first,
-                                   lookupKey.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign state delta.");
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
     return false;
   }
 
@@ -5234,17 +5252,20 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
     return false;
   }
 
-  blockNum = result.blocknum();
+  blockNum = result.data().blocknum();
 
-  stateDelta.resize(result.statedelta().size());
-  std::copy(result.statedelta().begin(), result.statedelta().end(),
-            stateDelta.begin());
+  stateDelta.resize(result.data().statedelta().size());
+  std::copy(result.data().statedelta().begin(),
+            result.data().statedelta().end(), stateDelta.begin());
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  if (!Schnorr::GetInstance().Verify(stateDelta, signature, lookupPubKey)) {
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in state delta.");
     return false;
   }
@@ -5365,20 +5386,20 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign set lookup offline message.");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed.");
     return false;
   }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign set lookup offline message.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
@@ -5435,20 +5456,19 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign set lookup online message.");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed.");
     return false;
   }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign set lookup online message.");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
@@ -5653,17 +5673,15 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(dsKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
-      return false;
-    }
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupRaiseStartPoW.Data initialization failed.");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
     return false;
   }
 
@@ -5690,17 +5708,16 @@ bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
   result.mutable_data()->set_blocknumber(blockNumber);
 
   Signature signature;
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign GetStartPoWFromSeed message.");
-      return false;
-    }
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "LookupGetStartPoWFromSeed.Data initialization failed.");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign GetStartPoWFromSeed message.");
     return false;
   }
 
@@ -6251,23 +6268,22 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
   }
 
   Signature signature;
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(
-          WARNING,
-          "Failed to sign set LookupSetDirectoryBlocksFromSeed message.");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "LookupSetDirectoryBlocksFromSeed.Data initialization failed.");
     return false;
   }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign set LookupSetDirectoryBlocksFromSeed message.");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -6401,6 +6417,7 @@ bool Messenger::SetConsensusCommit(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6539,6 +6556,7 @@ bool Messenger::SetConsensusChallenge(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6669,6 +6687,7 @@ bool Messenger::SetConsensusResponse(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6799,6 +6818,7 @@ bool Messenger::SetConsensusCollectiveSig(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6925,6 +6945,7 @@ bool Messenger::SetConsensusCommitFailure(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -7050,6 +7071,7 @@ bool Messenger::SetConsensusConsensusFailure(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -7197,37 +7219,29 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
   VCNodeSetDSTxBlockFromSeed result;
 
   for (const auto& dsblock : DSBlocks) {
-    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.add_txblocks());
+    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  bytes tmp;
-  if (result.dsblocks().size() > 0) {
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize ds blocks.");
-      return false;
-    }
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "VCNodeSetDSTxBlockFromSeed.Data initialization failed.");
+    return false;
   }
 
-  if (result.txblocks().size() > 0) {
-    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
-    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DS and Tx blocks.");
+    return false;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
@@ -7254,7 +7268,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
     return false;
   }
 
-  for (const auto& proto_dsblock : result.dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
       continue;
@@ -7262,7 +7276,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
     dsBlocks.emplace_back(dsblock);
   }
 
-  for (const auto& txblock : result.txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!ProtobufToTxBlock(txblock, block)) {
       continue;
@@ -7272,29 +7286,15 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  bytes tmp;
-  if (result.dsblocks().size() > 0) {
-    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
-      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
-      return false;
-    }
-  }
-
-  if (result.txblocks().size() > 0) {
-    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
-      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
-      return false;
-    }
-  }
-
-  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
-    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
-      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
-      return false;
-    }
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in VCNodeSetDSTxBlockFromSeed.");
+    return false;
   }
 
   return true;
@@ -7314,23 +7314,24 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
                  *result.mutable_data()->mutable_dsguardnewnetworkinfo());
   result.mutable_data()->set_timestamp(timestamp);
 
-  if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, dsguardkey.first, dsguardkey.second,
-                                     signature)) {
-      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
-      return false;
-    }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
-  } else {
+  if (!result.data().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "DSLookupSetDSGuardNetworkInfoUpdate.Data initialization failed.");
     return false;
   }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, dsguardkey.first, dsguardkey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -7380,14 +7381,26 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
     bytes& dst, const unsigned int offset, const uint32_t portNo,
-    const uint64_t dsEpochNumber) {
+    const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
-  result.set_portno(portNo);
-  result.set_dsepochnumber(dsEpochNumber);
+  result.mutable_data()->set_portno(portNo);
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  if (!result.IsInitialized()) {
+  if (result.IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
     LOG_GENERAL(
         WARNING,
         "SetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
@@ -7404,15 +7417,33 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   NodeGetGuardNodeNetworkInfoUpdate result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.IsInitialized()) {
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "GetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
     return false;
   }
 
-  portNo = result.portno();
-  dsEpochNumber = result.dsepochnumber();
+  // First deserialize the fields needed just for signature check
+
+  // We don't return senderPubKey since timing issues may make it difficult for
+  // the lookup to check it against the shard structure
+  PubKey senderPubKey;
+  ProtobufByteArrayToSerializable(result.pubkey(), senderPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     senderPubKey)) {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong.");
+    return false;
+  }
+
+  portNo = result.data().portno();
+  dsEpochNumber = result.data().dsepochnumber();
 
   return true;
 }

@@ -635,40 +635,42 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         }
       }
     }
+  }
 
-    bool bInShardStructure = false;
+  bool bInShardStructure = false;
 
-    if (bDS) {
-      m_myshardId = m_mediator.m_ds->m_shards.size();
-    } else {
-      for (unsigned int i = 0;
-           i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
-        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-          if (get<SHARD_NODE_PUBKEY>(shardNode) ==
-              m_mediator.m_selfKey.second) {
-            SetMyshardId(i);
-            bInShardStructure = true;
-            break;
-          }
+  if (bDS) {
+    m_myshardId = m_mediator.m_ds->m_shards.size();
+  } else {
+    for (unsigned int i = 0;
+         i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
+      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
+          SetMyshardId(i);
+          LOG_GENERAL(
+              INFO, "This node belongs to sharding structure #" << m_myshardId);
+          bInShardStructure = true;
+          break;
         }
       }
     }
+  }
 
-    if (LOOKUP_NODE_MODE) {
-      m_mediator.m_lookup->ProcessEntireShardingStructure();
-    } else {
-      LoadShardingStructure(true);
-      m_mediator.m_ds->ProcessShardingStructure(
-          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-          m_mediator.m_ds->m_mapNodeReputation);
-    }
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_lookup->ProcessEntireShardingStructure();
+  } else {
+    LoadShardingStructure(true);
+    m_mediator.m_ds->ProcessShardingStructure(
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+        m_mediator.m_ds->m_mapNodeReputation);
+  }
 
-    if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
-        !bInShardStructure) {
-      LOG_GENERAL(WARNING,
-                  "Node is not in network, apply re-join process instead");
-      return false;
-    }
+  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
+      !bInShardStructure) {
+    LOG_GENERAL(WARNING,
+                "Node " << m_mediator.m_selfKey.second
+                        << " is not in network, apply re-join process instead");
+    return false;
   }
 
   m_mediator.m_consensusID =
@@ -1763,7 +1765,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 
   if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
           queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum,
+          m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
     return;
