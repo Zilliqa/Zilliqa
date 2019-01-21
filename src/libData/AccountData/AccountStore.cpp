@@ -18,7 +18,6 @@
 #include <leveldb/db.h>
 
 #include "AccountStore.h"
-#include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
@@ -236,7 +235,7 @@ bool AccountStore::MoveUpdatesToDisk() {
   // serialization to get from database, so that we can avoid keeping
   // accountstore in memory.
 
-  // m_addressToAccount->clear();
+  m_addressToAccount->clear();
 
   return true;
 }

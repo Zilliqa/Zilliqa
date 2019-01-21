@@ -40,6 +40,8 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
  public:
   virtual void Init() override;
 
+  bool Serialize(bytes& dst, unsigned int offset) const override;
+
   Account* GetAccount(const Address& address) override;
 
   dev::h256 GetStateRootHash() const;
