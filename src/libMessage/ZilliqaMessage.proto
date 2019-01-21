@@ -948,10 +948,10 @@ message DSLookupSetDSGuardNetworkInfoUpdate
 // To update shard node of guard node's network info change
 message NodeGetGuardNodeNetworkInfoUpdate
 {
-	message Data
-	{
-    	required uint32 portno          = 1;
-    	required uint64 dsepochnumber   = 2;
+    message Data
+    {
+        required uint32 portno          = 1;
+        required uint64 dsepochnumber   = 2;
     }
     required Data data                  = 1;
     required ByteArray pubkey           = 2;
