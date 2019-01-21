@@ -49,6 +49,7 @@ const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
+unordered_map<int, string> IP;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
 
@@ -169,7 +170,7 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
                 space_pos = (string::npos == fullLine.find('\0'))
                                 ? fullLine.size()
                                 : fullLine.find('\0');
-                string ip = fullLine.substr(0, space_pos);
+                IP[id] = fullLine.substr(0, space_pos);
                 fullLine = fullLine.substr(space_pos + 1);
                 continue;
               }
@@ -235,7 +236,7 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-void StartNewProcess(const string pubKey, const string privKey,
+void StartNewProcess(const string pubKey, const string privKey, const string ip,
                      const string port, const string syncType,
                      const string path, ofstream& log) {
   log << "Create new Zilliqa process..." << endl;
@@ -255,8 +256,8 @@ void StartNewProcess(const string pubKey, const string privKey,
     }
 
     log << "\" "
-        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
-                   " " + syncType + " " + path + " 2>&1")
+        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
+                   " " + port + " " + syncType + " " + path + " 2>&1")
         << " \"" << endl;
     exit(0);
   }
@@ -304,11 +305,12 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
-      StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
+      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid],
                       to_string(getRestartValue(pid)), Path[pid], log);
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
+      IP.erase(pid);
       Port.erase(pid);
       Path.erase(pid);
     }
