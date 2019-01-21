@@ -17,6 +17,8 @@
 
 #include "libPersistence/ContractStorage.h"
 
+#include "libMessage/MessengerAccountStoreTrie.h"
+
 template <class DB, class MAP>
 AccountStoreTrie<DB, MAP>::AccountStoreTrie()
     : m_db(std::is_same<DB, dev::OverlayDB>::value ? "state" : "") {
@@ -28,6 +30,17 @@ void AccountStoreTrie<DB, MAP>::Init() {
   AccountStoreSC<MAP>::Init();
   m_state.init();
   m_prevRoot = m_state.root();
+}
+
+template <class DB, class MAP>
+bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
+                                          unsigned int offset) const {
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(dst, offset, m_state)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
+    return false;
+  }
+
+  return true;
 }
 
 template <class DB, class MAP>
@@ -56,16 +69,6 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   // Code Hash
   if (account->GetCodeHash() != dev::h256()) {
-    dev::h256 tmpCodeHash = it2.first->second.GetCodeHash();
-    // Extract Code Content
-    it2.first->second.SetCode(
-        Contract::ContractStorage::GetContractStorage().GetContractCode(
-            address));
-    if (tmpCodeHash != it2.first->second.GetCodeHash()) {
-      LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
-      this->m_addressToAccount->erase(it2.first);
-      return nullptr;
-    }
     // Address
     it2.first->second.SetAddress(address);
   }

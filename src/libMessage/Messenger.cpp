@@ -604,7 +604,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         return false;
       }
 
-      if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
+      if (!entries.empty() &&
+          accbase.GetStorageRoot() != account.GetStorageRoot()) {
         LOG_GENERAL(WARNING,
                     "Storage root mismatch. Expected: "
                         << account.GetStorageRoot().hex()
