@@ -1765,7 +1765,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 
   if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
           queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum,
+          m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
     return;

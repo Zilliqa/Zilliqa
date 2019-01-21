@@ -795,7 +795,7 @@ class Messenger {
 
   static bool SetLookupGetNewDSGuardNetworkInfoFromLookup(
       bytes& dst, const unsigned int offset, const uint32_t portNo,
-      const uint64_t dsEpochNumber);
+      const uint64_t dsEpochNumber, const PairOfKey& lookupKey);
 
   static bool GetLookupGetNewDSGuardNetworkInfoFromLookup(
       const bytes& src, const unsigned int offset, uint32_t& portNo,

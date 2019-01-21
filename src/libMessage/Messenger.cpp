@@ -3444,6 +3444,8 @@ bool Messenger::SetDSPoWSubmission(
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  // We use MultiSig::SignKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
   Signature signature;
   if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign PoW.");
@@ -3495,6 +3497,8 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  // We use MultiSig::VerifyKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
   if (!MultiSig::GetInstance().VerifyKey(tmp, signature, submitterPubKey)) {
     LOG_GENERAL(WARNING, "PoW submission signature wrong.");
     return false;
@@ -7376,14 +7380,26 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
     bytes& dst, const unsigned int offset, const uint32_t portNo,
-    const uint64_t dsEpochNumber) {
+    const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
-  result.set_portno(portNo);
-  result.set_dsepochnumber(dsEpochNumber);
+  result.mutable_data()->set_portno(portNo);
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  if (!result.IsInitialized()) {
+  if (result.IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
     LOG_GENERAL(
         WARNING,
         "SetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
@@ -7400,15 +7416,33 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   NodeGetGuardNodeNetworkInfoUpdate result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.IsInitialized()) {
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "GetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
     return false;
   }
 
-  portNo = result.portno();
-  dsEpochNumber = result.dsepochnumber();
+  // First deserialize the fields needed just for signature check
+
+  // We don't return senderPubKey since timing issues may make it difficult for
+  // the lookup to check it against the shard structure
+  PubKey senderPubKey;
+  ProtobufByteArrayToSerializable(result.pubkey(), senderPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     senderPubKey)) {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong.");
+    return false;
+  }
+
+  portNo = result.data().portno();
+  dsEpochNumber = result.data().dsepochnumber();
 
   return true;
 }
