@@ -316,8 +316,6 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     return false;
   }
 
-  bool result = false;
-
   // Update internal state
   // =====================
 
@@ -360,8 +358,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
       StartConsensusSubsets();
     }
   }
-
-  return result;
+  return true;
 }
 
 bool ConsensusLeader::ProcessMessageCommit(const bytes& commit,
