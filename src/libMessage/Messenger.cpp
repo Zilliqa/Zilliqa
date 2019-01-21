@@ -3427,6 +3427,8 @@ bool Messenger::SetDSPoWSubmission(
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  // We use MultiSig::SignKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
   Signature signature;
   if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign PoW.");
@@ -3478,6 +3480,8 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  // We use MultiSig::VerifyKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
   if (!MultiSig::GetInstance().VerifyKey(tmp, signature, submitterPubKey)) {
     LOG_GENERAL(WARNING, "PoW submission signature wrong.");
     return false;
@@ -7383,7 +7387,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
 
 bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
     const bytes& src, const unsigned int offset, uint32_t& portNo,
-    uint64_t& dsEpochNumber, PubKey& lookupPubKey) {
+    uint64_t& dsEpochNumber) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
@@ -7397,7 +7401,11 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   }
 
   // First deserialize the fields needed just for signature check
-  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+
+  // We don't return senderPubKey since timing issues may make it difficult for
+  // the lookup to check it against the shard structure
+  PubKey senderPubKey;
+  ProtobufByteArrayToSerializable(result.pubkey(), senderPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
@@ -7405,7 +7413,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     lookupPubKey)) {
+                                     senderPubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong.");
     return false;
   }

@@ -3571,19 +3571,11 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
 
   uint32_t portNo = 0;
   uint64_t dsEpochNo = 0;
-  PubKey senderPubKey;
 
   if (!Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
-          message, offset, portNo, dsEpochNo, senderPubKey)) {
+          message, offset, portNo, dsEpochNo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
-    return false;
-  }
-
-  if (!Guard::GetInstance().IsNodeInShardGuardList(senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << senderPubKey << " is not in my Shard Guard node list.");
     return false;
   }
 
