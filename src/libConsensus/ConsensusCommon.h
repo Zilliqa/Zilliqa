@@ -207,8 +207,7 @@ class ConsensusCommon {
 
   /// Returns the consensus ID indicated in the message
   bool GetConsensusID(const bytes& message, const unsigned int offset,
-                      const Peer& from, uint32_t& consensusID,
-                      PubKey& senderPubKey) const;
+                      uint32_t& consensusID, PubKey& senderPubKey) const;
 
   /// Returns the consensus error code
   ConsensusErrorCode GetConsensusErrorCode() const;

@@ -800,15 +800,17 @@ message ConsensusAnnouncement
         required uint32 leaderid              = 4; // only lower 2 bytes used
     }
     required ConsensusInfo consensusinfo      = 1;
+    required ByteArray pubkey                 = 2;
+    required ByteArray signature              = 3; // The signature of the consensus info
     oneof announcement
     {
-        DSDSBlockAnnouncement dsblock         = 2;
-        NodeMicroBlockAnnouncement microblock = 3;
-        DSFinalBlockAnnouncement finalblock   = 4;
-        DSVCBlockAnnouncement vcblock         = 5;
-        NodeFallbackBlockAnnouncement fallbackblock = 6;
+        DSDSBlockAnnouncement dsblock         = 4;
+        NodeMicroBlockAnnouncement microblock = 5;
+        DSFinalBlockAnnouncement finalblock   = 6;
+        DSVCBlockAnnouncement vcblock         = 7;
+        NodeFallbackBlockAnnouncement fallbackblock = 8;
     }
-    required ByteArray signature              = 7;
+    required ByteArray finalsignature         = 9;
 }
 
 message ConsensusCommit
@@ -823,7 +825,8 @@ message ConsensusCommit
         required ByteArray commitpointhash = 6;
     }
     required ConsensusInfo consensusinfo   = 1;
-    required ByteArray signature           = 2;
+    required ByteArray pubkey              = 2;
+    required ByteArray signature           = 3;
 }
 
 message ConsensusChallenge
@@ -840,7 +843,8 @@ message ConsensusChallenge
         required ByteArray challenge        = 8;
     }
     required ConsensusInfo consensusinfo    = 1;
-    required ByteArray signature            = 2;
+    required ByteArray pubkey               = 2;
+    required ByteArray signature            = 3;
 }
 
 message ConsensusResponse
@@ -855,7 +859,8 @@ message ConsensusResponse
         required ByteArray response      = 6;
     }
     required ConsensusInfo consensusinfo = 1;
-    required ByteArray signature         = 2;
+    required ByteArray pubkey            = 2;
+    required ByteArray signature         = 3;
 }
 
 message ConsensusCollectiveSig
@@ -870,7 +875,8 @@ message ConsensusCollectiveSig
         repeated bool bitmap             = 6 [packed=true];
     }
     required ConsensusInfo consensusinfo = 1;
-    required ByteArray signature         = 2;
+    required ByteArray pubkey            = 2;
+    required ByteArray signature         = 3;
 }
 
 message ConsensusCommitFailure
@@ -884,7 +890,8 @@ message ConsensusCommitFailure
         required bytes errormsg          = 5;
     }
     required ConsensusInfo consensusinfo = 1;
-    required ByteArray signature         = 2;
+    required ByteArray pubkey            = 2;
+    required ByteArray signature         = 3;
 }
 
 message ConsensusConsensusFailure
@@ -897,7 +904,8 @@ message ConsensusConsensusFailure
         required uint32 leaderid         = 4; // only lower 2 bytes used
     }
     required ConsensusInfo consensusinfo = 1;
-    required ByteArray signature         = 2;
+    required ByteArray pubkey            = 2;
+    required ByteArray signature         = 3;
 }
 
 // ============================================================================

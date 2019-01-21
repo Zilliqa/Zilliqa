@@ -1954,6 +1954,21 @@ bool SetConsensusAnnouncementCore(
     return false;
   }
 
+  bytes tmp(announcement.consensusinfo().ByteSize());
+  announcement.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+
+  if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign commit.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(leaderKey.second,
+                                  *announcement.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *announcement.mutable_signature());
+
   // Sign the announcement
 
   bytes inputToSigning;
@@ -2033,14 +2048,15 @@ bool SetConsensusAnnouncementCore(
       return false;
   }
 
-  Signature signature;
+  Signature finalsignature;
   if (!Schnorr::GetInstance().Sign(inputToSigning, leaderKey.first,
-                                   leaderKey.second, signature)) {
+                                   leaderKey.second, finalsignature)) {
     LOG_GENERAL(WARNING, "Failed to sign announcement.");
     return false;
   }
 
-  SerializableToProtobufByteArray(signature, *announcement.mutable_signature());
+  SerializableToProtobufByteArray(finalsignature,
+                                  *announcement.mutable_finalsignature());
 
   return announcement.IsInitialized();
 }
@@ -2152,11 +2168,12 @@ bool GetConsensusAnnouncementCore(
     return false;
   }
 
-  Signature signature;
+  Signature finalsignature;
 
-  ProtobufByteArrayToSerializable(announcement.signature(), signature);
+  ProtobufByteArrayToSerializable(announcement.finalsignature(),
+                                  finalsignature);
 
-  if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
+  if (!Schnorr::GetInstance().Verify(tmp, finalsignature, leaderKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in announcement. leaderID = "
                              << leaderID << " leaderKey = " << leaderKey);
     return false;
@@ -6395,6 +6412,7 @@ bool Messenger::SetConsensusCommit(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6533,6 +6551,7 @@ bool Messenger::SetConsensusChallenge(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6663,6 +6682,7 @@ bool Messenger::SetConsensusResponse(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6793,6 +6813,7 @@ bool Messenger::SetConsensusCollectiveSig(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -6919,6 +6940,7 @@ bool Messenger::SetConsensusCommitFailure(
     return false;
   }
 
+  SerializableToProtobufByteArray(backupKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
@@ -7044,6 +7066,7 @@ bool Messenger::SetConsensusConsensusFailure(
     return false;
   }
 
+  SerializableToProtobufByteArray(leaderKey.second, *result.mutable_pubkey());
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {

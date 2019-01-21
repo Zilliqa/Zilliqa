@@ -290,7 +290,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   uint32_t consensus_id = 0;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, from, consensus_id,
+  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
                                          senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
