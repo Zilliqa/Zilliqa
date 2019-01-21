@@ -30,9 +30,7 @@ PROJ_DIR = '/run/zilliqa'
 
 def main():
 	if len(sys.argv) == 6:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5] + '/')
-	elif len(sys.argv) == 5:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], '')
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '')
 	else:
 		print "Not enough args"
 
@@ -40,9 +38,6 @@ def get_immediate_subdirectories(a_dir):
 	subdirs = [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 	subdirs.sort()
 	return subdirs
-
-def getIP():
-	return socket.gethostbyname(socket.gethostname())
 
 def isPortOpen(port):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -57,11 +52,9 @@ def isPortOpen(port):
 	sock.close()
 	return True
 
-
-def run_restart(pubKey, privKey, port, typ, path):
+def run_restart(pubKey, privKey, ip, port, typ, path):
 	keypairs = []
 	keypairs.append(privKey + " " + pubKey)
-	nodeIP = getIP()
 
 	while(not isPortOpen(int(port))):
 		time.sleep(2)
@@ -69,7 +62,7 @@ def run_restart(pubKey, privKey, port, typ, path):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + nodeIP + ' --port ' + str(port) + ' --loadconfig ' + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + ip + ' --port ' + str(port) + ' --loadconfig ' + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
 
 if __name__ == "__main__":
 	main()
