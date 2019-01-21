@@ -277,25 +277,14 @@ bool AccountStore::RetrieveFromDisk() {
     m_state.setRoot(root);
     for (const auto& i : m_state) {
       Address address(i.first);
-      LOG_GENERAL(INFO, "Address: " << address.hex());
-      dev::RLP rlp(i.second);
-      if (rlp.itemCount() != 4) {
-        LOG_GENERAL(WARNING, "Account data corrupted");
+
+      Account account;
+      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
+                                   0)) {
+        LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
         continue;
       }
-      Account account(rlp[0].toInt<uint128_t>(), rlp[1].toInt<uint64_t>());
-      // Code Hash
-      if (rlp[3].toHash<h256>() != h256()) {
-        // Extract Code Content
-        account.SetCode(
-            ContractStorage::GetContractStorage().GetContractCode(address));
-        if (rlp[3].toHash<h256>() != account.GetCodeHash()) {
-          LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
-          continue;
-        }
-        // Storage Root
-        account.SetStorageRoot(rlp[2].toHash<h256>());
-      }
+
       m_addressToAccount->insert({address, account});
     }
   } catch (const boost::exception& e) {
