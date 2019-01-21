@@ -511,7 +511,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECVD DSBLOCK");
+      << "] RECVD DSBLOCK -> DS Diff = "
+      << to_string(dsblock.GetHeader().GetDSDifficulty())
+      << " Diff = " << to_string(dsblock.GetHeader().GetDifficulty()));
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
