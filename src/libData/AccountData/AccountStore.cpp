@@ -89,8 +89,9 @@ bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreBase<unordered_map<Address, Account>>::Serialize(src,
-                                                                      offset);
+  return AccountStoreTrie<
+      dev::OverlayDB, std::unordered_map<Address, Account>>::Serialize(src,
+                                                                       offset);
 }
 
 bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
