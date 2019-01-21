@@ -1006,8 +1006,6 @@ std::string DirectoryService::GetActionString(Action action) const {
 
 uint8_t DirectoryService::CalculateNewDifficulty(
     const uint8_t& currentDifficulty) {
-  constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
-
   int64_t powSubmissions = 0;
   {
     lock_guard<mutex> g(m_mutexAllPOW);
@@ -1021,14 +1019,12 @@ uint8_t DirectoryService::CalculateNewDifficulty(
                 << powSubmissions);
   return CalculateNewDifficultyCore(
       currentDifficulty, POW_DIFFICULTY, powSubmissions,
-      EXPECTED_SHARD_NODE_NUM, MAX_ADJUST_THRESHOLD,
+      EXPECTED_SHARD_NODE_NUM, MAX_POW_CHANGE_TO_ADJ_DIFF,
       m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
     const uint8_t& dsDifficulty) {
-  constexpr unsigned int MAX_ADJUST_THRESHOLD = 49;
-
   int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
   int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
 
@@ -1039,7 +1035,7 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
 
   return CalculateNewDifficultyCore(
       dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, currentDSNodes,
-      MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
+      MAX_POW_CHANGE_TO_ADJ_DS_DIFF, m_mediator.m_currentEpochNum,
       CalculateNumberOfBlocksPerYear());
 }
 

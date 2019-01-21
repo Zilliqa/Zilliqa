@@ -268,6 +268,8 @@ extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int MAX_POW_CHANGE_TO_ADJ_DIFF;
+extern const unsigned int MAX_POW_CHANGE_TO_ADJ_DS_DIFF;
 extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
