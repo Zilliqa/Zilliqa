@@ -506,7 +506,6 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
     if (fullCopy ||
         newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
-
       for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
         string rlpStr = newAccount.GetRawStorage(keyHash, true);
         if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
