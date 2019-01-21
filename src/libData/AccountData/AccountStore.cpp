@@ -227,11 +227,6 @@ bool AccountStore::MoveUpdatesToDisk() {
     return false;
   }
 
-  // TODO: If the accountstore is cleared here, lookup is unable to serialize
-  // accountstore in ProcessGetStateFromSeed. We need to first change
-  // serialization to get from database, so that we can avoid keeping
-  // accountstore in memory.
-
   m_addressToAccount->clear();
 
   return true;
