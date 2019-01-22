@@ -143,10 +143,7 @@ bool ContractStorage::PutContractState(
 
   // Update the stateIndexDB
   if (!SetContractStateIndexes(address, entry_indexes, temp)) {
-    // for (const auto& index : new_entry_indexes) {
-    //   t_stateDataDB.DeleteKey(index.hex());
-    // }
-    // TODO: revert the state data if failed
+    LOG_GENERAL(WARNING, "SetContractStateIndex failed");
     return false;
   }
 
