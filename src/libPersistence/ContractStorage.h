@@ -62,7 +62,8 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   ~ContractStorage() = default;
 
-  Index GetNewIndex(const dev::h160& address, const std::string& key);
+  Index GetNewIndex(const dev::h160& address, const std::string& key,
+                    const std::vector<Index>& existing_indexes);
 
   bool CheckIndexExists(const Index& index);
 
@@ -100,7 +101,9 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   bool PutContractState(const dev::h160& address,
                         const std::vector<std::pair<Index, bytes>>& entries,
-                        dev::h256& stateHash, bool temp);
+                        dev::h256& stateHash, bool temp,
+                        const std::vector<Index>& existing_indexes = {},
+                        bool provideExisting = false);
 
   bool CommitStateDB();
 
