@@ -271,7 +271,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
     }
 
     if (!LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO, "I am a normal node.");
+      LOG_GENERAL(INFO, "I am a ds/normal node.");
 
       if (GETWORK_SERVER_MINE) {
         LOG_GENERAL(INFO, "Starting GetWork Mining Server at http://"

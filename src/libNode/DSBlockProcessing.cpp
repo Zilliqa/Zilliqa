@@ -502,6 +502,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
   cv_waitDSBlock.notify_one();
