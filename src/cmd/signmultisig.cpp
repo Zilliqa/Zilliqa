@@ -163,6 +163,20 @@ int main(int argc, const char* argv[]) {
     }
 
     cout << output;
+/*
+*  Multisig verification
+*/
+    bytes sig_b;
+    DataConversion::HexStrToUint8Vec(output, sig_b);
+
+    Signature sig;
+
+    if (sig.Deserialize(sig_b, 0) != 0) {
+      std::cerr << "Cannot deserialize signature" << endl;
+    }
+
+    cout << "Verify " << MultiSig::GetInstance().MultiSigVerify(message, sig, pubKeys[0]);
+
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
