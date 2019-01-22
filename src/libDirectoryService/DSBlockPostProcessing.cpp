@@ -531,6 +531,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   // Add the DS block to the chain
   StoreDSBlockToStorage();
 
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+
   m_mediator.m_node->m_proposedGasPrice =
       max(m_mediator.m_node->m_proposedGasPrice,
           m_pendingDSBlock->GetHeader().GetGasPrice());

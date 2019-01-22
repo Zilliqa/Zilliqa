@@ -829,6 +829,7 @@ bool BlockStorage::DeleteDiagnosticData(const uint64_t& dsBlockNum) {
 }
 
 bool BlockStorage::ResetDB(DBTYPE type) {
+  LOG_MARKER();
   bool ret = false;
   switch (type) {
     case META: {
