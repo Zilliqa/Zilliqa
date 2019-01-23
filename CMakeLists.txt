@@ -162,6 +162,16 @@ if(DM_TEST_DM_BAD_MB_ANNOUNCE)
     add_definitions(-DDM_TEST_DM_BAD_MB_ANNOUNCE)
 endif()
 
+if(DM_TEST_DM_MORETXN_LEADER)
+    message(STATUS "DM 7 test enabled")
+    add_definitions(-DDM_TEST_DM_MORETXN_LEADER)
+endif()
+
+if(DM_TEST_DM_MORETXN_HALF)
+    message(STATUS "DM 8 test enabled")
+    add_definitions(-DDM_TEST_DM_MORETXN_HALF)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
