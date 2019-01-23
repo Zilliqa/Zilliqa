@@ -130,6 +130,8 @@ bool AccountStore::SerializeDelta() {
 void AccountStore::GetSerializedDelta(bytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
+  dst.clear();
+
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
        back_inserter(dst));
 }
