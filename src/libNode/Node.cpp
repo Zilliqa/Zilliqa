@@ -82,7 +82,7 @@ void addBalanceToGenesisAccount() {
       continue;
     }
     Address addr{addrBytes};
-    uint128_t bal;
+    uint128_t bal = 0;
     if (!moduloCredited) {
       bal = balance_each + balance_left;
       moduloCredited = true;
