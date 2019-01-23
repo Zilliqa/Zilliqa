@@ -10,10 +10,12 @@
 #include <openssl/obj_mac.h>
 #include <openssl/sha.h>
 #include <boost/algorithm/hex.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 #include <vector>
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 using bytes = std::vector<uint8_t>;
@@ -24,7 +26,7 @@ using bytes = std::vector<uint8_t>;
 #define SIGNATURE_RESPONSE_SIZE 32
 static const uint8_t THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE = 0x11;
 
-struct Signature {
+struct Signature_l {
   std::shared_ptr<BIGNUM> m_r;
   std::shared_ptr<BIGNUM> m_s;
 };
@@ -106,8 +108,8 @@ void StringToBytes(const std::string in, bytes& out) {
                           back_inserter(out));
 }
 
-Signature DeserializeSignature(const std::string sig_s) {
-  Signature sig;
+Signature_l DeserializeSignature(const std::string sig_s) {
+  Signature_l sig;
   bytes sig_b;
   StringToBytes(sig_s, sig_b);
 
@@ -156,123 +158,25 @@ EC_POINT* DeserializePubKey(const std::string& pubKey_s, Curve& curve) {
   return ecp;
 }
 
-bool verifySig(const bytes& message, const Signature& toverify, const EC_POINT* pubkey, Curve& curve){
+std::shared_ptr<EC_POINT> AggregatePubKeys(const std::vector<std::shared_ptr<EC_POINT>>& pubkeys, const Curve& curve) {
 
-  // Main verification procedure
+  if (pubkeys.size() == 0) {
+    throw "Empty list of public keys";
+  }
 
-  // The algorithm to check the signature (r, s) on a message m using a public
-  // key kpub is as follows
-  // 1. Check if r,s is in [1, ..., order-1]
-  // 2. Compute Q = sG + r*kpub
-  // 3. If Q = O (the neutral point), return 0;
-  // 4. r' = H(Q, kpub, m)
-  // 5. return r' == r
+  std::shared_ptr<EC_POINT> aggregatedPubkey = pubkeys[0];
 
-//  bytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
-//  SHA2<HASH_VARIANT_256> sha2;
-//
-//  bool err = false;
-//  bool err2 = false;
-//
-//  // Regenerate the commitmment part of the signature
-//  std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
-//                                                        BN_clear_free);
-//  std::unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
-//      EC_POINT_new(curve.m_group.get()), EC_POINT_clear_free);
-//  std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
-//
-//  if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr)) {
-//    // 1. Check if r,s is in [1, ..., order-1]
-//    err2 = (BN_is_zero(toverify.m_r.get()) ||
-//            BN_is_negative(toverify.m_r.get()) ||
-//            (BN_cmp(toverify.m_r.get(), curve.m_order.get()) != -1));
-//    err = err || err2;
-//    if (err2) {
-//      throw "Challenge not in range";
-//    }
-//
-//    err2 = (BN_is_zero(toverify.m_s.get()) ||
-//            BN_is_negative(toverify.m_s.get()) ||
-//            (BN_cmp(toverify.m_s.get(), curve.m_order.get()) != -1));
-//    err = err || err2;
-//    if (err2) {
-//      throw "Response not in range";
-//    }
-//
-//    // 2. Compute Q = sG + r*kpub
-//    err2 =
-//        (EC_POINT_mul(curve.m_group.get(), Q.get(), toverify.m_s.get(),
-//            pubkey, toverify.m_r.get(), ctx.get()) == 0);
-//    err = err || err2;
-//    if (err2) {
-//      throw "Commit regenerate failed";
-//    }
-//
-//    // 3. If Q = O (the neutral point), return 0;
-//    err2 = (EC_POINT_is_at_infinity(curve.m_group.get(), Q.get()));
-//    err = err || err2;
-//    if (err2) {
-//      throw "Commit at infinity";
-//    }
-//
-//    // 4. r' = H(Q, kpub, m)
-//    // 4.1 Convert the committment to octets first
-//    err2 = (EC_POINT_point2oct(curve.m_group.get(), Q.get(),
-//                               POINT_CONVERSION_COMPRESSED, buf.data(),
-//                               PUBKEY_COMPRESSED_SIZE_BYTES,
-//                               NULL) != PUBKEY_COMPRESSED_SIZE_BYTES);
-//    err = err || err2;
-//    if (err2) {
-//      throw "Commit octet conversion failed";
-//    }
-//
-//    // Hash commitment
-//    sha2.Update(buf);
-//
-//    // Reset buf
-//    fill(buf.begin(), buf.end(), 0x00);
-//
-//    // 4.2 Convert the public key to octets
-//    err2 = (EC_POINT_point2oct(curve.m_group.get(), pubkey,
-//                               POINT_CONVERSION_COMPRESSED, buf.data(),
-//                               PUBKEY_COMPRESSED_SIZE_BYTES,
-//                               NULL) != PUBKEY_COMPRESSED_SIZE_BYTES);
-//    err = err || err2;
-//    if (err2) {
-//      throw "Pubkey octet conversion failed";
-//    }
-//
-//    // Hash public key
-//    sha2.Update(buf);
-//
-//    // 4.3 Hash message
-//    sha2.Update(message);
-//    bytes digest = sha2.Finalize();
-//
-//    // 5. return r' == r
-//    err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==
-//            NULL);
-//    err = err || err2;
-//    if (err2) {
-//      throw "Challenge bin2bn conversion failed";
-//    }
-//
-//    err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
-//                     curve.m_order.get(), NULL) == 0);
-//    err = err || err2;
-//    if (err2) {
-//      throw "Challenge rebuild mod failed";
-//    }
-//
-//    sha2.Reset();
-//  } else {
-//    throw "Memory allocation failure";
-//  }
-//  return BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0;
+  for (unsigned int i = 1; i < pubkeys.size(); i++) {
+    if (EC_POINT_add(curve.m_group.get(), aggregatedPubkey.get(),
+                     aggregatedPubkey.get(), pubkeys.at(i).get(),
+                     NULL) == 0) {
+      throw "Pubkey aggregation failed";
+    }
+  }
+  return aggregatedPubkey;
+}
 
-
-
-
+bool verifySig(const bytes& message, const Signature_l& toverify, const EC_POINT* pubkey, const Curve& curve){
   // Main verification procedure
 
   // The algorithm to check the signature (r, s) on a message m using a public
@@ -402,27 +306,70 @@ bool verifySig(const bytes& message, const Signature& toverify, const EC_POINT* 
   return (!err) && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
 }
 
-
+namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
-  (void) argc;
-  (void) argv;
-
-  std::string pk = argv[1];
-  std::string signature = argv[2];
-  std::string message = argv[3];
-  bytes msg;
+  po::options_description desc("Options");
+  std::string message;
+  std::string pubk_fn;
+  std::string signature;
   Curve curve;
+
+  desc.add_options()("help,h", "Print help messages")("message,m",
+      po::value<std::string>(&message)->required(),
+      "Message string in hexadecimal format")("signature,s",
+      po::value<std::string>(&signature)->required(),
+      "Filename containing private keys each per line")("pubk,u",
+      po::value<std::string>(&pubk_fn)->required(),
+      "Filename containing public keys each per line");
+
+  po::variables_map vm;
   try {
-    EC_POINT* pubKey = DeserializePubKey(pk, curve);
-    Signature sig = DeserializeSignature(signature);
-    StringToBytes(message, msg);
-    bool v = verifySig(msg, sig, pubKey, curve);
-    std::cout << "verify " << v << std::endl;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+
+    if (vm.count("help")) {
+      return -1;
+    }
+    po::notify(vm);
+  } catch (boost::program_options::required_option& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    std::cout << desc;
+    return -1;
+  } catch (boost::program_options::error& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    return -1;
   }
-  catch (const char* msg) {
-     std::cerr << msg << std::endl;
-   }
+
+  bytes msg(message.begin(), message.end());
+
+  std::vector<std::shared_ptr<EC_POINT>> pubKeys;
+  std::string line;
+  std::fstream pubFile(pubk_fn, std::ios::in);
+  try {
+    while (getline(pubFile, line)) {
+      pubKeys.push_back(
+          std::shared_ptr<EC_POINT>(DeserializePubKey(line, curve),
+              EC_POINT_clear_free));
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Problem occured when processing public keys on line: "
+        << pubKeys.size() + 1 << std::endl;
+    return -1;
+  }
+
+  try {
+    std::shared_ptr<EC_POINT> aggregated_pk = AggregatePubKeys(pubKeys, curve);
+
+    Signature_l sig = DeserializeSignature(signature);
+
+    if (verifySig(msg, sig, aggregated_pk.get(), curve))
+      return 0;
+    else
+      return 1;
+  } catch (const char* msg) {
+    std::cerr << msg << std::endl;
+    return -1;
+  }
 }
 
 
