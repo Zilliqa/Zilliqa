@@ -77,7 +77,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
         libprotobuf-dev protobuf-compiler libcurl4-openssl-dev libboost-program-options-dev \
-        libssl-dev
+        libssl-dev libssl1.0-dev
     ```
 
 * macOS:
