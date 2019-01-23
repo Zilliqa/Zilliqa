@@ -35,8 +35,6 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
   }
   LOG_MARKER();
 
-  // TODO: provide interface in P2PComm instead of repopulating the lookup into
-  // vector of Peer
   vector<Peer> allLookupNodes;
 
   for (const auto& node : lookups) {

@@ -416,11 +416,6 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
 void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
 
-  // LOG_GENERAL(INFO, "i am here " <<
-  // to_string(m_mediator.m_currentEpochNum).c_str())
-
-  // TODO: provide interface in P2PComm instead of repopulating the lookup into
-  // vector of Peer
   vector<Peer> allLookupNodes;
 
   {
@@ -445,8 +440,6 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
 void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   LOG_MARKER();
 
-  // LOG_GENERAL("i am here " <<
-  // to_string(m_mediator.m_currentEpochNum).c_str())
   vector<Peer> allLookupNodes;
 
   {
