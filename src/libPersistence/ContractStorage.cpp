@@ -102,14 +102,14 @@ bool ContractStorage::PutContractState(const dev::h160& address,
     entries.emplace_back(index, rawBytes);
   }
 
-  return PutContractState(address, entries, stateHash, temp, entry_indexes,
-                          true);
+  return PutContractState(address, entries, stateHash, temp, false,
+                          entry_indexes, true);
 }
 
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
-    dev::h256& stateHash, bool temp, const vector<Index>& existing_indexes,
-    bool provideExisting) {
+    dev::h256& stateHash, bool temp, bool reversible,
+    const vector<Index>& existing_indexes, bool provideExisting) {
   // LOG_MARKER();
 
   if (address == Address()) {
@@ -137,12 +137,15 @@ bool ContractStorage::PutContractState(
     if (temp) {
       t_stateDataMap[entry.first.hex()] = entry.second;
     } else {
+      if (reversible) {
+        r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
+      }
       m_stateDataMap[entry.first.hex()] = entry.second;
     }
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes, temp)) {
+  if (!SetContractStateIndexes(address, entry_indexes, temp, reversible)) {
     LOG_GENERAL(WARNING, "SetContractStateIndex failed");
     return false;
   }
@@ -154,7 +157,7 @@ bool ContractStorage::PutContractState(
 
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
                                               const std::vector<Index>& indexes,
-                                              bool temp) {
+                                              bool temp, bool reversible) {
   // LOG_MARKER();
 
   bytes rawBytes;
@@ -166,10 +169,37 @@ bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
   if (temp) {
     t_stateIndexMap[address.hex()] = rawBytes;
   } else {
+    if (reversible) {
+      r_stateIndexMap[address.hex()] = m_stateIndexMap[address.hex()];
+    }
     m_stateIndexMap[address.hex()] = rawBytes;
   }
 
   return true;
+}
+
+void ContractStorage::RevertContractStates() {
+  LOG_MARKER();
+  for (const auto& acc : r_stateIndexMap) {
+    if (acc.second.empty()) {
+      m_stateIndexMap.erase(acc.first);
+    } else {
+      m_stateIndexMap[acc.first] = acc.second;
+    }
+  }
+  for (const auto& data : r_stateDataMap) {
+    if (data.second.empty()) {
+      m_stateDataMap.erase(data.first);
+    } else {
+      m_stateDataMap[data.first] = data.second;
+    }
+  }
+}
+
+void ContractStorage::InitReversibles() {
+  LOG_MARKER();
+  r_stateIndexMap.clear();
+  r_stateDataMap.clear();
 }
 
 vector<Index> ContractStorage::GetContractStateIndexes(const dev::h160& address,

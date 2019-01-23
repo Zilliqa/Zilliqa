@@ -78,6 +78,8 @@ void AccountStore::InitReversibles() {
 
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
+
+  ContractStorage::GetContractStorage().InitReversibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -381,4 +383,6 @@ void AccountStore::RevertCommitTemp() {
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
+
+  ContractStorage::GetContractStorage().RevertContractStates();
 }

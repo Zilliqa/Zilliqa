@@ -146,9 +146,7 @@ bool DirectoryService::ComposeFinalBlock() {
     prevHash = lastBlock.GetBlockHash();
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Prev block hash as per leader "
-                  << prevHash.hex() << endl
-                  << "TxBlockHeader: " << lastBlock.GetHeader());
+              "Prev block hash as per leader " << prevHash.hex());
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
   }
 
@@ -194,8 +192,7 @@ bool DirectoryService::ComposeFinalBlock() {
       << "][" << m_finalBlock->GetHeader().GetNumTxs() << "] FINAL");
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Final block proposed with "
-                << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
+            "Final block Composed: " << *m_finalBlock);
 
   return true;
 }
@@ -368,12 +365,9 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Prev block hash recvd: "
-                << finalblockPrevHash.hex() << endl
-                << "Prev block hash expected: " << expectedPrevHash.hex()
-                << endl
-                << "TxBlockHeader: "
-                << m_mediator.m_txBlockChain.GetLastBlock().GetHeader());
+            "Prev block hash recvd: " << finalblockPrevHash.hex() << endl
+                                      << "Prev block hash expected: "
+                                      << expectedPrevHash.hex());
 
   if (finalblockPrevHash != expectedPrevHash) {
     LOG_GENERAL(WARNING, "Previous hash check failed.");
