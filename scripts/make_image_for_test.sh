@@ -19,8 +19,18 @@
 #     ./scripts/make_image.sh         # using current HEAD
 #     ./scripts/make_image.sh COMMIT  # using a specific commit
 
-Test_scenarios=( "VC2" "VC4" "VC1 VC6" "VC3 VC6" "VC7" "VC8" "DM1" "DM2" "DM3" "DM4" "DM5" )
-Test_scenarios_name=( "VC2" "VC4" "VC1VC6" "VC3VC6" "VC7" "VC8" "DM1" "DM2" "DM3" "DM4" "DM5" )
+Test_scenarios=( "-DVC_TEST_DS_SUSPEND_3=1 "
+                "-DVC_TEST_FB_SUSPEND_3=1 "
+                "-DVC_TEST_DS_SUSPEND_1=1 -DVC_TEST_VC_SUSPEND_3=1 "
+                "-DVC_TEST_FB_SUSPEND_3=1 -DVC_TEST_VC_SUSPEND_3=1 "
+                "-DVC_TEST_VC_PRECHECK_1=1 "
+                "-DVC_TEST_VC_PRECHECK_2=1 "
+                "-DDM_TEST_DM_LESSTXN_ONE=1 "
+                "-DDM_TEST_DM_LESSTXN_ALL=1 "
+                "-DDM_TEST_DM_LESSMB_ONE=1 "
+                "-DDM_TEST_DM_LESSMB_ALL=1 "
+                "-DDM_TEST_DM_BAD_ANNOUNCE=1 " )
+Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" )
 
 cmd=$0
 
@@ -127,6 +137,7 @@ fi
 # Making images and checking result
 for ((i=0;i<${#Test_scenarios[@]};i++))
 do
+    echo "Building test scenario ${Test_scenarios_name[$i]}"
     TEST_EXTRA_CMAKE_ARGS=${Test_scenarios[$i]} TEST_NAME=${Test_scenarios_name[$i]} TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
     if [ "$?" -ne 0 ]
     then
