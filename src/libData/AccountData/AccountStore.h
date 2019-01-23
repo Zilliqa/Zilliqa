@@ -106,6 +106,8 @@ class AccountStore
 
   bool SerializeDelta();
 
+  AccountStoreTemp& GetAccountStoreTemp() { return *m_accountStoreTemp; }
+
   void GetSerializedDelta(bytes& dst);
 
   bool DeserializeDelta(const bytes& src, unsigned int offset,
@@ -140,6 +142,7 @@ class AccountStore
 
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account,
+                                       const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool reversible = false) {
     (*m_addressToAccount)[address] = account;
@@ -148,7 +151,7 @@ class AccountStore
       if (fullCopy) {
         m_addressToAccountRevCreated[address] = account;
       } else {
-        m_addressToAccountRevChanged[address] = account;
+        m_addressToAccountRevChanged[address] = oriAccount;
       }
     }
 
