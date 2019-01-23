@@ -438,11 +438,6 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     return;
   }
 
-  if (!aggregatedPubkey.Initialized()) {
-    LOG_GENERAL(WARNING, "Public key not initialized");
-    return;
-  }
-
   if (message.size() == 0) {
     LOG_GENERAL(WARNING, "Empty message");
     return;
@@ -619,11 +614,6 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
 
   if (!challenge.Initialized()) {
     LOG_GENERAL(WARNING, "Challenge not initialized");
-    return;
-  }
-
-  if (!privkey.Initialized()) {
-    LOG_GENERAL(WARNING, "Private key not initialized");
     return;
   }
 
@@ -815,11 +805,6 @@ bool MultiSig::VerifyResponse(const Response& response,
       return false;
     }
 
-    if (!pubkey.Initialized()) {
-      LOG_GENERAL(WARNING, "Public key not initialized");
-      return false;
-    }
-
     if (!commitPoint.Initialized()) {
       LOG_GENERAL(WARNING, "Commit point not initialized");
       return false;
@@ -915,16 +900,6 @@ bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
 
   if (message.size() < (offset + size)) {
     LOG_GENERAL(WARNING, "Offset and size beyond message size");
-    return false;
-  }
-
-  if (!pubkey.Initialized()) {
-    LOG_GENERAL(WARNING, "Public key not initialized");
-    return false;
-  }
-
-  if (!toverify.Initialized()) {
-    LOG_GENERAL(WARNING, "Signature not initialized");
     return false;
   }
 

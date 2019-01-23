@@ -76,12 +76,12 @@ struct ECPOINTSerialize {
 };
 
 /// Stores information on an EC-Schnorr private key.
-struct PrivKey : public Serializable {
+class PrivKey : public Serializable {
+  bool constructPreChecks();
+
+ public:
   /// The scalar in the underlying field.
   std::shared_ptr<BIGNUM> m_d;
-
-  /// Flag to indicate if parameters have been initialized.
-  bool m_initialized;
 
   /// Default constructor for generating a new key.
   PrivKey();
@@ -95,11 +95,8 @@ struct PrivKey : public Serializable {
   /// Destructor.
   ~PrivKey();
 
-  // Returns PrivKey from input string
+  /// Returns PrivKey from input string
   static PrivKey GetPrivKeyFromString(const std::string&);
-
-  /// Indicates if key parameters have been initialized.
-  bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(bytes& dst, unsigned int offset) const;
@@ -115,12 +112,14 @@ struct PrivKey : public Serializable {
 };
 
 /// Stores information on an EC-Schnorr public key.
-struct PubKey : public Serializable {
+class PubKey : public Serializable {
+  bool constructPreChecks();
+  bool comparePreChecks(const PubKey& r, std::shared_ptr<BIGNUM>& lhs_bnvalue,
+                        std::shared_ptr<BIGNUM>& rhs_bnvalue) const;
+
+ public:
   /// The point on the curve.
   std::shared_ptr<EC_POINT> m_P;
-
-  /// Flag to indicate if parameters have been initialized.
-  bool m_initialized;
 
   /// Default constructor for an uninitialized key.
   PubKey();
@@ -136,10 +135,9 @@ struct PubKey : public Serializable {
 
   /// Destructor.
   ~PubKey();
-  static PubKey GetPubKeyFromString(const std::string&);
 
-  /// Indicates if key parameters have been initialized.
-  bool Initialized() const;
+  /// Returns PubKey from input string
+  static PubKey GetPubKeyFromString(const std::string&);
 
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(bytes& dst, unsigned int offset) const;
@@ -182,15 +180,15 @@ inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {
 }
 
 /// Stores information on an EC-Schnorr signature.
-struct Signature : public Serializable {
+class Signature : public Serializable {
+  bool constructPreChecks();
+
+ public:
   /// Challenge scalar.
   std::shared_ptr<BIGNUM> m_r;
 
   /// Response scalar.
   std::shared_ptr<BIGNUM> m_s;
-
-  /// Flag to indicate if parameters have been initialized.
-  bool m_initialized;
 
   /// Default constructor.
   Signature();
@@ -203,9 +201,6 @@ struct Signature : public Serializable {
 
   /// Destructor.
   ~Signature();
-
-  /// Indicates if signature parameters have been initialized.
-  bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(bytes& dst, unsigned int offset) const;
