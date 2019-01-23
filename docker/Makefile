@@ -38,7 +38,7 @@ ubuntu-1804: check-commit
 # build zilliqa docker image for Kubernetes usage
 k8s: check-commit
 	cat dev/Dockerfile dev/Dockerfile.k8s | docker build -t zilliqa:$(commit) \
-		--build-arg COMMIT=$(commit) --build-arg EXTRA_CMAKE_ARGS=$(cmake_extra_args) -
+		--build-arg COMMIT=$(commit) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -
 
 # build release version docker image for public usage
 release:
