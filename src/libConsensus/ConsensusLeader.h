@@ -62,7 +62,6 @@ class ConsensusLeader : public ConsensusCommon {
   std::condition_variable cv_scheduleSubsetConsensus;
   bool m_allCommitsReceived;
 
-  // TODO: the vectors should be replaced by more space efficient DS
   std::vector<bool> m_commitMap;
   std::vector<CommitPoint>
       m_commitPointMap;  // ordered list of commits of size = committee size
@@ -80,7 +79,6 @@ class ConsensusLeader : public ConsensusCommon {
   std::map<unsigned int, bytes> m_commitFailureMap;
 
   // Tracking data for each consensus subset
-  // TODO: the vectors should be replaced by more space efficient DS
   struct ConsensusSubset {
     std::vector<bool> commitMap;
     std::vector<CommitPoint> commitPointMap;  // Ordered list of commits of

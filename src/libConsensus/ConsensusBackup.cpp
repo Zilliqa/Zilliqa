@@ -32,17 +32,11 @@ bool ConsensusBackup::CheckState(Action action) {
        {COMMIT_DONE, PROCESS_CHALLENGE},
        {COMMIT_DONE, PROCESS_COLLECTIVESIG},
        {COMMIT_DONE,
-        PROCESS_FINALCOLLECTIVESIG},  // TODO: check this logic again. Issue #43
-                                      // Node cannot proceed if
-                                      // finalcollectivesig arrived earlier (and
-                                      // get ignored by the node)
+        PROCESS_FINALCOLLECTIVESIG},
        {RESPONSE_DONE, PROCESS_CHALLENGE},
        {RESPONSE_DONE, PROCESS_COLLECTIVESIG},
        {RESPONSE_DONE,
-        PROCESS_FINALCOLLECTIVESIG},  // TODO: check this logic again. Issue #43
-                                      // Node cannot proceed if
-                                      // finalcollectivesig arrived earlier (and
-                                      // get ignored by the node)
+        PROCESS_FINALCOLLECTIVESIG},
        {FINALCOMMIT_DONE, PROCESS_FINALCHALLENGE},
        {FINALCOMMIT_DONE, PROCESS_FINALCOLLECTIVESIG},
        {FINALRESPONSE_DONE, PROCESS_FINALCHALLENGE},
