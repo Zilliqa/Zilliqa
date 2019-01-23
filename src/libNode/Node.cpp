@@ -442,8 +442,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   uint16_t ds_consensusLeaderID = 0;
 
-  BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
-                                                 ds_consensusLeaderID);
+  if (!BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
+                                                      ds_consensusLeaderID)) {
+    return false;
+  }
 
   m_mediator.m_ds->SetConsensusLeaderID(ds_consensusLeaderID);
 
