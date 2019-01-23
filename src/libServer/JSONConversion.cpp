@@ -37,7 +37,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int JSON_TRAN_OBJECT_SIZE = 10;
+unsigned int JSON_TRAN_OBJECT_SIZE = 11;
 
 const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
     const vector<MicroBlockInfo>& v) {
@@ -195,6 +195,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isMember("version");
   ret = ret && _json.isMember("code");
   ret = ret && _json.isMember("data");
+  ret = ret && _json.isMember("dspacket");
 
   if (ret) {
     if (!_json["nonce"].isIntegral()) {
@@ -239,6 +240,10 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                   "To Address checksum wrong " << _json["toAddr"].asString());
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "To Addr checksum wrong");
+    }
+    if (!_json["dspacket"].isBool()) {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "DS Packet should be boolean");
     }
   } else {
     LOG_GENERAL(INFO, "Json Data Object has missing components");
