@@ -1601,7 +1601,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     m_fetchedDSInfo = true;
   }
   cv_dsInfoUpdate.notify_all();
-
   return true;
 }
 
@@ -3095,7 +3094,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   }
 
   CheckBufferTxBlocks();
-
   return true;
 }
 
