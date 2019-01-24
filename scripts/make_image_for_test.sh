@@ -139,7 +139,7 @@ fi
 for ((i=0;i<${#Test_scenarios[@]};i++))
 do
     echo "Building test scenario ${Test_scenarios_name[$i]}"
-    TEST_EXTRA_CMAKE_ARGS=${Test_scenarios[$i]} TEST_NAME="-${Test_scenarios_name[$i]}"" TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
+    TEST_EXTRA_CMAKE_ARGS=${Test_scenarios[$i]} TEST_NAME="-${Test_scenarios_name[$i]}" TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
     if [ "$?" -ne 0 ]
     then
         echo "Making image failed"
