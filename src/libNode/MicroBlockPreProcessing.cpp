@@ -471,12 +471,7 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
-    m_processedTransactions[(m_mediator.m_ds->m_mode ==
-                             DirectoryService::Mode::IDLE)
-                                ? m_mediator.m_currentEpochNum
-                                : m_mediator.m_txBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum()] =
+    m_processedTransactions[m_mediator.m_currentEpochNum] =
         std::move(t_processedTransactions);
     t_processedTransactions.clear();
   }
