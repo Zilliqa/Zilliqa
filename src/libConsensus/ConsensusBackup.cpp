@@ -219,13 +219,6 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     return false;
   }
 
-  // Check the aggregated key
-  if (!aggregated_key.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid aggregated key received");
-    m_state = ERROR;
-    return false;
-  }
-
   // Check the challenge
   if (!m_challenge.Initialized()) {
     LOG_GENERAL(WARNING, "Invalid challenge received");
@@ -321,11 +314,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
   // Aggregate keys
   PubKey aggregated_key = AggregateKeys(m_responseMap);
-  if (!aggregated_key.Initialized()) {
-    LOG_GENERAL(WARNING, "Aggregated key generation failed");
-    m_state = ERROR;
-    return false;
-  }
 
   if (!MultiSig::GetInstance().MultiSigVerify(
           m_messageToCosign, m_collectiveSig, aggregated_key)) {

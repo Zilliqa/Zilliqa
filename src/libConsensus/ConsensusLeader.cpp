@@ -446,11 +446,6 @@ bool ConsensusLeader::GenerateChallengeMessage(bytes& challenge,
 
   // Aggregate keys
   PubKey aggregated_key = AggregateKeys(subset.commitMap);
-  if (!aggregated_key.Initialized()) {
-    LOG_GENERAL(WARNING,
-                "[Subset " << subsetID << "] Aggregated key generation failed");
-    return false;
-  }
 
   // Generate the challenge
   subset.challenge =
@@ -709,19 +704,9 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
 
   // Aggregate keys
   PubKey aggregated_key = AggregateKeys(subset.responseMap);
-  if (!aggregated_key.Initialized()) {
-    LOG_GENERAL(WARNING, "Aggregated key generation failed");
-    SetStateSubset(subsetID, ERROR);
-    return false;
-  }
 
   // Generate the collective signature
   subset.collectiveSig = AggregateSign(subset.challenge, aggregated_response);
-  if (!subset.collectiveSig.Initialized()) {
-    LOG_GENERAL(WARNING, "Collective sig generation failed");
-    SetStateSubset(subsetID, ERROR);
-    return false;
-  }
 
   // Verify the collective signature
   if (!MultiSig::GetInstance().MultiSigVerify(
