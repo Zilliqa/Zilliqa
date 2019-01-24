@@ -444,6 +444,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if (!BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
                                                       ds_consensusLeaderID)) {
+    LOG_GENERAL(WARNING,
+                "Retrieve history error due to failed to get ds committee.");
     return false;
   }
 
