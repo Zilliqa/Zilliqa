@@ -29,11 +29,17 @@
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
+#define PROTOBUFBYTEARRAYTOSERIALIZABLE(ba, s)                       \
+  if (!ProtobufByteArrayToSerializable(ba, s)) {                     \
+    LOG_GENERAL(WARNING, "ProtobufByteArrayToSerializable failed."); \
+    return false;                                                    \
+  }
+
 namespace ZilliqaMessage {
 class ByteArray;
 }
 
-void ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
+bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
                                      Serializable& serializable);
 
 class Messenger {
