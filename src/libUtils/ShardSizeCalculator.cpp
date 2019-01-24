@@ -61,7 +61,16 @@ void ShardSizeCalculator::GenerateShardCounts(
     vector<uint32_t>& shardCounts, bool logDetails) {
   LOG_MARKER();
 
-  const uint32_t shard_threshold_lo = shardSize - shardSizeToleranceLo;
+  if (shardSizeToleranceLo > shardSize) {
+    LOG_GENERAL(
+        WARNING,
+        "SHARD_SIZE_TOLERANCE_LO should not greater than current shard size, "
+        "so temporarily set SHARD_SIZE_TOLERANCE_LO = current shard size!");
+  }
+
+  const uint32_t shard_threshold_lo = (shardSizeToleranceLo > shardSize)
+                                          ? 0
+                                          : (shardSize - shardSizeToleranceLo);
   const uint32_t shard_threshold_hi = shardSize + shardSizeToleranceHi;
 
   if (logDetails) {
