@@ -144,11 +144,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Consensus variables
   std::shared_ptr<ConsensusCommon> m_consensusObject;
   bytes m_consensusBlockHash;
-  std::atomic<bool> m_skippedDSMB;
   std::mutex m_mutexCommitFailure;
-
-  /// Is it needed to validate the microblock in finalblock consensus
-  std::atomic<bool> m_needCheckMicroBlock;
 
   // PoW (DS block) consensus variables
   std::shared_ptr<DSBlock> m_pendingDSBlock;
@@ -653,8 +649,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
-  bool RunConsensusOnFinalBlockWhenDSPrimary(
-      const RunFinalBlockConsensusOptions& options);
+  bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool CheckIfDSNode(const PubKey& submitterPubKey);
   bool CheckIfShardNode(const PubKey& submitterPubKey);
   void RemoveDSMicroBlock();

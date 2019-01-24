@@ -1392,6 +1392,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 #endif  // DM_TEST_DM_LESSTXN_ALL
 
+#ifdef DM_TEST_DM_MORETXN_LEADER
+  if (m_mediator.m_ds->GetConsensusMyID() ==
+      m_mediator.m_ds->GetConsensusLeaderID()) {
+    LOG_GENERAL(WARNING, "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
+    return false;
+  }
+#endif  // DM_TEST_DM_MORETXN_LEADER
+
+#ifdef DM_TEST_DM_MORETXN_HALF
+  if (m_mediator.m_ds->GetConsensusMyID() ==
+          m_mediator.m_ds->GetConsensusLeaderID() ||
+      (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
+    LOG_GENERAL(WARNING, "My consensus id "
+                             << m_mediator.m_ds->GetConsensusMyID()
+                             << " triggered DM_TEST_DM_MORETXN_HALF");
+    return false;
+  }
+#endif  // DM_TEST_DM_MORETXN_HALF
+
   // Process the txns
   unsigned int processed_count = 0;
 

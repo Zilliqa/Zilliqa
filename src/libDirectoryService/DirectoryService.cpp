@@ -439,7 +439,6 @@ bool DirectoryService::CleanVariables() {
   }
 
   m_stopRecvNewMBSubmission = false;
-  m_needCheckMicroBlock = true;
   m_startedRunFinalblockConsensus = false;
 
   {

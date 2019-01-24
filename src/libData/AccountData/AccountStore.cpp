@@ -78,6 +78,8 @@ void AccountStore::InitReversibles() {
 
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
+
+  ContractStorage::GetContractStorage().InitReversibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -129,6 +131,8 @@ bool AccountStore::SerializeDelta() {
 
 void AccountStore::GetSerializedDelta(bytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
+
+  dst.clear();
 
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
        back_inserter(dst));
@@ -379,4 +383,6 @@ void AccountStore::RevertCommitTemp() {
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
+
+  ContractStorage::GetContractStorage().RevertContractStates();
 }

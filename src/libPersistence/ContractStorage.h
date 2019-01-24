@@ -48,9 +48,13 @@ class ContractStorage : public Singleton<ContractStorage> {
   std::unordered_map<std::string, bytes> t_stateIndexMap;
   std::unordered_map<std::string, bytes> t_stateDataMap;
 
+  std::unordered_map<std::string, bytes> r_stateIndexMap;
+  std::unordered_map<std::string, bytes> r_stateDataMap;
+
   /// Set the indexes of all the states of an contract account
   bool SetContractStateIndexes(const dev::h160& address,
-                               const std::vector<Index>& indexes, bool temp);
+                               const std::vector<Index>& indexes, bool temp,
+                               bool reversible);
 
   /// Get the raw rlp string of the states of an account
   std::vector<bytes> GetContractStatesData(const dev::h160& address, bool temp);
@@ -101,7 +105,7 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   bool PutContractState(const dev::h160& address,
                         const std::vector<std::pair<Index, bytes>>& entries,
-                        dev::h256& stateHash, bool temp,
+                        dev::h256& stateHash, bool temp, bool reversible,
                         const std::vector<Index>& existing_indexes = {},
                         bool provideExisting = false);
 
@@ -118,6 +122,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   dev::h256 GetContractStateHash(const dev::h160& address, bool temp);
 
   void Reset();
+
+  void RevertContractStates();
+
+  void InitReversibles();
 };
 
 }  // namespace Contract

@@ -114,8 +114,16 @@ do
         CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with DSMBMerging test - DS leader composed invalid DSMicroBlock"
     ;;
+    dm7)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_MORETXN_LEADER=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader doesn't have some txn"
+    ;;
+    dm8)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_MORETXN_HALF=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader and half of the DS doesn't have some txn"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-5>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-8>]"
         exit 1
     ;;
     esac

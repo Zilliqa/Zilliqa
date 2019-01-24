@@ -820,7 +820,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     LOG_GENERAL(INFO,
                 "State Delta hash received from finalblock is null, "
                 "skip processing state delta");
-    AccountStore::GetInstance().CommitTempReversible();
+    AccountStore::GetInstance().CommitTemp();
     return true;
   }
 

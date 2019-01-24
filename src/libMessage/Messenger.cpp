@@ -524,8 +524,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
-                            const Address& addr, const bool fullCopy,
-                            bool temp) {
+                            const Address& addr, const bool fullCopy, bool temp,
+                            bool reversible = false) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
@@ -600,7 +600,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                              DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, temp)) {
+      if (!account.SetStorage(addr, entries, temp, reversible)) {
         return false;
       }
 
@@ -2458,7 +2458,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
       return false;
     }
 
-    accountStore.AddAccountDuringDeserialization(address, account);
+    accountStore.AddAccountDuringDeserialization(address, account, Account());
   }
 
   return true;
@@ -2546,7 +2546,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
   for (const auto& entry : result.entries()) {
     Address address;
-    Account account;
+    Account account, t_account;
 
     copy(entry.address().begin(),
          entry.address().begin() + min((unsigned int)entry.address().size(),
@@ -2567,17 +2567,18 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
       }
     }
 
+    t_account = *oriAccount;
     account = *oriAccount;
     if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
-                                temp)) {
+                                temp, reversible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
       return false;
     }
 
-    accountStore.AddAccountDuringDeserialization(address, account, fullCopy,
-                                                 reversible);
+    accountStore.AddAccountDuringDeserialization(address, account, t_account,
+                                                 fullCopy, reversible);
   }
 
   return true;
