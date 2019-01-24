@@ -106,8 +106,6 @@ class AccountStore
 
   bool SerializeDelta();
 
-  AccountStoreTemp& GetAccountStoreTemp() { return *m_accountStoreTemp; }
-
   void GetSerializedDelta(bytes& dst);
 
   bool DeserializeDelta(const bytes& src, unsigned int offset,
