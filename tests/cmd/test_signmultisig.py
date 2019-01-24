@@ -42,7 +42,7 @@ def main():
 		if (command == 'setup'):
 			print_usage() if (numargs != 4) else run_setup(sys.argv[2], sys.argv[3])
 		elif (command == 'start'):
-			print_usage() if (numargs != 5) else run_start(sys.argv[2], sys.argv[3], sys.argv[4])
+			print_usage() if (numargs != 4) else run_start(sys.argv[2], sys.argv[3])
 		else:
 			print_usage()
 
@@ -94,8 +94,8 @@ def run_setup(CMD_BIN_PATH, LOCAL_TESTRUN_FOLDER):
 		st = os.stat(CMD_BIN_PATH + b)
 		os.chmod(LOCAL_TESTRUN_FOLDER + b, st.st_mode | stat.S_IEXEC)
 
-def run_start(CMD_BIN_PATH, VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER):
-	CMD_BIN_PATH, LOCAL_TESTRUN_FOLDER = appendSlash([CMD_BIN_PATH,LOCAL_TESTRUN_FOLDER])
+def run_start(VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER):
+	VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER = appendSlash([VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER])
 	genkeypair = LOCAL_TESTRUN_FOLDER + "genkeypair"
 	signmultisig = LOCAL_TESTRUN_FOLDER + "signmultisig"
 	verifymultisig = VERIFYMULTISIG_PATH + "VerifyMultiSignature"
