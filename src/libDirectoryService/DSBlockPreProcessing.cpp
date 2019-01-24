@@ -234,9 +234,9 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
-    PubKey nodePubKey =
-        m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
-            .first;
+    const unsigned int dsCommitteeIndex =
+        m_mediator.m_DSCommittee->size() - 1 - i;
+    PubKey nodePubKey = m_mediator.m_DSCommittee->at(dsCommitteeIndex).first;
     nodePubKey.Serialize(serializedPubK, 0);
     sha2.Update(serializedPubK);
     bytes PubKeyHash;
@@ -252,11 +252,10 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     bool isDupPubKey = false;
     for (const auto& soln : sortedPoWSolns) {
       if (soln.second == nodePubKey) {
-        LOG_GENERAL(WARNING,
-                    "Injected node also submitted a soln. "
-                        << m_mediator.m_DSCommittee
-                               ->at(m_mediator.m_DSCommittee->size() - 1 - i)
-                               .second);
+        LOG_GENERAL(
+            WARNING,
+            "Injected node also submitted a soln. "
+                << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
         isDupPubKey = true;
         break;
       }
@@ -272,19 +271,15 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     serializedPubK.clear();
 
     // Injecting into Pow Connections information
-    if (m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
-            .second == Peer()) {
+    if (m_mediator.m_DSCommittee->at(dsCommitteeIndex).second == Peer()) {
       m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
       LOG_GENERAL(INFO,
                   "Injecting into PoW connections " << m_mediator.m_selfPeer);
     } else {
-      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
-          m_mediator.m_DSCommittee->size() - 1 - i));
+      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(dsCommitteeIndex));
       LOG_GENERAL(INFO,
                   "Injecting into PoW connections "
-                      << m_mediator.m_DSCommittee
-                             ->at(m_mediator.m_DSCommittee->size() - 1 - i)
-                             .second);
+                      << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
     }
   }
 
