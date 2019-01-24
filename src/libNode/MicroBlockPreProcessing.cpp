@@ -685,10 +685,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   if (!m_mediator.GetIsVacuousEpoch() &&
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-          TXN_SHARD_TARGET_DIFFICULTY &&
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty() >=
-          TXN_DS_TARGET_DIFFICULTY) {
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     ProcessTransactionWhenShardLeader();
     AccountStore::GetInstance().SerializeDelta();
   }
@@ -968,10 +971,13 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
   }
 
   if (!m_mediator.GetIsVacuousEpoch() &&
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-          TXN_SHARD_TARGET_DIFFICULTY &&
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty() >=
-          TXN_DS_TARGET_DIFFICULTY) {
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     vector<TxnHash> missingTxnHashes;
     if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
                                            missingTxnHashes)) {

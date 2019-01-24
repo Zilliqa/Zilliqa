@@ -394,7 +394,6 @@ Json::Value Server::GetBalance(const string& address) {
       uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
-      // FIXME: a workaround, 256-bit unsigned int being truncated
       ret["nonce"] = static_cast<unsigned int>(nonce);
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
     } else if (account == nullptr) {

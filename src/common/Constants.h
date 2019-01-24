@@ -277,6 +277,7 @@ extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;
 extern const unsigned int TXN_SHARD_TARGET_DIFFICULTY;
 extern const unsigned int TXN_DS_TARGET_DIFFICULTY;
+extern const unsigned int TXN_DS_TARGET_NUM;
 extern const unsigned int PRIORITY_TOLERANCE_IN_PERCENT;
 
 // Recovery and upgrading constants
