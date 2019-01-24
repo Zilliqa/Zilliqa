@@ -67,6 +67,8 @@ const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
+const string GENESIS_PUBKEY{
+    ReadConstantString("GENESIS_PUBKEY", "node.general.")};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -417,6 +419,8 @@ const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
 const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS{
     ReadConstantString("COINBASE_REWARD_PER_DS", "node.transactions.")};
+const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN{
+    ReadConstantString("TOTAL_GENESIS_TOKEN", "node.transactions.")};
 const unsigned int BASE_REWARD_IN_PERCENT{
     ReadConstantNumeric("BASE_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int LOOKUP_REWARD_IN_PERCENT{

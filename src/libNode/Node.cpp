@@ -70,8 +70,11 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+  const uint128_t balance_each = TOTAL_GENESIS_TOKEN / GENESIS_WALLETS.size();
+  const uint128_t balance_left = TOTAL_GENESIS_TOKEN % (GENESIS_WALLETS.size());
+
   const uint64_t nonce{0};
+  bool moduloCredited = false;
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
     bytes addrBytes;
@@ -79,6 +82,13 @@ void addBalanceToGenesisAccount() {
       continue;
     }
     Address addr{addrBytes};
+    uint128_t bal = 0;
+    if (!moduloCredited) {
+      bal = balance_each + balance_left;
+      moduloCredited = true;
+    } else {
+      bal = balance_each;
+    }
     AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);

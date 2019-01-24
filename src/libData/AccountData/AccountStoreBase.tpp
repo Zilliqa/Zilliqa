@@ -202,18 +202,11 @@ bool AccountStoreBase<MAP>::IncreaseBalance(
 
   Account* account = GetAccount(address);
 
-  // LOG_GENERAL(INFO, "address: " << address);
-
   if (account != nullptr && account->IncreaseBalance(delta)) {
-    // UpdateStateTrie(address, *account);
-    // LOG_GENERAL(INFO, "account: " << *account);
     return true;
   }
-  // FIXME: remove this, temporary way to test transactions, should return false
+
   else if (account == nullptr) {
-    LOG_GENERAL(WARNING,
-                "AddAccount... FIXME: remove this, temporary way to test "
-                "transactions");
     AddAccount(address, {delta, 0});
     return true;
   }
