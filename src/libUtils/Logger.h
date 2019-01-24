@@ -67,14 +67,14 @@ class Logger {
 
  public:
   /// Limits the number of bytes of a payload to display.
-  static const size_t MAX_BYTES_TO_DISPLAY = 64;
+  static const size_t MAX_BYTES_TO_DISPLAY = 30;
 
   /// Limits the number of characters of the current filename and line number to
   /// display.
   static const size_t MAX_FILEANDLINE_LEN = 20;
 
   /// Limits the number of characters of the current function to display.
-  static const size_t MAX_FUNCNAME_LEN = 25;
+  static const size_t MAX_FUNCNAME_LEN = 20;
 
   /// Limits the number of digits of the current thread ID to display.
   static const size_t TID_LEN = 5;

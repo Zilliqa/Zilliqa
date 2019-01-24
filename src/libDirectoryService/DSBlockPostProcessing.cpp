@@ -130,8 +130,7 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
   P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "I the part of the subset of the DS committee that have sent the "
-            "DSBlock to the lookup nodes and newly joined ds nodes");
+            "I will send DSBlock to lookups and new DS nodes");
 }
 
 void DirectoryService::SendDSBlockToShardNodes(
@@ -185,18 +184,17 @@ void DirectoryService::SendDSBlockToShardNodes(
 
       string msgHash;
       DataConversion::Uint8VecToHexStr(this_msg_hash, msgHash);
-      LOG_GENERAL(INFO, "Sending message with hash: ["
-                            << msgHash.substr(0, 6)
-                            << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
-                            << numOfDSBlockReceivers << " shard peers");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Sending [" << msgHash.substr(0, 6) << "] to "
+                            << numOfDSBlockReceivers << " peers");
 
       numOfDSBlockReceivers =
           std::min(numOfDSBlockReceivers, (uint32_t)p->size());
 
       for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
         shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  " PubKey: " << std::get<SHARD_NODE_PUBKEY>(p->at(i))
+        LOG_GENERAL(INFO, "[" << PAD(i, 2, ' ') << "] "
+                              << std::get<SHARD_NODE_PUBKEY>(p->at(i)) << " "
                               << std::get<SHARD_NODE_PEER>(p->at(i)));
       }
 
@@ -367,7 +365,7 @@ void DirectoryService::StartFirstTxEpoch() {
     lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, " DS Sharding structure: ");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");
 
     unsigned int index = 0;
     for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
@@ -376,8 +374,8 @@ void DirectoryService::StartFirstTxEpoch() {
         m_mediator.m_node->SetConsensusMyID(index);
       }
 
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                " PubKey: " << i.first << " IP: " << i.second);
+      LOG_GENERAL(INFO, "[" << PAD(index, 3, ' ') << "] " << i.first << " "
+                            << i.second);
 
       index++;
     }
@@ -390,13 +388,11 @@ void DirectoryService::StartFirstTxEpoch() {
     if (m_mediator.m_node->GetConsensusMyID() ==
         m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "I am leader of the DS shard");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard leader");
     } else {
       m_mediator.m_node->m_isPrimary = false;
 
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "I am backup member of the DS shard");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard backup");
     }
 
     // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
@@ -494,8 +490,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "DS block consensus is DONE!!!");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DSBlock consensus DONE");
 
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
@@ -614,8 +609,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   }
 
   LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& member : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, member.second);
+    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
   }
 
   BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
@@ -665,8 +661,6 @@ bool DirectoryService::ProcessDSBlockConsensus(
     }
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS)) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Ignoring consensus message");
       return false;
     }
   }
@@ -725,7 +719,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
                   << ". Please check numbers of pow receivied by this node");
   } else {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus state = " << m_consensusObject->GetStateString());
+              "Consensus = " << m_consensusObject->GetStateString());
     cv_processConsensusMessage.notify_all();
   }
 

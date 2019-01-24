@@ -379,7 +379,7 @@ void DirectoryService::SetState(DirState state) {
 
   m_state = state;
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "DS State is now " << GetStateString());
+            "DS State = " << GetStateString());
 }
 
 // Set m_consensusMyID
@@ -522,9 +522,10 @@ bool DirectoryService::FinishRejoinAsDS() {
       }
     }
 
-    LOG_GENERAL(INFO, "DS committee is ");
+    LOG_GENERAL(INFO, "DS committee");
+    unsigned int ds_index = 0;
     for (const auto& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, i.second);
+      LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << i.second);
     }
 
     if (BROADCAST_GOSSIP_MODE) {

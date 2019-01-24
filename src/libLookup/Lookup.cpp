@@ -427,8 +427,7 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp);
+      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -458,8 +457,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp);
+      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -790,13 +788,9 @@ bool Lookup::ProcessEntireShardingStructure() {
       m_nodesInNetwork.emplace_back(peer);
       t_nodesInNetwork.emplace(peer);
 
-      LOG_GENERAL(INFO, "[SHARD "
-                            << to_string(i) << "] "
-                            << "[PEER " << to_string(index) << "] "
-                            << "Inserting Pubkey to shard : " << string(key));
       LOG_GENERAL(INFO, "[SHARD " << to_string(i) << "] "
                                   << "[PEER " << to_string(index) << "] "
-                                  << "Corresponding peer : " << string(peer));
+                                  << string(key) << " " << string(peer));
 
       index++;
     }
@@ -1546,9 +1540,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     *m_mediator.m_DSCommittee = move(dsNodes);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "ProcessSetDSInfoFromSeed sent by "
-                  << from << " for numPeers "
-                  << m_mediator.m_DSCommittee->size());
+              "SetDSInfoFromSeed from " << from << " for numPeers "
+                                        << m_mediator.m_DSCommittee->size());
 
     unsigned int i = 0;
     for (auto& ds : *m_mediator.m_DSCommittee) {
@@ -1557,9 +1550,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
           ds.second == m_mediator.m_selfPeer) {
         ds.second = Peer();
       }
-      LOG_EPOCH(
-          INFO, m_mediator.m_currentEpochNum,
-          "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+      LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
     }
 
     if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
@@ -1582,8 +1573,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     }
 
     if (isVerif) {
-      LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << " Sucess ");
+      LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
     }
   }
 

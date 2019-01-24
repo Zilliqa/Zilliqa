@@ -58,8 +58,7 @@ bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
                                                 const MAP& addressToAccount) {
   ProtoAccountStore result;
 
-  LOG_GENERAL(INFO, "Debug: Total number of accounts to serialize: "
-                        << addressToAccount.size());
+  LOG_GENERAL(INFO, "Accounts to serialize: " << addressToAccount.size());
 
   for (const auto& entry : addressToAccount) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
@@ -93,8 +92,7 @@ bool MessengerAccountStoreBase::GetAccountStore(const bytes& src,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Debug: Total number of accounts deserialized: "
-                        << result.entries().size());
+  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
   for (const auto& entry : result.entries()) {
     Address address;

@@ -272,17 +272,19 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     serializedPubK.clear();
 
     // Injecting into Pow Connections information
-    LOG_GENERAL(INFO, "Injecting into Pow Connections");
     if (m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
             .second == Peer()) {
       m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
-      LOG_GENERAL(INFO, m_mediator.m_selfPeer);
+      LOG_GENERAL(INFO,
+                  "Injecting into PoW connections " << m_mediator.m_selfPeer);
     } else {
       m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
           m_mediator.m_DSCommittee->size() - 1 - i));
-      LOG_GENERAL(INFO, m_mediator.m_DSCommittee
-                            ->at(m_mediator.m_DSCommittee->size() - 1 - i)
-                            .second);
+      LOG_GENERAL(INFO,
+                  "Injecting into PoW connections "
+                      << m_mediator.m_DSCommittee
+                             ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                             .second);
     }
   }
 
