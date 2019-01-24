@@ -34,7 +34,7 @@
 #include "libUtils/Logger.h"
 
 enum ReceiptError : unsigned int {
-  CHECKER_FAILED,
+  CHECKER_FAILED = 0,
   RUNNER_FAILED,
   BALANCE_TRANSFER_FAILED,
   EXECUTE_CMD_FAILED,
