@@ -125,6 +125,7 @@ extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
+extern const std::string GENESIS_PUBKEY;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -268,6 +269,8 @@ extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int MAX_POW_CHANGE_TO_ADJ_DIFF;
+extern const unsigned int MAX_POW_CHANGE_TO_ADJ_DS_DIFF;
 extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
@@ -275,6 +278,7 @@ extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;
 extern const unsigned int TXN_SHARD_TARGET_DIFFICULTY;
 extern const unsigned int TXN_DS_TARGET_DIFFICULTY;
+extern const unsigned int TXN_DS_TARGET_NUM;
 extern const unsigned int PRIORITY_TOLERANCE_IN_PERCENT;
 
 // Recovery and upgrading constants
@@ -313,6 +317,7 @@ extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 // Transaction constants
 extern const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD;
 extern const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS;
+extern const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN;
 extern const unsigned int BASE_REWARD_IN_PERCENT;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;

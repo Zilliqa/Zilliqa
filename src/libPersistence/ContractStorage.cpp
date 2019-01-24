@@ -66,14 +66,18 @@ bool ContractStorage::CheckIndexExists(const Index& index) {
          m_stateDataDB.Exists(index.hex());
 }
 
-Index ContractStorage::GetNewIndex(const dev::h160& address,
-                                   const string& key) {
+Index ContractStorage::GetNewIndex(const dev::h160& address, const string& key,
+                                   const vector<Index>& existing_indexes) {
   // LOG_MARKER();
   Index index;
   unsigned int counter = 0;
 
-  index = GetIndex(address, key, counter);
-  // TODO: avoid index collision
+  do {
+    index = GetIndex(address, key, counter);
+    counter++;
+  } while (find(existing_indexes.begin(), existing_indexes.end(), index) ==
+               existing_indexes.end() &&
+           CheckIndexExists(index));
 
   return index;
 }
@@ -83,8 +87,11 @@ bool ContractStorage::PutContractState(const dev::h160& address,
                                        dev::h256& stateHash, bool temp) {
   // LOG_MARKER();
   vector<pair<Index, bytes>> entries;
+
+  vector<Index> entry_indexes = GetContractStateIndexes(address, true);
+
   for (const auto& state : states) {
-    Index index = GetNewIndex(address, std::get<VNAME>(state));
+    Index index = GetNewIndex(address, std::get<VNAME>(state), entry_indexes);
 
     bytes rawBytes;
     if (!Messenger::SetStateData(rawBytes, 0, state)) {
@@ -95,12 +102,14 @@ bool ContractStorage::PutContractState(const dev::h160& address,
     entries.emplace_back(index, rawBytes);
   }
 
-  return PutContractState(address, entries, stateHash, temp);
+  return PutContractState(address, entries, stateHash, temp, false,
+                          entry_indexes, true);
 }
 
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
-    dev::h256& stateHash, bool temp) {
+    dev::h256& stateHash, bool temp, bool reversible,
+    const vector<Index>& existing_indexes, bool provideExisting) {
   // LOG_MARKER();
 
   if (address == Address()) {
@@ -108,7 +117,13 @@ bool ContractStorage::PutContractState(
     return false;
   }
 
-  vector<Index> entry_indexes = GetContractStateIndexes(address, temp);
+  vector<Index> entry_indexes;
+
+  if (provideExisting) {
+    entry_indexes = existing_indexes;
+  } else {
+    entry_indexes = GetContractStateIndexes(address, temp);
+  }
 
   unordered_map<string, string> batch;
 
@@ -122,16 +137,16 @@ bool ContractStorage::PutContractState(
     if (temp) {
       t_stateDataMap[entry.first.hex()] = entry.second;
     } else {
+      if (reversible) {
+        r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
+      }
       m_stateDataMap[entry.first.hex()] = entry.second;
     }
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes, temp)) {
-    // for (const auto& index : new_entry_indexes) {
-    //   t_stateDataDB.DeleteKey(index.hex());
-    // }
-    // TODO: revert the state data if failed
+  if (!SetContractStateIndexes(address, entry_indexes, temp, reversible)) {
+    LOG_GENERAL(WARNING, "SetContractStateIndex failed");
     return false;
   }
 
@@ -142,7 +157,7 @@ bool ContractStorage::PutContractState(
 
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
                                               const std::vector<Index>& indexes,
-                                              bool temp) {
+                                              bool temp, bool reversible) {
   // LOG_MARKER();
 
   bytes rawBytes;
@@ -154,10 +169,37 @@ bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
   if (temp) {
     t_stateIndexMap[address.hex()] = rawBytes;
   } else {
+    if (reversible) {
+      r_stateIndexMap[address.hex()] = m_stateIndexMap[address.hex()];
+    }
     m_stateIndexMap[address.hex()] = rawBytes;
   }
 
   return true;
+}
+
+void ContractStorage::RevertContractStates() {
+  LOG_MARKER();
+  for (const auto& acc : r_stateIndexMap) {
+    if (acc.second.empty()) {
+      m_stateIndexMap.erase(acc.first);
+    } else {
+      m_stateIndexMap[acc.first] = acc.second;
+    }
+  }
+  for (const auto& data : r_stateDataMap) {
+    if (data.second.empty()) {
+      m_stateDataMap.erase(data.first);
+    } else {
+      m_stateDataMap[data.first] = data.second;
+    }
+  }
+}
+
+void ContractStorage::InitReversibles() {
+  LOG_MARKER();
+  r_stateIndexMap.clear();
+  r_stateDataMap.clear();
 }
 
 vector<Index> ContractStorage::GetContractStateIndexes(const dev::h160& address,

@@ -49,6 +49,7 @@ const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
+unordered_map<int, string> IP;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
 
@@ -58,6 +59,10 @@ enum SyncType : unsigned int {
   NORMAL_SYNC,
   DS_SYNC,
   LOOKUP_SYNC,
+  RECOVERY_ALL_SYNC,
+  NEW_LOOKUP_SYNC,
+  GUARD_DS_SYNC,
+  DB_VERIF
 };
 
 string ReadLastLine(string filePath, [[gnu::unused]] ofstream& log) {
@@ -94,8 +99,6 @@ string ReadLastLine(string filePath, [[gnu::unused]] ofstream& log) {
 
   return lastLine;
 }
-
-SyncType getRestartValue([[gnu::unused]] pid_t pid) { return NO_SYNC; }
 
 vector<pid_t> getProcIdByName(string procName, ofstream& log) {
   vector<pid_t> result;
@@ -169,7 +172,7 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
                 space_pos = (string::npos == fullLine.find('\0'))
                                 ? fullLine.size()
                                 : fullLine.find('\0');
-                string ip = fullLine.substr(0, space_pos);
+                IP[id] = fullLine.substr(0, space_pos);
                 fullLine = fullLine.substr(space_pos + 1);
                 continue;
               }
@@ -235,9 +238,8 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-void StartNewProcess(const string pubKey, const string privKey,
-                     const string port, const string syncType,
-                     const string path, ofstream& log) {
+void StartNewProcess(const string pubKey, const string privKey, const string ip,
+                     const string port, const string path, ofstream& log) {
   log << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
@@ -254,9 +256,14 @@ void StartNewProcess(const string pubKey, const string privKey,
       sleep(1);
     }
 
+    /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior to
+    /// Zilliqa process being killed. Thus, we can use the variable 'bSuspend'
+    /// to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
+    string syncType =
+        bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
     log << "\" "
-        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
-                   " " + syncType + " " + path + " 2>&1")
+        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
+                   " " + port + " " + syncType + " " + path + " 2>&1")
         << " \"" << endl;
     exit(0);
   }
@@ -304,11 +311,12 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
-      StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
-                      to_string(getRestartValue(pid)), Path[pid], log);
+      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid], Path[pid],
+                      log);
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
+      IP.erase(pid);
       Port.erase(pid);
       Path.erase(pid);
     }

@@ -70,8 +70,11 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+  const uint128_t balance_each = TOTAL_GENESIS_TOKEN / GENESIS_WALLETS.size();
+  const uint128_t balance_left = TOTAL_GENESIS_TOKEN % (GENESIS_WALLETS.size());
+
   const uint64_t nonce{0};
+  bool moduloCredited = false;
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
     bytes addrBytes;
@@ -79,6 +82,13 @@ void addBalanceToGenesisAccount() {
       continue;
     }
     Address addr{addrBytes};
+    uint128_t bal = 0;
+    if (!moduloCredited) {
+      bal = balance_each + balance_left;
+      moduloCredited = true;
+    } else {
+      bal = balance_each;
+    }
     AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
@@ -635,40 +645,42 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         }
       }
     }
+  }
 
-    bool bInShardStructure = false;
+  bool bInShardStructure = false;
 
-    if (bDS) {
-      m_myshardId = m_mediator.m_ds->m_shards.size();
-    } else {
-      for (unsigned int i = 0;
-           i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
-        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-          if (get<SHARD_NODE_PUBKEY>(shardNode) ==
-              m_mediator.m_selfKey.second) {
-            SetMyshardId(i);
-            bInShardStructure = true;
-            break;
-          }
+  if (bDS) {
+    m_myshardId = m_mediator.m_ds->m_shards.size();
+  } else {
+    for (unsigned int i = 0;
+         i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
+      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
+          SetMyshardId(i);
+          LOG_GENERAL(
+              INFO, "This node belongs to sharding structure #" << m_myshardId);
+          bInShardStructure = true;
+          break;
         }
       }
     }
+  }
 
-    if (LOOKUP_NODE_MODE) {
-      m_mediator.m_lookup->ProcessEntireShardingStructure();
-    } else {
-      LoadShardingStructure(true);
-      m_mediator.m_ds->ProcessShardingStructure(
-          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-          m_mediator.m_ds->m_mapNodeReputation);
-    }
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_lookup->ProcessEntireShardingStructure();
+  } else {
+    LoadShardingStructure(true);
+    m_mediator.m_ds->ProcessShardingStructure(
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+        m_mediator.m_ds->m_mapNodeReputation);
+  }
 
-    if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
-        !bInShardStructure) {
-      LOG_GENERAL(WARNING,
-                  "Node is not in network, apply re-join process instead");
-      return false;
-    }
+  if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
+      !bInShardStructure) {
+    LOG_GENERAL(WARNING,
+                "Node " << m_mediator.m_selfKey.second
+                        << " is not in network, apply re-join process instead");
+    return false;
   }
 
   m_mediator.m_consensusID =
@@ -1380,6 +1392,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 #endif  // DM_TEST_DM_LESSTXN_ALL
 
+#ifdef DM_TEST_DM_MORETXN_LEADER
+  if (m_mediator.m_ds->GetConsensusMyID() ==
+      m_mediator.m_ds->GetConsensusLeaderID()) {
+    LOG_GENERAL(WARNING, "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
+    return false;
+  }
+#endif  // DM_TEST_DM_MORETXN_LEADER
+
+#ifdef DM_TEST_DM_MORETXN_HALF
+  if (m_mediator.m_ds->GetConsensusMyID() ==
+          m_mediator.m_ds->GetConsensusLeaderID() ||
+      (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
+    LOG_GENERAL(WARNING, "My consensus id "
+                             << m_mediator.m_ds->GetConsensusMyID()
+                             << " triggered DM_TEST_DM_MORETXN_HALF");
+    return false;
+  }
+#endif  // DM_TEST_DM_MORETXN_HALF
+
   // Process the txns
   unsigned int processed_count = 0;
 
@@ -1763,7 +1794,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 
   if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
           queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum,
+          m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
     return;

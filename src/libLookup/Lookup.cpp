@@ -41,6 +41,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -415,11 +416,6 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
 void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
 
-  // LOG_GENERAL(INFO, "i am here " <<
-  // to_string(m_mediator.m_currentEpochNum).c_str())
-
-  // TODO: provide interface in P2PComm instead of repopulating the lookup into
-  // vector of Peer
   vector<Peer> allLookupNodes;
 
   {
@@ -444,8 +440,6 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
 void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   LOG_MARKER();
 
-  // LOG_GENERAL("i am here " <<
-  // to_string(m_mediator.m_currentEpochNum).c_str())
   vector<Peer> allLookupNodes;
 
   {
@@ -1877,6 +1871,12 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }
+
+  if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+    return false;
+  }
+
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
       m_mediator.m_txBlockChain.GetLastBlock().GetB2(),

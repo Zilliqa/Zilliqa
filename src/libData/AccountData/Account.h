@@ -162,11 +162,9 @@ class Account : public AccountBase {
 
   const bytes GetCode() const;
 
-  void CleanCodeCache();
-
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries,
-                  bool temp);
+                  bool temp, bool reversible = false);
 
   bool SetStorage(const std::vector<Contract::StateEntry>& state_entries,
                   bool temp);

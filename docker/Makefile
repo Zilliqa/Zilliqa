@@ -6,6 +6,7 @@ all: release release-cuda
 
 len=$(shell echo $(COMMIT) | wc -c)
 commit=$(shell echo $(COMMIT) | cut -c 1-7)
+cmake_extra_args=$(shell echo $(EXTRA_CMAKE_ARGS))
 
 major=$(shell tail -n +2 ../VERSION | head -n1)
 minor=$(shell tail -n +4 ../VERSION | head -n1)
@@ -37,7 +38,7 @@ ubuntu-1804: check-commit
 # build zilliqa docker image for Kubernetes usage
 k8s: check-commit
 	cat dev/Dockerfile dev/Dockerfile.k8s | docker build -t zilliqa:$(commit) \
-		--build-arg COMMIT=$(commit) -
+		--build-arg COMMIT=$(commit) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -
 
 # build release version docker image for public usage
 release:

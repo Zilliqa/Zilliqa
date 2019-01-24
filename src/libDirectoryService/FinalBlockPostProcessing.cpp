@@ -139,6 +139,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
+  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
+    m_mediator.m_node->UpdateProcessedTransactions();
+  }
+
   // StoreMicroBlocksToDisk();
   StoreFinalBlockToDisk();
 
@@ -192,7 +196,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << "] AFTER SENDING FLBLK");
 
   if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
-    m_mediator.m_node->UpdateProcessedTransactions();
     if (m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
         TxnHash()) {
       m_mediator.m_node->CallActOnFinalblock();
@@ -290,7 +293,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   uint32_t consensus_id = 0;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, from, consensus_id,
+  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
                                          senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;

@@ -502,6 +502,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
   cv_waitDSBlock.notify_one();
@@ -511,7 +513,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECVD DSBLOCK");
+      << "] RECVD DSBLOCK -> DS Diff = "
+      << to_string(dsblock.GetHeader().GetDSDifficulty())
+      << " Diff = " << to_string(dsblock.GetHeader().GetDifficulty()));
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

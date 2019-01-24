@@ -1,4 +1,4 @@
-add_library (Crypto Schnorr.cpp MultiSig.cpp)
+add_library (Crypto Schnorr.cpp MultiSig.cpp PrivKey.cpp PubKey.cpp Signature.cpp BIGNUMSerialize.cpp ECPOINTSerialize.cpp)
 
 if("${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}" VERSION_LESS "1.1")
 	target_sources (Crypto PRIVATE generate_dsa_nonce.c)

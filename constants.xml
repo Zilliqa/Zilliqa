@@ -7,6 +7,7 @@
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
+        <GENESIS_PUBKEY>02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552</GENESIS_PUBKEY>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -128,6 +129,7 @@
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>200</COMM_SIZE>
         <NUM_DS_ELECTION>5</NUM_DS_ELECTION>
+        <!-- SHARD_SIZE_TOLERANCE_LO must be smaller than COMM_SIZE -->
         <SHARD_SIZE_TOLERANCE_LO>50</SHARD_SIZE_TOLERANCE_LO>
         <SHARD_SIZE_TOLERANCE_HI>10</SHARD_SIZE_TOLERANCE_HI>
     </network_composition>
@@ -160,6 +162,8 @@
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
         <NUM_FINAL_BLOCK_PER_POW>50</NUM_FINAL_BLOCK_PER_POW>
         <POW_CHANGE_PERCENT_TO_ADJ_DIFF>12</POW_CHANGE_PERCENT_TO_ADJ_DIFF>
+        <MAX_POW_CHANGE_TO_ADJ_DIFF>99</MAX_POW_CHANGE_TO_ADJ_DIFF>
+        <MAX_POW_CHANGE_TO_ADJ_DS_DIFF>49</MAX_POW_CHANGE_TO_ADJ_DS_DIFF>
         <!-- If PoW submissions over this number, will increase difficulty -->
         <EXPECTED_SHARD_NODE_NUM>1800</EXPECTED_SHARD_NODE_NUM>
         <!-- If PoW submissions over this number, will select nodes by reputation -->
@@ -170,6 +174,7 @@
         <DIFF_IP_TOLERANCE_IN_PERCENT>10</DIFF_IP_TOLERANCE_IN_PERCENT>
         <TXN_SHARD_TARGET_DIFFICULTY>2</TXN_SHARD_TARGET_DIFFICULTY>
         <TXN_DS_TARGET_DIFFICULTY>3</TXN_DS_TARGET_DIFFICULTY>
+        <TXN_DS_TARGET_NUM>360</TXN_DS_TARGET_NUM>
         <PRIORITY_TOLERANCE_IN_PERCENT>5</PRIORITY_TOLERANCE_IN_PERCENT>
     </pow>
     <recovery>
@@ -206,6 +211,7 @@
     <transactions>
         <TOTAL_COINBASE_REWARD>8400000000000000000000</TOTAL_COINBASE_REWARD>
         <COINBASE_REWARD_PER_DS>191780820000000000</COINBASE_REWARD_PER_DS>
+        <TOTAL_GENESIS_TOKEN>12600000000000000000000</TOTAL_GENESIS_TOKEN>
         <BASE_REWARD_IN_PERCENT>15</BASE_REWARD_IN_PERCENT>
         <LOOKUP_REWARD_IN_PERCENT>5</LOOKUP_REWARD_IN_PERCENT>
         <MAX_CODE_SIZE_IN_BYTES>20480</MAX_CODE_SIZE_IN_BYTES>
@@ -217,7 +223,7 @@
     <verifier>
         <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
-        <SEED_PORT>30303</SEED_PORT>
+        <SEED_PORT>33333</SEED_PORT>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>
@@ -237,31 +243,31 @@
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
     -->
@@ -270,7 +276,7 @@
         <!--IP to be provided after public testnet launch.
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         -->
@@ -280,7 +286,7 @@
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         -->
@@ -289,7 +295,7 @@
         <!--
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         -->

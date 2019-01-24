@@ -37,6 +37,13 @@ add_custom_command(TARGET zilliqa
 target_include_directories(signmultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(signmultisig PUBLIC Crypto)
 
+add_executable(verifymultisig verifymultisig.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:verifymultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(verifymultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(verifymultisig PUBLIC Crypto)
+
 add_executable(gensigninitialds gen_sign_initial_ds.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD

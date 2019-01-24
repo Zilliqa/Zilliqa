@@ -178,8 +178,6 @@ bool DirectoryService::ProcessStateDelta(
     return false;
   }
 
-  m_stateDeltaFromShards.clear();
-
   if (!AccountStore::GetInstance().SerializeDelta()) {
     LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
     return false;

@@ -223,13 +223,13 @@ bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
 
 bool Account::SetStorage(const Address& addr,
                          const vector<pair<dev::h256, bytes>>& entries,
-                         bool temp) {
+                         bool temp, bool reversible) {
   if (!isContract()) {
     return false;
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp)) {
+          addr, entries, m_storageRoot, temp, reversible)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -418,5 +418,3 @@ const bytes Account::GetCode() const {
     return m_codeCache;
   }
 }
-
-void Account::CleanCodeCache() { m_codeCache.clear(); }

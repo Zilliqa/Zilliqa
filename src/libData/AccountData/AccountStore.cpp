@@ -18,7 +18,6 @@
 #include <leveldb/db.h>
 
 #include "AccountStore.h"
-#include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
@@ -79,6 +78,8 @@ void AccountStore::InitReversibles() {
 
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
+
+  ContractStorage::GetContractStorage().InitReversibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -90,8 +91,9 @@ bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreBase<unordered_map<Address, Account>>::Serialize(src,
-                                                                      offset);
+  return AccountStoreTrie<
+      dev::OverlayDB, std::unordered_map<Address, Account>>::Serialize(src,
+                                                                       offset);
 }
 
 bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
@@ -129,6 +131,8 @@ bool AccountStore::SerializeDelta() {
 
 void AccountStore::GetSerializedDelta(bytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
+
+  dst.clear();
 
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
        back_inserter(dst));
@@ -217,10 +221,6 @@ bool AccountStore::MoveUpdatesToDisk() {
     }
   }
 
-  for (auto& i : *m_addressToAccount) {
-    i.second.CleanCodeCache();
-  }
-
   try {
     m_state.db()->commit();
     m_prevRoot = m_state.root();
@@ -231,12 +231,7 @@ bool AccountStore::MoveUpdatesToDisk() {
     return false;
   }
 
-  // TODO: If the accountstore is cleared here, lookup is unable to serialize
-  // accountstore in ProcessGetStateFromSeed. We need to first change
-  // serialization to get from database, so that we can avoid keeping
-  // accountstore in memory.
-
-  // m_addressToAccount->clear();
+  m_addressToAccount->clear();
 
   return true;
 }
@@ -277,25 +272,14 @@ bool AccountStore::RetrieveFromDisk() {
     m_state.setRoot(root);
     for (const auto& i : m_state) {
       Address address(i.first);
-      LOG_GENERAL(INFO, "Address: " << address.hex());
-      dev::RLP rlp(i.second);
-      if (rlp.itemCount() != 4) {
-        LOG_GENERAL(WARNING, "Account data corrupted");
+
+      Account account;
+      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
+                                   0)) {
+        LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
         continue;
       }
-      Account account(rlp[0].toInt<uint128_t>(), rlp[1].toInt<uint64_t>());
-      // Code Hash
-      if (rlp[3].toHash<h256>() != h256()) {
-        // Extract Code Content
-        account.SetCode(
-            ContractStorage::GetContractStorage().GetContractCode(address));
-        if (rlp[3].toHash<h256>() != account.GetCodeHash()) {
-          LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
-          continue;
-        }
-        // Storage Root
-        account.SetStorageRoot(rlp[2].toHash<h256>());
-      }
+
       m_addressToAccount->insert({address, account});
     }
   } catch (const boost::exception& e) {
@@ -399,4 +383,6 @@ void AccountStore::RevertCommitTemp() {
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
+
+  ContractStorage::GetContractStorage().RevertContractStates();
 }

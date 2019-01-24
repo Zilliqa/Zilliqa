@@ -67,6 +67,8 @@ const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
+const string GENESIS_PUBKEY{
+    ReadConstantString("GENESIS_PUBKEY", "node.general.")};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -324,6 +326,10 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadConstantNumeric("NUM_FINAL_BLOCK_PER_POW", "node.pow.")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadConstantNumeric("POW_CHANGE_PERCENT_TO_ADJ_DIFF", "node.pow.")};
+const unsigned int MAX_POW_CHANGE_TO_ADJ_DIFF{
+    ReadConstantNumeric("MAX_POW_CHANGE_TO_ADJ_DIFF", "node.pow.")};
+const unsigned int MAX_POW_CHANGE_TO_ADJ_DS_DIFF{
+    ReadConstantNumeric("MAX_POW_CHANGE_TO_ADJ_DS_DIFF", "node.pow.")};
 const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MAX_SHARD_NODE_NUM{
@@ -338,6 +344,8 @@ const unsigned int TXN_SHARD_TARGET_DIFFICULTY{
     ReadConstantNumeric("TXN_SHARD_TARGET_DIFFICULTY", "node.pow.")};
 const unsigned int TXN_DS_TARGET_DIFFICULTY{
     ReadConstantNumeric("TXN_DS_TARGET_DIFFICULTY", "node.pow.")};
+const unsigned int TXN_DS_TARGET_NUM{
+    ReadConstantNumeric("TXN_DS_TARGET_NUM", "node.pow.")};
 const unsigned int PRIORITY_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("PRIORITY_TOLERANCE_IN_PERCENT", "node.pow.")};
 
@@ -413,6 +421,8 @@ const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
 const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS{
     ReadConstantString("COINBASE_REWARD_PER_DS", "node.transactions.")};
+const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN{
+    ReadConstantString("TOTAL_GENESIS_TOKEN", "node.transactions.")};
 const unsigned int BASE_REWARD_IN_PERCENT{
     ReadConstantNumeric("BASE_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int LOOKUP_REWARD_IN_PERCENT{

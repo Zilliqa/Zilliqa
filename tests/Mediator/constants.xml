@@ -115,27 +115,27 @@
         <!--IP to be provided after public testnet launch.
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
-            <port>30303</port>
+            <port>33333</port>
             <pubkey></pubkey>
         </peer>
     -->

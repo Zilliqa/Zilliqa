@@ -14,30 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGERACCOUNTSTOREBASE_H__
-#define __MESSENGERACCOUNTSTOREBASE_H__
+#ifndef __MESSENGERACCOUNTSTORETRIE_H__
+#define __MESSENGERACCOUNTSTORETRIE_H__
 
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
-#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Account.h"
 
-// This class is only used by AccountStoreBase template class
+// This class is only used by AccountStoreTrie template class
 // If AccountStoreBase.tpp included Messenger.h, we enter into some circular
 // dependency issue Putting the messenger functions below into this new class
 // avoids that issue
 
-class MessengerAccountStoreBase {
+class MessengerAccountStoreTrie {
  public:
   // ============================================================================
   // Primitives
   // ============================================================================
-
-  template <class MAP>
-  static bool SetAccountStore(bytes& dst, const unsigned int offset,
-                              const MAP& addressToAccount);
-  template <class MAP>
-  static bool GetAccountStore(const bytes& src, const unsigned int offset,
-                              MAP& addressToAccount);
+  template <class DB>
+  static bool SetAccountStoreTrie(
+      bytes& dst, const unsigned int offset,
+      const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie);
 };
 
-#endif  // __MESSENGERACCOUNTSTOREBASE_H__
+#endif  // __MESSENGERACCOUNTSTORETRIE_H__
