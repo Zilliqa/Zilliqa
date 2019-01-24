@@ -22,7 +22,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-TransactionReceipt::TransactionReceipt() { update(); }
+TransactionReceipt::TransactionReceipt() {
+  update();
+  m_errorObj.append(m_depth);
+}
 
 bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionReceipt(dst, offset, *this)) {
@@ -61,6 +64,15 @@ void TransactionReceipt::SetResult(const bool& result) {
   }
 }
 
+void TransactionReceipt::AddDepth() {
+  m_depth++;
+  m_errorObj.append(m_depth);
+}
+
+void TransactionReceipt::AddError(const unsigned int& errCode) {
+  m_tranReceiptObj[m_depth].append(errCode);
+}
+
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
   m_cumGas = cumGas;
   m_tranReceiptObj["cumulative_gas"] = to_string(m_cumGas);
@@ -91,7 +103,21 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
 void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
+  m_errorObj.clear();
+  m_depth = 0;
   update();
+}
+
+void TransactionReceipt::InstallError() {
+  Json::Value errorObj;
+  for (const auto& e : m_errorObj) {
+    if (!e.isNull()) {
+      errorObj.append(e);
+    }
+  }
+  if (!errorObj.isNull()) {
+    m_tranReceiptObj["errors"] = errorObj;
+  }
 }
 
 void TransactionReceipt::update() {
@@ -99,6 +125,7 @@ void TransactionReceipt::update() {
     m_tranReceiptStr = "{}";
     return;
   }
+  InstallError();
   m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
   m_tranReceiptStr.erase(
       std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), ' '),

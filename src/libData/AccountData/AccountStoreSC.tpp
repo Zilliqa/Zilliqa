@@ -266,6 +266,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       this->m_addressToAccount->erase(toAddr);
 
       receipt.SetResult(false);
+      if (!ret) {
+        receipt.AddError(RUNNER_FAILED);
+      }
+      if (!ret_checker) {
+        receipt.AddError(CHECKER_FAILED);
+      }
       receipt.SetCumGas(CONTRACT_CREATE_GAS);
       receipt.update();
 
@@ -290,6 +296,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (validToTransferBalance) {
       if (!this->TransferBalance(fromAddr, toAddr, amount)) {
         receipt.SetResult(false);
+        receipt.AddError(BALANCE_TRANSFER_FAILED);
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
@@ -374,6 +381,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
                                  m_root_w_version, gasRemained));
         ret = false;
+        m_curTranReceipt.AddError(EXECUTE_CMD_FAILED);
       }
       cv_callContract.notify_all();
     };
@@ -394,6 +402,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         kill(-pid, SIGKILL);
       }
       ret = false;
+      m_curTranReceipt.AddError(EXECUTE_CMD_TIMEOUT);
     }
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       LOG_GENERAL(DEBUG, "Executed root transition in " << r_timer_end(tpStart)
@@ -836,6 +845,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     } else {
       gasRemained = 0;
     }
+    m_curTranReceipt.AddError(NO_GAS_REMAINING_FOUND);
     return false;
   }
   uint64_t startGas = gasRemained;
@@ -845,6 +855,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   if (!_json.isMember("_accepted")) {
     LOG_GENERAL(WARNING,
                 "The json output of this contract doesn't contain _accepted");
+    m_curTranReceipt.AddError(NO_ACCEPTED_FOUND);
     return false;
   }
 
@@ -852,8 +863,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
       !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
+      m_curTranReceipt.AddError(CALL_CONTRACT_FAILED);
     } else {
       LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+      m_curTranReceipt.AddError(JSON_OUTPUT_CORRUPTED);
     }
     return false;
   }
@@ -863,6 +876,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                m_curAmount)) {
       LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+      m_curTranReceipt.AddError(BALANCE_TRANSFER_FAILED);
       return false;
     }
   } else {
@@ -872,6 +886,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   Account* contractAccount = this->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
     LOG_GENERAL(WARNING, "contractAccount is null ptr");
+    m_curTranReceipt.AddError(CONTRACT_NOT_EXIST);
     return false;
   }
 
@@ -881,6 +896,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
       LOG_GENERAL(WARNING,
                   "Address: " << m_curContractAddr.hex()
                               << ", The json output of states is corrupted");
+      m_curTranReceipt.AddError(STATE_CORRUPTED);
       continue;
     }
     std::string vname = s["vname"].asString();
@@ -906,6 +922,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   for (const auto& e : _json["events"]) {
     LogEntry entry;
     if (!entry.Install(e, m_curContractAddr)) {
+      m_curTranReceipt.AddError(LOG_ENTRY_INSTALL_FAILED);
       return false;
     }
     m_curTranReceipt.AddEntry(entry);
@@ -926,28 +943,34 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
       !_json["message"].isMember("_recipient")) {
     LOG_GENERAL(WARNING,
                 "The message in the json output of this contract is corrupted");
+    m_curTranReceipt.AddError(MESSAGE_CORRUPTED);
     return false;
   }
 
   Address recipient = Address(_json["message"]["_recipient"].asString());
   if (recipient == Address()) {
     LOG_GENERAL(WARNING, "The recipient can't be null address");
+    m_curTranReceipt.AddError(RECEIPT_IS_NULL);
     return false;
   }
 
   Account* account = this->GetAccount(recipient);
 
   if (account == nullptr) {
-    LOG_GENERAL(WARNING, "The recipient account doesn't exist");
-    return false;
+    AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
   }
 
   // Recipient is non-contract
   if (!account->isContract()) {
     LOG_GENERAL(INFO, "The recipient is non-contract");
-    return TransferBalanceAtomic(
-        m_curContractAddr, recipient,
-        atoi(_json["message"]["_amount"].asString().c_str()));
+    if (!TransferBalanceAtomic(
+            m_curContractAddr, recipient,
+            atoi(_json["message"]["_amount"].asString().c_str()))) {
+      m_curTranReceipt.AddError(BALANCE_TRANSFER_FAILED);
+      return false;
+    } else {
+      return true;
+    }
   }
 
   // Recipient is contract
@@ -964,10 +987,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   if (m_curDepth > MAX_CONTRACT_DEPTH) {
     LOG_GENERAL(WARNING,
                 "maximum contract depth reached, cannot call another contract");
+    m_curTranReceipt.AddError(MAX_DEPTH_REACHED);
     return false;
   }
 
   LOG_GENERAL(INFO, "Call another contract");
+  m_curTranReceipt.AddDepth();
 
   // check whether the recipient contract is in the same shard with the current
   // contract
@@ -977,6 +1002,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     LOG_GENERAL(WARNING,
                 "another contract doesn't belong to the same shard with "
                 "current contract");
+    m_curTranReceipt.AddError(CHAIN_CALL_DIFF_SHARD);
     return false;
   }
 
@@ -989,11 +1015,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   if (!TransferBalanceAtomic(
           m_curContractAddr, recipient,
           atoi(_json["message"]["_amount"].asString().c_str()))) {
+    m_curTranReceipt.AddError(BALANCE_TRANSFER_FAILED);
     return false;
   }
 
   if (!ExportCallContractFiles(*account, input_message)) {
     LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+    m_curTranReceipt.AddError(PREPARATION_FAILED);
     return false;
   }
 
@@ -1008,6 +1036,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
             pid)) {
       LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
                                m_root_w_version, gasRemained));
+      m_curTranReceipt.AddError(EXECUTE_CMD_FAILED);
       result = false;
     }
     cv_callContract.notify_all();
@@ -1031,6 +1060,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     if (pid >= 0) {
       kill(-pid, SIGKILL);
     }
+    m_curTranReceipt.AddError(EXECUTE_CMD_TIMEOUT);
     result = false;
   }
 
