@@ -48,7 +48,7 @@ void PrintDSCommittee(const DequeOfNode& dsCommittee) {
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(testDiagnostic) {
+BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
   INIT_STDOUT_LOGGER();
 
   // Clear the database first
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
     PrintShard(histShards.back());
     PrintDSCommittee(histDSCommittee.back());
 
-    BOOST_CHECK(BlockStorage::GetBlockStorage().PutDiagnosticData(
+    BOOST_CHECK(BlockStorage::GetBlockStorage().PutDiagnosticDataNodes(
         histDSBlockNum.back(), histShards.back(), histDSCommittee.back()));
   }
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
     DequeOfShard shardsDeserialized;
     DequeOfNode dsCommitteeDeserialized;
 
-    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(
         histDSBlockNum.at(i), shardsDeserialized, dsCommitteeDeserialized));
 
     BOOST_CHECK(shardsDeserialized == histShards.at(i));
@@ -88,8 +88,8 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
   }
 
   // Look-up by dumping all contents
-  map<uint64_t, DiagnosticData> diagnosticDataMap;
-  BlockStorage::GetBlockStorage().GetDiagnosticData(diagnosticDataMap);
+  map<uint64_t, DiagnosticDataNodes> diagnosticDataMap;
+  BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(diagnosticDataMap);
   for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     BOOST_CHECK(diagnosticDataMap.count(i) == 1);
     BOOST_CHECK(diagnosticDataMap[i].shards == histShards.at(i));
@@ -102,25 +102,25 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
     DequeOfShard shardsDeserialized;
     DequeOfNode dsCommitteeDeserialized;
 
-    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(
         histDSBlockNum.at(i), shardsDeserialized, dsCommitteeDeserialized));
 
     BOOST_CHECK(shardsDeserialized == histShards.at(i));
     BOOST_CHECK(dsCommitteeDeserialized == histDSCommittee.at(i));
 
     // Check the db size
-    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataCount() ==
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodesCount() ==
                 (NUM_ENTRIES - i));
 
     // Then, delete the entry
-    BOOST_CHECK(BlockStorage::GetBlockStorage().DeleteDiagnosticData(
+    BOOST_CHECK(BlockStorage::GetBlockStorage().DeleteDiagnosticDataNodes(
         histDSBlockNum.at(i)));
 
     // Check that the entry has been deleted
-    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodes(
                     histDSBlockNum.at(i), shardsDeserialized,
                     dsCommitteeDeserialized) == false);
-    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataCount() ==
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataNodesCount() ==
                 (NUM_ENTRIES - i - 1));
   }
 }

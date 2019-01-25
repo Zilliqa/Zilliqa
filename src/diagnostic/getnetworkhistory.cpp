@@ -118,9 +118,9 @@ int main(int argc, char** argv) {
 
   BlockStorage& bs = BlockStorage::GetBlockStorage(path, true);
 
-  std::map<uint64_t, DiagnosticData> diagnosticDataMap =
-      std::map<uint64_t, DiagnosticData>();
-  bs.GetDiagnosticData(diagnosticDataMap);
+  std::map<uint64_t, DiagnosticDataNodes> diagnosticDataMap =
+      std::map<uint64_t, DiagnosticDataNodes>();
+  bs.GetDiagnosticDataNodes(diagnosticDataMap);
   if (diagnosticDataMap.empty()) {
     std::cout << "Nothing to read in the Diagnostic DB" << std::endl;
     return 0;

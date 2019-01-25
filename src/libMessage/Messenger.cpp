@@ -3312,12 +3312,12 @@ bool Messenger::GetFallbackBlockWShardingStructure(
                                      shardingStructureVersion, shards);
 }
 
-bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
-                                  const uint32_t& shardingStructureVersion,
-                                  const DequeOfShard& shards,
-                                  const uint32_t& dsCommitteeVersion,
-                                  const DequeOfNode& dsCommittee) {
-  ProtoDiagnosticData result;
+bool Messenger::SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
+                                       const uint32_t& shardingStructureVersion,
+                                       const DequeOfShard& shards,
+                                       const uint32_t& dsCommitteeVersion,
+                                       const DequeOfNode& dsCommittee) {
+  ProtoDiagnosticDataNodes result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
                               *result.mutable_shards());
@@ -3325,24 +3325,25 @@ bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
                         *result.mutable_dscommittee());
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataNodes initialization failed");
     return false;
   }
 
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
-                                  uint32_t& shardingStructureVersion,
-                                  DequeOfShard& shards,
-                                  uint32_t& dsCommitteeVersion,
-                                  DequeOfNode& dsCommittee) {
-  ProtoDiagnosticData result;
+bool Messenger::GetDiagnosticDataNodes(const bytes& src,
+                                       const unsigned int offset,
+                                       uint32_t& shardingStructureVersion,
+                                       DequeOfShard& shards,
+                                       uint32_t& dsCommitteeVersion,
+                                       DequeOfNode& dsCommittee) {
+  ProtoDiagnosticDataNodes result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataNodes initialization failed");
     return false;
   }
 

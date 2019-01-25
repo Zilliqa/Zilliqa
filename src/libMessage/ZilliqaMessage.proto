@@ -229,7 +229,7 @@ message ProtoFallbackBlock
 }
 
 // Used in database "diagnostic"
-message ProtoDiagnosticData
+message ProtoDiagnosticDataNodes
 {
     optional ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
     optional ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A

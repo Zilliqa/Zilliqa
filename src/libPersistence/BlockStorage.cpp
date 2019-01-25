@@ -675,16 +675,17 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
   return true;
 }
 
-bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
-                                     const DequeOfShard& shards,
-                                     const DequeOfNode& dsCommittee) {
+bool BlockStorage::PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                                          const DequeOfShard& shards,
+                                          const DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   bytes data;
 
-  if (!Messenger::SetDiagnosticData(data, 0, SHARDINGSTRUCTURE_VERSION, shards,
-                                    DSCOMMITTEE_VERSION, dsCommittee)) {
-    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticData failed");
+  if (!Messenger::SetDiagnosticDataNodes(data, 0, SHARDINGSTRUCTURE_VERSION,
+                                         shards, DSCOMMITTEE_VERSION,
+                                         dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticDataNodes failed");
     return false;
   }
 
@@ -700,9 +701,9 @@ bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
   return true;
 }
 
-bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
-                                     DequeOfShard& shards,
-                                     DequeOfNode& dsCommittee) {
+bool BlockStorage::GetDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                                          DequeOfShard& shards,
+                                          DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   string dataStr;
@@ -723,9 +724,10 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
 
   uint32_t shardingStructureVersion = 0;
   uint32_t dsCommitteeVersion = 0;
-  if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion, shards,
-                                    dsCommitteeVersion, dsCommittee)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticData failed");
+  if (!Messenger::GetDiagnosticDataNodes(data, 0, shardingStructureVersion,
+                                         shards, dsCommitteeVersion,
+                                         dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticDataNodes failed");
     return false;
   }
 
@@ -746,8 +748,8 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
   return true;
 }
 
-void BlockStorage::GetDiagnosticData(
-    map<uint64_t, DiagnosticData>& diagnosticDataMap) {
+void BlockStorage::GetDiagnosticDataNodes(
+    map<uint64_t, DiagnosticDataNodes>& diagnosticDataMap) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDiagnostic);
@@ -777,16 +779,17 @@ void BlockStorage::GetDiagnosticData(
 
     bytes data(dataStr.begin(), dataStr.end());
 
-    DiagnosticData entry;
+    DiagnosticDataNodes entry;
     uint32_t shardingStructureVersion = 0;
     uint32_t dsCommitteeVersion = 0;
 
-    if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion,
-                                      entry.shards, dsCommitteeVersion,
-                                      entry.dsCommittee)) {
-      LOG_GENERAL(WARNING,
-                  "Messenger::GetDiagnosticData failed for DS block number "
-                      << dsBlockNumStr << " at index " << index);
+    if (!Messenger::GetDiagnosticDataNodes(data, 0, shardingStructureVersion,
+                                           entry.shards, dsCommitteeVersion,
+                                           entry.dsCommittee)) {
+      LOG_GENERAL(
+          WARNING,
+          "Messenger::GetDiagnosticDataNodes failed for DS block number "
+              << dsBlockNumStr << " at index " << index);
       continue;
     }
 
@@ -814,12 +817,12 @@ void BlockStorage::GetDiagnosticData(
   }
 }
 
-unsigned int BlockStorage::GetDiagnosticDataCount() {
+unsigned int BlockStorage::GetDiagnosticDataNodesCount() {
   lock_guard<mutex> g(m_mutexDiagnostic);
   return m_diagnosticDBCounter;
 }
 
-bool BlockStorage::DeleteDiagnosticData(const uint64_t& dsBlockNum) {
+bool BlockStorage::DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum) {
   lock_guard<mutex> g(m_mutexDiagnostic);
   bool result = (0 == m_diagnosticDB->DeleteKey(dsBlockNum));
   if (result) {

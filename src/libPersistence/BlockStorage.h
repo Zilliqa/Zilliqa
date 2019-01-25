@@ -39,7 +39,7 @@ typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
-struct DiagnosticData {
+struct DiagnosticDataNodes {
   DequeOfShard shards;
   DequeOfNode dsCommittee;
 };
@@ -223,21 +223,23 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
   /// Save data for diagnostic / monitoring purposes
-  bool PutDiagnosticData(const uint64_t& dsBlockNum, const DequeOfShard& shards,
-                         const DequeOfNode& dsCommittee);
+  bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                              const DequeOfShard& shards,
+                              const DequeOfNode& dsCommittee);
 
   /// Retrieve diagnostic data for specific block number
-  bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
-                         DequeOfNode& dsCommittee);
+  bool GetDiagnosticDataNodes(const uint64_t& dsBlockNum, DequeOfShard& shards,
+                              DequeOfNode& dsCommittee);
 
   /// Retrieve diagnostic data
-  void GetDiagnosticData(std::map<uint64_t, DiagnosticData>& diagnosticDataMap);
+  void GetDiagnosticDataNodes(
+      std::map<uint64_t, DiagnosticDataNodes>& diagnosticDataMap);
 
   /// Retrieve the number of entries in the diagnostic data db
-  unsigned int GetDiagnosticDataCount();
+  unsigned int GetDiagnosticDataNodesCount();
 
   /// Delete the requested diagnostic data entry from the db
-  bool DeleteDiagnosticData(const uint64_t& dsBlockNum);
+  bool DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);
