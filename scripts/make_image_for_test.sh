@@ -30,8 +30,11 @@ Test_scenarios=( "-DVC_TEST_DS_SUSPEND_3=1 "
                 "-DDM_TEST_DM_LESSMB_ONE=1 "
                 "-DDM_TEST_DM_LESSMB_ALL=1 "
                 "-DDM_TEST_DM_BAD_ANNOUNCE=1 "
-                "-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 " )
-Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" )
+                "-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 "
+                "-DDM_TEST_DM_MORETXN_LEADER=1 "
+                "-DDM_TEST_DM_MORETXN_HALF=1 " )
+
+Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" "dm7" "dm8" )
 
 cmd=$0
 
