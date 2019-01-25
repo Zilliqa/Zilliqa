@@ -24,7 +24,7 @@ using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() {
   update();
-  m_errorObj.append(m_depth);
+  m_errorObj[to_string(m_depth)] = Json::arrayValue;
 }
 
 bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
@@ -65,12 +65,14 @@ void TransactionReceipt::SetResult(const bool& result) {
 }
 
 void TransactionReceipt::AddDepth() {
+  LOG_MARKER();
   m_depth++;
-  m_errorObj.append(m_depth);
+  m_errorObj[to_string(m_depth)] = Json::arrayValue;
 }
 
 void TransactionReceipt::AddError(const unsigned int& errCode) {
-  m_tranReceiptObj[m_depth].append(errCode);
+  LOG_GENERAL(INFO, "AddError: " << errCode);
+  m_errorObj[to_string(m_depth)].append(errCode);
 }
 
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
@@ -110,12 +112,14 @@ void TransactionReceipt::clear() {
 
 void TransactionReceipt::InstallError() {
   Json::Value errorObj;
+  unsigned int depth = 0;
   for (const auto& e : m_errorObj) {
-    if (!e.isNull()) {
-      errorObj.append(e);
+    if (!e.empty()) {
+      errorObj[to_string(depth)] = e;
     }
+    depth++;
   }
-  if (!errorObj.isNull()) {
+  if (!errorObj.empty()) {
     m_tranReceiptObj["errors"] = errorObj;
   }
 }
@@ -127,12 +131,6 @@ void TransactionReceipt::update() {
   }
   InstallError();
   m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
-  m_tranReceiptStr.erase(
-      std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), ' '),
-      m_tranReceiptStr.end());
-  m_tranReceiptStr.erase(
-      std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), '\n'),
-      m_tranReceiptStr.end());
 }
 
 /// Implements the Serialize function inherited from Serializable.

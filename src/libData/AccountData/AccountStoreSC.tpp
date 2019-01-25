@@ -672,9 +672,9 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     LOG_GENERAL(WARNING, "Failed to parse contract checker output: "
                              << checkerPrint << std::endl
                              << "errors: " << errors);
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
     return false;
   }
-  receipt.AddError(JSON_OUTPUT_CORRUPTED);
 
   return true;
 }
