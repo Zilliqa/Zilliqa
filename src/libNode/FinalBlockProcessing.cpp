@@ -74,9 +74,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   // At this point, the transactions in the last Epoch is no longer useful, thus
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Storing Tx Block" << endl
-                               << txBlock);
+  LOG_GENERAL(INFO, "Storing TxBlock:" << endl << txBlock);
 
   // Store Tx Block to disk
   bytes serializedTxBlock;
@@ -90,13 +88,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
                                            .GetPrevHash()
                                            .asArray(),
                                        prevHashStr)) {
-    LOG_GENERAL(WARNING, "prev hash cannot be converted to hex str");
+    LOG_GENERAL(WARNING, "prevHash cannot be converted to hexStr");
   }
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "Final block "
-          << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " received with prevhash 0x" << prevHashStr);
 
   LOG_STATE(
       "[FINBK]["
@@ -558,9 +551,8 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   lock_guard<mutex> g(m_mutexFinalBlock);
 
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << TXBLOCK_VERSION << " Actual: "
-                             << txBlock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
+                   TXBLOCK_VERSION);
     return false;
   }
 
@@ -952,7 +944,7 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   // Verify txnhash
   TxnHash txnHash = ComputeRoot(entry.m_transactions);
   if (txnHash != entry.m_microBlock.GetHeader().GetTxRootHash()) {
-    LOG_GENERAL(WARNING, "Transaction root hash doesn't match, computed: "
+    LOG_GENERAL(WARNING, "Txn root hash mismatch, computed: "
                              << txnHash << " received: "
                              << entry.m_microBlock.GetHeader().GetTxRootHash());
     return false;

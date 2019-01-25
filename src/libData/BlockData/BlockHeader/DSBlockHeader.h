@@ -124,17 +124,16 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<DSBlockHeader>" << std::endl
-     << "m_dsDifficulty : " << t.m_dsDifficulty << std::endl
-     << "m_difficulty : " << t.m_difficulty << std::endl
-     << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
-     << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_epochNum : " << t.m_epochNum << std::endl
-     << "m_gasPrice : " << t.m_gasPrice << std::endl
+     << " m_dsDifficulty = " << t.m_dsDifficulty << std::endl
+     << " m_difficulty   = " << t.m_difficulty << std::endl
+     << " m_leaderPubKey = " << t.m_leaderPubKey << std::endl
+     << " m_blockNum     = " << t.m_blockNum << std::endl
+     << " m_epochNum     = " << t.m_epochNum << std::endl
+     << " m_gasPrice     = " << t.m_gasPrice << std::endl
      << t.m_hashset << std::endl
      << t.m_swInfo << std::endl;
   for (const auto& node : t.m_PoWDSWinners) {
-    os << "PoWDSWinner: [PubKey] " << node.first << " [Peer] " << node.second
-       << std::endl;
+    os << " PoWDSWinner    = " << node.first << " " << node.second << std::endl;
   }
 
   return os;

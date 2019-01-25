@@ -273,4 +273,10 @@ class ScopeMarker {
         .LogEpochInfo(oss.str().c_str(), __LINE__, __FILE__, __FUNCTION__, \
                       std::to_string(blockNum).c_str());                   \
   }
+
+#define LOG_CHECK_FAIL(checktype, received, expected) \
+  LOG_GENERAL(WARNING, checktype << " check failed"); \
+  LOG_GENERAL(WARNING, " Received = " << received);   \
+  LOG_GENERAL(WARNING, " Expected = " << expected);
+
 #endif  // __LOGGER_H__

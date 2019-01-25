@@ -358,9 +358,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
+    LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
@@ -374,9 +373,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   if (dsblock.GetHeader().GetVersion() != DSBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << DSBLOCK_VERSION << " Actual: "
-                             << dsblock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("DSBlock version", dsblock.GetHeader().GetVersion(),
+                   DSBLOCK_VERSION);
     return false;
   }
 

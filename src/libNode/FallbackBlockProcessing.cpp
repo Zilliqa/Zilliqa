@@ -150,9 +150,9 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
   }
 
   if (fallbackblock.GetHeader().GetVersion() != FALLBACKBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << FALLBACKBLOCK_VERSION << " Actual: "
-                             << fallbackblock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("Fallback Block version",
+                   fallbackblock.GetHeader().GetVersion(),
+                   FALLBACKBLOCK_VERSION);
     return false;
   }
 

@@ -41,15 +41,14 @@ static bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
   }
 
   if (!is_timestamp_in_range(timestamp_in_microsec, loBound, hiBound)) {
-    LOG_GENERAL(WARNING,
-                "Timestamp check failed. Received: "
-                    << timestamp_in_microsec << "("
-                    << microsec_timestamp_to_readable(timestamp_in_microsec)
-                    << ")"
-                    << " Expected Range: " << loBound << "("
-                    << microsec_timestamp_to_readable(loBound) << ")"
-                    << " ~ " << hiBound << "("
-                    << microsec_timestamp_to_readable(hiBound) << ")");
+    LOG_CHECK_FAIL("Timestamp",
+                   timestamp_in_microsec
+                       << "("
+                       << microsec_timestamp_to_readable(timestamp_in_microsec)
+                       << ")",
+                   loBound << "(" << microsec_timestamp_to_readable(loBound)
+                           << ") ~ " << hiBound << "("
+                           << microsec_timestamp_to_readable(hiBound) << ")");
     return false;
   }
 

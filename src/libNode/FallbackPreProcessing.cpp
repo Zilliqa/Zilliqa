@@ -58,10 +58,9 @@ bool Node::FallbackValidator(const bytes& message, unsigned int offset,
 
   if (m_pendingFallbackBlock->GetHeader().GetVersion() !=
       FALLBACKBLOCK_VERSION) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: "
-                    << FALLBACKBLOCK_VERSION << " Actual: "
-                    << m_pendingFallbackBlock->GetHeader().GetVersion());
+    LOG_CHECK_FAIL("FallbackBlock version",
+                   m_pendingFallbackBlock->GetHeader().GetVersion(),
+                   FALLBACKBLOCK_VERSION);
     return false;
   }
 

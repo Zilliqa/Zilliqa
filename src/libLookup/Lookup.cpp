@@ -1490,9 +1490,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   }
 
   if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
-                             << DSCOMMITTEE_VERSION
-                             << " Actual: " << dsCommitteeVersion);
+    LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                   DSCOMMITTEE_VERSION);
     return false;
   }
 
@@ -3301,7 +3300,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       lock_guard<mutex> g(m_txnShardMapMutex);
       auto transactionNumber = mp[i].size();
 
-      LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
+      LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
       if (m_txnShardMap[i].empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);

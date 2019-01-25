@@ -107,15 +107,11 @@ bool ConsensusCommon::VerifyMessage(const bytes& msg, unsigned int offset,
       msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
 
   if (!result) {
-    std::string output;
-    if (!DataConversion::SerializableToHexStr(GetCommitteeMember(peer_id).first,
-                                              output)) {
-      return false;
-    }
-
-    LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x" << output);
-    LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
+    LOG_GENERAL(WARNING, "Failed to verify msg from peer "
+                             << peer_id << " "
+                             << GetCommitteeMember(peer_id).first);
   }
+
   return result;
 }
 
@@ -188,8 +184,7 @@ pair<PubKey, Peer> ConsensusCommon::GetCommitteeMember(
     const unsigned int index) {
   if (m_committee.size() <= index) {
     LOG_GENERAL(WARNING, "Committee size " << m_committee.size() << " <= index "
-                                           << index
-                                           << ". Returning default values.");
+                                           << index);
     return make_pair(PubKey(), Peer());
   }
   return m_committee.at(index);
@@ -232,12 +227,13 @@ bool ConsensusCommon::GetConsensusID(const bytes& message,
             ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
                                                     consensusID, senderPubKey);
       default:
-        LOG_GENERAL(WARNING, "Unknown consensus message received");
+        LOG_GENERAL(WARNING,
+                    "Unknown msg type " << (unsigned int)message.at(offset));
         break;
     }
   } else {
-    LOG_GENERAL(WARNING, "Consensus message offset " << offset << " >= size "
-                                                     << message.size());
+    LOG_GENERAL(WARNING,
+                "Msg offset " << offset << " >= size " << message.size());
   }
 
   return false;
@@ -267,8 +263,7 @@ void ConsensusCommon::RecoveryAndProcessFromANewState(State newState) {
 
 const Signature& ConsensusCommon::GetCS1() const {
   if (m_state != DONE) {
-    LOG_GENERAL(WARNING,
-                "Retrieving collectivesig when consensus is still ongoing");
+    LOG_GENERAL(WARNING, "GetCS1 called before DONE");
   }
 
   return m_CS1;
@@ -276,9 +271,7 @@ const Signature& ConsensusCommon::GetCS1() const {
 
 const vector<bool>& ConsensusCommon::GetB1() const {
   if (m_state != DONE) {
-    LOG_GENERAL(WARNING,
-                "Retrieving collectivesig bit map when consensus is "
-                "still ongoing");
+    LOG_GENERAL(WARNING, "GetB1 called before DONE");
   }
 
   return m_B1;
@@ -286,8 +279,7 @@ const vector<bool>& ConsensusCommon::GetB1() const {
 
 const Signature& ConsensusCommon::GetCS2() const {
   if (m_state != DONE) {
-    LOG_GENERAL(WARNING,
-                "Retrieving collectivesig when consensus is still ongoing");
+    LOG_GENERAL(WARNING, "GetCS2 called before DONE");
   }
 
   return m_CS2;
@@ -295,9 +287,7 @@ const Signature& ConsensusCommon::GetCS2() const {
 
 const vector<bool>& ConsensusCommon::GetB2() const {
   if (m_state != DONE) {
-    LOG_GENERAL(WARNING,
-                "Retrieving collectivesig bit map when consensus is "
-                "still ongoing");
+    LOG_GENERAL(WARNING, "GetB2 called before DONE");
   }
 
   return m_B2;
@@ -310,8 +300,8 @@ unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize) {
 bool ConsensusCommon::CanProcessMessage(const bytes& message,
                                         unsigned int offset) {
   if (message.size() <= offset) {
-    LOG_GENERAL(WARNING, "Consensus message offset " << offset << " >= size "
-                                                     << message.size());
+    LOG_GENERAL(WARNING,
+                "Msg offset " << offset << " >= size " << message.size());
     return false;
   }
 
@@ -319,19 +309,15 @@ bool ConsensusCommon::CanProcessMessage(const bytes& message,
 
   if (messageType == ConsensusMessageType::COLLECTIVESIG) {
     if (m_state == INITIAL) {
-      LOG_GENERAL(WARNING,
-                  "Processing collectivesig but announcement not yet "
-                  "received. m_state "
-                      << GetStateString());
+      LOG_GENERAL(WARNING, "PROCESS_COLLECTIVESIG not allowed in state "
+                               << GetStateString());
       return false;
     }
   } else if (messageType == ConsensusMessageType::FINALCOLLECTIVESIG) {
     if (m_state == INITIAL || m_state == COMMIT_DONE ||
         m_state == RESPONSE_DONE) {
-      LOG_GENERAL(WARNING,
-                  "Processing final collectivesig but cosig1 not yet "
-                  "received. m_state "
-                      << GetStateString());
+      LOG_GENERAL(WARNING, "PROCESS_FINALCOLLECTIVESIG not allowed in state "
+                               << GetStateString());
       return false;
     }
   }
@@ -354,7 +340,7 @@ map<ConsensusCommon::State, string> ConsensusCommon::ConsensusStateStrings = {
 
 string ConsensusCommon::GetStateString() const {
   if (ConsensusStateStrings.find(m_state) == ConsensusStateStrings.end()) {
-    return "Unknown";
+    return "UNKNOWN";
   } else {
     return ConsensusStateStrings.at(m_state);
   }
@@ -362,7 +348,7 @@ string ConsensusCommon::GetStateString() const {
 
 string ConsensusCommon::GetStateString(const State state) const {
   if (ConsensusStateStrings.find(state) == ConsensusStateStrings.end()) {
-    return "Unknown";
+    return "UNKNOWN";
   } else {
     return ConsensusStateStrings.at(state);
   }

@@ -79,8 +79,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount != nullptr) {
       if (toAccount->isContract()) {
-        LOG_GENERAL(WARNING,
-                    "Contract account won't accept normal transaction");
+        LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
         return false;
       }
     }
@@ -113,10 +112,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "Create contract");
 
     if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS) {
-      LOG_GENERAL(WARNING,
-                  "The gas limit set for this transaction has to be larger than"
-                  " the gas to create a contract ("
-                      << CONTRACT_CREATE_GAS << ")");
+      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                        << " less than "
+                                        << CONTRACT_CREATE_GAS);
       return false;
     }
 
@@ -304,10 +302,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "Call contract");
 
     if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
-      LOG_GENERAL(WARNING,
-                  "The gas limit set for this transaction has to be larger than"
-                  " the minimum gas to invoke contract ("
-                      << CONTRACT_INVOKE_GAS << ")");
+      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                        << " less than "
+                                        << CONTRACT_INVOKE_GAS);
       return false;
     }
 
@@ -322,7 +319,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               << ") "
                  "and transfer the amount ("
               << amount
-              << ") in the transaction, "
+              << ") in the txn, "
                  "rejected");
       return false;
     }
@@ -915,7 +912,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   if (_json["message"].isNull()) {
     LOG_GENERAL(INFO,
                 "null message in scilla output when invoking a "
-                "contract, transaction finished");
+                "contract, txn finished");
     return true;
   }
 
@@ -955,7 +952,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   if (_json["message"]["_tag"].asString().empty()) {
     LOG_GENERAL(INFO,
                 "_tag in the scilla output is empty when invoking a "
-                "contract, transaction finished");
+                "contract, txn finished");
     return true;
   }
 

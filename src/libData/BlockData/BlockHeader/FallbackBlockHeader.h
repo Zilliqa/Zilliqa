@@ -110,13 +110,13 @@ inline std::ostream& operator<<(std::ostream& os,
 
   os << blockHeaderBase << std::endl
      << "<FallbackBlockHeader>" << std::endl
-     << "m_fallbackDSEpochNo : " << t.m_fallbackDSEpochNo << std::endl
-     << "m_fallbackEpochNo : " << t.m_fallbackEpochNo << std::endl
-     << "m_fallbackState : " << t.m_fallbackState << std::endl
-     << "m_leaderConsensusId : " << t.m_leaderConsensusId << std::endl
-     << "m_leaderNetworkInfo : " << t.m_leaderNetworkInfo << std::endl
-     << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
-     << "m_shardId : " << t.m_shardId << std::endl
+     << " m_fallbackDSEpochNo = " << t.m_fallbackDSEpochNo << std::endl
+     << " m_fallbackEpochNo   = " << t.m_fallbackEpochNo << std::endl
+     << " m_fallbackState     = " << t.m_fallbackState << std::endl
+     << " m_leaderConsensusId = " << t.m_leaderConsensusId << std::endl
+     << " m_leaderNetworkInfo = " << t.m_leaderNetworkInfo << std::endl
+     << " m_leaderPubKey      = " << t.m_leaderPubKey << std::endl
+     << " m_shardId           = " << t.m_shardId << std::endl
      << t.m_hashset;
   return os;
 }

@@ -118,9 +118,8 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
   }
 
   if (vcblock.GetHeader().GetVersion() != VCBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << VCBLOCK_VERSION << " Actual: "
-                             << vcblock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("VCBlock version", vcblock.GetHeader().GetVersion(),
+                   VCBLOCK_VERSION);
     return false;
   }
 

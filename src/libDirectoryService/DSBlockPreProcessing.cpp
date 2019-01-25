@@ -927,9 +927,8 @@ bool DirectoryService::DSBlockValidator(
   }
 
   if (m_pendingDSBlock->GetHeader().GetVersion() != DSBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << DSBLOCK_VERSION << " Actual: "
-                             << m_pendingDSBlock->GetHeader().GetVersion());
+    LOG_CHECK_FAIL("DSBlock version",
+                   m_pendingDSBlock->GetHeader().GetVersion(), DSBLOCK_VERSION);
     return false;
   }
 
