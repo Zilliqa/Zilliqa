@@ -256,24 +256,20 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
-    LOG_GENERAL(WARNING, submitterPeer << " has exceeded max pow submission");
+    LOG_GENERAL(WARNING, "Max PoW sent: " << submitterPeer);
     return false;
   }
 
   // Log all values
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Winner Public_key   = " << submitterPubKey);
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Winner Peer ip addr = " << submitterPeer);
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Difficulty          = " << to_string(difficultyLevel));
+  LOG_GENERAL(INFO, "Key   = " << submitterPubKey);
+  LOG_GENERAL(INFO, "Peer  = " << submitterPeer);
+  LOG_GENERAL(INFO, "Diff  = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock_num         = " << blockNumber);
+  LOG_GENERAL(INFO, "Block = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
@@ -316,8 +312,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
+  LOG_GENERAL(INFO, "[POWSTAT] " << r_timer_end(m_timespec));
 
   if (result) {
     // Do another check on the state before accessing m_allPoWs
@@ -325,10 +320,9 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     // everyone if ((m_state != POW_SUBMISSION) && (m_state !=
     // DSBLOCK_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW)) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Too late - current state is " << m_state);
+      LOG_GENERAL(INFO, "Too late. State = " << GetStateString());
     } else {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "POW verification passed");
+      LOG_GENERAL(INFO, "Verified OK");
       lock(m_mutexAllPOW, m_mutexAllPoWConns);
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
@@ -346,15 +340,13 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
         DataConversion::charArrToHexStr(soln.result, harderSolnStr);
         DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
                                         oldSolnStr);
-        LOG_EPOCH(
-            INFO, m_mediator.m_currentEpochNum,
-            "Harder PoW result: " << harderSolnStr
-                                  << " overwrite the old PoW: " << oldSolnStr);
+        LOG_GENERAL(INFO, "Replaced PoW " << oldSolnStr.substr(0, 8)
+                                          << "... with harder PoW "
+                                          << harderSolnStr.substr(0, 8)
+                                          << "... for " << submitterPubKey);
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result == soln.result) {
-        LOG_GENERAL(INFO,
-                    "Same pow submission may be received from another packet. "
-                    "Ignore it!!")
+        LOG_GENERAL(INFO, "Ignored duplicate PoW");
         return true;
       }
 
@@ -375,13 +367,11 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     string rand1Str, rand2Str;
     DataConversion::charArrToHexStr(rand1, rand1Str);
     DataConversion::charArrToHexStr(rand2, rand2Str);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Invalid PoW submission"
-                  << "\n"
-                  << "blockNum: " << blockNumber
-                  << " Difficulty: " << to_string(difficultyLevel)
-                  << " nonce: " << nonce << " ip: " << submitterPeer
-                  << " rand1: " << rand1Str << " rand2: " << rand2Str);
+    LOG_GENERAL(INFO, "[Invalid PoW] Block: "
+                          << blockNumber
+                          << " Diff: " << to_string(difficultyLevel)
+                          << " Nonce: " << nonce << " IP: " << submitterPeer
+                          << " Rand1: " << rand1Str << " Rand2: " << rand2Str);
   }
 
   return result;

@@ -51,8 +51,7 @@ void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
   if (m_excludedIP.end() == m_excludedIP.find(ip)) {
     m_blacklistIP.emplace(ip, true);
   } else {
-    LOG_GENERAL(INFO, "Excluding " << IPConverter::ToStrFromNumericalIP(ip)
-                                   << " from Blacklist");
+    LOG_GENERAL(INFO, "Excluded " << IPConverter::ToStrFromNumericalIP(ip));
   }
 }
 
@@ -70,7 +69,7 @@ void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
 void Blacklist::Clear() {
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.clear();
-  LOG_GENERAL(INFO, "[blacklist] Blacklist cleared.");
+  LOG_GENERAL(INFO, "Blacklist cleared");
 }
 
 void Blacklist::Enable(const bool enable) {

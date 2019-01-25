@@ -402,8 +402,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   }
 #endif  // DM_TEST_DM_LESSMB_ALL
 
-  LOG_GENERAL(
-      INFO, "Received microblock submission for epoch number " << epochNumber);
+  LOG_GENERAL(INFO, "Received microblock for epoch " << epochNumber);
 
   if (microBlocks.empty()) {
     LOG_GENERAL(WARNING, "MicroBlocks received is empty");

@@ -1230,12 +1230,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
+              "Sender pubkey " << lookupPubKey << " not in lookup list");
     return false;
   }
 
-  LOG_GENERAL(INFO, "Received from peer " << from);
+  LOG_GENERAL(INFO, "Received from " << from);
 
   {
     // The check here is in case the lookup send the packet
@@ -1980,9 +1979,9 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              " PubKey: " << std::get<SHARD_NODE_PUBKEY>(kv)
-                          << " IP: " << std::get<SHARD_NODE_PEER>(kv));
+    LOG_GENERAL(INFO, "[" << PAD(i, 3, ' ') << "] "
+                          << std::get<SHARD_NODE_PUBKEY>(kv) << " "
+                          << std::get<SHARD_NODE_PEER>(kv));
   }
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }

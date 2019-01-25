@@ -170,7 +170,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                     unsigned char start_byte,
                                     const bytes& msg_hash) {
   // LOG_MARKER();
-  LOG_PAYLOAD(DEBUG, "Sending message to " << peer, message,
+  LOG_PAYLOAD(DEBUG, "Sending to " << peer, message,
               Logger::MAX_BYTES_TO_DISPLAY);
 
   if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0) {
@@ -301,9 +301,7 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes message,
 
 void SendJobPeer::DoSend() {
   if (Blacklist::GetInstance().Exist(m_peer.m_ipAddress)) {
-    LOG_GENERAL(INFO, "The node "
-                          << m_peer
-                          << " is in blacklist, block all message to it.");
+    LOG_GENERAL(INFO, m_peer << " is blacklisted - blocking all messages");
     return;
   }
 
@@ -335,9 +333,7 @@ void SendJobPeers<T>::DoSend() {
 
     /// TBD: Update the container dynamically when blacklist is updated
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
-      LOG_GENERAL(INFO, "The node "
-                            << peer
-                            << " is in black list, block all message to it.");
+      LOG_GENERAL(INFO, peer << " is blacklisted - blocking all messages");
       continue;
     }
 
@@ -398,7 +394,7 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   if (found) {
     // We already sent and/or received this message before -> discard
-    LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
+    LOG_GENERAL(INFO, "Discarding duplicate");
     return;
   }
 
@@ -429,7 +425,6 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
   // Move the shared_ptr message to raw pointer type
   pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
       bytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from);
-  LOG_GENERAL(INFO, "Size of broadcast message: " << message.size());
 
   // Queue the message
   m_dispatcher(raw_message);
@@ -458,7 +453,7 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   P2PComm& p2p = P2PComm::GetInstance();
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
-    LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
+    LOG_GENERAL(INFO, "Gossip type FORWARD from " << from);
 
     if (p2p.SpreadForeignRumor(rumor_message)) {
       // skip the keys and signature.
@@ -467,7 +462,7 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
                 rumor_message.end());
       std::pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(tmp, from);
 
-      LOG_GENERAL(INFO, "Size of rumor message: " << tmp.size());
+      LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
       m_dispatcher(raw_message);
@@ -479,7 +474,7 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
       std::pair<bytes, Peer>* raw_message =
           new pair<bytes, Peer>(resp.second, from);
 
-      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
       m_dispatcher(raw_message);
@@ -590,7 +585,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 
   if (startByte == START_BYTE_BROADCAST) {
-    LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
+    LOG_PAYLOAD(INFO, "Incoming broadcast " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     if (messageLength <= HASH_LEN) {
@@ -602,13 +597,12 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
     ProcessBroadCastMsg(message, messageLength, from);
   } else if (startByte == START_BYTE_NORMAL) {
-    LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
+    LOG_PAYLOAD(INFO, "Incoming normal " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Move the shared_ptr message to raw pointer type
     pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
         bytes(message.begin() + HDR_LEN, message.end()), from);
-    LOG_GENERAL(INFO, "Size of normal message: " << message.size());
 
     // Queue the message
     m_dispatcher(raw_message);
@@ -988,8 +982,7 @@ bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                                               toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO,
-                "Failed to verify message from peer with pubkey: " << pubKey);
+    LOG_GENERAL(INFO, "Failed to verify message. Pubkey: " << pubKey);
   }
   return result;
 }

@@ -531,10 +531,11 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Stored DS leader ID:" << consensusLeaderID);
+  LOG_GENERAL(INFO, "DS leader: " << consensusLeaderID);
 
   bytes data;
 
+  unsigned int ds_index = 0;
   for (const auto& ds : *dsCommittee) {
     int pubKeySize = ds.first.Serialize(data, 0);
     ds.second.Serialize(data, pubKeySize);
@@ -547,7 +548,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
       return false;
     }
 
-    LOG_GENERAL(INFO, "Stored DS committee:" << ds.first << ", " << ds.second);
+    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << ds.first << " "
+                          << ds.second);
   }
 
   return true;

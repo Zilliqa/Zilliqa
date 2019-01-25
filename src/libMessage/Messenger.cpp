@@ -2373,8 +2373,7 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
                                 const MAP& addressToAccount) {
   ProtoAccountStore result;
 
-  LOG_GENERAL(INFO, "Debug: Total number of accounts to serialize: "
-                        << addressToAccount.size());
+  LOG_GENERAL(INFO, "Accounts to serialize: " << addressToAccount.size());
 
   for (const auto& entry : addressToAccount) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
@@ -2407,8 +2406,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Debug: Total number of accounts deserialized: "
-                        << result.entries().size());
+  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
   for (const auto& entry : result.entries()) {
     Address address;
@@ -2441,8 +2439,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Debug: Total number of accounts deserialized: "
-                        << result.entries().size());
+  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
   for (const auto& entry : result.entries()) {
     Address address;
@@ -2469,7 +2466,7 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
                                      AccountStore& accountStore) {
   ProtoAccountStore result;
 
-  LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
+  LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {

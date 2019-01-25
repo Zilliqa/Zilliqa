@@ -69,8 +69,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "View change consensus is DONE!!!");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
   m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
 
   m_candidateLeaderIndex = 0;
@@ -428,20 +427,17 @@ bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
 
   ConsensusCommon::State state = m_consensusObject->GetState();
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Consensus state = " << m_consensusObject->GetStateString());
+            "Consensus = " << m_consensusObject->GetStateString());
 
   if (state == ConsensusCommon::State::DONE) {
     cv_ViewChangeVCBlock.notify_all();
     ProcessViewChangeConsensusWhenDone();
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "View change consensus is DONE!!!");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "No consensus reached. Will attempt to do view change again");
+              "No consensus reached. Re-attempting");
     return false;
   } else {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus state = " << state);
     cv_processConsensusMessage.notify_all();
   }
   return true;

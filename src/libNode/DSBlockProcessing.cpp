@@ -229,9 +229,9 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
         foundMe = true;
       }
 
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                " PubKey: " << m_myShardMembers->back().first
-                            << " IP: " << m_myShardMembers->back().second);
+      LOG_GENERAL(INFO, "[" << PAD(index, 3, ' ') << "] "
+                            << m_myShardMembers->back().first << " "
+                            << m_myShardMembers->back().second);
 
       index++;
     }
@@ -645,8 +645,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& member : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, member.second);
+    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
   }
 
   BlockStorage::GetBlockStorage().PutDSCommittee(
