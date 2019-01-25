@@ -156,11 +156,13 @@ bool ContractStorage::PutContractState(
 }
 
 void ContractStorage::BufferCurrentState() {
+  LOG_MARKER();
   p_stateIndexMap = t_stateIndexMap;
   p_stateDataMap = t_stateDataMap;
 }
 
 void ContractStorage::RevertPrevState() {
+  LOG_MARKER();
   t_stateIndexMap = std::move(p_stateIndexMap);
   t_stateDataMap = std::move(p_stateDataMap);
 }
