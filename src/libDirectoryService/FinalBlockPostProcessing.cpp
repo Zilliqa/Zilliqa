@@ -215,7 +215,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   AccountStore::GetInstance().InitTemp();
-  AccountStore::GetInstance().InitReversibles();
+  AccountStore::GetInstance().InitRevertibles();
   m_stateDeltaFromShards.clear();
   m_allPoWConns.clear();
   ClearDSPoWSolns();

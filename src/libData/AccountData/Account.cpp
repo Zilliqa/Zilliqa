@@ -223,13 +223,13 @@ bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
 
 bool Account::SetStorage(const Address& addr,
                          const vector<pair<dev::h256, bytes>>& entries,
-                         bool temp, bool reversible) {
+                         bool temp, bool revertible) {
   if (!isContract()) {
     return false;
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp, reversible)) {
+          addr, entries, m_storageRoot, temp, revertible)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
