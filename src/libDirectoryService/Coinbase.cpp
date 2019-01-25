@@ -409,7 +409,7 @@ void DirectoryService::InitCoinbase() {
   uint16_t count = 0;
   bool breakLoop = false;
   DiagnosticDataCoinbase entry = {
-      node_count,  sig_count,        lookup_count, total_reward,
+      node_count,  sig_count,        lookup_count, total_reward + base_reward,
       base_reward, base_reward_each, lookupReward, reward_each_lookup,
       nodeReward,  reward_each,      balance_left, PubKey(PrivKey()),
       Address()};
