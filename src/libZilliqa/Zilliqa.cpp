@@ -177,6 +177,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
   P2PComm::GetInstance().SetSelfPeer(peer);
   P2PComm::GetInstance().SetSelfKey(key);
 
+  // Clear any existing diagnostic data from previous runs
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DIAGNOSTIC);
+
   if (GUARD_MODE) {
     // Setting the guard upon process launch
     Guard::GetInstance().Init();
