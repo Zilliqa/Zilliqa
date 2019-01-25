@@ -98,7 +98,7 @@ class Messenger {
                                    AccountStore& accountStore);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStore& accountStore,
-                                   const bool reversible, bool temp);
+                                   const bool revertible, bool temp);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStoreTemp& accountStoreTemp,
                                    bool temp);

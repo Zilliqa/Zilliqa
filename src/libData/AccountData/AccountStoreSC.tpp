@@ -401,6 +401,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     if (ret && !ParseCallContract(gasRemained, runnerPrint)) {
+      if (m_curDepth > 0) {
+        Contract::ContractStorage::GetContractStorage().RevertPrevState();
+      }
       ret = false;
     }
     if (!ret) {
@@ -767,12 +770,13 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
-                                            const std::string& runnerPrint) {
+                                            const std::string& runnerPrint,
+                                            bool first) {
   Json::Value jsonOutput;
   if (!ParseCallContractOutput(jsonOutput, runnerPrint)) {
     return false;
   }
-  return ParseCallContractJsonOutput(jsonOutput, gasRemained);
+  return ParseCallContractJsonOutput(jsonOutput, gasRemained, first);
 }
 
 template <class MAP>
@@ -820,7 +824,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
-                                                      uint64_t& gasRemained) {
+                                                      uint64_t& gasRemained,
+                                                      bool first) {
   // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -901,15 +906,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
   }
 
-  if (!contractAccount->SetStorage(state_entries, true)) {
-    LOG_GENERAL(WARNING, "SetStorage failed");
-  }
-
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
-    LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
-  }
-
   for (const auto& e : _json["events"]) {
     LogEntry entry;
     if (!entry.Install(e, m_curContractAddr)) {
@@ -918,59 +914,94 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     m_curTranReceipt.AddEntry(entry);
   }
 
+  bool ret = false;
+
   // If output message is null
   if (_json["message"].isNull()) {
     LOG_GENERAL(INFO,
                 "null message in scilla output when invoking a "
                 "contract, transaction finished");
-    return true;
+    ret = true;
   }
 
-  // Non-null messages must have few mandatory fields.
-  if (!_json["message"].isMember("_tag") ||
-      !_json["message"].isMember("_amount") ||
-      !_json["message"].isMember("params") ||
-      !_json["message"].isMember("_recipient")) {
-    LOG_GENERAL(WARNING,
-                "The message in the json output of this contract is corrupted");
-    return false;
+  Address recipient;
+  Account* account = new Account();
+
+  if (!ret) {
+    // Non-null messages must have few mandatory fields.
+    if (!_json["message"].isMember("_tag") ||
+        !_json["message"].isMember("_amount") ||
+        !_json["message"].isMember("params") ||
+        !_json["message"].isMember("_recipient")) {
+      LOG_GENERAL(
+          WARNING,
+          "The message in the json output of this contract is corrupted");
+      return false;
+    }
+
+    try {
+      m_curAmount = boost::lexical_cast<boost::multiprecision::uint128_t>(
+          _json["message"]["_amount"].asString());
+    } catch (...) {
+      LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
+                                      << " is not numeric");
+      return false;
+    }
+
+    recipient = Address(_json["message"]["_recipient"].asString());
+    if (recipient == Address()) {
+      LOG_GENERAL(WARNING, "The recipient can't be null address");
+      return false;
+    }
+
+    delete account;
+    account = this->GetAccount(recipient);
+
+    if (account == nullptr) {
+      LOG_GENERAL(WARNING, "The recipient account doesn't exist");
+      return false;
+    }
+
+    // Recipient is non-contract
+    if (!account->isContract()) {
+      LOG_GENERAL(INFO, "The recipient is non-contract");
+      return TransferBalanceAtomic(
+          m_curContractAddr, recipient, m_curAmount);
+    }
+
+    // Recipient is contract
+    // _tag field is empty
+    if (_json["message"]["_tag"].asString().empty()) {
+      LOG_GENERAL(INFO,
+                  "_tag in the scilla output is empty when invoking a "
+                  "contract, transaction finished");
+      ret = true;
+    }
   }
 
-  try {
-    m_curAmount = boost::lexical_cast<boost::multiprecision::uint128_t>(
-        _json["message"]["_amount"].asString());
-  } catch (...) {
-    LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
-                                    << " is not numeric");
-    return false;
+  if (first) {
+    if (ret) {
+      if (!contractAccount->SetStorage(state_entries)) {
+        LOG_GENERAL(WARNING, "SetStorage failed");
+      }
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(DEBUG,
+                    "LDB Write (microseconds) = " << r_timer_end(tpStart));
+        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
+      }
+      return true;
+    }
+    Contract::ContractStorage::GetContractStorage().BufferCurrentState();
   }
 
-  Address recipient = Address(_json["message"]["_recipient"].asString());
-  if (recipient == Address()) {
-    LOG_GENERAL(WARNING, "The recipient can't be null address");
-    return false;
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
+    LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
   }
 
-  Account* account = this->GetAccount(recipient);
-
-  if (account == nullptr) {
-    LOG_GENERAL(WARNING, "The recipient account doesn't exist");
-    return false;
-  }
-
-  // Recipient is non-contract
-  if (!account->isContract()) {
-    LOG_GENERAL(INFO, "The recipient is non-contract");
-    return TransferBalanceAtomic(m_curContractAddr, recipient, m_curAmount);
-  }
-
-  // Recipient is contract
-  // _tag field is empty
-  if (_json["message"]["_tag"].asString().empty()) {
-    LOG_GENERAL(INFO,
-                "_tag in the scilla output is empty when invoking a "
-                "contract, transaction finished");
-    return true;
+  if (!contractAccount->SetStorage(state_entries)) {
+    LOG_GENERAL(WARNING, "SetStorage failed");
   }
 
   ++m_curDepth;
@@ -1054,7 +1085,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   Address t_address = m_curContractAddr;
   m_curSenderAddr = m_curContractAddr;
   m_curContractAddr = recipient;
-  if (!ParseCallContract(gasRemained, runnerPrint)) {
+  if (!ParseCallContract(gasRemained, runnerPrint, false)) {
     LOG_GENERAL(WARNING,
                 "ParseCallContract failed of calling contract: " << recipient);
     return false;

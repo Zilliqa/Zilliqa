@@ -85,8 +85,8 @@ class AccountStore
   mutable std::shared_timed_mutex m_mutexPrimary;
   // mutex used when manipulating with state delta
   std::mutex m_mutexDelta;
-  // mutex related to reversibles
-  std::mutex m_mutexReversibles;
+  // mutex related to revertibles
+  std::mutex m_mutexRevertibles;
 
   bytes m_stateDeltaSerialized;
 
@@ -109,7 +109,7 @@ class AccountStore
   void GetSerializedDelta(bytes& dst);
 
   bool DeserializeDelta(const bytes& src, unsigned int offset,
-                        bool reversible = false);
+                        bool revertible = false);
 
   bool DeserializeDeltaTemp(const bytes& src, unsigned int offset);
 
@@ -142,10 +142,10 @@ class AccountStore
                                        const Account& account,
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
-                                       const bool reversible = false) {
+                                       const bool revertible = false) {
     (*m_addressToAccount)[address] = account;
 
-    if (reversible) {
+    if (revertible) {
       if (fullCopy) {
         m_addressToAccountRevCreated[address] = account;
       } else {
@@ -168,11 +168,11 @@ class AccountStore
 
   void InitTemp();
 
-  void CommitTempReversible();
+  void CommitTempRevertible();
 
   void RevertCommitTemp();
 
-  void InitReversibles();
+  void InitRevertibles();
 };
 
 #endif  // __ACCOUNTSTORE_H__

@@ -525,7 +525,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                             const Address& addr, const bool fullCopy, bool temp,
-                            bool reversible = false) {
+                            bool revertible = false) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
@@ -600,7 +600,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                              DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, temp, reversible)) {
+      if (!account.SetStorage(addr, entries, temp, revertible)) {
         return false;
       }
 
@@ -2528,7 +2528,7 @@ bool Messenger::StateDeltaToAddressMap(
 bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
-                                     const bool reversible, bool temp) {
+                                     const bool revertible, bool temp) {
   ProtoAccountStore result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2567,7 +2567,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     t_account = *oriAccount;
     account = *oriAccount;
     if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
-                                temp, reversible)) {
+                                temp, revertible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -2575,7 +2575,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     }
 
     accountStore.AddAccountDuringDeserialization(address, account, t_account,
-                                                 fullCopy, reversible);
+                                                 fullCopy, revertible);
   }
 
   return true;

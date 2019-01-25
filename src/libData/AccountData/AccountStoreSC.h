@@ -77,9 +77,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
                                      uint64_t& gasRemained);
 
-  bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint);
+  bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
+                         bool first = true);
   bool ParseCallContractJsonOutput(const Json::Value& _json,
-                                   uint64_t& gasRemained);
+                                   uint64_t& gasRemained, bool first);
 
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 

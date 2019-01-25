@@ -216,7 +216,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
     m_mediator.m_node->ProcessTransactionWhenShardLeader();
     AccountStore::GetInstance().SerializeDelta();
   }
-  AccountStore::GetInstance().CommitTempReversible();
+  AccountStore::GetInstance().CommitTempRevertible();
 
   if (!m_mediator.m_node->ComposeMicroBlock()) {
     LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
@@ -996,7 +996,7 @@ bool DirectoryService::FinalBlockValidator(
         return false;
       }
       AccountStore::GetInstance().SerializeDelta();
-      AccountStore::GetInstance().CommitTempReversible();
+      AccountStore::GetInstance().CommitTempRevertible();
     }
   } else {
     m_mediator.m_node->m_microblock = nullptr;

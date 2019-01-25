@@ -108,7 +108,7 @@ bool ContractStorage::PutContractState(const dev::h160& address,
 
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
-    dev::h256& stateHash, bool temp, bool reversible,
+    dev::h256& stateHash, bool temp, bool revertible,
     const vector<Index>& existing_indexes, bool provideExisting) {
   // LOG_MARKER();
 
@@ -137,7 +137,7 @@ bool ContractStorage::PutContractState(
     if (temp) {
       t_stateDataMap[entry.first.hex()] = entry.second;
     } else {
-      if (reversible) {
+      if (revertible) {
         r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
       }
       m_stateDataMap[entry.first.hex()] = entry.second;
@@ -145,7 +145,7 @@ bool ContractStorage::PutContractState(
   }
 
   // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes, temp, reversible)) {
+  if (!SetContractStateIndexes(address, entry_indexes, temp, revertible)) {
     LOG_GENERAL(WARNING, "SetContractStateIndex failed");
     return false;
   }
@@ -155,9 +155,19 @@ bool ContractStorage::PutContractState(
   return true;
 }
 
+void ContractStorage::BufferCurrentState() {
+  p_stateIndexMap = t_stateIndexMap;
+  p_stateDataMap = t_stateDataMap;
+}
+
+void ContractStorage::RevertPrevState() {
+  t_stateIndexMap = std::move(p_stateIndexMap);
+  t_stateDataMap = std::move(p_stateDataMap);
+}
+
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
                                               const std::vector<Index>& indexes,
-                                              bool temp, bool reversible) {
+                                              bool temp, bool revertible) {
   // LOG_MARKER();
 
   bytes rawBytes;
@@ -169,7 +179,7 @@ bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
   if (temp) {
     t_stateIndexMap[address.hex()] = rawBytes;
   } else {
-    if (reversible) {
+    if (revertible) {
       r_stateIndexMap[address.hex()] = m_stateIndexMap[address.hex()];
     }
     m_stateIndexMap[address.hex()] = rawBytes;
@@ -196,7 +206,7 @@ void ContractStorage::RevertContractStates() {
   }
 }
 
-void ContractStorage::InitReversibles() {
+void ContractStorage::InitRevertibles() {
   LOG_MARKER();
   r_stateIndexMap.clear();
   r_stateDataMap.clear();
