@@ -112,8 +112,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Final block consensus is DONE!!!");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Final block consensus DONE");
 
   // Clear microblock(s)
   // m_microBlocks.clear();
@@ -409,8 +408,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   LOG_MARKER();
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Ignoring consensus message. I am at state " << m_state);
     return false;
   }
 
@@ -528,7 +525,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     return false;
   } else {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus state = " << m_consensusObject->GetStateString());
+              "Consensus = " << m_consensusObject->GetStateString());
     cv_processConsensusMessage.notify_all();
   }
   return true;

@@ -53,7 +53,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     Blacklist::GetInstance().Exclude(
         resolved_ip);  // exclude this lookup ip from blacklisting
     Peer tmp(resolved_ip, node.second.GetListenPortHost());
-    LOG_GENERAL(INFO, "Sending msg to lookup node " << tmp);
+    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
   }
@@ -298,9 +298,7 @@ bool DataSender::SendDataToOthers(
                              << nodeToSendToLookUpHi << " my: " << indexB2);
 
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
-      LOG_GENERAL(INFO,
-                  "Part of the committeement (assigned) that will send the "
-                  "Data to the lookup nodes");
+      LOG_GENERAL(INFO, "I will send data to the lookups");
       if (sendDataToLookupFunc) {
         sendDataToLookupFunc(lookups, message);
       }

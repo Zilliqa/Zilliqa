@@ -340,7 +340,7 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
     cv_FBWaitMB.notify_all();
   } else {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus state = " << m_consensusObject->GetStateString());
+              "Consensus = " << m_consensusObject->GetStateString());
 
     cv_processConsensusMessage.notify_all();
   }

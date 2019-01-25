@@ -234,8 +234,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
   if (subset.state == COLLECTIVESIG_DONE || subset.state == DONE) {
     // We've achieved consensus!
-    LOG_GENERAL(INFO,
-                "[Subset " << subsetID << "] Subset has finished consensus!");
+    LOG_GENERAL(INFO, "[Subset " << subsetID << "] Subset DONE");
     // Reset all other subsets to INITIAL so they reject any further messages
     // from their backups
     for (unsigned int i = 0; i < m_consensusSubsets.size(); i++) {
