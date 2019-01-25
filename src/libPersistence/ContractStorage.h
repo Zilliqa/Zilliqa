@@ -116,6 +116,10 @@ class ContractStorage : public Singleton<ContractStorage> {
                         const std::vector<Index>& existing_indexes = {},
                         bool provideExisting = false);
 
+  void BufferCurrentState();
+
+  void RevertPrevState();
+
   bool CommitStateDB();
 
   void InitTempState();

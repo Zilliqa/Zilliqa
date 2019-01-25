@@ -155,6 +155,16 @@ bool ContractStorage::PutContractState(
   return true;
 }
 
+void ContractStorage::BufferCurrentState() {
+  p_stateIndexMap = t_stateIndexMap;
+  p_stateDataMap = t_stateDataMap;
+}
+
+void ContractStorage::RevertPrevState() {
+  t_stateIndexMap = std::move(p_stateIndexMap);
+  t_stateDataMap = std::move(p_stateDataMap);
+}
+
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
                                               const std::vector<Index>& indexes,
                                               bool temp, bool revertible) {
