@@ -37,7 +37,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int JSON_TRAN_OBJECT_SIZE = 11;
+unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 
 const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
     const vector<MicroBlockInfo>& v) {
@@ -199,7 +199,6 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isMember("version");
   ret = ret && _json.isMember("code");
   ret = ret && _json.isMember("data");
-  ret = ret && _json.isMember("priority");
 
   if (ret) {
     if (!_json["nonce"].isIntegral()) {
