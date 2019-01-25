@@ -42,6 +42,7 @@ enum ReceiptError : unsigned int {
   NO_GAS_REMAINING_FOUND,
   NO_ACCEPTED_FOUND,
   CALL_CONTRACT_FAILED,
+  CREATE_CONTRACT_FAILED,
   JSON_OUTPUT_CORRUPTED,
   CONTRACT_NOT_EXIST,
   STATE_CORRUPTED,
@@ -51,6 +52,9 @@ enum ReceiptError : unsigned int {
   MAX_DEPTH_REACHED,
   CHAIN_CALL_DIFF_SHARD,
   PREPARATION_FAILED,
+  PARSE_CHECKER_FAILED,
+  NO_OUTPUT,
+  OUTPUT_ILLEGAL
 };
 
 class TransactionReceipt : public SerializableDataBlock {

@@ -60,7 +60,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   unsigned int m_curNumShards;
   bool m_curIsDS;
-  TransactionReceipt m_curTranReceipt;
 
   std::string m_root_w_version;
 
@@ -73,13 +72,17 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool ParseContractCheckerOutput(const std::string& checkerPrint);
 
   bool ParseCreateContract(uint64_t& gasRemained,
-                           const std::string& runnerPrint);
+                           const std::string& runnerPrint,
+                           TransactionReceipt& receipt);
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
-                                     uint64_t& gasRemained);
+                                     uint64_t& gasRemained,
+                                     TransactionReceipt& receipt);
 
-  bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint);
+  bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
+                         TransactionReceipt& receipt);
   bool ParseCallContractJsonOutput(const Json::Value& _json,
-                                   uint64_t& gasRemained);
+                                   uint64_t& gasRemained,
+                                   TransactionReceipt& receipt);
 
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
@@ -116,9 +119,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                       TransactionReceipt& receipt);
 
   bool ParseCreateContractOutput(Json::Value& jsonOutput,
-                                 const std::string& runnerPrint = "");
+                                 const std::string& runnerPrint,
+                                 TransactionReceipt& receipt);
   bool ParseCallContractOutput(Json::Value& jsonOutput,
-                               const std::string& runnerPrint = "");
+                               const std::string& runnerPrint,
+                               TransactionReceipt& receipt);
 
   void NotifyTimeout();
 };
