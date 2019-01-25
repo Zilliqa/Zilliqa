@@ -989,10 +989,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   // Recipient is contract
   // _tag field is empty
   if (_json["message"]["_tag"].asString().empty()) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(WARNING,
                 "_tag in the scilla output is empty when invoking a "
-                "contract, transaction finished");
-    return true;
+                "contract");
+    receipt.AddError(EMPTY_TAG);
+    return false;
   }
 
   ++m_curDepth;
