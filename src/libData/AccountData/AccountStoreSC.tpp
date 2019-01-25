@@ -1028,13 +1028,17 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     Contract::ContractStorage::GetContractStorage().BufferCurrentState();
   }
 
+  if (!contractAccount->SetStorage(state_entries)) {
+    LOG_GENERAL(WARNING, "SetStorage failed");
+  }
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
     LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
   }
 
-  if (!contractAccount->SetStorage(state_entries)) {
-    LOG_GENERAL(WARNING, "SetStorage failed");
+  if (ret) {
+    return true;
   }
 
   ++m_curDepth;
@@ -1053,7 +1057,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   // contract
   if (!m_curIsDS &&
       (Transaction::GetShardIndex(m_curContractAddr, m_curNumShards) !=
-          Transaction::GetShardIndex(recipient, m_curNumShards))) {
+       Transaction::GetShardIndex(recipient, m_curNumShards))) {
     LOG_GENERAL(WARNING,
                 "another contract doesn't belong to the same shard with "
                 "current contract");
