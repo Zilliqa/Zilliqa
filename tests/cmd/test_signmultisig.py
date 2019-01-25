@@ -30,21 +30,31 @@ def print_usage():
 		"Usage:\n\tpython " + sys.argv[0] + " [command] [command parameters]\n"
 		"Available commands:\n"
 		"\tTest Execution:\n"
-		"\t\tsetup [num-nodes]           - Set up the test\n"
-		"\t\tstart                       - Start node processes\n")
+		"\t\tsetup [path-to-[signmultisig,genkeypair]-binaries, new-folder-path/name-for-test-files]\t- Set up the test\n"
+		"\t\tstart [path-to-verifyMultiSig, new-folder-path/name-for-test-files]\t\t\t- Start node processes\n")
 
 def main():
 	numargs = len(sys.argv)
 	if (numargs < 4):
 		print_usage()
+		sys.exit(1)
 	else:
 		command = sys.argv[1]
 		if (command == 'setup'):
-			print_usage() if (numargs != 4) else run_setup(sys.argv[2], sys.argv[3])
+			if (numargs != 4):
+				print_usage()
+				sys.exit(1)
+			else: 
+				run_setup(sys.argv[2], sys.argv[3])
 		elif (command == 'start'):
-			print_usage() if (numargs != 4) else run_start(sys.argv[2], sys.argv[3])
+			if (numargs != 4):
+				print_usage()
+				sys.exit(1)
+			else: 
+				run_start(sys.argv[2], sys.argv[3])
 		else:
 			print_usage()
+			sys.exit(1)
 
 
 # ================
@@ -132,8 +142,8 @@ def run_start(VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER):
 	if ret_status == 0:
 		print("Test passed")
 	else:
-		print("Test failed")		
-	return ret_status
+		print("Test failed")
+		sys.exit(1)		
 
 if __name__ == "__main__":
 	main()
