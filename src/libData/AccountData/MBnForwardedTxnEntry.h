@@ -33,10 +33,12 @@ struct MBnForwardedTxnEntry {
 
 inline std::ostream& operator<<(std::ostream& os,
                                 const MBnForwardedTxnEntry& t) {
-  os << "<MBnForwardedTxnEntry>"
-     << " mbHash     = " << t.m_microBlock.GetBlockHash().hex()
+  os << "<MBnForwardedTxnEntry>" << std::endl
+     << " mbHash     = " << t.m_microBlock.GetBlockHash().hex() << std::endl
      << " txRootHash = " << t.m_microBlock.GetHeader().GetTxRootHash().hex()
+     << std::endl
      << " epochNum   = " << t.m_microBlock.GetHeader().GetEpochNum()
+     << std::endl
      << " shardId    = " << t.m_microBlock.GetHeader().GetShardId();
   return os;
 }
