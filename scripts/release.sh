@@ -29,12 +29,17 @@ pubKeyFile=""
 constantFile=""
 constantLookupFile=""
 constantArchivalLookupFile=""
-useNewUpgradeMethod="Y"
+useNewUpgradeMethod=""
 # if using new upgrade mechanism via s3
-S3FileName=""
+S3UpgradeFileName=""
 testnet=""
-current_cluster_name=""
+current_cluster_name="" # eg: dev.k8s.z7a.xyz
 dsguards_count=""
+#optional for auto upload the persistent data to S3 DB and ask all nodes to download from S3
+S3PersistentDBFileName="" ## need not be same as testnet name ex: tesnet multiregion - multi_m1 and multi_m2
+                                 ## and backup script would create DB with filename multi.tar.gz. So in this case
+                                 ## S3PersistentDBFileName should be 'multi'  
+lookup_no="0"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -71,23 +76,23 @@ scillaSigLine=30
 # user-defined-helper-functions
 function download_verify_s3db_zilliqa_only()
 {
-   echo "Ask all nodes to download and verify s3 database bucket : ${S3FileName} for zilliqa"
+   echo "Ask all nodes to download and verify s3 database bucket : ${S3UpgradeFileName} for zilliqa"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u zilliqa -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -d  \"${S3FileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u zilliqa -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -d  \"${S3UpgradeFileName}\""
 }
 
 function download_verify_replace_s3db_scilla_only()
 {
-   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3FileName}  for scilla"
+   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName}  for scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3FileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
 }
 
 function download_verify_s3db_both()
 {
-   echo "Ask all nodes to download and verify s3 database bucket : ${S3FileName} for zilliqa and scilla"
+   echo "Ask all nodes to download and verify s3 database bucket : ${S3UpgradeFileName} for zilliqa and scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u both -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3FileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u both -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
 }
 
 # Set the context name explicitly
@@ -166,6 +171,14 @@ function run_cmd_for_seeds_in_parallel() {
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
+function run_cmd_for_lookup() {
+    lookup=$(kubectl $context_arg get pods \
+        -l type=lookup,testnet=$testnet,app=zilliqa,index=0 \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+    kubectl exec $lookup -- bash -c $1
+}
+
 function Add_suspend_to_allnodes() {
     echo "Adding SUSPEND_LAUNCH file to all nodes..."
     run_cmd_for_all_in_parallel "touch SUSPEND_LAUNCH"
@@ -194,25 +207,37 @@ function Remove_suspend_from_shards() {
 function kill_and_upgrade_shards()
 {
     echo "Killing and upgrading all shard nodes and ds-nonguard nodes..."
-    run_cmd_for_shards_in_parallel "${cmd_upgrade} cp download/constants.xml constants.xml"
+    run_cmd_for_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
 }
 
 function kill_and_upgrade_ds()
 {
     echo "Killing and upgrading all ds-guard nodes..."
-    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} cp download/constants.xml constants.xml"
+    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
 }
 
 function kill_and_upgrade_lookups()
 {
     echo "Killing and upgrading all lookup nodes..."
-    run_cmd_for_lookups_in_parallel "${cmd_upgrade} cp download/constants.xml_lookup constants.xml"
+    run_cmd_for_lookups_in_parallel "${cmd_upgrade} && cp download/constants.xml_lookup constants.xml"
 }
 
 function kill_and_upgrade_seeds()
 {
     echo "Killing and upgrading all seed nodes..."
-    run_cmd_for_seeds_in_parallel "${cmd_upgrade} cp download/constants.xml_archivallookup constants.xml"
+    run_cmd_for_seeds_in_parallel "${cmd_upgrade} && cp download/constants.xml_archivallookup constants.xml"
+}
+
+function download_s3db_on_allnodes()
+{
+   echo "Ask all nodes to download s3 database bucket : $S3PersistentDBFileName"
+   run_cmd_for_all_in_parallel "[ ! -f download/fail ] && aws s3 cp s3://zilliqa-persistence/$S3PersistentDBFileName.tar.gz $S3PersistentDBFileName.tar.gz && tar xzvf $S3PersistentDBFileName.tar.gz"
+}
+
+function upload_lookup_s3db()
+{
+   echo "Ask lookup nodes to upload s3 database bucket : $S3PersistentDBFileName"
+   run_cmd_for_lookup "./backup.sh" "$lookup_no"
 }
 
 function upgrade()
@@ -232,6 +257,10 @@ function upgrade()
     echo "waiting for 180 seconds"
     sleep 180
 
+    
+	## Download S3 Database on all nodes replacing their local persistence storage
+    [ ! -z "$S3PersistentDBFileName" ] && download_s3db_on_allnodes && echo "waiting for 120 seconds" && sleep 120	
+
     ## Remove the suspend flag for all pods in reverse sequence of killing
     Remove_suspend_from_lookups
     Remove_suspend_from_seeds
@@ -248,7 +277,7 @@ if [ "$#" -ne 0 ]; then
     return 1
 fi
 
-if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantArchivalLookupFile" = "" ]; then
+if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     return 1
 fi
@@ -273,7 +302,7 @@ if [ ! -f "${constantLookupFile}" ]; then
     return 1
 fi
 
-if [ ! -f "${constantArchivalLookupFile}" ]; then
+if [ ! -z "$constantArchivalLookupFile" ] && [ ! -f "${constantArchivalLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantArchivalLookupFile} not found, please confirm constantArchivalLookupFile field in release.sh!\033[0m\n"
     return 1
 fi
@@ -300,7 +329,7 @@ fi
 # Read information from files
 constantFile="$(realpath ${constantFile})"
 constantLookupFile="$(realpath ${constantLookupFile})"
-constantArchivalLookupFile="$(realpath ${constantArchivalLookupFile})"
+[ ! -z "$constantArchivalLookupFile" ] && constantArchivalLookupFile="$(realpath ${constantArchivalLookupFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
@@ -456,7 +485,7 @@ if [ -z "$useNewUpgradeMethod" ]; then # Upload package onto GitHub
 	  -H "Content-Type:application/octet-stream"  \
 	  --data-binary @"${constantLookupFile}" \
 	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLookupFile##*/}_lookup"
-	curl -v -s  \
+	[ ! -z "$constantArchivalLookupFile" ] && curl -v -s  \
 	  -H "Authorization: token ${GitHubToken}" \
 	  -H "Content-Type:application/octet-stream"  \
 	  --data-binary @"${constantArchivalLookupFile}" \
@@ -474,10 +503,10 @@ else
     ##################################################################################################  
     # Use the new upgrade mechanism :
     # Steps:
-    #       1. Create the tar.gz file with $S3FileName
+    #       1. Create the tar.gz file with $S3UpgradeFileName
     #          tar.gz file contains zilliqa and/or scilla package.
     #       2. Upload it to S3.   
-    #       3. Download latest tar.gz on all nodes from s3 in download/$S3FileName.tar.gz extract and verify packages.
+    #       3. Download latest tar.gz on all nodes from s3 in download/$S3UpgradeFileName.tar.gz extract and verify packages.
     #       4. If only scilla, extract scilla deb 
     #       5. If only zilliqa or both zilliqa & scilla, 
     #           5.a Create SUSPEND_LAUNCH in all nodes.
@@ -498,14 +527,15 @@ else
 	
     ## zip the release
     cp ${constantLookupFile} ${constantLookupFile}_lookup
-    cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
-    cmd="tar cfz ${S3FileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup"
+    [ ! -z "$constantArchivalLookupFile" ] && cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
+    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup" 
     [ ! -z "${scillaPath}" ] && cmd="${cmd} -C ./ ${Scilla_Deb}"
 
     $cmd
 
     #### Step 2 ####
-    # upload to S3 the ${S3FileName}.tar.gz 
+    # upload to S3 the ${S3UpgradeFileName}.tar.gz 
     cat << EOF > UploadToS3Script.py
 #!/usr/bin/env python
 import boto3
@@ -523,7 +553,7 @@ print("Uploaded")
 EOF
 
     chmod 755 UploadToS3Script.py 
-    python ./UploadToS3Script.py "${S3FileName}.tar.gz"
+    python ./UploadToS3Script.py "${S3UpgradeFileName}.tar.gz"
 
 
     #### Ask for confirmation from user if want to continue?? can check s3 if package is uploaded and is correct? #####
@@ -532,6 +562,10 @@ EOF
     then
  	exit
     fi
+    echo ""
+
+    ## Ask one of lookup to upload peristence data to S3
+	[ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
     
     #### Step 3 ####
     
@@ -550,9 +584,9 @@ EOF
 
     #### Step 5 ####
 
-    cmd_upgrade_zilliqa_only="[ -f download/fail ] && exit; pkill zilliqa; dpkg -i download/${zilliqaDebFile} > /dev/null 2>&1;"
-    cmd_upgrade_zilliqa_scilla="${cmd_uprade_zilliqa_only}; dpkg -i \"download/${scillaDebFile}\" > /dev/null 2>&1;"
-    cmd_upgrade_scilla_only="dpkg -i \"download/${scillaDebFile}\" > /dev/null 2>&1;"
+    cmd_upgrade_zilliqa_only="[ ! -f download/fail ] && pkill zilliqa && dpkg -i download/${zilliqaDebFile} > /dev/null 2>&1"
+    cmd_upgrade_zilliqa_scilla="${cmd_uprade_zilliqa_only} && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
+    cmd_upgrade_scilla_only="[ ! -f download/fail ] && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
 
     if [ "$releaseZilliqa" = "true" ] && [ "$scillaPath" != "" ]; then
         cmd_upgrade="${cmd_upgrade_zilliqa_scilla}"
