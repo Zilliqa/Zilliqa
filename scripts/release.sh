@@ -231,7 +231,7 @@ function kill_and_upgrade_seeds()
 function download_s3db_on_allnodes()
 {
    echo "Ask all nodes to download s3 database bucket : $S3PersistentDBFileName"
-   run_cmd_for_all_in_parallel "[ ! -f download/fail ] && aws s3 cp s3://zilliqa-persistence/$S3PersistentDBFileName.tar.gz $S3PersistentDBFileName.tar.gz && tar xzvf $S3PersistentDBFileName.tar.gz"
+   run_cmd_for_all_in_parallel "[ ! -f download/fail ] && aws s3 cp s3://zilliqa-persistence/$S3PersistentDBFileName.tar.gz $S3PersistentDBFileName.tar.gz && rm -rf persistence && tar xzvf $S3PersistentDBFileName.tar.gz"
 }
 
 function upload_lookup_s3db()
@@ -565,7 +565,7 @@ EOF
     echo ""
 
     ## Ask one of lookup to upload peristence data to S3
-	[ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
+    [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
     
     #### Step 3 ####
     
