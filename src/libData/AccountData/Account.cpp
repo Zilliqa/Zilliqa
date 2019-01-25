@@ -212,13 +212,13 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries) {
   if (!isContract()) {
     return false;
   }
 
   return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot, temp);
+      m_address, state_entries, m_storageRoot, true);
 }
 
 bool Account::SetStorage(const Address& addr,
@@ -229,7 +229,7 @@ bool Account::SetStorage(const Address& addr,
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp, revertible)) {
+          addr, entries, m_storageRoot, temp, revertible, {}, false)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }

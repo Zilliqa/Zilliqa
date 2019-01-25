@@ -42,14 +42,21 @@ class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_stateIndexDB;
   LevelDB m_stateDataDB;
 
+  // Used by AccountStore
   std::unordered_map<std::string, bytes> m_stateIndexMap;
   std::unordered_map<std::string, bytes> m_stateDataMap;
 
+  // Used by AccountStoreTemp for StateDelta
   std::unordered_map<std::string, bytes> t_stateIndexMap;
   std::unordered_map<std::string, bytes> t_stateDataMap;
 
+  // Used for RevertCommitTemp
   std::unordered_map<std::string, bytes> r_stateIndexMap;
   std::unordered_map<std::string, bytes> r_stateDataMap;
+
+  // Used for revert state due to failure in chain call
+  std::unordered_map<std::string, bytes> p_stateIndexMap;
+  std::unordered_map<std::string, bytes> p_stateDataMap;
 
   /// Set the indexes of all the states of an contract account
   bool SetContractStateIndexes(const dev::h160& address,
@@ -95,7 +102,7 @@ class ContractStorage : public Singleton<ContractStorage> {
   std::vector<Index> GetContractStateIndexes(const dev::h160& address,
                                              bool temp);
 
-  /// Get the raw rlp string of the state by a index
+  /// Get the raw protobuf string of the state by a index
   std::string GetContractStateData(const Index& index, bool temp);
 
   /// Put one's contract states in database
