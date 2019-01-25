@@ -5826,6 +5826,47 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   return true;
 }
 
+bool Messenger::SetForwardTxnBlockFromSeed(
+    bytes& dst, const unsigned int offset,
+    const vector<Transaction>& shardTransactions,
+    const vector<Transaction>& dsTransactions) {
+  LookupForwardTxnsFromSeed result;
+
+  if (!shardTransactions.empty()) {
+    TransactionArrayToProtobuf(shardTransactions,
+                               *result.mutable_shardtransactions());
+  }
+  if (!dsTransactions.empty()) {
+    TransactionArrayToProtobuf(dsTransactions,
+                               *result.mutable_dstransactions());
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetForwardTxnBlockFromSeed(
+    const bytes& src, const unsigned int offset,
+    vector<Transaction>& shardTransactions,
+    vector<Transaction>& dsTransactions) {
+  LookupForwardTxnsFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionArray(result.shardtransactions(), shardTransactions);
+  ProtobufToTransactionArray(result.dstransactions(), dsTransactions);
+
+  return true;
+}
+
 // UNUSED
 bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
                                            const unsigned int offset,

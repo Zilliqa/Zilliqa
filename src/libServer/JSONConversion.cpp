@@ -186,7 +186,11 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   bool ret = true;
 
   ret = ret && _json.isObject();
-  ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE);
+  ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE ||
+                _json.size() == JSON_TRAN_OBJECT_SIZE + 1);
+  if (ret && (_json.size() == JSON_TRAN_OBJECT_SIZE + 1)) {
+    ret = ret && _json.isMember("priority");
+  }
   ret = ret && _json.isMember("nonce");
   ret = ret && _json.isMember("toAddr");
   ret = ret && _json.isMember("amount");
@@ -195,7 +199,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isMember("version");
   ret = ret && _json.isMember("code");
   ret = ret && _json.isMember("data");
-  ret = ret && _json.isMember("dspacket");
+  ret = ret && _json.isMember("priority");
 
   if (ret) {
     if (!_json["nonce"].isIntegral()) {
@@ -241,9 +245,10 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "To Addr checksum wrong");
     }
-    if (!_json["dspacket"].isBool()) {
+    if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
+        !_json["priority"].isBool()) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "DS Packet should be boolean");
+                                      "Priority should be boolean");
     }
   } else {
     LOG_GENERAL(INFO, "Json Data Object has missing components");

@@ -586,6 +586,16 @@ class Messenger {
                                          uint32_t& shardingStructureVersion,
                                          DequeOfShard& shards);
 
+  static bool SetForwardTxnBlockFromSeed(
+      bytes& dst, const unsigned int offset,
+      const std::vector<Transaction>& shardTransactions,
+      const std::vector<Transaction>& dsTransactions);
+
+  static bool GetForwardTxnBlockFromSeed(
+      const bytes& src, const unsigned int offset,
+      std::vector<Transaction>& shardTransactions,
+      std::vector<Transaction>& dsTransactions);
+
   static bool SetLookupGetMicroBlockFromLookup(
       bytes& dst, const unsigned int offset,
       const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
