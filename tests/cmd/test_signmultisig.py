@@ -98,7 +98,7 @@ def run_start(VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER):
 	VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER = appendSlash([VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER])
 	genkeypair = LOCAL_TESTRUN_FOLDER + "genkeypair"
 	signmultisig = LOCAL_TESTRUN_FOLDER + "signmultisig"
-	verifymultisig = VERIFYMULTISIG_PATH + "verifyMultiSignature"
+	verifymultisig = VERIFYMULTISIG_PATH + "VerifyMultiSignature"
 	message = generateRandomMessage()
 	keypairs_num = random.randint(1,10)
 	keypairs = []
@@ -132,7 +132,7 @@ def run_start(VERIFYMULTISIG_PATH, LOCAL_TESTRUN_FOLDER):
 	if ret_status == 0:
 		print("Test passed")
 	else:
-		print("Test Failed")		
+		print("Test failed")		
 	return ret_status
 
 if __name__ == "__main__":
