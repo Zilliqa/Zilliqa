@@ -1052,6 +1052,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
 
   Address t_address = m_curContractAddr;
+  m_curSenderAddr = m_curContractAddr;
   m_curContractAddr = recipient;
   if (!ParseCallContract(gasRemained, runnerPrint)) {
     LOG_GENERAL(WARNING,
