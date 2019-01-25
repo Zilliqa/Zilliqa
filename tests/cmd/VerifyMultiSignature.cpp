@@ -1,9 +1,25 @@
 /*
- * test_signmultisig.cpp
+ * Copyright (C) 2019 Zilliqa
  *
- *  Created on: Jan 20, 2019
- *      Author: jenda
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+/*
+ * This file implements the Schnorr signature standard from
+ * https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TR03111/BSI-TR-03111_pdf.pdf?__blob=publicationFile&v=1
+ * Refer to Section 4.2.3, page 24.
+ **/
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -11,12 +27,12 @@
 #include <openssl/sha.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/program_options.hpp>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <iostream>
-#include <fstream>
-#include <memory>
 
 using bytes = std::vector<uint8_t>;
 
@@ -32,7 +48,6 @@ struct Signature_l {
 };
 
 struct Curve {
-
   /// EC group
   std::shared_ptr<EC_GROUP> m_group;
 
@@ -104,8 +119,7 @@ class SHA2 {
 
 void StringToBytes(const std::string in, bytes& out) {
   out.clear();
-  boost::algorithm::unhex(in.begin(), in.end(),
-                          back_inserter(out));
+  boost::algorithm::unhex(in.begin(), in.end(), back_inserter(out));
 }
 
 Signature_l DeserializeSignature(const std::string sig_s) {
@@ -122,7 +136,8 @@ Signature_l DeserializeSignature(const std::string sig_s) {
     throw "Cannot get m_r bignum";
   }
 
-  BIGNUM* m_s = BN_bin2bn(sig_b.data() + SIGNATURE_CHALLENGE_SIZE, SIGNATURE_RESPONSE_SIZE, NULL);
+  BIGNUM* m_s = BN_bin2bn(sig_b.data() + SIGNATURE_CHALLENGE_SIZE,
+                          SIGNATURE_RESPONSE_SIZE, NULL);
   if (m_s == NULL) {
     throw "Cannot get m_s bignum";
   }
@@ -134,7 +149,6 @@ Signature_l DeserializeSignature(const std::string sig_s) {
 }
 
 EC_POINT* DeserializePubKey(const std::string& pubKey_s, Curve& curve) {
-
   bytes pubKey_b;
 
   StringToBytes(pubKey_s, pubKey_b);
@@ -142,7 +156,8 @@ EC_POINT* DeserializePubKey(const std::string& pubKey_s, Curve& curve) {
     return nullptr;
   }
 
-  std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> bn(BN_bin2bn(pubKey_b.data(), PUBKEYSIZE, NULL), BN_clear_free);
+  std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> bn(
+      BN_bin2bn(pubKey_b.data(), PUBKEYSIZE, NULL), BN_clear_free);
   if (bn == NULL) {
     throw "Cannot convert PubKey bytes to bignum";
   }
@@ -151,15 +166,16 @@ EC_POINT* DeserializePubKey(const std::string& pubKey_s, Curve& curve) {
   if (ctx == nullptr) {
     throw "Cannot allocate memory for ctx";
   }
-  EC_POINT* ecp = EC_POINT_bn2point(curve.m_group.get(), bn.get(), NULL, ctx.get());
+  EC_POINT* ecp =
+      EC_POINT_bn2point(curve.m_group.get(), bn.get(), NULL, ctx.get());
   if (ecp == NULL) {
     throw "Cannot compute EC_Point";
   }
   return ecp;
 }
 
-std::shared_ptr<EC_POINT> AggregatePubKeys(const std::vector<std::shared_ptr<EC_POINT>>& pubkeys, const Curve& curve) {
-
+std::shared_ptr<EC_POINT> AggregatePubKeys(
+    const std::vector<std::shared_ptr<EC_POINT>>& pubkeys, const Curve& curve) {
   if (pubkeys.size() == 0) {
     throw "Empty list of public keys";
   }
@@ -168,15 +184,15 @@ std::shared_ptr<EC_POINT> AggregatePubKeys(const std::vector<std::shared_ptr<EC_
 
   for (unsigned int i = 1; i < pubkeys.size(); i++) {
     if (EC_POINT_add(curve.m_group.get(), aggregatedPubkey.get(),
-                     aggregatedPubkey.get(), pubkeys.at(i).get(),
-                     NULL) == 0) {
+                     aggregatedPubkey.get(), pubkeys.at(i).get(), NULL) == 0) {
       throw "Pubkey aggregation failed";
     }
   }
   return aggregatedPubkey;
 }
 
-bool verifySig(const bytes& message, const Signature_l& toverify, const EC_POINT* pubkey, const Curve& curve){
+bool verifySig(const bytes& message, const Signature_l& toverify,
+               const EC_POINT* pubkey, const Curve& curve) {
   // Main verification procedure
 
   // The algorithm to check the signature (r, s) on a message m using a public
@@ -209,33 +225,32 @@ bool verifySig(const bytes& message, const Signature_l& toverify, const EC_POINT
 
   // Regenerate the commitment part of the signature
   std::unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
-                                                        BN_clear_free);
+                                                             BN_clear_free);
   std::unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
       EC_POINT_new(curve.m_group.get()), EC_POINT_clear_free);
   std::unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
 
   if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr)) {
     // 1. Check if r,s is in [1, ..., order-1]
-    err2 = (BN_is_zero(toverify.m_r.get()) ||
-            BN_is_negative(toverify.m_r.get()) ||
-            (BN_cmp(toverify.m_r.get(), curve.m_order.get()) != -1));
+    err2 =
+        (BN_is_zero(toverify.m_r.get()) || BN_is_negative(toverify.m_r.get()) ||
+         (BN_cmp(toverify.m_r.get(), curve.m_order.get()) != -1));
     err = err || err2;
     if (err2) {
       throw "Challenge not in range";
     }
 
-    err2 = (BN_is_zero(toverify.m_s.get()) ||
-            BN_is_negative(toverify.m_s.get()) ||
-            (BN_cmp(toverify.m_s.get(), curve.m_order.get()) != -1));
+    err2 =
+        (BN_is_zero(toverify.m_s.get()) || BN_is_negative(toverify.m_s.get()) ||
+         (BN_cmp(toverify.m_s.get(), curve.m_order.get()) != -1));
     err = err || err2;
     if (err2) {
       throw "Response not in range";
     }
 
     // 2. Compute Q = sG + r*kpub
-    err2 =
-        (EC_POINT_mul(curve.m_group.get(), Q.get(), toverify.m_s.get(),
-                      pubkey, toverify.m_r.get(), ctx.get()) == 0);
+    err2 = (EC_POINT_mul(curve.m_group.get(), Q.get(), toverify.m_s.get(),
+                         pubkey, toverify.m_r.get(), ctx.get()) == 0);
     err = err || err2;
     if (err2) {
       throw "Commit regenerate failed";
@@ -252,8 +267,8 @@ bool verifySig(const bytes& message, const Signature_l& toverify, const EC_POINT
     // 4.1 Convert the committment to octets first
     err2 = (EC_POINT_point2oct(curve.m_group.get(), Q.get(),
                                POINT_CONVERSION_COMPRESSED, buf.data(),
-                               PUBKEY_COMPRESSED_SIZE_BYTES, NULL) !=
-            PUBKEY_COMPRESSED_SIZE_BYTES);
+                               PUBKEY_COMPRESSED_SIZE_BYTES,
+                               NULL) != PUBKEY_COMPRESSED_SIZE_BYTES);
     err = err || err2;
     if (err2) {
       throw "Commit octet conversion failed";
@@ -268,12 +283,11 @@ bool verifySig(const bytes& message, const Signature_l& toverify, const EC_POINT
     // 4.2 Convert the public key to octets
     err2 = (EC_POINT_point2oct(curve.m_group.get(), pubkey,
                                POINT_CONVERSION_COMPRESSED, buf.data(),
-                               PUBKEY_COMPRESSED_SIZE_BYTES, NULL) !=
-            PUBKEY_COMPRESSED_SIZE_BYTES);
+                               PUBKEY_COMPRESSED_SIZE_BYTES,
+                               NULL) != PUBKEY_COMPRESSED_SIZE_BYTES);
     err = err || err2;
     if (err2) {
       throw "Pubkey octet conversion failed";
-
     }
 
     // Hash public key
@@ -315,12 +329,12 @@ int main(int argc, char** argv) {
   std::string signature;
   Curve curve;
 
-  desc.add_options()("help,h", "Print help messages")("message,m",
-      po::value<std::string>(&message)->required(),
-      "Message string in hexadecimal format")("signature,s",
-      po::value<std::string>(&signature)->required(),
-      "Filename containing private keys each per line")("pubk,u",
-      po::value<std::string>(&pubk_fn)->required(),
+  desc.add_options()("help,h", "Print help messages")(
+      "message,m", po::value<std::string>(&message)->required(),
+      "Message string in hexadecimal format")(
+      "signature,s", po::value<std::string>(&signature)->required(),
+      "Filename containing private keys each per line")(
+      "pubk,u", po::value<std::string>(&pubk_fn)->required(),
       "Filename containing public keys each per line");
 
   po::variables_map vm;
@@ -347,13 +361,12 @@ int main(int argc, char** argv) {
   std::fstream pubFile(pubk_fn, std::ios::in);
   try {
     while (getline(pubFile, line)) {
-      pubKeys.push_back(
-          std::shared_ptr<EC_POINT>(DeserializePubKey(line, curve),
-              EC_POINT_clear_free));
+      pubKeys.push_back(std::shared_ptr<EC_POINT>(
+          DeserializePubKey(line, curve), EC_POINT_clear_free));
     }
   } catch (std::exception& e) {
     std::cerr << "Problem occured when processing public keys on line: "
-        << pubKeys.size() + 1 << std::endl;
+              << pubKeys.size() + 1 << std::endl;
     return -1;
   }
 
@@ -371,6 +384,3 @@ int main(int argc, char** argv) {
     return -1;
   }
 }
-
-
-
