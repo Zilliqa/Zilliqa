@@ -448,8 +448,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}), 
-    contrB(priv3, {priv3}), contractaddress(priv4, {priv4});
+  PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}),
+      contrB(priv3, {priv3}), contractaddress(priv4, {priv4});
   Address ownerAddr, aAddr, bAddr, cAddr;
   uint64_t nonce = 0;
 
@@ -469,8 +469,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
   cAddr = Account::GetAddressForContract(ownerAddr, nonce + 2);
 
-  LOG_GENERAL(INFO,
-              "aAddr: " << aAddr << " ; bAddr: " << bAddr << " ; cAddr: " << cAddr);
+  LOG_GENERAL(INFO, "aAddr: " << aAddr << " ; bAddr: " << bAddr
+                              << " ; cAddr: " << cAddr);
 
   /* ------------------------------------------------------------------- */
 
@@ -494,8 +494,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
   Account* accountA = AccountStore::GetInstance().GetAccount(aAddr);
   // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountA != nullptr,
-                      "Error with creation of contract A");
+  BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
   nonce++;
 
   ScillaTestUtil::ScillaTest tContrB;
@@ -516,8 +515,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
   Account* accountB = AccountStore::GetInstance().GetAccount(bAddr);
   // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountB != nullptr,
-                      "Error with creation of contract B");
+  BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
   nonce++;
 
   ScillaTestUtil::ScillaTest tContrC;
@@ -538,8 +536,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx2, tr2);
   Account* accountC = AccountStore::GetInstance().GetAccount(cAddr);
   // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountC != nullptr,
-                      "Error with creation of contract C");
+  BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
   nonce++;
 
   LOG_GENERAL(INFO, "Deployed contracts A, B, and C.");
@@ -559,19 +556,19 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 
     // Fund contrA
     Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
-                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundA;
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundA, trFundA);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
-                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundB;
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundB, trFundB);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
-                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundC;
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundC, trFundC);
     nonce++;
@@ -599,12 +596,13 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   uint128_t bBal = AccountStore::GetInstance().GetBalance(bAddr);
   uint128_t cBal = AccountStore::GetInstance().GetBalance(cAddr);
 
-  LOG_GENERAL(INFO, "Call chain balances obtained: A: " << aBal << ". B: " << bBal << ". C: " << cBal);
-  LOG_GENERAL(INFO, "Call chain balances expected: A: " << 100 << ". B: " << 150 << ". C: " << 100);
+  LOG_GENERAL(INFO, "Call chain balances obtained: A: "
+                        << aBal << ". B: " << bBal << ". C: " << cBal);
+  LOG_GENERAL(INFO, "Call chain balances expected: A: " << 100 << ". B: " << 150
+                                                        << ". C: " << 100);
 
   BOOST_CHECK_MESSAGE(aBal == 100 && bBal == 150 && cBal == 100,
                       "Call chain balance test failed.");
-
 
   /* ------------------------------------------------------------------- */
 }
@@ -612,8 +610,6 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
-
-  return;
 
   PairOfKey ownerKeyPair(priv1, {priv1});
   Address ownerAddr = Account::GetAddressFromPublicKey(ownerKeyPair.second);
@@ -743,8 +739,6 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
-
-  return;
 
   // 1. Bootstrap our test case.
   PairOfKey owner(priv1, {priv1});
@@ -883,8 +877,6 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
-
-  return;
 
   // 1. Bootstrap test case
   const unsigned int numOperators = 5;
@@ -1102,8 +1094,6 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 BOOST_AUTO_TEST_CASE(testDEX) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
-
-  return;
 
   // 1. Bootstrap test case
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
