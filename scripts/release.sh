@@ -245,7 +245,7 @@ function upgrade()
 
 # Validate input argument
 if [ "$#" -ne 0 ]; then
-    echo -e "\n\032[0;32mUsage: source scripts/release.sh\033[0m\n"
+    echo -e "\n\032[0;32mUsage: ./scripts/release.sh\033[0m\n"
     return 1
 fi
 
