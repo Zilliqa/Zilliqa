@@ -41,6 +41,8 @@ class JSONUtils {
   // Convert a Json object to string
   static std::string convertJsontoStr(const Json::Value& _json) {
     Json::StreamWriterBuilder writeBuilder;
+    writeBuilder["commentStyle"] = "None";
+    writeBuilder["indentation"] = "";
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     std::ostringstream oss;
     writer->write(_json, &oss);

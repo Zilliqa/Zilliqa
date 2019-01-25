@@ -164,11 +164,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     string vname = v["vname"].asString();
     string type = v["type"].asString();
 
-    Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    ostringstream oss;
-    writer->write(v["value"], &oss);
-    string value = oss.str();
+    string value = JSONUtils::convertJsontoStr(v["value"]);
 
     state_entries.push_back(std::make_tuple(vname, false, type, value));
   }

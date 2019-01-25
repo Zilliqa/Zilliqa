@@ -726,17 +726,6 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
   if (value.back() == '"') {
     value.erase(value.size() - 1);
   }
-  value.erase(std::remove_if(value.begin(), value.end(),
-                             [](char c) {
-                               switch (c) {
-                                 case '\t':
-                                 case '\n':
-                                   return true;
-                                 default:
-                                   return false;
-                               }
-                             }),
-              value.end());
 
   protoStateData.set_value(value);
 }
