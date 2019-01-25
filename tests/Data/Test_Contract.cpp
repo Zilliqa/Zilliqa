@@ -50,7 +50,7 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contracttest)
 
-PrivKey priv1, priv2, priv3;
+PrivKey priv1, priv2, priv3, priv4;
 
 void setup() {
   bytes priv1bytes, priv2bytes, priv3bytes;
@@ -444,9 +444,176 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   /* ------------------------------------------------------------------- */
 }
 
+BOOST_AUTO_TEST_CASE(testChainCalls) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}), 
+    contrB(priv3, {priv3}), contractaddress(priv4, {priv4});
+  Address ownerAddr, aAddr, bAddr, cAddr;
+  uint64_t nonce = 0;
+
+  setup();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+
+  aAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  cAddr = Account::GetAddressForContract(ownerAddr, nonce + 2);
+
+  LOG_GENERAL(INFO,
+              "aAddr: " << aAddr << " ; bAddr: " << bAddr << " ; cAddr: " << cAddr);
+
+  /* ------------------------------------------------------------------- */
+
+  // Deploying the contract can use data from the 1st Scilla test.
+  ScillaTestUtil::ScillaTest tContrA;
+  if (!ScillaTestUtil::GetScillaTest(tContrA, "chain-call-balance-1", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-1.");
+    return;
+  }
+
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tContrA.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrA.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrA.init);
+
+  // Transaction to deploy contrA
+  std::string initStrA = JSONUtils::convertJsontoStr(tContrA.init);
+  bytes dataA(initStrA.begin(), initStrA.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrA.code, dataA);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+  Account* accountA = AccountStore::GetInstance().GetAccount(aAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountA != nullptr,
+                      "Error with creation of contract A");
+  nonce++;
+
+  ScillaTestUtil::ScillaTest tContrB;
+  if (!ScillaTestUtil::GetScillaTest(tContrB, "chain-call-balance-2", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-2.");
+    return;
+  }
+
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrB.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrB.init);
+
+  // Transaction to deploy contrB
+  std::string initStrB = JSONUtils::convertJsontoStr(tContrB.init);
+  bytes dataB(initStrB.begin(), initStrB.end());
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrB.code, dataB);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+  Account* accountB = AccountStore::GetInstance().GetAccount(bAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountB != nullptr,
+                      "Error with creation of contract B");
+  nonce++;
+
+  ScillaTestUtil::ScillaTest tContrC;
+  if (!ScillaTestUtil::GetScillaTest(tContrC, "chain-call-balance-3", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-3.");
+    return;
+  }
+
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrC.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrC.init);
+
+  // Transaction to deploy contrC
+  std::string initStrC = JSONUtils::convertJsontoStr(tContrC.init);
+  bytes dataC(initStrC.begin(), initStrC.end());
+  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrC.code, dataC);
+  TransactionReceipt tr2;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx2, tr2);
+  Account* accountC = AccountStore::GetInstance().GetAccount(cAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountC != nullptr,
+                      "Error with creation of contract C");
+  nonce++;
+
+  LOG_GENERAL(INFO, "Deployed contracts A, B, and C.");
+
+  /* ------------------------------------------------------------------- */
+  // Transfer 100 each to contracts A, B, and C.
+  /* ------------------------------------------------------------------- */
+
+  {
+    Json::Value m;
+    m["_tag"] = "simply_accept";
+    m["_amount"] = "100";
+    m["params"].resize(0);
+
+    bytes m_data;
+    ScillaTestUtil::PrepareMessageData(m, m_data);
+
+    // Fund contrA
+    Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
+                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundA;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundA, trFundA);
+    nonce++;
+    // Fund contrB
+    Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
+                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundB;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundB, trFundB);
+    nonce++;
+    // Fund contrC
+    Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
+                  100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundC;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundC, trFundC);
+    nonce++;
+  }
+
+  bytes data;
+  // Replace addrB and addrC in parameter of message to contrA.
+  for (auto it = tContrA.message["params"].begin();
+       it != tContrA.message["params"].end(); it++) {
+    if ((*it)["vname"] == "addrB") {
+      (*it)["value"] = "0x" + bAddr.hex();
+    } else if ((*it)["vname"] == "addrC") {
+      (*it)["value"] = "0x" + cAddr.hex();
+    }
+  }
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(tContrA.message, data);
+  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
+    nonce++;
+  }
+
+  uint128_t aBal = AccountStore::GetInstance().GetBalance(aAddr);
+  uint128_t bBal = AccountStore::GetInstance().GetBalance(bAddr);
+  uint128_t cBal = AccountStore::GetInstance().GetBalance(cAddr);
+
+  LOG_GENERAL(INFO, "Call chain balances obtained: A: " << aBal << ". B: " << bBal << ". C: " << cBal);
+  LOG_GENERAL(INFO, "Call chain balances expected: A: " << 100 << ". B: " << 150 << ". C: " << 100);
+
+  BOOST_CHECK_MESSAGE(aBal == 100 && bBal == 150 && cBal == 100,
+                      "Call chain balance test failed.");
+
+
+  /* ------------------------------------------------------------------- */
+}
+
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
+
+  return;
 
   PairOfKey ownerKeyPair(priv1, {priv1});
   Address ownerAddr = Account::GetAddressFromPublicKey(ownerKeyPair.second);
@@ -576,6 +743,8 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
+
+  return;
 
   // 1. Bootstrap our test case.
   PairOfKey owner(priv1, {priv1});
@@ -714,6 +883,8 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
+
+  return;
 
   // 1. Bootstrap test case
   const unsigned int numOperators = 5;
@@ -931,6 +1102,8 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 BOOST_AUTO_TEST_CASE(testDEX) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
+
+  return;
 
   // 1. Bootstrap test case
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
