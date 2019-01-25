@@ -839,7 +839,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     return false;
   }
   uint64_t startGas = gasRemained;
-  gasRemained = atoi(_json["gas_remaining"].asString().c_str());
+  try {
+    gasRemained =
+        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
+                                    << " is not numeric");
+    return false;
+  }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!_json.isMember("_accepted")) {
@@ -929,6 +936,15 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     return false;
   }
 
+  try {
+    m_curAmount = boost::lexical_cast<boost::multiprecision::uint128_t>(
+        _json["message"]["_amount"].asString());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
+                                    << " is not numeric");
+    return false;
+  }
+
   Address recipient = Address(_json["message"]["_recipient"].asString());
   if (recipient == Address()) {
     LOG_GENERAL(WARNING, "The recipient can't be null address");
@@ -945,9 +961,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   // Recipient is non-contract
   if (!account->isContract()) {
     LOG_GENERAL(INFO, "The recipient is non-contract");
-    return TransferBalanceAtomic(
-        m_curContractAddr, recipient,
-        atoi(_json["message"]["_amount"].asString().c_str()));
+    return TransferBalanceAtomic(m_curContractAddr, recipient, m_curAmount);
   }
 
   // Recipient is contract
@@ -985,12 +999,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   input_message["_amount"] = _json["message"]["_amount"];
   input_message["_tag"] = _json["message"]["_tag"];
   input_message["params"] = _json["message"]["params"];
-
-  if (!TransferBalanceAtomic(
-          m_curContractAddr, recipient,
-          atoi(_json["message"]["_amount"].asString().c_str()))) {
-    return false;
-  }
 
   if (!ExportCallContractFiles(*account, input_message)) {
     LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
@@ -1044,6 +1052,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
 
   Address t_address = m_curContractAddr;
+  m_curSenderAddr = m_curContractAddr;
   m_curContractAddr = recipient;
   if (!ParseCallContract(gasRemained, runnerPrint)) {
     LOG_GENERAL(WARNING,
