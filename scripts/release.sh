@@ -36,7 +36,6 @@ testnet=""
 current_cluster_name=""
 dsguards_count=""
 
-
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
 # If you do NOT want to release Zilliqa, please change this variable "false"
@@ -498,8 +497,9 @@ else
     fi
 	
     ## zip the release
-    cmd="tar cfz ${S3FileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})"
-    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})"
+    cp ${constantLookupFile} ${constantLookupFile}_lookup
+    cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
+    cmd="tar cfz ${S3FileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup"
     [ ! -z "${scillaPath}" ] && cmd="${cmd} -C ./ ${Scilla_Deb}"
 
     $cmd
