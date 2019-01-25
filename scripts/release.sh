@@ -326,7 +326,7 @@ cd ${releaseDir}; cp ${versionFile} .
 
 if [ "$releaseZilliqa" = "true" ]; then
     make package
-    mv ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux.deb ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux-Zilliqa.deb
+    mv ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-$(uname).deb ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-$(uname)-Zilliqa.deb
     zilliqaDebFile="$(ls *.deb)"
     echo -e "\n\033[0;32mZilliqa deb packages are generated successfully.\033[0m\n"
 fi
@@ -383,7 +383,7 @@ if [ "$scillaPath" != "" ]; then
     fi
     sed -i "/Version: /c\Version: ${scillaMajor}.${scillaMinor}.${scillaFix}" ${scillaDebFolder}/DEBIAN/control
     echo -e "\n\033[0;32mMaking Scilla deb package...\033[0m\n"
-    scillaDebFile=${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux-Scilla.deb
+    scillaDebFile=${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-$(uname)-Scilla.deb
     if [ -f "${scillaDebFile}" ]; then
         rm ${scillaDebFile}
     fi
