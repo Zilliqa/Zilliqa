@@ -100,6 +100,7 @@ apt-get install -y \
     git
 
 pip install pyyaml
+pip install boto3 --user
 }
 
 function on_osx() {
