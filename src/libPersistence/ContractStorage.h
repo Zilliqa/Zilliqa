@@ -116,8 +116,10 @@ class ContractStorage : public Singleton<ContractStorage> {
                         const std::vector<Index>& existing_indexes = {},
                         bool provideExisting = false);
 
+  /// Buffer the current t_map into p_map
   void BufferCurrentState();
 
+  /// Revert the t_map from the p_map just buffered
   void RevertPrevState();
 
   bool CommitStateDB();

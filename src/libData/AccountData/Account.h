@@ -166,6 +166,7 @@ class Account : public AccountBase {
                   const std::vector<std::pair<dev::h256, bytes>>& entries,
                   bool temp, bool revertible = false);
 
+  /// Only called during UpdateAccountsTemp
   bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
 
   std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
