@@ -16,8 +16,8 @@
 # This script is used for making image locally and pushing to private registry
 
 # Usage:
-#     ./scripts/make_image.sh         # using current HEAD
-#     ./scripts/make_image.sh COMMIT  # using a specific commit
+#     ./scripts/make_image_for_test.sh         # using current HEAD
+#     ./scripts/make_image_for_test.sh COMMIT  # using a specific commit
 
 Test_scenarios=( "-DVC_TEST_DS_SUSPEND_3=1 "
                 "-DVC_TEST_FB_SUSPEND_3=1 "
