@@ -551,9 +551,8 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   lock_guard<mutex> g(m_mutexFinalBlock);
 
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << TXBLOCK_VERSION << " Actual: "
-                             << txBlock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
+                   TXBLOCK_VERSION);
     return false;
   }
 

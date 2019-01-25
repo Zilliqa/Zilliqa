@@ -284,9 +284,8 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   }
 
   if (get<BlockLinkIndex::VERSION>(blnk) != BLOCKLINK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << BLOCKLINK_VERSION << " Actual: "
-                             << get<BlockLinkIndex::VERSION>(blnk));
+    LOG_CHECK_FAIL("BlockLink version", get<BlockLinkIndex::VERSION>(blnk),
+                   BLOCKLINK_VERSION);
     return false;
   }
 
@@ -479,9 +478,8 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       return false;
     }
     if (get<BlockLinkIndex::VERSION>(blcklink) != BLOCKLINK_VERSION) {
-      LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                               << BLOCKLINK_VERSION << " Actual: "
-                               << get<BlockLinkIndex::VERSION>(blcklink));
+      LOG_CHECK_FAIL("BlockLink version",
+                     get<BlockLinkIndex::VERSION>(blcklink), BLOCKLINK_VERSION);
       delete it;
       return false;
     }
@@ -640,9 +638,8 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
                                    version, shards);
 
   if (version != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: " << SHARDINGSTRUCTURE_VERSION
-                                                   << " Actual: " << version);
+    LOG_CHECK_FAIL("Sharding structure version", version,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
@@ -732,16 +729,14 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
   }
 
   if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
+    LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
   if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
-                             << DSCOMMITTEE_VERSION
-                             << " Actual: " << dsCommitteeVersion);
+    LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                   DSCOMMITTEE_VERSION);
     return false;
   }
 
@@ -793,20 +788,14 @@ void BlockStorage::GetDiagnosticData(
     }
 
     if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-      LOG_GENERAL(WARNING,
-                  "Sharding structure version check failed for DS block number "
-                      << dsBlockNumStr << " at index " << index
-                      << ". Expected: " << SHARDINGSTRUCTURE_VERSION
-                      << " Actual: " << shardingStructureVersion);
+      LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                     SHARDINGSTRUCTURE_VERSION)
       continue;
     }
 
     if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-      LOG_GENERAL(WARNING,
-                  "DS committee version check failed for DS block number "
-                      << dsBlockNumStr << " at index " << index
-                      << ". Expected: " << DSCOMMITTEE_VERSION
-                      << " Actual: " << dsCommitteeVersion);
+      LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                     DSCOMMITTEE_VERSION);
       continue;
     }
 

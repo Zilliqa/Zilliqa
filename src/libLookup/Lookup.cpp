@@ -1490,9 +1490,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   }
 
   if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
-                             << DSCOMMITTEE_VERSION
-                             << " Actual: " << dsCommitteeVersion);
+    LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                   DSCOMMITTEE_VERSION);
     return false;
   }
 

@@ -304,9 +304,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   // Check the value of the commit hash
   CommitPointHash commitPointHashExpected(commitPoint);
   if (!(commitPointHashExpected == commitPointHash)) {
-    LOG_GENERAL(WARNING, "Commit hash check failed. Deserialized = "
-                             << string(commitPointHash) << " Expected = "
-                             << string(commitPointHashExpected));
+    LOG_CHECK_FAIL("Commit hash", string(commitPointHash),
+                   string(commitPointHashExpected));
     return false;
   }
 

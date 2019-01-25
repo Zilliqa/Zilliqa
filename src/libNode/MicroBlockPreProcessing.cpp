@@ -877,10 +877,8 @@ bool Node::CheckMicroBlockVersion() {
 
   // Check version (must be most current version)
   if (m_microblock->GetHeader().GetVersion() != MICROBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << MICROBLOCK_VERSION << " Actual: "
-                             << m_microblock->GetHeader().GetVersion());
-
+    LOG_CHECK_FAIL("MicroBlock version", m_microblock->GetHeader().GetVersion(),
+                   MICROBLOCK_VERSION);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_VERSION);
 
@@ -901,10 +899,8 @@ bool Node::CheckMicroBlockshardId() {
   }
 
   if (m_microblock->GetHeader().GetShardId() != m_myshardId) {
-    LOG_GENERAL(WARNING, "shardId check failed. Expected: "
-                             << m_myshardId << " Actual: "
-                             << m_microblock->GetHeader().GetShardId());
-
+    LOG_CHECK_FAIL("Shard ID", m_microblock->GetHeader().GetShardId(),
+                   m_myshardId);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
 
