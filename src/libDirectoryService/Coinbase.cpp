@@ -408,6 +408,11 @@ void DirectoryService::InitCoinbase() {
       lastBlockHash % m_coinbaseRewardees[m_mediator.m_currentEpochNum].size();
   uint16_t count = 0;
   bool breakLoop = false;
+  DiagnosticDataCoinbase entry = {
+      node_count,  sig_count,        lookup_count, total_reward,
+      base_reward, base_reward_each, lookupReward, reward_each_lookup,
+      nodeReward,  reward_each,      balance_left, PubKey(PrivKey()),
+      Address()};
   for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
@@ -446,11 +451,53 @@ void DirectoryService::InitCoinbase() {
                               << balance_left << "] lucky draw");
       }
 
+      entry.luckyDrawWinnerKey = shard.second.at(rdm_index);
+      entry.luckyDrawWinnerAddr = winnerAddr;
+      StoreCoinbaseInDiagnosticDB(entry);
+
       return;
     } else {
       ++count;
     }
   }
 
+  StoreCoinbaseInDiagnosticDB(entry);
   LOG_GENERAL(INFO, "Didn't find any miner to reward the lucky draw");
+}
+
+void DirectoryService::StoreCoinbaseInDiagnosticDB(
+    const DiagnosticDataCoinbase& entry) {
+  bool canPutNewEntry = true;
+
+  // There's no quick way to get the oldest entry in leveldb
+  // Hence, we manage deleting old entries here instead
+  if ((MAX_ENTRIES_FOR_DIAGNOSTIC_DATA > 0) &&  // If limit is 0, skip deletion
+      (BlockStorage::GetBlockStorage().GetDiagnosticDataCoinbaseCount() >=
+       MAX_ENTRIES_FOR_DIAGNOSTIC_DATA) &&  // Limit reached
+      (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+       MAX_ENTRIES_FOR_DIAGNOSTIC_DATA)) {  // DS Block number is not below
+                                            // limit
+
+    const uint64_t oldBlockNum =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
+        MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
+
+    canPutNewEntry =
+        BlockStorage::GetBlockStorage().DeleteDiagnosticDataCoinbase(
+            oldBlockNum);
+
+    if (canPutNewEntry) {
+      LOG_GENERAL(INFO,
+                  "Deleted old diagnostic data for DS block " << oldBlockNum);
+    } else {
+      LOG_GENERAL(WARNING, "Failed to delete old diagnostic data for DS block "
+                               << oldBlockNum);
+    }
+  }
+
+  if (canPutNewEntry) {
+    BlockStorage::GetBlockStorage().PutDiagnosticDataCoinbase(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+        entry);
+  }
 }

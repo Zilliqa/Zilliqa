@@ -226,6 +226,12 @@ class Messenger {
                                      uint32_t& dsCommitteeVersion,
                                      DequeOfNode& dsCommittee);
 
+  static bool SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
+                                        const DiagnosticDataCoinbase& entry);
+  static bool GetDiagnosticDataCoinbase(const bytes& src,
+                                        const unsigned int offset,
+                                        DiagnosticDataCoinbase& entry);
+
   // ============================================================================
   // Peer Manager messages
   // ============================================================================
