@@ -999,7 +999,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         receipt.AddError(BALANCE_TRANSFER_FAILED);
         return false;
       } else {
-        return true;
+        ret = true;
       }
     }
 
