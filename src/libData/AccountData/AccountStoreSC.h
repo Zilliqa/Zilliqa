@@ -69,7 +69,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::condition_variable cv_callContract;
   std::atomic<bool> m_txnProcessTimeout;
 
-  bool ParseContractCheckerOutput(const std::string& checkerPrint);
+  bool ParseContractCheckerOutput(const std::string& checkerPrint,
+                                  TransactionReceipt& receipt);
 
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint,

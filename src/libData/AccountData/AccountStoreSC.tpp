@@ -207,8 +207,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       ret_checker = false;
     }
 
-    if (ret_checker && !ParseContractCheckerOutput(checkerPrint)) {
-      receipt.AddError(PARSE_CHECKER_FAILED);
+    if (ret_checker && !ParseContractCheckerOutput(checkerPrint, receipt)) {
       ret_checker = false;
     }
 
@@ -661,7 +660,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const std::string& checkerPrint) {
+    const std::string& checkerPrint, TransactionReceipt& receipt) {
   Json::CharReaderBuilder builder;
   std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
   Json::Value root;
@@ -675,6 +674,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
                              << "errors: " << errors);
     return false;
   }
+  receipt.AddError(JSON_OUTPUT_CORRUPTED);
 
   return true;
 }
