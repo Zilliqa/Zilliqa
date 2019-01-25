@@ -1561,8 +1561,7 @@ void Node::CommitTxnPacketBuffer() {
 void Node::SetState(NodeState state) {
   m_state = state;
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Node State is now " << GetStateString() << " at epoch "
-                                 << m_mediator.m_currentEpochNum);
+            "Node State = " << GetStateString());
 }
 
 // Set m_consensusMyID

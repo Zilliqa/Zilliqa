@@ -29,15 +29,10 @@ std::mutex BIGNUMSerialize::m_mutexBIGNUM;
 shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
                                               unsigned int offset,
                                               unsigned int size) {
-  if (size <= 0) {
-    LOG_GENERAL(WARNING, "Size is invalid");
-    return nullptr;
-  }
-
   if (offset + size > src.size()) {
-    LOG_GENERAL(WARNING, "Unable to get BIGNUM of size "
-                             << size << " from stream with available size "
-                             << src.size() - offset);
+    LOG_GENERAL(WARNING,
+                "Can't get BIGNUM. offset = " << offset << " size = " << size
+                                              << " src = " << src.size());
     return nullptr;
   }
 
@@ -50,11 +45,6 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
 
 void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
                                 unsigned int size, shared_ptr<BIGNUM> value) {
-  if (size <= 0) {
-    LOG_GENERAL(WARNING, "Invalid size");
-    return;
-  }
-
   // This mutex is to prevent multi-threaded issues with the use of openssl
   // functions
   lock_guard<mutex> g(m_mutexBIGNUM);
@@ -73,12 +63,10 @@ void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
 
     if (BN_bn2bin(value.get(), dst.data() + offset + size_diff) !=
         actual_bn_size) {
-      LOG_GENERAL(WARNING, "Unexpected serialized size");
+      LOG_GENERAL(WARNING, "BN_bn2bin failed");
     }
   } else {
-    LOG_GENERAL(WARNING, "BIGNUM size ("
-                             << actual_bn_size
-                             << ") exceeds requested serialize size (" << size
-                             << ")");
+    LOG_GENERAL(WARNING, "BIGNUM size " << actual_bn_size << " > declared size "
+                                        << size);
   }
 }

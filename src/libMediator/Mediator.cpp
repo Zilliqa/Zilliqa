@@ -143,6 +143,8 @@ void Mediator::IncreaseEpochNum() {
 
     GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
   }
+
+  LOG_GENERAL(INFO, "Epoch number is now " << m_currentEpochNum);
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }

@@ -1172,14 +1172,14 @@ bool Node::CheckMicroBlockTranReceiptHash() {
     LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
     return false;
   }
-  LOG_GENERAL(INFO, "Microblock transaction receipt hash generation done "
+  LOG_GENERAL(INFO, "Microblock txn receipt hash generation done "
                         << expectedTranHash.hex());
   LOG_GENERAL(INFO,
               "Received hash: "
                   << m_microblock->GetHeader().GetTranReceiptHash().hex());
 
   if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash()) {
-    LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
+    LOG_GENERAL(WARNING, "Txn receipt hash does not match");
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_TRAN_RECEIPT_HASH);
@@ -1187,7 +1187,7 @@ bool Node::CheckMicroBlockTranReceiptHash() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "Transaction receipt hash check passed");
+  LOG_GENERAL(INFO, "Txn receipt hash check passed");
 
   return true;
 }

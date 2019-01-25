@@ -3301,7 +3301,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       lock_guard<mutex> g(m_txnShardMapMutex);
       auto transactionNumber = mp[i].size();
 
-      LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
+      LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
       if (m_txnShardMap[i].empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);

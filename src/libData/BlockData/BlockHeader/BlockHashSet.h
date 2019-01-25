@@ -51,8 +51,8 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t) {
     return os;
   }
   os << "<DSBlockHashSet>" << std::endl
-     << "m_shardingHash : " << t.m_shardingHash.hex() << std::endl
-     << "m_reservedField : " << reservedFieldStr;
+     << " m_shardingHash  = " << t.m_shardingHash.hex() << std::endl
+     << " m_reservedField = " << reservedFieldStr;
   return os;
 }
 
@@ -138,9 +138,9 @@ struct MicroBlockHashSet {
 
 inline std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t) {
   os << "<MicroBlockHashSet>" << std::endl
-     << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
-     << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex() << std::endl
-     << "m_tranReceiptHash : " << t.m_tranReceiptHash.hex();
+     << " m_txRootHash      = " << t.m_txRootHash.hex() << std::endl
+     << " m_stateDeltaHash  = " << t.m_stateDeltaHash.hex() << std::endl
+     << " m_tranReceiptHash = " << t.m_tranReceiptHash.hex();
   return os;
 }
 
@@ -239,10 +239,10 @@ struct hash<TxBlockHashSet> {
 }  // namespace std
 
 inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t) {
-  os << "<TxBlockHashSet> " << std::endl
-     << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
-     << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex() << std::endl
-     << "m_mbInfoHash : " << t.m_mbInfoHash.hex();
+  os << "<TxBlockHashSet>" << std::endl
+     << " m_stateRootHash  = " << t.m_stateRootHash.hex() << std::endl
+     << " m_stateDeltaHash = " << t.m_stateDeltaHash.hex() << std::endl
+     << " m_mbInfoHash     = " << t.m_mbInfoHash.hex();
   return os;
 }
 
