@@ -340,6 +340,7 @@ message ProtoTransactionCoreInfo
     optional uint64 gaslimit        = 7;
     optional bytes code             = 8;
     optional bytes data             = 9;
+    optional bool sendtods          = 10;
 }
 
 message ProtoTransaction

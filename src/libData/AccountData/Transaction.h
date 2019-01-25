@@ -42,7 +42,7 @@ struct TransactionCoreInfo {
                       const boost::multiprecision::uint128_t& amountInput,
                       const boost::multiprecision::uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput, const bytes& codeInput,
-                      const bytes& dataInput)
+                      const bytes& dataInput, const bool sendtodsInput = false)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -51,7 +51,8 @@ struct TransactionCoreInfo {
         gasPrice(gasPriceInput),
         gasLimit(gasLimitInput),
         code(codeInput),
-        data(dataInput) {}
+        data(dataInput),
+        sendtods(sendtodsInput) {}
 
   uint32_t version;
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
@@ -62,6 +63,7 @@ struct TransactionCoreInfo {
   uint64_t gasLimit;
   bytes code;
   bytes data;
+  bool sendtods;
 };
 
 /// Stores information on a single transaction.
@@ -83,7 +85,7 @@ class Transaction : public SerializableDataBlock {
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code = {},
-              const bytes& data = {});
+              const bytes& data = {}, const bool sendtods = false);
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
@@ -92,7 +94,7 @@ class Transaction : public SerializableDataBlock {
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code, const bytes& data,
-              const Signature& signature);
+              const Signature& signature, const bool sendtods = false);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
@@ -100,7 +102,7 @@ class Transaction : public SerializableDataBlock {
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code, const bytes& data,
-              const Signature& signature);
+              const Signature& signature, const bool sendtods = false);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo coreInfo,
@@ -134,6 +136,9 @@ class Transaction : public SerializableDataBlock {
 
   //// Returns the sender's Public Key.
   const PubKey& GetSenderPubKey() const;
+
+  /// Returns boolean idicating force send to ds
+  const bool& GetIsSendToDS() const;
 
   /// Returns the sender's Address
   Address GetSenderAddr() const;

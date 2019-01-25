@@ -3475,7 +3475,9 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     for (const auto& txn : txns) {
       const PubKey& senderPubKey = txn.GetSenderPubKey();
       const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-      unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
+      unsigned int shard = txn.GetIsSendToDS() ? shard_size
+                                               : Transaction::GetShardIndex(
+                                                     fromAddr, shard_size);
       AddToTxnShardMap(txn, shard);
     }
   } else {

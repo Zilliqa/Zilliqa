@@ -49,9 +49,9 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PairOfKey& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data)
+                         const bytes& data, const bool sendtods)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
-                 gasLimit, code, data) {
+                 gasLimit, code, data, sendtods) {
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
@@ -77,19 +77,20 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const PubKey& senderPubKey, const uint128_t& amount,
                          const uint128_t& gasPrice, const uint64_t& gasLimit,
                          const bytes& code, const bytes& data,
-                         const Signature& signature)
+                         const Signature& signature, const bool sendtods)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, sendtods),
       m_signature(signature) {}
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data, const Signature& signature)
+                         const bytes& data, const Signature& signature,
+                         const bool sendtods)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, sendtods),
       m_signature(signature) {
   bytes txnData;
   SerializeCoreFields(txnData, 0);
@@ -149,6 +150,8 @@ const Address& Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
 const PubKey& Transaction::GetSenderPubKey() const {
   return m_coreInfo.senderPubKey;
 }
+
+const bool& Transaction::GetIsSendToDS() const { return m_coreInfo.sendtods; }
 
 Address Transaction::GetSenderAddr() const {
   return Account::GetAddressFromPublicKey(GetSenderPubKey());

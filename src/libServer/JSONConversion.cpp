@@ -174,9 +174,9 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
 
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());
-
+  bool sendToDs = _json["dspacket"].asBool();
   Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
-                  code, data, Signature(sign, 0));
+                  code, data, Signature(sign, 0), sendToDs);
   LOG_GENERAL(INFO, "Tx converted");
 
   return tx1;
