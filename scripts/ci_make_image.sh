@@ -19,6 +19,21 @@
 # Usage:
 #
 #    ./scripts/ci_make_image.sh
+#
+# Environment Varibles:
+#
+#    TRVAIS_COMMIT
+#    - compulsory
+#    - the commit to build
+#    - TODO: change the variable name to be platform independent (e.g., CI_COMMIT)
+#
+#    TEST_NAME
+#    - optional
+#    - additional string appended to the iamge tag after commit
+#
+#    TEST_EXTRA_CMAKE_ARGS
+#    - optional
+#    - extra CMake args to be passed to Dockerfile
 
 set -e
 
@@ -30,7 +45,6 @@ test_extra_cmake_args=${TEST_EXTRA_CMAKE_ARGS}
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
 source_image=zilliqa:${commit}
-
 target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}${TEST_NAME}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
