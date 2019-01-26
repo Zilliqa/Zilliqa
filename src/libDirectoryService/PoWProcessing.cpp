@@ -206,19 +206,16 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     if (cv_POWSubmission.wait_for(
             cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT)) ==
         std::cv_status::timeout) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Time out while waiting for state transition ");
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "State wait timed out");
     }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "State transition is completed. (check for timeout)");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "State transition completed");
   }
 
   if (!CheckState(PROCESS_POWSUBMISSION)) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
+
   uint8_t difficultyLevel = sol.GetDifficultyLevel();
   uint64_t blockNumber = sol.GetBlockNumber();
   Peer submitterPeer = sol.GetSubmitterPeer();
@@ -241,11 +238,6 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   if (!CheckState(VERIFYPOW)) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Too late - current state is "
-                  << m_state
-                  << ". Don't verify cause I have other work to do. "
-                     "Assume true as it has no impact.");
     return true;
   }
 
@@ -285,43 +277,39 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   if (!GUARD_MODE) {
     if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
-      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                               << to_string(difficultyLevel)
-                               << " Expected: " << to_string(expectedDSDiff)
-                               << " or " << to_string(expectedDiff));
+      LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
+                     to_string(expectedDSDiff)
+                         << " or " << to_string(expectedDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
   } else {
     if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
         difficultyLevel != expectedShardGuardDiff) {
-      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                               << to_string(difficultyLevel)
-                               << " Expected: " << to_string(expectedDSDiff)
-                               << " or " << to_string(expectedDiff) << " or "
-                               << to_string(expectedShardGuardDiff));
+      LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
+                     to_string(expectedDSDiff)
+                         << " or " << to_string(expectedDiff) << " or "
+                         << to_string(expectedShardGuardDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
   }
 
-  m_timespec = r_timer_start();
+  // m_timespec = r_timer_start();
 
   auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer.m_ipAddress,
                                        submitterPubKey, lookupId, gasPrice);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
-  LOG_GENERAL(INFO, "[POWSTAT] " << r_timer_end(m_timespec));
+  // LOG_GENERAL(INFO, "[POWSTAT] " << r_timer_end(m_timespec));
 
   if (result) {
     // Do another check on the state before accessing m_allPoWs
     // Accept slightly late entries as we need to multicast the DSBLOCK to
     // everyone if ((m_state != POW_SUBMISSION) && (m_state !=
     // DSBLOCK_CONSENSUS_PREP))
-    if (!CheckState(VERIFYPOW)) {
-      LOG_GENERAL(INFO, "Too late. State = " << GetStateString());
-    } else {
+    if (CheckState(VERIFYPOW)) {
       LOG_GENERAL(INFO, "Verified OK");
       lock(m_mutexAllPOW, m_mutexAllPoWConns);
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
