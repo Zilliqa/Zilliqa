@@ -1600,7 +1600,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
   LOG_MARKER();
 
-  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
+  lock(m_mutexSetDSBlockFromSeed, m_mutexCheckDirBlocks);
+
+  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed, adopt_lock);
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
 
   uint64_t lowBlockNum;
   uint64_t highBlockNum;
@@ -3008,6 +3011,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
   PubKey lookupPubKey;
+
+  lock_guard<mutex> g(m_mutexCheckDirBlocks);
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
           message, offset, shardingStructureVersion, dirBlocks, index_num,
           lookupPubKey)) {
