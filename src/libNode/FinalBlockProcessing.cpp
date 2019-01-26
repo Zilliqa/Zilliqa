@@ -788,8 +788,8 @@ bool Node::ProcessStateDeltaFromFinalBlock(
   // Init local AccountStoreTemp first
   AccountStore::GetInstance().InitTemp();
 
-  LOG_GENERAL(INFO, "Received FinalBlock State Delta root : "
-                        << finalBlockStateDeltaHash.hex());
+  LOG_GENERAL(INFO,
+              "State delta root hash = " << finalBlockStateDeltaHash.hex());
 
   if (finalBlockStateDeltaHash == StateHash()) {
     LOG_GENERAL(INFO,

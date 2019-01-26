@@ -1961,19 +1961,17 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(INFO,
-                "I am at last level in tree. And not supposed to broadcast "
-                "message with hash: ["
-                    << hashStr.substr(0, 6) << "] further");
+                "Terminating broadcast for [" << hashStr.substr(0, 6) << "]");
     return;
   }
 
   // set to max valid node index, if upperbound is invalid.
   nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
 
-  LOG_GENERAL(INFO, "I am broadcasting message with hash: ["
-                        << hashStr.substr(0, 6) << "] further to following "
-                        << nodes_hi - nodes_lo + 1 << " peers."
-                        << "(" << nodes_lo << "~" << nodes_hi << ")");
+  LOG_GENERAL(INFO, "Broadcasting [" << hashStr.substr(0, 6) << "] to "
+                                     << nodes_hi - nodes_lo + 1 << " peers "
+                                     << "(" << nodes_lo << "~" << nodes_hi
+                                     << ")");
 
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
@@ -2070,14 +2068,14 @@ map<Node::Action, string> Node::ActionStrings = {
 
 std::string Node::GetActionString(Action action) const {
   return (ActionStrings.find(action) == ActionStrings.end())
-             ? "Unknown"
+             ? "UNKNOWN"
              : ActionStrings.at(action);
 }
 
 /*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
                                   const DSBlock& latestDSBlock,
                                   const DequeOfNode& dsCommittee,
-                                  const uint64_t epochNumber,
+                                  [[gnu::unused]] const uint64_t epochNumber,
                                   pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
@@ -2097,10 +2095,10 @@ std::string Node::GetActionString(Action action) const {
     }
     dsLeader = make_pair(dsCommittee.at(leader_id).first,
                          dsCommittee.at(leader_id).second);
-    LOG_EPOCH(INFO, epochNumber,
-              "lastBlockHash " << lastBlockHash << ", current ds leader id "
-                               << leader_id << ", Peer " << dsLeader.second
-                               << " pubkey " << dsLeader.first);
+    LOG_GENERAL(INFO, "lastBlockHash = " << lastBlockHash);
+    LOG_GENERAL(INFO, "DS leader ID  = " << leader_id);
+    LOG_GENERAL(INFO, "Leader PubKey = " << dsLeader.first);
+    LOG_GENERAL(INFO, "Leader Peer   = " << dsLeader.second);
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(

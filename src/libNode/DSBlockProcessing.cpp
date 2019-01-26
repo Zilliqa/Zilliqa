@@ -173,20 +173,17 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 }
 
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetDifficulty(): "
-                << (int)dsblock.GetHeader().GetDifficulty());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetBlockNum(): "
-                << dsblock.GetHeader().GetBlockNum());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetLeaderPubKey(): "
-                << dsblock.GetHeader().GetLeaderPubKey());
+  LOG_GENERAL(INFO,
+              "DS Diff   = " << (int)dsblock.GetHeader().GetDSDifficulty());
+  LOG_GENERAL(INFO, "Diff      = " << (int)dsblock.GetHeader().GetDifficulty());
+  LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
+  LOG_GENERAL(INFO, "Leader    = " << dsblock.GetHeader().GetLeaderPubKey());
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Incoming DS committee members");
+  LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& dsmember : dsblock.GetHeader().GetDSPoWWinners()) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, dsmember.second);
+    LOG_GENERAL(INFO,
+                "[" << PAD(ds_index++, 3, ' ') << "] " << dsmember.second);
   }
 }
 

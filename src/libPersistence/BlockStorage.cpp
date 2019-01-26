@@ -47,10 +47,10 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
   int ret = -1;  // according to LevelDB::Insert return value
   if (blockType == BlockType::DS) {
     ret = m_dsBlockchainDB->Insert(blockNum, body);
-    LOG_GENERAL(INFO, "Stored DsBlock  Num:" << blockNum);
+    LOG_GENERAL(INFO, "Stored DSBlock num = " << blockNum);
   } else if (blockType == BlockType::Tx) {
     ret = m_txBlockchainDB->Insert(blockNum, body);
-    LOG_GENERAL(INFO, "Stored TxBlock  Num:" << blockNum);
+    LOG_GENERAL(INFO, "Stored TxBlock num = " << blockNum);
   }
   return (ret == 0);
 }
@@ -658,7 +658,7 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
     return false;
   }
 
-  LOG_PAYLOAD(INFO, "Stored state delta of final block " << finalBlockNum,
+  LOG_PAYLOAD(INFO, "FinalBlock " << finalBlockNum << " state delta",
               stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   return true;
 }

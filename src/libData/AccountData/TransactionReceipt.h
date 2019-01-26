@@ -102,8 +102,7 @@ class TransactionWithReceipt : public SerializableDataBlock {
     for (const auto& th : txnOrder) {
       auto it = txrs.find(th);
       if (it == txrs.end()) {
-        LOG_GENERAL(WARNING, "Cannot find txnHash "
-                                 << th.hex() << " from processedTransactions");
+        LOG_GENERAL(WARNING, "Missing txnHash " << th);
         return false;
       }
       vec.emplace_back(it->second);
