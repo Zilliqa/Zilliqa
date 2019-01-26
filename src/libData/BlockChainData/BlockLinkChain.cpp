@@ -59,11 +59,12 @@ bool BlockLinkChain::AddBlockLink(const uint64_t& index,
   std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
 
   if ((m_blockLinkChain.size() > 0) && (index <= latestIndex)) {
-    LOG_GENERAL(WARNING, "the latest index in the blocklink is greater"
-                             << index << " " << latestIndex);
+    LOG_GENERAL(WARNING, "Latest index in blocklink "
+                             << latestIndex << " is greater than " << index);
     return false;
   } else if (m_blockLinkChain.size() == 0 && index > 0) {
-    LOG_GENERAL(WARNING, "the first index to be inserted should be 0");
+    LOG_GENERAL(WARNING,
+                "First index to be inserted should be 0 not " << index);
     return false;
   }
   m_blockLinkChain.insert_new(
@@ -71,19 +72,21 @@ bool BlockLinkChain::AddBlockLink(const uint64_t& index,
       std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype, blockhash));
 
   bytes dst;
-  LOG_GENERAL(INFO, "[DBS]"
-                        << "Stored " << index << " " << dsindex << " "
-                        << blocktype << " " << blockhash);
+
+  LOG_GENERAL(INFO, "Index      = " << index);
+  LOG_GENERAL(INFO, "DS Index   = " << dsindex);
+  LOG_GENERAL(INFO, "Block type = " << blocktype);
+  LOG_GENERAL(INFO, "Block hash = " << blockhash);
 
   if (!Messenger::SetBlockLink(
           dst, 0,
           std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype,
                           blockhash))) {
-    LOG_GENERAL(WARNING, "Could not set BlockLink " << index);
+    LOG_GENERAL(WARNING, "Messenger::SetBlockLink failed");
     return false;
   }
   if (!BlockStorage::GetBlockStorage().PutBlockLink(index, dst)) {
-    LOG_GENERAL(WARNING, "Could not save blocklink " << index);
+    LOG_GENERAL(WARNING, "PutBlockLink failed");
     return false;
   }
   return true;

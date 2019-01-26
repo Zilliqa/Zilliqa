@@ -795,21 +795,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
 
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I am shard backup. "
-                  << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID
-                  << " m_consensusLeaderID: " << m_consensusLeaderID
-                  << " Shard Leader: "
-                  << (*m_myShardMembers)[m_consensusLeaderID].second);
+    LOG_GENERAL(INFO, "I am shard backup");
+    LOG_GENERAL(INFO, "Leader IP    = "
+                          << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     for (const auto& it : *m_myShardMembers) {
       peerList.emplace_back(it);
     }
   }
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Leader is at index  " << m_consensusLeaderID << " "
-                                   << peerList.at(m_consensusLeaderID).second);
 
   m_consensusObject.reset(new ConsensusBackup(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,

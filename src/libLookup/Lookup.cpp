@@ -2456,8 +2456,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   pair<PubKey, Peer> expectedDSLeader;
   if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                          m_mediator.m_dsBlockChain.GetLastBlock(),
-                         *m_mediator.m_DSCommittee,
-                         m_mediator.m_currentEpochNum, expectedDSLeader)) {
+                         *m_mediator.m_DSCommittee, expectedDSLeader)) {
     LOG_GENERAL(WARNING, "Does not know expected ds leader");
     return false;
   }
@@ -3364,8 +3363,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         pair<PubKey, Peer> dsLeader;
         if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                               m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee,
-                              m_mediator.m_currentEpochNum, dsLeader)) {
+                              *m_mediator.m_DSCommittee, dsLeader)) {
           toSend.push_back(dsLeader.second);
         }
 

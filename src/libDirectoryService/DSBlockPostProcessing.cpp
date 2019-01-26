@@ -53,15 +53,13 @@ void DirectoryService::StoreDSBlockToStorage() {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexPendingDSBlock);
   int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "Storing DS Block Number: "
-          << m_pendingDSBlock->GetHeader().GetBlockNum()
-          << ", DS PoW Difficulty: "
-          << std::to_string(m_pendingDSBlock->GetHeader().GetDSDifficulty())
-          << ", Difficulty: "
-          << std::to_string(m_pendingDSBlock->GetHeader().GetDifficulty())
-          << ", Timestamp: " << m_pendingDSBlock->GetTimestamp());
+  LOG_GENERAL(INFO,
+              "Block num = " << m_pendingDSBlock->GetHeader().GetBlockNum());
+  LOG_GENERAL(INFO, "DS diff   = " << std::to_string(
+                        m_pendingDSBlock->GetHeader().GetDSDifficulty()));
+  LOG_GENERAL(INFO, "Diff      = " << std::to_string(
+                        m_pendingDSBlock->GetHeader().GetDifficulty()));
+  LOG_GENERAL(INFO, "Timestamp = " << m_pendingDSBlock->GetTimestamp());
 
   if (result == -1) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

@@ -60,14 +60,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   LOG_MARKER();
 
   m_mediator.m_dsBlockChain.AddBlock(dsblock);
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "Storing DS Block Number: "
-          << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
-          << ", DS PoW Difficulty: "
-          << to_string(dsblock.GetHeader().GetDSDifficulty())
-          << ", Difficulty: " << to_string(dsblock.GetHeader().GetDifficulty())
-          << ", Timestamp: " << dsblock.GetTimestamp());
+  LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
+  LOG_GENERAL(
+      INFO, "DS diff   = " << to_string(dsblock.GetHeader().GetDSDifficulty()));
+  LOG_GENERAL(INFO,
+              "Diff      = " << to_string(dsblock.GetHeader().GetDifficulty()));
+  LOG_GENERAL(INFO, "Timestamp = " << dsblock.GetTimestamp());
 
   // Update the rand1 value for next PoW
   m_mediator.UpdateDSBlockRand();
@@ -125,9 +123,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 
   const vector<bool>& B2 = dsblock.GetB2();
   if (m_mediator.m_DSCommittee->size() != B2.size()) {
-    LOG_GENERAL(WARNING, "Mismatch: DS committee size = "
-                             << m_mediator.m_DSCommittee->size()
-                             << ", co-sig bitmap size = " << B2.size());
+    LOG_CHECK_FAIL("Cosig size", B2.size(), m_mediator.m_DSCommittee->size());
     return false;
   }
 
@@ -173,20 +169,17 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 }
 
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetDifficulty(): "
-                << (int)dsblock.GetHeader().GetDifficulty());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetBlockNum(): "
-                << dsblock.GetHeader().GetBlockNum());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetLeaderPubKey(): "
-                << dsblock.GetHeader().GetLeaderPubKey());
+  LOG_GENERAL(INFO,
+              "DS Diff   = " << (int)dsblock.GetHeader().GetDSDifficulty());
+  LOG_GENERAL(INFO, "Diff      = " << (int)dsblock.GetHeader().GetDifficulty());
+  LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
+  LOG_GENERAL(INFO, "Leader    = " << dsblock.GetHeader().GetLeaderPubKey());
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Incoming DS committee members");
+  LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& dsmember : dsblock.GetHeader().GetDSPoWWinners()) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, dsmember.second);
+    LOG_GENERAL(INFO,
+                "[" << PAD(ds_index++, 3, ' ') << "] " << dsmember.second);
   }
 }
 
