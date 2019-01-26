@@ -3303,12 +3303,12 @@ bool Messenger::GetFallbackBlockWShardingStructure(
                                      shardingStructureVersion, shards);
 }
 
-bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
-                                  const uint32_t& shardingStructureVersion,
-                                  const DequeOfShard& shards,
-                                  const uint32_t& dsCommitteeVersion,
-                                  const DequeOfNode& dsCommittee) {
-  ProtoDiagnosticData result;
+bool Messenger::SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
+                                       const uint32_t& shardingStructureVersion,
+                                       const DequeOfShard& shards,
+                                       const uint32_t& dsCommitteeVersion,
+                                       const DequeOfNode& dsCommittee) {
+  ProtoDiagnosticDataNodes result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
                               *result.mutable_shards());
@@ -3316,24 +3316,25 @@ bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
                         *result.mutable_dscommittee());
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataNodes initialization failed");
     return false;
   }
 
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
-                                  uint32_t& shardingStructureVersion,
-                                  DequeOfShard& shards,
-                                  uint32_t& dsCommitteeVersion,
-                                  DequeOfNode& dsCommittee) {
-  ProtoDiagnosticData result;
+bool Messenger::GetDiagnosticDataNodes(const bytes& src,
+                                       const unsigned int offset,
+                                       uint32_t& shardingStructureVersion,
+                                       DequeOfShard& shards,
+                                       uint32_t& dsCommitteeVersion,
+                                       DequeOfNode& dsCommittee) {
+  ProtoDiagnosticDataNodes result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataNodes initialization failed");
     return false;
   }
 
@@ -3345,6 +3346,88 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
 
   return ProtobufToDSCommittee(result.dscommittee(), dsCommitteeVersion,
                                dsCommittee);
+}
+
+bool Messenger::SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
+                                          const DiagnosticDataCoinbase& entry) {
+  ProtoDiagnosticDataCoinbase result;
+
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.nodeCount, *result.mutable_nodecount());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.sigCount, *result.mutable_sigcount());
+  result.set_lookupcount(entry.lookupCount);
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.totalReward, *result.mutable_totalreward());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.baseReward, *result.mutable_basereward());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.baseRewardEach, *result.mutable_baserewardeach());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.lookupReward, *result.mutable_lookupreward());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.rewardEachLookup, *result.mutable_rewardeachlookup());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.nodeReward, *result.mutable_nodereward());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.rewardEach, *result.mutable_rewardeach());
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      entry.balanceLeft, *result.mutable_balanceleft());
+  SerializableToProtobufByteArray(entry.luckyDrawWinnerKey,
+                                  *result.mutable_luckydrawwinnerkey());
+  result.set_luckydrawwinneraddr(entry.luckyDrawWinnerAddr.data(),
+                                 entry.luckyDrawWinnerAddr.size);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataCoinbase initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
+                                          const unsigned int offset,
+                                          DiagnosticDataCoinbase& entry) {
+  ProtoDiagnosticDataCoinbase result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDiagnosticDataCoinbase initialization failed");
+    return false;
+  }
+
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.nodecount(),
+                                                     entry.nodeCount);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.sigcount(),
+                                                     entry.sigCount);
+  entry.lookupCount = result.lookupcount();
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.totalreward(),
+                                                     entry.totalReward);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.basereward(),
+                                                     entry.baseReward);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.baserewardeach(),
+                                                     entry.baseRewardEach);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.lookupreward(),
+                                                     entry.lookupReward);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.rewardeachlookup(),
+                                                     entry.rewardEachLookup);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.nodereward(),
+                                                     entry.nodeReward);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.rewardeach(),
+                                                     entry.rewardEach);
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.balanceleft(),
+                                                     entry.balanceLeft);
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.luckydrawwinnerkey(),
+                                  entry.luckyDrawWinnerKey);
+  copy(result.luckydrawwinneraddr().begin(),
+       result.luckydrawwinneraddr().begin() +
+           min((unsigned int)result.luckydrawwinneraddr().size(),
+               (unsigned int)entry.luckyDrawWinnerAddr.size),
+       entry.luckyDrawWinnerAddr.asArray().begin());
+
+  return true;
 }
 
 // ============================================================================

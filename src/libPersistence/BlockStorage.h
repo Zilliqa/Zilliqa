@@ -25,6 +25,7 @@
 
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 
@@ -39,9 +40,47 @@ typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
-struct DiagnosticData {
+struct DiagnosticDataNodes {
   DequeOfShard shards;
   DequeOfNode dsCommittee;
+};
+
+struct DiagnosticDataCoinbase {
+  boost::multiprecision::uint128_t
+      nodeCount;  // Total num of nodes in the network for entire DS epoch
+  boost::multiprecision::uint128_t
+      sigCount;  // Total num of signatories for the mined blocks across all Tx
+                 // epochs
+  uint32_t lookupCount;  // Num of lookup nodes
+  boost::multiprecision::uint128_t
+      totalReward;  // Total reward based on COINBASE_REWARD_PER_DS and txn fees
+  boost::multiprecision::uint128_t
+      baseReward;  // Base reward based on BASE_REWARD_IN_PERCENT
+  boost::multiprecision::uint128_t
+      baseRewardEach;  // Base reward over nodeCount
+  boost::multiprecision::uint128_t
+      lookupReward;  // LOOKUP_REWARD_IN_PERCENT percent of remaining reward
+                     // after baseReward
+  boost::multiprecision::uint128_t
+      rewardEachLookup;  // lookupReward over lookupCount
+  boost::multiprecision::uint128_t
+      nodeReward;  // Remaining reward after lookupReward
+  boost::multiprecision::uint128_t rewardEach;  // nodeReward over sigCount
+  boost::multiprecision::uint128_t
+      balanceLeft;              // Remaining reward after nodeReward
+  PubKey luckyDrawWinnerKey;    // Recipient of balanceLeft (pubkey)
+  Address luckyDrawWinnerAddr;  // Recipient of balanceLeft (address)
+
+  bool operator==(const DiagnosticDataCoinbase& r) const {
+    return std::tie(nodeCount, sigCount, lookupCount, totalReward, baseReward,
+                    baseRewardEach, lookupReward, rewardEachLookup, nodeReward,
+                    rewardEach, balanceLeft, luckyDrawWinnerKey,
+                    luckyDrawWinnerAddr) ==
+           std::tie(r.nodeCount, r.sigCount, r.lookupCount, r.totalReward,
+                    r.baseReward, r.baseRewardEach, r.lookupReward,
+                    r.rewardEachLookup, r.nodeReward, r.rewardEach,
+                    r.balanceLeft, r.luckyDrawWinnerKey, r.luckyDrawWinnerAddr);
+  }
 };
 
 /// Manages persistent storage of DS and Tx blocks.
@@ -58,10 +97,11 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
-  // m_diagnosticDB is needed only for LOOKUP_NODE_MODE, but to make the unit
-  // test and monitoring tools work with the default setting of
+  // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
+  // unit test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
-  std::shared_ptr<LevelDB> m_diagnosticDB;
+  std::shared_ptr<LevelDB> m_diagnosticDBNodes;
+  std::shared_ptr<LevelDB> m_diagnosticDBCoinbase;
   /// used for historical data
   std::shared_ptr<LevelDB> m_txnHistoricalDB;
   std::shared_ptr<LevelDB> m_MBHistoricalDB;
@@ -77,9 +117,12 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_diagnosticDB(
-            std::make_shared<LevelDB>("diagnostic", path, diagnostic)),
-        m_diagnosticDBCounter(0) {
+        m_diagnosticDBNodes(
+            std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
+        m_diagnosticDBCoinbase(
+            std::make_shared<LevelDB>("diagnosticCoinb", path, diagnostic)),
+        m_diagnosticDBNodesCounter(0),
+        m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
@@ -103,7 +146,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
-    DIAGNOSTIC
+    DIAGNOSTIC_NODES,
+    DIAGNOSTIC_COINBASE
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -222,22 +266,44 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
-  /// Save data for diagnostic / monitoring purposes
-  bool PutDiagnosticData(const uint64_t& dsBlockNum, const DequeOfShard& shards,
-                         const DequeOfNode& dsCommittee);
+  /// Save data for diagnostic / monitoring purposes (nodes in network)
+  bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                              const DequeOfShard& shards,
+                              const DequeOfNode& dsCommittee);
 
-  /// Retrieve diagnostic data for specific block number
-  bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
-                         DequeOfNode& dsCommittee);
+  /// Save data for diagnostic / monitoring purposes (coinbase rewards)
+  bool PutDiagnosticDataCoinbase(const uint64_t& dsBlockNum,
+                                 const DiagnosticDataCoinbase& entry);
 
-  /// Retrieve diagnostic data
-  void GetDiagnosticData(std::map<uint64_t, DiagnosticData>& diagnosticDataMap);
+  /// Retrieve diagnostic data for specific block number (nodes in network)
+  bool GetDiagnosticDataNodes(const uint64_t& dsBlockNum, DequeOfShard& shards,
+                              DequeOfNode& dsCommittee);
 
-  /// Retrieve the number of entries in the diagnostic data db
-  unsigned int GetDiagnosticDataCount();
+  /// Retrieve diagnostic data for specific block number (coinbase rewards)
+  bool GetDiagnosticDataCoinbase(const uint64_t& dsBlockNum,
+                                 DiagnosticDataCoinbase& entry);
 
-  /// Delete the requested diagnostic data entry from the db
-  bool DeleteDiagnosticData(const uint64_t& dsBlockNum);
+  /// Retrieve diagnostic data (nodes in network)
+  void GetDiagnosticDataNodes(
+      std::map<uint64_t, DiagnosticDataNodes>& diagnosticDataMap);
+
+  /// Retrieve diagnostic data (coinbase rewards)
+  void GetDiagnosticDataCoinbase(
+      std::map<uint64_t, DiagnosticDataCoinbase>& diagnosticDataMap);
+
+  /// Retrieve the number of entries in the diagnostic data db (nodes in
+  /// network)
+  unsigned int GetDiagnosticDataNodesCount();
+
+  /// Retrieve the number of entries in the diagnostic data db (coinbase
+  /// rewards)
+  unsigned int GetDiagnosticDataCoinbaseCount();
+
+  /// Delete the requested diagnostic data entry from the db (nodes in network)
+  bool DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum);
+
+  /// Delete the requested diagnostic data entry from the db (coinbase rewards)
+  bool DeleteDiagnosticDataCoinbase(const uint64_t& dsBlockNum);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);
@@ -262,7 +328,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::mutex m_mutexTxBodyTmp;
   std::mutex m_mutexDiagnostic;
 
-  unsigned int m_diagnosticDBCounter;
+  unsigned int m_diagnosticDBNodesCounter;
+  unsigned int m_diagnosticDBCoinbaseCounter;
 };
 
 #endif  // BLOCKSTORAGE_H

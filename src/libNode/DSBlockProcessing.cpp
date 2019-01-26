@@ -658,7 +658,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     // Hence, we manage deleting old entries here instead
     if ((MAX_ENTRIES_FOR_DIAGNOSTIC_DATA >
          0) &&  // If limit is 0, skip deletion
-        (BlockStorage::GetBlockStorage().GetDiagnosticDataCount() >=
+        (BlockStorage::GetBlockStorage().GetDiagnosticDataNodesCount() >=
          MAX_ENTRIES_FOR_DIAGNOSTIC_DATA) &&  // Limit reached
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
          MAX_ENTRIES_FOR_DIAGNOSTIC_DATA)) {  // DS Block number is not below
@@ -669,7 +669,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 
       canPutNewEntry =
-          BlockStorage::GetBlockStorage().DeleteDiagnosticData(oldBlockNum);
+          BlockStorage::GetBlockStorage().DeleteDiagnosticDataNodes(
+              oldBlockNum);
 
       if (canPutNewEntry) {
         LOG_GENERAL(INFO,
@@ -682,7 +683,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     }
 
     if (canPutNewEntry) {
-      BlockStorage::GetBlockStorage().PutDiagnosticData(
+      BlockStorage::GetBlockStorage().PutDiagnosticDataNodes(
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           m_mediator.m_ds->m_shards, *m_mediator.m_DSCommittee);
     }

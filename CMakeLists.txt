@@ -242,7 +242,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory
+set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory getrewardhistory
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT
