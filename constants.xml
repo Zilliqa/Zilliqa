@@ -161,9 +161,9 @@
         <POW_DIFFICULTY>3</POW_DIFFICULTY>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
         <NUM_FINAL_BLOCK_PER_POW>50</NUM_FINAL_BLOCK_PER_POW>
-        <POW_CHANGE_PERCENT_TO_ADJ_DIFF>12</POW_CHANGE_PERCENT_TO_ADJ_DIFF>
-        <MAX_POW_CHANGE_TO_ADJ_DIFF>99</MAX_POW_CHANGE_TO_ADJ_DIFF>
-        <MAX_POW_CHANGE_TO_ADJ_DS_DIFF>49</MAX_POW_CHANGE_TO_ADJ_DS_DIFF>
+        <POW_CHANGE_TO_ADJ_DIFF>99</POW_CHANGE_TO_ADJ_DIFF>
+        <!-- DS difficulty adjust by compare DS pow number to NUM_DS_ELECTION -->
+        <POW_CHANGE_TO_ADJ_DS_DIFF>5</POW_CHANGE_TO_ADJ_DS_DIFF>
         <!-- If PoW submissions over this number, will increase difficulty -->
         <EXPECTED_SHARD_NODE_NUM>1800</EXPECTED_SHARD_NODE_NUM>
         <!-- If PoW submissions over this number, will select nodes by reputation -->

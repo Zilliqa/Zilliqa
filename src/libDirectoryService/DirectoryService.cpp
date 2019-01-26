@@ -1019,29 +1019,28 @@ uint8_t DirectoryService::CalculateNewDifficulty(
                 << powSubmissions);
   return CalculateNewDifficultyCore(
       currentDifficulty, POW_DIFFICULTY, powSubmissions,
-      EXPECTED_SHARD_NODE_NUM, MAX_POW_CHANGE_TO_ADJ_DIFF,
+      EXPECTED_SHARD_NODE_NUM, POW_CHANGE_TO_ADJ_DIFF,
       m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
     const uint8_t& dsDifficulty) {
-  int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
   int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsDifficulty " << std::to_string(dsDifficulty)
-                            << ", currentDSNodes " << currentDSNodes
+                            << ", NUM_DS_ELECTION " << NUM_DS_ELECTION
                             << ", dsPowSubmissions " << dsPowSubmissions);
 
   return CalculateNewDifficultyCore(
-      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, currentDSNodes,
-      MAX_POW_CHANGE_TO_ADJ_DS_DIFF, m_mediator.m_currentEpochNum,
+      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, NUM_DS_ELECTION,
+      POW_CHANGE_TO_ADJ_DS_DIFF, m_mediator.m_currentEpochNum,
       CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDifficultyCore(
     uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-    int64_t expectedNodes, uint32_t maxAdjustThreshold, int64_t currentEpochNum,
+    int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
     int64_t numBlockPerYear) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
   constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
@@ -1055,14 +1054,7 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
       submissionsDiff = 0;
     }
 
-    // To make the adjustment work on small network.
-    int64_t adjustThreshold = std::ceil(
-        expectedNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / ONE_HUNDRED_PERCENT);
-    if (adjustThreshold > maxAdjustThreshold) {
-      adjustThreshold = maxAdjustThreshold;
-    }
-
-    if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold, adjustment)) {
+    if (!SafeMath<int64_t>::div(submissionsDiff, powChangeoAdj, adjustment)) {
       LOG_GENERAL(WARNING, "Calculate difficulty adjustment goes wrong");
       adjustment = 0;
     }
