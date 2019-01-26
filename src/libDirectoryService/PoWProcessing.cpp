@@ -206,19 +206,16 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     if (cv_POWSubmission.wait_for(
             cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT)) ==
         std::cv_status::timeout) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Time out while waiting for state transition ");
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "State wait timed out");
     }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "State transition is completed. (check for timeout)");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "State transition completed");
   }
 
   if (!CheckState(PROCESS_POWSUBMISSION)) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
+
   uint8_t difficultyLevel = sol.GetDifficultyLevel();
   uint64_t blockNumber = sol.GetBlockNumber();
   Peer submitterPeer = sol.GetSubmitterPeer();
@@ -241,11 +238,6 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   if (!CheckState(VERIFYPOW)) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Too late - current state is "
-                  << m_state
-                  << ". Don't verify cause I have other work to do. "
-                     "Assume true as it has no impact.");
     return true;
   }
 
@@ -255,15 +247,15 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     return false;
   }
 
-  if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
-    LOG_GENERAL(WARNING, "Max PoW sent: " << submitterPeer);
-    return false;
-  }
-
   // Log all values
   LOG_GENERAL(INFO, "Key   = " << submitterPubKey);
   LOG_GENERAL(INFO, "Peer  = " << submitterPeer);
   LOG_GENERAL(INFO, "Diff  = " << to_string(difficultyLevel));
+
+  if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
+    LOG_GENERAL(WARNING, "Max PoW sent");
+    return false;
+  }
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
@@ -285,44 +277,40 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   if (!GUARD_MODE) {
     if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
-      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                               << to_string(difficultyLevel)
-                               << " Expected: " << to_string(expectedDSDiff)
-                               << " or " << to_string(expectedDiff));
+      LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
+                     to_string(expectedDSDiff)
+                         << " or " << to_string(expectedDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
   } else {
     if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
         difficultyLevel != expectedShardGuardDiff) {
-      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                               << to_string(difficultyLevel)
-                               << " Expected: " << to_string(expectedDSDiff)
-                               << " or " << to_string(expectedDiff) << " or "
-                               << to_string(expectedShardGuardDiff));
+      LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
+                     to_string(expectedDSDiff)
+                         << " or " << to_string(expectedDiff) << " or "
+                         << to_string(expectedShardGuardDiff));
       // TODO: penalise sender in reputation manager
       return false;
     }
   }
 
-  m_timespec = r_timer_start();
+  // m_timespec = r_timer_start();
 
   auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer.m_ipAddress,
                                        submitterPubKey, lookupId, gasPrice);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
-  LOG_GENERAL(INFO, "[POWSTAT] " << r_timer_end(m_timespec));
+  // LOG_GENERAL(INFO, "[POWSTAT] " << r_timer_end(m_timespec));
 
   if (result) {
     // Do another check on the state before accessing m_allPoWs
     // Accept slightly late entries as we need to multicast the DSBLOCK to
     // everyone if ((m_state != POW_SUBMISSION) && (m_state !=
     // DSBLOCK_CONSENSUS_PREP))
-    if (!CheckState(VERIFYPOW)) {
-      LOG_GENERAL(INFO, "Too late. State = " << GetStateString());
-    } else {
-      LOG_GENERAL(INFO, "Verified OK");
+    if (CheckState(VERIFYPOW)) {
+      // LOG_GENERAL(INFO, "Verified OK");
       lock(m_mutexAllPOW, m_mutexAllPoWConns);
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
@@ -336,17 +324,14 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result > soln.result) {
-        string harderSolnStr, oldSolnStr;
-        DataConversion::charArrToHexStr(soln.result, harderSolnStr);
-        DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
-                                        oldSolnStr);
-        LOG_GENERAL(INFO, "Replaced PoW " << oldSolnStr.substr(0, 8)
-                                          << "... with harder PoW "
-                                          << harderSolnStr.substr(0, 8)
-                                          << "... for " << submitterPubKey);
+        // string harderSolnStr, oldSolnStr;
+        // DataConversion::charArrToHexStr(soln.result, harderSolnStr);
+        // DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
+        // oldSolnStr);
+        LOG_GENERAL(INFO, "Replaced");
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result == soln.result) {
-        LOG_GENERAL(INFO, "Ignored duplicate PoW");
+        LOG_GENERAL(INFO, "Duplicated");
         return true;
       }
 

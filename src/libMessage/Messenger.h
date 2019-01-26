@@ -214,16 +214,23 @@ class Messenger {
       const bytes& src, const unsigned int offset, FallbackBlock& fallbackblock,
       uint32_t& shardingStructureVersion, DequeOfShard& shards);
 
-  static bool SetDiagnosticData(bytes& dst, const unsigned int offset,
-                                const uint32_t& shardingStructureVersion,
-                                const DequeOfShard& shards,
-                                const uint32_t& dsCommitteeVersion,
-                                const DequeOfNode& dsCommittee);
-  static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
-                                uint32_t& shardingStructureVersion,
-                                DequeOfShard& shards,
-                                uint32_t& dsCommitteeVersion,
-                                DequeOfNode& dsCommittee);
+  static bool SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
+                                     const uint32_t& shardingStructureVersion,
+                                     const DequeOfShard& shards,
+                                     const uint32_t& dsCommitteeVersion,
+                                     const DequeOfNode& dsCommittee);
+  static bool GetDiagnosticDataNodes(const bytes& src,
+                                     const unsigned int offset,
+                                     uint32_t& shardingStructureVersion,
+                                     DequeOfShard& shards,
+                                     uint32_t& dsCommitteeVersion,
+                                     DequeOfNode& dsCommittee);
+
+  static bool SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
+                                        const DiagnosticDataCoinbase& entry);
+  static bool GetDiagnosticDataCoinbase(const bytes& src,
+                                        const unsigned int offset,
+                                        DiagnosticDataCoinbase& entry);
 
   // ============================================================================
   // Peer Manager messages

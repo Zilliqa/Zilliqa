@@ -52,9 +52,8 @@ bool ConsensusLeader::CheckState(Action action) {
   }
 
   if (!found) {
-    LOG_GENERAL(WARNING, "Action " << GetActionString(action)
-                                   << " not allowed in state "
-                                   << GetStateString());
+    LOG_GENERAL(WARNING, GetActionString(action)
+                             << " not allowed in " << GetStateString());
     return false;
   }
 
@@ -79,12 +78,11 @@ bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
   }
 
   if (!found) {
-    LOG_GENERAL(WARNING,
-                "SubsetID: " << subsetID << ", Action "
-                             << GetActionString(action)
-                             << " not allowed in subset-state "
-                             << GetStateString(subset.state)
-                             << ", overall state: " << GetStateString());
+    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] "
+                                    << GetActionString(action)
+                                    << " not allowed in subset-state "
+                                    << GetStateString(subset.state)
+                                    << ", overall state: " << GetStateString());
     return false;
   }
 
@@ -116,9 +114,9 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   const unsigned int numSubsets = (peersWhoCommitted.size() < m_numForConsensus)
                                       ? 1
                                       : NUM_CONSENSUS_SUBSETS;
-  LOG_GENERAL(INFO, "PeerCommited:"
-                        << peersWhoCommitted.size() + 1 << " m_numForConsensus:"
-                        << m_numForConsensus << " numSubsets:" << numSubsets);
+  LOG_GENERAL(INFO, "peersWhoCommitted = " << peersWhoCommitted.size() + 1);
+  LOG_GENERAL(INFO, "m_numForConsensus = " << m_numForConsensus);
+  LOG_GENERAL(INFO, "numSubsets        = " << numSubsets);
 
   m_consensusSubsets.clear();
   m_consensusSubsets.resize(numSubsets);
@@ -163,9 +161,6 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   m_commitPointMap.clear();
   m_commitPoints.clear();
   m_commitMap.clear();
-  LOG_GENERAL(INFO, "Generated " << numSubsets << " subsets of "
-                                 << m_numForConsensus
-                                 << " backups each for this consensus");
 }
 
 void ConsensusLeader::StartConsensusSubsets() {
@@ -254,8 +249,8 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     // Set overall state to ERROR
     m_state = ERROR;
   } else {
-    LOG_GENERAL(INFO, "[Subset " << subsetID
-                                 << "] Subset has failed to reach consensus!");
+    LOG_GENERAL(
+        INFO, "[Subset " << subsetID << "] Subset failed to reach consensus!");
   }
 }
 
@@ -285,33 +280,32 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   if (!Messenger::GetConsensusCommit(
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, backupID,
           commitPoint, commitPointHash, m_committee)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed");
     return false;
   }
 
   if (m_commitMap.at(backupID)) {
-    LOG_GENERAL(WARNING, "Backup has already sent validated commit");
+    LOG_GENERAL(WARNING, "Backup already sent commit");
     return false;
   }
 
   // Check the commit
   if (!commitPoint.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid commit received");
+    LOG_GENERAL(WARNING, "Invalid commit");
     return false;
   }
 
   // Check the deserialized commit hash
   if (!commitPointHash.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid commit hash received");
+    LOG_GENERAL(WARNING, "Invalid commit hash");
     return false;
   }
 
   // Check the value of the commit hash
   CommitPointHash commitPointHashExpected(commitPoint);
   if (!(commitPointHashExpected == commitPointHash)) {
-    LOG_GENERAL(WARNING, "Commit hash check failed. Deserialized = "
-                             << string(commitPointHash) << " Expected = "
-                             << string(commitPointHashExpected));
+    LOG_CHECK_FAIL("Commit hash", string(commitPointHash),
+                   string(commitPointHashExpected));
     return false;
   }
 
@@ -330,8 +324,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   m_commitCounter++;
 
   if (m_commitCounter % 10 == 0) {
-    LOG_GENERAL(INFO, "Received " << m_commitCounter << " out of "
-                                  << m_numForConsensus << ".");
+    LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
+                                            << m_numForConsensus);
   }
 
   // Redundant commits
@@ -351,8 +345,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     }
   } else {
     if (m_commitCounter == m_numForConsensus) {
-      LOG_GENERAL(INFO, "Sufficient commits obtained. Required/Actual = "
-                            << m_commitCounter);
+      LOG_GENERAL(INFO, "Sufficient commits obtained");
       GenerateConsensusSubsets();
       StartConsensusSubsets();
     }
@@ -382,12 +375,12 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
   if (!Messenger::GetConsensusCommitFailure(
           commitFailureMsg, offset, m_consensusID, m_blockNumber, m_blockHash,
           backupID, errorMsg, m_committee)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusCommitFailure failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusCommitFailure failed");
     return false;
   }
 
   if (m_commitFailureMap.find(backupID) != m_commitFailureMap.end()) {
-    LOG_GENERAL(WARNING, "Backup has already sent commit failure message");
+    LOG_GENERAL(WARNING, "Backup already sent commit failure message");
     return false;
   }
 
@@ -404,7 +397,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
             consensusFailureMsg, MessageOffset::BODY + sizeof(uint8_t),
             m_consensusID, m_blockNumber, m_blockHash, m_myID,
             make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
-      LOG_GENERAL(WARNING, "Messenger::SetConsensusConsensusFailure failed.");
+      LOG_GENERAL(WARNING, "Messenger::SetConsensusConsensusFailure failed");
       return false;
     }
 
@@ -463,7 +456,7 @@ bool ConsensusLeader::GenerateChallengeMessage(bytes& challenge,
           m_blockHash, m_myID, aggregated_commit, aggregated_key,
           subset.challenge,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
-    LOG_GENERAL(WARNING, "Messenger::SetConsensusChallenge failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetConsensusChallenge failed");
     return false;
   }
 
@@ -491,15 +484,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   if (!Messenger::GetConsensusResponse(response, offset, m_consensusID,
                                        m_blockNumber, m_blockHash, backupID,
                                        subsetID, r, m_committee)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed");
     return false;
   }
 
   // Check the subset id
   if (subsetID >= m_consensusSubsets.size()) {
-    LOG_GENERAL(WARNING, "Error: Subset ID (" << subsetID
-                                              << ") >= NUM_CONSENSUS_SUBSETS: "
-                                              << NUM_CONSENSUS_SUBSETS);
+    LOG_GENERAL(WARNING,
+                "Subset ID " << subsetID << " >= " << NUM_CONSENSUS_SUBSETS);
     return false;
   }
 
@@ -512,29 +504,27 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
   // Check the backup id
   if (backupID >= subset.responseDataMap.size()) {
-    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] [Backup " << backupID
-                                    << "] Backup ID beyond backup count");
+    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] Backup ID " << backupID
+                                    << " >= " << subset.responseDataMap.size());
     return false;
   }
   if (!subset.commitMap.at(backupID)) {
-    LOG_GENERAL(
-        WARNING, "[Subset "
-                     << subsetID << "] [Backup " << backupID
-                     << "] Backup has not participated in the commit phase");
+    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] [Backup " << backupID
+                                    << "] Backup did not send commit");
     return false;
   }
 
   if (subset.responseMap.at(backupID)) {
-    LOG_GENERAL(WARNING, "[Subset "
-                             << subsetID << "] [Backup " << backupID
-                             << "] Backup has already sent validated response");
+    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] [Backup " << backupID
+                                    << "] Backup already sent response");
     return false;
   }
 
   if (!MultiSig::VerifyResponse(r, subset.challenge,
                                 GetCommitteeMember(backupID).first,
                                 subset.commitPointMap.at(backupID))) {
-    LOG_GENERAL(WARNING, "Invalid response for this backup");
+    LOG_GENERAL(WARNING, "[Subset " << subsetID << "] [Backup " << backupID
+                                    << "] Invalid response");
     return false;
   }
 
@@ -557,9 +547,9 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   subset.responseCounter++;
 
   if (subset.responseCounter % 10 == 0) {
-    LOG_GENERAL(INFO, "[Subset " << subsetID << "] Received "
-                                 << subset.responseCounter << " out of "
-                                 << m_numForConsensus << ".");
+    LOG_GENERAL(INFO, "[Subset " << subsetID << "] Received responses = "
+                                 << subset.responseCounter << " / "
+                                 << m_numForConsensus);
   }
 
   // Generate collective sig if sufficient responses have been obtained
@@ -710,12 +700,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
   // Verify the collective signature
   if (!MultiSig::GetInstance().MultiSigVerify(
           m_messageToCosign, subset.collectiveSig, aggregated_key)) {
-    LOG_GENERAL(WARNING, "Collective sig verification failed");
+    LOG_GENERAL(WARNING, "MultiSigVerify failed");
     SetStateSubset(subsetID, ERROR);
-
-    LOG_GENERAL(INFO, "num of pub keys: " << m_committee.size() << " "
-                                          << "num of peer_info keys: "
-                                          << m_committee.size());
     return false;
   }
 
@@ -768,11 +754,6 @@ ConsensusLeader::ConsensusLeader(
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
-  LOG_GENERAL(INFO, "TOLERANCE_FRACTION "
-                        << TOLERANCE_FRACTION << " pubkeys.size() "
-                        << committee.size() << " m_numForConsensus "
-                        << m_numForConsensus << " m_numForConsensusFailure "
-                        << m_numForConsensusFailure);
 
   m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
   m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
@@ -790,6 +771,12 @@ ConsensusLeader::ConsensusLeader(
   m_commitRedundantCounter = 0;
   m_commitFailureCounter = 0;
   m_numSubsetsRunning = 0;
+
+  LOG_GENERAL(INFO, "Consensus ID      = " << m_consensusID);
+  LOG_GENERAL(INFO, "Leader/My ID      = " << m_myID);
+  LOG_GENERAL(INFO, "Committee size    = " << committee.size());
+  LOG_GENERAL(INFO, "Num for consensus = " << m_numForConsensus);
+  LOG_GENERAL(INFO, "Num for failure   = " << m_numForConsensusFailure);
 }
 
 ConsensusLeader::~ConsensusLeader() {}
@@ -815,12 +802,9 @@ bool ConsensusLeader::StartConsensus(
           m_consensusID, m_blockNumber, m_blockHash, m_myID,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first),
           m_messageToCosign)) {
-    LOG_GENERAL(WARNING, "Failed to generate announcement message.");
+    LOG_GENERAL(WARNING, "Failed to generate announcement message");
     return false;
   }
-
-  LOG_GENERAL(INFO, "Consensus id is " << m_consensusID
-                                       << " Consensus leader id is " << m_myID);
 
   // Update internal state
   // =====================
@@ -907,8 +891,8 @@ bool ConsensusLeader::ProcessMessage(const bytes& message, unsigned int offset,
       result = ProcessMessageFinalResponse(message, offset + 1);
       break;
     default:
-      LOG_GENERAL(WARNING, "Unknown consensus message received. No: "
-                               << (unsigned int)message.at(offset));
+      LOG_GENERAL(WARNING,
+                  "Unknown msg type " << (unsigned int)message.at(offset));
   }
 
   return result;
@@ -927,6 +911,6 @@ map<ConsensusLeader::Action, string> ConsensusLeader::ActionStrings = {
 
 std::string ConsensusLeader::GetActionString(Action action) const {
   return (ActionStrings.find(action) == ActionStrings.end())
-             ? "Unknown"
+             ? "UNKNOWN"
              : ActionStrings.at(action);
 }

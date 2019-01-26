@@ -583,6 +583,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
                     const int32_t& shard_id, const uint64_t& epochNum);
   void InitCoinbase();
+  void StoreCoinbaseInDiagnosticDB(const DiagnosticDataCoinbase& entry);
 
   template <class Container>
   bool SaveCoinbaseCore(const std::vector<bool>& b1,

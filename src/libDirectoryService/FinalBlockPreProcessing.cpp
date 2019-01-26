@@ -312,9 +312,8 @@ bool DirectoryService::CheckFinalBlockVersion() {
   LOG_MARKER();
 
   if (m_finalBlock->GetHeader().GetVersion() != TXBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << TXBLOCK_VERSION << " Actual: "
-                             << m_finalBlock->GetHeader().GetVersion());
+    LOG_CHECK_FAIL("TxBlock version", m_finalBlock->GetHeader().GetVersion(),
+                   TXBLOCK_VERSION);
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_FINALBLOCK_VERSION);
@@ -364,19 +363,18 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
   BlockHash expectedPrevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Prev block hash recvd: " << finalblockPrevHash.hex() << endl
-                                      << "Prev block hash expected: "
-                                      << expectedPrevHash.hex());
-
   if (finalblockPrevHash != expectedPrevHash) {
-    LOG_GENERAL(WARNING, "Previous hash check failed.");
+    LOG_GENERAL(WARNING, "Prev block hash mismatch");
+    LOG_GENERAL(WARNING, "Actual   = " << finalblockPrevHash.hex());
+    LOG_GENERAL(WARNING, "Expected = " << expectedPrevHash.hex());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_PREV_FINALBLOCK_HASH);
 
     return false;
   }
+
+  LOG_GENERAL(INFO, "Prev block hash OK = " << finalblockPrevHash.hex());
 
   return true;
 }
@@ -422,7 +420,7 @@ bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
       }
 
       BlockHash hash = info.m_microBlockHash;
-      LOG_GENERAL(INFO, "MicroBlock hash: " << hash);
+      LOG_GENERAL(INFO, "MicroBlock hash = " << hash);
       bool found = false;
       auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
       for (auto& microBlock : microBlocks) {

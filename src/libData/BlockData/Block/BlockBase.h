@@ -95,8 +95,8 @@ class BlockBase : public SerializableDataBlock {
 
 inline std::ostream& operator<<(std::ostream& os, const BlockBase& t) {
   os << "<BlockBase>" << std::endl
-     << "m_blockHash : " << t.GetBlockHash() << std::endl
-     << "m_timestamp : " << t.GetTimestamp();
+     << " m_blockHash = " << t.GetBlockHash() << std::endl
+     << " m_timestamp = " << t.GetTimestamp();
   return os;
 }
 

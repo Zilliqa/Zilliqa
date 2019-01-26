@@ -370,7 +370,6 @@ void DirectoryService::StartFirstTxEpoch() {
     unsigned int index = 0;
     for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
       if (i.second == Peer()) {
-        LOG_GENERAL(INFO, "m_consensusMyID = " << index);
         m_mediator.m_node->SetConsensusMyID(index);
       }
 

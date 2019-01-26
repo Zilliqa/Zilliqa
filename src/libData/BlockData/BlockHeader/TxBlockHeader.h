@@ -117,13 +117,13 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<TxBlockHeader>" << std::endl
-     << "m_gasLimit : " << t.m_gasLimit << std::endl
-     << "m_gasUsed : " << t.m_gasUsed << std::endl
-     << "m_rewards : " << t.m_rewards << std::endl
-     << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_numTxs : " << t.m_numTxs << std::endl
-     << "m_minerPubKey : " << t.m_minerPubKey << std::endl
-     << "m_dsBlockNum : " << t.m_dsBlockNum << std::endl
+     << " m_gasLimit    = " << t.m_gasLimit << std::endl
+     << " m_gasUsed     = " << t.m_gasUsed << std::endl
+     << " m_rewards     = " << t.m_rewards << std::endl
+     << " m_blockNum    = " << t.m_blockNum << std::endl
+     << " m_numTxs      = " << t.m_numTxs << std::endl
+     << " m_minerPubKey = " << t.m_minerPubKey << std::endl
+     << " m_dsBlockNum  = " << t.m_dsBlockNum << std::endl
      << t.m_hashset;
   return os;
 }

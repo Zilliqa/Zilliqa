@@ -497,6 +497,11 @@ Json::Value Server::GetSmartContractState(const string& address) {
                              "Address does not exist");
     }
 
+    if (!account->isContract()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
+    }
+
     return account->GetStateJson(false);
   } catch (const JsonRpcException& je) {
     throw je;
@@ -658,14 +663,6 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
   }
 }
 
-string Server::CreateMessage([[gnu::unused]] const Json::Value& _json) {
-  return "Hello";
-}
-
-string Server::GetGasEstimate([[gnu::unused]] const Json::Value& _json) {
-  return "Hello";
-}
-
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();
   unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
@@ -695,6 +692,8 @@ uint8_t Server::GetPrevDifficulty() {
 
 string Server::GetNumTransactions() {
   LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexBlockTxPair);
 
   uint64_t currBlock =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -867,9 +866,11 @@ Json::Value Server::DSBlockListing(unsigned int page) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
 
-  auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
-  _json["maxPages"] = int(maxPages);
+  _json["maxPages"] = maxPages;
+
+  lock_guard<mutex> g(m_mutexDSBlockCache);
 
   if (m_DSBlockCache.second.size() == 0) {
     try {
@@ -931,7 +932,7 @@ Json::Value Server::DSBlockListing(unsigned int page) {
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_DSBlockCache.second[size - i - 1];
-      tmpJson["BlockNum"] = int(currBlockNum - i);
+      tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   } else {
@@ -942,7 +943,7 @@ Json::Value Server::DSBlockListing(unsigned int page) {
                             .GetHeader()
                             .GetPrevHash()
                             .hex();
-      tmpJson["BlockNum"] = int(currBlockNum - i);
+      tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   }
@@ -957,9 +958,11 @@ Json::Value Server::TxBlockListing(unsigned int page) {
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
 
-  auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
-  _json["maxPages"] = int(maxPages);
+  _json["maxPages"] = maxPages;
+
+  lock_guard<mutex> g(m_mutexTxBlockCache);
 
   if (m_TxBlockCache.second.size() == 0) {
     try {
@@ -1022,7 +1025,7 @@ Json::Value Server::TxBlockListing(unsigned int page) {
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_TxBlockCache.second[size - i - 1];
-      tmpJson["BlockNum"] = int(currBlockNum - i);
+      tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   } else {
@@ -1033,7 +1036,7 @@ Json::Value Server::TxBlockListing(unsigned int page) {
                             .GetHeader()
                             .GetPrevHash()
                             .hex();
-      tmpJson["BlockNum"] = int(currBlockNum - i);
+      tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   }
@@ -1070,7 +1073,7 @@ Json::Value Server::GetRecentTransactions() {
     actualSize = m_RecentTransactions.size();
   }
   uint64_t size = m_RecentTransactions.size();
-  _json["number"] = int(actualSize);
+  _json["number"] = uint(actualSize);
   _json["TxnHashes"] = Json::Value(Json::arrayValue);
   for (uint64_t i = 0; i < actualSize; i++) {
     _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
@@ -1131,6 +1134,8 @@ string Server::GetNumTxnsDSEpoch() {
     auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
     auto latestTxBlockNum = latestTxBlock.GetBlockNum();
     auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
+
+    lock_guard<mutex> g(m_mutexTxBlockCountSumPair);
 
     if (latestTxBlockNum > m_TxBlockCountSumPair.first) {
       // Case where the DS Epoch is same

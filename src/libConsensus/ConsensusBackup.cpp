@@ -51,9 +51,8 @@ bool ConsensusBackup::CheckState(Action action) {
   }
 
   if (!found) {
-    LOG_GENERAL(WARNING, "Action " << GetActionString(action)
-                                   << " not allowed in state "
-                                   << GetStateString());
+    LOG_GENERAL(WARNING, GetActionString(action)
+                             << " not allowed in " << GetStateString());
     return false;
   }
 
@@ -82,6 +81,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
     LOG_GENERAL(WARNING, "Message validation failed");
 
     if (!errorMsg.empty()) {
+      LOG_GENERAL(WARNING, "Sending commit failure to leader");
+
       bytes commitFailureMsg = {
           m_classByte, m_insByte,
           static_cast<uint8_t>(ConsensusMessageType::COMMITFAILURE)};
@@ -103,9 +104,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
       }
     }
 
-    LOG_GENERAL(WARNING,
-                "Announcement content validation failed - dropping message but "
-                "keeping state");
     return false;
   }
 
@@ -137,7 +135,7 @@ bool ConsensusBackup::ProcessMessageConsensusFailure(const bytes& announcement,
   if (!Messenger::GetConsensusConsensusFailure(
           announcement, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, GetCommitteeMember(m_leaderID).first)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusConsensusFailure failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusConsensusFailure failed");
     return false;
   }
 
@@ -155,7 +153,7 @@ bool ConsensusBackup::GenerateCommitFailureMessage(bytes& commitFailure,
           commitFailure, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_myID, errorMsg,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
-    LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed");
     return false;
   }
 
@@ -178,7 +176,7 @@ bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
           *m_commitPoint, CommitPointHash(*m_commitPoint),
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
-    LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed");
     return false;
   }
 
@@ -208,20 +206,20 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
           challenge, offset, m_consensusID, m_blockNumber, subsetID,
           m_blockHash, m_leaderID, aggregated_commit, aggregated_key,
           m_challenge, GetCommitteeMember(m_leaderID).first)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed");
     return false;
   }
 
   // Check the aggregated commit
   if (!aggregated_commit.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid aggregated commit received");
+    LOG_GENERAL(WARNING, "Invalid aggregated commit");
     m_state = ERROR;
     return false;
   }
 
   // Check the challenge
   if (!m_challenge.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid challenge received");
+    LOG_GENERAL(WARNING, "Invalid challenge");
     m_state = ERROR;
     return false;
   }
@@ -281,7 +279,7 @@ bool ConsensusBackup::GenerateResponseMessage(bytes& response,
           response, offset, m_consensusID, m_blockNumber, subsetID, m_blockHash,
           m_myID, r,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
-    LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed");
     return false;
   }
 
@@ -308,7 +306,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, m_responseMap, m_collectiveSig,
           GetCommitteeMember(m_leaderID).first)) {
-    LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed");
     return false;
   }
 
@@ -402,6 +400,10 @@ ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
       m_msgContentValidator(msg_validator) {
   LOG_MARKER();
   m_state = INITIAL;
+
+  LOG_GENERAL(INFO, "Consensus ID = " << m_consensusID);
+  LOG_GENERAL(INFO, "Leader ID    = " << m_leaderID);
+  LOG_GENERAL(INFO, "My ID        = " << m_myID);
 }
 
 ConsensusBackup::~ConsensusBackup() {}
@@ -435,7 +437,8 @@ bool ConsensusBackup::ProcessMessage(const bytes& message, unsigned int offset,
       result = ProcessMessageFinalCollectiveSig(message, offset + 1);
       break;
     default:
-      LOG_GENERAL(WARNING, "Unknown consensus message received");
+      LOG_GENERAL(WARNING,
+                  "Unknown msg type " << (unsigned int)message.at(offset));
   }
 
   return result;
@@ -452,6 +455,6 @@ map<ConsensusBackup::Action, string> ConsensusBackup::ActionStrings = {
 
 std::string ConsensusBackup::GetActionString(Action action) const {
   return (ActionStrings.find(action) == ActionStrings.end())
-             ? "Unknown"
+             ? "UNKNOWN"
              : ActionStrings.at(action);
 }

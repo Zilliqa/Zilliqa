@@ -979,8 +979,8 @@ bool Node::CheckState(Action action) {
 
   if (!found) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Action " << GetActionString(action) << " not allowed in state "
-                        << GetStateString());
+              GetActionString(action)
+                  << " not allowed in " << GetStateString());
     return false;
   }
 
@@ -1566,8 +1566,7 @@ void Node::CommitTxnPacketBuffer() {
 void Node::SetState(NodeState state) {
   m_state = state;
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Node State is now " << GetStateString() << " at epoch "
-                                 << m_mediator.m_currentEpochNum);
+            "Node State = " << GetStateString());
 }
 
 // Set m_consensusMyID

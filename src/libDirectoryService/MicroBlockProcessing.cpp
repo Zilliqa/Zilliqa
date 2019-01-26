@@ -212,9 +212,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (microBlock.GetHeader().GetVersion() != MICROBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << MICROBLOCK_VERSION << " Actual: "
-                             << microBlock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("MicroBlock version", microBlock.GetHeader().GetVersion(),
+                   MICROBLOCK_VERSION);
     return false;
   }
 
@@ -274,6 +273,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   LOG_GENERAL(INFO, "MicroBlock StateDeltaHash: "
+                        << endl
                         << microBlock.GetHeader().GetHashes());
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
@@ -609,7 +609,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      LOG_GENERAL(INFO, "MicroBlock Hash: "
+      LOG_GENERAL(INFO, "MicroBlock hash = "
                             << microBlocks.at(i).GetHeader().GetHashes());
 
       if (microBlocks.at(i).GetHeader().GetShardId() != m_shards.size()) {

@@ -55,9 +55,9 @@ struct MicroBlockInfo {
 
 inline std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t) {
   os << "<MicroBlockInfo>" << std::endl
-     << t.m_microBlockHash << std::endl
-     << t.m_txnRootHash << std::endl
-     << t.m_shardId;
+     << " t.m_microBlockHash = " << t.m_microBlockHash << std::endl
+     << " t.m_txnRootHash    = " << t.m_txnRootHash << std::endl
+     << " t.m_shardId        = " << t.m_shardId;
   return os;
 }
 

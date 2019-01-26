@@ -284,9 +284,8 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   }
 
   if (get<BlockLinkIndex::VERSION>(blnk) != BLOCKLINK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << BLOCKLINK_VERSION << " Actual: "
-                             << get<BlockLinkIndex::VERSION>(blnk));
+    LOG_CHECK_FAIL("BlockLink version", get<BlockLinkIndex::VERSION>(blnk),
+                   BLOCKLINK_VERSION);
     return false;
   }
 
@@ -479,9 +478,8 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       return false;
     }
     if (get<BlockLinkIndex::VERSION>(blcklink) != BLOCKLINK_VERSION) {
-      LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                               << BLOCKLINK_VERSION << " Actual: "
-                               << get<BlockLinkIndex::VERSION>(blcklink));
+      LOG_CHECK_FAIL("BlockLink version",
+                     get<BlockLinkIndex::VERSION>(blcklink), BLOCKLINK_VERSION);
       delete it;
       return false;
     }
@@ -640,9 +638,8 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
                                    version, shards);
 
   if (version != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: " << SHARDINGSTRUCTURE_VERSION
-                                                   << " Actual: " << version);
+    LOG_CHECK_FAIL("Sharding structure version", version,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
@@ -677,41 +674,65 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
   return true;
 }
 
-bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
-                                     const DequeOfShard& shards,
-                                     const DequeOfNode& dsCommittee) {
+bool BlockStorage::PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                                          const DequeOfShard& shards,
+                                          const DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   bytes data;
 
-  if (!Messenger::SetDiagnosticData(data, 0, SHARDINGSTRUCTURE_VERSION, shards,
-                                    DSCOMMITTEE_VERSION, dsCommittee)) {
-    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticData failed");
+  if (!Messenger::SetDiagnosticDataNodes(data, 0, SHARDINGSTRUCTURE_VERSION,
+                                         shards, DSCOMMITTEE_VERSION,
+                                         dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticDataNodes failed");
     return false;
   }
 
   lock_guard<mutex> g(m_mutexDiagnostic);
 
-  if (0 != m_diagnosticDB->Insert(dsBlockNum, data)) {
+  if (0 != m_diagnosticDBNodes->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store diagnostic data");
     return false;
   }
 
-  m_diagnosticDBCounter++;
+  m_diagnosticDBNodesCounter++;
 
   return true;
 }
 
-bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
-                                     DequeOfShard& shards,
-                                     DequeOfNode& dsCommittee) {
+bool BlockStorage::PutDiagnosticDataCoinbase(
+    const uint64_t& dsBlockNum, const DiagnosticDataCoinbase& entry) {
+  LOG_MARKER();
+
+  bytes data;
+
+  if (!Messenger::SetDiagnosticDataCoinbase(data, 0, entry)) {
+    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticDataCoinbase failed");
+    return false;
+  }
+
+  lock_guard<mutex> g(m_mutexDiagnostic);
+
+  if (0 != m_diagnosticDBCoinbase->Insert(dsBlockNum, data)) {
+    LOG_GENERAL(WARNING, "Failed to store diagnostic data");
+    return false;
+  }
+
+  m_diagnosticDBCoinbaseCounter++;
+
+  return true;
+}
+
+bool BlockStorage::GetDiagnosticDataNodes(const uint64_t& dsBlockNum,
+                                          DequeOfShard& shards,
+                                          DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
   string dataStr;
 
   {
     lock_guard<mutex> g(m_mutexDiagnostic);
-    dataStr = m_diagnosticDB->Lookup(dsBlockNum);
+    dataStr = m_diagnosticDBNodes->Lookup(dsBlockNum);
   }
 
   if (dataStr.empty()) {
@@ -725,37 +746,64 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
 
   uint32_t shardingStructureVersion = 0;
   uint32_t dsCommitteeVersion = 0;
-  if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion, shards,
-                                    dsCommitteeVersion, dsCommittee)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticData failed");
+  if (!Messenger::GetDiagnosticDataNodes(data, 0, shardingStructureVersion,
+                                         shards, dsCommitteeVersion,
+                                         dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticDataNodes failed");
     return false;
   }
 
   if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
+    LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
   if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
-                             << DSCOMMITTEE_VERSION
-                             << " Actual: " << dsCommitteeVersion);
+    LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                   DSCOMMITTEE_VERSION);
     return false;
   }
 
   return true;
 }
 
-void BlockStorage::GetDiagnosticData(
-    map<uint64_t, DiagnosticData>& diagnosticDataMap) {
+bool BlockStorage::GetDiagnosticDataCoinbase(const uint64_t& dsBlockNum,
+                                             DiagnosticDataCoinbase& entry) {
+  LOG_MARKER();
+
+  string dataStr;
+
+  {
+    lock_guard<mutex> g(m_mutexDiagnostic);
+    dataStr = m_diagnosticDBCoinbase->Lookup(dsBlockNum);
+  }
+
+  if (dataStr.empty()) {
+    LOG_GENERAL(WARNING,
+                "Failed to retrieve diagnostic data for DS block number "
+                    << dsBlockNum);
+    return false;
+  }
+
+  bytes data(dataStr.begin(), dataStr.end());
+
+  if (!Messenger::GetDiagnosticDataCoinbase(data, 0, entry)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticDataCoinbase failed");
+    return false;
+  }
+
+  return true;
+}
+
+void BlockStorage::GetDiagnosticDataNodes(
+    map<uint64_t, DiagnosticDataNodes>& diagnosticDataMap) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDiagnostic);
 
   leveldb::Iterator* it =
-      m_diagnosticDB->GetDB()->NewIterator(leveldb::ReadOptions());
+      m_diagnosticDBNodes->GetDB()->NewIterator(leveldb::ReadOptions());
 
   unsigned int index = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -779,34 +827,29 @@ void BlockStorage::GetDiagnosticData(
 
     bytes data(dataStr.begin(), dataStr.end());
 
-    DiagnosticData entry;
+    DiagnosticDataNodes entry;
     uint32_t shardingStructureVersion = 0;
     uint32_t dsCommitteeVersion = 0;
 
-    if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion,
-                                      entry.shards, dsCommitteeVersion,
-                                      entry.dsCommittee)) {
-      LOG_GENERAL(WARNING,
-                  "Messenger::GetDiagnosticData failed for DS block number "
-                      << dsBlockNumStr << " at index " << index);
+    if (!Messenger::GetDiagnosticDataNodes(data, 0, shardingStructureVersion,
+                                           entry.shards, dsCommitteeVersion,
+                                           entry.dsCommittee)) {
+      LOG_GENERAL(
+          WARNING,
+          "Messenger::GetDiagnosticDataNodes failed for DS block number "
+              << dsBlockNumStr << " at index " << index);
       continue;
     }
 
     if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-      LOG_GENERAL(WARNING,
-                  "Sharding structure version check failed for DS block number "
-                      << dsBlockNumStr << " at index " << index
-                      << ". Expected: " << SHARDINGSTRUCTURE_VERSION
-                      << " Actual: " << shardingStructureVersion);
+      LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                     SHARDINGSTRUCTURE_VERSION)
       continue;
     }
 
     if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-      LOG_GENERAL(WARNING,
-                  "DS committee version check failed for DS block number "
-                      << dsBlockNumStr << " at index " << index
-                      << ". Expected: " << DSCOMMITTEE_VERSION
-                      << " Actual: " << dsCommitteeVersion);
+      LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                     DSCOMMITTEE_VERSION);
       continue;
     }
 
@@ -816,16 +859,77 @@ void BlockStorage::GetDiagnosticData(
   }
 }
 
-unsigned int BlockStorage::GetDiagnosticDataCount() {
+void BlockStorage::GetDiagnosticDataCoinbase(
+    map<uint64_t, DiagnosticDataCoinbase>& diagnosticDataMap) {
+  LOG_MARKER();
+
   lock_guard<mutex> g(m_mutexDiagnostic);
-  return m_diagnosticDBCounter;
+
+  leveldb::Iterator* it =
+      m_diagnosticDBCoinbase->GetDB()->NewIterator(leveldb::ReadOptions());
+
+  unsigned int index = 0;
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string dsBlockNumStr = it->key().ToString();
+    string dataStr = it->value().ToString();
+
+    if (dsBlockNumStr.empty() || dataStr.empty()) {
+      LOG_GENERAL(WARNING,
+                  "Failed to retrieve diagnostic data at index " << index);
+      continue;
+    }
+
+    uint64_t dsBlockNum = 0;
+    try {
+      dsBlockNum = stoul(dsBlockNumStr);
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "Non-numeric key " << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    bytes data(dataStr.begin(), dataStr.end());
+
+    DiagnosticDataCoinbase entry;
+
+    if (!Messenger::GetDiagnosticDataCoinbase(data, 0, entry)) {
+      LOG_GENERAL(
+          WARNING,
+          "Messenger::GetDiagnosticDataCoinbase failed for DS block number "
+              << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    diagnosticDataMap.emplace(make_pair(dsBlockNum, entry));
+
+    index++;
+  }
 }
 
-bool BlockStorage::DeleteDiagnosticData(const uint64_t& dsBlockNum) {
+unsigned int BlockStorage::GetDiagnosticDataNodesCount() {
   lock_guard<mutex> g(m_mutexDiagnostic);
-  bool result = (0 == m_diagnosticDB->DeleteKey(dsBlockNum));
+  return m_diagnosticDBNodesCounter;
+}
+
+unsigned int BlockStorage::GetDiagnosticDataCoinbaseCount() {
+  lock_guard<mutex> g(m_mutexDiagnostic);
+  return m_diagnosticDBCoinbaseCounter;
+}
+
+bool BlockStorage::DeleteDiagnosticDataNodes(const uint64_t& dsBlockNum) {
+  lock_guard<mutex> g(m_mutexDiagnostic);
+  bool result = (0 == m_diagnosticDBNodes->DeleteKey(dsBlockNum));
   if (result) {
-    m_diagnosticDBCounter--;
+    m_diagnosticDBNodesCounter--;
+  }
+  return result;
+}
+
+bool BlockStorage::DeleteDiagnosticDataCoinbase(const uint64_t& dsBlockNum) {
+  lock_guard<mutex> g(m_mutexDiagnostic);
+  bool result = (0 == m_diagnosticDBCoinbase->DeleteKey(dsBlockNum));
+  if (result) {
+    m_diagnosticDBCoinbaseCounter--;
   }
   return result;
 }
@@ -894,11 +998,19 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_stateDeltaDB->ResetDB();
       break;
     }
-    case DIAGNOSTIC: {
+    case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
-      ret = m_diagnosticDB->ResetDB();
+      ret = m_diagnosticDBNodes->ResetDB();
       if (ret) {
-        m_diagnosticDBCounter = 0;
+        m_diagnosticDBNodesCounter = 0;
+      }
+      break;
+    }
+    case DIAGNOSTIC_COINBASE: {
+      lock_guard<mutex> g(m_mutexDiagnostic);
+      ret = m_diagnosticDBCoinbase->ResetDB();
+      if (ret) {
+        m_diagnosticDBCoinbaseCounter = 0;
       }
       break;
     }
@@ -972,9 +1084,14 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
     }
-    case DIAGNOSTIC: {
+    case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
-      ret.push_back(m_diagnosticDB->GetDBName());
+      ret.push_back(m_diagnosticDBNodes->GetDBName());
+      break;
+    }
+    case DIAGNOSTIC_COINBASE: {
+      lock_guard<mutex> g(m_mutexDiagnostic);
+      ret.push_back(m_diagnosticDBCoinbase->GetDBName());
       break;
     }
   }
@@ -989,13 +1106,15 @@ bool BlockStorage::ResetAll() {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
            ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
            ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE);
   }
 }
