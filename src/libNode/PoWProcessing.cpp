@@ -183,6 +183,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                   "Time out while waiting for DS Block");
 
         if (!m_mediator.m_lookup->AlreadyJoinedNetwork()) {
+          LOG_GENERAL(
+              WARNING,
+              "I lost pow again. Waiting for fetching dirBlocks later.");
           return;
         }
 
