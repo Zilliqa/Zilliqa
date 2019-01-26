@@ -20,6 +20,7 @@
 
 #include <json/json.h>
 #include <leveldb/db.h>
+#include <shared_mutex>
 
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -57,6 +58,11 @@ class ContractStorage : public Singleton<ContractStorage> {
   // Used for revert state due to failure in chain call
   std::unordered_map<std::string, bytes> p_stateIndexMap;
   std::unordered_map<std::string, bytes> p_stateDataMap;
+
+  mutable std::shared_timed_mutex m_codeMutex;
+  mutable std::shared_timed_mutex m_stateMainMutex;
+  mutable std::shared_timed_mutex m_stateIndexMutex;
+  mutable std::shared_timed_mutex m_stateDataMutex;
 
   /// Set the indexes of all the states of an contract account
   bool SetContractStateIndexes(const dev::h160& address,
