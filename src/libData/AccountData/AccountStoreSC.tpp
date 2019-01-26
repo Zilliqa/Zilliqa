@@ -987,6 +987,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
     if (account == nullptr) {
       AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
+      account = this->GetAccount(recipient);
     }
 
     // Recipient is non-contract
