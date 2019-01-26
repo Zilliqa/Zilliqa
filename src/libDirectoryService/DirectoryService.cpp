@@ -128,8 +128,8 @@ bool DirectoryService::CheckState(Action action) {
 
   if (!found) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Action " << GetActionString(action) << " not allowed in state "
-                        << GetStateString());
+              GetActionString(action)
+                  << " not allowed in " << GetStateString());
     return false;
   }
 
