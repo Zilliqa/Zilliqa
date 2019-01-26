@@ -93,23 +93,28 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
 
   // Start to adjust difficulty from second DS block.
   if (blockNum > 1) {
+    LOG_GENERAL(INFO, "Curr DS diff = " << std::to_string(
+                          m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetDSDifficulty()));
+    LOG_GENERAL(INFO, "Curr diff    =  " << std::to_string(
+                          m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetDifficulty()));
+
     dsDifficulty = CalculateNewDSDifficulty(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Current DS difficulty "
-                  << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
-                                        .GetHeader()
-                                        .GetDSDifficulty())
-                  << ", new DS difficulty " << std::to_string(dsDifficulty));
 
     difficulty = CalculateNewDifficulty(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Current difficulty "
-                  << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
-                                        .GetHeader()
-                                        .GetDifficulty())
-                  << ", new difficulty " << std::to_string(difficulty));
+
+    if (dsDifficulty < difficulty) {
+      std::swap(dsDifficulty, difficulty);
+      LOG_GENERAL(INFO, "New difficulty levels swapped");
+    }
+
+    LOG_GENERAL(INFO, "New DS diff  =  " << std::to_string(dsDifficulty));
+    LOG_GENERAL(INFO, "New diff     =  " << std::to_string(difficulty));
   }
 
   if (UpgradeManager::GetInstance().HasNewSW()) {
@@ -350,36 +355,38 @@ bool DirectoryService::VerifyPoWWinner(
 }
 
 bool DirectoryService::VerifyDifficulty() {
-  auto remoteDSDifficulty = m_pendingDSBlock->GetHeader().GetDSDifficulty();
+  constexpr uint8_t DIFFICULTY_TOL = 1;
+
+  const auto remoteDSDifficulty =
+      m_pendingDSBlock->GetHeader().GetDSDifficulty();
+  const auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
+
   auto localDSDifficulty = CalculateNewDSDifficulty(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
-  constexpr uint8_t DIFFICULTY_TOL = 1;
+  auto localDifficulty = CalculateNewDifficulty(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
+
+  if (localDSDifficulty < localDifficulty) {
+    std::swap(localDSDifficulty, localDifficulty);
+    LOG_GENERAL(INFO, "New difficulty levels swapped");
+  }
+
   if (std::max(remoteDSDifficulty, localDSDifficulty) -
           std::min(remoteDSDifficulty, localDSDifficulty) >
       DIFFICULTY_TOL) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "WARNING: The ds difficulty "
-                  << std::to_string(remoteDSDifficulty)
-                  << " from leader not match with local calculated "
-                     "result "
-                  << std::to_string(localDSDifficulty));
+    LOG_CHECK_FAIL("DS difficulty check", std::to_string(remoteDSDifficulty),
+                   std::to_string(localDSDifficulty));
     return false;
   }
 
-  auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
-  auto localDifficulty = CalculateNewDifficulty(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
   if (std::max(remoteDifficulty, localDifficulty) -
           std::min(remoteDifficulty, localDifficulty) >
       DIFFICULTY_TOL) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "WARNING: The difficulty "
-                  << std::to_string(remoteDifficulty)
-                  << " from leader not match with local calculated "
-                     "result "
-                  << std::to_string(localDifficulty));
+    LOG_CHECK_FAIL("Difficulty check", std::to_string(remoteDifficulty),
+                   std::to_string(localDifficulty));
     return false;
   }
+
   return true;
 }
 
