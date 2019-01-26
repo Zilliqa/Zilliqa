@@ -182,6 +182,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Time out while waiting for DS Block");
 
+        if (!m_mediator.m_lookup->AlreadyJoinedNetwork()) {
+          return;
+        }
+
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
           if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
