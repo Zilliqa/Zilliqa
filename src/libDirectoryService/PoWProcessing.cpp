@@ -342,7 +342,8 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
                              .GetDSDifficulty();
       }
 
-      if (difficultyLevel == expectedDSDiff) {
+      // Push the same solution into the DS PoW list if it qualifies
+      if (difficultyLevel >= expectedDSDiff) {
         AddDSPoWs(submitterPubKey, soln);
       }
 
