@@ -116,44 +116,46 @@ bool ContractStorage::PutContractState(
     dev::h256& stateHash, bool temp, bool revertible,
     const vector<Index>& existing_indexes, bool provideExisting) {
   // LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_stateMainMutex);
+  {
+    unique_lock<shared_timed_mutex> g(m_stateMainMutex);
 
-  if (address == Address()) {
-    LOG_GENERAL(WARNING, "Null address rejected");
-    return false;
-  }
-
-  vector<Index> entry_indexes;
-
-  if (provideExisting) {
-    entry_indexes = existing_indexes;
-  } else {
-    entry_indexes = GetContractStateIndexes(address, temp);
-  }
-
-  unordered_map<string, string> batch;
-
-  for (const auto& entry : entries) {
-    // Append the new index to the existing indexes
-    if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
-        entry_indexes.end()) {
-      entry_indexes.emplace_back(entry.first);
+    if (address == Address()) {
+      LOG_GENERAL(WARNING, "Null address rejected");
+      return false;
     }
 
-    if (temp) {
-      t_stateDataMap[entry.first.hex()] = entry.second;
+    vector<Index> entry_indexes;
+
+    if (provideExisting) {
+      entry_indexes = existing_indexes;
     } else {
-      if (revertible) {
-        r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
-      }
-      m_stateDataMap[entry.first.hex()] = entry.second;
+      entry_indexes = GetContractStateIndexes(address, temp);
     }
-  }
 
-  // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes, temp, revertible)) {
-    LOG_GENERAL(WARNING, "SetContractStateIndex failed");
-    return false;
+    unordered_map<string, string> batch;
+
+    for (const auto& entry : entries) {
+      // Append the new index to the existing indexes
+      if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
+          entry_indexes.end()) {
+        entry_indexes.emplace_back(entry.first);
+      }
+
+      if (temp) {
+        t_stateDataMap[entry.first.hex()] = entry.second;
+      } else {
+        if (revertible) {
+          r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
+        }
+        m_stateDataMap[entry.first.hex()] = entry.second;
+      }
+    }
+
+    // Update the stateIndexDB
+    if (!SetContractStateIndexes(address, entry_indexes, temp, revertible)) {
+      LOG_GENERAL(WARNING, "SetContractStateIndex failed");
+      return false;
+    }
   }
 
   stateHash = GetContractStateHash(address, temp);
