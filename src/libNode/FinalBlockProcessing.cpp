@@ -672,8 +672,10 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     }
   }
 
-  ProcessStateDeltaFromFinalBlock(stateDelta,
-                                  txBlock.GetHeader().GetStateDeltaHash());
+  if (!ProcessStateDeltaFromFinalBlock(
+          stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
+    return false;
+  }
 
   BlockStorage::GetBlockStorage().PutStateDelta(
       txBlock.GetHeader().GetBlockNum(), stateDelta);
