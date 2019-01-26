@@ -73,10 +73,10 @@ bool BlockLinkChain::AddBlockLink(const uint64_t& index,
 
   bytes dst;
 
-  LOG_GENERAL(INFO, " Index      = " << index);
-  LOG_GENERAL(INFO, " DS Index   = " << dsindex);
-  LOG_GENERAL(INFO, " Block type = " << blocktype);
-  LOG_GENERAL(INFO, " Block hash = " << blockhash);
+  LOG_GENERAL(INFO, "Index      = " << index);
+  LOG_GENERAL(INFO, "DS Index   = " << dsindex);
+  LOG_GENERAL(INFO, "Block type = " << blocktype);
+  LOG_GENERAL(INFO, "Block hash = " << blockhash);
 
   if (!Messenger::SetBlockLink(
           dst, 0,

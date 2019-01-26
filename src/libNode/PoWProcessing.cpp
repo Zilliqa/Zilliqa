@@ -290,8 +290,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   if (!m_mediator.m_DSCommittee->empty()) {
     if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                           m_mediator.m_dsBlockChain.GetLastBlock(),
-                          *m_mediator.m_DSCommittee,
-                          m_mediator.m_currentEpochNum, dsLeader)) {
+                          *m_mediator.m_DSCommittee, dsLeader)) {
       peerList.push_back(dsLeader.second);
     }
   }

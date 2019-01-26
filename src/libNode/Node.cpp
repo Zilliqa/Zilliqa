@@ -2072,11 +2072,10 @@ std::string Node::GetActionString(Action action) const {
              : ActionStrings.at(action);
 }
 
-/*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
-                                  const DSBlock& latestDSBlock,
-                                  const DequeOfNode& dsCommittee,
-                                  [[gnu::unused]] const uint64_t epochNumber,
-                                  pair<PubKey, Peer>& dsLeader) {
+bool Node::GetDSLeader(const BlockLink& lastBlockLink,
+                       const DSBlock& latestDSBlock,
+                       const DequeOfNode& dsCommittee,
+                       pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
     uint16_t lastBlockHash = 0;

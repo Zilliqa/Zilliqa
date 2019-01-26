@@ -561,7 +561,7 @@ bool DirectoryService::FinishRejoinAsDS() {
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   pair<PubKey, Peer> dsLeader;
   if (Node::GetDSLeader(bl, m_mediator.m_dsBlockChain.GetLastBlock(), dsComm,
-                        m_mediator.m_currentEpochNum, dsLeader)) {
+                        dsLeader)) {
     auto iterDSLeader =
         std::find_if(dsComm.begin(), dsComm.end(),
                      [dsLeader](const std::pair<PubKey, Peer>& pubKeyPeer) {

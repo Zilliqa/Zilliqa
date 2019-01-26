@@ -566,7 +566,6 @@ class Node : public Executable, public Broadcastable {
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
                           const DequeOfNode& dsCommittee,
-                          const uint64_t epochNumber,
                           std::pair<PubKey, Peer>& dsLeader);
 
   // Get entire network peer info
