@@ -1640,6 +1640,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
         dirBlocks;
     for (const auto& dsblock : dsBlocks) {
+      if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
+        // skip as already I have them
+        continue;
+      }
       dirBlocks.emplace_back(dsblock);
     }
     if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
@@ -3012,7 +3016,10 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   uint32_t shardingStructureVersion = 0;
   PubKey lookupPubKey;
 
-  lock_guard<mutex> g(m_mutexCheckDirBlocks);
+  lock(m_mutexCheckDirBlocks, m_mutexSetTxBlockFromSeed);
+
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
+  lock_guard<mutex> lock(m_mutexSetTxBlockFromSeed, adopt_lock);
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
           message, offset, shardingStructureVersion, dirBlocks, index_num,
           lookupPubKey)) {
@@ -3101,8 +3108,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 }
 
 void Lookup::CheckBufferTxBlocks() {
-  unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
-
   if (!m_txBlockBuffer.empty()) {
     ValidatorBase::TxBlockValidationMsg res =
         m_mediator.m_validator->CheckTxBlocks(
