@@ -328,10 +328,10 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
         // DataConversion::charArrToHexStr(soln.result, harderSolnStr);
         // DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
         // oldSolnStr);
-        LOG_GENERAL(INFO, "Replaced PoW");
+        LOG_GENERAL(INFO, "Replaced");
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result == soln.result) {
-        LOG_GENERAL(INFO, "Duplicate PoW");
+        LOG_GENERAL(INFO, "Duplicated");
         return true;
       }
 

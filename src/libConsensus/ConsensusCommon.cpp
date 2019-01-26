@@ -309,14 +309,14 @@ bool ConsensusCommon::CanProcessMessage(const bytes& message,
 
   if (messageType == ConsensusMessageType::COLLECTIVESIG) {
     if (m_state == INITIAL) {
-      LOG_GENERAL(WARNING, "PROCESS_COLLECTIVESIG not allowed in state "
-                               << GetStateString());
+      LOG_GENERAL(WARNING,
+                  "PROCESS_COLLECTIVESIG not allowed in " << GetStateString());
       return false;
     }
   } else if (messageType == ConsensusMessageType::FINALCOLLECTIVESIG) {
     if (m_state == INITIAL || m_state == COMMIT_DONE ||
         m_state == RESPONSE_DONE) {
-      LOG_GENERAL(WARNING, "PROCESS_FINALCOLLECTIVESIG not allowed in state "
+      LOG_GENERAL(WARNING, "PROCESS_FINALCOLLECTIVESIG not allowed in "
                                << GetStateString());
       return false;
     }
