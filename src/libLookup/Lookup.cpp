@@ -1653,8 +1653,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
             newDScomm)) {
       LOG_GENERAL(WARNING, "Could not verify all DS blocks");
     }
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
     uint64_t dsblocknumafter =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    LOG_GENERAL(INFO, "DS epoch before" << dsblocknumbefore + 1
+                                        << " DS epoch now "
+                                        << dsblocknumafter + 1);
 
     if (dsblocknumbefore < dsblocknumafter) {
       if (m_syncType == SyncType::DS_SYNC ||
