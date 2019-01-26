@@ -97,7 +97,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
                           m_mediator.m_dsBlockChain.GetLastBlock()
                               .GetHeader()
                               .GetDSDifficulty()));
-    LOG_GENERAL(INFO, "Curr diff    =  " << std::to_string(
+    LOG_GENERAL(INFO, "Curr diff    = " << std::to_string(
                           m_mediator.m_dsBlockChain.GetLastBlock()
                               .GetHeader()
                               .GetDifficulty()));
@@ -113,8 +113,8 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
       LOG_GENERAL(INFO, "New difficulty levels swapped");
     }
 
-    LOG_GENERAL(INFO, "New DS diff  =  " << std::to_string(dsDifficulty));
-    LOG_GENERAL(INFO, "New diff     =  " << std::to_string(difficulty));
+    LOG_GENERAL(INFO, "New DS diff  = " << std::to_string(dsDifficulty));
+    LOG_GENERAL(INFO, "New diff     = " << std::to_string(difficulty));
   }
 
   if (UpgradeManager::GetInstance().HasNewSW()) {
