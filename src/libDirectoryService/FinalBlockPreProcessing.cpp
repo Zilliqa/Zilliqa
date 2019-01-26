@@ -46,7 +46,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ExtractDataFromMicroblocks not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return;
   }
 
@@ -113,7 +113,7 @@ bool DirectoryService::ComposeFinalBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeFinalBlock not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -134,7 +134,7 @@ bool DirectoryService::ComposeFinalBlock() {
   MBInfoHash mbInfoHash;
   if (!Messenger::GetMbInfoHash(mbInfos, mbInfoHash)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetMbInfoHash failed.");
+              "Messenger::GetMbInfoHash failed");
     return false;
   }
 
@@ -171,7 +171,7 @@ bool DirectoryService::ComposeFinalBlock() {
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetDSCommitteeHash failed.");
+              "Messenger::GetDSCommitteeHash failed");
     return false;
   }
 
@@ -203,14 +203,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary "
-                "not expected to be called from LookUp node.");
+                "not expected to be called from LookUp node");
     return true;
   }
 
   // Compose the final block from all the microblocks
   // I guess only the leader has to do this
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "I am the leader DS node. Creating final block.");
+            "I am the leader DS node. Creating final block");
 
   if (!m_mediator.GetIsVacuousEpoch()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader();
@@ -305,7 +305,7 @@ bool DirectoryService::CheckFinalBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockVersion not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -330,7 +330,7 @@ bool DirectoryService::CheckFinalBlockNumber() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockNumber not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -353,7 +353,7 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckPreviousFinalBlockHash not "
-                "expected to be called from LookUp node.");
+                "expected to be called from LookUp node");
     return true;
   }
 
@@ -364,10 +364,7 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
 
   if (finalblockPrevHash != expectedPrevHash) {
-    LOG_GENERAL(WARNING, "Prev block hash mismatch");
-    LOG_GENERAL(WARNING, "Actual   = " << finalblockPrevHash.hex());
-    LOG_GENERAL(WARNING, "Expected = " << expectedPrevHash.hex());
-
+    LOG_CHECK_FAIL("Prev block hash", finalblockPrevHash, expectedPrevHash);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_PREV_FINALBLOCK_HASH);
 
@@ -385,7 +382,7 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockTimestamp not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return true;
   }
 
@@ -401,7 +398,7 @@ bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlocks not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -449,7 +446,7 @@ bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
               m_mediator.m_currentEpochNum,
               m_mediator.m_selfPeer.m_listenPortHost)) {
         LOG_GENERAL(WARNING,
-                    "Messenger::SetDSMissingMicroBlocksErrorMsg failed.");
+                    "Messenger::SetDSMissingMicroBlocksErrorMsg failed");
         return false;
       }
 
@@ -474,7 +471,7 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckLegitimacyOfMicroBlocks not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return true;
   }
 
@@ -523,9 +520,8 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   bool ret = true;
 
   if (allGasLimit != m_finalBlock->GetHeader().GetGasLimit()) {
-    LOG_GENERAL(WARNING, "Gas limit mismatched, expected: "
-                             << allGasLimit << " received: "
-                             << m_finalBlock->GetHeader().GetGasLimit());
+    LOG_CHECK_FAIL("Gas limit", m_finalBlock->GetHeader().GetGasLimit(),
+                   allGasLimit);
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_GASLIMIT_MISMATCH);
     // return false;
@@ -533,9 +529,8 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   }
 
   if (ret && allGasUsed != m_finalBlock->GetHeader().GetGasUsed()) {
-    LOG_GENERAL(WARNING, "Gas used mismatched, expected: "
-                             << allGasUsed << " received: "
-                             << m_finalBlock->GetHeader().GetGasUsed());
+    LOG_CHECK_FAIL("Gas used", m_finalBlock->GetHeader().GetGasUsed(),
+                   allGasUsed);
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_GASUSED_MISMATCH);
     // return false;
@@ -543,9 +538,8 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   }
 
   if (ret && allRewards != m_finalBlock->GetHeader().GetRewards()) {
-    LOG_GENERAL(WARNING, "Rewards mismatched, expected: "
-                             << allRewards << " received: "
-                             << m_finalBlock->GetHeader().GetRewards());
+    LOG_CHECK_FAIL("Rewards", m_finalBlock->GetHeader().GetRewards(),
+                   allRewards);
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_REWARDS_MISMATCH);
     // return false;
@@ -553,9 +547,8 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   }
 
   if (ret && allNumTxns != m_finalBlock->GetHeader().GetNumTxs()) {
-    LOG_GENERAL(WARNING, "Txn num mismatched, expected: "
-                             << allNumTxns << " received: "
-                             << m_finalBlock->GetHeader().GetNumTxs());
+    LOG_CHECK_FAIL("Txn num", m_finalBlock->GetHeader().GetNumTxs(),
+                   allNumTxns);
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_NUMTXNS_MISMATCH);
     // return false;
@@ -564,9 +557,9 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
 
   if (ret &&
       allNumMicroBlockHashes != m_finalBlock->GetMicroBlockInfos().size()) {
-    LOG_GENERAL(WARNING, "Num of MB hashes mismatched, expected: "
-                             << allNumMicroBlockHashes << " received: "
-                             << m_finalBlock->GetMicroBlockInfos().size());
+    LOG_CHECK_FAIL("Num of MB hashes",
+                   m_finalBlock->GetMicroBlockInfos().size(),
+                   allNumMicroBlockHashes);
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_MBNUM_MISMATCH);
     // return false;
@@ -586,7 +579,7 @@ bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::OnNodeFailFinalConsensus not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return true;
   }
 
@@ -630,7 +623,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::OnNodeMissingMicroBlocks not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return true;
   }
 
@@ -642,7 +635,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
 
   if (!Messenger::GetDSMissingMicroBlocksErrorMsg(
           errorMsg, offset, missingMicroBlocks, epochNum, portNo)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDSMissingMicroBlocksErrorMsg failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetDSMissingMicroBlocksErrorMsg failed");
     return false;
   }
 
@@ -707,7 +700,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
           microBlocksSent, stateDeltasSent, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetDSMicroBlockSubmission failed.");
+              "Messenger::SetDSMicroBlockSubmission failed");
     return false;
   }
 
@@ -720,7 +713,7 @@ bool DirectoryService::CheckMicroBlockInfo() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckIsMicroBlockEmpty not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -780,7 +773,7 @@ bool DirectoryService::CheckMicroBlockInfo() {
   MBInfoHash mbInfoHash;
   if (!Messenger::GetMbInfoHash(microBlockInfos, mbInfoHash)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetMbInfoHash failed.");
+              "Messenger::GetMbInfoHash failed");
     return false;
   }
 
@@ -792,7 +785,7 @@ bool DirectoryService::CheckStateRoot() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckStateRoot not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
@@ -801,20 +794,15 @@ bool DirectoryService::CheckStateRoot() {
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash()) {
-    LOG_GENERAL(WARNING, "State root doesn't match. Expected = "
-                             << stateRoot << ". "
-                             << "Received = "
-                             << m_finalBlock->GetHeader().GetStateRootHash());
-
+    LOG_CHECK_FAIL("State root hash",
+                   m_finalBlock->GetHeader().GetStateRootHash(), stateRoot);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_FINALBLOCK_STATE_ROOT);
 
     return false;
   }
 
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "State root matched " << m_finalBlock->GetHeader().GetStateRootHash());
+  LOG_GENERAL(INFO, "State root hash  = " << stateRoot);
 
   return true;
 }
@@ -823,7 +811,7 @@ bool DirectoryService::CheckStateDeltaHash() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckStateDeltaHash not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
@@ -832,20 +820,16 @@ bool DirectoryService::CheckStateDeltaHash() {
   StateHash stateRootHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   if (stateRootHash != m_finalBlock->GetHeader().GetStateDeltaHash()) {
-    LOG_GENERAL(WARNING, "State delta hash doesn't match. Expected = "
-                             << stateRootHash << ". "
-                             << "Received = "
-                             << m_finalBlock->GetHeader().GetStateDeltaHash());
-
+    LOG_CHECK_FAIL("State delta hash",
+                   m_finalBlock->GetHeader().GetStateDeltaHash(),
+                   stateRootHash);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_FINALBLOCK_STATE_DELTA_HASH);
 
     return false;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "State delta hash matched "
-                << m_finalBlock->GetHeader().GetStateDeltaHash());
+  LOG_GENERAL(INFO, "State delta hash = " << stateRootHash);
 
   return true;
 }
@@ -854,7 +838,7 @@ bool DirectoryService::CheckBlockHash() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckBlockHash not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
@@ -862,11 +846,8 @@ bool DirectoryService::CheckBlockHash() {
 
   BlockHash temp_blockHash = m_finalBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_finalBlock->GetBlockHash()) {
-    LOG_GENERAL(WARNING,
-                "Block Hash in Newly received Tx Block doesn't match. "
-                "Calculated: "
-                    << temp_blockHash
-                    << " Received: " << m_finalBlock->GetBlockHash().hex());
+    LOG_CHECK_FAIL("Block hash", m_finalBlock->GetBlockHash().hex(),
+                   temp_blockHash);
     return false;
   }
 
@@ -875,15 +856,12 @@ bool DirectoryService::CheckBlockHash() {
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetDSCommitteeHash failed.");
+              "Messenger::GetDSCommitteeHash failed");
     return false;
   }
   if (committeeHash != m_finalBlock->GetHeader().GetCommitteeHash()) {
-    LOG_GENERAL(WARNING,
-                "DS committee hash in newly received Tx Block doesn't match. "
-                "Calculated: "
-                    << committeeHash << " Received: "
-                    << m_finalBlock->GetHeader().GetCommitteeHash());
+    LOG_CHECK_FAIL("DS committee hash",
+                   m_finalBlock->GetHeader().GetCommitteeHash(), committeeHash);
     return false;
   }
 
@@ -896,7 +874,7 @@ bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockValidity not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -912,7 +890,7 @@ bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlockValidity not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -956,7 +934,7 @@ bool DirectoryService::FinalBlockValidator(
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinalBlockValidator not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
@@ -971,7 +949,7 @@ bool DirectoryService::FinalBlockValidator(
           leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
           messageToCosign)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetDSFinalBlockAnnouncement failed.");
+              "Messenger::GetDSFinalBlockAnnouncement failed");
     m_mediator.m_node->m_microblock = nullptr;
     return false;
   }
@@ -1036,7 +1014,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlockWhenDSBackup "
-                "not expected to be called from LookUp node.");
+                "not expected to be called from LookUp node");
     return true;
   }
 
@@ -1094,7 +1072,7 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
     LOG_GENERAL(
         WARNING,
         "DirectoryService::PrepareRunConsensusOnFinalBlockNormal not expected "
-        "to be called from LookUp node.");
+        "to be called from LookUp node");
     return;
   }
 
@@ -1120,7 +1098,7 @@ void DirectoryService::RunConsensusOnFinalBlock(
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlock not expected "
-                "to be called from LookUp node.");
+                "to be called from LookUp node");
     return;
   }
 
@@ -1202,7 +1180,7 @@ void DirectoryService::RunConsensusOnFinalBlock(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Initiated final block view change.");
+                "Initiated final block view change");
       auto func2 = [this]() -> void {
         RemoveDSMicroBlock();  // Remove DS microblock from my list of
                                // microblocks

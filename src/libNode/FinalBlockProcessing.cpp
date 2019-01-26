@@ -203,30 +203,28 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     if (it->first == entry.m_microBlock.GetBlockHash()) {
       TxnHash txnHash = ComputeRoot(entry.m_transactions);
       if (it->second != txnHash) {
-        LOG_GENERAL(
-            WARNING,
-            "TxnRootHash computed from forwarded txns doesn't match, expected: "
-                << it->second << " received: " << txnHash);
+        LOG_CHECK_FAIL("Txn root hash", txnHash, it->second);
         return false;
       }
 
-      LOG_GENERAL(INFO, "Remove microblock" << it->first);
+      LOG_GENERAL(INFO, "MB found" << it->first);
       LOG_GENERAL(INFO,
-                  "Microblocks count before removing: "
+                  "Count before = "
                       << m_unavailableMicroBlocks
                              .at(entry.m_microBlock.GetHeader().GetEpochNum())
                              .size());
       m_unavailableMicroBlocks.at(entry.m_microBlock.GetHeader().GetEpochNum())
           .erase(it);
       LOG_GENERAL(INFO,
-                  "Microblocks count after removing: "
+                  "Count after  = "
                       << m_unavailableMicroBlocks
                              .at(entry.m_microBlock.GetHeader().GetEpochNum())
                              .size());
       return true;
     }
   }
-  LOG_GENERAL(WARNING, "Haven't found microblock: " << entry);
+
+  LOG_GENERAL(WARNING, "MB not found = " << entry);
   return false;
 }
 
@@ -238,9 +236,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 
   const vector<bool>& B2 = txblock.GetB2();
   if (m_mediator.m_DSCommittee->size() != B2.size()) {
-    LOG_GENERAL(WARNING, "Mismatch: DS committee size = "
-                             << m_mediator.m_DSCommittee->size()
-                             << ", co-sig bitmap size = " << B2.size());
+    LOG_CHECK_FAIL("Cosig size", B2.size(), m_mediator.m_DSCommittee->size());
     return false;
   }
 
@@ -508,16 +504,12 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
   // AccountStore::GetInstance().PrintAccountState();
 
   if (stateRoot != finalBlock.GetHeader().GetStateRootHash()) {
-    LOG_EPOCH(
-        WARNING, m_mediator.m_currentEpochNum,
-        "State root doesn't match. Expected = "
-            << stateRoot << ". "
-            << "Received = " << finalBlock.GetHeader().GetStateRootHash());
+    LOG_CHECK_FAIL("State root hash", finalBlock.GetHeader().GetStateRootHash(),
+                   stateRoot);
     return false;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "State root matched " << finalBlock.GetHeader().GetStateRootHash());
+  LOG_GENERAL(INFO, "State root hash = " << stateRoot);
 
   return true;
 }
@@ -558,11 +550,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
 
   BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
   if (temp_blockHash != txBlock.GetBlockHash()) {
-    LOG_GENERAL(WARNING,
-                "Block Hash in Newly received Tx Block doesn't match. "
-                "Calculated: "
-                    << temp_blockHash
-                    << " Received: " << txBlock.GetBlockHash().hex());
+    LOG_CHECK_FAIL("Block Hash", txBlock.GetBlockHash(), temp_blockHash);
     return false;
   }
 
@@ -583,18 +571,15 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
   if (committeeHash != txBlock.GetHeader().GetCommitteeHash()) {
-    LOG_GENERAL(WARNING,
-                "DS committee hash in newly received Tx Block doesn't match. "
-                "Calculated: "
-                    << committeeHash
-                    << " Received: " << txBlock.GetHeader().GetCommitteeHash());
+    LOG_CHECK_FAIL("DS committee hash", txBlock.GetHeader().GetCommitteeHash(),
+                   committeeHash);
     return false;
   }
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I the lookup node have deserialized the TxBlock" << endl
-                                                                << txBlock);
+              "Deserialized TxBlock" << endl
+                                     << txBlock);
   }
 
   LOG_STATE("[TXBOD][" << std::setw(15) << std::left
@@ -632,8 +617,8 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   }
 
   if (mbInfoHash != txBlock.GetHeader().GetMbInfoHash()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "TxBlock MbInfo verification failed");
+    LOG_CHECK_FAIL("MBInfo hash", txBlock.GetHeader().GetMbInfoHash(),
+                   mbInfoHash);
     return false;
   }
 
@@ -650,8 +635,6 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     PrepareGoodStateForFinalBlock();
 
     if (!CheckState(PROCESS_FINALBLOCK)) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Too late - current state is " << m_state << ".");
       return false;
     }
   }
@@ -825,13 +808,13 @@ bool Node::ProcessStateDeltaFromFinalBlock(
   sha2.Update(stateDeltaBytes);
   StateHash stateDeltaHash(sha2.Finalize());
 
-  LOG_GENERAL(INFO, "Calculated StateDeltaHash: " << stateDeltaHash);
-
   if (stateDeltaHash != finalBlockStateDeltaHash) {
-    LOG_GENERAL(WARNING,
-                "State delta hash calculated does not match finalblock");
+    LOG_CHECK_FAIL("State delta hash", finalBlockStateDeltaHash,
+                   stateDeltaHash);
     return false;
   }
+
+  LOG_GENERAL(INFO, "State delta hash = " << stateDeltaHash);
 
   // Deserialize State Delta
   if (finalBlockStateDeltaHash == StateHash()) {
@@ -933,20 +916,16 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   // BlockHash
   BlockHash temp_blockHash = entry.m_microBlock.GetHeader().GetMyHash();
   if (temp_blockHash != entry.m_microBlock.GetBlockHash()) {
-    LOG_GENERAL(WARNING,
-                "Block Hash in newly received Micro Block doesn't match. "
-                "Calculated: "
-                    << temp_blockHash << " Received: "
-                    << entry.m_microBlock.GetBlockHash().hex());
+    LOG_CHECK_FAIL("Block hash", entry.m_microBlock.GetBlockHash(),
+                   temp_blockHash);
     return false;
   }
 
   // Verify txnhash
   TxnHash txnHash = ComputeRoot(entry.m_transactions);
   if (txnHash != entry.m_microBlock.GetHeader().GetTxRootHash()) {
-    LOG_GENERAL(WARNING, "Txn root hash mismatch, computed: "
-                             << txnHash << " received: "
-                             << entry.m_microBlock.GetHeader().GetTxRootHash());
+    LOG_CHECK_FAIL("Txn root hash",
+                   entry.m_microBlock.GetHeader().GetTxRootHash(), txnHash);
     return false;
   }
 
@@ -955,18 +934,17 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
       TransactionWithReceipt::ComputeTransactionReceiptsHash(
           entry.m_transactions);
   if (txReceiptHash != entry.m_microBlock.GetHeader().GetTranReceiptHash()) {
-    LOG_GENERAL(WARNING,
-                "Transaction receipts hash doesn't match, computed: "
-                    << txReceiptHash << " received: "
-                    << entry.m_microBlock.GetHeader().GetTranReceiptHash());
+    LOG_CHECK_FAIL("Txn receipt hash",
+                   entry.m_microBlock.GetHeader().GetTranReceiptHash(),
+                   txReceiptHash);
     return false;
   }
 
-  LOG_GENERAL(
-      INFO, "[SendMBnTXBOD]"
-                << "Recvd from " << from
-                << " EpochNum:" << entry.m_microBlock.GetHeader().GetEpochNum()
-                << " ShardId:" << entry.m_microBlock.GetHeader().GetShardId());
+  LOG_GENERAL(INFO, "[SendMBnTXBOD] Recvd from " << from);
+  LOG_GENERAL(INFO,
+              " EpochNum = " << entry.m_microBlock.GetHeader().GetEpochNum());
+  LOG_GENERAL(INFO,
+              " ShardID  = " << entry.m_microBlock.GetHeader().GetShardId());
 
   LOG_STATE(
       "[TXBOD]["
