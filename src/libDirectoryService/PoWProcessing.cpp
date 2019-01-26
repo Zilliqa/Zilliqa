@@ -247,15 +247,15 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     return false;
   }
 
-  if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
-    LOG_GENERAL(WARNING, "Max PoW sent: " << submitterPeer);
-    return false;
-  }
-
   // Log all values
   LOG_GENERAL(INFO, "Key   = " << submitterPubKey);
   LOG_GENERAL(INFO, "Peer  = " << submitterPeer);
   LOG_GENERAL(INFO, "Diff  = " << to_string(difficultyLevel));
+
+  if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
+    LOG_GENERAL(WARNING, "Max PoW sent");
+    return false;
+  }
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
@@ -310,7 +310,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     // everyone if ((m_state != POW_SUBMISSION) && (m_state !=
     // DSBLOCK_CONSENSUS_PREP))
     if (CheckState(VERIFYPOW)) {
-      LOG_GENERAL(INFO, "Verified OK");
+      // LOG_GENERAL(INFO, "Verified OK");
       lock(m_mutexAllPOW, m_mutexAllPoWConns);
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
@@ -324,17 +324,14 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result > soln.result) {
-        string harderSolnStr, oldSolnStr;
-        DataConversion::charArrToHexStr(soln.result, harderSolnStr);
-        DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
-                                        oldSolnStr);
-        LOG_GENERAL(INFO, "Replaced PoW " << oldSolnStr.substr(0, 8)
-                                          << "... with harder PoW "
-                                          << harderSolnStr.substr(0, 8)
-                                          << "... for " << submitterPubKey);
+        // string harderSolnStr, oldSolnStr;
+        // DataConversion::charArrToHexStr(soln.result, harderSolnStr);
+        // DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
+        // oldSolnStr);
+        LOG_GENERAL(INFO, "Replaced PoW");
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result == soln.result) {
-        LOG_GENERAL(INFO, "Ignored duplicate PoW");
+        LOG_GENERAL(INFO, "Duplicate PoW");
         return true;
       }
 
