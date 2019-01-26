@@ -432,7 +432,6 @@ bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
   if (state == ConsensusCommon::State::DONE) {
     cv_ViewChangeVCBlock.notify_all();
     ProcessViewChangeConsensusWhenDone();
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "No consensus reached. Re-attempting");
