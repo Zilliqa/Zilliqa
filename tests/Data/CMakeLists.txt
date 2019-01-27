@@ -54,7 +54,7 @@ add_test(NAME Test_EIP COMMAND Test_EIP)
 
 add_executable(Test_DSPowSolution Test_DSPowSolution.cpp)
 target_include_directories(Test_DSPowSolution PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_DSPowSolution PUBLIC AccountData Utils)
+target_link_libraries(Test_DSPowSolution PUBLIC AccountData Utils TestUtils)
 add_test(NAME Test_DSPowSolution COMMAND Test_DSPowSolution)
 
 #add_executable(Test_ContractInvoke Test_ContractInvoke.cpp)
