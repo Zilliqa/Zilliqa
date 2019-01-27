@@ -67,14 +67,14 @@ class Logger {
 
  public:
   /// Limits the number of bytes of a payload to display.
-  static const size_t MAX_BYTES_TO_DISPLAY = 64;
+  static const size_t MAX_BYTES_TO_DISPLAY = 30;
 
   /// Limits the number of characters of the current filename and line number to
   /// display.
   static const size_t MAX_FILEANDLINE_LEN = 20;
 
   /// Limits the number of characters of the current function to display.
-  static const size_t MAX_FUNCNAME_LEN = 25;
+  static const size_t MAX_FUNCNAME_LEN = 20;
 
   /// Limits the number of digits of the current thread ID to display.
   static const size_t TID_LEN = 5;
@@ -185,12 +185,12 @@ class ScopeMarker {
     if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+      auto file_and_line =                                                     \
+          std::string(std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
                  << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +      \
-                                            std::to_string(__LINE__)),         \
-                                Logger::MAX_FILEANDLINE_LEN)                   \
+                 << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)    \
                  << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
                  << "] " << msg;                                               \
     } else {                                                                   \
@@ -206,12 +206,12 @@ class ScopeMarker {
     if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+      auto file_and_line =                                                     \
+          std::string(std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
                  << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +      \
-                                            std::to_string(__LINE__)),         \
-                                Logger::MAX_FILEANDLINE_LEN)                   \
+                 << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)    \
                  << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
                  << "] [Epoch " << std::to_string(epoch).c_str() << "] "       \
                  << msg;                                                       \
@@ -230,14 +230,14 @@ class ScopeMarker {
       Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+      auto file_and_line =                                                     \
+          std::string(std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
       if ((payload).size() > max_bytes_to_display) {                           \
         LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
                    << "]["                                                     \
                    << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +    \
-                                              std::to_string(__LINE__)),       \
-                                  Logger::MAX_FILEANDLINE_LEN)                 \
+                   << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)  \
                    << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                    << "] " << msg << " (Len=" << (payload).size()              \
                    << "): " << payload_string.get() << "...";                  \
@@ -246,9 +246,7 @@ class ScopeMarker {
                    << "]["                                                     \
                    << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +    \
-                                              std::to_string(__LINE__)),       \
-                                  Logger::MAX_FILEANDLINE_LEN)                 \
+                   << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)  \
                    << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                    << "] " << msg << " (Len=" << (payload).size()              \
                    << "): " << payload_string.get();                           \
@@ -275,4 +273,10 @@ class ScopeMarker {
         .LogEpochInfo(oss.str().c_str(), __LINE__, __FILE__, __FUNCTION__, \
                       std::to_string(blockNum).c_str());                   \
   }
+
+#define LOG_CHECK_FAIL(checktype, received, expected) \
+  LOG_GENERAL(WARNING, checktype << " check failed"); \
+  LOG_GENERAL(WARNING, " Received = " << received);   \
+  LOG_GENERAL(WARNING, " Expected = " << expected);
+
 #endif  // __LOGGER_H__

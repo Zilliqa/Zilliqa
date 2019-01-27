@@ -60,14 +60,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   LOG_MARKER();
 
   m_mediator.m_dsBlockChain.AddBlock(dsblock);
-  LOG_EPOCH(
-      INFO, m_mediator.m_currentEpochNum,
-      "Storing DS Block Number: "
-          << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
-          << ", DS PoW Difficulty: "
-          << to_string(dsblock.GetHeader().GetDSDifficulty())
-          << ", Difficulty: " << to_string(dsblock.GetHeader().GetDifficulty())
-          << ", Timestamp: " << dsblock.GetTimestamp());
+  LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
+  LOG_GENERAL(
+      INFO, "DS diff   = " << to_string(dsblock.GetHeader().GetDSDifficulty()));
+  LOG_GENERAL(INFO,
+              "Diff      = " << to_string(dsblock.GetHeader().GetDifficulty()));
+  LOG_GENERAL(INFO, "Timestamp = " << dsblock.GetTimestamp());
 
   // Update the rand1 value for next PoW
   m_mediator.UpdateDSBlockRand();
@@ -125,9 +123,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 
   const vector<bool>& B2 = dsblock.GetB2();
   if (m_mediator.m_DSCommittee->size() != B2.size()) {
-    LOG_GENERAL(WARNING, "Mismatch: DS committee size = "
-                             << m_mediator.m_DSCommittee->size()
-                             << ", co-sig bitmap size = " << B2.size());
+    LOG_CHECK_FAIL("Cosig size", B2.size(), m_mediator.m_DSCommittee->size());
     return false;
   }
 
@@ -173,20 +169,17 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 }
 
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetDifficulty(): "
-                << (int)dsblock.GetHeader().GetDifficulty());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetBlockNum(): "
-                << dsblock.GetHeader().GetBlockNum());
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "dsblock.GetHeader().GetLeaderPubKey(): "
-                << dsblock.GetHeader().GetLeaderPubKey());
+  LOG_GENERAL(INFO,
+              "DS Diff   = " << (int)dsblock.GetHeader().GetDSDifficulty());
+  LOG_GENERAL(INFO, "Diff      = " << (int)dsblock.GetHeader().GetDifficulty());
+  LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
+  LOG_GENERAL(INFO, "Leader    = " << dsblock.GetHeader().GetLeaderPubKey());
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Incoming DS committee members");
+  LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& dsmember : dsblock.GetHeader().GetDSPoWWinners()) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, dsmember.second);
+    LOG_GENERAL(INFO,
+                "[" << PAD(ds_index++, 3, ' ') << "] " << dsmember.second);
   }
 }
 
@@ -229,9 +222,9 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
         foundMe = true;
       }
 
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                " PubKey: " << m_myShardMembers->back().first
-                            << " IP: " << m_myShardMembers->back().second);
+      LOG_GENERAL(INFO, "[" << PAD(index, 3, ' ') << "] "
+                            << m_myShardMembers->back().first << " "
+                            << m_myShardMembers->back().second);
 
       index++;
     }
@@ -358,9 +351,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
+    LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
@@ -374,9 +366,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   if (dsblock.GetHeader().GetVersion() != DSBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << DSBLOCK_VERSION << " Actual: "
-                             << dsblock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("DSBlock version", dsblock.GetHeader().GetVersion(),
+                   DSBLOCK_VERSION);
     return false;
   }
 
@@ -645,8 +636,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   LOG_GENERAL(INFO, "DS committee");
+  unsigned int ds_index = 0;
   for (const auto& member : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, member.second);
+    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
   }
 
   BlockStorage::GetBlockStorage().PutDSCommittee(
@@ -659,7 +651,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     // Hence, we manage deleting old entries here instead
     if ((MAX_ENTRIES_FOR_DIAGNOSTIC_DATA >
          0) &&  // If limit is 0, skip deletion
-        (BlockStorage::GetBlockStorage().GetDiagnosticDataCount() >=
+        (BlockStorage::GetBlockStorage().GetDiagnosticDataNodesCount() >=
          MAX_ENTRIES_FOR_DIAGNOSTIC_DATA) &&  // Limit reached
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
          MAX_ENTRIES_FOR_DIAGNOSTIC_DATA)) {  // DS Block number is not below
@@ -670,7 +662,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 
       canPutNewEntry =
-          BlockStorage::GetBlockStorage().DeleteDiagnosticData(oldBlockNum);
+          BlockStorage::GetBlockStorage().DeleteDiagnosticDataNodes(
+              oldBlockNum);
 
       if (canPutNewEntry) {
         LOG_GENERAL(INFO,
@@ -683,7 +676,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     }
 
     if (canPutNewEntry) {
-      BlockStorage::GetBlockStorage().PutDiagnosticData(
+      BlockStorage::GetBlockStorage().PutDiagnosticDataNodes(
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           m_mediator.m_ds->m_shards, *m_mediator.m_DSCommittee);
     }

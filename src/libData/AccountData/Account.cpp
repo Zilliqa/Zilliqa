@@ -164,11 +164,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     string vname = v["vname"].asString();
     string type = v["type"].asString();
 
-    Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    ostringstream oss;
-    writer->write(v["value"], &oss);
-    string value = oss.str();
+    string value = JSONUtils::GetInstance().convertJsontoStr(v["value"]);
 
     state_entries.push_back(std::make_tuple(vname, false, type, value));
   }
@@ -212,24 +208,24 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries) {
   if (!isContract()) {
     return false;
   }
 
   return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot, temp);
+      m_address, state_entries, m_storageRoot, true);
 }
 
 bool Account::SetStorage(const Address& addr,
                          const vector<pair<dev::h256, bytes>>& entries,
-                         bool temp, bool reversible) {
+                         bool temp, bool revertible) {
   if (!isContract()) {
     return false;
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp, reversible)) {
+          addr, entries, m_storageRoot, temp, revertible, {}, false)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -259,14 +255,9 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
   }
-  Json::CharReaderBuilder builder;
-  unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  string dataStr(initData.begin(), initData.end());
-  string errors;
-  if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
-                     &errors)) {
-    LOG_GENERAL(WARNING,
-                "Failed to parse initialization contract json: " << errors);
+
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          {initData.begin(), initData.end()}, root)) {
     return false;
   }
 

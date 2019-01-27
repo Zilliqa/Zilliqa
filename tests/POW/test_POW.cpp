@@ -512,9 +512,9 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
 BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network) {
   uint8_t currentDifficulty = 3;
   uint8_t minDifficulty = 3;
-  int64_t powSubmissions = 23;
+  int64_t powSubmissions = 25;
   int64_t expectedNodes = 20;
-  uint32_t adjustThreshold = 99;
+  uint32_t adjustThreshold = 5;
   int64_t currentEpochNum = 200;
   int64_t numBlocksPerYear = 10000;
 
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network) {
   currentDifficulty = 6;
   currentEpochNum = 10001;
   powSubmissions =
-      17;  // Node number is droping and number of pow submissions is less than
+      15;  // Node number is droping and number of pow submissions is less than
            // expected node, so expect difficulty will drop.
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
@@ -609,7 +609,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small) {
   uint8_t minDifficulty = 5;
   int64_t powSubmissions = 11;
   int64_t expectedNodes = 10;
-  uint32_t adjustThreshold = 9;
+  uint32_t adjustThreshold = 5;
   int64_t currentEpochNum = 80;
   int64_t numBlocksPerYear = 1971000;
 

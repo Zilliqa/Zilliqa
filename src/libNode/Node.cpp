@@ -452,8 +452,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   uint16_t ds_consensusLeaderID = 0;
 
-  BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
-                                                 ds_consensusLeaderID);
+  if (!BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
+                                                      ds_consensusLeaderID)) {
+    LOG_GENERAL(WARNING,
+                "Retrieve history error due to failed to get ds committee.");
+    return false;
+  }
 
   m_mediator.m_ds->SetConsensusLeaderID(ds_consensusLeaderID);
 
@@ -975,8 +979,8 @@ bool Node::CheckState(Action action) {
 
   if (!found) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Action " << GetActionString(action) << " not allowed in state "
-                        << GetStateString());
+              GetActionString(action)
+                  << " not allowed in " << GetStateString());
     return false;
   }
 
@@ -1226,12 +1230,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
+              "Sender pubkey " << lookupPubKey << " not in lookup list");
     return false;
   }
 
-  LOG_GENERAL(INFO, "Received from peer " << from);
+  LOG_GENERAL(INFO, "Received from " << from);
 
   {
     // The check here is in case the lookup send the packet
@@ -1261,8 +1264,13 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  if (m_mediator.m_lookup->IsLookupNode(from) &&
-      from.GetPrintableIPAddress() != "127.0.0.1") {
+  if ((m_mediator.m_lookup->IsLookupNode(from) &&
+       from.GetPrintableIPAddress() != "127.0.0.1") ||
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+       m_mediator.m_ds->m_state != DirectoryService::MICROBLOCK_SUBMISSION) ||
+      (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+       !(m_state == MICROBLOCK_CONSENSUS_PREP ||
+         m_state == MICROBLOCK_CONSENSUS))) {
     if (epochNumber < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
@@ -1369,25 +1377,26 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #ifdef DM_TEST_DM_LESSTXN_ONE
   uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
-  LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
+  LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+            "Consensus ID for DM1 test is " << dm_test_id);
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_ds->GetConsensusMyID() == dm_test_id) {
-    LOG_GENERAL(WARNING,
-                "Letting one of the backups accept less txns from lookup "
-                "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Letting one of the backups accept less txns from lookup "
+              "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
   } else {
-    LOG_GENERAL(WARNING,
-                "The node triggered DM_TEST_DM_LESSTXN_ONE is "
-                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The node triggered DM_TEST_DM_LESSTXN_ONE is "
+                  << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE
 
 #ifdef DM_TEST_DM_LESSTXN_ALL
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::BACKUP_DS) {
-    LOG_GENERAL(WARNING,
-                "Letting all of the backups accept less txns from lookup "
-                "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Letting all of the backups accept less txns from lookup "
+              "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSTXN_ALL
@@ -1395,7 +1404,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #ifdef DM_TEST_DM_MORETXN_LEADER
   if (m_mediator.m_ds->GetConsensusMyID() ==
       m_mediator.m_ds->GetConsensusLeaderID()) {
-    LOG_GENERAL(WARNING, "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
     return false;
   }
 #endif  // DM_TEST_DM_MORETXN_LEADER
@@ -1404,9 +1414,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (m_mediator.m_ds->GetConsensusMyID() ==
           m_mediator.m_ds->GetConsensusLeaderID() ||
       (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
-    LOG_GENERAL(WARNING, "My consensus id "
-                             << m_mediator.m_ds->GetConsensusMyID()
-                             << " triggered DM_TEST_DM_MORETXN_HALF");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
+                                 << " triggered DM_TEST_DM_MORETXN_HALF");
     return false;
   }
 #endif  // DM_TEST_DM_MORETXN_HALF
@@ -1558,8 +1568,7 @@ void Node::CommitTxnPacketBuffer() {
 void Node::SetState(NodeState state) {
   m_state = state;
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Node State is now " << GetStateString() << " at epoch "
-                                 << m_mediator.m_currentEpochNum);
+            "Node State = " << GetStateString());
 }
 
 // Set m_consensusMyID
@@ -1959,26 +1968,24 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(INFO,
-                "I am at last level in tree. And not supposed to broadcast "
-                "message with hash: ["
-                    << hashStr.substr(0, 6) << "] further");
+                "Terminating broadcast for [" << hashStr.substr(0, 6) << "]");
     return;
   }
 
   // set to max valid node index, if upperbound is invalid.
   nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
 
-  LOG_GENERAL(INFO, "I am broadcasting message with hash: ["
-                        << hashStr.substr(0, 6) << "] further to following "
-                        << nodes_hi - nodes_lo + 1 << " peers."
-                        << "(" << nodes_lo << "~" << nodes_hi << ")");
+  LOG_GENERAL(INFO, "Broadcasting [" << hashStr.substr(0, 6) << "] to "
+                                     << nodes_hi - nodes_lo + 1 << " peers "
+                                     << "(" << nodes_lo << "~" << nodes_hi
+                                     << ")");
 
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              " PubKey: " << std::get<SHARD_NODE_PUBKEY>(kv)
-                          << " IP: " << std::get<SHARD_NODE_PEER>(kv));
+    LOG_GENERAL(INFO, "[" << PAD(i, 3, ' ') << "] "
+                          << std::get<SHARD_NODE_PUBKEY>(kv) << " "
+                          << std::get<SHARD_NODE_PEER>(kv));
   }
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
@@ -2068,15 +2075,14 @@ map<Node::Action, string> Node::ActionStrings = {
 
 std::string Node::GetActionString(Action action) const {
   return (ActionStrings.find(action) == ActionStrings.end())
-             ? "Unknown"
+             ? "UNKNOWN"
              : ActionStrings.at(action);
 }
 
-/*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
-                                  const DSBlock& latestDSBlock,
-                                  const DequeOfNode& dsCommittee,
-                                  const uint64_t epochNumber,
-                                  pair<PubKey, Peer>& dsLeader) {
+bool Node::GetDSLeader(const BlockLink& lastBlockLink,
+                       const DSBlock& latestDSBlock,
+                       const DequeOfNode& dsCommittee,
+                       pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
     uint16_t lastBlockHash = 0;
@@ -2095,10 +2101,10 @@ std::string Node::GetActionString(Action action) const {
     }
     dsLeader = make_pair(dsCommittee.at(leader_id).first,
                          dsCommittee.at(leader_id).second);
-    LOG_EPOCH(INFO, epochNumber,
-              "lastBlockHash " << lastBlockHash << ", current ds leader id "
-                               << leader_id << ", Peer " << dsLeader.second
-                               << " pubkey " << dsLeader.first);
+    LOG_GENERAL(INFO, "lastBlockHash = " << lastBlockHash);
+    LOG_GENERAL(INFO, "DS leader ID  = " << leader_id);
+    LOG_GENERAL(INFO, "Leader PubKey = " << dsLeader.first);
+    LOG_GENERAL(INFO, "Leader Peer   = " << dsLeader.second);
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(

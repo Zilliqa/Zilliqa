@@ -138,14 +138,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       LOG_GENERAL(WARNING, "rand2 is not a valid hex");
     }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Winning nonce   = 0x" << hex << winning_result.winning_nonce);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Winning result  = 0x" << hex << winning_result.result);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Winning mixhash = 0x" << hex << winning_result.mix_hash);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "rand1 = 0x" << rand1Str);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "rand2 = 0x" << rand2Str);
+    LOG_GENERAL(INFO, "nonce   = " << hex << winning_result.winning_nonce);
+    LOG_GENERAL(INFO, "result  = " << hex << winning_result.result);
+    LOG_GENERAL(INFO, "mixhash = " << hex << winning_result.mix_hash);
+    LOG_GENERAL(INFO, "rand1   = " << rand1Str);
+    LOG_GENERAL(INFO, "rand2   = " << rand2Str);
 
     m_stillMiningPrimary = false;
 
@@ -233,19 +230,14 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         DetachedFunction(1, checkerThread);
       }
 
-      LOG_GENERAL(INFO,
-                  "soln does not meet ds committee criteria. Will keep "
-                  "doing more pow");
+      LOG_GENERAL(INFO, "Mining again for DS diff");
 
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
           FULL_DATASET_MINE, winning_result.winning_nonce);
 
       if (ds_pow_winning_result.success) {
-        LOG_GENERAL(INFO,
-                    "Found PoW solution that meets ds commitee "
-                    "requirement. 0x"
-                        << hex << ds_pow_winning_result.result);
+        LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
 
         // Submission of PoW for ds commitee
         if (!SendPoWResultToDSComm(
@@ -255,9 +247,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
           return false;
         }
       } else {
-        LOG_GENERAL(INFO,
-                    "Unable to find PoW solution that meet ds commitee "
-                    "requirement");
+        LOG_GENERAL(INFO, "Failed to find soln for DS diff");
       }
     }
   } else {
@@ -300,8 +290,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   if (!m_mediator.m_DSCommittee->empty()) {
     if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                           m_mediator.m_dsBlockChain.GetLastBlock(),
-                          *m_mediator.m_DSCommittee,
-                          m_mediator.m_currentEpochNum, dsLeader)) {
+                          *m_mediator.m_DSCommittee, dsLeader)) {
       peerList.push_back(dsLeader.second);
     }
   }
@@ -394,8 +383,8 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   // Create and keep a view of the DS committee
   // We'll need this if we win PoW
   m_mediator.m_DSCommittee->clear();
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "DS nodes count    = " << numDS + 1);
+  LOG_GENERAL(INFO, "DS count = " << numDS);
+
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
     cur_offset += PUB_KEY_SIZE;
@@ -403,12 +392,8 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
     m_mediator.m_DSCommittee->emplace_back(
         make_pair(pubkey, Peer(message, cur_offset)));
 
-    LOG_EPOCH(
-        INFO, m_mediator.m_currentEpochNum,
-        "DS Node IP: "
-            << m_mediator.m_DSCommittee->back().second.GetPrintableIPAddress()
-            << " Port: "
-            << m_mediator.m_DSCommittee->back().second.m_listenPortHost);
+    LOG_GENERAL(INFO, "[" << PAD(i, 3, ' ') << "] "
+                          << m_mediator.m_DSCommittee->back().second);
     cur_offset += IP_SIZE + PORT_SIZE;
   }
 
@@ -416,20 +401,14 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
     lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_DSCommittee->size() !=
         m_mediator.m_initialDSCommittee->size()) {
-      LOG_GENERAL(WARNING,
-                  "The initial DS committee from file and "
-                  "ReadVariablesFromStartPoWMessage size do not match "
-                      << m_mediator.m_DSCommittee->size() << " "
-                      << m_mediator.m_initialDSCommittee->size());
+      LOG_CHECK_FAIL("DS committee size", m_mediator.m_DSCommittee->size(),
+                     m_mediator.m_initialDSCommittee->size());
     }
     unsigned int i = 0;
     for (auto const& dsNode : *m_mediator.m_DSCommittee) {
       if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
-        LOG_GENERAL(WARNING,
-                    "PubKey from file and ReadVariablesFromStartPoWMessage do "
-                    "not match  "
-                        << dsNode.first << " "
-                        << m_mediator.m_initialDSCommittee->at(i))
+        LOG_CHECK_FAIL("DS PubKey", dsNode.first,
+                       m_mediator.m_initialDSCommittee->at(i));
       }
       i++;
     }

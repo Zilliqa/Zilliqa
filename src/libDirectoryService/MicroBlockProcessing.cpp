@@ -212,9 +212,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (microBlock.GetHeader().GetVersion() != MICROBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << MICROBLOCK_VERSION << " Actual: "
-                             << microBlock.GetHeader().GetVersion());
+    LOG_CHECK_FAIL("MicroBlock version", microBlock.GetHeader().GetVersion(),
+                   MICROBLOCK_VERSION);
     return false;
   }
 
@@ -274,6 +273,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   LOG_GENERAL(INFO, "MicroBlock StateDeltaHash: "
+                        << endl
                         << microBlock.GetHeader().GetHashes());
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
@@ -380,30 +380,30 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
 #ifdef DM_TEST_DM_LESSMB_ONE
   uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
-  LOG_GENERAL(WARNING, "Consensus ID for DM3 test is " << dm_test_id);
+  LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+            "Consensus ID for DM3 test is " << dm_test_id);
   if (m_consensusMyID == dm_test_id) {
-    LOG_GENERAL(WARNING,
-                "Letting one of the backups refuse some Microblock submission "
-                "(DM_TEST_DM_LESSMB_ONE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Letting one of the backups refuse some Microblock submission "
+              "(DM_TEST_DM_LESSMB_ONE)");
     return false;
   } else {
-    LOG_GENERAL(WARNING,
-                "The node triggered DM_TEST_DM_LESSMB_ONE is "
-                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The node triggered DM_TEST_DM_LESSMB_ONE is "
+                  << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSMB_ONE
 
 #ifdef DM_TEST_DM_LESSMB_ALL
   if (m_mediator.m_ds->m_mode == BACKUP_DS) {
-    LOG_GENERAL(WARNING,
-                "Letting all of the backups refuse some Microblock submission "
-                "(DM_TEST_DM_LESSMB_ALL)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Letting all of the backups refuse some Microblock submission "
+              "(DM_TEST_DM_LESSMB_ALL)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSMB_ALL
 
-  LOG_GENERAL(
-      INFO, "Received microblock submission for epoch number " << epochNumber);
+  LOG_GENERAL(INFO, "Received microblock for epoch " << epochNumber);
 
   if (microBlocks.empty()) {
     LOG_GENERAL(WARNING, "MicroBlocks received is empty");
@@ -610,7 +610,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      LOG_GENERAL(INFO, "MicroBlock Hash: "
+      LOG_GENERAL(INFO, "MicroBlock hash = "
                             << microBlocks.at(i).GetHeader().GetHashes());
 
       if (microBlocks.at(i).GetHeader().GetShardId() != m_shards.size()) {

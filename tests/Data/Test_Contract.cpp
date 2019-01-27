@@ -50,7 +50,7 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contracttest)
 
-PrivKey priv1, priv2, priv3;
+PrivKey priv1, priv2, priv3, priv4;
 
 void setup() {
   bytes priv1bytes, priv2bytes, priv3bytes;
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
 
   // Transaction to deploy contract.
-  std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
   bytes data(initStr.begin(), initStr.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t1.code, data);
@@ -330,7 +330,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   ScillaTestUtil::RemoveThisAddressFromInit(t0ping.init);
 
   // Transaction to deploy ping.
-  std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
+  std::string initStrPing =
+      JSONUtils::GetInstance().convertJsontoStr(t0ping.init);
   bytes dataPing(initStrPing.begin(), initStrPing.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t0ping.code, dataPing);
@@ -354,7 +355,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   ScillaTestUtil::RemoveThisAddressFromInit(t0pong.init);
 
   // Transaction to deploy pong.
-  std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);
+  std::string initStrPong =
+      JSONUtils::GetInstance().convertJsontoStr(t0pong.init);
   bytes dataPong(initStrPong.begin(), initStrPong.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t0pong.code, dataPong);
@@ -444,6 +446,172 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   /* ------------------------------------------------------------------- */
 }
 
+BOOST_AUTO_TEST_CASE(testChainCalls) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}),
+      contrB(priv3, {priv3}), contractaddress(priv4, {priv4});
+  Address ownerAddr, aAddr, bAddr, cAddr;
+  uint64_t nonce = 0;
+
+  setup();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+
+  aAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  cAddr = Account::GetAddressForContract(ownerAddr, nonce + 2);
+
+  LOG_GENERAL(INFO, "aAddr: " << aAddr << " ; bAddr: " << bAddr
+                              << " ; cAddr: " << cAddr);
+
+  /* ------------------------------------------------------------------- */
+
+  // Deploying the contract can use data from the 1st Scilla test.
+  ScillaTestUtil::ScillaTest tContrA;
+  if (!ScillaTestUtil::GetScillaTest(tContrA, "chain-call-balance-1", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-1.");
+    return;
+  }
+
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tContrA.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrA.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrA.init);
+
+  // Transaction to deploy contrA
+  std::string initStrA =
+      JSONUtils::GetInstance().convertJsontoStr(tContrA.init);
+  bytes dataA(initStrA.begin(), initStrA.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrA.code, dataA);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+  Account* accountA = AccountStore::GetInstance().GetAccount(aAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
+  nonce++;
+
+  ScillaTestUtil::ScillaTest tContrB;
+  if (!ScillaTestUtil::GetScillaTest(tContrB, "chain-call-balance-2", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-2.");
+    return;
+  }
+
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrB.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrB.init);
+
+  // Transaction to deploy contrB
+  std::string initStrB =
+      JSONUtils::GetInstance().convertJsontoStr(tContrB.init);
+  bytes dataB(initStrB.begin(), initStrB.end());
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrB.code, dataB);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+  Account* accountB = AccountStore::GetInstance().GetAccount(bAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
+  nonce++;
+
+  ScillaTestUtil::ScillaTest tContrC;
+  if (!ScillaTestUtil::GetScillaTest(tContrC, "chain-call-balance-3", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-3.");
+    return;
+  }
+
+  ScillaTestUtil::RemoveCreationBlockFromInit(tContrC.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tContrC.init);
+
+  // Transaction to deploy contrC
+  std::string initStrC =
+      JSONUtils::GetInstance().convertJsontoStr(tContrC.init);
+  bytes dataC(initStrC.begin(), initStrC.end());
+  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, tContrC.code, dataC);
+  TransactionReceipt tr2;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx2, tr2);
+  Account* accountC = AccountStore::GetInstance().GetAccount(cAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
+  nonce++;
+
+  LOG_GENERAL(INFO, "Deployed contracts A, B, and C.");
+
+  /* ------------------------------------------------------------------- */
+  // Transfer 100 each to contracts A, B, and C.
+  /* ------------------------------------------------------------------- */
+
+  {
+    Json::Value m;
+    m["_tag"] = "simply_accept";
+    m["_amount"] = "100";
+    m["params"].resize(0);
+
+    bytes m_data;
+    ScillaTestUtil::PrepareMessageData(m, m_data);
+
+    // Fund contrA
+    Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundA;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundA, trFundA);
+    nonce++;
+    // Fund contrB
+    Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundB;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundB, trFundB);
+    nonce++;
+    // Fund contrC
+    Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
+                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+    TransactionReceipt trFundC;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundC, trFundC);
+    nonce++;
+  }
+
+  bytes data;
+  // Replace addrB and addrC in parameter of message to contrA.
+  for (auto it = tContrA.message["params"].begin();
+       it != tContrA.message["params"].end(); it++) {
+    if ((*it)["vname"] == "addrB") {
+      (*it)["value"] = "0x" + bAddr.hex();
+    } else if ((*it)["vname"] == "addrC") {
+      (*it)["value"] = "0x" + cAddr.hex();
+    }
+  }
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(tContrA.message, data);
+  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
+    nonce++;
+  }
+
+  uint128_t aBal = AccountStore::GetInstance().GetBalance(aAddr);
+  uint128_t bBal = AccountStore::GetInstance().GetBalance(bAddr);
+  uint128_t cBal = AccountStore::GetInstance().GetBalance(cAddr);
+
+  LOG_GENERAL(INFO, "Call chain balances obtained: A: "
+                        << aBal << ". B: " << bBal << ". C: " << cBal);
+  LOG_GENERAL(INFO, "Call chain balances expected: A: " << 100 << ". B: " << 150
+                                                        << ". C: " << 100);
+
+  BOOST_CHECK_MESSAGE(aBal == 100 && bBal == 150 && cBal == 100,
+                      "Call chain balance test failed.");
+
+  /* ------------------------------------------------------------------- */
+}
+
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
@@ -490,7 +658,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
 
     // Transaction to deploy contract.
-    std::string initStr = JSONUtils::convertJsontoStr(t2.init);
+    std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t2.init);
     bytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, nonce, NullAddress, ownerKeyPair, 0, PRECISION_MIN_VALUE,
                     500000, t2.code, data);
@@ -545,14 +713,15 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
-      std::string value = s["value"].isString()
-                              ? s["value"].asString()
-                              : JSONUtils::convertJsontoStr(s["value"]);
+      std::string value =
+          s["value"].isString()
+              ? s["value"].asString()
+              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     bytes dataTransfer;
     uint64_t amount =
@@ -621,7 +790,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
 
     // Transaction to deploy contract.
-    std::string initStr = JSONUtils::convertJsontoStr(t2.init);
+    std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t2.init);
     bytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     500000, t2.code, data);
@@ -680,14 +849,15 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
-      std::string value = s["value"].isString()
-                              ? s["value"].asString()
-                              : JSONUtils::convertJsontoStr(s["value"]);
+      std::string value =
+          s["value"].isString()
+              ? s["value"].asString()
+              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -781,7 +951,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t10.blockchain);
 
     // Transaction to deploy contract.
-    std::string initStr = JSONUtils::convertJsontoStr(t10.init);
+    std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t10.init);
     bytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     500000, t10.code, data);
@@ -877,14 +1047,15 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
-      std::string value = s["value"].isString()
-                              ? s["value"].asString()
-                              : JSONUtils::convertJsontoStr(s["value"]);
+      std::string value =
+          s["value"].isString()
+              ? s["value"].asString()
+              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -984,7 +1155,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     ScillaTestUtil::RemoveCreationBlockFromInit(fungibleTokenT5.init);
     uint64_t bnum =
         ScillaTestUtil::GetBlockNumberFromJson(fungibleTokenT5.blockchain);
-    std::string initStr = JSONUtils::convertJsontoStr(fungibleTokenT5.init);
+    std::string initStr =
+        JSONUtils::GetInstance().convertJsontoStr(fungibleTokenT5.init);
 
     bytes deployTokenData(initStr.begin(), initStr.end());
 
@@ -1062,15 +1234,16 @@ BOOST_AUTO_TEST_CASE(testDEX) {
 
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
-      std::string value = s["value"].isString()
-                              ? s["value"].asString()
-                              : JSONUtils::convertJsontoStr(s["value"]);
+      std::string value =
+          s["value"].isString()
+              ? s["value"].asString()
+              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
       token_state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    token1Account->SetStorage(token_state_entries, true);
-    token2Account->SetStorage(token_state_entries, true);
+    token1Account->SetStorage(token_state_entries);
+    token2Account->SetStorage(token_state_entries);
 
     // Deploy DEX
     // Deploy the DEX contract with the 0th test case, but use custom messages
@@ -1092,7 +1265,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     }
 
     uint64_t dexBnum = ScillaTestUtil::GetBlockNumberFromJson(dexT1.blockchain);
-    std::string dexInitStr = JSONUtils::convertJsontoStr(dexT1.init);
+    std::string dexInitStr =
+        JSONUtils::GetInstance().convertJsontoStr(dexT1.init);
     bytes deployDexData(dexInitStr.begin(), dexInitStr.end());
 
     dexAddr = Account::GetAddressForContract(ownerDexAddr, ownerDexNonce);
@@ -1173,11 +1347,11 @@ BOOST_AUTO_TEST_CASE(testDEX) {
         std::make_tuple("orderbook", true,
                         "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
                         "(Pair (ByStr20) (Uint128)))",
-                        JSONUtils::convertJsontoStr(orderBook)));
+                        JSONUtils::GetInstance().convertJsontoStr(orderBook)));
     dex_state_entries.push_back(std::make_tuple(
         "orderInfo", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
-        JSONUtils::convertJsontoStr(orderInfo)));
-    dexAccount->SetStorage(dex_state_entries, true);
+        JSONUtils::GetInstance().convertJsontoStr(orderInfo)));
+    dexAccount->SetStorage(dex_state_entries);
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;

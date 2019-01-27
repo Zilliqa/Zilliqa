@@ -67,9 +67,8 @@ bool DirectoryService::ViewChangeValidator(
   }
 
   if (m_pendingVCBlock->GetHeader().GetVersion() != VCBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << VCBLOCK_VERSION << " Actual: "
-                             << m_pendingVCBlock->GetHeader().GetVersion());
+    LOG_CHECK_FAIL("VCBlock version",
+                   m_pendingVCBlock->GetHeader().GetVersion(), VCBLOCK_VERSION);
     return false;
   }
 

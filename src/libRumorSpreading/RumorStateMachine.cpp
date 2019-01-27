@@ -163,9 +163,8 @@ bool RumorStateMachine::isOld() const { return m_state == State::OLD; }
 
 std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine) {
   os << "{ state: " << RumorStateMachine::s_enumKeyToString[machine.m_state]
-     << ", currentRound: " << machine.m_rounds
-     << ", roundsInB: " << machine.m_roundsInB
-     << ", roundsInC: " << machine.m_roundsInC << "}";
+     << ", round: " << machine.m_rounds << ", roundsB: " << machine.m_roundsInB
+     << ", roundsC: " << machine.m_roundsInC << "}";
   return os;
 }
 

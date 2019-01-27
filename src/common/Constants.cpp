@@ -324,12 +324,10 @@ const unsigned int POW_SUBMISSION_LIMIT{
     ReadConstantNumeric("POW_SUBMISSION_LIMIT", "node.pow.")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadConstantNumeric("NUM_FINAL_BLOCK_PER_POW", "node.pow.")};
-const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
-    ReadConstantNumeric("POW_CHANGE_PERCENT_TO_ADJ_DIFF", "node.pow.")};
-const unsigned int MAX_POW_CHANGE_TO_ADJ_DIFF{
-    ReadConstantNumeric("MAX_POW_CHANGE_TO_ADJ_DIFF", "node.pow.")};
-const unsigned int MAX_POW_CHANGE_TO_ADJ_DS_DIFF{
-    ReadConstantNumeric("MAX_POW_CHANGE_TO_ADJ_DS_DIFF", "node.pow.")};
+const unsigned int POW_CHANGE_TO_ADJ_DIFF{
+    ReadConstantNumeric("POW_CHANGE_TO_ADJ_DIFF", "node.pow.")};
+const unsigned int POW_CHANGE_TO_ADJ_DS_DIFF{
+    ReadConstantNumeric("POW_CHANGE_TO_ADJ_DS_DIFF", "node.pow.")};
 const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MAX_SHARD_NODE_NUM{

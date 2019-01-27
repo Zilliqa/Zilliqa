@@ -53,7 +53,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     Blacklist::GetInstance().Exclude(
         resolved_ip);  // exclude this lookup ip from blacklisting
     Peer tmp(resolved_ip, node.second.GetListenPortHost());
-    LOG_GENERAL(INFO, "Sending msg to lookup node " << tmp);
+    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
     allLookupNodes.emplace_back(tmp);
   }
@@ -126,7 +126,7 @@ void DataSender::DetermineShardToSendDataTo(unsigned int& my_cluster_num,
   if ((tmpCommittee.size() % MULTICAST_CLUSTER_SIZE) > 0) {
     num_clusters++;
   }
-  LOG_GENERAL(INFO, "DEBUG num of clusters " << num_clusters)
+  LOG_GENERAL(INFO, "Clusters     = " << num_clusters)
   unsigned int shard_groups_count = 0;
   if (num_clusters != 0) {
     shard_groups_count = shards.size() / num_clusters;
@@ -134,7 +134,7 @@ void DataSender::DetermineShardToSendDataTo(unsigned int& my_cluster_num,
       shard_groups_count++;
     }
   }
-  LOG_GENERAL(INFO, "DEBUG num of shard group count " << shard_groups_count)
+  LOG_GENERAL(INFO, "Shard groups = " << shard_groups_count)
 
   my_cluster_num = indexB2 / MULTICAST_CLUSTER_SIZE;
   my_shards_lo = my_cluster_num * shard_groups_count;
@@ -294,13 +294,8 @@ bool DataSender::SendDataToOthers(
         committeeTooSmall ? tmpCommittee.size()
                           : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
-    LOG_GENERAL(INFO, "lo: " << nodeToSendToLookUpLo << " hi: "
-                             << nodeToSendToLookUpHi << " my: " << indexB2);
-
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
-      LOG_GENERAL(INFO,
-                  "Part of the committeement (assigned) that will send the "
-                  "Data to the lookup nodes");
+      LOG_GENERAL(INFO, "I will send data to the lookups");
       if (sendDataToLookupFunc) {
         sendDataToLookupFunc(lookups, message);
       }
@@ -314,11 +309,8 @@ bool DataSender::SendDataToOthers(
       DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
                                  shards, tmpCommittee, indexB2);
 
-      LOG_GENERAL(
-          INFO, "my_cluster_num + 1: " << my_cluster_num + 1
-                                       << " shards.size(): " << shards.size());
-
       if ((my_cluster_num + 1) <= shards.size()) {
+        LOG_GENERAL(INFO, "I will send data to the shards");
         if (sendDataToShardFunc) {
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
         } else {

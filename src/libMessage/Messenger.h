@@ -98,7 +98,7 @@ class Messenger {
                                    AccountStore& accountStore);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStore& accountStore,
-                                   const bool reversible, bool temp);
+                                   const bool revertible, bool temp);
   static bool GetAccountStoreDelta(const bytes& src, const unsigned int offset,
                                    AccountStoreTemp& accountStoreTemp,
                                    bool temp);
@@ -214,16 +214,23 @@ class Messenger {
       const bytes& src, const unsigned int offset, FallbackBlock& fallbackblock,
       uint32_t& shardingStructureVersion, DequeOfShard& shards);
 
-  static bool SetDiagnosticData(bytes& dst, const unsigned int offset,
-                                const uint32_t& shardingStructureVersion,
-                                const DequeOfShard& shards,
-                                const uint32_t& dsCommitteeVersion,
-                                const DequeOfNode& dsCommittee);
-  static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
-                                uint32_t& shardingStructureVersion,
-                                DequeOfShard& shards,
-                                uint32_t& dsCommitteeVersion,
-                                DequeOfNode& dsCommittee);
+  static bool SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
+                                     const uint32_t& shardingStructureVersion,
+                                     const DequeOfShard& shards,
+                                     const uint32_t& dsCommitteeVersion,
+                                     const DequeOfNode& dsCommittee);
+  static bool GetDiagnosticDataNodes(const bytes& src,
+                                     const unsigned int offset,
+                                     uint32_t& shardingStructureVersion,
+                                     DequeOfShard& shards,
+                                     uint32_t& dsCommitteeVersion,
+                                     DequeOfNode& dsCommittee);
+
+  static bool SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
+                                        const DiagnosticDataCoinbase& entry);
+  static bool GetDiagnosticDataCoinbase(const bytes& src,
+                                        const unsigned int offset,
+                                        DiagnosticDataCoinbase& entry);
 
   // ============================================================================
   // Peer Manager messages
@@ -591,6 +598,16 @@ class Messenger {
                                          PubKey& lookupPubKey,
                                          uint32_t& shardingStructureVersion,
                                          DequeOfShard& shards);
+
+  static bool SetForwardTxnBlockFromSeed(
+      bytes& dst, const unsigned int offset,
+      const std::vector<Transaction>& shardTransactions,
+      const std::vector<Transaction>& dsTransactions);
+
+  static bool GetForwardTxnBlockFromSeed(
+      const bytes& src, const unsigned int offset,
+      std::vector<Transaction>& shardTransactions,
+      std::vector<Transaction>& dsTransactions);
 
   static bool SetLookupGetMicroBlockFromLookup(
       bytes& dst, const unsigned int offset,

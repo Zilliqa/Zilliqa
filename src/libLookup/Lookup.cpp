@@ -427,8 +427,7 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp);
+      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -458,8 +457,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp);
+      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -790,13 +788,9 @@ bool Lookup::ProcessEntireShardingStructure() {
       m_nodesInNetwork.emplace_back(peer);
       t_nodesInNetwork.emplace(peer);
 
-      LOG_GENERAL(INFO, "[SHARD "
-                            << to_string(i) << "] "
-                            << "[PEER " << to_string(index) << "] "
-                            << "Inserting Pubkey to shard : " << string(key));
       LOG_GENERAL(INFO, "[SHARD " << to_string(i) << "] "
                                   << "[PEER " << to_string(index) << "] "
-                                  << "Corresponding peer : " << string(peer));
+                                  << string(key) << " " << string(peer));
 
       index++;
     }
@@ -1496,9 +1490,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   }
 
   if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
-    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
-                             << DSCOMMITTEE_VERSION
-                             << " Actual: " << dsCommitteeVersion);
+    LOG_CHECK_FAIL("DS committee version", dsCommitteeVersion,
+                   DSCOMMITTEE_VERSION);
     return false;
   }
 
@@ -1546,9 +1539,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     *m_mediator.m_DSCommittee = move(dsNodes);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "ProcessSetDSInfoFromSeed sent by "
-                  << from << " for numPeers "
-                  << m_mediator.m_DSCommittee->size());
+              "SetDSInfoFromSeed from " << from << " for numPeers "
+                                        << m_mediator.m_DSCommittee->size());
 
     unsigned int i = 0;
     for (auto& ds : *m_mediator.m_DSCommittee) {
@@ -1557,9 +1549,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
           ds.second == m_mediator.m_selfPeer) {
         ds.second = Peer();
       }
-      LOG_EPOCH(
-          INFO, m_mediator.m_currentEpochNum,
-          "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+      LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
     }
 
     if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
@@ -1582,8 +1572,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     }
 
     if (isVerif) {
-      LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << " Sucess ");
+      LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
     }
   }
 
@@ -1601,7 +1590,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     m_fetchedDSInfo = true;
   }
   cv_dsInfoUpdate.notify_all();
-
   return true;
 }
 
@@ -1612,7 +1600,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
   LOG_MARKER();
 
-  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
+  lock(m_mutexSetDSBlockFromSeed, m_mutexCheckDirBlocks);
+
+  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed, adopt_lock);
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
 
   uint64_t lowBlockNum;
   uint64_t highBlockNum;
@@ -1646,35 +1637,48 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
       cv_latestDSBlock.notify_all();
       return true;
     }
-
+    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+        dirBlocks;
     for (const auto& dsblock : dsBlocks) {
-      // TODO
-      // Workaround to identify dummy block as == comparator does not work on
-      // empty object for DSBlock and DSBlockheader().
-      // if (!(m_mediator.m_dsBlockChain.GetBlock(
-      //           dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
-      if (m_mediator.m_dsBlockChain.GetBlock(dsblock.GetHeader().GetBlockNum())
-              .GetHeader()
-              .GetBlockNum() != INIT_BLOCK_NUMBER) {
+      if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
+        // skip as already I have them
         continue;
       }
-      m_mediator.m_dsBlockChain.AddBlock(dsblock);
-      // Store DS Block to disk
-      bytes serializedDSBlock;
-      dsblock.Serialize(serializedDSBlock, 0);
-      BlockStorage::GetBlockStorage().PutDSBlock(
-          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+      dirBlocks.emplace_back(dsblock);
     }
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
+      LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
+      return true;
+    }
+    uint64_t dsblocknumbefore =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    uint64_t index_num = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-    if (m_syncType == SyncType::DS_SYNC ||
-        m_syncType == SyncType::LOOKUP_SYNC) {
-      if (!m_isFirstLoop) {
-        m_currDSExpired = true;
-      } else {
-        m_isFirstLoop = false;
-      }
+    DequeOfNode newDScomm;
+    if (!m_mediator.m_validator->CheckDirBlocks(
+            dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), index_num,
+            newDScomm)) {
+      LOG_GENERAL(WARNING, "Could not verify all DS blocks");
     }
-    m_mediator.UpdateDSBlockRand();
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
+    uint64_t dsblocknumafter =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    LOG_GENERAL(INFO, "DS epoch before" << dsblocknumbefore + 1
+                                        << " DS epoch now "
+                                        << dsblocknumafter + 1);
+
+    if (dsblocknumbefore < dsblocknumafter) {
+      if (m_syncType == SyncType::DS_SYNC ||
+          m_syncType == SyncType::LOOKUP_SYNC) {
+        if (!m_isFirstLoop) {
+          m_currDSExpired = true;
+        } else {
+          m_isFirstLoop = false;
+        }
+      }
+      m_mediator.UpdateDSBlockRand();
+    }
   }
 
   return true;
@@ -2468,8 +2472,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   pair<PubKey, Peer> expectedDSLeader;
   if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                          m_mediator.m_dsBlockChain.GetLastBlock(),
-                         *m_mediator.m_DSCommittee,
-                         m_mediator.m_currentEpochNum, expectedDSLeader)) {
+                         *m_mediator.m_DSCommittee, expectedDSLeader)) {
     LOG_GENERAL(WARNING, "Does not know expected ds leader");
     return false;
   }
@@ -3011,6 +3014,11 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
   PubKey lookupPubKey;
+
+  lock(m_mutexCheckDirBlocks, m_mutexSetTxBlockFromSeed);
+
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
+  lock_guard<mutex> lock(m_mutexSetTxBlockFromSeed, adopt_lock);
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
           message, offset, shardingStructureVersion, dirBlocks, index_num,
           lookupPubKey)) {
@@ -3095,13 +3103,10 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   }
 
   CheckBufferTxBlocks();
-
   return true;
 }
 
 void Lookup::CheckBufferTxBlocks() {
-  unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
-
   if (!m_txBlockBuffer.empty()) {
     ValidatorBase::TxBlockValidationMsg res =
         m_mediator.m_validator->CheckTxBlocks(
@@ -3313,7 +3318,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       lock_guard<mutex> g(m_txnShardMapMutex);
       auto transactionNumber = mp[i].size();
 
-      LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
+      LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
       if (m_txnShardMap[i].empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
@@ -3377,8 +3382,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         pair<PubKey, Peer> dsLeader;
         if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                               m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee,
-                              m_mediator.m_currentEpochNum, dsLeader)) {
+                              *m_mediator.m_DSCommittee, dsLeader)) {
           toSend.push_back(dsLeader.second);
         }
 
@@ -3444,10 +3448,12 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
                 "non-lookup node");
   }
 
-  vector<Transaction> txns;
+  vector<Transaction> txnsShard;
+  vector<Transaction> txnsDS;
 
-  if (!Messenger::GetTransactionArray(message, offset, txns)) {
-    LOG_GENERAL(WARNING, "Failed to Messenger::GetTransactionArray");
+  if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, txnsShard,
+                                             txnsDS)) {
+    LOG_GENERAL(WARNING, "Failed to Messenger::GetForwardTxnBlockFromSeed");
     return false;
   }
 
@@ -3465,15 +3471,21 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       return false;
     }
 
-    for (const auto& txn : txns) {
+    for (const auto& txn : txnsShard) {
       const PubKey& senderPubKey = txn.GetSenderPubKey();
       const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
       unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
       AddToTxnShardMap(txn, shard);
     }
+    for (const auto& txn : txnsDS) {
+      AddToTxnShardMap(txn, shard_size);
+    }
   } else {
-    for (const auto& txn : txns) {
-      AddToTxnShardMap(txn, 0);
+    for (const auto& txn : txnsShard) {
+      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+    }
+    for (const auto& txn : txnsDS) {
+      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_DS);
     }
   }
 

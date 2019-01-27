@@ -22,7 +22,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-TransactionReceipt::TransactionReceipt() { update(); }
+TransactionReceipt::TransactionReceipt() {
+  update();
+  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+}
 
 bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionReceipt(dst, offset, *this)) {
@@ -40,7 +43,8 @@ bool TransactionReceipt::Deserialize(const bytes& src, unsigned int offset) {
       return false;
     }
 
-    if (!JSONUtils::convertStrtoJson(m_tranReceiptStr, m_tranReceiptObj)) {
+    if (!JSONUtils::GetInstance().convertStrtoJson(m_tranReceiptStr,
+                                                   m_tranReceiptObj)) {
       LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
       return false;
     }
@@ -61,6 +65,17 @@ void TransactionReceipt::SetResult(const bool& result) {
   }
 }
 
+void TransactionReceipt::AddDepth() {
+  LOG_MARKER();
+  m_depth++;
+  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+}
+
+void TransactionReceipt::AddError(const unsigned int& errCode) {
+  LOG_GENERAL(INFO, "AddError: " << errCode);
+  m_errorObj[to_string(m_depth)].append(errCode);
+}
+
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
   m_cumGas = cumGas;
   m_tranReceiptObj["cumulative_gas"] = to_string(m_cumGas);
@@ -72,7 +87,8 @@ void TransactionReceipt::SetEpochNum(const uint64_t& epochNum) {
 
 void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
   try {
-    if (!JSONUtils::convertStrtoJson(tranReceiptStr, m_tranReceiptObj)) {
+    if (!JSONUtils::GetInstance().convertStrtoJson(tranReceiptStr,
+                                                   m_tranReceiptObj)) {
       LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
       return;
     }
@@ -91,7 +107,23 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
 void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
+  m_errorObj.clear();
+  m_depth = 0;
   update();
+}
+
+void TransactionReceipt::InstallError() {
+  Json::Value errorObj;
+  unsigned int depth = 0;
+  for (const auto& e : m_errorObj) {
+    if (!e.empty()) {
+      errorObj[to_string(depth)] = e;
+    }
+    depth++;
+  }
+  if (!errorObj.empty()) {
+    m_tranReceiptObj["errors"] = errorObj;
+  }
 }
 
 void TransactionReceipt::update() {
@@ -99,13 +131,9 @@ void TransactionReceipt::update() {
     m_tranReceiptStr = "{}";
     return;
   }
-  m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
-  m_tranReceiptStr.erase(
-      std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), ' '),
-      m_tranReceiptStr.end());
-  m_tranReceiptStr.erase(
-      std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), '\n'),
-      m_tranReceiptStr.end());
+  InstallError();
+  m_tranReceiptStr =
+      JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
 }
 
 /// Implements the Serialize function inherited from Serializable.

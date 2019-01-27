@@ -78,9 +78,9 @@ class BlockHeaderBase : public SerializableDataBlock {
 
 inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
   os << "<BlockHeaderBase>" << std::endl
-     << "m_version : " << t.m_version
-     << "m_committeeHash : " << t.m_committeeHash
-     << "m_prevHash : " << t.m_prevHash;
+     << " m_version       = " << t.m_version << std::endl
+     << " m_committeeHash = " << t.m_committeeHash << std::endl
+     << " m_prevHash      = " << t.m_prevHash;
 
   return os;
 }

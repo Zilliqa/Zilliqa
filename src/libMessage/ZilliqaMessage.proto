@@ -228,11 +228,30 @@ message ProtoFallbackBlock
     optional ProtoBlockBase blockbase        = 2;
 }
 
-// Used in database "diagnostic"
-message ProtoDiagnosticData
+// Used in database "diagnosticNodes"
+message ProtoDiagnosticDataNodes
 {
     optional ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
     optional ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
+// Used in database "diagnosticCoinb"
+message ProtoDiagnosticDataCoinbase
+{
+  optional ByteArray nodecount          = 1;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray sigcount           = 2;  // Added in: v1.0, Deprecated in: N/A
+  optional uint32 lookupcount           = 3;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray totalreward        = 4;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray basereward         = 5;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray baserewardeach     = 6;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray lookupreward       = 7;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray rewardeachlookup   = 8;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray nodereward         = 9;  // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray rewardeach         = 10; // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray balanceleft        = 11; // Added in: v1.0, Deprecated in: N/A
+  optional ByteArray luckydrawwinnerkey = 12; // Added in: v1.0, Deprecated in: N/A
+  optional bytes luckydrawwinneraddr    = 13; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -358,6 +377,7 @@ message ProtoTransactionArray
 {
     repeated ProtoTransaction transactions = 1;
 }
+
 
 message ProtoTransactionReceipt
 {
@@ -754,6 +774,13 @@ message LookupSetMicroBlockFromLookup
     required ByteArray pubkey            = 2;
     required ByteArray signature         = 3;
 }
+
+message LookupForwardTxnsFromSeed
+{
+    optional ProtoTransactionArray shardtransactions = 1;
+    optional ProtoTransactionArray dstransactions    = 2;
+}
+
 
 message LookupGetTxnsFromLookup
 {

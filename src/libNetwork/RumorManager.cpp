@@ -265,11 +265,10 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
           return false;
         }
         LOG_PAYLOAD(INFO,
-                    "New Gossip message initiated by me ("
+                    "Initiated msg ("
                         << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
-                        << ", Current Round: 0, Gossip_Message_Hash: "
-                        << output.substr(0, 6) << " ]",
-                    message, Logger::MAX_BYTES_TO_DISPLAY);
+                        << ", Round: 0, Hash: " << output.substr(0, 6) << " ]",
+                    message, 10);
 
         return m_rumorHolder->addRumor(m_rumorIdGenerator);
       }
@@ -312,12 +311,11 @@ void RumorManager::SendRumorToForeignPeers(
     const std::deque<Peer>& toForeignPeers, const RawBytes& message) {
   LOG_MARKER();
   LOG_PAYLOAD(INFO,
-              "New message to be gossiped is forwarded to Foreign Peers by me"
-                  << m_selfPeer,
+              "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
   LOG_GENERAL(INFO, "Foreign Peers: ");
   for (auto& i : toForeignPeers) {
-    LOG_GENERAL(INFO, "             " << i);
+    LOG_GENERAL(INFO, i);
   }
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
@@ -329,12 +327,11 @@ void RumorManager::SendRumorToForeignPeers(
     const std::vector<Peer>& toForeignPeers, const RawBytes& message) {
   LOG_MARKER();
   LOG_PAYLOAD(INFO,
-              "New message to be gossiped is forwarded to Foreign Peers by me"
-                  << m_selfPeer,
+              "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,
               message, Logger::MAX_BYTES_TO_DISPLAY);
   LOG_GENERAL(INFO, "Foreign Peers: ");
   for (auto& i : toForeignPeers) {
-    LOG_GENERAL(INFO, "             " << i);
+    LOG_GENERAL(INFO, i);
   }
 
   RawBytes cmd = GenerateGossipForwardMessage(message);
@@ -514,11 +511,10 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
       auto result = m_rumorHashRawMsgBimap.insert(
           RumorHashRumorBiMap::value_type(hash, message_wo_keysig));
       if (result.second) {
-        LOG_PAYLOAD(INFO,
-                    "New Gossip Raw message received from Peer: "
-                        << from << ", Gossip_Message_Hash: "
-                        << hashStr.substr(0, 6) << " ]",
-                    message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
+        LOG_PAYLOAD(
+            INFO,
+            "New msg for hash [" << hashStr.substr(0, 6) << "] from " << from,
+            message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
         toBeDispatched = true;
         // add the timestamp for this raw rumor message
         m_rumorRawMsgTimestamp.push_back(std::make_pair(
@@ -616,10 +612,8 @@ void RumorManager::SendMessage(const Peer& toPeer,
           if (!DataConversion::Uint8VecToHexStr(it1->second, gossipHashStr)) {
             return;
           }
-          LOG_GENERAL(INFO,
-                      "Sending Gossip Raw Message of Gossip_Message_Hash : ["
-                          << gossipHashStr.substr(0, 6)
-                          << "] To Peer : " << toPeer);
+          LOG_GENERAL(INFO, "Sending [" << gossipHashStr.substr(0, 6) << "] to "
+                                        << toPeer);
         } else {
           // Nothing to send.
           return;
@@ -685,7 +679,7 @@ void RumorManager::PrintStatistics() {
       if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {
         continue;
       }
-      LOG_GENERAL(INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
+      LOG_GENERAL(INFO, "[ RumorId: " << rumorId << ", Hash: "
                                       << gossipHashStr.substr(0, 6) << " ], "
                                       << state);
     }

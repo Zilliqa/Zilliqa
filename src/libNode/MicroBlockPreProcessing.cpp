@@ -60,7 +60,7 @@ bool Node::ComposeMicroBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlock not expected to be called from "
-                "LookUp node.");
+                "LookUp node");
     return true;
   }
   // To-do: Replace dummy values with the required ones
@@ -94,14 +94,14 @@ bool Node::ComposeMicroBlock() {
     if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shardId),
                                  committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::GetShardHash failed.");
+                "Messenger::GetShardHash failed");
       return false;
     }
   } else {
     if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                        committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::GetDSCommitteeHash failed.");
+                "Messenger::GetDSCommitteeHash failed");
       return false;
     }
   }
@@ -133,13 +133,13 @@ bool Node::ComposeMicroBlock() {
 #ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
   if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    LOG_GENERAL(WARNING,
-                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
     tranHashes.clear();
   }
 #endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Creating new micro block.")
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Creating new micro block")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
           shardId, gasLimit, gasUsed, rewards, m_mediator.m_currentEpochNum,
@@ -163,7 +163,7 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnNodeMissingTxns not expected to be called from "
-                "LookUp node.");
+                "LookUp node");
     return true;
   }
 
@@ -173,7 +173,7 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
 
   if (!Messenger::GetNodeMissingTxnsErrorMsg(
           errorMsg, offset, missingTransactions, epochNum, portNo)) {
-    LOG_GENERAL(WARNING, "Messenger::GetNodeMissingTxnsErrorMsg failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetNodeMissingTxnsErrorMsg failed");
     return false;
   }
 
@@ -212,7 +212,7 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
   }
 
   if (!Messenger::SetTransactionArray(tx_message, cur_offset, txns)) {
-    LOG_GENERAL(WARNING, "Messenger::SetTransactionArray failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetTransactionArray failed");
     return false;
   }
 
@@ -226,7 +226,7 @@ bool Node::OnCommitFailure([
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
-                "LookUp node.");
+                "LookUp node");
     return true;
   }
 
@@ -666,7 +666,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::RunConsensusOnMicroBlockWhenShardLeader not "
-                "expected to be called from LookUp node.");
+                "expected to be called from LookUp node");
     return true;
   }
 
@@ -768,7 +768,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::RunConsensusOnMicroBlockWhenShardBackup not "
-                "expected to be called from LookUp node.");
+                "expected to be called from LookUp node");
     return true;
   }
 
@@ -795,21 +795,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
 
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I am shard backup. "
-                  << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID
-                  << " m_consensusLeaderID: " << m_consensusLeaderID
-                  << " Shard Leader: "
-                  << (*m_myShardMembers)[m_consensusLeaderID].second);
+    LOG_GENERAL(INFO, "I am shard backup");
+    LOG_GENERAL(INFO, "Leader IP    = "
+                          << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     for (const auto& it : *m_myShardMembers) {
       peerList.emplace_back(it);
     }
   }
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Leader is at index  " << m_consensusLeaderID << " "
-                                   << peerList.at(m_consensusLeaderID).second);
 
   m_consensusObject.reset(new ConsensusBackup(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
@@ -830,7 +823,7 @@ bool Node::RunConsensusOnMicroBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::RunConsensusOnMicroBlock not expected to be called "
-                "from LookUp node.");
+                "from LookUp node");
     return true;
   }
 
@@ -871,16 +864,14 @@ bool Node::CheckMicroBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockVersion not expected to be called "
-                "from LookUp node.");
+                "from LookUp node");
     return true;
   }
 
   // Check version (must be most current version)
   if (m_microblock->GetHeader().GetVersion() != MICROBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << MICROBLOCK_VERSION << " Actual: "
-                             << m_microblock->GetHeader().GetVersion());
-
+    LOG_CHECK_FAIL("MicroBlock version", m_microblock->GetHeader().GetVersion(),
+                   MICROBLOCK_VERSION);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_VERSION);
 
@@ -896,15 +887,13 @@ bool Node::CheckMicroBlockshardId() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockshardId not expected to be called "
-                "from LookUp node.");
+                "from LookUp node");
     return true;
   }
 
   if (m_microblock->GetHeader().GetShardId() != m_myshardId) {
-    LOG_GENERAL(WARNING, "shardId check failed. Expected: "
-                             << m_myshardId << " Actual: "
-                             << m_microblock->GetHeader().GetShardId());
-
+    LOG_CHECK_FAIL("Shard ID", m_microblock->GetHeader().GetShardId(),
+                   m_myshardId);
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
 
@@ -919,23 +908,20 @@ bool Node::CheckMicroBlockshardId() {
     if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
                                  committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::GetShardHash failed.");
+                "Messenger::GetShardHash failed");
       return false;
     }
   } else {
     if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                        committeeHash)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::GetDSCommitteeHash failed.");
+                "Messenger::GetDSCommitteeHash failed");
       return false;
     }
   }
   if (committeeHash != m_microblock->GetHeader().GetCommitteeHash()) {
-    LOG_GENERAL(WARNING, "Microblock committee hash mismatched"
-                             << endl
-                             << "expected: " << committeeHash << endl
-                             << "received: "
-                             << m_microblock->GetHeader().GetCommitteeHash());
+    LOG_CHECK_FAIL("Committee hash",
+                   m_microblock->GetHeader().GetCommitteeHash(), committeeHash);
     m_consensusObject->SetConsensusErrorCode(ConsensusCommon::INVALID_COMMHASH);
     return false;
   }
@@ -947,7 +933,7 @@ bool Node::CheckMicroBlockTimestamp() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockTimestamp not expected to be called "
-                "from LookUp node.");
+                "from LookUp node");
     return true;
   }
 
@@ -961,7 +947,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckLegitimacyOfTxnHashes not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
@@ -984,7 +970,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
       if (!Messenger::SetNodeMissingTxnsErrorMsg(
               errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
               m_mediator.m_selfPeer.m_listenPortHost)) {
-        LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed.");
+        LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed");
         return false;
       }
 
@@ -1000,7 +986,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
         LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
         if (!AccountStore::GetInstance().DeserializeDeltaTemp(
                 m_mediator.m_ds->m_stateDeltaFromShards, 0)) {
-          LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
+          LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed");
           return LEGITIMACYRESULT::DESERIALIZATIONERROR;
         } else {
           AccountStore::GetInstance().SerializeDelta();
@@ -1011,7 +997,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
     }
 
     if (!AccountStore::GetInstance().SerializeDelta()) {
-      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return LEGITIMACYRESULT::SERIALIZATIONERROR;
     }
   } else {
@@ -1026,7 +1012,7 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockHashes not expected to be called "
-                "from LookUp node.");
+                "from LookUp node");
     return true;
   }
 
@@ -1081,18 +1067,16 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
       LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     }
     if (rewards != m_microblock->GetHeader().GetRewards()) {
-      LOG_GENERAL(WARNING, "The total rewards mismatched, local: "
-                               << rewards << " received: "
-                               << m_microblock->GetHeader().GetRewards());
+      LOG_CHECK_FAIL("Total rewards", m_microblock->GetHeader().GetRewards(),
+                     rewards);
       m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
       return false;
     }
   } else {
     // Check TxnFees
     if (m_txnFees != m_microblock->GetHeader().GetRewards()) {
-      LOG_GENERAL(WARNING, "The txn fees mismatched, local: "
-                               << m_txnFees << " received: "
-                               << m_microblock->GetHeader().GetRewards());
+      LOG_CHECK_FAIL("Txn fees", m_microblock->GetHeader().GetRewards(),
+                     m_txnFees);
       m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
       return false;
     }
@@ -1107,21 +1091,16 @@ bool Node::CheckMicroBlockTxnRootHash() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockTxnRootHash not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
   // Check transaction root
   TxnHash expectedTxRootHash = ComputeRoot(m_microblock->GetTranHashes());
 
-  string txroothashStr;
-  DataConversion::charArrToHexStr(expectedTxRootHash.asArray(), txroothashStr);
-  LOG_GENERAL(INFO, "Microblock root computation done " << txroothashStr);
-  LOG_GENERAL(INFO, "Expected root: "
-                        << m_microblock->GetHeader().GetTxRootHash().hex());
-
   if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash()) {
-    LOG_GENERAL(WARNING, "Txn root does not match");
+    LOG_CHECK_FAIL("Txn root hash", m_microblock->GetHeader().GetTxRootHash(),
+                   expectedTxRootHash);
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_ROOT_HASH);
@@ -1129,7 +1108,7 @@ bool Node::CheckMicroBlockTxnRootHash() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "Root check passed");
+  LOG_GENERAL(INFO, "Txn root hash    = " << expectedTxRootHash);
 
   return true;
 }
@@ -1138,20 +1117,17 @@ bool Node::CheckMicroBlockStateDeltaHash() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockStateDeltaHash not expected to be "
-                "called from LookUp node.");
+                "called from LookUp node");
     return true;
   }
 
   StateHash expectedStateDeltaHash =
       AccountStore::GetInstance().GetStateDeltaHash();
 
-  LOG_GENERAL(INFO, "Microblock state delta generation done "
-                        << expectedStateDeltaHash.hex());
-  LOG_GENERAL(INFO, "Received root: "
-                        << m_microblock->GetHeader().GetStateDeltaHash().hex());
-
   if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash()) {
-    LOG_GENERAL(WARNING, "State delta hash does not match");
+    LOG_CHECK_FAIL("State delta hash",
+                   m_microblock->GetHeader().GetStateDeltaHash(),
+                   expectedStateDeltaHash);
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_STATE_DELTA_HASH);
@@ -1159,7 +1135,7 @@ bool Node::CheckMicroBlockStateDeltaHash() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "State delta hash check passed");
+  LOG_GENERAL(INFO, "State delta hash = " << expectedStateDeltaHash);
 
   return true;
 }
@@ -1172,14 +1148,11 @@ bool Node::CheckMicroBlockTranReceiptHash() {
     LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
     return false;
   }
-  LOG_GENERAL(INFO, "Microblock transaction receipt hash generation done "
-                        << expectedTranHash.hex());
-  LOG_GENERAL(INFO,
-              "Received hash: "
-                  << m_microblock->GetHeader().GetTranReceiptHash().hex());
 
   if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash()) {
-    LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
+    LOG_CHECK_FAIL("Txn receipt hash",
+                   m_microblock->GetHeader().GetTranReceiptHash(),
+                   expectedTranHash);
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_TRAN_RECEIPT_HASH);
@@ -1187,7 +1160,7 @@ bool Node::CheckMicroBlockTranReceiptHash() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "Transaction receipt hash check passed");
+  LOG_GENERAL(INFO, "Txn receipt hash = " << expectedTranHash);
 
   return true;
 }
@@ -1196,7 +1169,7 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockValidity not expected to "
-                "be called from LookUp node.");
+                "be called from LookUp node");
     return true;
   }
 
@@ -1230,7 +1203,7 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::MicroBlockValidator not expected to be called from "
-                "LookUp node.");
+                "LookUp node");
     return true;
   }
 
@@ -1240,7 +1213,7 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_microblock, messageToCosign)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetNodeMicroBlockAnnouncement failed.");
+              "Messenger::GetNodeMicroBlockAnnouncement failed");
     return false;
   }
 
@@ -1254,17 +1227,14 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
 
   BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
   if (temp_blockHash != m_microblock->GetBlockHash()) {
-    LOG_GENERAL(WARNING,
-                "Block Hash in Newly received MicroBlock doesn't match. "
-                "Calculated: "
-                    << temp_blockHash
-                    << " Received: " << m_microblock->GetBlockHash().hex());
+    LOG_CHECK_FAIL("Block hash", m_microblock->GetBlockHash().hex(),
+                   temp_blockHash);
     return false;
   }
 
   if (!CheckMicroBlockValidity(errorMsg)) {
     m_microblock = nullptr;
-    LOG_GENERAL(WARNING, "CheckMicroBlockValidity Failed");
+    LOG_GENERAL(WARNING, "CheckMicroBlockValidity failed");
     return false;
   }
 

@@ -49,9 +49,7 @@ bool PeerManager::ProcessHello(const bytes& message, unsigned int offset,
   PeerStore& ps = PeerStore::GetStore();
   ps.AddPeerPair(key, peer);
 
-  LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
-                                            << " at address "
-                                            << from.GetPrintableIPAddress());
+  LOG_GENERAL(INFO, "Added peer " << peer);
 
   return true;
 }
@@ -84,9 +82,7 @@ bool PeerManager::ProcessAddPeer(const bytes& message, unsigned int offset,
     PeerStore& ps = PeerStore::GetStore();
     ps.AddPeerPair(key, peer);
 
-    LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
-                                              << " at address "
-                                              << peer.GetPrintableIPAddress());
+    LOG_GENERAL(INFO, "Added peer " << peer);
 
     // Say hello
 
@@ -142,9 +138,7 @@ PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
                   v.second.get<unsigned int>("port"));
         if (peer != m_selfPeer) {
           ps.AddPeerPair(key, peer);
-          LOG_GENERAL(INFO, "Added peer with port "
-                                << peer.m_listenPortHost << " at address "
-                                << peer.GetPrintableIPAddress());
+          LOG_GENERAL(INFO, "Added peer " << peer);
         }
       }
     }

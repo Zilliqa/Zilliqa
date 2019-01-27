@@ -234,9 +234,9 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
-    PubKey nodePubKey =
-        m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
-            .first;
+    const unsigned int dsCommitteeIndex =
+        m_mediator.m_DSCommittee->size() - 1 - i;
+    PubKey nodePubKey = m_mediator.m_DSCommittee->at(dsCommitteeIndex).first;
     nodePubKey.Serialize(serializedPubK, 0);
     sha2.Update(serializedPubK);
     bytes PubKeyHash;
@@ -252,11 +252,10 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     bool isDupPubKey = false;
     for (const auto& soln : sortedPoWSolns) {
       if (soln.second == nodePubKey) {
-        LOG_GENERAL(WARNING,
-                    "Injected node also submitted a soln. "
-                        << m_mediator.m_DSCommittee
-                               ->at(m_mediator.m_DSCommittee->size() - 1 - i)
-                               .second);
+        LOG_GENERAL(
+            WARNING,
+            "Injected node also submitted a soln. "
+                << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
         isDupPubKey = true;
         break;
       }
@@ -272,17 +271,15 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     serializedPubK.clear();
 
     // Injecting into Pow Connections information
-    LOG_GENERAL(INFO, "Injecting into Pow Connections");
-    if (m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
-            .second == Peer()) {
+    if (m_mediator.m_DSCommittee->at(dsCommitteeIndex).second == Peer()) {
       m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
-      LOG_GENERAL(INFO, m_mediator.m_selfPeer);
+      LOG_GENERAL(INFO,
+                  "Injecting into PoW connections " << m_mediator.m_selfPeer);
     } else {
-      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
-          m_mediator.m_DSCommittee->size() - 1 - i));
-      LOG_GENERAL(INFO, m_mediator.m_DSCommittee
-                            ->at(m_mediator.m_DSCommittee->size() - 1 - i)
-                            .second);
+      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(dsCommitteeIndex));
+      LOG_GENERAL(INFO,
+                  "Injecting into PoW connections "
+                      << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
     }
   }
 
@@ -930,9 +927,8 @@ bool DirectoryService::DSBlockValidator(
   }
 
   if (m_pendingDSBlock->GetHeader().GetVersion() != DSBLOCK_VERSION) {
-    LOG_GENERAL(WARNING, "Version check failed. Expected: "
-                             << DSBLOCK_VERSION << " Actual: "
-                             << m_pendingDSBlock->GetHeader().GetVersion());
+    LOG_CHECK_FAIL("DSBlock version",
+                   m_pendingDSBlock->GetHeader().GetVersion(), DSBLOCK_VERSION);
     return false;
   }
 
@@ -1067,7 +1063,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   }
 
 #ifdef VC_TEST_VC_PRECHECK_1
-  if (m_consensusMyID == 3) {
+  uint64_t dsCurBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t txCurBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  // FIXME: Prechecking not working due at epoch 1 due to the way we have low
+  // blocknum
+  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum != 0) {
     LOG_EPOCH(
         WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");

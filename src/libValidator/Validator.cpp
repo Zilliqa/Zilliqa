@@ -254,6 +254,8 @@ bool Validator::CheckDirBlocks(
   uint64_t totalIndex = index_num;
   ShardingHash prevShardingHash =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetShardingHash();
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
   for (const auto& dirBlock : dirBlocks) {
     if (typeid(DSBlock) == dirBlock.type()) {
@@ -272,6 +274,14 @@ bool Validator::CheckDirBlocks(
         ret = false;
         break;
       }
+      if (prevHash != dsblock.GetHeader().GetPrevHash()) {
+        LOG_GENERAL(WARNING, "prevHash incorrect "
+                                 << prevHash << " "
+                                 << dsblock.GetHeader().GetPrevHash()
+                                 << "in DS block " << prevdsblocknum + 1);
+        ret = false;
+        break;
+      }
       prevdsblocknum++;
       prevShardingHash = dsblock.GetHeader().GetShardingHash();
       m_mediator.m_blocklinkchain.AddBlockLink(
@@ -279,12 +289,11 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       bytes serializedDSBlock;
       dsblock.Serialize(serializedDSBlock, 0);
+      prevHash = dsblock.GetBlockHash();
       BlockStorage::GetBlockStorage().PutDSBlock(
           dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
-      BlockStorage::GetBlockStorage().PutDSCommittee(
-          m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID());
       BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
@@ -306,6 +315,15 @@ bool Validator::CheckDirBlocks(
         break;
       }
 
+      if (prevHash != vcblock.GetHeader().GetPrevHash()) {
+        LOG_GENERAL(WARNING, "prevHash incorrect "
+                                 << prevHash << " "
+                                 << vcblock.GetHeader().GetPrevHash()
+                                 << "in VC block " << prevdsblocknum + 1);
+        ret = false;
+        break;
+      }
+
       m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(
           vcblock, mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
@@ -315,6 +333,7 @@ bool Validator::CheckDirBlocks(
       vcblock.Serialize(vcblockserialized, 0);
       BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                  vcblockserialized);
+      prevHash = vcblock.GetBlockHash();
       totalIndex++;
     } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
       const auto& fallbackwshardingstructure =
@@ -330,6 +349,15 @@ bool Validator::CheckDirBlocks(
                     "being processed "
                         << prevdsblocknum << " "
                         << fallbackblock.GetHeader().GetFallbackDSEpochNo());
+        ret = false;
+        break;
+      }
+
+      if (prevHash != fallbackblock.GetHeader().GetPrevHash()) {
+        LOG_GENERAL(WARNING, "prevHash incorrect "
+                                 << prevHash << " "
+                                 << fallbackblock.GetHeader().GetPrevHash()
+                                 << "in FB block " << prevdsblocknum + 1);
         ret = false;
         break;
       }
@@ -369,6 +397,7 @@ bool Validator::CheckDirBlocks(
       fallbackwshardingstructure.Serialize(fallbackblockser, 0);
       BlockStorage::GetBlockStorage().PutFallbackBlock(
           fallbackblock.GetBlockHash(), fallbackblockser);
+      prevHash = fallbackblock.GetBlockHash();
       totalIndex++;
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");

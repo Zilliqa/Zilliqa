@@ -583,6 +583,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
                     const int32_t& shard_id, const uint64_t& epochNum);
   void InitCoinbase();
+  void StoreCoinbaseInDiagnosticDB(const DiagnosticDataCoinbase& entry);
 
   template <class Container>
   bool SaveCoinbaseCore(const std::vector<bool>& b1,
@@ -607,8 +608,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   static uint8_t CalculateNewDifficultyCore(
       uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-      int64_t expectedNodes, uint32_t maxAdjustThreshold,
-      int64_t currentEpochNum, int64_t numBlockPerYear);
+      int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
+      int64_t numBlockPerYear);
 
   /// Calculate node priority to determine which node has the priority to join
   /// the network.

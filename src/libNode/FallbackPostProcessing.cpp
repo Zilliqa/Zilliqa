@@ -66,8 +66,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Fallback consensus is DONE!!!");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Fallback consensus DONE");
 
   lock(m_mutexPendingFallbackBlock, m_mutexShardMember);
   lock_guard<mutex> g(m_mutexPendingFallbackBlock, adopt_lock);
@@ -313,19 +312,16 @@ bool Node::ProcessFallbackConsensus(const bytes& message, unsigned int offset,
 
   ConsensusCommon::State state = m_consensusObject->GetState();
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Consensus state = " << m_consensusObject->GetStateString());
+            "Consensus = " << m_consensusObject->GetStateString());
 
   if (state == ConsensusCommon::State::DONE) {
     ProcessFallbackConsensusWhenDone();
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Fallback consensus is DONE!!!");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Fallback consensus DONE");
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "No consensus reached. Will attempt to do fallback again");
     return false;
   } else {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus state = " << state);
     cv_processConsensusMessage.notify_all();
   }
   return true;

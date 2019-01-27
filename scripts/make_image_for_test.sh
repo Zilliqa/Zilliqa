@@ -16,10 +16,16 @@
 # This script is used for making image locally and pushing to private registry
 
 # Usage:
-#     ./scripts/make_image.sh         # using current HEAD
-#     ./scripts/make_image.sh COMMIT  # using a specific commit
+#
+# - Build images for all the test scenarios
+#     ./scripts/make_image_for_test.sh               # using current HEAD
+#     ./scripts/make_image_for_test.sh COMMIT        # using a specific commit
+#
+# - Build the image for only one specific test scenario
+#     ./scripts/make_image_for_test.sh -n vc2        # for vc2
+#     ./scripts/make_image_for_test.sh -n vc2 COMMIT # for vc2 at a specific commit
 
-Test_scenarios=( "-DVC_TEST_DS_SUSPEND_3=1 "
+Test_scenarios=("-DVC_TEST_DS_SUSPEND_3=1 "
                 "-DVC_TEST_FB_SUSPEND_3=1 "
                 "-DVC_TEST_DS_SUSPEND_1=1 -DVC_TEST_VC_SUSPEND_3=1 "
                 "-DVC_TEST_FB_SUSPEND_3=1 -DVC_TEST_VC_SUSPEND_3=1 "
@@ -30,37 +36,42 @@ Test_scenarios=( "-DVC_TEST_DS_SUSPEND_3=1 "
                 "-DDM_TEST_DM_LESSMB_ONE=1 "
                 "-DDM_TEST_DM_LESSMB_ALL=1 "
                 "-DDM_TEST_DM_BAD_ANNOUNCE=1 "
-                "-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 " )
-Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" )
+                "-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 "
+                "-DDM_TEST_DM_MORETXN_LEADER=1 "
+                "-DDM_TEST_DM_MORETXN_HALF=1 " )
+
+Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" "dm7" "dm8" )
 
 cmd=$0
 
 function usage() {
 cat <<EOF
-Usage: $cmd [COMMIT]
+Usage: $cmd [OPTIONS] [COMMIT]
 
 Positional arguments:
     COMMIT                  The commit used to build zilliqa binaries. If it's
                             not set, the current HEAD will be used
 Options:
+    -n,--name STRING        Only build a specific test
     -h,--help               Show this help message
 
 EOF
 }
 
 commit=""
+name=""
 
 while [ $# -gt 0 ]
 do
     opt=$1
     case $opt in
-        -t|--target)
-            echo "Warning: --target option has been deprecated"
-            shift 2
-        ;;
         -h|--help)
             usage
             exit 1
+        ;;
+        -n|--name)
+            name=$2
+            shift 2
         ;;
         -*|--*)
             echo "Unrecognized option $opt"
@@ -138,11 +149,18 @@ fi
 # Making images and checking result
 for ((i=0;i<${#Test_scenarios[@]};i++))
 do
+    # skip the test when $name is non-empty and not matching
+    if [ -n "$name" ] && [ "$name" != "${Test_scenarios_name[$i]}" ]
+    then
+        continue
+    fi
+
     echo "Building test scenario ${Test_scenarios_name[$i]}"
     TEST_EXTRA_CMAKE_ARGS=${Test_scenarios[$i]} TEST_NAME="-${Test_scenarios_name[$i]}" TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
-    if [ "$?" -ne 0 ]
+    exit_code=$?
+    if [ "$exit_code" -ne 0 ]
     then
         echo "Making image failed"
-        exit 1
+        exit $exit_code
     fi
 done

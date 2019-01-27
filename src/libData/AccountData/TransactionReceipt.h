@@ -33,16 +33,44 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
+enum ReceiptError : unsigned int {
+  CHECKER_FAILED = 0,
+  RUNNER_FAILED,
+  BALANCE_TRANSFER_FAILED,
+  EXECUTE_CMD_FAILED,
+  EXECUTE_CMD_TIMEOUT,
+  NO_GAS_REMAINING_FOUND,
+  NO_ACCEPTED_FOUND,
+  CALL_CONTRACT_FAILED,
+  CREATE_CONTRACT_FAILED,
+  JSON_OUTPUT_CORRUPTED,
+  CONTRACT_NOT_EXIST,
+  STATE_CORRUPTED,
+  LOG_ENTRY_INSTALL_FAILED,
+  MESSAGE_CORRUPTED,
+  RECEIPT_IS_NULL,
+  MAX_DEPTH_REACHED,
+  CHAIN_CALL_DIFF_SHARD,
+  PREPARATION_FAILED,
+  NO_OUTPUT,
+  OUTPUT_ILLEGAL
+};
+
 class TransactionReceipt : public SerializableDataBlock {
   Json::Value m_tranReceiptObj = Json::nullValue;
   std::string m_tranReceiptStr;
   uint64_t m_cumGas = 0;
+  unsigned int m_depth = 0;
+  Json::Value m_errorObj;
 
  public:
   TransactionReceipt();
   bool Serialize(bytes& dst, unsigned int offset) const override;
   bool Deserialize(const bytes& src, unsigned int offset) override;
   void SetResult(const bool& result);
+  void AddError(const unsigned int& errCode);
+  void AddDepth();
+  void InstallError();
   void SetCumGas(const uint64_t& cumGas);
   void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
@@ -102,8 +130,7 @@ class TransactionWithReceipt : public SerializableDataBlock {
     for (const auto& th : txnOrder) {
       auto it = txrs.find(th);
       if (it == txrs.end()) {
-        LOG_GENERAL(WARNING, "Cannot find txnHash "
-                                 << th.hex() << " from processedTransactions");
+        LOG_GENERAL(WARNING, "Missing txnHash " << th);
         return false;
       }
       vec.emplace_back(it->second);
