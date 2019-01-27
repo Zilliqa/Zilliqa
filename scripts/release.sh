@@ -34,7 +34,6 @@ useNewUpgradeMethod=""
 S3UpgradeFileName=""
 testnet=""
 current_cluster_name="" # eg: dev.k8s.z7a.xyz
-dsguards_count=""
 #optional for auto upload the persistent data to S3 DB and ask all nodes to download from S3
 S3PersistentDBFileName="" ## need not be same as testnet name ex: tesnet multiregion - multi_m1 and multi_m2
                                  ## and backup script would create DB with filename multi.tar.gz. So in this case
@@ -117,12 +116,11 @@ function setcontext()
     fi
 }
 
-# This right now also include non-ds guard. Ok for now.
 function run_cmd_for_all_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     tmpfile=$(mktemp)
     kubectl $context_arg get pods \
-        -l 'type in (lookup, normal, newlookup)',testnet=$testnet,app=zilliqa \
+        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
@@ -131,12 +129,13 @@ function run_cmd_for_all_in_parallel() {
 }
 
 
+# This right now also include non-ds guard. Ok for now.
 function run_cmd_for_shards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     kubectl $context_arg get pods \
         -l type=normal,testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | awk -v a="$dsguards_count" '{if(NR>a)print}' | \
+        -o custom-columns='Name:.metadata.name' --no-headers | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
@@ -144,9 +143,9 @@ function run_cmd_for_shards_in_parallel() {
 function run_cmd_for_dsguards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     kubectl $context_arg get pods \
-        -l type=normal,testnet=$testnet,app=zilliqa \
+        -l type=dsguard,testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | awk -v a="$dsguards_count" '{if(NR<=a)print}' | \
+        -o custom-columns='Name:.metadata.name' --no-headers | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
