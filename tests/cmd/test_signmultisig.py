@@ -98,8 +98,6 @@ def run_setup(CMD_BIN_PATH, LOCAL_TESTRUN_FOLDER):
 		
 	# Copies binaries under test into test execution location
 	for b in ['genkeypair', 'signmultisig']:
-		print(CMD_BIN_PATH + b)
-		print(LOCAL_TESTRUN_FOLDER + b)
 		shutil.copyfile(CMD_BIN_PATH + b, LOCAL_TESTRUN_FOLDER  + b)
 		st = os.stat(CMD_BIN_PATH + b)
 		os.chmod(LOCAL_TESTRUN_FOLDER + b, st.st_mode | stat.S_IEXEC)
