@@ -362,8 +362,6 @@ void Node::ScheduleMicroBlockConsensus() {
 
   auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
-  SetState(MICROBLOCK_CONSENSUS_PREP);
-
   DetachedFunction(1, main_func);
 }
 

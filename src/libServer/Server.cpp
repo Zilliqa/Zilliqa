@@ -210,87 +210,85 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     Json::Value ret;
 
-    if (num_shards > 0) {
-      unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-      switch (GetTransactionType(tx)) {
-        case NON_CONTRACT:
-          if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-          } else {
-            m_mediator.m_lookup->AddToTxnShardMap(
-                tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
-          }
-          ret["Info"] = "Non-contract txn, sent to shard";
-          ret["TranID"] = tx.GetTranID().hex();
-          return ret;
-          break;
-        case CONTRACT_CREATION:
-          if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-          } else {
-            m_mediator.m_lookup->AddToTxnShardMap(
-                tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
-          }
-          ret["Info"] = "Contract Creation txn, sent to shard";
-          ret["TranID"] = tx.GetTranID().hex();
-          ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, sender->GetNonce())
-                  .hex();
-          return ret;
-          break;
-        case CONTRACT_CALL: {
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
-
-          if (account == nullptr) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "To addr is null");
-          }
-
-          else if (!account->isContract()) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "Non - contract address called");
-          }
-
-          unsigned int to_shard =
-              Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-          bool sendToDs = false;
-          if (_json.isMember("priority")) {
-            sendToDs = _json["priority"].asBool();
-          }
-          if ((to_shard == shard) && !sendToDs) {
-            if (!ARCHIVAL_LOOKUP) {
-              m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-            } else {
-              m_mediator.m_lookup->AddToTxnShardMap(
-                  tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
-            }
-            ret["Info"] =
-                "Contract Txn, Shards Match of the sender "
-                "and reciever";
-            ret["TranID"] = tx.GetTranID().hex();
-          } else {
-            if (!ARCHIVAL_LOOKUP) {
-              m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
-            } else {
-              m_mediator.m_lookup->AddToTxnShardMap(
-                  tx, SEND_TYPE::ARCHIVAL_SEND_DS);
-            }
-            ret["Info"] = "Contract Txn, Sent To Ds";
-            ret["TranID"] = tx.GetTranID().hex();
-          }
-          return ret;
-        } break;
-
-        case ERROR:
-          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                 "Code is empty and To addr is null");
-          break;
-        default:
-          throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-      }
-    } else {
+    if (num_shards == 0) {
       throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
+    }
+
+    unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    switch (GetTransactionType(tx)) {
+      case NON_CONTRACT:
+        if (!ARCHIVAL_LOOKUP) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+        } else {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+        }
+        ret["Info"] = "Non-contract txn, sent to shard";
+        ret["TranID"] = tx.GetTranID().hex();
+        return ret;
+        break;
+      case CONTRACT_CREATION:
+        if (!ARCHIVAL_LOOKUP) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+        } else {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+        }
+        ret["Info"] = "Contract Creation txn, sent to shard";
+        ret["TranID"] = tx.GetTranID().hex();
+        ret["ContractAddress"] =
+            Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
+        return ret;
+        break;
+      case CONTRACT_CALL: {
+        const Account* account =
+            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+        if (account == nullptr) {
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
+        }
+
+        else if (!account->isContract()) {
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                 "Non - contract address called");
+        }
+
+        unsigned int to_shard =
+            Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+        bool sendToDs = false;
+        if (_json.isMember("priority")) {
+          sendToDs = _json["priority"].asBool();
+        }
+        if ((to_shard == shard) && !sendToDs) {
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(
+                tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+          }
+          ret["Info"] =
+              "Contract Txn, Shards Match of the sender "
+              "and reciever";
+          ret["TranID"] = tx.GetTranID().hex();
+        } else {
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                  SEND_TYPE::ARCHIVAL_SEND_DS);
+          }
+          ret["Info"] = "Contract Txn, Sent To Ds";
+          ret["TranID"] = tx.GetTranID().hex();
+        }
+        return ret;
+      } break;
+
+      case ERROR:
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Code is empty and To addr is null");
+        break;
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
     return ret;
   } catch (const JsonRpcException& je) {
@@ -303,18 +301,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 }
 
 Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
-  if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
-    if (tx.GetData().empty() && tx.GetCode().empty() &&
-        tx.GetToAddr() != NullAddress) {
-      return NON_CONTRACT;
-    } else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
-      return CONTRACT_CREATION;
-    } else {
-      return ERROR;
-    }
-  } else {
+  if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress) {
     return CONTRACT_CALL;
   }
+
+  if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+    return CONTRACT_CREATION;
+  }
+
+  if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+      tx.GetCode().empty()) {
+    return NON_CONTRACT;
+  }
+
+  return ERROR;
 }
 
 Json::Value Server::GetTransaction(const string& transactionHash) {
@@ -335,23 +335,6 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
     }
     if (isPresentHistorical || isPresent) {
       Json::Value _json;
-      /*switch (GetTransactionType(tptr->GetTransaction())) {
-        case NON_CONTRACT:
-          _json["Type"] = NON_CONTRACT;
-          _json["Info"] = "Non-contract transaction";
-          break;
-        case CONTRACT_CREATION:
-          _json["Type"] = CONTRACT_CREATION;
-          _json["Info"] = "Contract Creation transaction";
-          break;
-        case CONTRACT_CALL:
-          _json["Type"] = CONTRACT_CALL;
-          _json["Info"] = "Contract Call transaction";
-          break;
-        case ERROR:
-        default:
-          throw JsonRpcException(RPC_MISC_ERROR, "Unknown txn type");
-      }*/
       return JSONConversion::convertTxtoJson(*tptr);
     } else {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");

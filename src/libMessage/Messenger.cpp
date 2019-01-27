@@ -5941,14 +5941,17 @@ bool Messenger::GetForwardTxnBlockFromSeed(
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed.");
+    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed");
     return false;
   }
 
-  ProtobufToTransactionArray(result.shardtransactions(), shardTransactions);
-  ProtobufToTransactionArray(result.dstransactions(), dsTransactions);
+  if (!ProtobufToTransactionArray(result.shardtransactions(),
+                                  shardTransactions)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionArray failed");
+    return false;
+  }
 
-  return true;
+  return ProtobufToTransactionArray(result.dstransactions(), dsTransactions);
 }
 
 // UNUSED
