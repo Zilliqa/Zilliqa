@@ -160,8 +160,8 @@ bool DirectoryService::ComposeFinalBlock() {
 
 #ifdef DM_TEST_DM_BAD_ANNOUNCE
   if (m_viewChangeCounter == 0) {
-    LOG_GENERAL(WARNING,
-                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
     stateRoot = StateHash();
   }
 #endif  // DM_TEST_DM_BAD_ANNOUNCE

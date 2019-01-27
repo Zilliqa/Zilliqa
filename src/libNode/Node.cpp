@@ -1377,25 +1377,26 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #ifdef DM_TEST_DM_LESSTXN_ONE
   uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
-  LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
+  LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+            "Consensus ID for DM1 test is " << dm_test_id);
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_ds->GetConsensusMyID() == dm_test_id) {
-    LOG_GENERAL(WARNING,
-                "Letting one of the backups accept less txns from lookup "
-                "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, ,
+              "Letting one of the backups accept less txns from lookup "
+              "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
   } else {
-    LOG_GENERAL(WARNING,
-                "The node triggered DM_TEST_DM_LESSTXN_ONE is "
-                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The node triggered DM_TEST_DM_LESSTXN_ONE is "
+                  << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE
 
 #ifdef DM_TEST_DM_LESSTXN_ALL
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::BACKUP_DS) {
-    LOG_GENERAL(WARNING,
-                "Letting all of the backups accept less txns from lookup "
-                "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Letting all of the backups accept less txns from lookup "
+              "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSTXN_ALL
@@ -1403,7 +1404,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #ifdef DM_TEST_DM_MORETXN_LEADER
   if (m_mediator.m_ds->GetConsensusMyID() ==
       m_mediator.m_ds->GetConsensusLeaderID()) {
-    LOG_GENERAL(WARNING, "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
     return false;
   }
 #endif  // DM_TEST_DM_MORETXN_LEADER
@@ -1412,9 +1414,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (m_mediator.m_ds->GetConsensusMyID() ==
           m_mediator.m_ds->GetConsensusLeaderID() ||
       (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
-    LOG_GENERAL(WARNING, "My consensus id "
-                             << m_mediator.m_ds->GetConsensusMyID()
-                             << " triggered DM_TEST_DM_MORETXN_HALF");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
+                                 << " triggered DM_TEST_DM_MORETXN_HALF");
     return false;
   }
 #endif  // DM_TEST_DM_MORETXN_HALF
