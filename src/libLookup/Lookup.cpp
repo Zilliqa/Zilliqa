@@ -1600,7 +1600,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
   LOG_MARKER();
 
-  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
+  lock(m_mutexSetDSBlockFromSeed, m_mutexCheckDirBlocks);
+
+  unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed, adopt_lock);
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
 
   uint64_t lowBlockNum;
   uint64_t highBlockNum;
@@ -1634,35 +1637,48 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
       cv_latestDSBlock.notify_all();
       return true;
     }
-
+    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+        dirBlocks;
     for (const auto& dsblock : dsBlocks) {
-      // TODO
-      // Workaround to identify dummy block as == comparator does not work on
-      // empty object for DSBlock and DSBlockheader().
-      // if (!(m_mediator.m_dsBlockChain.GetBlock(
-      //           dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
-      if (m_mediator.m_dsBlockChain.GetBlock(dsblock.GetHeader().GetBlockNum())
-              .GetHeader()
-              .GetBlockNum() != INIT_BLOCK_NUMBER) {
+      if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
+        // skip as already I have them
         continue;
       }
-      m_mediator.m_dsBlockChain.AddBlock(dsblock);
-      // Store DS Block to disk
-      bytes serializedDSBlock;
-      dsblock.Serialize(serializedDSBlock, 0);
-      BlockStorage::GetBlockStorage().PutDSBlock(
-          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+      dirBlocks.emplace_back(dsblock);
     }
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
+      LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
+      return true;
+    }
+    uint64_t dsblocknumbefore =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    uint64_t index_num = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-    if (m_syncType == SyncType::DS_SYNC ||
-        m_syncType == SyncType::LOOKUP_SYNC) {
-      if (!m_isFirstLoop) {
-        m_currDSExpired = true;
-      } else {
-        m_isFirstLoop = false;
-      }
+    DequeOfNode newDScomm;
+    if (!m_mediator.m_validator->CheckDirBlocks(
+            dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), index_num,
+            newDScomm)) {
+      LOG_GENERAL(WARNING, "Could not verify all DS blocks");
     }
-    m_mediator.UpdateDSBlockRand();
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
+    uint64_t dsblocknumafter =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    LOG_GENERAL(INFO, "DS epoch before" << dsblocknumbefore + 1
+                                        << " DS epoch now "
+                                        << dsblocknumafter + 1);
+
+    if (dsblocknumbefore < dsblocknumafter) {
+      if (m_syncType == SyncType::DS_SYNC ||
+          m_syncType == SyncType::LOOKUP_SYNC) {
+        if (!m_isFirstLoop) {
+          m_currDSExpired = true;
+        } else {
+          m_isFirstLoop = false;
+        }
+      }
+      m_mediator.UpdateDSBlockRand();
+    }
   }
 
   return true;
@@ -2998,6 +3014,11 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
   PubKey lookupPubKey;
+
+  lock(m_mutexCheckDirBlocks, m_mutexSetTxBlockFromSeed);
+
+  lock_guard<mutex> g(m_mutexCheckDirBlocks, adopt_lock);
+  lock_guard<mutex> lock(m_mutexSetTxBlockFromSeed, adopt_lock);
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
           message, offset, shardingStructureVersion, dirBlocks, index_num,
           lookupPubKey)) {
@@ -3086,8 +3107,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 }
 
 void Lookup::CheckBufferTxBlocks() {
-  unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
-
   if (!m_txBlockBuffer.empty()) {
     ValidatorBase::TxBlockValidationMsg res =
         m_mediator.m_validator->CheckTxBlocks(

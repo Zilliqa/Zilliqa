@@ -109,6 +109,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
   std::mutex mutable m_mutexLookupNodes;
+  std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
   // TxBlockBuffer
