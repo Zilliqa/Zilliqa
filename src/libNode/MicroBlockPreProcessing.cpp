@@ -133,8 +133,8 @@ bool Node::ComposeMicroBlock() {
 #ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
   if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    LOG_GENERAL(WARNING,
-                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
     tranHashes.clear();
   }
 #endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
