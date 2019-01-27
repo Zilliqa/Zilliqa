@@ -275,10 +275,15 @@ void DirectoryService::InitCoinbase() {
   }
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
-  total_reward = total_reward - base_reward;
+  uint128_t lookupReward = 0;
+  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
+                                lookupReward)) {
+    LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
+    return;
+  }
+  lookupReward /= 100;
 
-  uint128_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
-  uint128_t nodeReward = total_reward - lookupReward;
+  uint128_t nodeReward = total_reward - lookupReward - base_reward;
   uint128_t reward_each = 0;
   uint128_t reward_each_lookup = 0;
 
@@ -371,6 +376,7 @@ void DirectoryService::InitCoinbase() {
           if (GUARD_MODE) {
             if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
                 Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+              suc_counter++;
               continue;
             }
           }
@@ -397,10 +403,12 @@ void DirectoryService::InitCoinbase() {
   }
 
   uint128_t balance_left = total_reward - (suc_counter * reward_each) -
-                           (suc_lookup_counter * reward_each_lookup) +
-                           base_reward - (node_count * base_reward_each);
+                           (suc_lookup_counter * reward_each_lookup) -
+                           (node_count * base_reward_each);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
+
+  // LuckyDraw
 
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
