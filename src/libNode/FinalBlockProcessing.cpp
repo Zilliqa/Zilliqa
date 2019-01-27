@@ -672,14 +672,6 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     }
   }
 
-  if (!LOOKUP_NODE_MODE &&
-      (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
-    RejoinAsNormal();
-    return false;
-  } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
-    return false;
-  }
-
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
@@ -687,6 +679,14 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
 
   BlockStorage::GetBlockStorage().PutStateDelta(
       txBlock.GetHeader().GetBlockNum(), stateDelta);
+
+  if (!LOOKUP_NODE_MODE &&
+      (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
+    RejoinAsNormal();
+    return false;
+  } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
+    return false;
+  }
 
   if (!isVacuousEpoch) {
     if (!LoadUnavailableMicroBlockHashes(
