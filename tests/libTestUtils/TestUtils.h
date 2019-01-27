@@ -60,7 +60,7 @@ TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
-Signature GetSignature(const bytes&, const PrivKey&, const PubKey&);
+Signature GetSignature(const bytes&, const PairOfKey&);
 Signature GenerateRandomSignature();
 
 DequeOfNode GenerateRandomDSCommittee(uint32_t);

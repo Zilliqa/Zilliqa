@@ -232,18 +232,16 @@ bytes GenerateRandomCharVector(size_t length) {
   return cv;
 }
 
-Signature GetSignature(const bytes& data, const PrivKey& privkey,
-                       const PubKey& pubkey) {
+Signature GetSignature(const bytes& data, const PairOfKey& keyPair) {
   Signature result;
 
-  Schnorr::GetInstance().Sign(data, privkey, pubkey, result);
+  Schnorr::GetInstance().Sign(data, keyPair.first, keyPair.second, result);
   return result;
 }
 
 Signature GenerateRandomSignature() {
   PairOfKey kp = GenerateRandomKeyPair();
-  return GetSignature(GenerateRandomCharVector(Dist1to99()), kp.first,
-                      kp.second);
+  return GetSignature(GenerateRandomCharVector(Dist1to99()), kp);
 }
 
 }  // namespace TestUtils
