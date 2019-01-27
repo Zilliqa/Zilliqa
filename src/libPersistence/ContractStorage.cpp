@@ -29,19 +29,23 @@ namespace Contract {
 
 bool ContractStorage::PutContractCode(const dev::h160& address,
                                       const bytes& code) {
+  unique_lock<shared_timed_mutex> g(m_codeMutex);
   return m_codeDB.Insert(address.hex(), code) == 0;
 }
 
 bool ContractStorage::PutContractCodeBatch(
     const unordered_map<string, string>& batch) {
+  unique_lock<shared_timed_mutex> g(m_codeMutex);
   return m_codeDB.BatchInsert(batch);
 }
 
 const bytes ContractStorage::GetContractCode(const dev::h160& address) {
+  shared_lock<shared_timed_mutex> g(m_codeMutex);
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
 
 bool ContractStorage::DeleteContractCode(const dev::h160& address) {
+  unique_lock<shared_timed_mutex> g(m_codeMutex);
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }
 
@@ -60,6 +64,7 @@ Index GetIndex(const dev::h160& address, const string& key,
 }
 
 bool ContractStorage::CheckIndexExists(const Index& index) {
+  shared_lock<shared_timed_mutex> g(m_stateIndexMutex);
   auto t_found = t_stateDataMap.find(index.hex());
   auto m_found = m_stateDataMap.find(index.hex());
   return t_found != t_stateDataMap.end() || m_found != m_stateDataMap.end() ||
@@ -108,46 +113,49 @@ bool ContractStorage::PutContractState(const dev::h160& address,
 
 bool ContractStorage::PutContractState(
     const dev::h160& address, const vector<pair<Index, bytes>>& entries,
-    dev::h256& stateHash, bool temp, bool reversible,
+    dev::h256& stateHash, bool temp, bool revertible,
     const vector<Index>& existing_indexes, bool provideExisting) {
   // LOG_MARKER();
+  {
+    unique_lock<shared_timed_mutex> g(m_stateMainMutex);
 
-  if (address == Address()) {
-    LOG_GENERAL(WARNING, "Null address rejected");
-    return false;
-  }
-
-  vector<Index> entry_indexes;
-
-  if (provideExisting) {
-    entry_indexes = existing_indexes;
-  } else {
-    entry_indexes = GetContractStateIndexes(address, temp);
-  }
-
-  unordered_map<string, string> batch;
-
-  for (const auto& entry : entries) {
-    // Append the new index to the existing indexes
-    if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
-        entry_indexes.end()) {
-      entry_indexes.emplace_back(entry.first);
+    if (address == Address()) {
+      LOG_GENERAL(WARNING, "Null address rejected");
+      return false;
     }
 
-    if (temp) {
-      t_stateDataMap[entry.first.hex()] = entry.second;
+    vector<Index> entry_indexes;
+
+    if (provideExisting) {
+      entry_indexes = existing_indexes;
     } else {
-      if (reversible) {
-        r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
-      }
-      m_stateDataMap[entry.first.hex()] = entry.second;
+      entry_indexes = GetContractStateIndexes(address, temp);
     }
-  }
 
-  // Update the stateIndexDB
-  if (!SetContractStateIndexes(address, entry_indexes, temp, reversible)) {
-    LOG_GENERAL(WARNING, "SetContractStateIndex failed");
-    return false;
+    unordered_map<string, string> batch;
+
+    for (const auto& entry : entries) {
+      // Append the new index to the existing indexes
+      if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==
+          entry_indexes.end()) {
+        entry_indexes.emplace_back(entry.first);
+      }
+
+      if (temp) {
+        t_stateDataMap[entry.first.hex()] = entry.second;
+      } else {
+        if (revertible) {
+          r_stateDataMap[entry.first.hex()] = m_stateDataMap[entry.first.hex()];
+        }
+        m_stateDataMap[entry.first.hex()] = entry.second;
+      }
+    }
+
+    // Update the stateIndexDB
+    if (!SetContractStateIndexes(address, entry_indexes, temp, revertible)) {
+      LOG_GENERAL(WARNING, "SetContractStateIndex failed");
+      return false;
+    }
   }
 
   stateHash = GetContractStateHash(address, temp);
@@ -155,10 +163,25 @@ bool ContractStorage::PutContractState(
   return true;
 }
 
+void ContractStorage::BufferCurrentState() {
+  LOG_MARKER();
+  shared_lock<shared_timed_mutex> g(m_stateMainMutex);
+  p_stateIndexMap = t_stateIndexMap;
+  p_stateDataMap = t_stateDataMap;
+}
+
+void ContractStorage::RevertPrevState() {
+  LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_stateMainMutex);
+  t_stateIndexMap = std::move(p_stateIndexMap);
+  t_stateDataMap = std::move(p_stateDataMap);
+}
+
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
                                               const std::vector<Index>& indexes,
-                                              bool temp, bool reversible) {
+                                              bool temp, bool revertible) {
   // LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_stateIndexMutex);
 
   bytes rawBytes;
   if (!Messenger::SetStateIndex(rawBytes, 0, indexes)) {
@@ -169,7 +192,7 @@ bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
   if (temp) {
     t_stateIndexMap[address.hex()] = rawBytes;
   } else {
-    if (reversible) {
+    if (revertible) {
       r_stateIndexMap[address.hex()] = m_stateIndexMap[address.hex()];
     }
     m_stateIndexMap[address.hex()] = rawBytes;
@@ -180,6 +203,8 @@ bool ContractStorage::SetContractStateIndexes(const dev::h160& address,
 
 void ContractStorage::RevertContractStates() {
   LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_stateMainMutex);
+
   for (const auto& acc : r_stateIndexMap) {
     if (acc.second.empty()) {
       m_stateIndexMap.erase(acc.first);
@@ -196,8 +221,9 @@ void ContractStorage::RevertContractStates() {
   }
 }
 
-void ContractStorage::InitReversibles() {
+void ContractStorage::InitRevertibles() {
   LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_stateMainMutex);
   r_stateIndexMap.clear();
   r_stateDataMap.clear();
 }
@@ -207,6 +233,8 @@ vector<Index> ContractStorage::GetContractStateIndexes(const dev::h160& address,
   // get from stateIndexDB
   // return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
   // LOG_MARKER();
+  shared_lock<shared_timed_mutex> g(m_stateIndexMutex);
+
   std::vector<Index> indexes;
 
   bytes rawBytes;
@@ -235,6 +263,7 @@ vector<Index> ContractStorage::GetContractStateIndexes(const dev::h160& address,
 vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address,
                                                      bool temp) {
   // LOG_MARKER();
+  shared_lock<shared_timed_mutex> g(m_stateMainMutex);
   // get indexes
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");
@@ -266,6 +295,7 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address,
 
 string ContractStorage::GetContractStateData(const Index& index, bool temp) {
   // LOG_MARKER();
+  shared_lock<shared_timed_mutex> g(m_stateDataMutex);
   auto t_found = t_stateDataMap.find(index.hex());
   auto m_found = m_stateDataMap.find(index.hex());
   if (temp && t_found != t_stateDataMap.end()) {
@@ -279,6 +309,7 @@ string ContractStorage::GetContractStateData(const Index& index, bool temp) {
 
 bool ContractStorage::CommitStateDB() {
   LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_stateMainMutex);
   // copy everything into m_stateXXDB;
   // Index
   unordered_map<string, std::string> batch;
@@ -440,9 +471,21 @@ dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address,
 }
 
 void ContractStorage::Reset() {
-  m_codeDB.ResetDB();
-  m_stateIndexDB.ResetDB();
-  m_stateDataDB.ResetDB();
+  {
+    unique_lock<shared_timed_mutex> g(m_codeMutex);
+    m_codeDB.ResetDB();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_stateMainMutex);
+    {
+      unique_lock<shared_timed_mutex> g(m_stateIndexMutex);
+      m_stateIndexDB.ResetDB();
+    }
+    {
+      unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+      m_stateDataDB.ResetDB();
+    }
+  }
 }
 
 }  // namespace Contract

@@ -715,7 +715,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     bytes dataTransfer;
     uint64_t amount =
@@ -850,7 +850,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -1047,7 +1047,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    account->SetStorage(state_entries, true);
+    account->SetStorage(state_entries);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -1232,8 +1232,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       token_state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
 
-    token1Account->SetStorage(token_state_entries, true);
-    token2Account->SetStorage(token_state_entries, true);
+    token1Account->SetStorage(token_state_entries);
+    token2Account->SetStorage(token_state_entries);
 
     // Deploy DEX
     // Deploy the DEX contract with the 0th test case, but use custom messages
@@ -1340,7 +1340,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     dex_state_entries.push_back(std::make_tuple(
         "orderInfo", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
         JSONUtils::convertJsontoStr(orderInfo)));
-    dexAccount->SetStorage(dex_state_entries, true);
+    dexAccount->SetStorage(dex_state_entries);
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;

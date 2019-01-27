@@ -3448,10 +3448,12 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
                 "non-lookup node");
   }
 
-  vector<Transaction> txns;
+  vector<Transaction> txnsShard;
+  vector<Transaction> txnsDS;
 
-  if (!Messenger::GetTransactionArray(message, offset, txns)) {
-    LOG_GENERAL(WARNING, "Failed to Messenger::GetTransactionArray");
+  if (!Messenger::GetForwardTxnBlockFromSeed(message, offset, txnsShard,
+                                             txnsDS)) {
+    LOG_GENERAL(WARNING, "Failed to Messenger::GetForwardTxnBlockFromSeed");
     return false;
   }
 
@@ -3469,15 +3471,21 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       return false;
     }
 
-    for (const auto& txn : txns) {
+    for (const auto& txn : txnsShard) {
       const PubKey& senderPubKey = txn.GetSenderPubKey();
       const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
       unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
       AddToTxnShardMap(txn, shard);
     }
+    for (const auto& txn : txnsDS) {
+      AddToTxnShardMap(txn, shard_size);
+    }
   } else {
-    for (const auto& txn : txns) {
-      AddToTxnShardMap(txn, 0);
+    for (const auto& txn : txnsShard) {
+      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+    }
+    for (const auto& txn : txnsDS) {
+      AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_DS);
     }
   }
 

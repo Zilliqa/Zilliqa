@@ -525,7 +525,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                             const Address& addr, const bool fullCopy, bool temp,
-                            bool reversible = false) {
+                            bool revertible = false) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
@@ -600,7 +600,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                              DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, temp, reversible)) {
+      if (!account.SetStorage(addr, entries, temp, revertible)) {
         return false;
       }
 
@@ -726,17 +726,6 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
   if (value.back() == '"') {
     value.erase(value.size() - 1);
   }
-  value.erase(std::remove_if(value.begin(), value.end(),
-                             [](char c) {
-                               switch (c) {
-                                 case '\t':
-                                 case '\n':
-                                   return true;
-                                 default:
-                                   return false;
-                               }
-                             }),
-              value.end());
 
   protoStateData.set_value(value);
 }
@@ -2522,7 +2511,7 @@ bool Messenger::StateDeltaToAddressMap(
 bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
-                                     const bool reversible, bool temp) {
+                                     const bool revertible, bool temp) {
   ProtoAccountStore result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2561,7 +2550,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     t_account = *oriAccount;
     account = *oriAccount;
     if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
-                                temp, reversible)) {
+                                temp, revertible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -2569,7 +2558,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     }
 
     accountStore.AddAccountDuringDeserialization(address, account, t_account,
-                                                 fullCopy, reversible);
+                                                 fullCopy, revertible);
   }
 
   return true;
@@ -5919,6 +5908,50 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   }
 
   return true;
+}
+
+bool Messenger::SetForwardTxnBlockFromSeed(
+    bytes& dst, const unsigned int offset,
+    const vector<Transaction>& shardTransactions,
+    const vector<Transaction>& dsTransactions) {
+  LookupForwardTxnsFromSeed result;
+
+  if (!shardTransactions.empty()) {
+    TransactionArrayToProtobuf(shardTransactions,
+                               *result.mutable_shardtransactions());
+  }
+  if (!dsTransactions.empty()) {
+    TransactionArrayToProtobuf(dsTransactions,
+                               *result.mutable_dstransactions());
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetForwardTxnBlockFromSeed(
+    const bytes& src, const unsigned int offset,
+    vector<Transaction>& shardTransactions,
+    vector<Transaction>& dsTransactions) {
+  LookupForwardTxnsFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupForwardTxnsFromSeed initialization failed");
+    return false;
+  }
+
+  if (!ProtobufToTransactionArray(result.shardtransactions(),
+                                  shardTransactions)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionArray failed");
+    return false;
+  }
+
+  return ProtobufToTransactionArray(result.dstransactions(), dsTransactions);
 }
 
 // UNUSED

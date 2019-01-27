@@ -55,7 +55,7 @@ void AccountStore::InitSoft() {
 
   AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
-  InitReversibles();
+  InitRevertibles();
 
   InitTemp();
 }
@@ -71,15 +71,15 @@ void AccountStore::InitTemp() {
   ContractStorage::GetContractStorage().InitTempState();
 }
 
-void AccountStore::InitReversibles() {
+void AccountStore::InitRevertibles() {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexReversibles);
+  lock_guard<mutex> g(m_mutexRevertibles);
 
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
 
-  ContractStorage::GetContractStorage().InitReversibles();
+  ContractStorage::GetContractStorage().InitRevertibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -139,15 +139,15 @@ void AccountStore::GetSerializedDelta(bytes& dst) {
 }
 
 bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
-                                    bool reversible) {
+                                    bool revertible) {
   LOG_MARKER();
 
-  if (reversible) {
-    lock(m_mutexPrimary, m_mutexReversibles);
+  if (revertible) {
+    lock(m_mutexPrimary, m_mutexRevertibles);
     unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-    lock_guard<mutex> g2(m_mutexReversibles, adopt_lock);
+    lock_guard<mutex> g2(m_mutexRevertibles, adopt_lock);
 
-    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible,
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
       LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
       return false;
@@ -155,7 +155,7 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   } else {
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible,
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
       LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
       return false;
@@ -357,10 +357,10 @@ void AccountStore::CommitTemp() {
   }
 }
 
-void AccountStore::CommitTempReversible() {
+void AccountStore::CommitTempRevertible() {
   LOG_MARKER();
 
-  InitReversibles();
+  InitRevertibles();
 
   if (!DeserializeDelta(m_stateDeltaSerialized, 0, true)) {
     LOG_GENERAL(WARNING, "DeserializeDelta failed.");

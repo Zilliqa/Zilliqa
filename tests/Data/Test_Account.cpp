@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   dev::h256 hash;
 
   acc1.SetStorage(Address(), {}, true);
-  acc1.SetStorage({}, true);
+  acc1.SetStorage({});
   acc1.SetStorageRoot(hash);
   acc1.GetRawStorage(hash, true);
 

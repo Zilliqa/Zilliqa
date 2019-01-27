@@ -378,6 +378,7 @@ message ProtoTransactionArray
     repeated ProtoTransaction transactions = 1;
 }
 
+
 message ProtoTransactionReceipt
 {
     optional bytes receipt    = 1;
@@ -773,6 +774,13 @@ message LookupSetMicroBlockFromLookup
     required ByteArray pubkey            = 2;
     required ByteArray signature         = 3;
 }
+
+message LookupForwardTxnsFromSeed
+{
+    optional ProtoTransactionArray shardtransactions = 1;
+    optional ProtoTransactionArray dstransactions    = 2;
+}
+
 
 message LookupGetTxnsFromLookup
 {

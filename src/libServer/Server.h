@@ -59,6 +59,13 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     RPC_METHOD_DEPRECATED = -32,  //!< RPC method is deprecated
   };
 
+  enum ContractType {
+    NON_CONTRACT = 0,
+    CONTRACT_CREATION,
+    CONTRACT_CALL,
+    ERROR
+  };
+
   AbstractZServer(jsonrpc::AbstractServerConnector& conn,
                   jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2)
       : jsonrpc::AbstractServer<AbstractZServer>(conn, type) {
@@ -456,7 +463,7 @@ class Server : public AbstractZServer {
   // gets the number of transaction starting from block blockNum to most recent
   // block
   size_t GetNumTransactions(uint64_t blockNum);
-
+  ContractType GetTransactionType(const Transaction& tx) const;
   bool StartCollectorThread();
 
   Json::Value GetSmartContractState(const std::string& address);

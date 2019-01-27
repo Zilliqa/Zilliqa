@@ -47,6 +47,9 @@
 class Mediator;
 class Synchronizer;
 
+// Enum used to tell send type to seed node
+enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
+
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable, public Broadcastable {
   Mediator& m_mediator;
