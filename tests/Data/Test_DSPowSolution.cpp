@@ -15,16 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/filesystem.hpp>
-
 #include <string>
 #include <vector>
 #include "common/Constants.h"
 #include "libData/MiningData/DSPowSolution.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libTestUtils/TestUtils.h"
-#include "libCrypto/Schnorr.h"
 
 #define BOOST_TEST_MODULE dspowsolutiontest
 #define BOOST_TEST_DYN_LINK
@@ -42,21 +38,22 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   uint64_t blockNumberInput = TestUtils::DistUint64();
   uint8_t difficultyLevelInput = TestUtils::DistUint8();
   Peer submitterPeerInput = Peer();
-
   PairOfKey keypair = TestUtils::GenerateRandomKeyPair();
   bytes message = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
+  PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
   Signature signatureInput = TestUtils::GetSignature(message, keypair);
+  bytes message2 = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
+  Signature signature2 = TestUtils::GetSignature(message, keypair);
   PubKey submitterKeyInput = keypair.second;
-
   uint64_t nonceInput = TestUtils::DistUint64();
   string resultingHashInput = TestUtils::GenerateRandomString(64);
   string mixHashInput = TestUtils::GenerateRandomString(64);
   uint32_t lookupIdInput = TestUtils::DistUint32();
   uint128_t gasPriceInput = TestUtils::DistUint128();
+  DSPowSolution dsps;
 
 
-
-  DSPowSolution dsps(blockNumberInput,
+  dsps = DSPowSolution(blockNumberInput,
                 difficultyLevelInput,
                 submitterPeerInput,submitterKeyInput,
                 nonceInput,
@@ -65,6 +62,29 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
                 gasPriceInput,
                 signatureInput);
 
+  DSPowSolution dsps2 = dsps;
+  BOOST_REQUIRE(dsps2 == dsps);
+
+  BOOST_REQUIRE(blockNumberInput == dsps.GetBlockNumber());
+  BOOST_REQUIRE(dsps.GetDifficultyLevel() == difficultyLevelInput);
+  BOOST_REQUIRE(dsps.GetSubmitterPeer() == submitterPeerInput);
+  BOOST_REQUIRE(dsps.GetSubmitterKey() == submitterKeyInput);
+  BOOST_REQUIRE(dsps.GetNonce() == nonceInput);
+  BOOST_REQUIRE(dsps.GetResultingHash() == resultingHashInput);
+  BOOST_REQUIRE(dsps.GetMixHash() == mixHashInput);
+  BOOST_REQUIRE(dsps.GetLookupId() == lookupIdInput);
+  BOOST_REQUIRE(dsps.GetGasPrice() == gasPriceInput);
+  BOOST_REQUIRE(dsps.GetSignature() == signatureInput);
+  dsps.SetSignature(signature2);
+  BOOST_REQUIRE(dsps.GetSignature() == signature2);
+
+  // Cover copy constructor
+  DSPowSolution dsps3;
+  dsps3 = dsps2;
+  BOOST_REQUIRE(dsps2 == dsps3);
+
+// !!! If this line is deleted then linker error occures (which is weard anyway) !!!
+  Account acc1(0, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

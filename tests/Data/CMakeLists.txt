@@ -24,7 +24,7 @@ add_test(NAME Test_CircularArray COMMAND Test_CircularArray)
 
 add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_Transaction PUBLIC AccountData Utils Validator Message TestUtils)
+target_link_libraries(Test_Transaction PUBLIC Validator TestUtils)
 add_test(NAME Test_Transaction COMMAND Test_Transaction)
 
 add_executable(Test_TransactionPerformance Test_TransactionPerformance.cpp)
@@ -54,7 +54,7 @@ add_test(NAME Test_EIP COMMAND Test_EIP)
 
 add_executable(Test_DSPowSolution Test_DSPowSolution.cpp)
 target_include_directories(Test_DSPowSolution PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_DSPowSolution PUBLIC AccountData Utils TestUtils)
+target_link_libraries(Test_DSPowSolution PUBLIC Validator TestUtils)
 add_test(NAME Test_DSPowSolution COMMAND Test_DSPowSolution)
 
 #add_executable(Test_ContractInvoke Test_ContractInvoke.cpp)
