@@ -301,18 +301,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 }
 
 Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
-  if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
-    if (tx.GetData().empty() && tx.GetCode().empty() &&
-        tx.GetToAddr() != NullAddress) {
-      return NON_CONTRACT;
-    } else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
-      return CONTRACT_CREATION;
-    } else {
-      return ERROR;
-    }
-  } else {
+  if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress) {
     return CONTRACT_CALL;
   }
+
+  if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+    return CONTRACT_CREATION;
+  }
+
+  if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+      tx.GetCode().empty()) {
+    return NON_CONTRACT;
+  }
+
+  return ERROR;
 }
 
 Json::Value Server::GetTransaction(const string& transactionHash) {
