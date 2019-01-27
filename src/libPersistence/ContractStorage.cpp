@@ -20,6 +20,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 
 using namespace std;
 
@@ -419,18 +420,12 @@ bool ContractStorage::GetContractStateJson(
     item["vname"] = tVname;
     item["type"] = tType;
     if (tValue[0] == '[' || tValue[0] == '{') {
-      Json::CharReaderBuilder builder;
-      unique_ptr<Json::CharReader> reader(builder.newCharReader());
       Json::Value obj;
-      string errors;
-      if (!reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(), &obj,
-                         &errors)) {
-        LOG_GENERAL(WARNING,
-                    "The json object cannot be extracted from Storage: "
-                        << tValue << endl
-                        << "Error: " << errors);
+
+      if (!JSONUtils::GetInstance().convertStrtoJson(tValue, obj)) {
         continue;
       }
+
       item["value"] = obj;
     } else {
       item["value"] = tValue;

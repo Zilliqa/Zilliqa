@@ -43,7 +43,8 @@ bool TransactionReceipt::Deserialize(const bytes& src, unsigned int offset) {
       return false;
     }
 
-    if (!JSONUtils::convertStrtoJson(m_tranReceiptStr, m_tranReceiptObj)) {
+    if (!JSONUtils::GetInstance().convertStrtoJson(m_tranReceiptStr,
+                                                   m_tranReceiptObj)) {
       LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
       return false;
     }
@@ -86,7 +87,8 @@ void TransactionReceipt::SetEpochNum(const uint64_t& epochNum) {
 
 void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
   try {
-    if (!JSONUtils::convertStrtoJson(tranReceiptStr, m_tranReceiptObj)) {
+    if (!JSONUtils::GetInstance().convertStrtoJson(tranReceiptStr,
+                                                   m_tranReceiptObj)) {
       LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
       return;
     }
@@ -130,7 +132,8 @@ void TransactionReceipt::update() {
     return;
   }
   InstallError();
-  m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
+  m_tranReceiptStr =
+      JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
 }
 
 /// Implements the Serialize function inherited from Serializable.

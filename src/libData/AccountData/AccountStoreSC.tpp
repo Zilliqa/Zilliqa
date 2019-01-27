@@ -502,11 +502,11 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
   os.close();
 
   // Initialize Json
-  JSONUtils::writeJsontoFile(INIT_JSON, roots.first);
+  JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
 
   // Block Json
-  JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                             GetBlockStateJson(m_curBlockNum));
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                           GetBlockStateJson(m_curBlockNum));
 
   return true;
 }
@@ -545,14 +545,14 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   os.close();
 
   // Initialize Json
-  JSONUtils::writeJsontoFile(INIT_JSON, roots.first);
+  JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
 
   // State Json
-  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, roots.second);
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_STATE_JSON, roots.second);
 
   // Block Json
-  JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                             GetBlockStateJson(m_curBlockNum));
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                           GetBlockStateJson(m_curBlockNum));
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
@@ -575,7 +575,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   std::string dataStr(transaction.GetData().begin(),
                       transaction.GetData().end());
   Json::Value msgObj;
-  if (!JSONUtils::convertStrtoJson(dataStr, msgObj)) {
+  if (!JSONUtils::GetInstance().convertStrtoJson(dataStr, msgObj)) {
     return false;
   }
   std::string prepend = "0x";
@@ -584,7 +584,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
       Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
   msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
-  JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
 
   return true;
 }
@@ -599,7 +599,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     return false;
   }
 
-  JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 
   return true;
 }
@@ -661,17 +661,8 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const std::string& checkerPrint, TransactionReceipt& receipt) {
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
   Json::Value root;
-  std::string errors;
-
-  if (!reader->parse(checkerPrint.c_str(),
-                     checkerPrint.c_str() + checkerPrint.size(), &root,
-                     &errors)) {
-    LOG_GENERAL(WARNING, "Failed to parse contract checker output: "
-                             << checkerPrint << std::endl
-                             << "errors: " << errors);
+  if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
     return false;
   }
@@ -723,17 +714,11 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
                                "\n ... "
                          : outStr));
 
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  std::string errors;
-
-  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
-                    &errors)) {
-    return true;
+  if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+    return false;
   }
-  LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
-  receipt.AddError(JSON_OUTPUT_CORRUPTED);
-  return false;
+  return true;
 }
 
 template <class MAP>
@@ -821,23 +806,23 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
     outStr = {std::istreambuf_iterator<char>(in),
               std::istreambuf_iterator<char>()};
   }
-  LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
+  LOG_GENERAL(
+      INFO,
+      "Output: " << std::endl
+                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                               "\n ... "
+                         : outStr));
 
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  std::string errors;
-
-  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
-                    &errors)) {
-    if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
-                             << r_timer_end(tpStart));
-    }
-    return true;
+  if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+    return false;
   }
-  LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
-  receipt.AddError(JSON_OUTPUT_CORRUPTED);
-  return false;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
+                           << r_timer_end(tpStart));
+  }
+  return true;
 }
 
 template <class MAP>
@@ -922,9 +907,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
     std::string vname = s["vname"].asString();
     std::string type = s["type"].asString();
-    std::string value = s["value"].isString()
-                            ? s["value"].asString()
-                            : JSONUtils::convertJsontoStr(s["value"]);
+    std::string value =
+        s["value"].isString()
+            ? s["value"].asString()
+            : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
     if (vname != "_balance") {
       state_entries.push_back(std::make_tuple(vname, true, type, value));
