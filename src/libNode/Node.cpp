@@ -1381,7 +1381,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
             "Consensus ID for DM1 test is " << dm_test_id);
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_ds->GetConsensusMyID() == dm_test_id) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, ,
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Letting one of the backups accept less txns from lookup "
               "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
