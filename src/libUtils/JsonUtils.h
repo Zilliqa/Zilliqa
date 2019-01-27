@@ -24,37 +24,56 @@
 #include <string>
 
 class JSONUtils {
- public:
-  // Convert a string to Json object
-  static bool convertStrtoJson(const std::string& str, Json::Value& dstObj) {
+  std::unique_ptr<Json::StreamWriter> m_writer;
+  std::unique_ptr<Json::CharReader> m_reader;
+
+  std::mutex m_mutexWriter;
+  std::mutex m_mutexReader;
+
+  JSONUtils() {
     Json::CharReaderBuilder readBuilder;
-    std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    m_reader = std::unique_ptr<Json::CharReader>(readBuilder.newCharReader());
+
+    Json::StreamWriterBuilder writeBuilder;
+    writeBuilder["commentStyle"] = "None";
+    writeBuilder["indentaion"] = "";
+    m_writer =
+        std::unique_ptr<Json::StreamWriter>(writeBuilder.newStreamWriter());
+  }
+
+  ~JSONUtils(){};
+
+ public:
+  static JSONUtils& GetInstance() {
+    static JSONUtils jsonutils;
+    return jsonutils;
+  }
+
+  /// Convert a string to Json object
+  bool convertStrtoJson(const std::string& str, Json::Value& dstObj) {
     std::string errors;
-    if (!reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
-                       &errors)) {
-      LOG_GENERAL(WARNING,
-                  "The Json is corrupted, failed to parse: " << errors);
+    std::lock_guard<std::mutex> g(m_mutexReader);
+    if (!m_reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
+                         &errors)) {
+      LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
       return false;
     }
     return true;
   }
-  // Convert a Json object to string
-  static std::string convertJsontoStr(const Json::Value& _json) {
-    Json::StreamWriterBuilder writeBuilder;
-    writeBuilder["commentStyle"] = "None";
-    writeBuilder["indentation"] = "";
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+
+  /// Convert a Json object to string
+  std::string convertJsontoStr(const Json::Value& _json) {
     std::ostringstream oss;
-    writer->write(_json, &oss);
+    std::lock_guard<std::mutex> g(m_mutexWriter);
+    m_writer->write(_json, &oss);
     return oss.str();
   }
-  // Write a Json object to target file
-  static void writeJsontoFile(const std::string& path,
-                              const Json::Value& _json) {
-    Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+
+  /// Write a Json object to target file
+  void writeJsontoFile(const std::string& path, const Json::Value& _json) {
     std::ofstream os(path);
-    writer->write(_json, &os);
+    std::lock_guard<std::mutex> g(m_mutexWriter);
+    m_writer->write(_json, &os);
   }
 };
 

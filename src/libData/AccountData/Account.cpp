@@ -164,7 +164,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     string vname = v["vname"].asString();
     string type = v["type"].asString();
 
-    string value = JSONUtils::convertJsontoStr(v["value"]);
+    string value = JSONUtils::GetInstance().convertJsontoStr(v["value"]);
 
     state_entries.push_back(std::make_tuple(vname, false, type, value));
   }
@@ -255,14 +255,9 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
   }
-  Json::CharReaderBuilder builder;
-  unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  string dataStr(initData.begin(), initData.end());
-  string errors;
-  if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
-                     &errors)) {
-    LOG_GENERAL(WARNING,
-                "Failed to parse initialization contract json: " << errors);
+
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          {initData.begin(), initData.end()}, root)) {
     return false;
   }
 
