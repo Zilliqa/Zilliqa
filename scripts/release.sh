@@ -210,7 +210,7 @@ function upgrade()
 
     ## Gathering dsguard and shard pod names
     DS_SHARD_NODES=$(kubectl $context_arg get pods \
-        -l 'type in (normal, dsguard)',testnet=$testnet,app=zilliqa \
+        -l 'type in (dsguard, normal)',testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers)
 
