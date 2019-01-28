@@ -100,12 +100,11 @@ uint64_t BlockLinkChain::GetLatestIndex() {
   return std::get<BlockLinkIndex::INDEX>(m_blockLinkChain.back());
 }
 
-const std::deque<std::pair<PubKey, Peer>>& BlockLinkChain::GetBuiltDSComm() {
+const DequeOfNode& BlockLinkChain::GetBuiltDSComm() {
   return m_builtDsCommittee;
 }
 
-void BlockLinkChain::SetBuiltDSComm(
-    const std::deque<std::pair<PubKey, Peer>>& dsComm) {
+void BlockLinkChain::SetBuiltDSComm(const DequeOfNode& dsComm) {
   m_builtDsCommittee = dsComm;
 }
 

@@ -156,7 +156,7 @@ void Lookup::SetLookupNodes() {
           m_level = level;
         }
         if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                    [&pubKey](const pair<PubKey, Peer>& x) {
+                    [&pubKey](const PairOfNode& x) {
                       return (pubKey == x.first);
                     }) != m_lookupNodes.end()) {
           continue;
@@ -181,7 +181,7 @@ void Lookup::SetLookupNodes() {
   if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     const PubKey& myPubKey = m_mediator.m_selfKey.second;
     if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&myPubKey](const std::pair<PubKey, Peer>& node) {
+                     [&myPubKey](const PairOfNode& node) {
                        return node.first == myPubKey;
                      }) == m_lookupNodes.end()) {
       m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
@@ -383,7 +383,7 @@ VectorOfNode Lookup::GetLookupNodes() const {
 bool Lookup::IsLookupNode(const PubKey& pubKey) const {
   VectorOfNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
-                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                      [&pubKey](const PairOfNode& node) {
                         return node.first == pubKey;
                       }) != lookups.end();
 }
@@ -391,7 +391,7 @@ bool Lookup::IsLookupNode(const PubKey& pubKey) const {
 bool Lookup::IsLookupNode(const Peer& peerInfo) const {
   VectorOfNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
-                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                      [&peerInfo](const PairOfNode& node) {
                         return node.second.GetIpAddress() ==
                                peerInfo.GetIpAddress();
                       }) != lookups.end();
@@ -445,7 +445,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
       if (find_if(m_multipliers.begin(), m_multipliers.end(),
-                  [&node](const std::pair<PubKey, Peer>& mult) {
+                  [&node](const PairOfNode& mult) {
                     return node.second == mult.second;
                   }) != m_multipliers.end()) {
         continue;
@@ -480,10 +480,9 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
   // To avoid sending message to multiplier
   VectorOfNode tmp;
   std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-               std::back_inserter(tmp),
-               [this](const std::pair<PubKey, Peer>& node) {
+               std::back_inserter(tmp), [this](const PairOfNode& node) {
                  return find_if(m_multipliers.begin(), m_multipliers.end(),
-                                [&node](const std::pair<PubKey, Peer>& mult) {
+                                [&node](const PairOfNode& mult) {
                                   return node.second == mult.second;
                                 }) == m_multipliers.end();
                });
@@ -2249,7 +2248,7 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
     lock_guard<mutex> lock(m_mutexLookupNodes);
     auto iter = std::find_if(
         m_lookupNodes.begin(), m_lookupNodes.end(),
-        [&lookuppubkey, &requestingNode](const std::pair<PubKey, Peer>& node) {
+        [&lookuppubkey, &requestingNode](const PairOfNode& node) {
           return (node.first == lookuppubkey && node.second == requestingNode);
         });
     if (iter != m_lookupNodes.end()) {
@@ -2305,7 +2304,7 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
     lock_guard<mutex> lock(m_mutexLookupNodes);
     auto iter = std::find_if(
         m_lookupNodesOffline.cbegin(), m_lookupNodesOffline.cend(),
-        [&lookupPubKey, &requestingNode](const std::pair<PubKey, Peer>& node) {
+        [&lookupPubKey, &requestingNode](const PairOfNode& node) {
           return (node.first == lookupPubKey && node.second == requestingNode);
         });
     if (iter != m_lookupNodesOffline.end()) {
@@ -2404,10 +2403,9 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
   for (const auto& peer : nodes) {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
-    auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                             [&peer](const std::pair<PubKey, Peer>& node) {
-                               return node.second == peer;
-                             });
+    auto iter = std::find_if(
+        m_lookupNodes.begin(), m_lookupNodes.end(),
+        [&peer](const PairOfNode& node) { return node.second == peer; });
     if (iter != m_lookupNodes.end()) {
       m_lookupNodesOffline.emplace_back(*iter);
       m_lookupNodes.erase(iter);
@@ -2469,7 +2467,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  pair<PubKey, Peer> expectedDSLeader;
+  PairOfNode expectedDSLeader;
   if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                          m_mediator.m_dsBlockChain.GetLastBlock(),
                          *m_mediator.m_DSCommittee, expectedDSLeader)) {
@@ -2602,7 +2600,7 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
 
   auto vecLookupNodes = GetSeedNodes();
   auto it = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
-                         [&lookupPubKey](const std::pair<PubKey, Peer>& node) {
+                         [&lookupPubKey](const PairOfNode& node) {
                            return node.first == lookupPubKey;
                          });
   uint32_t index;
@@ -2748,7 +2746,7 @@ bool Lookup::GetMyLookupOffline() {
     auto selfpubkey(m_mediator.m_selfKey.second);
     auto iter = std::find_if(
         m_lookupNodes.begin(), m_lookupNodes.end(),
-        [&selfPeer, &selfpubkey](const std::pair<PubKey, Peer>& node) {
+        [&selfPeer, &selfpubkey](const PairOfNode& node) {
           return (node.first == selfpubkey && node.second == selfPeer);
         });
     if (iter != m_lookupNodes.end()) {
@@ -2780,7 +2778,7 @@ bool Lookup::GetMyLookupOnline() {
     auto selfPubkey(m_mediator.m_selfKey.second);
     auto iter = std::find_if(
         m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
-        [&selfPeer, &selfPubkey](const std::pair<PubKey, Peer>& node) {
+        [&selfPeer, &selfPubkey](const PairOfNode& node) {
           return (node.first == selfPubkey && node.second == selfPeer);
         });
     if (iter != m_lookupNodesOffline.end()) {
@@ -3379,7 +3377,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
 
         // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
-        pair<PubKey, Peer> dsLeader;
+        PairOfNode dsLeader;
         if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                               m_mediator.m_dsBlockChain.GetLastBlock(),
                               *m_mediator.m_DSCommittee, dsLeader)) {
@@ -3432,11 +3430,10 @@ bool Lookup::GetIsServer() {
 
 bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
                               const PubKey& pubKeyToVerify) {
-  auto iter =
-      std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
-                   [&pubKeyToVerify](const std::pair<PubKey, Peer>& node) {
-                     return node.first == pubKeyToVerify;
-                   });
+  auto iter = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
+                           [&pubKeyToVerify](const PairOfNode& node) {
+                             return node.first == pubKeyToVerify;
+                           });
   return vecLookupNodes.cend() != iter;
 }
 
