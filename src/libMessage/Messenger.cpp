@@ -7525,7 +7525,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
   result.mutable_data()->set_dsepochnumber(dsEpochNumber);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  if (result.IsInitialized()) {
+  if (result.data().IsInitialized()) {
     bytes tmp(result.data().ByteSize());
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
