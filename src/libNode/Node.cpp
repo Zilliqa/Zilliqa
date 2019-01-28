@@ -1714,7 +1714,7 @@ void Node::CleanCreatedTransaction() {
 bool Node::IsShardNode(const PubKey& pubKey) {
   lock_guard<mutex> lock(m_mutexShardMember);
   return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                      [&pubKey](const PairOfNode& node) {
                         return node.first == pubKey;
                       }) != m_myShardMembers->end();
 }
@@ -1722,7 +1722,7 @@ bool Node::IsShardNode(const PubKey& pubKey) {
 bool Node::IsShardNode(const Peer& peerInfo) {
   lock_guard<mutex> lock(m_mutexShardMember);
   return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                      [&peerInfo](const PairOfNode& node) {
                         return node.second.GetIpAddress() ==
                                peerInfo.GetIpAddress();
                       }) != m_myShardMembers->end();
@@ -1866,7 +1866,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
       replace_if(m_mediator.m_DSCommittee->begin(),
                  m_mediator.m_DSCommittee->begin() +
                      Guard::GetInstance().GetNumOfDSGuard(),
-                 [&dsguardupdate](const pair<PubKey, Peer>& element) {
+                 [&dsguardupdate](const PairOfNode& element) {
                    return element.first == dsguardupdate.m_dsGuardPubkey;
                  },
                  make_pair(dsguardupdate.m_dsGuardPubkey,
@@ -2081,8 +2081,7 @@ std::string Node::GetActionString(Action action) const {
 
 bool Node::GetDSLeader(const BlockLink& lastBlockLink,
                        const DSBlock& latestDSBlock,
-                       const DequeOfNode& dsCommittee,
-                       pair<PubKey, Peer>& dsLeader) {
+                       const DequeOfNode& dsCommittee, PairOfNode& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
     uint16_t lastBlockHash = 0;

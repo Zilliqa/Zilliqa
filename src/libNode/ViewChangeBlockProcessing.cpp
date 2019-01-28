@@ -267,7 +267,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
     // If faulty leader is current node, look for 0.0.0.0 is ds committee
     if (faultyLeader.first == m_mediator.m_selfKey.second &&
         faultyLeader.second == Peer()) {
-      pair<PubKey, Peer> selfNode = make_pair(faultyLeader.first, Peer());
+      PairOfNode selfNode = make_pair(faultyLeader.first, Peer());
       it = find(dsComm.begin(), dsComm.end(), selfNode);
     } else {
       it = find(dsComm.begin(), dsComm.end(), faultyLeader);
@@ -293,7 +293,7 @@ void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
   }
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
     auto it = find_if(dsComm.begin(), dsComm.end(),
-                      [faultyLeader](const pair<PubKey, Peer>& p) {
+                      [faultyLeader](const PairOfNode& p) {
                         return p.first == faultyLeader.first;
                       });
 
