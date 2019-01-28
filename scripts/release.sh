@@ -171,11 +171,7 @@ function run_cmd_for_seeds_in_parallel() {
 }
 
 function run_cmd_for_lookup() {
-    lookup=$(kubectl $context_arg get pods \
-        -l type=lookup,testnet=$testnet,app=zilliqa,index=0 \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-    kubectl exec $lookup -- bash -c $1
+    kubectl exec ${testnet}-lookup-${lookup_no} -- bash -c $1
 }
 
 function Add_suspend_to_allnodes() {
