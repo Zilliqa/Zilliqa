@@ -19,8 +19,8 @@
 #include <vector>
 #include "common/Constants.h"
 #include "libData/MiningData/DSPowSolution.h"
-#include "libUtils/Logger.h"
 #include "libTestUtils/TestUtils.h"
+#include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE dspowsolutiontest
 #define BOOST_TEST_DYN_LINK
@@ -52,15 +52,10 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   uint128_t gasPriceInput = TestUtils::DistUint128();
   DSPowSolution dsps;
 
-
-  dsps = DSPowSolution(blockNumberInput,
-                difficultyLevelInput,
-                submitterPeerInput,submitterKeyInput,
-                nonceInput,
-                resultingHashInput,
-                mixHashInput, lookupIdInput,
-                gasPriceInput,
-                signatureInput);
+  dsps =
+      DSPowSolution(blockNumberInput, difficultyLevelInput, submitterPeerInput,
+                    submitterKeyInput, nonceInput, resultingHashInput,
+                    mixHashInput, lookupIdInput, gasPriceInput, signatureInput);
 
   DSPowSolution dsps2 = dsps;
   BOOST_REQUIRE(dsps2 == dsps);
@@ -83,7 +78,8 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   dsps3 = dsps2;
   BOOST_REQUIRE(dsps2 == dsps3);
 
-// !!! If this line is deleted then linker error occures (which is weard anyway) !!!
+  // !!! If this line is deleted then linker error occures (which is weard
+  // anyway) !!!
   Account acc1(0, 0);
 }
 
