@@ -179,7 +179,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
 
     // Re-calculate the new m_consensusMyID
-    pair<PubKey, Peer> selfPubKPeerPair =
+    PairOfNode selfPubKPeerPair =
         make_pair(m_mediator.m_selfKey.second, Peer());
 
     DequeOfNode::iterator iterConsensusMyID =
@@ -196,7 +196,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
 
     // Update the index for the new leader
-    pair<PubKey, Peer> candidateLeaderInfo = make_pair(
+    PairOfNode candidateLeaderInfo = make_pair(
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
