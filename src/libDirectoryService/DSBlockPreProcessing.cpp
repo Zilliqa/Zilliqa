@@ -287,85 +287,6 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                         << sortedPoWSolns.size());
 }
 
-bool DirectoryService::VerifyAndStorePoWFromLeader(
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader) {
-  for (const auto& shard : shards) {
-    for (const auto& shardNode : shard) {
-      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
-      if (m_allPoWs.find(toFind) != m_allPoWs.cend()) {
-        continue;
-      }
-
-      const auto& dsComittee = *m_mediator.m_DSCommittee;
-      auto iter = std::find_if(dsComittee.begin(), dsComittee.end(),
-                               [toFind](const PairOfNode& dsNode) {
-                                 return dsNode.first == toFind;
-                               });
-      if (iter != dsComittee.end()) {
-        LOG_GENERAL(INFO,
-                    "Skip verify PoW for kicked out DS member " << toFind);
-        continue;
-      }
-
-      LOG_GENERAL(INFO,
-                  "Failed to find pow in my local pows for node " << toFind);
-
-      auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
-      if (pubKeyToPoW == allPoWsFromLeader.end()) {
-        LOG_GENERAL(WARNING, "Leader don't have pow for node " << toFind);
-        return false;
-      }
-
-      const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
-      const auto& powSoln = pubKeyToPoW->second;
-      auto headerHash = POW::GenHeaderHash(
-          m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer.m_ipAddress,
-          toFind, powSoln.lookupId, powSoln.gasPrice);
-
-      auto difficulty =
-          (GUARD_MODE &&
-           Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
-              ? (POW_DIFFICULTY / POW_DIFFICULTY)
-              : m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetDifficulty();
-
-      string resultStr, mixHashStr;
-      if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
-        return false;
-      }
-
-      if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
-        return false;
-      }
-
-      if (!POW::GetInstance().PoWVerify(
-              m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
-              headerHash, powSoln.nonce, resultStr, mixHashStr)) {
-        LOG_GENERAL(
-            WARNING,
-            "Failed to verify PoW solution from leader for node: " << toFind);
-        return false;
-      }
-
-      m_allPoWs[toFind] = pubKeyToPoW->second;
-      m_allPoWConns.emplace(toFind, peer);
-
-      auto dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                              .GetHeader()
-                              .GetDSDifficulty();
-
-      if (POW::GetInstance().PoWVerify(
-              m_pendingDSBlock->GetHeader().GetBlockNum(), dsDifficulty,
-              headerHash, powSoln.nonce, resultStr, mixHashStr)) {
-        AddDSPoWs(toFind, pubKeyToPoW->second);
-      }
-    }
-  }
-
-  return true;
-}
-
 bool DirectoryService::VerifyPoWWinner(
     const MapOfPubKeyPoW& dsWinnerPoWsFromLeader) {
   const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
@@ -558,16 +479,29 @@ bool DirectoryService::VerifyPoWOrdering(
             break;
           }
 
-          if (POW::GetInstance().PoWVerify(
+          if (!POW::GetInstance().PoWVerify(
                   m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
                   headerHash, powSoln.nonce, resultStr, mixHashStr)) {
-            result = powSoln.result;
-          } else {
             LOG_GENERAL(WARNING,
                         "Failed to verify PoW solution from leader for node: "
                             << toFind);
             ret = false;
             break;
+          }
+
+          result = powSoln.result;
+          m_allPoWs[pubKeyToPoW->first] = powSoln;
+
+          m_allPoWConns.emplace(toFind, peer);
+
+          auto dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetDSDifficulty();
+
+          if (POW::GetInstance().PoWVerify(
+                  m_pendingDSBlock->GetHeader().GetBlockNum(), dsDifficulty,
+                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
+            AddDSPoWs(toFind, pubKeyToPoW->second);
           }
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
@@ -1092,21 +1026,9 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  if (!VerifyAndStorePoWFromLeader(m_tempShards, allPoWsFromLeader)) {
-    LOG_GENERAL(WARNING, "Failed to verify PoW from leader");
-    return false;
-  }
-
   if (!VerifyPoWWinner(dsWinnerPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW winner");
     return false;
-  }
-
-  // Start to verify difficulty from DS block number 2.
-  if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1) {
-    if (!VerifyDifficulty()) {
-      return false;
-    }
   }
 
   if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToshardIdMap,
@@ -1125,6 +1047,13 @@ bool DirectoryService::DSBlockValidator(
   if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
+  }
+
+  // Start to verify difficulty from DS block number 2.
+  if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1) {
+    if (!VerifyDifficulty()) {
+      return false;
+    }
   }
 
   if (!VerifyGasPrice(m_pendingDSBlock->GetHeader().GetGasPrice())) {
