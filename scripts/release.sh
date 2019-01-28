@@ -119,10 +119,7 @@ function setcontext()
 function run_cmd_for_all_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     tmpfile=$(mktemp)
-    kubectl $context_arg get pods \
-        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${ALL_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
     rm -f $tmpfile
@@ -130,30 +127,21 @@ function run_cmd_for_all_in_parallel() {
 
 function run_cmd_for_dsguards_and_shards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l 'type in (dsguard, normal)',testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${DS_SHARD_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
 function run_cmd_for_lookups_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=lookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${LOOKUP_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
 function run_cmd_for_seeds_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=newlookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${SEED_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
@@ -214,6 +202,30 @@ function upload_lookup_s3db()
 
 function upgrade()
 {
+    ## Gathering all pod names
+    ALL_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering dsguard and shard pod names
+    DS_SHARD_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (normal, dsguard)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering lookup pod names
+    LOOKUP_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (lookup)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering seed pod names
+    SEED_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (newlookup)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
     ## Create suspend flag for all pods
     Add_suspend_to_allnodes
     ## wait enough so that SUSPEND_LAUNCH file is created in all nodes.
