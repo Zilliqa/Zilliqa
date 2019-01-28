@@ -70,4 +70,6 @@ add_test(NAME Test_DSPowSolution COMMAND Test_DSPowSolution)
 #target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto)
 #target_link_libraries(Test_Block PUBLIC Data Utils Crypto)
 
+add_subdirectory (BlockChainData)
+
 # To-do: Test_Transaction and Test_Block need to be updated after Predicate has been temporarily commented out
