@@ -1217,9 +1217,9 @@ void DirectoryService::RemoveDSMicroBlock() {
 
   m_mediator.m_node->m_microblock = nullptr;
 
+  AccountStore::GetInstance().RevertCommitTemp();
+
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
   AccountStore::GetInstance().SerializeDelta();
-
-  AccountStore::GetInstance().RevertCommitTemp();
 }
