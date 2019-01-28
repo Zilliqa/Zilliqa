@@ -199,7 +199,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           "Txn processing timeout! Interrupt current contract check, pid: "
               << pid);
       if (pid >= 0) {
-        kill(-pid, SIGKILL);
+        kill(pid, SIGKILL);
       }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret_checker = false;
@@ -240,7 +240,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                   "deployment, pid: "
                       << pid);
       if (pid >= 0) {
-        kill(-pid, SIGKILL);
+        kill(pid, SIGKILL);
       }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
@@ -395,7 +395,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           "Txn processing timeout! Interrupt current contract call, pid: "
               << pid);
       if (pid >= 0) {
-        kill(-pid, SIGKILL);
+        kill(pid, SIGKILL);
       }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
@@ -1094,7 +1094,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                 "Txn processing timeout! Interrupt current contract call, pid: "
                     << pid);
     if (pid >= 0) {
-      kill(-pid, SIGKILL);
+      kill(pid, SIGKILL);
     }
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     result = false;
