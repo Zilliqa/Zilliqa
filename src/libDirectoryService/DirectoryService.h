@@ -293,10 +293,12 @@ class DirectoryService : public Executable, public Broadcastable {
                       const std::map<PubKey, Peer>& powDSWinner,
                       const MapOfPubKeyPoW& dsPow);
 
+  bool VerifyAndStorePoWFromLeader(const DequeOfShard& shards,
+                                   const MapOfPubKeyPoW& allPoWsFromLeader);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
-                         const MapOfPubKeyPoW& allPoWsFromTheLeader);
+                         const MapOfPubKeyPoW& allPoWsFromLeader);
   bool VerifyNodePriority(const DequeOfShard& shards);
 
   // internal calls from RunConsensusOnDSBlock

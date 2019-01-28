@@ -287,6 +287,74 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                         << sortedPoWSolns.size());
 }
 
+bool DirectoryService::VerifyAndStorePoWFromLeader(
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader) {
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+      if (m_allPoWs.find(toFind) != m_allPoWs.cend()) {
+        continue;
+      }
+
+      LOG_GENERAL(INFO,
+                  "Failed to find pow in my local pows for node " << toFind);
+
+      auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
+      if (pubKeyToPoW == allPoWsFromLeader.end()) {
+        LOG_GENERAL(WARNING, "Leader don't have pow for node " << toFind);
+        return false;
+      }
+
+      const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
+      const auto& powSoln = pubKeyToPoW->second;
+      auto headerHash = POW::GenHeaderHash(
+          m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer.m_ipAddress,
+          toFind, powSoln.lookupId, powSoln.gasPrice);
+
+      auto difficulty =
+          (GUARD_MODE &&
+           Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
+              ? (POW_DIFFICULTY / POW_DIFFICULTY)
+              : m_mediator.m_dsBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetDifficulty();
+
+      string resultStr, mixHashStr;
+      if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+        return false;
+      }
+
+      if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+        return false;
+      }
+
+      if (!POW::GetInstance().PoWVerify(
+              m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
+              headerHash, powSoln.nonce, resultStr, mixHashStr)) {
+        LOG_GENERAL(
+            WARNING,
+            "Failed to verify PoW solution from leader for node: " << toFind);
+        return false;
+      }
+
+      m_allPoWs[toFind] = pubKeyToPoW->second;
+      m_allPoWConns.emplace(toFind, peer);
+
+      auto dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetDSDifficulty();
+
+      if (POW::GetInstance().PoWVerify(
+              m_pendingDSBlock->GetHeader().GetBlockNum(), dsDifficulty,
+              headerHash, powSoln.nonce, resultStr, mixHashStr)) {
+        AddDSPoWs(toFind, pubKeyToPoW->second);
+      }
+    }
+  }
+
+  return true;
+}
+
 bool DirectoryService::VerifyPoWWinner(
     const MapOfPubKeyPoW& dsWinnerPoWsFromLeader) {
   const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
@@ -338,6 +406,9 @@ bool DirectoryService::VerifyPoWWinner(
                         << DSPowWinner.first);
           return false;
         }
+        // Insert the DS pow to my DS pow list so later can calcualte DS
+        // difficulty
+        AddDSPoWs(DSPowWinner.first, dsPowSoln);
       } else {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "WARNING: Cannot find the DS winner PoW in DS PoW list from "
@@ -353,10 +424,11 @@ bool DirectoryService::VerifyDifficulty() {
   auto remoteDSDifficulty = m_pendingDSBlock->GetHeader().GetDSDifficulty();
   auto localDSDifficulty = CalculateNewDSDifficulty(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
-  constexpr uint8_t DIFFICULTY_TOL = 1;
-  if (std::max(remoteDSDifficulty, localDSDifficulty) -
-          std::min(remoteDSDifficulty, localDSDifficulty) >
-      DIFFICULTY_TOL) {
+  uint32_t dsDifficultyDiff = std::max(remoteDSDifficulty, localDSDifficulty) -
+                              std::min(remoteDSDifficulty, localDSDifficulty);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "DS difficulty diff " << dsDifficultyDiff);
+  if (dsDifficultyDiff > DIFFICULTY_DIFF_TOL) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "WARNING: The ds difficulty "
                   << std::to_string(remoteDSDifficulty)
@@ -369,9 +441,11 @@ bool DirectoryService::VerifyDifficulty() {
   auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
   auto localDifficulty = CalculateNewDifficulty(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
-  if (std::max(remoteDifficulty, localDifficulty) -
-          std::min(remoteDifficulty, localDifficulty) >
-      DIFFICULTY_TOL) {
+  uint32_t difficultyDiff = std::max(remoteDifficulty, localDifficulty) -
+                            std::min(remoteDifficulty, localDifficulty);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Difficulty diff " << difficultyDiff);
+  if (difficultyDiff > DIFFICULTY_DIFF_TOL) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "WARNING: The difficulty "
                   << std::to_string(remoteDifficulty)
@@ -384,7 +458,7 @@ bool DirectoryService::VerifyDifficulty() {
 }
 
 bool DirectoryService::VerifyPoWOrdering(
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromTheLeader) {
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader) {
   // Requires mutex for m_shards
   bytes lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
@@ -442,8 +516,8 @@ bool DirectoryService::VerifyPoWOrdering(
         LOG_GENERAL(INFO,
                     "Checking for the key and PoW in the announcement...");
 
-        auto pubKeyToPoW = allPoWsFromTheLeader.find(toFind);
-        if (pubKeyToPoW != allPoWsFromTheLeader.end()) {
+        auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
+        if (pubKeyToPoW != allPoWsFromLeader.end()) {
           const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
           const auto& powSoln = pubKeyToPoW->second;
           auto headerHash = POW::GenHeaderHash(
@@ -1000,6 +1074,11 @@ bool DirectoryService::DSBlockValidator(
         "Prev Block hash in newly received DS Block doesn't match. Calculated "
             << prevHash << " Received"
             << m_pendingDSBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
+  if (!VerifyAndStorePoWFromLeader(m_tempShards, allPoWsFromLeader)) {
+    LOG_GENERAL(WARNING, "Failed to verify PoW from leader");
     return false;
   }
 
