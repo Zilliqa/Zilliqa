@@ -296,6 +296,17 @@ bool DirectoryService::VerifyAndStorePoWFromLeader(
         continue;
       }
 
+      const auto& dsComittee = *m_mediator.m_DSCommittee;
+      auto iter = std::find_if(dsComittee.begin(), dsComittee.end(),
+                               [toFind](const PairOfNode& dsNode) {
+                                 return dsNode.first == toFind;
+                               });
+      if (iter != dsComittee.end()) {
+        LOG_GENERAL(INFO,
+                    "Skip verify PoW for kicked out DS member " << toFind);
+        continue;
+      }
+
       LOG_GENERAL(INFO,
                   "Failed to find pow in my local pows for node " << toFind);
 
@@ -408,6 +419,10 @@ bool DirectoryService::VerifyPoWWinner(
         }
         // Insert the DS pow to my DS pow list so later can calcualte DS
         // difficulty
+        {
+          std::lock_guard<mutex> lock(m_mutexAllPOW);
+          m_allPoWs[DSPowWinner.first] = dsPowSoln;
+        }
         AddDSPoWs(DSPowWinner.first, dsPowSoln);
       } else {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
