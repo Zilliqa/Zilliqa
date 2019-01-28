@@ -4335,7 +4335,7 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
 bool Messenger::SetNodeForwardTxnBlock(
     bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
     const uint64_t& dsBlockNum, const uint32_t& shardId,
-    const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
+    const PairOfKey& lookupKey, std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
 
@@ -4349,14 +4349,39 @@ bool Messenger::SetNodeForwardTxnBlock(
   unsigned int txnsCurrentCount = 0;
   unsigned int txnsGeneratedCount = 0;
 
-  for (const auto& txn : txnsCurrent) {
-    TransactionToProtobuf(txn, *result.add_transactions());
+  unsigned int msg_size = 0;
+
+  for (auto iter = txnsCurrent.begin(); iter != txnsCurrent.end();) {
+    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+      break;
+    }
+    ProtoTransaction* protoTxn = new ProtoTransaction();
+    TransactionToProtobuf(*iter, *protoTxn);
+    unsigned txn_size = protoTxn->ByteSize();
+    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
+        txn_size >= SMALL_TXN_SIZE) {
+      continue;
+    }
+    *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
+    msg_size += protoTxn->ByteSize();
+    iter = txnsCurrent.erase(iter);
   }
 
   for (const auto& txn : txnsGenerated) {
-    TransactionToProtobuf(txn, *result.add_transactions());
+    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+      break;
+    }
+    ProtoTransaction* protoTxn = new ProtoTransaction();
+    TransactionToProtobuf(txn, *protoTxn);
+    unsigned txn_size = protoTxn->ByteSize();
+    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
+        txn_size >= SMALL_TXN_SIZE) {
+      continue;
+    }
+    *result.add_transactions() = *protoTxn;
     txnsGeneratedCount++;
+    msg_size += txn_size;
   }
 
   Signature signature;

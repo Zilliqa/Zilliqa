@@ -324,6 +324,8 @@ extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
+extern const unsigned int PACKET_BYTESIZE_LIMIT;
+extern const unsigned int SMALL_TXN_SIZE;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
