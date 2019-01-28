@@ -128,22 +128,10 @@ function run_cmd_for_all_in_parallel() {
     rm -f $tmpfile
 }
 
-
-# This right now also include non-ds guard. Ok for now.
-function run_cmd_for_shards_in_parallel() {
+function run_cmd_for_dsguards_and_shards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     kubectl $context_arg get pods \
-        -l type=normal,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
-        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
-                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
-}
-
-function run_cmd_for_dsguards_in_parallel() {
-    [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=dsguard,testnet=$testnet,app=zilliqa \
+        -l 'type in (dsguard, normal)',testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
@@ -189,26 +177,15 @@ function Remove_suspend_from_seeds() {
     run_cmd_for_seeds_in_parallel "rm -f SUSPEND_LAUNCH"
 }
 
-function Remove_suspend_from_dsguards() {
-    echo "Removing SUSPEND_LAUNCH file from dsguard nodes..."
-    run_cmd_for_dsguards_in_parallel "rm -f SUSPEND_LAUNCH"
+function Remove_suspend_from_dsguards_and_shards() {
+    echo "Removing SUSPEND_LAUNCH file from ds-guard and shard nodes..."
+    run_cmd_for_dsguards_and_shards_in_parallel "rm -f SUSPEND_LAUNCH"
 }
 
-function Remove_suspend_from_shards() {
-    echo "Removing SUSPEND_LAUNCH file from shards and ds-nonguard nodes..."
-    run_cmd_for_shards_in_parallel "rm -f SUSPEND_LAUNCH"
-}
-
-function kill_and_upgrade_shards()
+function kill_and_upgrade_dsguards_and_shards()
 {
-    echo "Killing and upgrading all shard nodes and ds-nonguard nodes..."
-    run_cmd_for_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
-}
-
-function kill_and_upgrade_ds()
-{
-    echo "Killing and upgrading all ds-guard nodes..."
-    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
+    echo "Killing and upgrading all ds-guard and shard nodes..."
+    run_cmd_for_dsguards_and_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
 }
 
 function kill_and_upgrade_lookups()
@@ -244,8 +221,7 @@ function upgrade()
     sleep 60
     
     ## kill all nodes in below sequence
-    kill_and_upgrade_shards
-    kill_and_upgrade_ds
+    kill_and_upgrade_dsguards_and_shards
     kill_and_upgrade_lookups
     kill_and_upgrade_seeds
     ## wait enough so that all nodes are killed and upgraded.      
@@ -259,8 +235,7 @@ function upgrade()
     ## Remove the suspend flag for all pods in reverse sequence of killing
     Remove_suspend_from_lookups
     Remove_suspend_from_seeds
-    Remove_suspend_from_dsguards
-    Remove_suspend_from_shards
+    Remove_suspend_from_dsguards_and_shards
     ## wait enough so that SUSPEND_LAUNCH file is removed from all nodes.
     echo "waiting for 60 seconds"
     sleep 60
