@@ -119,7 +119,7 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
   }
 
   lock_guard<mutex> g(m_mutexDSGuardList);
-  m_DSGuardList.emplace_back(dsGuardPubKey);
+  m_DSGuardList.emplace(dsGuardPubKey);
   // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
 }
 
@@ -130,7 +130,7 @@ void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
   }
 
   lock_guard<mutex> g(m_mutexShardGuardList);
-  m_ShardGuardList.emplace_back(shardGuardPubKey);
+  m_ShardGuardList.emplace(shardGuardPubKey);
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
@@ -140,8 +140,7 @@ bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
   }
 
   lock_guard<mutex> g(m_mutexDSGuardList);
-  return (std::find(m_DSGuardList.begin(), m_DSGuardList.end(), nodePubKey) !=
-          m_DSGuardList.end());
+  return (m_DSGuardList.find(nodePubKey) != m_DSGuardList.end());
 }
 
 bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
@@ -151,8 +150,7 @@ bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
   }
 
   lock_guard<mutex> g(m_mutexShardGuardList);
-  return (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(),
-                    nodePubKey) != m_ShardGuardList.end());
+  return (m_ShardGuardList.find(nodePubKey) != m_ShardGuardList.end());
 }
 
 unsigned int Guard::GetNumOfDSGuard() {

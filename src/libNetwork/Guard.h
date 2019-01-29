@@ -40,11 +40,11 @@ class Guard {
 
   // DS guardlist
   std::mutex m_mutexDSGuardList;
-  std::vector<PubKey> m_DSGuardList;
+  std::unordered_set<PubKey> m_DSGuardList;
 
   // Shard guardlist
   std::mutex m_mutexShardGuardList;
-  std::vector<PubKey> m_ShardGuardList;
+  std::unordered_set<PubKey> m_ShardGuardList;
 
   // IPFilter
   std::mutex m_mutexIPExclusion;

@@ -296,7 +296,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
-                         const MapOfPubKeyPoW& allPoWsFromTheLeader);
+                         const MapOfPubKeyPoW& allPoWsFromLeader);
   bool VerifyNodePriority(const DequeOfShard& shards);
 
   // internal calls from RunConsensusOnDSBlock

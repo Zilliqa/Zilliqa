@@ -633,6 +633,22 @@ bool DirectoryService::ProcessDSBlockConsensus(
   // In that case, ANNOUNCE will sleep for a second below
   // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be
   // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
+
+  uint32_t unused_consensus_id = 0;
+  PubKey senderPubKey;
+
+  if (!m_consensusObject->GetConsensusID(message, offset, unused_consensus_id,
+                                         senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+    return false;
+  }
+
+  if (!CheckIfDSNode(senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "ProcessDSBlockConsensus signed by non ds member");
+    return false;
+  }
+
   {
     lock_guard<mutex> g(m_mutexConsensus);
 

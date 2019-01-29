@@ -328,6 +328,8 @@ const unsigned int POW_CHANGE_TO_ADJ_DIFF{
     ReadConstantNumeric("POW_CHANGE_TO_ADJ_DIFF", "node.pow.")};
 const unsigned int POW_CHANGE_TO_ADJ_DS_DIFF{
     ReadConstantNumeric("POW_CHANGE_TO_ADJ_DS_DIFF", "node.pow.")};
+const unsigned int DIFFICULTY_DIFF_TOL{
+    ReadConstantNumeric("DIFFICULTY_DIFF_TOL", "node.pow.")};
 const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MAX_SHARD_NODE_NUM{
