@@ -7,7 +7,8 @@
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
-        <GENESIS_PUBKEY>02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552</GENESIS_PUBKEY>
+        <!-- testnet -->
+        <GENESIS_PUBKEY>03B70CF2ABEAE4E86DAEF1A36243E44CD61138B89055099C0D220B58FB86FF588A</GENESIS_PUBKEY>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -279,7 +280,6 @@
     <multipliers>
         <!--IP to be provided after public testnet launch.
         <peer>
-            <hostname></hostname>
             <ip></ip>
             <port>33333</port>
             <pubkey></pubkey>
