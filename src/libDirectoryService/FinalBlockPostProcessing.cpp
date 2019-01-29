@@ -298,6 +298,12 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
     return false;
   }
 
+  if (!CheckIfDSNode(senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "ProcessFinalBlockConsensus signed by non ds member");
+    return false;
+  }
+
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
     // don't buffer the Final block consensus message if i am non-ds node
     if (m_mode == Mode::IDLE) {
