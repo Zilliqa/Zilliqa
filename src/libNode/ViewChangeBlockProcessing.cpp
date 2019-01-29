@@ -277,7 +277,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
     if (it != dsComm.end()) {
       dsComm.erase(it);
     } else {
-      LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
+      LOG_GENERAL(WARNING, "FATAL Cannot find the ds leader to eject");
     }
 
     dsComm.emplace_back(faultyLeader);
@@ -301,7 +301,7 @@ void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
     if (it != dsComm.end()) {
       dsComm.erase(it);
     } else {
-      LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
+      LOG_GENERAL(WARNING, "FATAL Cannot find the ds leader to eject");
     }
     dsComm.emplace_back(faultyLeader);
   }
