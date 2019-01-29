@@ -634,11 +634,11 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas) {
-  std::string cmdStr = root_w_version + '/' + SCILLA_BINARY + " -init " +
-                       INIT_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON +
-                       " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
-                       " -libdir " + root_w_version + '/' + SCILLA_LIB +
-                       " -gaslimit " + std::to_string(available_gas);
+  std::string cmdStr =
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -iblockchain " + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " +
+      INPUT_CODE + " -libdir " + root_w_version + '/' + SCILLA_LIB +
+      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors";
 
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
@@ -653,7 +653,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
       OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
       SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
-      " -disable-pp-json" + " -disable-validate-json";
+      " -disable-pp-json" + " -disable-validate-json" + " -jsonerrors";
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
