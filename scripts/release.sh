@@ -39,6 +39,7 @@ S3PersistentDBFileName="" ## need not be same as testnet name ex: tesnet multire
                                  ## and backup script would create DB with filename multi.tar.gz. So in this case
                                  ## S3PersistentDBFileName should be 'multi'  
 lookup_no="0"
+shouldUploadPersistentDB="Y"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -125,9 +126,17 @@ function run_cmd_for_all_in_parallel() {
     rm -f $tmpfile
 }
 
-function run_cmd_for_dsguards_and_shards_in_parallel() {
+# This right now also include non-ds guard. Ok for now.
+function run_cmd_for_shards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    echo "${DS_SHARD_NODES}" | \
+    echo "${SHARD_NODES}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
+}
+
+function run_cmd_for_dsguards_in_parallel() {
+    [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
+    echo "${DSGUARD_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
@@ -165,15 +174,26 @@ function Remove_suspend_from_seeds() {
     run_cmd_for_seeds_in_parallel "rm -f SUSPEND_LAUNCH"
 }
 
-function Remove_suspend_from_dsguards_and_shards() {
-    echo "Removing SUSPEND_LAUNCH file from ds-guard and shard nodes..."
-    run_cmd_for_dsguards_and_shards_in_parallel "rm -f SUSPEND_LAUNCH"
+function Remove_suspend_from_dsguards() {
+    echo "Removing SUSPEND_LAUNCH file from dsguard nodes..."
+    run_cmd_for_dsguards_in_parallel "rm -f SUSPEND_LAUNCH"
 }
 
-function kill_and_upgrade_dsguards_and_shards()
+function Remove_suspend_from_shards() {
+    echo "Removing SUSPEND_LAUNCH file from shard nodes and non-dsguard nodes..."
+    run_cmd_for_shards_in_parallel "rm -f SUSPEND_LAUNCH"
+}
+
+function kill_and_upgrade_dsguards()
 {
-    echo "Killing and upgrading all ds-guard and shard nodes..."
-    run_cmd_for_dsguards_and_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
+    echo "Killing and upgrading all dsguard..."
+    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml" 
+}
+
+function kill_and_upgrade_shards()
+{
+    echo "Killing and upgrading all shard nodes and ds-nonguard nodes..."
+    run_cmd_for_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
 }
 
 function kill_and_upgrade_lookups()
@@ -208,21 +228,27 @@ function upgrade()
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers)
 
-    ## Gathering dsguard and shard pod names
-    DS_SHARD_NODES=$(kubectl $context_arg get pods \
-        -l 'type in (dsguard, normal)',testnet=$testnet,app=zilliqa \
+    ## Gathering dsguard pod names
+    DSGUARD_NODES=$(kubectl $context_arg get pods \
+        -l type=dsguard,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering shard pod names
+    SHARD_NODES=$(kubectl $context_arg get pods \
+        -l type=normal,testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers)
 
     ## Gathering lookup pod names
     LOOKUP_NODES=$(kubectl $context_arg get pods \
-        -l 'type in (lookup)',testnet=$testnet,app=zilliqa \
+        -l type=lookup,testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers)
-
+    
     ## Gathering seed pod names
     SEED_NODES=$(kubectl $context_arg get pods \
-        -l 'type in (newlookup)',testnet=$testnet,app=zilliqa \
+        -l type=newlookup,testnet=$testnet,app=zilliqa \
         --sort-by='.metadata.name' \
         -o custom-columns='Name:.metadata.name' --no-headers)
 
@@ -233,7 +259,8 @@ function upgrade()
     sleep 60
     
     ## kill all nodes in below sequence
-    kill_and_upgrade_dsguards_and_shards
+    kill_and_upgrade_dsguards
+    kill_and_upgrade_shards
     kill_and_upgrade_lookups
     kill_and_upgrade_seeds
     ## wait enough so that all nodes are killed and upgraded.      
@@ -244,10 +271,11 @@ function upgrade()
 	## Download S3 Database on all nodes replacing their local persistence storage
     [ ! -z "$S3PersistentDBFileName" ] && download_s3db_on_allnodes && echo "waiting for 120 seconds" && sleep 120	
 
-    ## Remove the suspend flag for all pods in reverse sequence of killing
+    ## Remove the suspend flag
     Remove_suspend_from_lookups
     Remove_suspend_from_seeds
-    Remove_suspend_from_dsguards_and_shards
+    Remove_suspend_from_shards
+    Remove_suspend_from_dsguards
     ## wait enough so that SUSPEND_LAUNCH file is removed from all nodes.
     echo "waiting for 60 seconds"
     sleep 60
@@ -496,7 +524,7 @@ else
     #           5.c Copy over constants files from /run/zilliqa/download to /run/zilliqa/ and
     #               extract zilliqa deb
     #               If also scilla release, extract scilla deb 
-    #           5.d Remove SUSPEND_LAUNCH in reverse sequence of killing of zilliqa process.    
+    #           5.d Remove SUSPEND_LAUNCH in sequence LOOKUP->SEED->SHARD->DS
     ################################################################################################## 
 
     #### Step 1 ####
@@ -547,7 +575,7 @@ EOF
     echo ""
 
     ## Ask one of lookup to upload peristence data to S3
-    [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
+    [ "$shouldUploadPersistentDB" == "Y" ] && [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
     
     #### Step 3 ####
     

@@ -222,11 +222,12 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
   if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(FATAL,
-                "number of proposed ds member is larger than current ds "
+    LOG_GENERAL(WARNING,
+                "FATAL: number of proposed ds member is larger than current ds "
                 "committee. numOfProposedDSMembers: "
                     << numOfProposedDSMembers << " m_DSCommittee size: "
                     << m_mediator.m_DSCommittee->size());
+    return;
   }
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;

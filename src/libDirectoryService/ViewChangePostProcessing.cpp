@@ -161,9 +161,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
           m_mediator.m_DSCommittee->erase(iterFaultyLeader);
         } else {
-          LOG_GENERAL(FATAL, "Cannot find "
-                                 << faultyLeader.second
-                                 << " to eject to back of ds committee");
+          LOG_GENERAL(WARNING, "FATAL: Cannot find "
+                                   << faultyLeader.second
+                                   << " to eject to back of ds committee");
         }
 
         // Add to the back of the ds commitee deque
@@ -190,9 +190,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       m_consensusMyID =
           distance(m_mediator.m_DSCommittee->begin(), iterConsensusMyID);
     } else {
-      LOG_GENERAL(FATAL,
-                  "Unable to set m_consensusMyID. Cannot find myself in the ds "
-                  "committee");
+      LOG_GENERAL(
+          WARNING,
+          "FATAL: Unable to set m_consensusMyID. Cannot find myself in the ds "
+          "committee");
+      return;
     }
 
     // Update the index for the new leader
@@ -211,8 +213,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_consensusLeaderID =
             distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
       } else {
-        LOG_GENERAL(FATAL, "Cannot find new leader in the ds committee "
-                               << candidateLeaderInfo.second);
+        LOG_GENERAL(WARNING, "FATAL Cannot find new leader in the ds committee "
+                                 << candidateLeaderInfo.second);
+        return;
       }
     }
 

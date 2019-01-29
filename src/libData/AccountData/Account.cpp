@@ -142,7 +142,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
                            bool temp) {
   LOG_MARKER();
   if (isContract()) {
-    LOG_GENERAL(WARNING, "Alrdy Inited");
+    LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }
 
@@ -196,7 +196,7 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
 
 bool Account::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
-
+  // This function is depreciated.
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
     return false;
