@@ -189,7 +189,7 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
 
 bool Account::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
-
+  // This function is depreciated.
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
     return false;
