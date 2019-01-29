@@ -270,7 +270,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (!ret_checker) {
         receipt.AddError(CHECKER_FAILED);
       }
-      receipt.SetCumGas(CONTRACT_CREATE_GAS);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       receipt.update();
 
       this->IncreaseNonce(fromAddr);
@@ -738,7 +738,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return false;
   }
-  gasRemained = atoi(_json["gas_remaining"].asString().c_str());
+  try {
+    gasRemained =
+        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
+                                    << " is not numeric");
+    return false;
+  }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!_json.isMember("message") || !_json.isMember("states") ||
