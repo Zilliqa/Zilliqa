@@ -279,6 +279,7 @@
     <multipliers>
         <!--IP to be provided after public testnet launch.
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>33333</port>
             <pubkey></pubkey>

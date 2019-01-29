@@ -161,8 +161,8 @@ void Lookup::SetLookupNodes() {
                     }) != m_lookupNodes.end()) {
           continue;
         }
-        // check for hostname only for lookup nodes
-        if (lookupType == "node.lookups") {
+        // check for hostname 
+        if (lookupType == "node.lookups" || lookupType == "node.multiplier") {
           string url = v.second.get<string>("hostname");
           if (!url.empty()) {
             lookup_node.SetHostname(url);
