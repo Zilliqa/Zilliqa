@@ -103,8 +103,9 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
                 "networkConfig: "
                     << networkConfig.networkSize()
                     << " peers: " << peers.size());
+  } else {
+    toVector(peers);
   }
-  toVector(peers);
 }
 
 RumorHolder::RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
@@ -141,8 +142,9 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
                 "networkConfig: "
                     << networkConfig.networkSize()
                     << " peers: " << peers.size());
+  } else {
+    toVector(peers);
   }
-  toVector(peers);
 }
 
 // COPY CONSTRUCTOR
