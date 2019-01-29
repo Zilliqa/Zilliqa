@@ -111,6 +111,8 @@ void Account::SetAddress(const Address& addr) {
   }
 }
 
+const Address& Account::GetAddress() const { return m_address; }
+
 void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
 
 const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
@@ -139,12 +141,10 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum,
                            bool temp) {
   LOG_MARKER();
-  if (!SetCode(code)) {
-    LOG_GENERAL(WARNING, "SetCode failed");
+  if (isContract()) {
+    LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }
-
-  SetAddress(addr);
 
   Json::Value initDataJson;
   if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson)) {
@@ -170,10 +170,17 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   if (!ContractStorage::GetContractStorage().PutContractState(
-          m_address, state_entries, m_storageRoot, temp)) {
+          addr, state_entries, m_storageRoot, temp)) {
     LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
     return false;
   }
+
+  if (!SetCode(code)) {
+    LOG_GENERAL(WARNING, "SetCode failed");
+    return false;
+  }
+
+  SetAddress(addr);
 
   return true;
 }
@@ -247,10 +254,6 @@ string Account::GetRawStorage(const h256& k_hash, bool temp) const {
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root) {
-  if (!isContract()) {
-    return false;
-  }
-
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
