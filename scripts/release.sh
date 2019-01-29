@@ -116,6 +116,8 @@ function setcontext()
            context_arg="--context $current_cluster_name"
        fi
     fi
+
+    ulimit -n 65535
 }
 
 function run_cmd_for_all_in_parallel() {
