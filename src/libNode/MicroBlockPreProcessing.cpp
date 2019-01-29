@@ -120,6 +120,7 @@ bool Node::ComposeMicroBlock() {
       LOG_GENERAL(WARNING, "FATAL Num txns and Order size not same "
                                << " numTxs " << numTxs << " m_TxnOrder "
                                << m_TxnOrder.size());
+      return false;
     }
     tranHashes = m_TxnOrder;
 
