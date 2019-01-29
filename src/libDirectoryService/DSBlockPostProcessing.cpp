@@ -505,8 +505,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     lock_guard<mutex> g(m_mutexPendingDSBlock);
 
     if (m_pendingDSBlock == nullptr) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+      LOG_GENERAL(WARNING, "FATAL. assertion failed (" << __FILE__ << ":"
+                                                       << __LINE__ << ": "
+                                                       << __FUNCTION__ << ")");
+      return;
     }
 
     // Update the DS Block with the co-signatures from the consensus

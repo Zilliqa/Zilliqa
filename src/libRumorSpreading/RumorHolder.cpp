@@ -98,10 +98,11 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
       m_statistics(),
       m_maxNeighborsPerRound(1) {
   if (networkConfig.networkSize() != peers.size()) {
-    LOG_GENERAL(
-        FATAL,
-        "size of netoworkConfig does not match size of peers. networkConfig: "
-            << networkConfig.networkSize() << " peers: " << peers.size());
+    LOG_GENERAL(WARNING,
+                "FATAL size of netoworkConfig does not match size of peers. "
+                "networkConfig: "
+                    << networkConfig.networkSize()
+                    << " peers: " << peers.size());
   }
   toVector(peers);
 }
@@ -135,10 +136,11 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
       m_statistics(),
       m_maxNeighborsPerRound(1) {
   if (networkConfig.networkSize() != peers.size()) {
-    LOG_GENERAL(
-        FATAL,
-        "size of netoworkConfig does not match size of peers. networkConfig: "
-            << networkConfig.networkSize() << " peers: " << peers.size());
+    LOG_GENERAL(WARNING,
+                "FATAL: size of netoworkConfig does not match size of peers. "
+                "networkConfig: "
+                    << networkConfig.networkSize()
+                    << " peers: " << peers.size());
   }
   toVector(peers);
 }

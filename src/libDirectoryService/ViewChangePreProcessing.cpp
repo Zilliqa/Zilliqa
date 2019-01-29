@@ -131,8 +131,8 @@ bool DirectoryService::ViewChangeValidator(
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(
-        FATAL,
-        "Candidate network info mismatched. Expected: "
+        WARNING,
+        "FATAL Candidate network info mismatched. Expected: "
             << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
             << " Obtained: "
             << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
