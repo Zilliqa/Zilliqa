@@ -30,6 +30,7 @@ constantFile=""
 constantLookupFile=""
 constantArchivalLookupFile=""
 useNewUpgradeMethod=""
+
 # if using new upgrade mechanism via s3
 S3UpgradeFileName=""
 testnet=""
@@ -83,7 +84,7 @@ function download_verify_s3db_zilliqa_only()
 
 function download_verify_replace_s3db_scilla_only()
 {
-   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName}  for scilla"
+   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName} for scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
    run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
 }
@@ -284,37 +285,37 @@ function upgrade()
 # Validate input argument
 if [ "$#" -ne 0 ]; then
     echo -e "\n\032[0;32mUsage: ./scripts/release.sh\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${privKeyFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Private key file : ${privKeyFile} not found, please confirm privKeyFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${pubKeyFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${constantFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${constantLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -z "$constantArchivalLookupFile" ] && [ ! -f "${constantArchivalLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantArchivalLookupFile} not found, please confirm constantArchivalLookupFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ "$releaseZilliqa" = "true" ]; then
@@ -333,7 +334,7 @@ fi
 
 if [ "$releaseZilliqa" = "false" ] && [ ! -d "${scillaPath}" ]; then
     echo -e "\n\033[0;31m*ERROR* Nothing will be released!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 # Read information from files
@@ -395,9 +396,9 @@ if [ "$scillaPath" != "" ]; then
         scillaMinor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f2)"
         scillaFix="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f3|cut -d ')' -f1)"
         scillaDS="$(sed -n ${scillaDSLine}p $(basename ${versionFile}))"
-        scillaMajor="${scillaMajor##*( )}"
-        scillaMinor="${scillaMinor##*( )}"
-        scillaFix="${scillaFix##*( )}"
+        scillaMajor="$(echo $scillaMajor | sed -e 's/^[ \t]*//')"
+        scillaMinor="$(echo $scillaMinor | sed -e 's/^[ \t]*//')"
+        scillaFix="$(echo $scillaFix | sed -e 's/^[ \t]*//')"
         sed -i "${scillaMajorLine}s/.*/${scillaMajor}/" $(basename ${versionFile})
         sed -i "${scillaMinorLine}s/.*/${scillaMinor}/" $(basename ${versionFile})
         sed -i "${scillaFixLine}s/.*/${scillaFix}/" $(basename ${versionFile})
@@ -466,7 +467,7 @@ if [ -z "$useNewUpgradeMethod" ]; then # Upload package onto GitHub
 	check='^[0-9]+$'
 	if ! [[ $releaseId =~ $check ]] ; then
 		echo -e "\n\032[0;32m*ERROR* Create new release fail! Please check input value and ${releaseLog}, then try again.\033[0m\n"
-		return 1
+		exit 0
 	fi
 	curl -v -s \
 	  -H "Authorization: token ${GitHubToken}" \
@@ -538,9 +539,10 @@ else
     ## zip the release
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     [ ! -z "$constantArchivalLookupFile" ] && cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
-    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
-    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup" 
-    [ ! -z "${scillaPath}" ] && cmd="${cmd} -C ./ ${Scilla_Deb}"
+    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    [ "$releaseZilliqa" = "true" ] && cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
+    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup"
+    [ ! -z "${scillaPath}" ] && cmd="${cmd} -C $(realpath ./) ${Scilla_Deb}"
 
     $cmd
 
@@ -562,7 +564,7 @@ print("Uploaded")
 
 EOF
 
-    chmod 755 UploadToS3Script.py 
+    chmod 755 UploadToS3Script.py
     python ./UploadToS3Script.py "${S3UpgradeFileName}.tar.gz"
 
 
@@ -574,7 +576,7 @@ EOF
     fi
     echo ""
 
-    ## Ask one of lookup to upload peristence data to S3
+    ## Ask one of lookup to upload persistence data to S3
     [ "$shouldUploadPersistentDB" == "Y" ] && [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
     
     #### Step 3 ####
