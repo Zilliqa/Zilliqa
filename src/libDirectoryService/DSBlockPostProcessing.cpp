@@ -253,7 +253,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
       LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
                             << m_consensusLeaderID);
     } else {
-      // DS guards index do not change
+      // DS guards' indexes do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
         m_consensusMyID += numOfIncomingDs;
         LOG_GENERAL(INFO,
