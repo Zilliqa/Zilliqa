@@ -270,7 +270,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (!ret_checker) {
         receipt.AddError(CHECKER_FAILED);
       }
-      receipt.SetCumGas(CONTRACT_CREATE_GAS);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       receipt.update();
 
       this->IncreaseNonce(fromAddr);
@@ -634,11 +634,11 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas) {
-  std::string cmdStr = root_w_version + '/' + SCILLA_BINARY + " -init " +
-                       INIT_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON +
-                       " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
-                       " -libdir " + root_w_version + '/' + SCILLA_LIB +
-                       " -gaslimit " + std::to_string(available_gas);
+  std::string cmdStr =
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -iblockchain " + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " +
+      INPUT_CODE + " -libdir " + root_w_version + '/' + SCILLA_LIB +
+      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors";
 
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
@@ -653,7 +653,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
       OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
       SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
-      " -disable-pp-json" + " -disable-validate-json";
+      " -disable-pp-json" + " -disable-validate-json" + " -jsonerrors";
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
@@ -738,7 +738,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return false;
   }
-  gasRemained = atoi(_json["gas_remaining"].asString().c_str());
+  try {
+    gasRemained =
+        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
+                                    << " is not numeric");
+    return false;
+  }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!_json.isMember("message") || !_json.isMember("states") ||
