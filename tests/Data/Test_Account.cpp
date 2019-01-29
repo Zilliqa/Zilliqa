@@ -85,13 +85,19 @@ BOOST_AUTO_TEST_CASE(testInit) {
   std::pair<Json::Value, Json::Value> roots;
   acc1.GetStorageJson(roots, true);
 
-  LOG_GENERAL(INFO, "roots.first " << JSONUtils::GetInstance().convertJsontoStr(roots.first));
-  LOG_GENERAL(INFO, "roots.second " << JSONUtils::GetInstance().convertJsontoStr(roots.second));
+  LOG_GENERAL(INFO, "roots.first " << JSONUtils::GetInstance().convertJsontoStr(
+                        roots.first));
+  LOG_GENERAL(INFO,
+              "roots.second "
+                  << JSONUtils::GetInstance().convertJsontoStr(roots.second));
 
   Json::Value root = acc1.GetStateJson(true);
-  LOG_GENERAL(INFO, "roots.second " << JSONUtils::GetInstance().convertJsontoStr(root));
+  LOG_GENERAL(
+      INFO, "roots.second " << JSONUtils::GetInstance().convertJsontoStr(root));
 
-  BOOST_CHECK_EQUAL(true, root[0]["vname"] == "_balance" && root[0]["type"] == "Uint128" && root[0]["value"] == "0");
+  BOOST_CHECK_EQUAL(true, root[0]["vname"] == "_balance" &&
+                              root[0]["type"] == "Uint128" &&
+                              root[0]["value"] == "0");
   BOOST_CHECK_EQUAL(true, roots.second == root);
 
   vector<StateEntry> entries;
@@ -115,7 +121,8 @@ BOOST_AUTO_TEST_CASE(testInit) {
       entry_num++;
     }
   }
-  BOOST_CHECK_EQUAL(1+2+1, entry_num); // InitData(1) + BlockChainData(2) + InputData(1)
+  BOOST_CHECK_EQUAL(
+      1 + 2 + 1, entry_num);  // InitData(1) + BlockChainData(2) + InputData(1)
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
@@ -196,7 +203,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(acc1.Serialize(message1, 0), "Account unserializable");
 
   Account acc2(message1, 0);
-  // Account::Deserialize is deprecated for Contract Account, 
+  // Account::Deserialize is deprecated for Contract Account,
   // it will fail in the half way
 
   bytes message2;
