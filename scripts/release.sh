@@ -223,36 +223,6 @@ function upload_lookup_s3db()
 
 function upgrade()
 {
-    ## Gathering all pod names
-    ALL_NODES=$(kubectl $context_arg get pods \
-        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-
-    ## Gathering dsguard pod names
-    DSGUARD_NODES=$(kubectl $context_arg get pods \
-        -l type=dsguard,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-
-    ## Gathering shard pod names
-    SHARD_NODES=$(kubectl $context_arg get pods \
-        -l type=normal,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-
-    ## Gathering lookup pod names
-    LOOKUP_NODES=$(kubectl $context_arg get pods \
-        -l type=lookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-    
-    ## Gathering seed pod names
-    SEED_NODES=$(kubectl $context_arg get pods \
-        -l type=newlookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-
     ## Create suspend flag for all pods
     Add_suspend_to_allnodes
     ## wait enough so that SUSPEND_LAUNCH file is created in all nodes.
@@ -528,6 +498,8 @@ else
     #           5.d Remove SUSPEND_LAUNCH in sequence LOOKUP->SEED->SHARD->DS
     ################################################################################################## 
 
+    setcontext
+
     #### Step 1 ####
     if [ "$releaseZilliqa" = "true" ]; then
         Zilliqa_Deb="$(realpath ${releaseDir}/${zilliqaDebFile})"
@@ -567,7 +539,6 @@ EOF
     chmod 755 UploadToS3Script.py
     python ./UploadToS3Script.py "${S3UpgradeFileName}.tar.gz"
 
-
     #### Ask for confirmation from user if want to continue?? can check s3 if package is uploaded and is correct? #####
     read -p "Make sure release was uploaded to S3. Shall we continue [Yy]: " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]
@@ -578,14 +549,44 @@ EOF
 
     ## Ask one of lookup to upload persistence data to S3
     [ "$shouldUploadPersistentDB" == "Y" ] && [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
-    
+
+    ## Gathering all pod names
+    ALL_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering dsguard pod names
+    DSGUARD_NODES=$(kubectl $context_arg get pods \
+        -l type=dsguard,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering shard pod names
+    SHARD_NODES=$(kubectl $context_arg get pods \
+        -l type=normal,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering lookup pod names
+    LOOKUP_NODES=$(kubectl $context_arg get pods \
+        -l type=lookup,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering seed pod names
+    SEED_NODES=$(kubectl $context_arg get pods \
+        -l type=newlookup,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
     #### Step 3 ####
-    
+
     # download and verify from S3
     if [ "$releaseZilliqa" = "true" ] && [ "$scillaPath" != "" ]; then
 		download_verify_s3db_both
     elif [ "$releaseZilliqa" = "true" ]; then
-		download_verify_s3db_zilliqa_only		
+		download_verify_s3db_zilliqa_only
     elif [ "$scillaPath" != "" ]; then
 		# Step 4 included. 
 		download_verify_replace_s3db_scilla_only
@@ -597,7 +598,7 @@ EOF
     #### Step 5 ####
 
     cmd_upgrade_zilliqa_only="[ ! -f download/fail ] && pkill zilliqa && dpkg -i download/${zilliqaDebFile} > /dev/null 2>&1"
-    cmd_upgrade_zilliqa_scilla="${cmd_uprade_zilliqa_only} && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
+    cmd_upgrade_zilliqa_scilla="[ ! -f download/fail ] && pkill zilliqa && dpkg -i download/${zilliqaDebFile} && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
     cmd_upgrade_scilla_only="[ ! -f download/fail ] && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
 
     if [ "$releaseZilliqa" = "true" ] && [ "$scillaPath" != "" ]; then
@@ -607,7 +608,6 @@ EOF
     elif [ "$scillaPath" != "" ]; then 
         cmd_upgrade="${cmd_upgrade_scilla_only}"
     fi
-    setcontext
     upgrade
     echo "Done!"
 fi
