@@ -142,7 +142,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
                            bool temp) {
   LOG_MARKER();
   if (isContract()) {
-    LOG_GENERAL(WARNING, "Already Inited");
+    LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }
 
