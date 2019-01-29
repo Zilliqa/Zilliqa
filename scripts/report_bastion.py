@@ -20,7 +20,6 @@ import fnmatch
 import re
 import time
 import random
-import tempfile
 import threading
 import subprocess
 import datetime
@@ -221,17 +220,17 @@ def main():
 		LOOKUPSTXT = sys.argv[2]
 		DSNODESTXT = sys.argv[3]
 		WEBHOOKURL = sys.argv[4]
-		POLLINSECS = (int)(sys.argv[5])
+		POLLINMINS = (int)(sys.argv[5])
 		Lookups = getPods(LOOKUPSTXT)
 		DSNodes = getPods(DSNODESTXT)
-		if (POLLINSECS == 0):
+		if (POLLINMINS == 0):
 			DSNodesSubset = getSubset(DSNodes,5)
 			generateReport(REPORTNAME, Lookups, DSNodesSubset, WEBHOOKURL)
 		else:
 			while True:
 				DSNodesSubset = getSubset(DSNodes,5)
 				generateReport(REPORTNAME, Lookups, DSNodesSubset, WEBHOOKURL)
-				time.sleep(POLLINSECS * 60)
+				time.sleep(POLLINMINS * 60)
 
 if __name__ == "__main__":
 	main()
