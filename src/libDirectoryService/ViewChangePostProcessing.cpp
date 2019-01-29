@@ -263,9 +263,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
-  // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
-  // block consensus. This is to be consistent with how normal node process the
-  // vc block (before ds block).
+  // Broadcasting vcblock to lookup nodes iff view change does not occur before
+  // ds block consensus. This is to be consistent with how normal node process
+  // the vc block (before ds block).
   if (viewChangeState != DSBLOCK_CONSENSUS &&
       viewChangeState != DSBLOCK_CONSENSUS_PREP) {
     t_sendDataToLookupFunc = SendDataToLookupFuncDefault;
