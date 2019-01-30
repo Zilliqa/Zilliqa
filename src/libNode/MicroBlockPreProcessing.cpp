@@ -680,6 +680,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
+  m_txn_distribute_window_open = false;
+
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&
@@ -831,6 +833,7 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
+  m_txn_distribute_window_open = true;
 
   if (m_mediator.GetIsVacuousEpoch()) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1199,14 +1202,14 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
                                const bytes& blockHash, const uint16_t leaderID,
                                const PubKey& leaderKey,
                                bytes& messageToCosign) {
-  LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::MicroBlockValidator not expected to be called from "
                 "LookUp node");
     return true;
   }
+
+  LOG_MARKER();
 
   m_microblock.reset(new MicroBlock);
 
@@ -1217,6 +1220,8 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
               "Messenger::GetNodeMicroBlockAnnouncement failed");
     return false;
   }
+
+  m_txn_distribute_window_open = false;
 
   if (!m_mediator.CheckWhetherBlockIsLatest(
           m_microblock->GetHeader().GetDSBlockNum() + 1,

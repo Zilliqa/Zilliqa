@@ -113,6 +113,7 @@ class Node : public Executable, public Broadcastable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
+  std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
   std::vector<TxnHash> m_txnsOrdering;

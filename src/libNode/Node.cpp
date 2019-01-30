@@ -109,6 +109,8 @@ Node::~Node() {}
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   LOG_MARKER();
 
+  m_txn_distribute_window_open = false;
+
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
 
@@ -1271,8 +1273,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-       (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS));
+       m_txn_distribute_window_open);
 
   if (isLookup || !properState) {
     if ((epochNumber + (isLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
