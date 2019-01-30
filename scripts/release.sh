@@ -184,6 +184,18 @@ function run_cmd_for_all_in_parallel() {
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
     fi
 
+    if [ ! -z "$ALL_ARR_11" ];  then
+    echo "${ALL_ARR_11}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_12" ];  then
+    echo "${ALL_ARR_12}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
     rm -f $tmpfile
 }
 
@@ -248,6 +260,18 @@ function run_cmd_for_shards_in_parallel() {
 
     if [ ! -z "$SHARD_ARR_10" ];  then
     echo "${SHARD_ARR_10}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_11" ];  then
+    echo "${SHARD_ARR_11}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_12" ];  then
+    echo "${SHARD_ARR_12}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
     fi
@@ -710,6 +734,8 @@ EOF
     ALL_ARR_8=$(echo "${ALL_NODES}" | cut -d $'\n' -f1751-2000)
     ALL_ARR_9=$(echo "${ALL_NODES}" | cut -d $'\n' -f2001-2250)
     ALL_ARR_10=$(echo "${ALL_NODES}" | cut -d $'\n' -f2251-2500)
+    ALL_ARR_11=$(echo "${ALL_NODES}" | cut -d $'\n' -f2501-2750)
+    ALL_ARR_12=$(echo "${ALL_NODES}" | cut -d $'\n' -f2751-3000)
 
     SHARD_ARR_1=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1-250)
     SHARD_ARR_2=$(echo "${SHARD_NODES}" | cut -d $'\n' -f251-500)
@@ -721,6 +747,8 @@ EOF
     SHARD_ARR_8=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1751-2000)
     SHARD_ARR_9=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2001-2250)
     SHARD_ARR_10=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2251-2500)
+    SHARD_ARR_11=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2501-2750)
+    SHARD_ARR_12=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2751-3000)
 
     #### Step 3 ####
 
