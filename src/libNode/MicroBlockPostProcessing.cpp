@@ -84,8 +84,6 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
 
 bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMicroBlockConsensus not expected to be "
