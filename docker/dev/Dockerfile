@@ -61,6 +61,7 @@ ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
 ARG EXTRA_CMAKE_ARGS=
 
+RUN groupadd -r zilliqa && useradd -r -g zilliqa zilliqa
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
