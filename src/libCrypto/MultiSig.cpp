@@ -790,8 +790,6 @@ shared_ptr<Signature> MultiSig::AggregateSign(
 bool MultiSig::VerifyResponse(const Response& response,
                               const Challenge& challenge, const PubKey& pubkey,
                               const CommitPoint& commitPoint) {
-  LOG_MARKER();
-
   try {
     // Initial checks
 
