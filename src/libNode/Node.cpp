@@ -1267,19 +1267,25 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  if ((m_mediator.m_lookup->IsLookupNode(from) &&
-       from.GetPrintableIPAddress() != "127.0.0.1") ||
+  bool isLookup = m_mediator.m_lookup->IsLookupNode(from) &&
+                  from.GetPrintableIPAddress() != "127.0.0.1";
+
+  bool properState =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_ds->m_state != DirectoryService::MICROBLOCK_SUBMISSION) ||
+       m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-       !(m_state == MICROBLOCK_CONSENSUS_PREP ||
-         m_state == MICROBLOCK_CONSENSUS))) {
-    if (epochNumber < m_mediator.m_currentEpochNum) {
+       (m_state == MICROBLOCK_CONSENSUS_PREP ||
+        m_state == MICROBLOCK_CONSENSUS));
+
+  if (isLookup || !properState) {
+    if ((epochNumber + (isLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
+    LOG_GENERAL(INFO, string(isLookup ? "Received txn from lookup"
+                                      : "Received not in the prepared state") +
+                          ", store to buffer");
     LOG_STATE("[TXNPKTPROC]["
               << std::setw(15) << std::left
               << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
