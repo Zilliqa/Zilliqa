@@ -73,8 +73,7 @@ void Guard::UpdateDSGuardlist() {
 
   {
     lock_guard<mutex> g(m_mutexDSGuardList);
-    LOG_GENERAL(INFO, "Total number of entries in DS guard list:  "
-                          << m_DSGuardList.size());
+    LOG_GENERAL(INFO, "Entries = " << m_DSGuardList.size());
   }
 }
 
@@ -107,8 +106,7 @@ void Guard::UpdateShardGuardlist() {
   }
   {
     lock_guard<mutex> g(m_mutexShardGuardList);
-    LOG_GENERAL(INFO, "Total number of entries in shard guard list:  "
-                          << m_ShardGuardList.size());
+    LOG_GENERAL(INFO, "Entries = " << m_ShardGuardList.size());
   }
 }
 
@@ -224,6 +222,8 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 }
 
 void Guard::ValidateRunTimeEnvironment() {
+  LOG_MARKER();
+
   unsigned int nodeReplacementLimit =
       COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
 
@@ -233,14 +233,12 @@ void Guard::ValidateRunTimeEnvironment() {
                 "bigger than NUM_DS_ELECTION. Refer to design documentation. "
                 "nodeReplacementLimit: "
                     << nodeReplacementLimit);
-  } else {
-    LOG_GENERAL(INFO, "Passed guard mode run time environment validation");
   }
 }
 
 void Guard::Init() {
   if (GUARD_MODE) {
-    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+    LOG_GENERAL(INFO, "Updating lists");
     ValidateRunTimeEnvironment();
     UpdateDSGuardlist();
     UpdateShardGuardlist();

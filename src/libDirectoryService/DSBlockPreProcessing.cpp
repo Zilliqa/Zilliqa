@@ -284,8 +284,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     }
   }
 
-  LOG_GENERAL(INFO, "Number of PoWs after inject for DS node: "
-                        << sortedPoWSolns.size());
+  LOG_GENERAL(INFO, "Num PoWs after injection = " << sortedPoWSolns.size());
 }
 
 bool DirectoryService::VerifyPoWWinner(
@@ -684,10 +683,9 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
            (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           if (count == trimmedGuardCount) {
-            LOG_GENERAL(
-                INFO,
-                "Did not manage to form max number of shard. Only allowed "
-                    << trimmedGuardCount << " shard guards");
+            LOG_GENERAL(INFO,
+                        "Could not form max number of shard. Only allowed "
+                            << trimmedGuardCount);
             break;
           }
           FilteredPoWOrderSorter.emplace(*kv);
@@ -708,15 +706,12 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       for (auto kv : FilteredPoWOrderSorter) {
         sortedPoWSolns.emplace_back(kv);
       }
-      LOG_GENERAL(INFO, "trimmedGuardCount: "
-                            << trimmedGuardCount
-                            << " trimmedNonGuardCount: " << trimmedNonGuardCount
-                            << " Total number of accepted soln: "
-                            << sortedPoWSolns.size());
+      LOG_GENERAL(INFO, "Trimmed counts = " << trimmedGuardCount << " "
+                                            << trimmedNonGuardCount);
+      LOG_GENERAL(INFO, "Accepted solns = " << sortedPoWSolns.size());
     }
 
-    LOG_GENERAL(INFO,
-                "Number of solns after trimming is " << sortedPoWSolns.size());
+    LOG_GENERAL(INFO, "Num solns after trimming = " << sortedPoWSolns.size());
 
   } else {
     for (const auto& kv : PoWOrderSorter) {
