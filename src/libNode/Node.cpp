@@ -118,6 +118,9 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                            m_mediator.m_txBlockChain);
+    const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
+    m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                             dsBlock.GetBlockHash());
 
     return true;
   }
