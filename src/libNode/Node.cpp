@@ -1264,20 +1264,15 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  bool isLookup = false;
-  if (m_mediator.m_lookup->IsLookupNode(from) &&
-      from.GetPrintableIPAddress() != "127.0.0.1") {
-    isLookup = true;
-  }
+  bool isLookup = m_mediator.m_lookup->IsLookupNode(from) &&
+                  from.GetPrintableIPAddress() != "127.0.0.1";
 
-  bool properState = false;
-  if ((m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+  bool properState =
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS))) {
-    properState = true;
-  }
+        m_state == MICROBLOCK_CONSENSUS));
 
   if (isLookup || !properState) {
     if ((epochNumber + (isLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
