@@ -88,7 +88,7 @@ class SWInfo : public Serializable {
   const uint32_t& GetScillaCommit() const;
 
   static void LogBrand() {
-    std::cout << "Copyright (C) Zilliqa. Version 3.5.4. "
+    std::cout << "Copyright (C) Zilliqa. Version 4.0.0. "
                  "<https://www.zilliqa.com/> "
               << std::endl;
   }
