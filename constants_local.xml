@@ -125,6 +125,10 @@
     <heartbeat>
         <HEARTBEAT_INTERVAL_IN_SECONDS>10</HEARTBEAT_INTERVAL_IN_SECONDS>
     </heartbeat>
+    <incrementaldb>
+        <ENABLE_INCR_DB>false</ENABLE_INCR_DB>
+        <INCR_DB_PATH>incrdb</INCR_DB_PATH>
+    </incrementaldb>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>5</COMM_SIZE>

@@ -25,11 +25,9 @@ using namespace std;
 void IncrementalDB::ChangeDBPointer(const uint64_t& currentDSEpoch,
                                     const string& dbName) {
   if (m_DBPointer.at(dbName).first != currentDSEpoch) {
-    m_DBPointer.at(dbName).second.reset();
-    m_DBPointer.emplace(
-        dbName, make_pair(currentDSEpoch,
-                          make_shared<LevelDB>(dbName, m_path,
-                                               to_string(currentDSEpoch))));
+    m_DBPointer.at(dbName).first = currentDSEpoch;
+    m_DBPointer.at(dbName).second =
+        make_shared<LevelDB>(dbName, m_path, to_string(currentDSEpoch));
   }
 }
 
@@ -112,13 +110,16 @@ void IncrementalDB::Init() {
     boost::filesystem::create_directories(path_abs);
   }
 
-  m_blockLinkDB = make_shared<LevelDB>(m_blockLinkDBName, m_path, false);
+  string emptyString;
+  emptyString.clear();
+  m_blockLinkDB = make_shared<LevelDB>(m_blockLinkDBName, m_path, emptyString);
 
   for (auto const& dbName :
-       {m_txBodyDBName, m_microBlockDBName, m_blockLinkDBName, m_VCBlockDBName,
-        m_DSBlockDBName, m_FallbackBlockDBName, m_TxBlockDBName}) {
+       {m_txBodyDBName, m_microBlockDBName, m_VCBlockDBName, m_DSBlockDBName,
+        m_FallbackBlockDBName, m_TxBlockDBName}) {
     m_DBPointer.emplace(
-        dbName, make_pair(0, make_shared<LevelDB>(dbName, m_path, "0")));
+        dbName,
+        make_pair(0, make_shared<LevelDB>(dbName, m_path, (string) "0")));
   }
 }
 
