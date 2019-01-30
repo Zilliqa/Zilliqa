@@ -756,6 +756,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     LOG_GENERAL(
         WARNING,
         "Current node is not a ds guard node. Unable to update network info.");
+    return false;
   }
 
   // To provide current pubkey, new IP, new Port and current timestamp
