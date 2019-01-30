@@ -42,6 +42,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -76,6 +77,11 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
 
   BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
                                              serializedDSBlock);
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
+                                            serializedDSBlock,
+                                            dsblock.GetHeader().GetBlockNum());
+  }
   m_mediator.m_ds->m_latestActiveDSBlockNum = dsblock.GetHeader().GetBlockNum();
   BlockStorage::GetBlockStorage().PutMetadata(
       LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(

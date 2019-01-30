@@ -83,6 +83,11 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   txBlock.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutTxBlock(
+        txBlock.GetHeader().GetBlockNum(), serializedTxBlock,
+        txBlock.GetHeader().GetDSBlockNum());
+  }
 
   string prevHashStr;
   if (!DataConversion::charArrToHexStr(m_mediator.m_txBlockChain.GetLastBlock()
@@ -853,12 +858,11 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     twr.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(twr.GetTransaction().GetTranID(),
                                               serializedTxBody);
+
     if (ENABLE_INCR_DB) {
       IncrementalDB::GetInstance().PutTxBody(
           twr.GetTransaction().GetTranID(), serializedTxBody,
-          to_string(m_mediator.m_dsBlockChain.GetLastBlock()
-                        .GetHeader()
-                        .GetBlockNum()));
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
     }
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

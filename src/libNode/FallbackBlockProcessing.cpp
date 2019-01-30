@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -281,6 +282,12 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
               fallbackblock.GetBlockHash(), dst)) {
         LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
       }
+    }
+
+    if (ENABLE_INCR_DB) {
+      IncrementalDB::GetInstance().PutFallbackBlock(
+          fallbackblock.GetBlockHash(), dst,
+          fallbackblock.GetHeader().GetFallbackDSEpochNo());
     }
 
     FallbackTimerPulse();

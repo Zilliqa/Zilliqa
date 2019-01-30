@@ -17,6 +17,7 @@
 
 #include "BlockLinkChain.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/IncrementalDB.h"
 
 BlockLink BlockLinkChain::GetFromPersistentStorage(const uint64_t& index) {
   BlockLinkSharedPtr blnkshared;
@@ -88,6 +89,9 @@ bool BlockLinkChain::AddBlockLink(const uint64_t& index,
   if (!BlockStorage::GetBlockStorage().PutBlockLink(index, dst)) {
     LOG_GENERAL(WARNING, "PutBlockLink failed");
     return false;
+  }
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutBlockLink(index, dst);
   }
   return true;
 }

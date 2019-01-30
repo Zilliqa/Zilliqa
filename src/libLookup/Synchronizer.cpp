@@ -24,6 +24,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
@@ -62,6 +63,11 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
   dsBlock.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutDSBlock(dsBlock.GetHeader().GetBlockNum(),
                                              serializedDSBlock);
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutDSBlock(dsBlock.GetHeader().GetBlockNum(),
+                                            serializedDSBlock,
+                                            dsBlock.GetHeader().GetBlockNum());
+  }
 
   return true;
 }
@@ -92,6 +98,11 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
   txBlock.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutTxBlock(
+        txBlock.GetHeader().GetBlockNum(), serializedTxBlock,
+        txBlock.GetHeader().GetDSBlockNum());
+  }
 
   return true;
 }

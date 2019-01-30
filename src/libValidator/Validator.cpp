@@ -21,6 +21,7 @@
 #include "libData/AccountData/Account.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libUtils/BitVector.h"
 
 using namespace std;
@@ -293,6 +294,11 @@ bool Validator::CheckDirBlocks(
       BlockStorage::GetBlockStorage().PutDSBlock(
           dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
+      if (ENABLE_INCR_DB) {
+        IncrementalDB::GetInstance().PutDSBlock(
+            dsblock.GetHeader().GetBlockNum(), serializedDSBlock,
+            dsblock.GetHeader().GetBlockNum());
+      }
       totalIndex++;
       BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
     } else if (typeid(VCBlock) == dirBlock.type()) {
@@ -333,6 +339,11 @@ bool Validator::CheckDirBlocks(
       vcblock.Serialize(vcblockserialized, 0);
       BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                  vcblockserialized);
+      if (ENABLE_INCR_DB) {
+        IncrementalDB::GetInstance().PutVCBlock(
+            vcblock.GetBlockHash(), vcblockserialized,
+            vcblock.GetHeader().GetViewChangeDSEpochNo());
+      }
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
     } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
@@ -397,6 +408,12 @@ bool Validator::CheckDirBlocks(
       fallbackwshardingstructure.Serialize(fallbackblockser, 0);
       BlockStorage::GetBlockStorage().PutFallbackBlock(
           fallbackblock.GetBlockHash(), fallbackblockser);
+      if (ENABLE_INCR_DB) {
+        IncrementalDB::GetInstance().PutFallbackBlock(
+            fallbackblock.GetBlockHash(), fallbackblockser,
+            fallbackblock.GetHeader().GetFallbackDSEpochNo());
+      }
+
       prevHash = fallbackblock.GetBlockHash();
       totalIndex++;
     } else {

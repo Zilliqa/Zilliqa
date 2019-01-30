@@ -1351,9 +1351,7 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   if (ENABLE_INCR_DB) {
     IncrementalDB::GetInstance().PutMicroBlock(
         microblock.GetBlockHash(), body,
-        to_string(m_mediator.m_dsBlockChain.GetLastBlock()
-                      .GetHeader()
-                      .GetBlockNum()));
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
   }
 
   return true;
@@ -1804,6 +1802,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+    if (ENABLE_INCR_DB) {
+      IncrementalDB::GetInstance().PutTxBlock(
+          txBlock.GetHeader().GetBlockNum(), serializedTxBlock,
+          txBlock.GetHeader().GetDSBlockNum());
+    }
   }
 
   bool isVacuousEpoch =

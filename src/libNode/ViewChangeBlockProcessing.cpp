@@ -37,6 +37,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -233,6 +234,12 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
                                                   dst)) {
     LOG_GENERAL(WARNING, "Failed to store VC Block");
     return false;
+  }
+
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutVCBlock(
+        vcblock.GetBlockHash(), dst,
+        vcblock.GetHeader().GetViewChangeDSEpochNo());
   }
 
   UpdateDSCommiteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
