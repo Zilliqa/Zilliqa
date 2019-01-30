@@ -27,3 +27,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install setuptools \
     && pip install urllib3 kubernetes netaddr boto3 awscli
 
+USER zilliqa

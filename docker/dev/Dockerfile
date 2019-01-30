@@ -69,7 +69,6 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && rm -rf ${BUILD_DIR}
-USER zilliqa
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
