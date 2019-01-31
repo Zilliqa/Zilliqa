@@ -355,7 +355,6 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
 bool ConsensusLeader::ProcessMessageCommit(const bytes& commit,
                                            unsigned int offset) {
-  LOG_MARKER();
   return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE,
                                   CHALLENGE_DONE);
 }
@@ -668,7 +667,6 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
 bool ConsensusLeader::ProcessMessageResponse(const bytes& response,
                                              unsigned int offset) {
-  LOG_MARKER();
   return ProcessMessageResponseCore(response, offset, PROCESS_RESPONSE,
                                     COLLECTIVESIG, COLLECTIVESIG_DONE);
 }
@@ -724,14 +722,12 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
 
 bool ConsensusLeader::ProcessMessageFinalCommit(const bytes& finalcommit,
                                                 unsigned int offset) {
-  LOG_MARKER();
   return ProcessMessageCommitCore(finalcommit, offset, PROCESS_FINALCOMMIT,
                                   FINALCHALLENGE, FINALCHALLENGE_DONE);
 }
 
 bool ConsensusLeader::ProcessMessageFinalResponse(const bytes& finalresponse,
                                                   unsigned int offset) {
-  LOG_MARKER();
   return ProcessMessageResponseCore(
       finalresponse, offset, PROCESS_FINALRESPONSE, FINALCOLLECTIVESIG, DONE);
 }

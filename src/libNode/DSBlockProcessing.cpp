@@ -635,12 +635,6 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     FallbackTimerPulse();
   }
 
-  LOG_GENERAL(INFO, "DS committee");
-  unsigned int ds_index = 0;
-  for (const auto& member : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
-  }
-
   BlockStorage::GetBlockStorage().PutDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID());
 

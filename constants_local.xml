@@ -227,7 +227,7 @@
     <verifier>
         <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
-        <SEED_PORT>33333</SEED_PORT>
+        <SEED_PORT>33133</SEED_PORT>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
@@ -255,7 +255,7 @@
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         -->
@@ -272,7 +272,7 @@
         <!--
         <peer>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         -->

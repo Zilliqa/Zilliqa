@@ -675,8 +675,6 @@ class Messenger {
   template <class T>
   static bool GetConsensusID(const bytes& src, const unsigned int offset,
                              uint32_t& consensusID, PubKey& senderPubKey) {
-    LOG_MARKER();
-
     T consensus_message;
 
     consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
