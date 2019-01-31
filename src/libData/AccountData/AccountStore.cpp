@@ -280,6 +280,10 @@ bool AccountStore::RetrieveFromDisk() {
         continue;
       }
 
+      if (account.isContract()) {
+        account.SetAddress(address);
+      }
+
       m_addressToAccount->insert({address, account});
     }
   } catch (const boost::exception& e) {
