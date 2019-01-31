@@ -64,14 +64,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   const boost::multiprecision::uint128_t& amount = transaction.GetAmount();
 
+  // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
+  // Get the amount of deposit for running this txn
   boost::multiprecision::uint128_t gasDeposit;
   if (!SafeMath<boost::multiprecision::uint128_t>::mul(
           gasRemained, transaction.GetGasPrice(), gasDeposit)) {
     return false;
   }
 
+  // Determine a normal txn
   if (transaction.GetData().empty() && transaction.GetCode().empty()) {
     // LOG_GENERAL(INFO, "Normal transaction");
 
@@ -89,6 +92,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   bool callContract = false;
 
+  // Determine a contract calling txn
   if (transaction.GetData().size() > 0 && toAddr != NullAddress &&
       transaction.GetCode().empty()) {
     callContract = true;
@@ -103,6 +107,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     return false;
   }
 
+  // Determine a contract deployment txn
   if (transaction.GetCode().size() > 0) {
     if (toAddr != NullAddress) {
       LOG_GENERAL(WARNING, "txn has non-empty code but with valid toAddr");
@@ -111,6 +116,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     LOG_GENERAL(INFO, "Create contract");
 
+    // Check if gaslimit meets the minimum requirement for contract deployment
     if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS) {
       LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
                                         << " less than "
@@ -118,11 +124,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
+    // Check if the sender has enough balance to pay gasDeposit
     if (fromAccount->GetBalance() < gasDeposit) {
       LOG_GENERAL(WARNING,
                   "The account doesn't have enough gas to create a contract");
       return false;
-    } else if (fromAccount->GetBalance() < gasDeposit + amount) {
+    }
+    // Check if the sender has enough balance to pay gasDeposit and transfer
+    // amount
+    else if (fromAccount->GetBalance() < gasDeposit + amount) {
       LOG_GENERAL(WARNING,
                   "The account (balance: "
                       << fromAccount->GetBalance()
@@ -138,7 +148,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       validToTransferBalance = false;
     }
 
+    // generate address for new contract account
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
+    // instantiate the object for contract account
     this->AddAccount(toAddr, {0, 0});
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
@@ -147,7 +159,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     bool init = true;
-    // Store the immutable states
+    // Initiate the contract account, including setting the contract code
+    // store the immutable states
     if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
                                  toAddr, blockNum, true)) {
       LOG_GENERAL(WARNING, "InitContract failed");
