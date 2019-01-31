@@ -164,11 +164,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Initialize the class
   void Init() override;
 
-  /// external api for processing txn
+  /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
                       TransactionReceipt& receipt);
-  /// external api for calling timeout for txn processing
+  /// external interface for calling timeout for txn processing
   void NotifyTimeout();
 };
 
