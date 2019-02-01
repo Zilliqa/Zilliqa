@@ -837,7 +837,7 @@ message ConsensusAnnouncement
         DSVCBlockAnnouncement vcblock         = 7;
         NodeFallbackBlockAnnouncement fallbackblock = 8;
     }
-    required ByteArray finalsignature         = 9;
+    required ByteArray finalsignature         = 9; // The signature of the whole announcement
 }
 
 message ConsensusCommit

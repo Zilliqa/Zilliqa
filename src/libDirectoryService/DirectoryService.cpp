@@ -1084,9 +1084,9 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   // Every year, always increase the difficulty by 1, to encourage miners to
   // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS +
-  // POWPACKETSUBMISSION_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50,
-  // TX_DISTRIBUTE_TIME_IN_MS = 10000, FINALBLOCK_DELAY_IN_MS = 3000, estimated
-  // blocks in a year is 1971000.
+  // POWPACKETSUBMISSION_WINDOW_IN_SECONDS = 150, NUM_FINAL_BLOCK_PER_POW = 100,
+  // TX_DISTRIBUTE_TIME_IN_MS = 20000, FINALBLOCK_DELAY_IN_MS = 5000, estimated
+  // blocks in a year is 1190038.
   uint64_t estimatedBlocksOneYear =
       365 * 24 * 3600 /
       (((POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS) /
