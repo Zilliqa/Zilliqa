@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -284,6 +285,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     return false;
   }
 
+  if (m_DS && GUARD_MODE) {
+    if (backupID >= Guard::GetInstance().GetNumOfDSGuard()) {
+      LOG_GENERAL(INFO, backupID << " "
+                                 << "rejected");
+      return false;
+    }
+  }
+
   if (m_commitMap.at(backupID)) {
     LOG_GENERAL(WARNING, "Backup already sent commit");
     return false;
@@ -492,6 +501,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     LOG_GENERAL(WARNING,
                 "Subset ID " << subsetID << " >= " << NUM_CONSENSUS_SUBSETS);
     return false;
+  }
+
+  if (m_DS && GUARD_MODE) {
+    if (backupID >= Guard::GetInstance().GetNumOfDSGuard()) {
+      LOG_GENERAL(INFO, backupID << " "
+                                 << "rejected");
+      return false;
+    }
   }
 
   // Check subset state
@@ -737,9 +754,10 @@ ConsensusLeader::ConsensusLeader(
     uint16_t node_id, const PrivKey& privkey, const DequeOfNode& committee,
     unsigned char class_byte, unsigned char ins_byte,
     NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
-    ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc)
+    ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc, bool isDS)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
                       committee, class_byte, ins_byte),
+      m_DS(isDS),
       m_commitMap(committee.size(), false),
       m_commitPointMap(committee.size(), CommitPoint()),
       m_commitRedundantMap(committee.size(), false),
