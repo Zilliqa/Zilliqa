@@ -260,7 +260,12 @@ void Node::StartFirstTxEpoch() {
 
   lock_guard<mutex> g(m_mutexShardMember);
 
-  m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  if (m_mediator.m_ds->m_mode != DirectoryService::IDLE && GUARD_MODE) {
+    m_consensusLeaderID =
+        lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+  } else {
+    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  }
 
   // Check if I am the leader or backup of the shard
   if (m_mediator.m_selfKey.second ==
