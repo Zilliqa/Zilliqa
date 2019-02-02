@@ -129,7 +129,11 @@ class DSBlockChain : public BlockChain<DSBlock> {
  public:
   DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
     DSBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
+    if (! BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block)){
+      LOG_GENERAL(WARNING,
+                        "BlockNum not in persistent storage " << blockNum << " Dummy block used");
+      return DSBlock();
+    }
     return *block;
   }
 };
@@ -138,7 +142,11 @@ class TxBlockChain : public BlockChain<TxBlock> {
  public:
   TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
     TxBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
+    if (! BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block)){
+      LOG_GENERAL(WARNING,
+                        "BlockNum not in persistent storage " << blockNum << " Dummy block used");
+      return TxBlock();
+    }
     return *block;
   }
 };
