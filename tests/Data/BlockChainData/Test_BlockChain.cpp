@@ -53,15 +53,13 @@ void appendBlockLinkAndChain_v(BlockLinkChain& blc, vector<BlockLink>& bl_v, con
 }
 
 bool operator== (const BlockLink &c1, const BlockLink &c2) {
-  cout << get<0>(c1) << " " << get<1>(c1) << " " << get<2>(c1) << " " << get<3>(c1) << " " << get<4>(c1) << " " << endl;
-  cout << get<0>(c2) << " " << get<1>(c2) << " " << get<2>(c2) << " " << get<3>(c2) << " " << get<4>(c2) << " " << endl;
   if (get<0>(c1) == get<0>(c2) && get<1>(c1) == get<1>(c2) && get<2>(c1) == get<2>(c2) && get<3>(c1) == get<3>(c2) && get<4>(c1) == get<4>(c2)) {
     return true;
   }
   return false;
 }
 
-BOOST_AUTO_TEST_CASE(DSBlock_test) {
+BOOST_AUTO_TEST_CASE(BlockLinkChain_test) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -78,8 +76,6 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
 
   // Get and compare added random BlockLink
   uint8_t randBlockLinkIndex =  TestUtils::RandomIntInRng<uint8_t>(0, blTest_v.size() - 1);
-  std::cout << "blTest_v.size() " << blTest_v.size() << endl;
-  std::cout << "randBlockLinkIndex " << randBlockLinkIndex << endl;
   BOOST_CHECK_MESSAGE(blc.GetBlockLink(randBlockLinkIndex) == blTest_v[randBlockLinkIndex],
                               "BlockLink in BlockLinkChain not equals to added one\n");
 
@@ -91,7 +87,6 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
 
   // Get BlockLink from persistent storage - BLOCKCHAIN_SIZE exceeded and element on index > BLOCKCHAIN_SIZE will be accessed
   appendBlockLinkAndChain_v(blc, blTest_v, BLOCKCHAIN_SIZE - blTest_v.size(), BLOCKCHAIN_SIZE + 10);
-  std::cout << "size:" <<  blTest_v.size() << endl;
   BlockLink persistent_blc = blc.GetBlockLink(1);
   BOOST_CHECK_MESSAGE(persistent_blc == blc.GetBlockLink(1),
                               "Incorrect BlockLink returned from persistent storage.\n");
@@ -116,6 +111,71 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
   // Add BlockLink with lower index than the latest
   BOOST_CHECK_MESSAGE(blc.AddBlockLink(1, 1, DS, BlockHash::random()) == false,
                             "Can add BlockLink with index lower then the latest index\n");
+}
+
+DSBlockHeader createDSBlockHeader(const uint64_t& blockNum) {
+  return  DSBlockHeader(TestUtils::DistUint8(), TestUtils::DistUint8(),
+      TestUtils::GenerateRandomPubKey(), blockNum,
+      TestUtils::DistUint64(), TestUtils::DistUint128(), SWInfo(),
+      map<PubKey, Peer>(), DSBlockHashSet(),
+      TestUtils::DistUint32(), CommitteeHash(),
+      BlockHash());
+}
+
+void addBlocks(DSBlockChain & dsbc, const uint8_t from, const uint8_t to) {
+  for (uint8_t i = from; i <= to; i++) {
+    BOOST_CHECK_MESSAGE(dsbc.AddBlock(DSBlock(createDSBlockHeader(0), CoSignatures())) == 1,
+                                            "Unable to add block.\n");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(DSBlockChain_test) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  DSBlockChain dsbc;
+  // Trying access undefined block
+  DSBlock dsb_empty;
+  BOOST_CHECK_MESSAGE(dsb_empty == dsbc.GetBlock(TestUtils::RandomIntInRng<uint8_t>(0, BLOCKCHAIN_SIZE)),
+                                        "DSBlockChain didn't return dummy block when undefined element accessed.\n");
+  BOOST_CHECK_MESSAGE(dsbc.GetBlockCount() == 0,
+                                      "DSBlockChain returned blockCount not equal to zero after construction.\n");
+
+  DSBlock dsb_0(createDSBlockHeader(0), CoSignatures());
+  DSBlock dsb_1(createDSBlockHeader(1), CoSignatures());
+  DSBlock dsb_2(createDSBlockHeader(2), CoSignatures());
+  DSBlock lastBlock = DSBlock(createDSBlockHeader(BLOCKCHAIN_SIZE), CoSignatures());
+
+  BOOST_CHECK_MESSAGE(dsbc.AddBlock(dsb_0) == 1,
+                                        "Unable to add block.\n");
+  BOOST_CHECK_MESSAGE(dsbc.GetBlock(0) == dsb_0,
+                                              "Incorrect BlockCount " + to_string(dsbc.GetBlockCount()) + " != " + to_string(1) + ".\n");
+  BOOST_CHECK_MESSAGE(dsbc.GetBlock(1) == dsb_empty,
+                                          "Nonempty block returned when getting on index where no add done before.\n");
+  BOOST_CHECK_MESSAGE(dsbc.AddBlock(dsb_1) == 1,
+                                          "Unable to add block.\n");
+  BOOST_CHECK_MESSAGE(dsbc.AddBlock(lastBlock) == 1,
+                                        "Unable to add block.\n");
+  BOOST_CHECK_MESSAGE(dsbc.AddBlock(DSBlock(createDSBlockHeader(0), CoSignatures())) == -1,
+                                          "Can add block with header number lover than in the last added header.\n");
+  // Causes segfault since BlockStorage is empty
+  //BOOST_CHECK_MESSAGE(dsbc.GetBlock(0) == dsb_empty,
+  //                                          "Nonempty block returned when different block number on given index.\n");
+  BOOST_CHECK_MESSAGE(dsbc.GetBlockCount() == BLOCKCHAIN_SIZE + 1,
+                                          "Incorrect BlockCount " + to_string(dsbc.GetBlockCount()) + " != " + to_string(1) + ".\n");
+  BOOST_CHECK_MESSAGE(dsbc.GetLastBlock() == lastBlock,
+                                            "GetLastBlock returned block different from block added last.\n");
+
+//  BOOST_CHECK_MESSAGE(dsbc.AddBlock(dsb_2) == 1,
+//                                          "Unable to add block.\n");
+//  BOOST_CHECK_MESSAGE(dsbc.GetBlockCount() == 3,
+//                                          "Incorrect BlockCount.\n");
+//  BOOST_CHECK_MESSAGE(dsbc.AddBlock(dsb_1) == -1,
+//                                          "Can add block with header number lover than in the last added header.\n");
+
+
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
