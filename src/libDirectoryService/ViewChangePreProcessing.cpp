@@ -546,6 +546,11 @@ bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
     }
 
     if (prevVCBlockptr->GetHeader().GetViewChangeState() != m_viewChangestate) {
+      LOG_GENERAL(
+          WARNING,
+          "The previous vc block is not for current state.  prevVCBlockptr: "
+              << prevVCBlockptr->GetHeader().GetViewChangeState()
+              << " m_viewChangestate:" << m_viewChangestate);
       return false;
     }
   } else {
