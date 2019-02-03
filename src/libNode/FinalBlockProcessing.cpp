@@ -42,6 +42,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -330,7 +331,13 @@ void Node::UpdateStateForNextConsensusRound() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+
+    if (m_mediator.m_ds->m_mode != DirectoryService::IDLE && GUARD_MODE) {
+      m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    } else {
+      m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+    }
   }
 
   if (m_consensusMyID == m_consensusLeaderID) {
