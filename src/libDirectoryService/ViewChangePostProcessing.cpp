@@ -201,7 +201,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     PairOfNode candidateLeaderInfo = make_pair(
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-    if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
+    if (candidateLeaderInfo.first == m_mediator.m_selfKey.second &&
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
       m_consensusLeaderID = m_consensusMyID.load();
     } else {
