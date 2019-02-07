@@ -49,6 +49,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
+#include "libPersistence/IncrementalDB.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -282,6 +283,18 @@ bool Node::ValidateDB() {
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
   }
+
+  if (ENABLE_INCR_DB) {
+    if (IncrementalDB::GetInstance().VerifyAll(dsComm,
+                                               *m_mediator.m_validator)) {
+      LOG_GENERAL(INFO, "Success");
+      return true;
+    } else {
+      LOG_GENERAL(INFO, "Failed");
+      return false;
+    }
+  }
+
   std::list<BlockLink> blocklinks;
   if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
     LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");

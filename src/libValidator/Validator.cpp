@@ -187,7 +187,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
 
 template <class Container, class DirectoryBlock>
 bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
-                                      const Container& commKeys) {
+                                      const Container& commKeys) const {
   LOG_MARKER();
 
   unsigned int index = 0;
@@ -245,7 +245,7 @@ bool Validator::CheckDirBlocks(
     const vector<boost::variant<DSBlock, VCBlock,
                                 FallbackBlockWShardingStructure>>& dirBlocks,
     const DequeOfNode& initDsComm, const uint64_t& index_num,
-    DequeOfNode& newDSComm) {
+    DequeOfNode& newDSComm) const {
   DequeOfNode mutable_ds_comm = initDsComm;
 
   bool ret = true;
@@ -427,7 +427,7 @@ bool Validator::CheckDirBlocks(
 
 ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
     const vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
-    const BlockLink& latestBlockLink) {
+    const BlockLink& latestBlockLink) const {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
 

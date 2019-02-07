@@ -167,7 +167,8 @@ bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
        itr != boost::filesystem::directory_iterator(); ++itr) {
     if (boost::filesystem::is_directory(itr->status())) {
       try {
-        temp = boost::lexical_cast<uint64_t>(itr->path().filename());
+        const string &fileName = itr->path().filename().string();
+        temp = boost::lexical_cast<uint64_t>(fileName);
         if (temp > lastDSEpoch) {
           lastDSEpoch = temp;
         }
@@ -219,7 +220,8 @@ bool IncrementalDB::GetAllTxBlocksEpoch(std::list<TxBlock>& blocks,
   return true;
 }
 
-bool IncrementalDB::GetDSBlock(uint64_t& blocknum, DSBlockSharedPtr& block) {
+bool IncrementalDB::GetDSBlock(const uint64_t& blocknum,
+                               DSBlockSharedPtr& block) {
   ChangeDBPointer(blocknum, m_DSBlockDBName);
   string blockString = m_DBPointer.at(m_DSBlockDBName).second->Lookup(blocknum);
 
@@ -233,7 +235,8 @@ bool IncrementalDB::GetDSBlock(uint64_t& blocknum, DSBlockSharedPtr& block) {
   return true;
 }
 
-bool IncrementalDB::GetVCBlock(uint64_t& dsEpochNum, BlockHash& blockhash,
+bool IncrementalDB::GetVCBlock(const uint64_t& dsEpochNum,
+                               const BlockHash& blockhash,
                                VCBlockSharedPtr& block) {
   ChangeDBPointer(dsEpochNum, m_VCBlockDBName);
   string blockString =
@@ -249,7 +252,7 @@ bool IncrementalDB::GetVCBlock(uint64_t& dsEpochNum, BlockHash& blockhash,
 }
 
 bool IncrementalDB::GetFallbackBlock(
-    uint64_t& dsEpochNum, BlockHash& blockhash,
+    const uint64_t& dsEpochNum, const BlockHash& blockhash,
     FallbackBlockSharedPtr& fallbackblockwsharding) {
   ChangeDBPointer(dsEpochNum, m_FallbackBlockDBName);
   string blockString =
@@ -266,139 +269,197 @@ bool IncrementalDB::GetFallbackBlock(
   return true;
 }
 
-/*bool IncrementalDB::VerifyAll()
-{
+bool IncrementalDB::GetMicroBlock(const uint64_t& dsEpochNum,
+                                  const BlockHash& blockhash,
+                                  MicroBlockSharedPtr& microblock) {
+  ChangeDBPointer(dsEpochNum, m_microBlockDBName);
+  string blockString =
+      m_DBPointer.at(m_microBlockDBName).second->Lookup(blockhash);
 
+  if (blockString.empty()) {
+    return false;
+  }
+  microblock =
+      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
+
+  return true;
+}
+
+bool IncrementalDB::GetTxnBody(const uint64_t& dsEpochNum, const dev::h256& key,
+                               TxBodySharedPtr& body) {
+  std::string bodyString;
+  ChangeDBPointer(dsEpochNum, m_txBodyDBName);
+
+  bodyString = m_DBPointer.at(m_txBodyDBName).second->Lookup(key);
+
+  if (bodyString.empty()) {
+    return false;
+  }
+  body = make_shared<TransactionWithReceipt>(
+      bytes(bodyString.begin(), bodyString.end()), 0);
+
+  return true;
+}
+
+bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
+                              const ValidatorBase& validator) {
   DequeOfNode dsComm;
 
-  for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
-    dsComm.emplace_back(dsKey, Peer());
+  for (const auto& dsKey : initialDScommittee) {
+    dsComm.emplace_back(dsKey);
   }
 
   list<BlockLink> blocklinks;
 
-  if(!GetAllBlockLink(blocklinks) || blocklinks.empty())
-  {
-    LOG_GENERAL(WARNING,"Failed to get all blocklinks");
+  if (!GetAllBlockLink(blocklinks) || blocklinks.empty()) {
+    LOG_GENERAL(WARNING, "Failed to get all blocklinks");
     return false;
   }
 
-   blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
     return std::get<BlockLinkIndex::INDEX>(a) <
            std::get<BlockLinkIndex::INDEX>(b);
   });
 
   uint64_t latestDSEpoch = 0;
-  if(!GetLatestDSEpochStorage(latestDSEpoch))
-  {
+  if (!GetLatestDSEpochStorage(latestDSEpoch)) {
     return false;
   }
 
   list<TxBlock> txblocks;
-  for(uint64_t i = latestDSEpoch ; i>=0 ; i--)
-  {
+  for (uint64_t i = latestDSEpoch; i > 0; i--) {
     txblocks.clear();
-    if(GetAllTxBlocksEpoch(txblocks, i))
-    {
-      LOG_GENERAL(INFO, "Succeeded to get finalblocks of epoch "<<i);
+    if (GetAllTxBlocksEpoch(txblocks, i)) {
+      LOG_GENERAL(INFO, "Succeeded to get finalblocks of epoch " << i);
       latestDSEpoch = i;
       break;
     }
-
   }
 
-  if(txblocks.empty())
-  {
-    LOG_GENERAL(WARNING,"Could not find any tx block");
+  if (txblocks.empty()) {
+    LOG_GENERAL(WARNING, "Could not find any tx block");
     return false;
   }
 
-  txblocks.sort([](const TxBlock& a, const TxBlock& b)
-  {
+  txblocks.sort([](const TxBlock& a, const TxBlock& b) {
     return a.GetHeader().GetBlockNum() < b.GetHeader().GetBlockNum();
   }
 
-    );
+  );
 
-  const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+  const auto& latestTxBlockNum = txblocks.back().GetHeader().GetBlockNum();
 
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      directoryBlocks;
 
-  vector<boost::variant<DSBlock, VCBlock,
-                                FallbackBlockWShardingStructure>>
-directoryBlocks;
+  auto& latestBlockLink = blocklinks.back();
 
-  for(const auto& blocklink : blocklinks)
-  {
-    uint64_t& dsEpoch = get<BlockLinkIndex::DSINDEX>(blocklink);
-    BlockHash& blockhash = get<BlockLinkIndex::BLOCKHASH>(blockLink);
+  for (const auto& blocklink : blocklinks) {
+    const uint64_t& dsEpoch = get<BlockLinkIndex::DSINDEX>(blocklink);
+    const BlockHash& blockhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
 
-    if(get<BlockLinkIndex::TYPE>(blocklink) == BlockType::DS)
-    {
-      DSBlockSharedPtr dsblock
-      if(!GetDSBlock(dsEpoch, dsblock))
-      {
-        LOG_GENERAL(WARNING, "Could not get ds blocknum "<<dsEpoch);
+    if (dsEpoch == 0) {
+      continue;
+    }
+
+    if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
+      DSBlockSharedPtr dsblock;
+      if (!GetDSBlock(dsEpoch, dsblock)) {
+        LOG_GENERAL(WARNING, "Could not get ds blocknum " << dsEpoch);
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
         LOG_GENERAL(INFO, "Break off at "
-                              << latestTxBlockNum << " " << latestDSIndex << " "
+                              << latestTxBlockNum << " "
                               << dsblock->GetHeader().GetBlockNum() << " "
                               << dsblock->GetHeader().GetEpochNum());
+        latestBlockLink = blocklink;
         break;
       }
       directoryBlocks.emplace_back(*dsblock);
-    }
-    else if(get<BlockLinkIndex::TYPE>(blocklink) == BlockType::VC)
-    {
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
       VCBlockSharedPtr vcblock;
 
-      if(!GetVCBlock(dsEpoch, blockhash, vcblock))
-      {
-        LOG_GENERAL(WARNING, "Could not get vc blockhash "<<blockhash<<"
-"<<dsEpoch); return false;
+      if (!GetVCBlock(dsEpoch, blockhash, vcblock)) {
+        LOG_GENERAL(WARNING, "Could not get vc blockhash " << blockhash << " "
+                                                           << dsEpoch);
+        return false;
       }
       directoryBlocks.emplace_back(*vcblock);
-    }
-    else if(get<BlockLinkIndex::TYPE>(blocklink) == BlockType::FB)
-    {
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
       FallbackBlockSharedPtr fallbackblockwsharding;
-      if(!GetFallbackBlock(dsEpoch, blockhash, fallbackblockwsharding))
-      {
-        LOG_GENERAL(WARNING, "Could not get fallback blockhash "<<blockhash<<"
-"<<dsEpoch); return false;
+      if (!GetFallbackBlock(dsEpoch, blockhash, fallbackblockwsharding)) {
+        LOG_GENERAL(WARNING, "Could not get fallback blockhash "
+                                 << blockhash << " " << dsEpoch);
+        return false;
       }
       directoryBlocks.emplace_back(*fallbackblockwsharding);
     }
   }
 
-  if (!m_mediator.m_validator->CheckDirBlocks(diectoryBlocks, dsComm, 0,
-dsComm)) { LOG_GENERAL(WARNING, "Failed to verify Dir Blocks"); return false;
+  if (!validator.CheckDirBlocks(directoryBlocks, dsComm, 1, dsComm)) {
+    LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
+    return false;
   }
 
-  if (m_mediator.m_validator->CheckTxBlocks(
-          txblocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
-      ValidatorBase::TxBlockValidationMsg::VALID) {
+  if (validator.CheckTxBlocks(
+          vector<TxBlock>(make_move_iterator(begin(txblocks)),
+                          make_move_iterator(end(txblocks))),
+          dsComm,
+          latestBlockLink) != ValidatorBase::TxBlockValidationMsg::VALID) {
     LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
     return false;
   }
 
-  //If this check passes means that the latest block is valid, hence can just
-use previous hash to verify others if(latestDSEpoch <= 1)
-  {
+  // If this check passes means that the latest block is valid, hence can just
+  // use previous hash to verify others
+  if (latestDSEpoch <= 1) {
     LOG_GENERAL(INFO, "All tx blocks verified");
     return true;
   }
-  BlockHash prevHash = txblocks.at(0).GetHeader().GetPrevHash();
-  vector<TxBlocks> prevTxBlocks;
-  for(uint64_t i = latestDSEpoch-1; i>=0; i++)
-  {
-    if(!GetAllTxBlocksEpoch(prevTxBlocks,i))
-    {
-      LOG_GENERAL(WARNING, "Failed to get blocks for "<<i);
+  BlockHash prevHash = txblocks.front().GetHeader().GetPrevHash();
+  list<TxBlock> prevTxBlocks;
+  for (uint64_t i = latestDSEpoch - 1; i > 0; i--) {
+    prevTxBlocks.clear();
+    if (!GetAllTxBlocksEpoch(prevTxBlocks, i)) {
+      LOG_GENERAL(WARNING, "Failed to get blocks for " << i);
       return false;
     }
+    prevTxBlocks.sort([](const TxBlock& a, const TxBlock& b) {
+      return a.GetHeader().GetBlockNum() > b.GetHeader().GetBlockNum();
+    });  // reverse sort
 
+    for (const auto& txblock : prevTxBlocks) {
+      if (prevHash != txblock.GetHeader().GetMyHash()) {
+        LOG_GENERAL(WARNING, "txblock " << txblock.GetHeader().GetBlockNum()
+                                        << " failed to match "
+                                        << txblock.GetHeader().GetMyHash()
+                                        << " " << prevHash);
+        return false;
+      }
+      auto microblockInfos = txblock.GetMicroBlockInfos();
+
+      for (const auto& mbInfo : microblockInfos) {
+        if (mbInfo.m_txnRootHash == TxnHash()) {
+          continue;
+        }
+        MicroBlockSharedPtr mbptr;
+        if (!GetMicroBlock(i, mbInfo.m_microBlockHash, mbptr)) {
+          LOG_GENERAL(WARNING, "Could not fetch " << mbInfo.m_microBlockHash);
+          return false;
+        }
+        auto& tranHashes = mbptr->GetTranHashes();
+        for (const auto& txnHash : tranHashes) {
+          TxBodySharedPtr tptr;
+          if (!GetTxnBody(i, txnHash, tptr)) {
+            LOG_GENERAL(WARNING, "Could not get " << txnHash);
+            return false;
+          }
+        }
+      }
+
+      prevHash = txblock.GetHeader().GetPrevHash();
+    }
   }
-
-}*/
+  return true;
+}

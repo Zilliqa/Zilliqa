@@ -28,6 +28,7 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libValidator/Validator.h"
 
 class IncrementalDB : public Singleton<IncrementalDB> {
   std::unordered_map<std::string, std::pair<uint64_t, std::shared_ptr<LevelDB>>>
@@ -79,13 +80,20 @@ class IncrementalDB : public Singleton<IncrementalDB> {
 
   bool GetAllTxBlocksEpoch(std::list<TxBlock>& blocks, const uint64_t& dsEpoch);
 
-  bool GetDSBlock(uint64_t& blocknum, DSBlockSharedPtr& block);
+  bool GetDSBlock(const uint64_t& blocknum, DSBlockSharedPtr& block);
 
-  bool GetVCBlock(uint64_t& dsEpochNum, BlockHash& blockhash,
+  bool GetVCBlock(const uint64_t& dsEpochNum, const BlockHash& blockhash,
                   VCBlockSharedPtr& block);
 
-  bool GetFallbackBlock(uint64_t& dsEpochNum, BlockHash& blockhash,
+  bool GetFallbackBlock(const uint64_t& dsEpochNum, const BlockHash& blockhash,
                         FallbackBlockSharedPtr& fallbackblockwsharding);
+
+  bool GetMicroBlock(const uint64_t& dsEpochNum, const BlockHash& blockhash,
+                     MicroBlockSharedPtr& microblock);
+  bool GetTxnBody(const uint64_t& dsEpochNum, const dev::h256& key,
+                  TxBodySharedPtr& body);
+  bool VerifyAll(const DequeOfNode& initialDScommittee,
+                 const ValidatorBase& validator);
 };
 
 #endif  //__INRCREMENTAL_DB_H__
