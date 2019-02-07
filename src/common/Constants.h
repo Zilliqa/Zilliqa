@@ -150,6 +150,7 @@ extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
+extern const unsigned int DELAY_NEXT_SUBSET_START;
 
 // Data sharing constants
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;

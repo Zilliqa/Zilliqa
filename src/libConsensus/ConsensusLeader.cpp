@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -121,6 +122,8 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   m_consensusSubsets.clear();
   m_consensusSubsets.resize(numSubsets);
 
+  unsigned int num_dsguards = Guard::GetInstance().GetNumOfDSGuard();
+
   for (unsigned int i = 0; i < numSubsets; i++) {
     ConsensusSubset& subset = m_consensusSubsets.at(i);
     subset.commitMap.resize(m_committee.size());
@@ -139,11 +142,46 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     subset.commitPoints.emplace_back(m_commitPointMap.at(m_myID));
     subset.commitMap.at(m_myID) = true;
 
-    for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
-      unsigned int index = peersWhoCommitted.at(j);
-      subset.commitPointMap.at(index) = m_commitPointMap.at(index);
-      subset.commitPoints.emplace_back(m_commitPointMap.at(index));
-      subset.commitMap.at(index) = true;
+    // first subset should be of dsguard commits only.
+    // Fill in from rest if commits from dsguards < m_numForConsensus
+    if (i == 0) {
+      unsigned int subsetPeers = 1;  // myself
+      vector<int> nondsguardIndexes;
+      for (unsigned int j = 0; j < peersWhoCommitted.size(); j++) {
+        unsigned int index = peersWhoCommitted.at(j);
+        if (index < num_dsguards) {
+          subset.commitPointMap.at(index) = m_commitPointMap.at(index);
+          subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+          subset.commitMap.at(index) = true;
+          subsetPeers++;
+          if (subsetPeers == m_numForConsensus) {
+            // got all dsguards commit
+            break;
+          }
+        } else {
+          nondsguardIndexes.push_back(index);
+        }
+      }
+
+      // check if we fall short of commits from dsguards
+      if (subsetPeers < m_numForConsensus) {
+        // Add from rest of nondsguards commits
+        for (unsigned int k = 0; k < nondsguardIndexes.size(); k++) {
+          unsigned int index = nondsguardIndexes.at(k);
+          subset.commitPointMap.at(index) = m_commitPointMap.at(index);
+          subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+          subset.commitMap.at(index) = true;
+        }
+      }
+    }
+    // For other subsets, its commit from every one together.
+    else {
+      for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
+        unsigned int index = peersWhoCommitted.at(j);
+        subset.commitPointMap.at(index) = m_commitPointMap.at(index);
+        subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+        subset.commitMap.at(index) = true;
+      }
     }
 
     if (DEBUG_LEVEL >= 5) {
@@ -218,6 +256,9 @@ void ConsensusLeader::StartConsensusSubsets() {
         }
         P2PComm::GetInstance().SendMessage(commit_peers, challenge);
       }
+      // wait for some time before starting next subset to avoid network
+      // congestion
+      this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
     } else {
       SetStateSubset(index, ERROR);
       SubsetEnded(index);

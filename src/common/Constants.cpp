@@ -111,6 +111,8 @@ const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadConstantNumeric("CONSENSUS_OBJECT_TIMEOUT", "node.consensus.")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadConstantNumeric("NUM_CONSENSUS_SUBSETS", "node.consensus.")};
+const unsigned int DELAY_NEXT_SUBSET_START{
+    ReadConstantNumeric("DELAY_NEXT_SUBSET_START", "node.consensus.")};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
