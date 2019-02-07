@@ -30,7 +30,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+using namespace std;
 using namespace boost::multiprecision;
+using namespace Contract;
 
 BOOST_AUTO_TEST_SUITE(accounttest)
 
@@ -44,6 +46,7 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   acc1.InitContract(code, data, Address(), 0, true);
 
   Account acc2(data, 0);
+  // Will fail as only account with valid contract need call InitContract
   BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0, true));
   BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
@@ -54,60 +57,72 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   Account acc1 = Account();
 
+  bytes code = {'h', 'e', 'l', 'l', 'o'};
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
+
   std::string invalidmessage = "[{\"vname\"]";
   bytes data(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0, true);
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0, true);
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
 
-  invalidmessage = "[{\"vname\":\"name\"}]";
-  data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0, true);
-
-  invalidmessage =
-      "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
-  data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract({'s'}, data, Address(), 0, true);
+  BOOST_CHECK_EQUAL(false, code == acc1.GetCode());
+  BOOST_CHECK_EQUAL(false, addr1 == acc1.GetAddress());
 
   std::string message =
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
-  acc1.InitContract({'s'}, data, Address(), 0, true);
-}
+  BOOST_CHECK_EQUAL(true, acc1.InitContract(code, data, addr1, 0, true));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
 
-BOOST_AUTO_TEST_CASE(testStorage) {
-  INIT_STDOUT_LOGGER();
-  LOG_MARKER();
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+  BOOST_CHECK_EQUAL(true, addr1 == acc1.GetAddress());
 
-  Account acc1 = Account();
   std::pair<Json::Value, Json::Value> roots;
-  acc1.GetStorageJson(roots, true);  // Improve coverage
+  acc1.GetStorageJson(roots, true);
+
+  LOG_GENERAL(INFO, "roots.first " << JSONUtils::GetInstance().convertJsontoStr(
+                        roots.first));
+  LOG_GENERAL(INFO,
+              "roots.second "
+                  << JSONUtils::GetInstance().convertJsontoStr(roots.second));
 
   Json::Value root = acc1.GetStateJson(true);
+  LOG_GENERAL(
+      INFO, "roots.second " << JSONUtils::GetInstance().convertJsontoStr(root));
 
-  bytes code;
-  acc1.SetCode(code);
-  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+  BOOST_CHECK_EQUAL(true, root[0]["vname"] == "_balance" &&
+                              root[0]["type"] == "Uint128" &&
+                              root[0]["value"] == "0");
+  BOOST_CHECK_EQUAL(true, roots.second == root);
 
-  dev::h256 hash;
+  vector<StateEntry> entries;
+  entries.emplace_back("count", true, "Int32", "0");
 
-  acc1.SetStorage(Address(), {}, true);
-  acc1.SetStorage({});
-  acc1.SetStorageRoot(hash);
-  acc1.GetRawStorage(hash, true);
+  dev::h256 stateRoot1 = acc1.GetStorageRoot();
 
-  size_t CODE_LEN = TestUtils::DistUint16() + 1;
-  code.resize(CODE_LEN, '0');
+  BOOST_CHECK_EQUAL(true, acc1.SetStorage(entries));
+  dev::h256 stateRoot2 = acc1.GetStorageRoot();
+  BOOST_CHECK_EQUAL(false, stateRoot1 == stateRoot2);
 
-  acc1.SetCode(code);
-  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
-  dev::h256 storageRoot = acc1.GetStorageRoot();
-  acc1.SetStorageRoot(storageRoot);
+  BOOST_CHECK_EQUAL(false, acc1.SetStorage(Address(), {}, true));
+  BOOST_CHECK_EQUAL(stateRoot2, acc1.GetStorageRoot());
 
-  acc1.GetRawStorage(hash, true);
+  unsigned int entry_num = 0;
   std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes(true);
+  for (const auto& keyHash : storageKeyHashes) {
+    string data = acc1.GetRawStorage(keyHash, true);
+    LOG_GENERAL(INFO, acc1.GetRawStorage(keyHash, true));
+    if (!data.empty()) {
+      entry_num++;
+    }
+  }
+  BOOST_CHECK_EQUAL(
+      1 + 2 + 1, entry_num);  // InitData(1) + BlockChainData(2) + InputData(1)
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
@@ -172,7 +187,11 @@ BOOST_AUTO_TEST_CASE(testNonce) {
 
 BOOST_AUTO_TEST_CASE(testSerialize) {
   uint128_t CURRENT_BALANCE = TestUtils::DistUint128();
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
+
   Account acc1(CURRENT_BALANCE, 0);
+  acc1.SetAddress(addr1);
   bytes message1;
 
   bytes code = dev::h256::random().asBytes();
@@ -184,6 +203,8 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(acc1.Serialize(message1, 0), "Account unserializable");
 
   Account acc2(message1, 0);
+  // Account::Deserialize is deprecated for Contract Account,
+  // it will fail in the half way
 
   bytes message2;
   BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));

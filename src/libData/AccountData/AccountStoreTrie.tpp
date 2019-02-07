@@ -65,13 +65,11 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
     return nullptr;
   }
 
-  auto it2 = this->m_addressToAccount->emplace(address, *account);
-
-  // Code Hash
-  if (account->GetCodeHash() != dev::h256()) {
-    // Address
-    it2.first->second.SetAddress(address);
+  if (account->isContract()) {
+    account->SetAddress(address);
   }
+
+  auto it2 = this->m_addressToAccount->emplace(address, *account);
 
   return &it2.first->second;
 }

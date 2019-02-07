@@ -167,6 +167,22 @@ class PubKey : public Serializable {
   }
 };
 
+// hash for using PubKey
+namespace std {
+template <>
+struct hash<PubKey> {
+  size_t operator()(PubKey const& pubKey) const noexcept {
+    std::size_t seed = 0;
+    std::string pubKeyStr;
+    if (!DataConversion::SerializableToHexStr(pubKey, pubKeyStr)) {
+      return seed;
+    }
+    boost::hash_combine(seed, pubKeyStr);
+    return seed;
+  }
+};
+}  // namespace std
+
 using PairOfKey = std::pair<PrivKey, PubKey>;
 
 inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {

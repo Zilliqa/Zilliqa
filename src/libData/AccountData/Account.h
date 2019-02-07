@@ -157,6 +157,8 @@ class Account : public AccountBase {
 
   void SetAddress(const Address& addr);
 
+  const Address& GetAddress() const;
+
   /// Set the code
   bool SetCode(const bytes& code);
 

@@ -30,16 +30,17 @@ constantFile=""
 constantLookupFile=""
 constantArchivalLookupFile=""
 useNewUpgradeMethod=""
+
 # if using new upgrade mechanism via s3
 S3UpgradeFileName=""
 testnet=""
 current_cluster_name="" # eg: dev.k8s.z7a.xyz
-dsguards_count=""
 #optional for auto upload the persistent data to S3 DB and ask all nodes to download from S3
 S3PersistentDBFileName="" ## need not be same as testnet name ex: tesnet multiregion - multi_m1 and multi_m2
                                  ## and backup script would create DB with filename multi.tar.gz. So in this case
                                  ## S3PersistentDBFileName should be 'multi'  
 lookup_no="0"
+shouldUploadPersistentDB="Y"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -83,7 +84,7 @@ function download_verify_s3db_zilliqa_only()
 
 function download_verify_replace_s3db_scilla_only()
 {
-   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName}  for scilla"
+   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName} for scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
    run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
 }
@@ -115,68 +116,192 @@ function setcontext()
            context_arg="--context $current_cluster_name"
        fi
     fi
+
+    ulimit -n 65535
 }
 
-# This right now also include non-ds guard. Ok for now.
 function run_cmd_for_all_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
     tmpfile=$(mktemp)
-    kubectl $context_arg get pods \
-        -l 'type in (lookup, normal, newlookup)',testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+
+    if [ ! -z "$ALL_ARR_1" ];  then
+    echo "${ALL_ARR_1}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_2" ];  then
+    echo "${ALL_ARR_2}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_3" ];  then
+    echo "${ALL_ARR_3}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_4" ];  then
+    echo "${ALL_ARR_4}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_5" ];  then
+    echo "${ALL_ARR_5}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_6" ];  then
+    echo "${ALL_ARR_6}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_7" ];  then
+    echo "${ALL_ARR_7}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_8" ];  then
+    echo "${ALL_ARR_8}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_9" ];  then
+    echo "${ALL_ARR_9}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_10" ];  then
+    echo "${ALL_ARR_10}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_11" ];  then
+    echo "${ALL_ARR_11}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$ALL_ARR_12" ];  then
+    echo "${ALL_ARR_12}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
     rm -f $tmpfile
 }
 
-
+# This right now also include non-ds guard. Ok for now.
 function run_cmd_for_shards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=normal,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | awk -v a="$dsguards_count" '{if(NR>a)print}' | \
+    tmpfile=$(mktemp)
+
+    if [ ! -z "$SHARD_ARR_1" ];  then
+    echo "${SHARD_ARR_1}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
-                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_2" ];  then
+    echo "${SHARD_ARR_2}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_3" ];  then
+    echo "${SHARD_ARR_3}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_4" ];  then
+    echo "${SHARD_ARR_4}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_5" ];  then
+    echo "${SHARD_ARR_5}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_6" ];  then
+    echo "${SHARD_ARR_6}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_7" ];  then
+    echo "${SHARD_ARR_7}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_8" ];  then
+    echo "${SHARD_ARR_8}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_9" ];  then
+    echo "${SHARD_ARR_9}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_10" ];  then
+    echo "${SHARD_ARR_10}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_11" ];  then
+    echo "${SHARD_ARR_11}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    if [ ! -z "$SHARD_ARR_12" ];  then
+    echo "${SHARD_ARR_12}" | \
+        parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
+                "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'" > $tmpfile
+    fi
+
+    rm -f $tmpfile
 }
 
 function run_cmd_for_dsguards_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=normal,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | awk -v a="$dsguards_count" '{if(NR<=a)print}' | \
+    echo "${DSGUARD_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
 function run_cmd_for_lookups_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=lookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${LOOKUP_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
 function run_cmd_for_seeds_in_parallel() {
     [ ! -x "$(command -v parallel)" ] && echo "command 'parallel' not found, please install it first" && return 1
-    kubectl $context_arg get pods \
-        -l type=newlookup,testnet=$testnet,app=zilliqa \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers | \
+    echo "${SEED_NODES}" | \
         parallel --no-notice -j 50 --bar -k --tag --timeout 10 --retries 10 \
                 "kubectl $context_arg exec {} -- bash -c '$1 || [ 1=1 ]'"
 }
 
 function run_cmd_for_lookup() {
-    lookup=$(kubectl $context_arg get pods \
-        -l type=lookup,testnet=$testnet,app=zilliqa,index=0 \
-        --sort-by='.metadata.name' \
-        -o custom-columns='Name:.metadata.name' --no-headers)
-    kubectl exec $lookup -- bash -c $1
+    kubectl exec ${testnet}-lookup-${lookup_no} -- bash -c $1
 }
 
 function Add_suspend_to_allnodes() {
@@ -200,20 +325,20 @@ function Remove_suspend_from_dsguards() {
 }
 
 function Remove_suspend_from_shards() {
-    echo "Removing SUSPEND_LAUNCH file from shards and ds-nonguard nodes..."
+    echo "Removing SUSPEND_LAUNCH file from shard nodes and non-dsguard nodes..."
     run_cmd_for_shards_in_parallel "rm -f SUSPEND_LAUNCH"
+}
+
+function kill_and_upgrade_dsguards()
+{
+    echo "Killing and upgrading all dsguard..."
+    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml" 
 }
 
 function kill_and_upgrade_shards()
 {
     echo "Killing and upgrading all shard nodes and ds-nonguard nodes..."
     run_cmd_for_shards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
-}
-
-function kill_and_upgrade_ds()
-{
-    echo "Killing and upgrading all ds-guard nodes..."
-    run_cmd_for_dsguards_in_parallel "${cmd_upgrade} && cp download/constants.xml constants.xml"
 }
 
 function kill_and_upgrade_lookups()
@@ -247,10 +372,10 @@ function upgrade()
     ## wait enough so that SUSPEND_LAUNCH file is created in all nodes.
     echo "waiting for 60 seconds"
     sleep 60
-    
+
     ## kill all nodes in below sequence
+    kill_and_upgrade_dsguards
     kill_and_upgrade_shards
-    kill_and_upgrade_ds
     kill_and_upgrade_lookups
     kill_and_upgrade_seeds
     ## wait enough so that all nodes are killed and upgraded.      
@@ -261,11 +386,11 @@ function upgrade()
 	## Download S3 Database on all nodes replacing their local persistence storage
     [ ! -z "$S3PersistentDBFileName" ] && download_s3db_on_allnodes && echo "waiting for 120 seconds" && sleep 120	
 
-    ## Remove the suspend flag for all pods in reverse sequence of killing
+    ## Remove the suspend flag
     Remove_suspend_from_lookups
     Remove_suspend_from_seeds
-    Remove_suspend_from_dsguards
     Remove_suspend_from_shards
+    Remove_suspend_from_dsguards
     ## wait enough so that SUSPEND_LAUNCH file is removed from all nodes.
     echo "waiting for 60 seconds"
     sleep 60
@@ -274,37 +399,37 @@ function upgrade()
 # Validate input argument
 if [ "$#" -ne 0 ]; then
     echo -e "\n\032[0;32mUsage: ./scripts/release.sh\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${privKeyFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Private key file : ${privKeyFile} not found, please confirm privKeyFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${pubKeyFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${constantFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -f "${constantLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ ! -z "$constantArchivalLookupFile" ] && [ ! -f "${constantArchivalLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantArchivalLookupFile} not found, please confirm constantArchivalLookupFile field in release.sh!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 if [ "$releaseZilliqa" = "true" ]; then
@@ -323,7 +448,7 @@ fi
 
 if [ "$releaseZilliqa" = "false" ] && [ ! -d "${scillaPath}" ]; then
     echo -e "\n\033[0;31m*ERROR* Nothing will be released!\033[0m\n"
-    return 1
+    exit 0
 fi
 
 # Read information from files
@@ -385,9 +510,9 @@ if [ "$scillaPath" != "" ]; then
         scillaMinor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f2)"
         scillaFix="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f3|cut -d ')' -f1)"
         scillaDS="$(sed -n ${scillaDSLine}p $(basename ${versionFile}))"
-        scillaMajor="${scillaMajor##*( )}"
-        scillaMinor="${scillaMinor##*( )}"
-        scillaFix="${scillaFix##*( )}"
+        scillaMajor="$(echo $scillaMajor | sed -e 's/^[ \t]*//')"
+        scillaMinor="$(echo $scillaMinor | sed -e 's/^[ \t]*//')"
+        scillaFix="$(echo $scillaFix | sed -e 's/^[ \t]*//')"
         sed -i "${scillaMajorLine}s/.*/${scillaMajor}/" $(basename ${versionFile})
         sed -i "${scillaMinorLine}s/.*/${scillaMinor}/" $(basename ${versionFile})
         sed -i "${scillaFixLine}s/.*/${scillaFix}/" $(basename ${versionFile})
@@ -456,7 +581,7 @@ if [ -z "$useNewUpgradeMethod" ]; then # Upload package onto GitHub
 	check='^[0-9]+$'
 	if ! [[ $releaseId =~ $check ]] ; then
 		echo -e "\n\032[0;32m*ERROR* Create new release fail! Please check input value and ${releaseLog}, then try again.\033[0m\n"
-		return 1
+		exit 0
 	fi
 	curl -v -s \
 	  -H "Authorization: token ${GitHubToken}" \
@@ -514,8 +639,10 @@ else
     #           5.c Copy over constants files from /run/zilliqa/download to /run/zilliqa/ and
     #               extract zilliqa deb
     #               If also scilla release, extract scilla deb 
-    #           5.d Remove SUSPEND_LAUNCH in reverse sequence of killing of zilliqa process.    
+    #           5.d Remove SUSPEND_LAUNCH in sequence LOOKUP->SEED->SHARD->DS
     ################################################################################################## 
+
+    setcontext
 
     #### Step 1 ####
     if [ "$releaseZilliqa" = "true" ]; then
@@ -528,9 +655,10 @@ else
     ## zip the release
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     [ ! -z "$constantArchivalLookupFile" ] && cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
-    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile} $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
-    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup" 
-    [ ! -z "${scillaPath}" ] && cmd="${cmd} -C ./ ${Scilla_Deb}"
+    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    [ "$releaseZilliqa" = "true" ] && cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
+    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup"
+    [ ! -z "${scillaPath}" ] && cmd="${cmd} -C $(realpath ./) ${Scilla_Deb}"
 
     $cmd
 
@@ -552,9 +680,8 @@ print("Uploaded")
 
 EOF
 
-    chmod 755 UploadToS3Script.py 
+    chmod 755 UploadToS3Script.py
     python ./UploadToS3Script.py "${S3UpgradeFileName}.tar.gz"
-
 
     #### Ask for confirmation from user if want to continue?? can check s3 if package is uploaded and is correct? #####
     read -p "Make sure release was uploaded to S3. Shall we continue [Yy]: " -n 1 -r
@@ -564,16 +691,72 @@ EOF
     fi
     echo ""
 
-    ## Ask one of lookup to upload peristence data to S3
-    [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
-    
+    ## Ask one of lookup to upload persistence data to S3
+    [ "$shouldUploadPersistentDB" == "Y" ] && [ ! -z "$S3PersistentDBFileName" ] && upload_lookup_s3db && echo "waiting for 60 seconds" && sleep 60
+
+    ## Gathering all pod names
+    ALL_NODES=$(kubectl $context_arg get pods \
+        -l 'type in (lookup, normal, newlookup, dsguard)',testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering dsguard pod names
+    DSGUARD_NODES=$(kubectl $context_arg get pods \
+        -l type=dsguard,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering shard pod names
+    SHARD_NODES=$(kubectl $context_arg get pods \
+        -l type=normal,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering lookup pod names
+    LOOKUP_NODES=$(kubectl $context_arg get pods \
+        -l type=lookup,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ## Gathering seed pod names
+    SEED_NODES=$(kubectl $context_arg get pods \
+        -l type=newlookup,testnet=$testnet,app=zilliqa \
+        --sort-by='.metadata.name' \
+        -o custom-columns='Name:.metadata.name' --no-headers)
+
+    ALL_ARR_1=$(echo "${ALL_NODES}" | cut -d $'\n' -f1-250)
+    ALL_ARR_2=$(echo "${ALL_NODES}" | cut -d $'\n' -f251-500)
+    ALL_ARR_3=$(echo "${ALL_NODES}" | cut -d $'\n' -f501-750)
+    ALL_ARR_4=$(echo "${ALL_NODES}" | cut -d $'\n' -f751-1000)
+    ALL_ARR_5=$(echo "${ALL_NODES}" | cut -d $'\n' -f1001-1250)
+    ALL_ARR_6=$(echo "${ALL_NODES}" | cut -d $'\n' -f1251-1500)
+    ALL_ARR_7=$(echo "${ALL_NODES}" | cut -d $'\n' -f1501-1750)
+    ALL_ARR_8=$(echo "${ALL_NODES}" | cut -d $'\n' -f1751-2000)
+    ALL_ARR_9=$(echo "${ALL_NODES}" | cut -d $'\n' -f2001-2250)
+    ALL_ARR_10=$(echo "${ALL_NODES}" | cut -d $'\n' -f2251-2500)
+    ALL_ARR_11=$(echo "${ALL_NODES}" | cut -d $'\n' -f2501-2750)
+    ALL_ARR_12=$(echo "${ALL_NODES}" | cut -d $'\n' -f2751-3000)
+
+    SHARD_ARR_1=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1-250)
+    SHARD_ARR_2=$(echo "${SHARD_NODES}" | cut -d $'\n' -f251-500)
+    SHARD_ARR_3=$(echo "${SHARD_NODES}" | cut -d $'\n' -f501-750)
+    SHARD_ARR_4=$(echo "${SHARD_NODES}" | cut -d $'\n' -f751-1000)
+    SHARD_ARR_5=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1001-1250)
+    SHARD_ARR_6=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1251-1500)
+    SHARD_ARR_7=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1501-1750)
+    SHARD_ARR_8=$(echo "${SHARD_NODES}" | cut -d $'\n' -f1751-2000)
+    SHARD_ARR_9=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2001-2250)
+    SHARD_ARR_10=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2251-2500)
+    SHARD_ARR_11=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2501-2750)
+    SHARD_ARR_12=$(echo "${SHARD_NODES}" | cut -d $'\n' -f2751-3000)
+
     #### Step 3 ####
-    
+
     # download and verify from S3
     if [ "$releaseZilliqa" = "true" ] && [ "$scillaPath" != "" ]; then
 		download_verify_s3db_both
     elif [ "$releaseZilliqa" = "true" ]; then
-		download_verify_s3db_zilliqa_only		
+		download_verify_s3db_zilliqa_only
     elif [ "$scillaPath" != "" ]; then
 		# Step 4 included. 
 		download_verify_replace_s3db_scilla_only
@@ -585,7 +768,7 @@ EOF
     #### Step 5 ####
 
     cmd_upgrade_zilliqa_only="[ ! -f download/fail ] && pkill zilliqa && dpkg -i download/${zilliqaDebFile} > /dev/null 2>&1"
-    cmd_upgrade_zilliqa_scilla="${cmd_uprade_zilliqa_only} && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
+    cmd_upgrade_zilliqa_scilla="[ ! -f download/fail ] && pkill zilliqa && dpkg -i download/${zilliqaDebFile} && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
     cmd_upgrade_scilla_only="[ ! -f download/fail ] && dpkg -i download/${scillaDebFile} > /dev/null 2>&1"
 
     if [ "$releaseZilliqa" = "true" ] && [ "$scillaPath" != "" ]; then
@@ -595,7 +778,6 @@ EOF
     elif [ "$scillaPath" != "" ]; then 
         cmd_upgrade="${cmd_upgrade_scilla_only}"
     fi
-    setcontext
     upgrade
     echo "Done!"
 fi

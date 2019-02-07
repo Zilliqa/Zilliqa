@@ -289,8 +289,8 @@ void Node::FallbackTimerLaunch() {
 
   if (FALLBACK_INTERVAL_STARTED < FALLBACK_CHECK_INTERVAL ||
       FALLBACK_INTERVAL_WAITING < FALLBACK_CHECK_INTERVAL) {
-    LOG_GENERAL(FATAL,
-                "The configured fallback checking interval must be "
+    LOG_GENERAL(WARNING,
+                "FATAL The configured fallback checking interval must be "
                 "smaller than the timeout value.");
     return;
   }

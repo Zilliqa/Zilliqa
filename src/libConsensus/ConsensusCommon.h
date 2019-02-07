@@ -188,7 +188,7 @@ class ConsensusCommon {
   Challenge GetChallenge(const bytes& msg, const CommitPoint& aggregated_commit,
                          const PubKey& aggregated_key);
 
-  std::pair<PubKey, Peer> GetCommitteeMember(const unsigned int index);
+  PairOfNode GetCommitteeMember(const unsigned int index);
 
  public:
   /// Consensus message processing function

@@ -73,8 +73,7 @@ void Guard::UpdateDSGuardlist() {
 
   {
     lock_guard<mutex> g(m_mutexDSGuardList);
-    LOG_GENERAL(INFO, "Total number of entries in DS guard list:  "
-                          << m_DSGuardList.size());
+    LOG_GENERAL(INFO, "Entries = " << m_DSGuardList.size());
   }
 }
 
@@ -107,8 +106,7 @@ void Guard::UpdateShardGuardlist() {
   }
   {
     lock_guard<mutex> g(m_mutexShardGuardList);
-    LOG_GENERAL(INFO, "Total number of entries in shard guard list:  "
-                          << m_ShardGuardList.size());
+    LOG_GENERAL(INFO, "Entries = " << m_ShardGuardList.size());
   }
 }
 
@@ -119,7 +117,7 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
   }
 
   lock_guard<mutex> g(m_mutexDSGuardList);
-  m_DSGuardList.emplace_back(dsGuardPubKey);
+  m_DSGuardList.emplace(dsGuardPubKey);
   // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
 }
 
@@ -130,7 +128,7 @@ void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
   }
 
   lock_guard<mutex> g(m_mutexShardGuardList);
-  m_ShardGuardList.emplace_back(shardGuardPubKey);
+  m_ShardGuardList.emplace(shardGuardPubKey);
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
@@ -140,8 +138,7 @@ bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
   }
 
   lock_guard<mutex> g(m_mutexDSGuardList);
-  return (std::find(m_DSGuardList.begin(), m_DSGuardList.end(), nodePubKey) !=
-          m_DSGuardList.end());
+  return (m_DSGuardList.find(nodePubKey) != m_DSGuardList.end());
 }
 
 bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
@@ -151,8 +148,7 @@ bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
   }
 
   lock_guard<mutex> g(m_mutexShardGuardList);
-  return (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(),
-                    nodePubKey) != m_ShardGuardList.end());
+  return (m_ShardGuardList.find(nodePubKey) != m_ShardGuardList.end());
 }
 
 unsigned int Guard::GetNumOfDSGuard() {
@@ -226,6 +222,8 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 }
 
 void Guard::ValidateRunTimeEnvironment() {
+  LOG_MARKER();
+
   unsigned int nodeReplacementLimit =
       COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
 
@@ -235,14 +233,12 @@ void Guard::ValidateRunTimeEnvironment() {
                 "bigger than NUM_DS_ELECTION. Refer to design documentation. "
                 "nodeReplacementLimit: "
                     << nodeReplacementLimit);
-  } else {
-    LOG_GENERAL(INFO, "Passed guard mode run time environment validation");
   }
 }
 
 void Guard::Init() {
   if (GUARD_MODE) {
-    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+    LOG_GENERAL(INFO, "Updating lists");
     ValidateRunTimeEnvironment();
     UpdateDSGuardlist();
     UpdateShardGuardlist();

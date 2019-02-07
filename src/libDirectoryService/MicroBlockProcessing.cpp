@@ -296,7 +296,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+  if (microBlock.GetHeader().GetShardId() != m_shards.size() &&
+      !SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                     microBlock.GetHeader().GetShardId(),
                     m_mediator.m_currentEpochNum)) {
     return false;

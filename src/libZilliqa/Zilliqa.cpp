@@ -190,8 +190,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
     } else if (Guard::GetInstance().IsNodeInShardGuardList(
                    m_mediator.m_selfKey.second)) {
       LOG_GENERAL(INFO, "Current node is a shard guard");
-    } else {
-      LOG_GENERAL(INFO, "Current node is not a guard node");
     }
   }
 

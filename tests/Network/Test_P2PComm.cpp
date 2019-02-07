@@ -185,7 +185,7 @@ int main() {
   INIT_STDOUT_LOGGER();
 
   auto func = []() mutable -> void {
-    P2PComm::GetInstance().StartMessagePump(33333, process_message, nullptr);
+    P2PComm::GetInstance().StartMessagePump(33133, process_message, nullptr);
   };
 
   DetachedFunction(1, func);
@@ -194,7 +194,7 @@ int main() {
 
   struct in_addr ip_addr;
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
-  Peer peer = {ip_addr.s_addr, 33333};
+  Peer peer = {ip_addr.s_addr, 33133};
   bytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
   P2PComm::GetInstance().SendMessage(peer, message1);

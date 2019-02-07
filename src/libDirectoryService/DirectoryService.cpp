@@ -559,14 +559,13 @@ bool DirectoryService::FinishRejoinAsDS() {
   m_consensusLeaderID = 0;
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-  pair<PubKey, Peer> dsLeader;
+  PairOfNode dsLeader;
   if (Node::GetDSLeader(bl, m_mediator.m_dsBlockChain.GetLastBlock(), dsComm,
                         dsLeader)) {
-    auto iterDSLeader =
-        std::find_if(dsComm.begin(), dsComm.end(),
-                     [dsLeader](const std::pair<PubKey, Peer>& pubKeyPeer) {
-                       return pubKeyPeer.second == dsLeader.second;
-                     });
+    auto iterDSLeader = std::find_if(
+        dsComm.begin(), dsComm.end(), [dsLeader](const PairOfNode& pubKeyPeer) {
+          return pubKeyPeer.second == dsLeader.second;
+        });
     if (iterDSLeader != dsComm.end()) {
       m_consensusLeaderID = iterDSLeader - dsComm.begin();
     } else {
@@ -757,6 +756,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     LOG_GENERAL(
         WARNING,
         "Current node is not a ds guard node. Unable to update network info.");
+    return false;
   }
 
   // To provide current pubkey, new IP, new Port and current timestamp

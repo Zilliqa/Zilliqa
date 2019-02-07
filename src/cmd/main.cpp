@@ -107,14 +107,14 @@ int main(int argc, const char* argv[]) {
       }
 
       if (address != "NAT") {
+        if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
+          return ERROR_IN_COMMAND_LINE;
+        }
+
         string address_;
         if (IPConverter::GetIPPortFromSocket(address, address_, port)) {
           address = address_;
         }
-      }
-
-      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
-        return ERROR_IN_COMMAND_LINE;
       }
 
       if ((port < 0) || (port > 65535)) {

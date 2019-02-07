@@ -648,6 +648,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
+  if (!ProcessStateDeltaFromFinalBlock(
+          stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
+    return false;
+  }
+
   if (isVacuousEpoch) {
     unordered_map<Address, int256_t> addressMap;
     if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {
@@ -670,11 +675,6 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
                       << "Got no reward this ds epoch");
       }
     }
-  }
-
-  if (!ProcessStateDeltaFromFinalBlock(
-          stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
-    return false;
   }
 
   BlockStorage::GetBlockStorage().PutStateDelta(

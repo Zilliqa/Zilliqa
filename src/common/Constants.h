@@ -270,6 +270,7 @@ extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int POW_CHANGE_TO_ADJ_DIFF;
 extern const unsigned int POW_CHANGE_TO_ADJ_DS_DIFF;
+extern const unsigned int DIFFICULTY_DIFF_TOL;
 extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
@@ -324,6 +325,8 @@ extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
+extern const unsigned int PACKET_BYTESIZE_LIMIT;
+extern const unsigned int SMALL_TXN_SIZE;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

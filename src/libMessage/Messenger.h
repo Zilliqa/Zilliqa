@@ -374,7 +374,7 @@ class Messenger {
   static bool SetNodeForwardTxnBlock(
       bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
       const uint64_t& dsBlockNum, const uint32_t& shardId,
-      const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
+      const PairOfKey& lookupKey, std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const bytes& src,
                                      const unsigned int offset,
@@ -675,8 +675,6 @@ class Messenger {
   template <class T>
   static bool GetConsensusID(const bytes& src, const unsigned int offset,
                              uint32_t& consensusID, PubKey& senderPubKey) {
-    LOG_MARKER();
-
     T consensus_message;
 
     consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
