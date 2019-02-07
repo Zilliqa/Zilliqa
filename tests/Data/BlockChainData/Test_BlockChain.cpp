@@ -59,12 +59,9 @@ void appendBlockLinkAndChain_v(BlockLinkChain& blc, vector<BlockLink>& bl_v,
 }
 
 bool operator==(const BlockLink& c1, const BlockLink& c2) {
-  if (get<0>(c1) == get<0>(c2) && get<1>(c1) == get<1>(c2) &&
+  return (get<0>(c1) == get<0>(c2) && get<1>(c1) == get<1>(c2) &&
       get<2>(c1) == get<2>(c2) && get<3>(c1) == get<3>(c2) &&
-      get<4>(c1) == get<4>(c2)) {
-    return true;
-  }
-  return false;
+      get<4>(c1) == get<4>(c2));
 }
 
 BOOST_AUTO_TEST_CASE(BlockLinkChain_test) {
