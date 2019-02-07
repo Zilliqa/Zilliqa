@@ -109,8 +109,10 @@ const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
     ReadConstantNumeric("CONSENSUS_MSG_ORDER_BLOCK_WINDOW", "node.consensus.")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadConstantNumeric("CONSENSUS_OBJECT_TIMEOUT", "node.consensus.")};
-const unsigned int NUM_CONSENSUS_SUBSETS{
-    ReadConstantNumeric("NUM_CONSENSUS_SUBSETS", "node.consensus.")};
+const unsigned int DS_NUM_CONSENSUS_SUBSETS{
+    ReadConstantNumeric("DS_NUM_CONSENSUS_SUBSETS", "node.consensus.")};
+const unsigned int SHARD_NUM_CONSENSUS_SUBSETS{
+    ReadConstantNumeric("SHARD_NUM_CONSENSUS_SUBSETS", "node.consensus.")};
 const unsigned int DELAY_NEXT_SUBSET_START{
     ReadConstantNumeric("DELAY_NEXT_SUBSET_START", "node.consensus.")};
 

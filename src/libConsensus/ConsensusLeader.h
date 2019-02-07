@@ -54,6 +54,8 @@ class ConsensusLeader : public ConsensusCommon {
   unsigned int m_numForConsensus;
   unsigned int m_numForConsensusFailure;
 
+  bool m_DS;
+  unsigned int m_numOfSubsets;
   // Received commits
   std::mutex m_mutex;
   std::atomic<unsigned int> m_commitCounter;
@@ -143,8 +145,8 @@ class ConsensusLeader : public ConsensusCommon {
       unsigned char ins_byte,        // instruction byte representing consensus
                                      // messages for the Executable class
       NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
-      ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc);
-
+      ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc,
+      bool isDS = false);
   /// Destructor.
   ~ConsensusLeader();
 
