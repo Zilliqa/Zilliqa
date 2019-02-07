@@ -167,7 +167,7 @@ bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
        itr != boost::filesystem::directory_iterator(); ++itr) {
     if (boost::filesystem::is_directory(itr->status())) {
       try {
-        const string &fileName = itr->path().filename().string();
+        const string& fileName = itr->path().filename().string();
         temp = boost::lexical_cast<uint64_t>(fileName);
         if (temp > lastDSEpoch) {
           lastDSEpoch = temp;
