@@ -27,7 +27,10 @@
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE blockchaintest
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_ALTERNATIVE_INIT_API
+
+#include <boost/test/unit_test.hpp>
 
 using namespace std;
 using namespace boost::multiprecision;
