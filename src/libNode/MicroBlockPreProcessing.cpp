@@ -1005,8 +1005,13 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
       return LEGITIMACYRESULT::SERIALIZATIONERROR;
     }
   } else {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Vacuous epoch: Skipping processing transactions");
+    if (m_mediator.GetIsVacuousEpoch()) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Vacuous epoch: Skipping processing txns");
+    } else {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Target diff or DS num not met: Skipping processing txns");
+    }
   }
 
   return LEGITIMACYRESULT::SUCCESS;
