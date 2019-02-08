@@ -3651,3 +3651,10 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   LOG_GENERAL(INFO, "HistDB Success");
   return true;
 }
+
+vector<Peer> Lookup::GetBroadcastList(
+    [[gnu::unused]] unsigned char ins_type,
+    [[gnu::unused]] const Peer& broadcast_originator) {
+  // LOG_MARKER();
+  return vector<Peer>();
+}

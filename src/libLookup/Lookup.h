@@ -363,6 +363,10 @@ class Lookup : public Executable, public Broadcastable {
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
+
+  /// Implements the GetBroadcastList function inherited from Broadcastable.
+  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
+                                     const Peer& broadcast_originator);
 };
 
 #endif  // __LOOKUP_H__
