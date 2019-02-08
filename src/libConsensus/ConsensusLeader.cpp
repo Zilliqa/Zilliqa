@@ -222,7 +222,8 @@ void ConsensusLeader::StartConsensusSubsets() {
   }
 
   m_numSubsetsRunning = m_consensusSubsets.size();
-  for (unsigned int index = 0; index < m_consensusSubsets.size(); index++) {
+  // subset 0 last to be started. giving community nodes the advantage
+  for (unsigned index = m_consensusSubsets.size(); index > 0; index--) {
     // If overall state has somehow transitioned from CHALLENGE_DONE or
     // FINALCHALLENGE_DONE then it means consensus has ended and there's no
     // point in starting another subset
@@ -231,19 +232,19 @@ void ConsensusLeader::StartConsensusSubsets() {
     }
 
     // delay starting every subset to avoid network congestion
-    if (index > 0) {
+    if (index < m_consensusSubsets.size()) {
       LOG_GENERAL(INFO, "Waiting for "
                             << DELAY_NEXT_SUBSET_START
                             << " seconds before starting another subset");
       this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
     }
-    ConsensusSubset& subset = m_consensusSubsets.at(index);
+    ConsensusSubset& subset = m_consensusSubsets.at(index - 1);
     bytes challenge = {m_classByte, m_insByte, static_cast<uint8_t>(type)};
     bool result = GenerateChallengeMessage(
-        challenge, MessageOffset::BODY + sizeof(uint8_t), index);
+        challenge, MessageOffset::BODY + sizeof(uint8_t), index - 1);
     if (result) {
       // Update subset's internal state
-      SetStateSubset(index, m_state);
+      SetStateSubset(index - 1, m_state);
 
       // Add the leader to the responses
       Response r(*m_commitSecret, subset.challenge, m_myPrivKey);
@@ -272,8 +273,8 @@ void ConsensusLeader::StartConsensusSubsets() {
         P2PComm::GetInstance().SendMessage(commit_peers, challenge);
       }
     } else {
-      SetStateSubset(index, ERROR);
-      SubsetEnded(index);
+      SetStateSubset(index - 1, ERROR);
+      SubsetEnded(index - 1);
     }
   }
 }
