@@ -184,10 +184,11 @@ bool PeerManager::Execute(const bytes& message, unsigned int offset,
   return result;
 }
 
-vector<Peer> PeerManager::GetBroadcastList(unsigned char ins_type,
-                                           const Peer& broadcast_originator) {
+vector<Peer> PeerManager::GetBroadcastList(
+    [[gnu::unused]] unsigned char ins_type,
+    [[gnu::unused]] const Peer& broadcast_originator) {
   // LOG_MARKER();
-  return Broadcastable::GetBroadcastList(ins_type, broadcast_originator);
+  return vector<Peer>();
 }
 
 void PeerManager::SetupLogLevel() {
