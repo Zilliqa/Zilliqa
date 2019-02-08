@@ -550,7 +550,7 @@ bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
       if (prevVCBlockptr->GetHeader().GetViewChangeState() ==
               DSBLOCK_CONSENSUS ||
           prevVCBlockptr->GetHeader().GetViewChangeState() ==
-              DSBLOCK_CONSENSUS) {
+              DSBLOCK_CONSENSUS_PREP) {
         return true;
       } else {
         LOG_GENERAL(
