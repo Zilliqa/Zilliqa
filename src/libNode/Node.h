@@ -125,8 +125,8 @@ class Node : public Executable, public Broadcastable {
   // operates under m_mutexProcessedTransaction
   std::vector<TxnHash> m_TxnOrder;
 
-  uint64_t m_gasUsedTotal;
-  boost::multiprecision::uint128_t m_txnFees;
+  uint64_t m_gasUsedTotal = 0;
+  boost::multiprecision::uint128_t m_txnFees = 0;
 
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
