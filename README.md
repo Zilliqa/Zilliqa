@@ -25,7 +25,8 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 1** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 2** | [**Link**](https://viewblock.io/zilliqa) |
 
 ## Developer Testnet
 
