@@ -168,10 +168,12 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       if (subsetPeers < m_numForConsensus) {
         // Add from rest of nondsguards commits
         LOG_GENERAL(
-            INFO, "[SubsetID: "
-                      << i
-                      << "] Did'nt got all commits from ds-guards. Expected = "
-                      << m_numForConsensus << ", Received = " << subsetPeers);
+            WARNING,
+            "[SubsetID: "
+                << i << "] Did'nt got all commits from ds-guards. Expected = "
+                << m_numForConsensus << ", Received = " << subsetPeers);
+        LOG_GENERAL(WARNING, "Will consider commits from non-dsguard nodes");
+
         for (auto index : nondsguardIndexes) {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
@@ -227,6 +229,14 @@ void ConsensusLeader::StartConsensusSubsets() {
     if (m_state != CHALLENGE_DONE && m_state != FINALCHALLENGE_DONE) {
       break;
     }
+
+    // delay starting every subset to avoid network congestion
+    if (index > 0) {
+      LOG_GENERAL(INFO, "Waiting for "
+                            << DELAY_NEXT_SUBSET_START
+                            << " seconds before starting another subset");
+      this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
+    }
     ConsensusSubset& subset = m_consensusSubsets.at(index);
     bytes challenge = {m_classByte, m_insByte, static_cast<uint8_t>(type)};
     bool result = GenerateChallengeMessage(
@@ -261,13 +271,6 @@ void ConsensusLeader::StartConsensusSubsets() {
         }
         P2PComm::GetInstance().SendMessage(commit_peers, challenge);
       }
-      // wait for some time before starting next subset to avoid network
-      // congestion
-      LOG_GENERAL(INFO,
-                  "Waiting for "
-                      << DELAY_NEXT_SUBSET_START
-                      << " seconds before starting another subset, if any");
-      this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
     } else {
       SetStateSubset(index, ERROR);
       SubsetEnded(index);
