@@ -121,8 +121,6 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   m_consensusSubsets.clear();
   m_consensusSubsets.resize(numSubsets);
 
-  unsigned int num_dsguards = Guard::GetInstance().GetNumOfDSGuard();
-
   for (unsigned int i = 0; i < numSubsets; i++) {
     ConsensusSubset& subset = m_consensusSubsets.at(i);
     subset.commitMap.resize(m_committee.size());
@@ -147,7 +145,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       unsigned int subsetPeers = 1;  // myself
       vector<int> nondsguardIndexes;
       for (auto index : peersWhoCommitted) {
-        if (index < num_dsguards) {
+        if (index < Guard::GetInstance().GetNumOfDSGuard()) {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
