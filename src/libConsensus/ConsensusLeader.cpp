@@ -143,7 +143,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     // Fill in from rest if commits from dsguards < m_numForConsensus
     if (m_DS && GUARD_MODE && (i == 0)) {
       unsigned int subsetPeers = 1;  // myself
-      vector<int> nondsguardIndexes;
+      vector<unsigned int> nondsguardIndexes;
       for (auto index : peersWhoCommitted) {
         if (index < Guard::GetInstance().GetNumOfDSGuard()) {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
