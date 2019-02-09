@@ -2742,27 +2742,31 @@ bool Lookup::GetMyLookupOffline() {
 
   LOG_MARKER();
 
-  {
-    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
-    // Remove selfPeerInfo from m_lookupNodes
-    auto selfPeer(m_mediator.m_selfPeer);
-    auto selfpubkey(m_mediator.m_selfKey.second);
-    auto iter = std::find_if(
-        m_lookupNodes.begin(), m_lookupNodes.end(),
-        [&selfPeer, &selfpubkey](const PairOfNode& node) {
-          return (node.first == selfpubkey && node.second == selfPeer);
-        });
-    if (iter != m_lookupNodes.end()) {
-      m_lookupNodesOffline.emplace_back(*iter);
-      m_lookupNodes.erase(iter);
-    } else {
-      LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
-      return false;
-    }
-  }
-
-  SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
   return true;
+
+  /*
+    {
+      std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+      // Remove selfPeerInfo from m_lookupNodes
+      auto selfPeer(m_mediator.m_selfPeer);
+      auto selfpubkey(m_mediator.m_selfKey.second);
+      auto iter = std::find_if(
+          m_lookupNodes.begin(), m_lookupNodes.end(),
+          [&selfPeer, &selfpubkey](const PairOfNode& node) {
+            return (node.first == selfpubkey && node.second == selfPeer);
+          });
+      if (iter != m_lookupNodes.end()) {
+        m_lookupNodesOffline.emplace_back(*iter);
+        m_lookupNodes.erase(iter);
+      } else {
+        LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
+        return false;
+      }
+    }
+
+    SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
+    return true;
+    */
 }
 
 bool Lookup::GetMyLookupOnline() {
