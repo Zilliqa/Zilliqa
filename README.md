@@ -25,7 +25,8 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 1** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 2** | [**Link**](https://viewblock.io/zilliqa) |
 
 ## Developer Testnet
 
@@ -136,3 +137,4 @@ $ git checkout master
 | **Development discussion** | <a href="https://gitter.im/Zilliqa/" target="_blank"><img src="http://img.shields.io/badge/chat-on%20gitter-077a8f.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
+| **Security bug bounty** | https://bugcrowd.com/zilliqa |
