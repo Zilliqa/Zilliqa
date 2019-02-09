@@ -1801,8 +1801,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   bool isVacuousEpoch =
       (0 == (m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
                 NUM_FINAL_BLOCK_PER_POW);
+
   m_mediator.m_currentEpochNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  // To trigger m_isVacuousEpoch calculation
+  m_mediator.IncreaseEpochNum();
 
   m_mediator.m_consensusID =
       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW;
@@ -3650,4 +3653,11 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
 
   LOG_GENERAL(INFO, "HistDB Success");
   return true;
+}
+
+vector<Peer> Lookup::GetBroadcastList(
+    [[gnu::unused]] unsigned char ins_type,
+    [[gnu::unused]] const Peer& broadcast_originator) {
+  // LOG_MARKER();
+  return vector<Peer>();
 }

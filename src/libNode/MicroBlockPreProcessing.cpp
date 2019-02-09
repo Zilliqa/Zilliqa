@@ -67,10 +67,10 @@ bool Node::ComposeMicroBlock() {
   LOG_MARKER();
 
   // TxBlockHeader
-  uint32_t version = MICROBLOCK_VERSION;
-  uint32_t shardId = m_myshardId;
-  uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
-  uint64_t gasUsed = m_gasUsedTotal;
+  const uint32_t version = MICROBLOCK_VERSION;
+  const uint32_t shardId = m_myshardId;
+  const uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
+  const uint64_t gasUsed = m_gasUsedTotal;
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
@@ -315,9 +315,6 @@ void Node::ProcessTransactionWhenShardLeader() {
     m_TxnOrder.push_back(t.GetTranID());
   };
 
-  m_gasUsedTotal = 0;
-  m_txnFees = 0;
-
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
@@ -525,9 +522,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
         make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
   };
 
-  m_gasUsedTotal = 0;
-  m_txnFees = 0;
-
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
@@ -681,6 +675,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   m_txn_distribute_window_open = false;
+  // Even don't have txns, also clear the variables, to avoid total gas check
+  // fail problem
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
 
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
@@ -955,6 +953,11 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
     return true;
   }
 
+  // Even don't have txns, also clear the variables, to avoid total gas check
+  // fail problem
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
+
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&
@@ -1005,8 +1008,13 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
       return LEGITIMACYRESULT::SERIALIZATIONERROR;
     }
   } else {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Vacuous epoch: Skipping processing transactions");
+    if (m_mediator.GetIsVacuousEpoch()) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Vacuous epoch: Skipping processing txns");
+    } else {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Target diff or DS num not met: Skipping processing txns");
+    }
   }
 
   return LEGITIMACYRESULT::SUCCESS;

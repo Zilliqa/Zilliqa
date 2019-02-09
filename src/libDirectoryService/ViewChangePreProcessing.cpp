@@ -545,13 +545,38 @@ bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
       return false;
     }
 
-    if (prevVCBlockptr->GetHeader().GetViewChangeState() != m_viewChangestate) {
-      LOG_GENERAL(
-          WARNING,
-          "The previous vc block is not for current state.  prevVCBlockptr: "
-              << prevVCBlockptr->GetHeader().GetViewChangeState()
-              << " m_viewChangestate:" << m_viewChangestate);
-      return false;
+    if (m_viewChangestate == DSBLOCK_CONSENSUS ||
+        m_viewChangestate == DSBLOCK_CONSENSUS_PREP) {
+      if (prevVCBlockptr->GetHeader().GetViewChangeState() ==
+              DSBLOCK_CONSENSUS ||
+          prevVCBlockptr->GetHeader().GetViewChangeState() ==
+              DSBLOCK_CONSENSUS_PREP) {
+        return true;
+      } else {
+        LOG_GENERAL(
+            WARNING,
+            "The previous vc block is not for current state.  prevVCBlockptr: "
+                << to_string(prevVCBlockptr->GetHeader().GetViewChangeState())
+                << " m_viewChangestate:" << m_viewChangestate);
+        return false;
+      }
+    }
+
+    if (m_viewChangestate == FINALBLOCK_CONSENSUS ||
+        m_viewChangestate == FINALBLOCK_CONSENSUS_PREP) {
+      if (prevVCBlockptr->GetHeader().GetViewChangeState() ==
+              FINALBLOCK_CONSENSUS ||
+          prevVCBlockptr->GetHeader().GetViewChangeState() ==
+              FINALBLOCK_CONSENSUS_PREP) {
+        return true;
+      } else {
+        LOG_GENERAL(
+            WARNING,
+            "The previous vc block is not for current state.  prevVCBlockptr: "
+                << to_string(prevVCBlockptr->GetHeader().GetViewChangeState())
+                << " m_viewChangestate:" << m_viewChangestate);
+        return false;
+      }
     }
   } else {
     return false;

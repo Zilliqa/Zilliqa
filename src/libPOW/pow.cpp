@@ -203,6 +203,8 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
                                       ethash_hash256 const& boundary,
                                       uint64_t startNonce) {
   uint64_t nonce = startNonce;
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   while (m_shouldMine) {
     auto mineResult = ethash::hash(*m_epochContextLight, headerHash, nonce);
     if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
@@ -212,6 +214,18 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
       return winning_result;
     }
     nonce++;
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto timePassedInSeconds = static_cast<uint32_t>(
+        std::chrono::duration<double>(currentTime - startTime).count());
+    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+      LOG_GENERAL(WARNING,
+                  "Time out while mining pow result, time "
+                  "passed in seconds "
+                      << timePassedInSeconds);
+      m_shouldMine = false;
+      break;
+    }
   }
 
   ethash_mining_result_t failure_result = {"", "", 0, false};
@@ -222,6 +236,8 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
                                      ethash_hash256 const& boundary,
                                      uint64_t startNonce) {
   uint64_t nonce = startNonce;
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   while (m_shouldMine) {
     auto mineResult = ethash::hash(*m_epochContextFull, headerHash, nonce);
     if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
@@ -231,6 +247,18 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
       return winning_result;
     }
     nonce++;
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto timePassedInSeconds = static_cast<uint32_t>(
+        std::chrono::duration<double>(currentTime - startTime).count());
+    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+      LOG_GENERAL(WARNING,
+                  "Time out while mining pow result, time "
+                  "passed in seconds "
+                      << timePassedInSeconds);
+      m_shouldMine = false;
+      break;
+    }
   }
 
   ethash_mining_result_t failure_result = {"", "", 0, false};
@@ -568,6 +596,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
   const uint64_t NONCE_SEGMENT = (uint64_t)pow(2, NONCE_SEGMENT_WIDTH);
   wp.startNonce = nonce + index * NONCE_SEGMENT;
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   dev::eth::Solution solution;
   while (m_shouldMine) {
     if (!m_miners[index]->mine(wp, solution)) {
@@ -587,6 +617,17 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
       return;
     }
     wp.startNonce = solution.nonce;
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto timePassedInSeconds = static_cast<uint32_t>(
+        std::chrono::duration<double>(currentTime - startTime).count());
+    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+      LOG_GENERAL(WARNING,
+                  "Time out while mining pow result, time "
+                  "passed in seconds "
+                      << timePassedInSeconds);
+      break;
+    }
   }
   m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
   m_cvMiningResult.notify_one();
