@@ -315,6 +315,9 @@ void Node::ProcessTransactionWhenShardLeader() {
     m_TxnOrder.push_back(t.GetTranID());
   };
 
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
+
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
@@ -522,6 +525,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
         make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
   };
 
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
+
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
@@ -675,10 +681,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   m_txn_distribute_window_open = false;
-  // Even don't have txns, also clear the variables, to avoid total gas check
-  // fail problem
-  m_gasUsedTotal = 0;
-  m_txnFees = 0;
 
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
@@ -952,11 +954,6 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
                 "called from LookUp node");
     return true;
   }
-
-  // Even don't have txns, also clear the variables, to avoid total gas check
-  // fail problem
-  m_gasUsedTotal = 0;
-  m_txnFees = 0;
 
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
