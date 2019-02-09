@@ -335,7 +335,7 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
     case FINALBLOCK_CONSENSUS_PREP:
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Re-running finalblock consensus");
-      RunConsensusOnFinalBlock(FROM_VIEWCHANGE);
+      RunConsensusOnFinalBlock();
       break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:

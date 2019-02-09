@@ -435,11 +435,6 @@ class DirectoryService : public Executable, public Broadcastable {
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
-  enum RunFinalBlockConsensusOptions : unsigned char {
-    NORMAL = 0x00,
-    FROM_VIEWCHANGE
-  };
-
   enum DirState : unsigned char {
     POW_SUBMISSION = 0x00,
     DSBLOCK_CONSENSUS_PREP,
@@ -577,7 +572,7 @@ class DirectoryService : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsDS();
 
-  void RunConsensusOnFinalBlock(RunFinalBlockConsensusOptions options = NORMAL);
+  void RunConsensusOnFinalBlock();
 
   // Coinbase
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
