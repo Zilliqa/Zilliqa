@@ -794,7 +794,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     // TODO: changge to N ds nodes who co-sign on the ds block
     std::vector<Peer> networkInfoUpdateReceivers;
     unsigned int numOfNetworkInfoReceivers =
-        std::min(NUM_GOSSIP_RECEIVERS, (const unsigned int)peerInfo.size());
+        std::min(NUM_GOSSIP_RECEIVERS, (unsigned int)peerInfo.size());
 
     for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
       networkInfoUpdateReceivers.emplace_back(peerInfo.at(i));
