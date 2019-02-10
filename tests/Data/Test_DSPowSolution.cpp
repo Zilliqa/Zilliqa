@@ -35,8 +35,8 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  //Satisfy linker
-  Account acc1(0,0);
+  // Satisfy linker
+  Account acc1(0, 0);
 
   uint64_t blockNumberInput = TestUtils::DistUint64();
   uint8_t difficultyLevelInput = TestUtils::DistUint8();
