@@ -7,7 +7,8 @@
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
-        <GENESIS_PUBKEY>02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552</GENESIS_PUBKEY>
+        <!-- testnet -->
+        <GENESIS_PUBKEY>03B70CF2ABEAE4E86DAEF1A36243E44CD61138B89055099C0D220B58FB86FF588A</GENESIS_PUBKEY>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -165,6 +166,7 @@
         <POW_CHANGE_TO_ADJ_DIFF>59</POW_CHANGE_TO_ADJ_DIFF>
         <!-- DS difficulty adjust by compare DS pow number to NUM_DS_ELECTION -->
         <POW_CHANGE_TO_ADJ_DS_DIFF>5</POW_CHANGE_TO_ADJ_DS_DIFF>
+        <DIFFICULTY_DIFF_TOL>4</DIFFICULTY_DIFF_TOL>
         <!-- If PoW submissions over this number, will increase difficulty -->
         <EXPECTED_SHARD_NODE_NUM>1800</EXPECTED_SHARD_NODE_NUM>
         <!-- If PoW submissions over this number, will select nodes by reputation -->
@@ -211,20 +213,22 @@
     </tests>
     <transactions>
         <TOTAL_COINBASE_REWARD>8400000000000000000000</TOTAL_COINBASE_REWARD>
-        <COINBASE_REWARD_PER_DS>191780820000000000</COINBASE_REWARD_PER_DS>
+        <COINBASE_REWARD_PER_DS>263698630136986000</COINBASE_REWARD_PER_DS>
         <TOTAL_GENESIS_TOKEN>12600000000000000000000</TOTAL_GENESIS_TOKEN>
-        <BASE_REWARD_IN_PERCENT>15</BASE_REWARD_IN_PERCENT>
+        <BASE_REWARD_IN_PERCENT>25</BASE_REWARD_IN_PERCENT>
         <LOOKUP_REWARD_IN_PERCENT>5</LOOKUP_REWARD_IN_PERCENT>
         <MAX_CODE_SIZE_IN_BYTES>20480</MAX_CODE_SIZE_IN_BYTES>
         <MAX_CONTRACT_DEPTH>5</MAX_CONTRACT_DEPTH>
         <SYS_TIMESTAMP_VARIANCE_IN_SECONDS>3600</SYS_TIMESTAMP_VARIANCE_IN_SECONDS>
         <TXN_MISORDER_TOLERANCE_IN_PERCENT>50</TXN_MISORDER_TOLERANCE_IN_PERCENT>
         <PACKET_EPOCH_LATE_ALLOW>1</PACKET_EPOCH_LATE_ALLOW>
+        <PACKET_BYTESIZE_LIMIT>1572864</PACKET_BYTESIZE_LIMIT>
+        <SMALL_TXN_SIZE>1024</SMALL_TXN_SIZE>
     </transactions>
     <verifier>
         <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
-        <SEED_PORT>33333</SEED_PORT>
+        <SEED_PORT>33133</SEED_PORT>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>
@@ -244,31 +248,31 @@
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
     -->
@@ -276,8 +280,9 @@
     <multipliers>
         <!--IP to be provided after public testnet launch.
         <peer>
+            <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         -->
@@ -287,7 +292,7 @@
         <peer>
             <hostname></hostname>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         -->
@@ -296,7 +301,7 @@
         <!--
         <peer>
             <ip></ip>
-            <port>33333</port>
+            <port>33133</port>
             <pubkey></pubkey>
         </peer>
         -->

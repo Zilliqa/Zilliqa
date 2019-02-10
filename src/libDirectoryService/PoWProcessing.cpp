@@ -81,6 +81,11 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
   }
 
   for (auto& sol : m_powSolutions) {
+    // No point processing the other solutions if DS Block consensus is starting
+    if ((m_state == DSBLOCK_CONSENSUS_PREP) || (m_state == DSBLOCK_CONSENSUS)) {
+      LOG_GENERAL(INFO, "Too late");
+      break;
+    }
     ProcessPoWSubmissionFromPacket(sol);
   }
 
@@ -120,6 +125,11 @@ bool DirectoryService::ProcessPoWPacketSubmission(
 
   LOG_GENERAL(INFO, "PoW solutions received in this packet: " << tmp.size());
   for (auto& sol : tmp) {
+    // No point processing the other solutions if DS Block consensus is starting
+    if ((m_state == DSBLOCK_CONSENSUS_PREP) || (m_state == DSBLOCK_CONSENSUS)) {
+      LOG_GENERAL(INFO, "Too late");
+      break;
+    }
     ProcessPoWSubmissionFromPacket(sol);
   }
 

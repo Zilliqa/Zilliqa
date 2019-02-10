@@ -250,22 +250,19 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
     if (!GUARD_MODE) {
       m_consensusMyID += numOfIncomingDs;
       m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-      LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
-                            << m_consensusLeaderID);
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
     } else {
-      // DS guards index do not change
+      // DS guards' indexes do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
         m_consensusMyID += numOfIncomingDs;
-        LOG_GENERAL(INFO,
-                    "Not a DS Guard. m_consensusMyID: " << m_consensusMyID);
+        LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
       } else {
-        LOG_GENERAL(INFO, "DS Guard. m_consensusMyID: " << m_consensusMyID);
+        LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
       }
       // Only DS guard can be ds leader
       m_consensusLeaderID =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-      LOG_GENERAL(INFO, "DS Guard enabled. m_consensusLeaderID "
-                            << m_consensusLeaderID);
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
     }
 
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
@@ -505,8 +502,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     lock_guard<mutex> g(m_mutexPendingDSBlock);
 
     if (m_pendingDSBlock == nullptr) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+      LOG_GENERAL(WARNING, "FATAL. assertion failed (" << __FILE__ << ":"
+                                                       << __LINE__ << ": "
+                                                       << __FUNCTION__ << ")");
+      return;
     }
 
     // Update the DS Block with the co-signatures from the consensus
@@ -633,6 +632,22 @@ bool DirectoryService::ProcessDSBlockConsensus(
   // In that case, ANNOUNCE will sleep for a second below
   // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be
   // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
+
+  uint32_t unused_consensus_id = 0;
+  PubKey senderPubKey;
+
+  if (!m_consensusObject->GetConsensusID(message, offset, unused_consensus_id,
+                                         senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+    return false;
+  }
+
+  if (!CheckIfDSNode(senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "ProcessDSBlockConsensus signed by non ds member");
+    return false;
+  }
+
   {
     lock_guard<mutex> g(m_mutexConsensus);
 

@@ -117,9 +117,10 @@ bool Node::ComposeMicroBlock() {
 
     numTxs = t_processedTransactions.size();
     if (numTxs != m_TxnOrder.size()) {
-      LOG_GENERAL(FATAL, "Num txns and Order size not same "
-                             << " numTxs " << numTxs << " m_TxnOrder "
-                             << m_TxnOrder.size());
+      LOG_GENERAL(WARNING, "FATAL Num txns and Order size not same "
+                               << " numTxs " << numTxs << " m_TxnOrder "
+                               << m_TxnOrder.size());
+      return false;
     }
     tranHashes = m_TxnOrder;
 
@@ -134,7 +135,7 @@ bool Node::ComposeMicroBlock() {
   if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+              "Leader compose wrong state root (DM_TEST_DM_BAD_MB_ANNOUNCE)");
     tranHashes.clear();
   }
 #endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
@@ -679,6 +680,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
+  m_txn_distribute_window_open = false;
+
   if (!m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&
@@ -830,6 +833,7 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
+  m_txn_distribute_window_open = true;
 
   if (m_mediator.GetIsVacuousEpoch()) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1001,8 +1005,13 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
       return LEGITIMACYRESULT::SERIALIZATIONERROR;
     }
   } else {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Vacuous epoch: Skipping processing transactions");
+    if (m_mediator.GetIsVacuousEpoch()) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Vacuous epoch: Skipping processing txns");
+    } else {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Target diff or DS num not met: Skipping processing txns");
+    }
   }
 
   return LEGITIMACYRESULT::SUCCESS;
@@ -1198,14 +1207,14 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
                                const bytes& blockHash, const uint16_t leaderID,
                                const PubKey& leaderKey,
                                bytes& messageToCosign) {
-  LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::MicroBlockValidator not expected to be called from "
                 "LookUp node");
     return true;
   }
+
+  LOG_MARKER();
 
   m_microblock.reset(new MicroBlock);
 
@@ -1216,6 +1225,8 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
               "Messenger::GetNodeMicroBlockAnnouncement failed");
     return false;
   }
+
+  m_txn_distribute_window_open = false;
 
   if (!m_mediator.CheckWhetherBlockIsLatest(
           m_microblock->GetHeader().GetDSBlockNum() + 1,

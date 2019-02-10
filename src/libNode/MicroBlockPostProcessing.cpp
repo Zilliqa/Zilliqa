@@ -84,8 +84,6 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
 
 bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMicroBlockConsensus not expected to be "
@@ -100,6 +98,11 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                          senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
+  }
+
+  if (!IsShardNode(senderPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "ProcessMicroBlockConsensus signed by non shard member");
   }
 
   if (m_state != MICROBLOCK_CONSENSUS) {

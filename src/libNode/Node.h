@@ -113,6 +113,7 @@ class Node : public Executable, public Broadcastable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
+  std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
   std::vector<TxnHash> m_txnsOrdering;
@@ -565,8 +566,7 @@ class Node : public Executable, public Broadcastable {
 
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
-                          const DequeOfNode& dsCommittee,
-                          std::pair<PubKey, Peer>& dsLeader);
+                          const DequeOfNode& dsCommittee, PairOfNode& dsLeader);
 
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,

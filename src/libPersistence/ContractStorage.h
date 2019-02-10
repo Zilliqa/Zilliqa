@@ -128,8 +128,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Revert the t_map from the p_map just buffered
   void RevertPrevState();
 
+  /// Put the in-memory m_map into database
   bool CommitStateDB();
 
+  /// Clean t_maps
   void InitTempState();
 
   /// Get the json formatted data of the states for a contract account
@@ -140,10 +142,13 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Get the state hash of a contract account
   dev::h256 GetContractStateHash(const dev::h160& address, bool temp);
 
+  /// Clean the databases
   void Reset();
 
+  /// Revert m_map with r_map
   void RevertContractStates();
 
+  /// Clean r_map
   void InitRevertibles();
 };
 

@@ -180,8 +180,7 @@ Challenge ConsensusCommon::GetChallenge(const bytes& msg,
   return Challenge(aggregated_commit, aggregated_key, msg);
 }
 
-pair<PubKey, Peer> ConsensusCommon::GetCommitteeMember(
-    const unsigned int index) {
+PairOfNode ConsensusCommon::GetCommitteeMember(const unsigned int index) {
   if (m_committee.size() <= index) {
     LOG_GENERAL(WARNING, "Committee size " << m_committee.size() << " <= index "
                                            << index);

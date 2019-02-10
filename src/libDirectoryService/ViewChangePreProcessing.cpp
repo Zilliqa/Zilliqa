@@ -131,8 +131,8 @@ bool DirectoryService::ViewChangeValidator(
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(
-        FATAL,
-        "Candidate network info mismatched. Expected: "
+        WARNING,
+        "FATAL Candidate network info mismatched. Expected: "
             << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
             << " Obtained: "
             << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
@@ -157,7 +157,7 @@ bool DirectoryService::ViewChangeValidator(
   // Verify faulty leaders
   if (m_pendingVCBlock->GetHeader().GetFaultyLeaders() !=
       cumlativeFaultyLeaders) {
-    LOG_GENERAL(WARNING, "View of faulty leader do not match");
+    LOG_GENERAL(WARNING, "View of faulty leader does not match");
     LOG_GENERAL(WARNING, "Local view of faulty leader");
     for (const auto& localFaultyLeader : cumlativeFaultyLeaders) {
       LOG_GENERAL(WARNING, "Pubkey: " << localFaultyLeader.first << " "
@@ -307,7 +307,7 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    // Ensure that one do not emplace 0.0.0.0
+    // Ensure that one does not emplace 0.0.0.0
     if (m_mediator.m_DSCommittee->at(faultyLeaderIndex).first ==
             m_mediator.m_selfKey.second &&
         m_mediator.m_DSCommittee->at(faultyLeaderIndex).second == Peer()) {

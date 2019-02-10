@@ -161,9 +161,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
           m_mediator.m_DSCommittee->erase(iterFaultyLeader);
         } else {
-          LOG_GENERAL(FATAL, "Cannot find "
-                                 << faultyLeader.second
-                                 << " to eject to back of ds committee");
+          LOG_GENERAL(WARNING, "FATAL: Cannot find "
+                                   << faultyLeader.second
+                                   << " to eject to back of ds committee");
         }
 
         // Add to the back of the ds commitee deque
@@ -179,7 +179,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
 
     // Re-calculate the new m_consensusMyID
-    pair<PubKey, Peer> selfPubKPeerPair =
+    PairOfNode selfPubKPeerPair =
         make_pair(m_mediator.m_selfKey.second, Peer());
 
     DequeOfNode::iterator iterConsensusMyID =
@@ -190,13 +190,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       m_consensusMyID =
           distance(m_mediator.m_DSCommittee->begin(), iterConsensusMyID);
     } else {
-      LOG_GENERAL(FATAL,
-                  "Unable to set m_consensusMyID. Cannot find myself in the ds "
-                  "committee");
+      LOG_GENERAL(
+          WARNING,
+          "FATAL: Unable to set m_consensusMyID. Cannot find myself in the ds "
+          "committee");
+      return;
     }
 
     // Update the index for the new leader
-    pair<PubKey, Peer> candidateLeaderInfo = make_pair(
+    PairOfNode candidateLeaderInfo = make_pair(
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
@@ -211,8 +213,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_consensusLeaderID =
             distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
       } else {
-        LOG_GENERAL(FATAL, "Cannot find new leader in the ds committee "
-                               << candidateLeaderInfo.second);
+        LOG_GENERAL(WARNING, "FATAL Cannot find new leader in the ds committee "
+                                 << candidateLeaderInfo.second);
+        return;
       }
     }
 
@@ -260,9 +263,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
-  // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
-  // block consensus. This is to be consistent with how normal node process the
-  // vc block (before ds block).
+  // Broadcasting vcblock to lookup nodes iff view change does not occur before
+  // ds block consensus. This is to be consistent with how normal node process
+  // the vc block (before ds block).
   if (viewChangeState != DSBLOCK_CONSENSUS &&
       viewChangeState != DSBLOCK_CONSENSUS_PREP) {
     t_sendDataToLookupFunc = SendDataToLookupFuncDefault;

@@ -286,7 +286,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   vector<Peer> peerList;
 
   // Send to PoW PACKET_SENDERS which including DS leader
-  pair<PubKey, Peer> dsLeader;
+  PairOfNode dsLeader;
   if (!m_mediator.m_DSCommittee->empty()) {
     if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                           m_mediator.m_dsBlockChain.GetLastBlock(),

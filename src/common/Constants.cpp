@@ -328,6 +328,8 @@ const unsigned int POW_CHANGE_TO_ADJ_DIFF{
     ReadConstantNumeric("POW_CHANGE_TO_ADJ_DIFF", "node.pow.")};
 const unsigned int POW_CHANGE_TO_ADJ_DS_DIFF{
     ReadConstantNumeric("POW_CHANGE_TO_ADJ_DS_DIFF", "node.pow.")};
+const unsigned int DIFFICULTY_DIFF_TOL{
+    ReadConstantNumeric("DIFFICULTY_DIFF_TOL", "node.pow.")};
 const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MAX_SHARD_NODE_NUM{
@@ -435,6 +437,10 @@ const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
     "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
 const unsigned int PACKET_EPOCH_LATE_ALLOW{
     ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.transactions.")};
+const unsigned int PACKET_BYTESIZE_LIMIT{
+    ReadConstantNumeric("PACKET_BYTESIZE_LIMIT", "node.transactions.")};
+const unsigned int SMALL_TXN_SIZE{
+    ReadConstantNumeric("SMALL_TXN_SIZE", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

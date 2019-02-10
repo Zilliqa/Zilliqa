@@ -137,7 +137,8 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       std::get<BlockLinkIndex::BLOCKTYPE>(blocklinks.back());
   if (lastType != BlockType::DS) {
     if (lastDsIndex == 0) {
-      LOG_GENERAL(FATAL, "last ds index is 0 and blockType not DS");
+      LOG_GENERAL(WARNING, "FATAL: last ds index is 0 and blockType not DS");
+      return false;
     }
     lastDsIndex--;
   }

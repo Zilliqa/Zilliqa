@@ -275,10 +275,15 @@ void DirectoryService::InitCoinbase() {
   }
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
-  total_reward = total_reward - base_reward;
+  uint128_t lookupReward = 0;
+  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
+                                lookupReward)) {
+    LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
+    return;
+  }
+  lookupReward /= 100;
 
-  uint128_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
-  uint128_t nodeReward = total_reward - lookupReward;
+  uint128_t nodeReward = total_reward - lookupReward - base_reward;
   uint128_t reward_each = 0;
   uint128_t reward_each_lookup = 0;
 
@@ -349,6 +354,7 @@ void DirectoryService::InitCoinbase() {
   }
 
   // Reward based on cosigs
+  vector<Address> nonGuard;
   for (auto const& epochNumShardRewardee : m_coinbaseRewardees) {
     LOG_GENERAL(
         INFO, "[CNBSE] Rewarding " << epochNumShardRewardee.first << " epoch");
@@ -363,6 +369,7 @@ void DirectoryService::InitCoinbase() {
                   addr, coinbaseAddress, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
+            nonGuard.emplace_back(addr);
             suc_lookup_counter++;
           }
         }
@@ -371,6 +378,7 @@ void DirectoryService::InitCoinbase() {
           if (GUARD_MODE) {
             if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
                 Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+              suc_counter++;
               continue;
             }
           }
@@ -390,79 +398,56 @@ void DirectoryService::InitCoinbase() {
                         << "] for blk " << epochNumShardRewardee.first);
             }
             suc_counter++;
+            nonGuard.emplace_back(addr);
           }
         }
       }
     }
   }
 
+  //
   uint128_t balance_left = total_reward - (suc_counter * reward_each) -
-                           (suc_lookup_counter * reward_each_lookup) +
-                           base_reward - (node_count * base_reward_each);
+                           (suc_lookup_counter * reward_each_lookup) -
+                           (node_count * base_reward_each);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
 
+  // LuckyDraw
+
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-  uint16_t shardIndex =
-      lastBlockHash % m_coinbaseRewardees[m_mediator.m_currentEpochNum].size();
-  uint16_t count = 0;
-  bool breakLoop = false;
   DiagnosticDataCoinbase entry = {
-      node_count,  sig_count,        lookup_count, total_reward + base_reward,
+      node_count,  sig_count,        lookup_count, total_reward,
       base_reward, base_reward_each, lookupReward, reward_each_lookup,
       nodeReward,  reward_each,      balance_left, PubKey(PrivKey()),
       Address()};
-  for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
-    if (count == shardIndex) {
-      uint16_t rdm_index = lastBlockHash % shard.second.size();
-      uint16_t rdm_index_copy = rdm_index;
-      if (GUARD_MODE) {
-        while (Guard::GetInstance().IsNodeInDSGuardList(
-                   shard.second.at(rdm_index)) ||
-               Guard::GetInstance().IsNodeInShardGuardList(
-                   shard.second.at(rdm_index))) {
-          rdm_index = (rdm_index + 1) % shard.second.size();
-          if (rdm_index == rdm_index_copy) {
-            LOG_GENERAL(WARNING, "Going into infinite loop");
-            breakLoop = true;
-            break;
-          }
-        }
-      }
-      if (breakLoop) {
-        break;
-      }
 
-      const Address& winnerAddr =
-          Account::GetAddressFromPublicKey(shard.second.at(rdm_index));
-      LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
-      if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-              winnerAddr, coinbaseAddress, balance_left)) {
-        LOG_GENERAL(WARNING, "Could not reward lucky draw!");
-      }
-
-      // Only log reward for my self so can find out the reward of mine in state
-      // log
-      if (winnerAddr == myAddr) {
-        LOG_STATE("[REWARD][" << setw(15) << left
-                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                              << "][" << m_mediator.m_currentEpochNum << "]["
-                              << balance_left << "] lucky draw");
-      }
-
-      entry.luckyDrawWinnerKey = shard.second.at(rdm_index);
-      entry.luckyDrawWinnerAddr = winnerAddr;
-      StoreCoinbaseInDiagnosticDB(entry);
-
-      return;
-    } else {
-      ++count;
-    }
+  if (nonGuard.empty()) {
+    LOG_GENERAL(WARNING, "No non-guard found, skip LuckyDraw");
+    StoreCoinbaseInDiagnosticDB(entry);
+    return;
   }
 
+  uint16_t luckyIndex = lastBlockHash % nonGuard.size();
+
+  auto const& luckyAddr = nonGuard.at(luckyIndex);
+
+  LOG_GENERAL(INFO, "Lucky draw winner: " << luckyAddr);
+  if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+          luckyAddr, coinbaseAddress, balance_left)) {
+    LOG_GENERAL(WARNING, "Could not reward lucky draw!");
+  }
+
+  // Only log reward for my self so can find out the reward of mine in state
+  // log
+  if (luckyAddr == myAddr) {
+    LOG_STATE("[REWARD][" << setw(15) << left
+                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                          << "][" << m_mediator.m_currentEpochNum << "]["
+                          << balance_left << "] lucky draw");
+  }
+  entry.luckyDrawWinnerAddr = luckyAddr;
   StoreCoinbaseInDiagnosticDB(entry);
-  LOG_GENERAL(INFO, "Didn't find any miner to reward the lucky draw");
 }
 
 void DirectoryService::StoreCoinbaseInDiagnosticDB(
