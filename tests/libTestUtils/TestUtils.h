@@ -26,7 +26,13 @@
 #include <tuple>
 #include "common/BaseType.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockData/Block.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/BlockData/BlockHeader/DSBlockHeader.h"
+#include "libData/BlockData/BlockHeader/FallbackBlockHeader.h"
+#include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
+#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libData/BlockData/BlockHeader/VCBlockHeader.h"
+#include "libData/BlockData/Block/BlockBase.h"
 #include "libNetwork/Peer.h"
 
 static std::mt19937 rng;
