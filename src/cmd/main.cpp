@@ -137,6 +137,8 @@ int main(int argc, const char* argv[]) {
     INIT_STATE_LOGGER("state");
     INIT_EPOCHINFO_LOGGER("epochinfo");
 
+    LOG_GENERAL(INFO, ZILLIQA_BRAND)
+
     if (address == "NAT") {
       nt = make_unique<NAT>();
       nt->init();
