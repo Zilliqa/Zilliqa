@@ -28,7 +28,7 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libNetwork/PeerStore.h"
+#include "libNetwork/ShardStruct.h"
 
 /// Stores information on the header part of the fallback block.
 class FallbackBlockHeader : public BlockHeaderBase {

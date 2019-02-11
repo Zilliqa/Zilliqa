@@ -32,119 +32,11 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool PeerManager::ProcessHello(const bytes& message, unsigned int offset,
-                               const Peer& from) {
-  LOG_MARKER();
-
-  PubKey key;
-  uint32_t listenPort = 0;
-
-  if (!Messenger::GetPMHello(message, offset, key, listenPort)) {
-    LOG_GENERAL(WARNING, "Messenger::GetPMHello failed.");
-    return false;
-  }
-
-  Peer peer(from.m_ipAddress, listenPort);
-
-  PeerStore& ps = PeerStore::GetStore();
-  ps.AddPeerPair(key, peer);
-
-  LOG_GENERAL(INFO, "Added peer " << peer);
-
-  return true;
-}
-
-bool PeerManager::ProcessAddPeer(const bytes& message, unsigned int offset,
-                                 [[gnu::unused]] const Peer& from) {
-  // Message = [32-byte peer key] [4-byte peer ip address] [4-byte peer listen
-  // port]
-
-  LOG_MARKER();
-
-  unsigned int message_size = message.size() - offset;
-
-  if (message_size >= (PUB_KEY_SIZE + UINT128_SIZE + sizeof(uint32_t))) {
-    // Get and store peer information
-
-    PubKey key;
-    // key.Deserialize(message, offset);
-    if (key.Deserialize(message, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-      return false;
-    }
-
-    Peer peer(
-        Serializable::GetNumber<uint128_t>(message, offset + PUB_KEY_SIZE,
-                                           UINT128_SIZE),
-        Serializable::GetNumber<uint32_t>(
-            message, offset + PUB_KEY_SIZE + UINT128_SIZE, sizeof(uint32_t)));
-
-    PeerStore& ps = PeerStore::GetStore();
-    ps.AddPeerPair(key, peer);
-
-    LOG_GENERAL(INFO, "Added peer " << peer);
-
-    // Say hello
-
-    bytes hello_message = {MessageType::PEER,
-                           PeerManager::InstructionType::HELLO};
-
-    if (!Messenger::SetPMHello(hello_message, MessageOffset::BODY, m_selfKey,
-                               m_selfPeer.m_listenPortHost)) {
-      LOG_GENERAL(WARNING, "Messenger::SetPMHello failed.");
-      return false;
-    }
-
-    P2PComm::GetInstance().SendMessage(peer, hello_message);
-
-    return true;
-  }
-
-  return false;
-}
-
 PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
                          bool loadConfig)
     : m_selfKey(key), m_selfPeer(peer) {
   LOG_MARKER();
   SetupLogLevel();
-
-  if (loadConfig) {
-    LOG_GENERAL(INFO, "Loading configuration file");
-
-    // Open config file
-    ifstream config("config.xml");
-
-    // Populate tree structure pt
-    using boost::property_tree::ptree;
-    ptree pt;
-    read_xml(config, pt);
-
-    // Add all peers in config to peer store
-    PeerStore& ps = PeerStore::GetStore();
-
-    BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes")) {
-      if (v.first == "peer") {
-        bytes pubkeyBytes;
-        if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"),
-                                              pubkeyBytes)) {
-          continue;
-        }
-
-        PubKey key(pubkeyBytes, 0);
-        struct in_addr ip_addr;
-        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-        Peer peer((uint128_t)ip_addr.s_addr,
-                  v.second.get<unsigned int>("port"));
-        if (peer != m_selfPeer) {
-          ps.AddPeerPair(key, peer);
-          LOG_GENERAL(INFO, "Added peer " << peer);
-        }
-      }
-    }
-
-    config.close();
-  }
 }
 
 PeerManager::~PeerManager() {}
@@ -159,7 +51,6 @@ bool PeerManager::Execute(const bytes& message, unsigned int offset,
                                                   const Peer&);
 
   InstructionHandler ins_handlers[] = {
-      &PeerManager::ProcessHello,
       &PeerManager::ProcessAddPeer,
   };
 
@@ -182,13 +73,6 @@ bool PeerManager::Execute(const bytes& message, unsigned int offset,
   }
 
   return result;
-}
-
-vector<Peer> PeerManager::GetBroadcastList(
-    [[gnu::unused]] unsigned char ins_type,
-    [[gnu::unused]] const Peer& broadcast_originator) {
-  // LOG_MARKER();
-  return vector<Peer>();
 }
 
 void PeerManager::SetupLogLevel() {

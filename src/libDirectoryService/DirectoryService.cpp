@@ -185,23 +185,12 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     m_mode = BACKUP_DS;
   }
 
-  // For now, we assume the following when ProcessSetPrimary() is called:
-  //  1. All peers in the peer list are my fellow DS committee members for this
-  //  first epoch
-  //  2. The list of DS nodes is sorted by PubKey, including my own
-  //  3. The peer with the smallest PubKey is also the first leader assigned in
-  //  this call to ProcessSetPrimary()
+  // When ProcessSetPrimary() is called, all peers in the peer list are my
+  // fellow DS committee members for this first epoch
 
   // Let's notify lookup node of the DS committee during bootstrap
-  // TODO: Refactor this code
   if (primary == m_mediator.m_selfPeer) {
-    PeerStore& dsstore = PeerStore::GetStore();
-    dsstore.AddPeerPair(
-        m_mediator.m_selfKey.second,
-        m_mediator.m_selfPeer);  // Add myself, but with dummy IP info
-    VectorOfNode ds = dsstore.GetAllPeerPairs();
-    m_mediator.m_DSCommittee->resize(ds.size());
-    copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
+    m_mediator.m_lookup->SetDSCommitteInfo();
 
     bytes setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
@@ -216,16 +205,14 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     }
 
     m_mediator.m_lookup->SendMessageToLookupNodes(setDSBootstrapNodeMessage);
+
+    // Reload the DS committee, with my own peer set to dummy
+    m_mediator.m_DSCommittee->clear();
+    m_mediator.m_lookup->SetDSCommitteInfo(true);
+  } else {
+    // Load the DS committee, with my own peer set to dummy
+    m_mediator.m_lookup->SetDSCommitteInfo(true);
   }
-
-  PeerStore& peerstore = PeerStore::GetStore();
-  peerstore.AddPeerPair(m_mediator.m_selfKey.second,
-                        Peer());  // Add myself, but with dummy IP info
-
-  VectorOfNode tmp1 = peerstore.GetAllPeerPairs();
-  m_mediator.m_DSCommittee->resize(tmp1.size());
-  copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
-  peerstore.RemovePeer(m_mediator.m_selfKey.second);  // Remove myself
 
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
@@ -401,21 +388,6 @@ void DirectoryService::SetConsensusLeaderID(uint16_t id) {
 // Get m_consensusLeaderID
 uint16_t DirectoryService::GetConsensusLeaderID() const {
   return m_consensusLeaderID.load();
-}
-
-vector<Peer> DirectoryService::GetBroadcastList(
-    [[gnu::unused]] unsigned char ins_type,
-    [[gnu::unused]] const Peer& broadcast_originator) {
-  // LOG_MARKER();
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::GetBroadcastList not expected to be "
-                "called from LookUp node.");
-  }
-
-  // Regardless of the instruction type, right now all our "broadcasts" are just
-  // redundant multicasts from DS nodes to non-DS nodes
-  return vector<Peer>();
 }
 
 bool DirectoryService::CleanVariables() {

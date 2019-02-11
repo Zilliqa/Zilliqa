@@ -27,7 +27,6 @@
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
@@ -69,7 +68,6 @@ int main(int argc, const char* argv[]) {
         "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
-        "loadconfig,l", "Loads configuration if set")(
         "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set");
 
@@ -161,19 +159,14 @@ int main(int argc, const char* argv[]) {
       my_network_info = Peer(ip, port);
     }
 
-    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
-                    vm.count("loadconfig"), synctype, vm.count("recovery"));
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info, synctype,
+                    vm.count("recovery"));
     auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
       zilliqa.Dispatch(message);
     };
-    auto broadcast_list_retriever =
-        [&zilliqa](unsigned char msg_type, unsigned char ins_type,
-                   const Peer& from) mutable -> vector<Peer> {
-      return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
-    };
 
-    P2PComm::GetInstance().StartMessagePump(
-        my_network_info.m_listenPortHost, dispatcher, broadcast_list_retriever);
+    P2PComm::GetInstance().StartMessagePump(my_network_info.m_listenPortHost,
+                                            dispatcher);
 
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()

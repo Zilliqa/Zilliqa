@@ -38,7 +38,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -990,82 +989,6 @@ bool Node::CheckState(Action action) {
   }
 
   return true;
-}
-
-vector<Peer> Node::GetBroadcastList(
-    [[gnu::unused]] unsigned char ins_type,
-    [[gnu::unused]] const Peer& broadcast_originator) {
-  // LOG_MARKER();
-
-  // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
-  // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
-  // {
-  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
-  //     "Gossip Forward list:");
-
-  //     vector<Peer> peers;
-  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum, "DS
-  //     size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size:
-  //     " << m_myShardMembersNetworkInfo.size());
-
-  //     if (m_isDSNode)
-  //     {
-  //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
-  //  LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
-  //         "I'm a DS node. DS size: " <<
-  //         m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() %
-  //         m_mediator.m_DSCommitteeNetworkInfo.size()); for (unsigned int i =
-  //         0; i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
-  //         {
-  //             if (i == m_consensusMyID)
-  //             {
-  //                 continue;
-  //             }
-  //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <=
-  //             GOSSIP_RATE)
-  //             {
-  //                 peers.emplace_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
-  //                 LOG_EPOCH(INFO,
-  //                 to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode
-  //                 IP: " << peers.back().GetPrintableIPAddress() << " Port: "
-  //                 << peers.back().m_listenPortHost);
-
-  //             }
-
-  //         }
-  //     }
-  //     else
-  //     {
-  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
-  //         "I'm a shard node. Shard size: " <<
-  //         m_myShardMembersNetworkInfo.size() << " rand: " << rand() %
-  //         m_myShardMembersNetworkInfo.size()); lock_guard<mutex>
-  //         g(m_mutexFinalBlockProcessing); for (unsigned int i = 0; i <
-  //         m_myShardMembersNetworkInfo.size(); i++)
-  //         {
-  //             if (i == m_consensusMyID)
-  //             {
-  //                 continue;
-  //             }
-  //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
-  //             {
-  //                 peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
-  //                 LOG_EPOCH(INFO,
-  //                 to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: "
-  //                 << peers.back().GetPrintableIPAddress() << " Port: " <<
-  //                 peers.back().m_listenPortHost);
-
-  //             }
-
-  //         }
-  //     }
-
-  //     return peers;
-  // }
-
-  // Regardless of the instruction type, right now all our "broadcasts" are just
-  // redundant multicasts from DS nodes to non-DS nodes
-  return vector<Peer>();
 }
 
 bool GetOneGenesisAddress(Address& oAddr) {

@@ -21,17 +21,13 @@
 #include <array>
 #include <vector>
 
-#include "PeerStore.h"
-#include "common/Broadcastable.h"
 #include "common/Executable.h"
 
 /// Processes messages related to PeerStore management.
-class PeerManager : public Executable, public Broadcastable {
+class PeerManager : public Executable {
   PairOfKey m_selfKey;
   Peer m_selfPeer;
 
-  bool ProcessHello(const bytes& message, unsigned int offset,
-                    const Peer& from);
   bool ProcessAddPeer(const bytes& message, unsigned int offset,
                       const Peer& from);
   void SetupLogLevel();
@@ -50,10 +46,6 @@ class PeerManager : public Executable, public Broadcastable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
-
-  /// Implements the GetBroadcastList function inherited from Broadcastable.
-  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                     const Peer& broadcast_originator);
 };
 
 #endif  // __PEERMANAGER_H__

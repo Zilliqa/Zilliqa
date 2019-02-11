@@ -45,7 +45,9 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_txBlockRand({{0}}),
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
-      m_curSWInfo() {}
+      m_curSWInfo() {
+  SetupLogLevel();
+}
 
 Mediator::~Mediator() {}
 
@@ -207,4 +209,30 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
   }
 
   return true;
+}
+
+void Mediator::SetupLogLevel() {
+  LOG_MARKER();
+  switch (DEBUG_LEVEL) {
+    case 1: {
+      LOG_DISPLAY_LEVEL_ABOVE(FATAL);
+      break;
+    }
+    case 2: {
+      LOG_DISPLAY_LEVEL_ABOVE(WARNING);
+      break;
+    }
+    case 3: {
+      LOG_DISPLAY_LEVEL_ABOVE(INFO);
+      break;
+    }
+    case 4: {
+      LOG_DISPLAY_LEVEL_ABOVE(DEBUG);
+      break;
+    }
+    default: {
+      LOG_DISPLAY_LEVEL_ABOVE(INFO);
+      break;
+    }
+  }
 }

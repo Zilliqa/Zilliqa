@@ -104,8 +104,7 @@ class P2PComm {
   boost::lockfree::queue<SendJob*> m_sendQueue;
   void ProcessSendJob(SendJob* job);
 
-  static void ProcessBroadCastMsg(bytes& message, const uint32_t messageLength,
-                                  const Peer& from);
+  static void ProcessBroadCastMsg(bytes& message, const Peer& from);
   static void ProcessGossipMsg(bytes& message, Peer& from);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
@@ -141,8 +140,7 @@ class P2PComm {
                                void* arg);
 
   /// Listens for incoming socket connections.
-  void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                        BroadcastListFunc broadcast_list_retriever);
+  void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher);
 
   /// Multicasts message to specified list of peers.
   void SendMessage(const std::vector<Peer>& peers, const bytes& message,

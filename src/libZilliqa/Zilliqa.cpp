@@ -81,8 +81,8 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
-    // To-do: Remove consensus user placeholder
-    Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
+    // To-do: Remove consensus user and peer manager placeholders
+    Executable* msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
 
     const unsigned int msg_handlers_count =
         sizeof(msg_handlers) / sizeof(Executable*);
@@ -128,10 +128,9 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   delete message;
 }
 
-Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
-                 unsigned int syncType, bool toRetrieveHistory)
-    : m_pm(key, peer, loadConfig),
-      m_mediator(key, peer),
+Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
+                 bool toRetrieveHistory)
+    : m_mediator(key, peer),
       m_ds(m_mediator),
       m_lookup(m_mediator),
       m_n(m_mediator, syncType, toRetrieveHistory),
@@ -318,30 +317,4 @@ void Zilliqa::Dispatch(pair<bytes, Peer>* message) {
   if (!m_msgQueue.bounded_push(message)) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full");
   }
-}
-
-vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
-                                            unsigned char ins_type,
-                                            const Peer& from) {
-  // LOG_MARKER();
-
-  // To-do: Remove consensus user placeholder
-  Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
-
-  const unsigned int msg_handlers_count =
-      sizeof(msg_handlers) / sizeof(Broadcastable*);
-
-  if (msg_type < msg_handlers_count) {
-    if (msg_handlers[msg_type] == NULL) {
-      LOG_GENERAL(WARNING, "Message type NULL");
-      return vector<Peer>();
-    }
-
-    return msg_handlers[msg_type]->GetBroadcastList(ins_type, from);
-  } else {
-    LOG_GENERAL(WARNING,
-                "Unknown message type " << std::hex << (unsigned int)msg_type);
-  }
-
-  return vector<Peer>();
 }

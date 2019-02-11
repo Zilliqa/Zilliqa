@@ -26,7 +26,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/Broadcastable.h"
 #include "common/Constants.h"
 #include "common/Executable.h"
 #include "depends/common/FixedHash.h"
@@ -39,14 +38,13 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerStore.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
 class Retriever;
 
 /// Implements PoW submission and sharding node functionality.
-class Node : public Executable, public Broadcastable {
+class Node : public Executable {
   enum Action {
     STARTPOW = 0x00,
     PROCESS_DSBLOCK,
@@ -439,10 +437,6 @@ class Node : public Executable, public Broadcastable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
-
-  /// Implements the GetBroadcastList function inherited from Broadcastable.
-  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                     const Peer& broadcast_originator);
 
   Mediator& GetMediator() { return m_mediator; }
 
