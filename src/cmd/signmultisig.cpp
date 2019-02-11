@@ -163,6 +163,7 @@ int main(int argc, const char* argv[]) {
     }
 
     cout << output;
+
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;

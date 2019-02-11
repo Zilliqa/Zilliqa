@@ -59,8 +59,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
   Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
   Signature sig = TestUtils::GetSignature(
-      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender.first,
-      sender.second);
+      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender);
 
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr, sender, 55,
                   PRECISION_MIN_VALUE, 22, {}, {});
@@ -183,8 +182,7 @@ BOOST_AUTO_TEST_CASE(testOperators) {
   TxnHash txH2 = txH1;
   PairOfKey kp = TestUtils::GenerateRandomKeyPair();
   Signature sig = TestUtils::GetSignature(
-      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), kp.first,
-      kp.second);
+      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), kp);
 
   Transaction tx1 = Transaction(txH1, TransactionCoreInfo(), sig);
   Transaction tx2 = Transaction(txH1, TransactionCoreInfo(), sig);
