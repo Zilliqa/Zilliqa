@@ -2758,9 +2758,6 @@ bool Lookup::GetMyLookupOffline() {
   
   LOG_MARKER();
 
-  return true;
-
-/*
   {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
@@ -2782,7 +2779,7 @@ bool Lookup::GetMyLookupOffline() {
 
   SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
   return true;
-  */
+  
 }
 
 bool Lookup::GetMyLookupOnline() {
