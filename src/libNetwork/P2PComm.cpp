@@ -351,12 +351,11 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes message,
       return;
     }
 
-    retry_counter++;
     LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
                                                   << MAXRETRYCONN
                                                   << ". IP address: " << peer);
 
-    if (retry_counter > MAXRETRYCONN) {
+    if (++retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
                   "Socket connect failed over " << MAXRETRYCONN << " times.");
       return;
