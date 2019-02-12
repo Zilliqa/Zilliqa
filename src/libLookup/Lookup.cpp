@@ -1927,6 +1927,11 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
+  if(ENABLE_INCR_DB)
+  {
+    IncrementalDB::GetInstance().PutBaseState(m_mediator.m_currentEpochNum, accountStoreBytes);
+  }
+
   if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
     LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
     return false;
@@ -2750,9 +2755,12 @@ bool Lookup::GetMyLookupOffline() {
                 "other than the LookUp node.");
     return true;
   }
-
+  
   LOG_MARKER();
 
+  return true;
+
+/*
   {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
@@ -2774,6 +2782,7 @@ bool Lookup::GetMyLookupOffline() {
 
   SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
   return true;
+  */
 }
 
 bool Lookup::GetMyLookupOnline() {

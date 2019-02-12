@@ -28,13 +28,14 @@
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
+#include "IncrementalDB.h"
 
 using namespace boost::filesystem;
 namespace filesys = boost::filesystem;
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
-bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
+bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks, bool putInIncremental) {
   LOG_MARKER();
   std::list<TxBlockSharedPtr> blocks;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
@@ -60,6 +61,10 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
   for (const auto& block : blocks) {
     m_mediator.m_node->AddBlock(*block);
+    if(putInIncremental)
+    {
+      
+    }
   }
 
   /// Retrieve final block state delta from last DS epoch to
@@ -81,7 +86,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   return true;
 }
 
-bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
+bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks, bool putInIncremental) {
   std::list<BlockLink> blocklinks;
 
   auto dsComm = m_mediator.m_blocklinkchain.GetBuiltDSComm();
@@ -169,6 +174,16 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
+      if(putInIncremental)
+      {
+        bytes serializedDSBlock;
+        dsblock->Serialize(serializedDSBlock, 0);
+        if(!IncrementalDB::GetInstance().PutDSBlock(dsblock->GetHeader().GetBlockNum(), serializedDSBlock, dsblock->GetHeader().GetBlockNum()))
+        {
+          LOG_GENERAL(WARNING, "Failed to put ds block "<<dsblock->GetHeader().GetBlockNum());
+        }
+      }
+
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::VC) {
       VCBlockSharedPtr vcblock;
@@ -182,6 +197,15 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       }
       m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(*vcblock,
                                                                     dsComm);
+      if(putInIncremental)
+      {
+        bytes serializedVCBlock;
+        vcblock->Serialize(serializedVCBlock, 0);
+        if(!IncrementalDB::GetInstance().PutVCBlock(vcblock->GetBlockHash(), serializedVCBlock, vcblock->GetHeader().GetViewChangeEpochNo()))
+        {
+          LOG_GENERAL(WARNING, "Failed to put ds block "<<vcblock->GetBlockHash());
+        }
+      }
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::FB) {
@@ -205,6 +229,15 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       const DequeOfShard& shards = fallbackwshardingstruct->m_shards;
       m_mediator.m_node->UpdateDSCommitteeAfterFallback(
           shard_id, leaderPubKey, leaderNetworkInfo, dsComm, shards);
+      if(putInIncremental)
+      {
+        bytes serializedFBBlock;
+        fallbackwshardingstruct->Serialize(serializedFBBlock, 0);
+        if(!IncrementalDB::GetInstance().PutVCBlock(std::get<BlockLinkIndex::BLOCKHASH>(blocklink), serializedFBBlock,  fallbackwshardingstruct->m_fallbackblock.GetHeader().GetFallbackDSEpochNo()))
+        {
+          LOG_GENERAL(WARNING, "Failed to put ds block "<<std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
+        }
+      }
     }
 
     m_mediator.m_blocklinkchain.AddBlockLink(

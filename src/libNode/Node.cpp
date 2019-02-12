@@ -284,16 +284,8 @@ bool Node::ValidateDB() {
     dsComm.emplace_back(dsKey, Peer());
   }
 
-  if (ENABLE_INCR_DB) {
-    if (IncrementalDB::GetInstance().VerifyAll(dsComm,
-                                               *m_mediator.m_validator)) {
-      LOG_GENERAL(INFO, "Success");
-      return true;
-    } else {
-      LOG_GENERAL(INFO, "Failed");
-      return false;
-    }
-  }
+  if (!ENABLE_INCR_DB) {
+    
 
   std::list<BlockLink> blocklinks;
   if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
@@ -412,6 +404,21 @@ bool Node::ValidateDB() {
   LOG_GENERAL(INFO, "ValidateDB Success");
 
   BlockStorage::GetBlockStorage().ReleaseDB();
+
+}
+else
+{
+  if(!IncrementalDB::GetInstance().VerifyAll(dsComm,
+                              *m_mediator.m_validator))
+  {
+    LOG_GENERAL(WARNING,"IncrementalDB VerifyAll failed")
+  }
+  else
+  {
+    LOG_GENERAL(INFO,"IncrementalDB VerifyAll Success");
+    return false;
+  }
+}
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 

@@ -104,16 +104,64 @@ bool IncrementalDB::PutBlockLink(const uint64_t& index, const bytes& body) {
   return (ret == 0);
 }
 
-void IncrementalDB::Init() {
-  const std::string path_abs = "./" + m_path;
-  if (!boost::filesystem::exists(path_abs)) {
-    boost::filesystem::create_directories(path_abs);
+enum BaseStateIndex
+  {
+    EPOCH_NUM = 0,
+    STATE = 1
+  };
+
+
+bool IncrementalDB::PutBaseState(const uint64_t& currentEpochNum, const bytes& body)
+{
+  
+  bytes epochNumSer;
+
+  bool ret = false;
+
+  Serializable::SetNumber<uint64_t>(epochNumSer,0,currentEpochNum, sizeof(uint64_t));
+
+  ret = (0 == m_baseStateDB->Insert(EPOCH_NUM, epochNumSer));
+  ret = ret && (0 == m_baseStateDB->Insert(STATE, body));
+
+  return ret;
+}
+
+bool IncrementalDB::GetBaseState(uint64_t& epochNum,  bytes& body)
+{
+  
+  string epochNumString = m_baseStateDB->Lookup(EPOCH_NUM);
+
+  string stateString = m_baseStateDB->Lookup(STATE);
+
+  if(epochNumString.empty())
+  {
+    LOG_GENERAL(WARNING, "Failed to get the epoch number");
+    return false;
   }
 
-  string emptyString;
-  emptyString.clear();
-  m_blockLinkDB = make_shared<LevelDB>(m_blockLinkDBName, m_path, emptyString);
+  if(stateString.empty())
+  {
+    LOG_GENERAL(WARNING, "Failed to get state");
+    return false;
+  }
 
+  epochNum = Serializable::GetNumber<uint64_t>(bytes(epochNumString.begin(), epochNumString.end()), 0, sizeof(uint64_t));
+
+  body = bytes(stateString.begin(), stateString.end());
+
+  return true;
+
+}
+
+void IncrementalDB::Init() {
+  const std::string path_rel = "./" + m_path;
+  if (!boost::filesystem::exists(path_rel)) {
+    boost::filesystem::create_directories(path_rel);
+  }
+
+
+  m_blockLinkDB = make_shared<LevelDB>(m_blockLinkDBName, m_path, string(""));
+  m_baseStateDB = make_shared<LevelDB>(m_baseStateDBName, m_path, string(""));
   for (auto const& dbName :
        {m_txBodyDBName, m_microBlockDBName, m_VCBlockDBName, m_DSBlockDBName,
         m_FallbackBlockDBName, m_TxBlockDBName}) {
@@ -151,7 +199,6 @@ bool IncrementalDB::GetAllBlockLink(list<BlockLink>& blocklinks) {
     blocklinks.emplace_back(blcklink);
     LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
   }
-  delete it;
   if (blocklinks.empty()) {
     LOG_GENERAL(INFO, "Disk has no blocklink");
     return false;
@@ -160,10 +207,10 @@ bool IncrementalDB::GetAllBlockLink(list<BlockLink>& blocklinks) {
 }
 bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
   lastDSEpoch = 0;
-  uint64_t temp = -1;
-  const string path_abs = "./" + m_path;
+  uint64_t temp = INIT_BLOCK_NUMBER;
+  const string path_rel = "./" + m_path;
 
-  for (boost::filesystem::directory_iterator itr(path_abs);
+  for (boost::filesystem::directory_iterator itr(path_rel);
        itr != boost::filesystem::directory_iterator(); ++itr) {
     if (boost::filesystem::is_directory(itr->status())) {
       try {

@@ -34,6 +34,7 @@ class IncrementalDB : public Singleton<IncrementalDB> {
   std::unordered_map<std::string, std::pair<uint64_t, std::shared_ptr<LevelDB>>>
       m_DBPointer;
   std::shared_ptr<LevelDB> m_blockLinkDB;
+  std::shared_ptr<LevelDB> m_baseStateDB;
 
   const std::string m_path;
   const std::string m_txBodyDBName;
@@ -43,6 +44,7 @@ class IncrementalDB : public Singleton<IncrementalDB> {
   const std::string m_FallbackBlockDBName;
   const std::string m_DSBlockDBName;
   const std::string m_blockLinkDBName;
+  const std::string m_baseStateDBName;
 
   void ChangeDBPointer(const uint64_t& dsEpoch, const std::string& dbName);
 
@@ -55,7 +57,8 @@ class IncrementalDB : public Singleton<IncrementalDB> {
         m_VCBlockDBName("VCBlockDB"),
         m_FallbackBlockDBName("FallbackBlockDB"),
         m_DSBlockDBName("DSBlockDB"),
-        m_blockLinkDBName("blockLinkDB") {}
+        m_blockLinkDBName("blockLinkDB"),
+        m_baseStateDBName("baseStateDB") {}
 
   void Init();
 
@@ -71,6 +74,9 @@ class IncrementalDB : public Singleton<IncrementalDB> {
                         const uint64_t& dsEpoch);
   bool PutVCBlock(const BlockHash& blockHash, const bytes& body,
                   const uint64_t& dsEpoch);
+  bool PutBaseState(const uint64_t& epochNum , const bytes& body);
+
+  bool GetBaseState(uint64_t& epochNum,  bytes& body);
 
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
