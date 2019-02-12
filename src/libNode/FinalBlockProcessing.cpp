@@ -693,6 +693,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   BlockStorage::GetBlockStorage().PutStateDelta(
       txBlock.GetHeader().GetBlockNum(), stateDelta);
 
+  if(ENABLE_INCR_DB)
+  {
+    IncrementalDB::GetInstance().PutStateDelta(txBlock.GetHeader().GetDSBlockNum(),txBlock.GetHeader().GetBlockNum(), stateDelta);
+  }
+
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
     RejoinAsNormal();

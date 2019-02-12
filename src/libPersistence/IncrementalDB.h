@@ -45,6 +45,7 @@ class IncrementalDB : public Singleton<IncrementalDB> {
   const std::string m_DSBlockDBName;
   const std::string m_blockLinkDBName;
   const std::string m_baseStateDBName;
+  const std::string m_stateDeltaDBName;
 
   void ChangeDBPointer(const uint64_t& dsEpoch, const std::string& dbName);
 
@@ -76,9 +77,9 @@ class IncrementalDB : public Singleton<IncrementalDB> {
                   const uint64_t& dsEpoch);
   bool PutBaseState(const uint64_t& epochNum , const bytes& body);
 
-  bool GetBaseState(uint64_t& epochNum,  bytes& body);
-
   bool PutBlockLink(const uint64_t& index, const bytes& body);
+
+  bool PutStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& body);
 
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
 
@@ -98,6 +99,10 @@ class IncrementalDB : public Singleton<IncrementalDB> {
                      MicroBlockSharedPtr& microblock);
   bool GetTxnBody(const uint64_t& dsEpochNum, const dev::h256& key,
                   TxBodySharedPtr& body);
+  bool GetBaseState(uint64_t& epochNum,  bytes& body);
+
+  bool GetStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& stateDelta);
+
   bool VerifyAll(const DequeOfNode& initialDScommittee,
                  const ValidatorBase& validator);
 };

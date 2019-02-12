@@ -153,6 +153,19 @@ bool IncrementalDB::GetBaseState(uint64_t& epochNum,  bytes& body)
 
 }
 
+
+bool IncrementalDB::PutStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& body)
+{
+  ChangeDBPointer(dsEpochNum, m_stateDeltaDBName);
+
+  int ret = -1;
+
+  ret= m_DBPointer.at(m_stateDeltaDBName).second->Insert(txEpoch, body);
+
+  return (ret == 0);
+}
+
+
 void IncrementalDB::Init() {
   const std::string path_rel = "./" + m_path;
   if (!boost::filesystem::exists(path_rel)) {
@@ -164,12 +177,14 @@ void IncrementalDB::Init() {
   m_baseStateDB = make_shared<LevelDB>(m_baseStateDBName, m_path, string(""));
   for (auto const& dbName :
        {m_txBodyDBName, m_microBlockDBName, m_VCBlockDBName, m_DSBlockDBName,
-        m_FallbackBlockDBName, m_TxBlockDBName}) {
+        m_FallbackBlockDBName, m_TxBlockDBName, m_stateDeltaDBName}) {
     m_DBPointer.emplace(
         dbName,
         make_pair(0, make_shared<LevelDB>(dbName, m_path, (string) "0")));
   }
 }
+
+
 
 bool IncrementalDB::GetAllBlockLink(list<BlockLink>& blocklinks) {
   LOG_MARKER();
@@ -205,6 +220,7 @@ bool IncrementalDB::GetAllBlockLink(list<BlockLink>& blocklinks) {
   }
   return true;
 }
+
 bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
   lastDSEpoch = 0;
   uint64_t temp = INIT_BLOCK_NUMBER;
@@ -226,13 +242,27 @@ bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
     }
   }
 
-  if ((uint64_t)-1 ==
+  if ( INIT_BLOCK_NUMBER ==
       temp)  // Means that temp did not set a valid value at some point
   {
     LOG_GENERAL(WARNING, "Failed to get Latest Epoch");
     return false;
   }
 
+  return true;
+}
+
+
+bool IncrementalDB::GetStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& stateDelta)
+{
+  ChangeDBPointer(dsEpochNum, m_stateDeltaDBName);
+  string dataStr = m_DBPointer.at(m_stateDeltaDBName).second->Lookup(txEpoch);
+  if(dataStr.empty())
+  {
+    LOG_GENERAL(WARNING, "State delta empty");
+    return false;
+  }
+  stateDelta = bytes(dataStr.begin(), dataStr.end());
   return true;
 }
 
@@ -260,7 +290,7 @@ bool IncrementalDB::GetAllTxBlocksEpoch(std::list<TxBlock>& blocks,
   delete it;
 
   if (blocks.empty()) {
-    LOG_GENERAL(INFO, "Disk has no TxBlock");
+    LOG_GENERAL(WARNING, "Disk has no TxBlock");
     return false;
   }
 
