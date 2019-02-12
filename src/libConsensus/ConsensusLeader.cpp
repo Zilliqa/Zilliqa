@@ -165,17 +165,17 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       // check if we fall short of commits from dsguards
       if (subsetPeers < m_numForConsensus) {
         // Add from rest of nondsguards commits
-        LOG_GENERAL(
-            WARNING,
-            "[SubsetID: "
-                << i << "] Did'nt got all commits from ds-guards. Expected = "
-                << m_numForConsensus << ", Received = " << subsetPeers);
-        LOG_GENERAL(WARNING, "Will consider commits from non-dsguard nodes");
+        LOG_GENERAL(WARNING, "[SubsetID: " << i << "] Guards = " << subsetPeers
+                                           << ", Non-guards = "
+                                           << m_numForConsensus - subsetPeers);
 
         for (auto index : nondsguardIndexes) {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
+          if (++subsetPeers >= m_numForConsensus) {
+            break;
+          }
         }
       }
     }
@@ -221,7 +221,7 @@ void ConsensusLeader::StartConsensusSubsets() {
 
   m_numSubsetsRunning = m_consensusSubsets.size();
   // subset 0 last to be started. giving community nodes the advantage
-  for (unsigned index = m_consensusSubsets.size(); index > 0; index--) {
+  for (unsigned int index = m_consensusSubsets.size(); index > 0; index--) {
     // If overall state has somehow transitioned from CHALLENGE_DONE or
     // FINALCHALLENGE_DONE then it means consensus has ended and there's no
     // point in starting another subset
@@ -231,9 +231,8 @@ void ConsensusLeader::StartConsensusSubsets() {
 
     // delay starting every subset to avoid network congestion
     if (index < m_consensusSubsets.size()) {
-      LOG_GENERAL(INFO, "Waiting for "
-                            << DELAY_NEXT_SUBSET_START
-                            << " seconds before starting another subset");
+      LOG_GENERAL(INFO, "[SubsetID: " << index << "] Waiting "
+                                      << DELAY_NEXT_SUBSET_START << " seconds");
       this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
     }
     ConsensusSubset& subset = m_consensusSubsets.at(index - 1);
