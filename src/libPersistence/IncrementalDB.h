@@ -75,11 +75,12 @@ class IncrementalDB : public Singleton<IncrementalDB> {
                         const uint64_t& dsEpoch);
   bool PutVCBlock(const BlockHash& blockHash, const bytes& body,
                   const uint64_t& dsEpoch);
-  bool PutBaseState(const uint64_t& epochNum , const bytes& body);
+  bool PutBaseState(const uint64_t& epochNum, const bytes& body);
 
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
-  bool PutStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& body);
+  bool PutStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch,
+                     bytes& body);
 
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
 
@@ -99,9 +100,10 @@ class IncrementalDB : public Singleton<IncrementalDB> {
                      MicroBlockSharedPtr& microblock);
   bool GetTxnBody(const uint64_t& dsEpochNum, const dev::h256& key,
                   TxBodySharedPtr& body);
-  bool GetBaseState(uint64_t& epochNum,  bytes& body);
+  bool GetBaseState(uint64_t& epochNum, bytes& body);
 
-  bool GetStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& stateDelta);
+  bool GetStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch,
+                     bytes& stateDelta);
 
   bool VerifyAll(const DequeOfNode& initialDScommittee,
                  const ValidatorBase& validator);

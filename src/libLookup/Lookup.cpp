@@ -1927,9 +1927,9 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if(ENABLE_INCR_DB)
-  {
-    IncrementalDB::GetInstance().PutBaseState(m_mediator.m_currentEpochNum, accountStoreBytes);
+  if (ENABLE_INCR_DB) {
+    IncrementalDB::GetInstance().PutBaseState(m_mediator.m_currentEpochNum,
+                                              accountStoreBytes);
   }
 
   if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
@@ -2755,7 +2755,7 @@ bool Lookup::GetMyLookupOffline() {
                 "other than the LookUp node.");
     return true;
   }
-  
+
   LOG_MARKER();
 
   {
@@ -2779,7 +2779,6 @@ bool Lookup::GetMyLookupOffline() {
 
   SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
   return true;
-  
 }
 
 bool Lookup::GetMyLookupOnline() {

@@ -104,21 +104,16 @@ bool IncrementalDB::PutBlockLink(const uint64_t& index, const bytes& body) {
   return (ret == 0);
 }
 
-enum BaseStateIndex
-  {
-    EPOCH_NUM = 0,
-    STATE = 1
-  };
+enum BaseStateIndex { EPOCH_NUM = 0, STATE = 1 };
 
-
-bool IncrementalDB::PutBaseState(const uint64_t& currentEpochNum, const bytes& body)
-{
-  
+bool IncrementalDB::PutBaseState(const uint64_t& currentEpochNum,
+                                 const bytes& body) {
   bytes epochNumSer;
 
   bool ret = false;
 
-  Serializable::SetNumber<uint64_t>(epochNumSer,0,currentEpochNum, sizeof(uint64_t));
+  Serializable::SetNumber<uint64_t>(epochNumSer, 0, currentEpochNum,
+                                    sizeof(uint64_t));
 
   ret = (0 == m_baseStateDB->Insert(EPOCH_NUM, epochNumSer));
   ret = ret && (0 == m_baseStateDB->Insert(STATE, body));
@@ -126,52 +121,45 @@ bool IncrementalDB::PutBaseState(const uint64_t& currentEpochNum, const bytes& b
   return ret;
 }
 
-bool IncrementalDB::GetBaseState(uint64_t& epochNum,  bytes& body)
-{
-  
+bool IncrementalDB::GetBaseState(uint64_t& epochNum, bytes& body) {
   string epochNumString = m_baseStateDB->Lookup(EPOCH_NUM);
 
   string stateString = m_baseStateDB->Lookup(STATE);
 
-  if(epochNumString.empty())
-  {
+  if (epochNumString.empty()) {
     LOG_GENERAL(WARNING, "Failed to get the epoch number");
     return false;
   }
 
-  if(stateString.empty())
-  {
+  if (stateString.empty()) {
     LOG_GENERAL(WARNING, "Failed to get state");
     return false;
   }
 
-  epochNum = Serializable::GetNumber<uint64_t>(bytes(epochNumString.begin(), epochNumString.end()), 0, sizeof(uint64_t));
+  epochNum = Serializable::GetNumber<uint64_t>(
+      bytes(epochNumString.begin(), epochNumString.end()), 0, sizeof(uint64_t));
 
   body = bytes(stateString.begin(), stateString.end());
 
   return true;
-
 }
 
-
-bool IncrementalDB::PutStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& body)
-{
+bool IncrementalDB::PutStateDelta(const uint64_t& dsEpochNum,
+                                  const uint64_t& txEpoch, bytes& body) {
   ChangeDBPointer(dsEpochNum, m_stateDeltaDBName);
 
   int ret = -1;
 
-  ret= m_DBPointer.at(m_stateDeltaDBName).second->Insert(txEpoch, body);
+  ret = m_DBPointer.at(m_stateDeltaDBName).second->Insert(txEpoch, body);
 
   return (ret == 0);
 }
-
 
 void IncrementalDB::Init() {
   const std::string path_rel = "./" + m_path;
   if (!boost::filesystem::exists(path_rel)) {
     boost::filesystem::create_directories(path_rel);
   }
-
 
   m_blockLinkDB = make_shared<LevelDB>(m_blockLinkDBName, m_path, string(""));
   m_baseStateDB = make_shared<LevelDB>(m_baseStateDBName, m_path, string(""));
@@ -183,8 +171,6 @@ void IncrementalDB::Init() {
         make_pair(0, make_shared<LevelDB>(dbName, m_path, (string) "0")));
   }
 }
-
-
 
 bool IncrementalDB::GetAllBlockLink(list<BlockLink>& blocklinks) {
   LOG_MARKER();
@@ -242,7 +228,7 @@ bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
     }
   }
 
-  if ( INIT_BLOCK_NUMBER ==
+  if (INIT_BLOCK_NUMBER ==
       temp)  // Means that temp did not set a valid value at some point
   {
     LOG_GENERAL(WARNING, "Failed to get Latest Epoch");
@@ -252,13 +238,11 @@ bool IncrementalDB::GetLatestDSEpochStorage(uint64_t& lastDSEpoch) {
   return true;
 }
 
-
-bool IncrementalDB::GetStateDelta(const uint64_t& dsEpochNum, const uint64_t& txEpoch, bytes& stateDelta)
-{
+bool IncrementalDB::GetStateDelta(const uint64_t& dsEpochNum,
+                                  const uint64_t& txEpoch, bytes& stateDelta) {
   ChangeDBPointer(dsEpochNum, m_stateDeltaDBName);
   string dataStr = m_DBPointer.at(m_stateDeltaDBName).second->Lookup(txEpoch);
-  if(dataStr.empty())
-  {
+  if (dataStr.empty()) {
     LOG_GENERAL(WARNING, "State delta empty");
     return false;
   }

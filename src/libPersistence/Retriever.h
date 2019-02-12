@@ -30,8 +30,10 @@ class Retriever {
  public:
   Retriever(Mediator& mediator);
 
-  bool RetrieveTxBlocks(bool trimIncompletedBlocks, bool putInIncremental = false);
-  bool RetrieveBlockLink(bool trimIncompletedBlocks, bool putInIncremental = false);
+  bool RetrieveTxBlocks(bool trimIncompletedBlocks,
+                        bool putInIncremental = false);
+  bool RetrieveBlockLink(bool trimIncompletedBlocks,
+                         bool putInIncremental = false);
   bool RetrieveStates();
   bool ValidateStates();
   bool CleanExtraTxBodies();

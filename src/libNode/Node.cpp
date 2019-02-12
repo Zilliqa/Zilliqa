@@ -285,140 +285,134 @@ bool Node::ValidateDB() {
   }
 
   if (!ENABLE_INCR_DB) {
-    
-
-  std::list<BlockLink> blocklinks;
-  if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
-    LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
-    return false;
-  }
-
-  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
-    return std::get<BlockLinkIndex::INDEX>(a) <
-           std::get<BlockLinkIndex::INDEX>(b);
-  });
-
-  std::list<TxBlockSharedPtr> txblocks;
-  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
-    LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
-    return false;
-  }
-
-  txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
-
-  const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
-  const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
-
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      dirBlocks;
-  for (const auto& blocklink : blocklinks) {
-    if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
-      auto blockNum = get<BlockLinkIndex::DSINDEX>(blocklink);
-      if (blockNum == 0) {
-        continue;
-      }
-      DSBlockSharedPtr dsblock;
-      if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
-        LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
-        return false;
-      }
-      if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
-        LOG_GENERAL(INFO, "Break off at "
-                              << latestTxBlockNum << " " << latestDSIndex << " "
-                              << dsblock->GetHeader().GetBlockNum() << " "
-                              << dsblock->GetHeader().GetEpochNum());
-        break;
-      }
-      dirBlocks.emplace_back(*dsblock);
-
-    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
-      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
-      VCBlockSharedPtr vcblock;
-      if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
-        LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
-        return false;
-      }
-      if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
-        break;
-      }
-      dirBlocks.emplace_back(*vcblock);
-    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
-      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
-      FallbackBlockSharedPtr fallbackwshardingstruct;
-      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
-              std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
-              fallbackwshardingstruct)) {
-        LOG_GENERAL(WARNING, "Could not retrieve FB blocks " << blockHash);
-        return false;
-      }
-      dirBlocks.emplace_back(*fallbackwshardingstruct);
+    std::list<BlockLink> blocklinks;
+    if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
+      LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
+      return false;
     }
-  }
 
-  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
-    LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
-    return false;
-  }
+    blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+      return std::get<BlockLinkIndex::INDEX>(a) <
+             std::get<BlockLinkIndex::INDEX>(b);
+    });
 
-  vector<TxBlock> txBlocks;
+    std::list<TxBlockSharedPtr> txblocks;
+    if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
+      LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
+      return false;
+    }
 
-  for (const auto& txblock : txblocks) {
-    txBlocks.emplace_back(*txblock);
-  }
+    txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+      return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
 
-  if (m_mediator.m_validator->CheckTxBlocks(
-          txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
-      ValidatorBase::TxBlockValidationMsg::VALID) {
-    LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
-    return false;
-  }
+    const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+    const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
 
-  for (uint i = 1; i < txBlocks.size(); i++) {
-    auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
-    for (const auto& mbInfo : microblockInfos) {
-      MicroBlockSharedPtr mbptr;
-      LOG_GENERAL(INFO, mbInfo.m_shardId);
-      /// Skip because empty microblocks are not stored
-      if (mbInfo.m_txnRootHash == TxnHash()) {
-        continue;
-      }
-      if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
-                                                        mbptr)) {
-        auto tranHashes = mbptr->GetTranHashes();
-        for (const auto& tranHash : tranHashes) {
-          TxBodySharedPtr tx;
-          if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
-            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
-            return false;
-          }
+    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+        dirBlocks;
+    for (const auto& blocklink : blocklinks) {
+      if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
+        auto blockNum = get<BlockLinkIndex::DSINDEX>(blocklink);
+        if (blockNum == 0) {
+          continue;
         }
-      } else {
-        LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
-                                 << "failed to fetch microblock");
-        return false;
+        DSBlockSharedPtr dsblock;
+        if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
+          LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
+          return false;
+        }
+        if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+          LOG_GENERAL(INFO, "Break off at "
+                                << latestTxBlockNum << " " << latestDSIndex
+                                << " " << dsblock->GetHeader().GetBlockNum()
+                                << " " << dsblock->GetHeader().GetEpochNum());
+          break;
+        }
+        dirBlocks.emplace_back(*dsblock);
+
+      } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
+        auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+        VCBlockSharedPtr vcblock;
+        if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
+          LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
+          return false;
+        }
+        if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
+          break;
+        }
+        dirBlocks.emplace_back(*vcblock);
+      } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
+        auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+        FallbackBlockSharedPtr fallbackwshardingstruct;
+        if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
+                std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
+                fallbackwshardingstruct)) {
+          LOG_GENERAL(WARNING, "Could not retrieve FB blocks " << blockHash);
+          return false;
+        }
+        dirBlocks.emplace_back(*fallbackwshardingstruct);
       }
     }
-  }
-  LOG_GENERAL(INFO, "ValidateDB Success");
 
-  BlockStorage::GetBlockStorage().ReleaseDB();
+    if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
+      LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
+      return false;
+    }
 
-}
-else
-{
-  if(!IncrementalDB::GetInstance().VerifyAll(dsComm,
-                              *m_mediator.m_validator))
-  {
-    LOG_GENERAL(WARNING,"IncrementalDB VerifyAll failed")
+    vector<TxBlock> txBlocks;
+
+    for (const auto& txblock : txblocks) {
+      txBlocks.emplace_back(*txblock);
+    }
+
+    if (m_mediator.m_validator->CheckTxBlocks(
+            txBlocks, dsComm,
+            m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
+        ValidatorBase::TxBlockValidationMsg::VALID) {
+      LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
+      return false;
+    }
+
+    for (uint i = 1; i < txBlocks.size(); i++) {
+      auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
+      for (const auto& mbInfo : microblockInfos) {
+        MicroBlockSharedPtr mbptr;
+        LOG_GENERAL(INFO, mbInfo.m_shardId);
+        /// Skip because empty microblocks are not stored
+        if (mbInfo.m_txnRootHash == TxnHash()) {
+          continue;
+        }
+        if (BlockStorage::GetBlockStorage().GetMicroBlock(
+                mbInfo.m_microBlockHash, mbptr)) {
+          auto tranHashes = mbptr->GetTranHashes();
+          for (const auto& tranHash : tranHashes) {
+            TxBodySharedPtr tx;
+            if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+              LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
+              return false;
+            }
+          }
+        } else {
+          LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
+                                   << "failed to fetch microblock");
+          return false;
+        }
+      }
+    }
+    LOG_GENERAL(INFO, "ValidateDB Success");
+
+    BlockStorage::GetBlockStorage().ReleaseDB();
+
+  } else {
+    if (!IncrementalDB::GetInstance().VerifyAll(dsComm,
+                                                *m_mediator.m_validator)) {
+      LOG_GENERAL(WARNING, "IncrementalDB VerifyAll failed")
+    } else {
+      LOG_GENERAL(INFO, "IncrementalDB VerifyAll Success");
+      return false;
+    }
   }
-  else
-  {
-    LOG_GENERAL(INFO,"IncrementalDB VerifyAll Success");
-    return false;
-  }
-}
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 
