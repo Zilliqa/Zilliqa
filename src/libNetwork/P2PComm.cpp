@@ -227,17 +227,17 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
                           sizeof(serv_addr))) < 0) {
       if (errno != EINPROGRESS) {
+        LOG_GENERAL(WARNING, "Error connecting(1), Cancelling connection!");
         connectStat = false;
       } else {
         timeout.tv_sec = CONNECTION_TIMEOUT_IN_SECONDS;
         timeout.tv_usec = 0;
         FD_ZERO(&myset);
         FD_SET(cli_sock, &myset);
-
         status = select(cli_sock + 1, NULL, &myset, NULL, &timeout);
 
         if (status < 0 && errno != EINTR) {
-          LOG_GENERAL(WARNING, "Error connecting, Cancelling connection!");
+          LOG_GENERAL(WARNING, "Error connecting(2), Cancelling connection!");
           connectStat = false;
         } else if (status > 0) {
           // Socket selected for write
@@ -246,9 +246,10 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                          &lon) < 0) {
             LOG_GENERAL(WARNING, "Error in getsockopt, Cancelling connection!");
             connectStat = false;
-          }
-          // Check the value returned...
-          if (valopt) {
+          }  // Check the value returned...
+          else if (valopt) {
+            LOG_GENERAL(WARNING, "Error in delayed connection() : "
+                                     << valopt << " - " << strerror(valopt));
             connectStat = false;
           }
         } else {
@@ -256,21 +257,15 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
           connectStat = false;
         }
       }
-    } else {
-      connectStat = false;
     }
 
-    if (!connectStat) {
-      LOG_GENERAL(WARNING, "Socket connect failed. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address: " << peer);
-      if (P2PComm::IsHostHavingNetworkIssue()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " to blacklist");
-        Blacklist::GetInstance().Add(peer.m_ipAddress);
-      }
+    if (!connectStat) {  // Rule : if connectStat is false, always blacklist
+                         // them.
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
       return false;
     }
 
