@@ -68,6 +68,7 @@ int main(int argc, const char* argv[]) {
         "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
+        "loadconfig,l", "Loads configuration if set (deprecated)")(
         "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set");
 
@@ -157,6 +158,10 @@ int main(int argc, const char* argv[]) {
       my_network_info = Peer(ip, mappedPort);
     } else {
       my_network_info = Peer(ip, port);
+    }
+
+    if (vm.count("loadconfig")) {
+      std::cout << "WARNING: loadconfig deprecated" << std::endl;
     }
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info, synctype,
