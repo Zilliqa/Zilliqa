@@ -1098,8 +1098,7 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
   }
 }
 
-void DirectoryService::RunConsensusOnFinalBlock(
-    RunFinalBlockConsensusOptions options) {
+void DirectoryService::RunConsensusOnFinalBlock() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1137,16 +1136,8 @@ void DirectoryService::RunConsensusOnFinalBlock(
 
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
-    switch (options) {
-      case NORMAL: {
-        LOG_GENERAL(INFO, "RunConsensusOnFinalBlock NORMAL");
-        PrepareRunConsensusOnFinalBlockNormal();
-        break;
-      }
-      case FROM_VIEWCHANGE:
-      default:
-        break;
-    }
+    LOG_GENERAL(INFO, "RunConsensusOnFinalBlock ");
+    PrepareRunConsensusOnFinalBlockNormal();
 
     // Upon consensus object creation failure, one should not return from the
     // function, but rather wait for view change.
