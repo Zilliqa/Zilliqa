@@ -53,6 +53,7 @@ class ConsensusLeader : public ConsensusCommon {
   // Consensus session settings
   unsigned int m_numForConsensus;
   unsigned int m_numForConsensusFailure;
+  unsigned int m_txnProcessingTimeout;
 
   bool m_DS;
   unsigned int m_numOfSubsets;
@@ -62,7 +63,8 @@ class ConsensusLeader : public ConsensusCommon {
 
   std::mutex m_mutexAnnounceSubsetConsensus;
   std::condition_variable cv_scheduleSubsetConsensus;
-  bool m_allCommitsReceived;
+  bool m_sufficientCommitsReceived;
+  unsigned int m_sufficientCommitsNumForSubsets;
 
   std::vector<bool> m_commitMap;
   std::vector<CommitPoint>

@@ -231,7 +231,7 @@ void ConsensusLeader::StartConsensusSubsets() {
 
     // delay starting every subset to avoid network congestion
     if (index < m_consensusSubsets.size()) {
-      LOG_GENERAL(INFO, "[SubsetID: " << index << "] Waiting "
+      LOG_GENERAL(INFO, "[SubsetID: " << index - 1 << "] Waiting "
                                       << DELAY_NEXT_SUBSET_START << " seconds");
       this_thread::sleep_for(chrono::seconds(DELAY_NEXT_SUBSET_START));
     }
@@ -389,9 +389,9 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   if (m_numOfSubsets > 1) {
     // notify the waiting thread to start with subset creations and subset
     // consensus.
-    if (m_commitCounter == m_committee.size()) {
+    if (m_commitCounter == m_sufficientCommitsNumForSubsets) {
       lock_guard<mutex> g(m_mutexAnnounceSubsetConsensus);
-      m_allCommitsReceived = true;
+      m_sufficientCommitsReceived = true;
       cv_scheduleSubsetConsensus.notify_all();
     }
   } else {
@@ -679,12 +679,13 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         // =================================
         auto func = [this]() -> void {
           std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
-          m_allCommitsReceived = false;
+          m_sufficientCommitsReceived = false;
           if (cv_scheduleSubsetConsensus.wait_for(
                   cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
-                  [&] { return m_allCommitsReceived; })) {
-            LOG_GENERAL(
-                INFO, "Received all final commits within the Commit window. !!")
+                  [&] { return m_sufficientCommitsReceived; })) {
+            LOG_GENERAL(INFO,
+                        "Received sufficient final commits within the Commit "
+                        "window. !!")
           } else {
             LOG_GENERAL(INFO,
                         "Timeout - Final Commit window closed. Will process "
@@ -817,16 +818,27 @@ ConsensusLeader::ConsensusLeader(
   m_commitPointMap.at(m_myID) = *m_commitPoint;
   m_commitCounter = 1;
 
-  m_allCommitsReceived = false;
+  m_sufficientCommitsReceived = false;
   m_commitRedundantCounter = 0;
   m_commitFailureCounter = 0;
   m_numSubsetsRunning = 0;
+
+  m_txnProcessingTimeout = std::max(
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT) /
+             2);
+
+  m_sufficientCommitsNumForSubsets =
+      ceil((double)m_committee.size() * COMMIT_TOLERANCE_PERCENT / 100);
 
   LOG_GENERAL(INFO, "Consensus ID      = " << m_consensusID);
   LOG_GENERAL(INFO, "Leader/My ID      = " << m_myID);
   LOG_GENERAL(INFO, "Committee size    = " << committee.size());
   LOG_GENERAL(INFO, "Num for consensus = " << m_numForConsensus);
   LOG_GENERAL(INFO, "Num for failure   = " << m_numForConsensusFailure);
+  LOG_GENERAL(INFO, "Num for commits before subset-creation = "
+                        << m_sufficientCommitsNumForSubsets);
 }
 
 ConsensusLeader::~ConsensusLeader() {}
@@ -883,11 +895,14 @@ bool ConsensusLeader::StartConsensus(
     // =================================
     auto func = [this]() -> void {
       std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
-      m_allCommitsReceived = false;
+      m_sufficientCommitsReceived = false;
       if (cv_scheduleSubsetConsensus.wait_for(
-              cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
-              [&] { return m_allCommitsReceived; })) {
-        LOG_GENERAL(INFO, "Received all commits within the Commit window. !!");
+              cv_lk,
+              std::chrono::seconds(m_txnProcessingTimeout +
+                                   COMMIT_WINDOW_IN_SECONDS),
+              [&] { return m_sufficientCommitsReceived; })) {
+        LOG_GENERAL(INFO,
+                    "Received sufficient commits within the Commit window. !!");
       } else {
         LOG_GENERAL(
             INFO,
