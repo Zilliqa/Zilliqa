@@ -62,7 +62,6 @@ const vector<string> ReadAccountsFromConstantsFile(string propName) {
 
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
-const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};

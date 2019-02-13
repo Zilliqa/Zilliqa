@@ -1740,56 +1740,11 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
+bool Node::ProcessDoRejoin([[gnu::unused]] const bytes& message,
+                           [[gnu::unused]] unsigned int offset,
                            [[gnu::unused]] const Peer& from) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ProcessDoRejoin not expected to be called from "
-                "LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  if (!ENABLE_DO_REJOIN) {
-    return false;
-  }
-
-  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
-    LOG_GENERAL(WARNING, "Already in rejoining!");
-    return false;
-  }
-
-  unsigned int cur_offset = offset;
-
-  if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                 MessageOffset::INST)) {
-    return false;
-  }
-
-  unsigned char rejoinType = message[cur_offset];
-  cur_offset += MessageOffset::INST;
-
-  switch (rejoinType) {
-    case REJOINTYPE::ATFINALBLOCK:
-      m_doRejoinAtFinalBlock = true;
-      break;
-    case REJOINTYPE::ATNEXTROUND:
-      m_doRejoinAtNextRound = true;
-      break;
-    case REJOINTYPE::ATSTATEROOT:
-      m_doRejoinAtStateRoot = true;
-      break;
-    case REJOINTYPE::ATDSCONSENSUS:
-      m_mediator.m_ds->m_doRejoinAtDSConsensus = true;
-      break;
-    case REJOINTYPE::ATFINALCONSENSUS:
-      m_mediator.m_ds->m_doRejoinAtFinalConsensus = true;
-      break;
-    default:
-      return false;
-  }
-  return true;
+  LOG_GENERAL(WARNING, "Function not in use");
+  return false;
 }
 
 void Node::QueryLookupForDSGuardNetworkInfoUpdate() {

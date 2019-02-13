@@ -121,7 +121,6 @@ const float ONE_HUNDRED_PERCENT = 100.f;
 
 // General constants
 extern const unsigned int DEBUG_LEVEL;
-extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
