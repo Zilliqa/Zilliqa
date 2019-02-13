@@ -77,6 +77,18 @@ int main() {
     }
   }
 
+  // Assuming the state in storage is latest
+  retriever.RetrieveStates();
+  if (!retriever.ValidateStates()) {
+    cout << "Failed to ValidateStates" << endl;
+    return 1;
+  }
+
+  bytes tmpState;
+  AccountStore::GetInstance().Serialize(tmpState, 0);
+
+  IncrementalDB::GetInstance().PutBaseState(latestTxBlockNum, tmpState);
+
   cout << "Conversion from consildated DB to IncrementalDB success";
   return 0;
 }
