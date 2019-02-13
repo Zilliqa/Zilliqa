@@ -195,9 +195,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
-  bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
-  bool GetStateFromLookupNodes();
   bool GetStateFromSeedNodes();
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
