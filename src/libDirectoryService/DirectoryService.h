@@ -31,7 +31,6 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libCrypto/Schnorr.h"
@@ -41,7 +40,6 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerStore.h"
 #include "libNetwork/ShardStruct.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
@@ -109,7 +107,7 @@ using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
 
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
-class DirectoryService : public Executable, public Broadcastable {
+class DirectoryService : public Executable {
   std::chrono::system_clock::time_point m_timespec;
 
   enum Action {
@@ -561,10 +559,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// Start synchronization with lookup as a DS node
   void StartSynchronization();
-
-  /// Implements the GetBroadcastList function inherited from Broadcastable.
-  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                     const Peer& broadcast_originator);
 
   /// Launches separate thread to execute sharding consensus after wait_window
   /// seconds.

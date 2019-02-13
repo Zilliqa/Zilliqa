@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "libCrypto/MultiSig.h"
-#include "libNetwork/PeerStore.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/TimeLockedFunction.h"
 

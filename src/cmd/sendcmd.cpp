@@ -25,7 +25,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerManager.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/SWInfo.h"
@@ -52,57 +51,6 @@ struct message_handler_2 {
   const char* ins;
   handler_func_remote func;
 };
-
-void process_addpeers(const char* progname, const char* cmdname,
-                      vector<string> args, const uint32_t listen_port) {
-  const int min_args_required = 3;
-  int numargs = args.size();
-  if (numargs < min_args_required) {
-    cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
-         << " <33-byte public_key> <ip_addr> <listen_port> ..." << endl;
-  } else {
-    struct in_addr ip_addr;
-    inet_pton(AF_INET, "127.0.0.1", &ip_addr);
-    Peer my_port(uint128_t(ip_addr.s_addr), listen_port);
-
-    for (int i = 0; i < numargs;) {
-      if (i + 2 >= numargs) {
-        break;
-      }
-
-      // Assemble an ADDNODE message
-
-      // Class and Inst bytes
-      bytes addnode_message = {MessageType::PEER,
-                               PeerManager::InstructionType::ADDPEER};
-
-      // Public key
-      // Temporarily just accept the public key as an input (for use with the
-      // peer store)
-      bytes tmp;
-      DataConversion::HexStrToUint8Vec(args[i++].c_str(), tmp);
-
-      addnode_message.resize(MessageOffset::BODY + tmp.size());
-      copy(tmp.begin(), tmp.end(),
-           addnode_message.begin() + MessageOffset::BODY);
-
-      // IP address
-      inet_pton(AF_INET, args[i++].c_str(), &ip_addr);
-      uint128_t tmp2 = ip_addr.s_addr;
-      Serializable::SetNumber<uint128_t>(addnode_message,
-                                         MessageOffset::BODY + PUB_KEY_SIZE,
-                                         tmp2, UINT128_SIZE);
-
-      // Listen port
-      Serializable::SetNumber<uint32_t>(
-          addnode_message, MessageOffset::BODY + PUB_KEY_SIZE + UINT128_SIZE,
-          static_cast<unsigned int>(atoi(args[i++].c_str())), sizeof(uint32_t));
-
-      // Send the ADDNODE message to the local node
-      P2PComm::GetInstance().SendMessageNoQueue(my_port, addnode_message);
-    }
-  }
-}
 
 void process_cmd(const char* progname, const char* cmdname, vector<string> args,
                  const uint32_t listen_port) {
@@ -155,8 +103,7 @@ int main(int argc, const char* argv[]) {
     handler_func cmd_f = NULL;
     handler_func_remote cmd_f_remote = NULL;
     vector<string> cmd_v;
-    const message_handler message_handlers[] = {{"addpeers", &process_addpeers},
-                                                {"cmd", &process_cmd}};
+    const message_handler message_handlers[] = {{"cmd", &process_cmd}};
 
     const message_handler_2 message_handlers_2[] = {
         {"remotecmd", &process_remote_cmd}};
