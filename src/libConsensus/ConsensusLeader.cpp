@@ -823,6 +823,9 @@ ConsensusLeader::ConsensusLeader(
   m_commitFailureCounter = 0;
   m_numSubsetsRunning = 0;
 
+  // Timeout value is referred from `Node::NotifyTimeout`,
+  // It is meant to give backups enough time to finish processing transactions
+  // and send back the commits
   m_txnProcessingTimeout = std::max(
       0, ((int)MICROBLOCK_TIMEOUT -
           ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
@@ -837,8 +840,10 @@ ConsensusLeader::ConsensusLeader(
   LOG_GENERAL(INFO, "Committee size    = " << committee.size());
   LOG_GENERAL(INFO, "Num for consensus = " << m_numForConsensus);
   LOG_GENERAL(INFO, "Num for failure   = " << m_numForConsensusFailure);
-  LOG_GENERAL(INFO, "Num for commits before subset-creation = "
-                        << m_sufficientCommitsNumForSubsets);
+  if (m_DS) {
+    LOG_GENERAL(INFO, "Num for commits before subset-creation = "
+                          << m_sufficientCommitsNumForSubsets);
+  }
 }
 
 ConsensusLeader::~ConsensusLeader() {}
