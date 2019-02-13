@@ -429,7 +429,7 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
         LOG_GENERAL(WARNING, "Could not get ds blocknum " << dsEpoch);
         return false;
       }
-      if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+      if (latestTxBlockNum < dsblock->GetHeader().GetEpochNum()) {
         LOG_GENERAL(INFO, "Break off at "
                               << latestTxBlockNum << " "
                               << dsblock->GetHeader().GetBlockNum() << " "
@@ -440,6 +440,11 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
       directoryBlocks.emplace_back(*dsblock);
     } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
       VCBlockSharedPtr vcblock;
+
+      if (latestTxBlockNum < vcblock->GetHeader().GetViewChangeEpochNo()) {
+        latestBlockLink = blocklink;
+        break;
+      }
 
       if (!GetVCBlock(dsEpoch, blockhash, vcblock)) {
         LOG_GENERAL(WARNING, "Could not get vc blockhash " << blockhash << " "

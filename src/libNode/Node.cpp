@@ -322,7 +322,7 @@ bool Node::ValidateDB() {
           LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
           return false;
         }
-        if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+        if (latestTxBlockNum < dsblock->GetHeader().GetEpochNum()) {
           LOG_GENERAL(INFO, "Break off at "
                                 << latestTxBlockNum << " " << latestDSIndex
                                 << " " << dsblock->GetHeader().GetBlockNum()
@@ -338,7 +338,7 @@ bool Node::ValidateDB() {
           LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
           return false;
         }
-        if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
+        if (latestTxBlockNum < vcblock->GetHeader().GetViewChangeEpochNo()) {
           break;
         }
         dirBlocks.emplace_back(*vcblock);
@@ -408,17 +408,18 @@ bool Node::ValidateDB() {
     if (!IncrementalDB::GetInstance().VerifyAll(dsComm,
                                                 *m_mediator.m_validator)) {
       LOG_GENERAL(WARNING, "IncrementalDB VerifyAll failed")
+      return false;
     } else {
       LOG_GENERAL(INFO, "IncrementalDB VerifyAll Success");
-      return false;
     }
   }
+
+  string path = ENABLE_INCR_DB ? INCR_DB_PATH : PERSISTENCE_PATH;
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 
   if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
-                                          m_mediator.m_selfKey, 1,
-                                          PERSISTENCE_PATH)) {
+                                          m_mediator.m_selfKey, 1, path)) {
     LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
     return false;
   }
