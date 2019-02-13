@@ -117,10 +117,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "Create contract");
 
     // Check if gaslimit meets the minimum requirement for contract deployment
-    if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS) {
-      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than "
-                                        << CONTRACT_CREATE_GAS);
+    if (transaction.GetGasLimit() <
+        std::max(CONTRACT_CREATE_GAS,
+                 (unsigned int)transaction.GetCode().size())) {
+      LOG_GENERAL(WARNING,
+                  "Gas limit "
+                      << transaction.GetGasLimit() << " less than "
+                      << std::max(CONTRACT_CREATE_GAS,
+                                  (unsigned int)transaction.GetCode().size()));
       return false;
     }
 
@@ -224,48 +228,61 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     // Undergo scilla runner
     bool ret = true;
-    std::string runnerPrint;
 
-    pid = -1;
-    auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
-                  &receipt]() mutable -> void {
-      if (!SysCommand::ExecuteCmd(
-              SysCommand::WITH_OUTPUT_PID,
-              GetCreateContractCmdStr(m_root_w_version, gasRemained),
-              runnerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                                 m_root_w_version, gasRemained));
-        receipt.AddError(EXECUTE_CMD_FAILED);
+    if (ret_checker) {
+      std::string runnerPrint;
+
+      pid = -1;
+      auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
+                    &receipt]() mutable -> void {
+        if (!SysCommand::ExecuteCmd(
+                SysCommand::WITH_OUTPUT_PID,
+                GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                runnerPrint, pid)) {
+          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCreateContractCmdStr(
+                                   m_root_w_version, gasRemained));
+          receipt.AddError(EXECUTE_CMD_FAILED);
+          ret = false;
+        }
+        cv_callContract.notify_all();
+      };
+      DetachedFunction(1, func2);
+
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
+
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(WARNING,
+                    "Txn processing timeout! Interrupt current contract "
+                    "deployment, pid: "
+                        << pid);
+        if (pid >= 0) {
+          kill(pid, SIGKILL);
+        }
+        receipt.AddError(EXECUTE_CMD_TIMEOUT);
         ret = false;
       }
-      cv_callContract.notify_all();
-    };
-    DetachedFunction(1, func2);
 
-    {
-      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-      cv_callContract.wait(lk);
-    }
-
-    if (m_txnProcessTimeout) {
-      LOG_GENERAL(WARNING,
-                  "Txn processing timeout! Interrupt current contract "
-                  "deployment, pid: "
-                      << pid);
-      if (pid >= 0) {
-        kill(pid, SIGKILL);
+      if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+        ret = false;
       }
-      receipt.AddError(EXECUTE_CMD_TIMEOUT);
-      ret = false;
+      if (!ret) {
+        gasRemained =
+            std::min(transaction.GetGasLimit() -
+                         std::max((unsigned int)transaction.GetCode().size(),
+                                  CONTRACT_CREATE_GAS),
+                     gasRemained);
+      }
+    } else {
+      gasRemained =
+          std::min(transaction.GetGasLimit() -
+                       std::max((unsigned int)transaction.GetCode().size(),
+                                CONTRACT_CREATE_GAS),
+                   gasRemained);
     }
 
-    if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
-      ret = false;
-    }
-    if (!ret) {
-      gasRemained = std::min(transaction.GetGasLimit() - CONTRACT_CREATE_GAS,
-                             gasRemained);
-    }
     boost::multiprecision::uint128_t gasRefund;
     if (!SafeMath<boost::multiprecision::uint128_t>::mul(
             gasRemained, transaction.GetGasPrice(), gasRefund)) {
