@@ -24,7 +24,10 @@ using namespace std;
 
 int main() {
   IncrementalDB::GetInstance().Init();
-  // BlockStorage::GetStorage().ResetAll();
+
+  cout << "This file needs a valid persistence folder in the working directory "
+          "and also a constant file corresponding to it"
+       << endl;
 
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
