@@ -63,6 +63,11 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks,
   for (const auto& block : blocks) {
     m_mediator.m_node->AddBlock(*block);
     if (putInIncremental) {
+      bytes tmpSerialized;
+      block->Serialize(tmpSerialized, 0);
+      IncrementalDB::GetInstance().PutTxBlock(
+          block->GetHeader().GetBlockNum(), tmpSerialized,
+          block->GetHeader().GetDSBlockNum());
     }
   }
 
@@ -100,19 +105,21 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks,
            std::get<BlockLinkIndex::INDEX>(b);
   });
 
-  if (!blocklinks.empty()) {
-    if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
-      bytes latestActiveDSBlockNumVec;
-      if (!BlockStorage::GetBlockStorage().GetMetadata(
-              MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
-        LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
-        return false;
+  if (!putInIncremental) {
+    if (!blocklinks.empty()) {
+      if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
+        bytes latestActiveDSBlockNumVec;
+        if (!BlockStorage::GetBlockStorage().GetMetadata(
+                MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
+          LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
+          return false;
+        }
+        m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
+            DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
       }
-      m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
-          DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
+    } else {
+      return false;
     }
-  } else {
-    return false;
   }
 
   /// Check whether the termination of last running happens before the last

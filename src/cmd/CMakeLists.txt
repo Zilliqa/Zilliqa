@@ -69,3 +69,12 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto)
 target_link_libraries(getpub PUBLIC Crypto)
+
+
+add_executable(convertconsolidatedtoincremental convert_consolidatedDB_to_incrementalDB.cpp)
+add_custom_command(TARGET convertconsolidatedtoincremental
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:convertconsolidatedtoincremental> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(convertconsolidatedtoincremental PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+target_link_libraries(convertconsolidatedtoincremental PUBLIC Consensus Network Utils Zilliqa DirectoryService Node Validator NAT Boost::program_options)

@@ -502,21 +502,23 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
       // check state delta
       bytes tempStateDelta;
 
-      if (!GetStateDelta(i, txblock.GetHeader().GetBlockNum(),
-                         tempStateDelta)) {
-        LOG_GENERAL(WARNING, "Failed to get state delta for tx block "
-                                 << txblock.GetHeader().GetBlockNum());
-      }
+      if ((txblock.GetHeader().GetStateDeltaHash() != StateHash())) {
+        if (!GetStateDelta(i, txblock.GetHeader().GetBlockNum(),
+                           tempStateDelta)) {
+          LOG_GENERAL(WARNING, "Failed to get state delta for tx block "
+                                   << txblock.GetHeader().GetBlockNum());
+        }
 
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-      sha2.Update(tempStateDelta);
-      StateHash stateDeltaHash(sha2.Finalize());
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        sha2.Update(tempStateDelta);
+        StateHash stateDeltaHash(sha2.Finalize());
 
-      if (stateDeltaHash != txblock.GetHeader().GetStateDeltaHash()) {
-        LOG_GENERAL(WARNING,
-                    "Failed to match state delta hash and hash in txBlock "
-                        << txblock.GetHeader().GetBlockNum());
-        return false;
+        if (stateDeltaHash != txblock.GetHeader().GetStateDeltaHash()) {
+          LOG_GENERAL(WARNING,
+                      "Failed to match state delta hash and hash in txBlock "
+                          << txblock.GetHeader().GetBlockNum());
+          return false;
+        }
       }
 
       // check microblock
