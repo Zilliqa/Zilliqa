@@ -323,6 +323,7 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
             ConsensusCommon::INITIAL);
 
         auto reprocessconsensus = [this, message, offset, from]() {
+          ProcessTransactionWhenShardBackup();
           ProcessMicroBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, reprocessconsensus);

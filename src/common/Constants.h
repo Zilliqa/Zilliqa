@@ -167,7 +167,7 @@ extern const std::string TXN_PATH;
 // Epoch timing constants
 extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
-extern const unsigned int FINALBLOCK_DELAY_IN_MS;
+extern const unsigned int ANNOUNCEMENT_DELAY_IN_MS;
 extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;

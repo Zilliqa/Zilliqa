@@ -114,7 +114,7 @@ class Node : public Executable {
   std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-  std::vector<TxnHash> m_txnsOrdering;
+  std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
                      std::unordered_map<TxnHash, TransactionWithReceipt>>
@@ -286,7 +286,8 @@ class Node : public Executable {
   bool CheckMicroBlockTranReceiptHash();
 
   void NotifyTimeout(bool& txnProcTimeout);
-  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
+  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
+                          std::vector<TxnHash>& missingtranHashes);
 
   // Fallback Consensus
   void FallbackTimerLaunch();
@@ -476,9 +477,7 @@ class Node : public Executable {
   void CallActOnFinalblock();
 
   void ProcessTransactionWhenShardLeader();
-  bool ProcessTransactionWhenShardBackup(
-      const std::vector<TxnHash>& tranHashes,
-      std::vector<TxnHash>& missingtranHashes);
+  void ProcessTransactionWhenShardBackup();
   bool ComposeMicroBlock();
   bool CheckMicroBlockValidity(bytes& errorMsg);
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
