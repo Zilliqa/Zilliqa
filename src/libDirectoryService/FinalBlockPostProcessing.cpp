@@ -476,7 +476,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
       // missing microblocks from leader, set to a valid state to accept cosig1
       // and cosig2
 
-      // Block till txn is fetched
+      // Block till microblock is fetched
       unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
       if (cv_MissingMicroBlock.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
