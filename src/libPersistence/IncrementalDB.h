@@ -59,7 +59,8 @@ class IncrementalDB : public Singleton<IncrementalDB> {
         m_FallbackBlockDBName("FallbackBlockDB"),
         m_DSBlockDBName("DSBlockDB"),
         m_blockLinkDBName("blockLinkDB"),
-        m_baseStateDBName("baseStateDB") {}
+        m_baseStateDBName("baseStateDB"),
+        m_stateDeltaDBName("stateDeltaDB") {}
 
   void Init();
 

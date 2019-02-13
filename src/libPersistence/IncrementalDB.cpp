@@ -413,7 +413,7 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       directoryBlocks;
 
-  auto& latestBlockLink = blocklinks.back();
+  auto latestBlockLink = blocklinks.front();
 
   for (const auto& blocklink : blocklinks) {
     const uint64_t& dsEpoch = get<BlockLinkIndex::DSINDEX>(blocklink);
@@ -434,7 +434,7 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
                               << latestTxBlockNum << " "
                               << dsblock->GetHeader().GetBlockNum() << " "
                               << dsblock->GetHeader().GetEpochNum());
-        latestBlockLink = blocklink;
+
         break;
       }
       directoryBlocks.emplace_back(*dsblock);
@@ -442,7 +442,6 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
       VCBlockSharedPtr vcblock;
 
       if (latestTxBlockNum < vcblock->GetHeader().GetViewChangeEpochNo()) {
-        latestBlockLink = blocklink;
         break;
       }
 
@@ -461,6 +460,7 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
       }
       directoryBlocks.emplace_back(*fallbackblockwsharding);
     }
+    latestBlockLink = blocklink;
   }
 
   if (!validator.CheckDirBlocks(directoryBlocks, dsComm, 1, dsComm)) {
@@ -539,7 +539,7 @@ bool IncrementalDB::VerifyAll(const DequeOfNode& initialDScommittee,
           return false;
         }
         // check txn
-        auto& tranHashes = mbptr->GetTranHashes();
+        const auto& tranHashes = mbptr->GetTranHashes();
         for (const auto& txnHash : tranHashes) {
           TxBodySharedPtr tptr;
           if (!GetTxnBody(i, txnHash, tptr)) {
