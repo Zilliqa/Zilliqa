@@ -45,7 +45,7 @@ bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
 
 template <class DB, class MAP>
 Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
-  LOG_MARKER();
+  // LOG_MARKER();
   using namespace boost::multiprecision;
 
   Account* account = AccountStoreBase<MAP>::GetAccount(address);
@@ -55,7 +55,7 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   std::string rawAccountBase = m_state.at(address);
   if (rawAccountBase.empty()) {
-    LOG_GENERAL(WARNING, "Didn't find account in m_state")
+    LOG_GENERAL(WARNING, "Didn't find account in m_state");
     return nullptr;
   }
 
@@ -114,14 +114,6 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
   }
 
   return true;
-}
-
-template <class DB, class MAP>
-void AccountStoreTrie<DB, MAP>::RepopulateStateTrie() {
-  LOG_MARKER();
-  m_state.init();
-  m_prevRoot = m_state.root();
-  UpdateStateTrieAll();
 }
 
 template <class DB, class MAP>

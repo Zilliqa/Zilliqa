@@ -276,7 +276,6 @@ bool Retriever::ValidateStates() {
   if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash() ==
       AccountStore::GetInstance().GetStateRootHash()) {
     LOG_GENERAL(INFO, "ValidateStates passed.");
-    AccountStore::GetInstance().RepopulateStateTrie();
     return true;
   } else {
     LOG_GENERAL(WARNING, "ValidateStates failed.");
