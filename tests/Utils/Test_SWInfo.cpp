@@ -62,4 +62,10 @@ BOOST_AUTO_TEST_CASE(syscommand_test) {
   BOOST_CHECK_EQUAL(output, "TEST\n");
 }
 
+BOOST_AUTO_TEST_CASE(test_check_latest_sw_version) {
+  INIT_STDOUT_LOGGER();
+
+  BOOST_REQUIRE(SWInfo::IsLatestVersion());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

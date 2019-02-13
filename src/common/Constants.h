@@ -68,6 +68,8 @@ const unsigned int SERVER_PORT = 4201;
 // Number of initial ds epoch number, including genesis epoch
 const unsigned int INIT_DS_EPOCH_NUM = 2;
 
+const unsigned int MAINNET_CHAIN_ID = 1;
+
 // Testing parameters
 
 // Metadata type

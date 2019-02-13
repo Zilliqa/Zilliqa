@@ -16,6 +16,8 @@
  */
 
 #include "SWInfo.h"
+#include <curl/curl.h>
+#include <json/json.h>
 #include "libMessage/MessengerSWInfo.h"
 #include "libUtils/Logger.h"
 
@@ -172,27 +174,79 @@ bool SWInfo::operator!=(const SWInfo& r) const { return !(*this == r); }
 /// Getters.
 const uint32_t& SWInfo::GetZilliqaMajorVersion() const {
   return m_zilliqaMajorVersion;
-};
+}
+
 const uint32_t& SWInfo::GetZilliqaMinorVersion() const {
   return m_zilliqaMinorVersion;
-};
+}
+
 const uint32_t& SWInfo::GetZilliqaFixVersion() const {
   return m_zilliqaFixVersion;
-};
+}
+
 const uint64_t& SWInfo::GetZilliqaUpgradeDS() const {
   return m_zilliqaUpgradeDS;
-};
-const uint32_t& SWInfo::GetZilliqaCommit() const { return m_zilliqaCommit; };
+}
+
+const uint32_t& SWInfo::GetZilliqaCommit() const { return m_zilliqaCommit; }
+
 const uint32_t& SWInfo::GetScillaMajorVersion() const {
   return m_scillaMajorVersion;
-};
+}
+
 const uint32_t& SWInfo::GetScillaMinorVersion() const {
   return m_scillaMinorVersion;
-};
+}
+
 const uint32_t& SWInfo::GetScillaFixVersion() const {
   return m_scillaFixVersion;
-};
-const uint64_t& SWInfo::GetScillaUpgradeDS() const {
-  return m_scillaUpgradeDS;
-};
-const uint32_t& SWInfo::GetScillaCommit() const { return m_scillaCommit; };
+}
+
+const uint64_t& SWInfo::GetScillaUpgradeDS() const { return m_scillaUpgradeDS; }
+
+const uint32_t& SWInfo::GetScillaCommit() const { return m_scillaCommit; }
+
+static size_t WriteString(void* contents, size_t size, size_t nmemb,
+                          void* userp) {
+  ((string*)userp)->append((char*)contents, size * nmemb);
+  return size * nmemb;
+}
+
+bool SWInfo::IsLatestVersion() {
+  string curlRes;
+  auto curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(curl, CURLOPT_URL,
+                   "https://api.github.com/repos/Zilliqa/Zilliqa/tags");
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "zilliqa");
+  curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteString);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlRes);
+  CURLcode res = curl_easy_perform(curl);
+
+  if (res != CURLE_OK) {
+    LOG_GENERAL(WARNING,
+                "curl_easy_perform() failed to get latest release tag");
+    return false;
+  }
+
+  Json::Value jsonValue;
+  Json::Reader reader;
+  if (!reader.parse(curlRes, jsonValue)) {
+    LOG_GENERAL(WARNING, "Failed to parse return result to json: " << curlRes);
+    return false;
+  }
+
+  Json::Value jsonLatestTag = jsonValue[0];
+  std::string latestTag = jsonLatestTag["name"].asCString();
+
+  LOG_GENERAL(INFO, "The latest tag: " << latestTag);
+  if (VERSION_TAG < latestTag) {
+    LOG_GENERAL(WARNING, "Please use latest version: "
+                             << latestTag
+                             << ", current using version: " << VERSION_TAG);
+    return false;
+  }
+
+  return true;
+}
