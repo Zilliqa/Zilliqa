@@ -407,9 +407,14 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
 #ifdef DM_TEST_DM_MOREMB_HALF
   if (m_mediator.m_ds->m_mode == PRIMARY_DS ||
       (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
-                                 << " triggered DM_TEST_DM_MOREMB_HALF");
+    if (m_mediator.m_ds->m_mode == PRIMARY_DS) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "I the DS leader triggered DM_TEST_DM_MOREMB_HALF");
+    } else {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
+                                   << " triggered DM_TEST_DM_MOREMB_HALF");
+    }
     return false;
   }
 #endif

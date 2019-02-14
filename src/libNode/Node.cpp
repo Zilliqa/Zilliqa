@@ -1348,9 +1348,14 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::PRIMARY_DS ||
        (m_mediator.m_ds->GetConsensusMyID() % 2 == 0))) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
-                                 << " triggered DM_TEST_DM_MORETXN_HALF");
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::PRIMARY_DS) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "I the DS leader triggered DM_TEST_DM_MORETXN_HALF");
+    } else {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
+                                   << " triggered DM_TEST_DM_MORETXN_HALF");
+    }
     return false;
   }
 #endif  // DM_TEST_DM_MORETXN_HALF
