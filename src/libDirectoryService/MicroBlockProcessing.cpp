@@ -404,6 +404,16 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   }
 #endif  // DM_TEST_DM_LESSMB_ALL
 
+#ifdef DM_TEST_DM_MOREMB_HALF
+  if (m_mediator.m_ds->m_mode == PRIMARY_DS ||
+      (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
+                                 << " triggered DM_TEST_DM_MOREMB_HALF");
+    return false;
+  }
+#endif
+
   LOG_GENERAL(INFO, "Received microblock for epoch " << epochNumber);
 
   if (microBlocks.empty()) {

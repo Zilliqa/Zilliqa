@@ -172,6 +172,11 @@ if(DM_TEST_DM_MORETXN_HALF)
     add_definitions(-DDM_TEST_DM_MORETXN_HALF)
 endif()
 
+if(DM_TEST_DM_MOREMB_HALF)
+    message(STATUS "DM 9 test enabled")
+    add_definitions(-DDM_TEST_DM_MOREMB_HALF)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
