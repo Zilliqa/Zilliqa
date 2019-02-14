@@ -255,10 +255,10 @@ bool Node::OnCommitFailure([
 
 void Node::NotifyTimeout(bool& txnProcTimeout) {
   int timeout_time = std::max(
-      0, ((int)MICROBLOCK_TIMEOUT -
-          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
-          (int)CONSENSUS_OBJECT_TIMEOUT) /
-             2);
+      0,
+      ((int)MICROBLOCK_TIMEOUT -
+       ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)ANNOUNCEMENT_DELAY_IN_MS) / 1000 -
+       (int)CONSENSUS_OBJECT_TIMEOUT));
   LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
                         << timeout_time << " seconds");
   unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
@@ -439,8 +439,8 @@ void Node::ProcessTransactionWhenShardLeader() {
   }
 }
 
-bool Node::ProcessTransactionWhenShardBackup(
-    const vector<TxnHash>& tranHashes, vector<TxnHash>& missingtranHashes) {
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                              vector<TxnHash>& missingtranHashes) {
   LOG_MARKER();
 
   {
@@ -457,7 +457,32 @@ bool Node::ProcessTransactionWhenShardBackup(
     return true;
   }
 
-  return VerifyTxnsOrdering(tranHashes);
+  if (!VerifyTxnOrderWTolerance(m_expectedTranOrdering, tranHashes,
+                                TXN_MISORDER_TOLERANCE_IN_PERCENT)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Failed to Verify due to bad txn ordering");
+
+    for (const auto& th : m_expectedTranOrdering) {
+      Transaction t;
+      if (m_createdTxns.get(th, t)) {
+        LOG_GENERAL(INFO, "Expected txn: "
+                              << t.GetTranID() << " " << t.GetSenderAddr()
+                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+      }
+    }
+    for (const auto& th : tranHashes) {
+      Transaction t;
+      if (m_createdTxns.get(th, t)) {
+        LOG_GENERAL(INFO, "Received txn: "
+                              << t.GetTranID() << " " << t.GetSenderAddr()
+                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+      }
+    }
+
+    return false;
+  }
+
+  return true;
 }
 
 void Node::UpdateProcessedTransactions() {
@@ -477,13 +502,13 @@ void Node::UpdateProcessedTransactions() {
   }
 }
 
-bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
+void Node::ProcessTransactionWhenShardBackup() {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
-  vector<TxnHash> t_tranHashes;
+  m_expectedTranOrdering.clear();
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
 
@@ -517,9 +542,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     return false;
   };
 
-  auto appendOne = [this, &t_tranHashes](const Transaction& t,
-                                         const TransactionReceipt& tr) {
-    t_tranHashes.emplace_back(t.GetTranID());
+  auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
+    m_expectedTranOrdering.emplace_back(t.GetTranID());
     t_processedTransactions.insert(
         make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
   };
@@ -631,33 +655,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
   }
-
-  if (!VerifyTxnOrderWTolerance(t_tranHashes, tranHashes,
-                                TXN_MISORDER_TOLERANCE_IN_PERCENT)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Failed to Verify due to bad txn ordering");
-
-    for (const auto& th : t_tranHashes) {
-      Transaction t;
-      if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Expected txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
-      }
-    }
-    for (const auto& th : tranHashes) {
-      Transaction t;
-      if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Received txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
-      }
-    }
-
-    return false;
-  }
-
-  return true;
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
@@ -676,7 +673,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       !m_mediator.GetIsVacuousEpoch()) {
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS +
+                                                     ANNOUNCEMENT_DELAY_IN_MS));
   }
 
   m_txn_distribute_window_open = false;
@@ -690,7 +688,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
     ProcessTransactionWhenShardLeader();
-    AccountStore::GetInstance().SerializeDelta();
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
+      return false;
+    }
   }
 
   // composed microblock stored in m_microblock
@@ -772,6 +773,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                 "Node::RunConsensusOnMicroBlockWhenShardBackup not "
                 "expected to be called from LookUp node");
     return true;
+  }
+
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+      !m_mediator.GetIsVacuousEpoch()) {
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    ProcessTransactionWhenShardBackup();
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -963,8 +970,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
     vector<TxnHash> missingTxnHashes;
-    if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
-                                           missingTxnHashes)) {
+    if (!VerifyTxnsOrdering(m_microblock->GetTranHashes(), missingTxnHashes)) {
       LOG_GENERAL(WARNING, "The leader may have composed wrong order");
       return LEGITIMACYRESULT::WRONGORDER;
     }
@@ -981,8 +987,6 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(WARNING, m_createdTxns);
       }
-
-      m_txnsOrdering = m_microblock->GetTranHashes();
 
       AccountStore::GetInstance().InitTemp();
       if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {

@@ -214,7 +214,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
   if (!m_mediator.GetIsVacuousEpoch()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader();
-    AccountStore::GetInstance().SerializeDelta();
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
+      return false;
+    }
   }
   AccountStore::GetInstance().CommitTempRevertible();
 
@@ -1034,6 +1037,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_2
+  if (!m_mediator.GetIsVacuousEpoch()) {
+    m_mediator.m_node->ProcessTransactionWhenShardBackup();
+  }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup DS node. Waiting for final block announcement. "
@@ -1143,7 +1149,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // function, but rather wait for view change.
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
-      this_thread::sleep_for(chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
+      this_thread::sleep_for(chrono::milliseconds(ANNOUNCEMENT_DELAY_IN_MS));
       ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,

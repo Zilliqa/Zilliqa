@@ -564,7 +564,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   if (!VerifyTimestamp(
           txBlock.GetTimestamp(),
           CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
-              (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000)) {
+              (TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000)) {
     return false;
   }
 
