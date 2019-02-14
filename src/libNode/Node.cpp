@@ -1337,8 +1337,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #endif  // DM_TEST_DM_LESSTXN_ALL
 
 #ifdef DM_TEST_DM_MORETXN_LEADER
-  if (m_mediator.m_ds->GetConsensusMyID() ==
-      m_mediator.m_ds->GetConsensusLeaderID()) {
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::PRIMARY_DS) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I the DS leader triggered DM_TEST_DM_MORETXN_LEADER");
     return false;
@@ -1346,9 +1345,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 #endif  // DM_TEST_DM_MORETXN_LEADER
 
 #ifdef DM_TEST_DM_MORETXN_HALF
-  if (m_mediator.m_ds->GetConsensusMyID() ==
-          m_mediator.m_ds->GetConsensusLeaderID() ||
-      (m_mediator.m_ds->GetConsensusMyID() % 2 == 0)) {
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+      (m_mediator.m_ds->m_mode == DirectoryService::Mode::PRIMARY_DS ||
+       (m_mediator.m_ds->GetConsensusMyID() % 2 == 0))) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "My consensus id " << m_mediator.m_ds->GetConsensusMyID()
                                  << " triggered DM_TEST_DM_MORETXN_HALF");
