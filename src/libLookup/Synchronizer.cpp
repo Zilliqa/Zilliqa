@@ -177,30 +177,6 @@ bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
   return true;
 }
 
-bool Synchronizer::FetchLatestState(Lookup* lookup) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Synchronizer::FetchLatestState not expected to be called "
-                "from LookUp node.");
-    return true;
-  }
-
-  lookup->GetStateFromLookupNodes();
-  return true;
-}
-
-bool Synchronizer::FetchLatestStateSeed(Lookup* lookup) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Synchronizer::FetchLatestStateSeed not expected to be called "
-                "from LookUp node.");
-    return true;
-  }
-
-  lookup->GetStateFromSeedNodes();
-  return true;
-}
-
 bool Synchronizer::AttemptPoW(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

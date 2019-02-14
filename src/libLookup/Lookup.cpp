@@ -566,13 +566,6 @@ bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   return true;
 }
 
-bool Lookup::GetStateFromLookupNodes() {
-  LOG_MARKER();
-  SendMessageToRandomLookupNode(ComposeGetStateMessage());
-
-  return true;
-}
-
 bool Lookup::GetStateFromSeedNodes() {
   SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
@@ -674,14 +667,6 @@ bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
 
   SendMessageToRandomSeedNode(
       ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-
-  return true;
-}
-
-bool Lookup::GetStateDeltaFromLookupNodes(const uint64_t& blockNum) {
-  LOG_MARKER();
-
-  SendMessageToRandomLookupNode(ComposeGetStateDeltaMessage(blockNum));
 
   return true;
 }
