@@ -116,15 +116,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     LOG_GENERAL(INFO, "Create contract");
 
+    uint64_t createGasPenalty = std::max(
+        CONTRACT_CREATE_GAS, (unsigned int)transaction.GetCode().size());
+
     // Check if gaslimit meets the minimum requirement for contract deployment
-    if (transaction.GetGasLimit() <
-        std::max(CONTRACT_CREATE_GAS,
-                 (unsigned int)transaction.GetCode().size())) {
-      LOG_GENERAL(WARNING,
-                  "Gas limit "
-                      << transaction.GetGasLimit() << " less than "
-                      << std::max(CONTRACT_CREATE_GAS,
-                                  (unsigned int)transaction.GetCode().size()));
+    if (transaction.GetGasLimit() < createGasPenalty) {
+      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                        << " less than " << createGasPenalty);
       return false;
     }
 
@@ -270,17 +268,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
       if (!ret) {
         gasRemained =
-            std::min(transaction.GetGasLimit() -
-                         std::max((unsigned int)transaction.GetCode().size(),
-                                  CONTRACT_CREATE_GAS),
-                     gasRemained);
+            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
       }
     } else {
       gasRemained =
-          std::min(transaction.GetGasLimit() -
-                       std::max((unsigned int)transaction.GetCode().size(),
-                                CONTRACT_CREATE_GAS),
-                   gasRemained);
+          std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
     }
 
     boost::multiprecision::uint128_t gasRefund;
