@@ -223,6 +223,7 @@ bool SWInfo::IsLatestVersion() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteString);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlRes);
   CURLcode res = curl_easy_perform(curl);
+  curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
     LOG_GENERAL(WARNING,
@@ -230,21 +231,32 @@ bool SWInfo::IsLatestVersion() {
     return false;
   }
 
-  Json::Value jsonValue;
-  Json::Reader reader;
-  if (!reader.parse(curlRes, jsonValue)) {
-    LOG_GENERAL(WARNING, "Failed to parse return result to json: " << curlRes);
-    return false;
-  }
+  try {
+    Json::Value jsonValue;
+    std::string errors;
+    Json::CharReaderBuilder builder;
+    auto reader = std::unique_ptr<Json::CharReader>(builder.newCharReader());
+    if (!reader->parse(curlRes.c_str(), curlRes.c_str() + curlRes.size(),
+                       &jsonValue, &errors)) {
+      LOG_GENERAL(WARNING,
+                  "Failed to parse return result to json: " << curlRes);
+      LOG_GENERAL(WARNING, "Error: " << errors);
+      return false;
+    }
 
-  Json::Value jsonLatestTag = jsonValue[0];
-  std::string latestTag = jsonLatestTag["name"].asCString();
+    Json::Value jsonLatestTag = jsonValue[0];
+    std::string latestTag = jsonLatestTag["name"].asCString();
 
-  LOG_GENERAL(INFO, "The latest tag: " << latestTag);
-  if (VERSION_TAG < latestTag) {
-    LOG_GENERAL(WARNING, "Please use latest version: "
-                             << latestTag
-                             << ", current using version: " << VERSION_TAG);
+    LOG_GENERAL(INFO, "The latest software tag: " << latestTag);
+    if (VERSION_TAG < latestTag) {
+      LOG_GENERAL(WARNING, "Please use latest version: "
+                               << latestTag
+                               << ", current using version: " << VERSION_TAG);
+      return false;
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Failed to parse tag information, exception: " << e.what());
     return false;
   }
 
