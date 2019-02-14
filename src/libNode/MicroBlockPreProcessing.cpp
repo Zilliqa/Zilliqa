@@ -732,7 +732,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
         m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
         *m_myShardMembers, static_cast<uint8_t>(NODE),
         static_cast<uint8_t>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-        commitFailureFunc));
+        commitFailureFunc, m_mediator.m_ds->m_mode != DirectoryService::IDLE));
   }
 
   if (m_consensusObject == nullptr) {

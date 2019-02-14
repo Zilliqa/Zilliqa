@@ -50,9 +50,6 @@ class ConsensusBackup : public ConsensusCommon {
   // Consensus session settings
   uint16_t m_leaderID;
 
-  // Received challenge
-  Challenge m_challenge;
-
   // Function handler for validating message content
   MsgContentValidatorFunc m_msgContentValidator;
 
@@ -71,7 +68,7 @@ class ConsensusBackup : public ConsensusCommon {
                                    State nextstate);
   bool ProcessMessageChallenge(const bytes& challenge, unsigned int offset);
   bool GenerateResponseMessage(bytes& response, unsigned int offset,
-                               uint16_t subsetID);
+                               std::vector<ResponseSubsetInfo> subsetInfo);
   bool ProcessMessageCollectiveSigCore(const bytes& collectivesig,
                                        unsigned int offset, Action action,
                                        State nextstate);

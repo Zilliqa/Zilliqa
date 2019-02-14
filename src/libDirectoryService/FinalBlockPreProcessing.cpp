@@ -268,7 +268,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
       m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<uint8_t>(DIRECTORY),
       static_cast<uint8_t>(FINALBLOCKCONSENSUS), commitErrorFunc,
-      ShardCommitFailureHandlerFunc()));
+      ShardCommitFailureHandlerFunc(), true));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

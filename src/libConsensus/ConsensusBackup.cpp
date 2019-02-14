@@ -198,41 +198,52 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   // Extract and check challenge message body
   // ========================================
 
-  CommitPoint aggregated_commit;
-  PubKey aggregated_key;
-  uint16_t subsetID = 0;
+  vector<ChallengeSubsetInfo> challengeSubsetInfo;
+  vector<ResponseSubsetInfo> responseSubsetInfo;
 
-  if (!Messenger::GetConsensusChallenge(
-          challenge, offset, m_consensusID, m_blockNumber, subsetID,
-          m_blockHash, m_leaderID, aggregated_commit, aggregated_key,
-          m_challenge, GetCommitteeMember(m_leaderID).first)) {
+  if (!Messenger::GetConsensusChallenge(challenge, offset, m_consensusID,
+                                        m_blockNumber, m_blockHash, m_leaderID,
+                                        challengeSubsetInfo,
+                                        GetCommitteeMember(m_leaderID).first)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed");
     return false;
   }
 
-  // Check the aggregated commit
-  if (!aggregated_commit.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid aggregated commit");
-    m_state = ERROR;
-    return false;
-  }
+  for (unsigned int subsetID = 0; subsetID < challengeSubsetInfo.size();
+       subsetID++) {
+    // Check the aggregated commit
+    if (!challengeSubsetInfo.at(subsetID).aggregatedCommit.Initialized()) {
+      LOG_GENERAL(WARNING,
+                  "[Subset " << subsetID << "] Invalid aggregated commit");
+      m_state = ERROR;
+      return false;
+    }
 
-  // Check the challenge
-  if (!m_challenge.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid challenge");
-    m_state = ERROR;
-    return false;
-  }
+    // Check the challenge
+    if (!challengeSubsetInfo.at(subsetID).challenge.Initialized()) {
+      LOG_GENERAL(WARNING, "[Subset " << subsetID << "] Invalid challenge");
+      m_state = ERROR;
+      return false;
+    }
 
-  Challenge challenge_verif =
-      GetChallenge(m_messageToCosign, aggregated_commit, aggregated_key);
+    Challenge challenge_verif = GetChallenge(
+        m_messageToCosign, challengeSubsetInfo.at(subsetID).aggregatedCommit,
+        challengeSubsetInfo.at(subsetID).aggregatedKey);
 
-  // If the challenge was gossiped, I may not necessarily be part of the 2/3
-  // backups that are part of the bitmap So, I shouldn't change to ERROR state
-  // here
-  if (!(challenge_verif == m_challenge)) {
-    LOG_GENERAL(WARNING, "Generated challenge mismatch");
-    return false;
+    if (!(challenge_verif == challengeSubsetInfo.at(subsetID).challenge)) {
+      LOG_GENERAL(WARNING,
+                  "[Subset " << subsetID << "] Generated challenge mismatch");
+      m_state = ERROR;
+      return false;
+    }
+
+    ResponseSubsetInfo rsi;
+
+    rsi.response =
+        Response(*m_commitSecret, challengeSubsetInfo.at(subsetID).challenge,
+                 m_myPrivKey);
+
+    responseSubsetInfo.emplace_back(rsi);
   }
 
   // Generate response
@@ -240,9 +251,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
   bytes response = {m_classByte, m_insByte,
                     static_cast<uint8_t>(returnmsgtype)};
-  bool result = GenerateResponseMessage(
-      response, MessageOffset::BODY + sizeof(uint8_t), subsetID);
-  if (result) {
+  if (GenerateResponseMessage(response, MessageOffset::BODY + sizeof(uint8_t),
+                              responseSubsetInfo)) {
     // Update internal state
     // =====================
 
@@ -253,9 +263,11 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
+
+    return true;
   }
 
-  return result;
+  return false;
 }
 
 bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
@@ -265,19 +277,17 @@ bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
                                      RESPONSE, RESPONSE_DONE);
 }
 
-bool ConsensusBackup::GenerateResponseMessage(bytes& response,
-                                              unsigned int offset,
-                                              uint16_t subsetID) {
+bool ConsensusBackup::GenerateResponseMessage(
+    bytes& response, unsigned int offset,
+    vector<ResponseSubsetInfo> subsetInfo) {
   LOG_MARKER();
 
   // Assemble response message body
   // ==============================
 
-  Response r(*m_commitSecret, m_challenge, m_myPrivKey);
-
   if (!Messenger::SetConsensusResponse(
-          response, offset, m_consensusID, m_blockNumber, subsetID, m_blockHash,
-          m_myID, r,
+          response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
+          subsetInfo,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed");
     return false;

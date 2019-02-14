@@ -29,6 +29,16 @@
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/TimeLockedFunction.h"
 
+struct ChallengeSubsetInfo {
+  CommitPoint aggregatedCommit;
+  PubKey aggregatedKey;
+  Challenge challenge;
+};
+
+struct ResponseSubsetInfo {
+  Response response;
+};
+
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon {
  public:
