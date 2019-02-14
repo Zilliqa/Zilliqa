@@ -56,14 +56,23 @@ uint64_t ScillaTestUtil::GetFileSize(std::string filename) {
 }
 
 // Get ScillaTest for contract "name" and test numbered "i".
+// "version" is used only if ENABLE_SCILLA_MULTI_VERSION is set.
 bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
-                                   unsigned int i) {
+                                   unsigned int i, std::string version) {
   if (SCILLA_ROOT.empty()) {
     return false;
   }
 
   // TODO: Does this require a separate entry in constants.xml?
-  std::string testDir = SCILLA_ROOT + "/tests/contracts/" + contrName;
+  std::string testDir;
+  if (ENABLE_SCILLA_MULTI_VERSION) {
+    testDir = SCILLA_ROOT + "/" + version + "/tests/contracts/" + contrName;
+  } else {
+    testDir = SCILLA_ROOT + "/tests/contracts/" + contrName;
+  }
+
+  std::cout << "testDir: " << testDir << "\n";
+
   if (!boost::filesystem::is_directory(testDir)) {
     return false;
   }

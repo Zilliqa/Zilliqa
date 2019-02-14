@@ -39,7 +39,9 @@ bool ParseJsonFile(Json::Value &j, std::string filename);
 uint64_t GetFileSize(std::string filename);
 
 // Get ScillaTest for contract "name" and test numbered "i".
-bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i);
+// "version" is used only if ENABLE_SCILLA_MULTI_VERSION is set.
+bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i,
+                   std::string version = "0");
 // Get _balance from output state of interpreter, from OUTPUT_JSON.
 // Return 0 on failure.
 boost::multiprecision::uint128_t GetBalanceFromOutput(void);
