@@ -23,6 +23,9 @@
 
 using namespace std;
 
+static const std::string ZILLIQA_RELEASE_TAG_URL(
+    "https://api.github.com/repos/Zilliqa/Zilliqa/tags");
+
 SWInfo::SWInfo()
     : m_zilliqaMajorVersion(0),
       m_zilliqaMinorVersion(0),
@@ -216,8 +219,7 @@ bool SWInfo::IsLatestVersion() {
   string curlRes;
   auto curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt(curl, CURLOPT_URL,
-                   "https://api.github.com/repos/Zilliqa/Zilliqa/tags");
+  curl_easy_setopt(curl, CURLOPT_URL, ZILLIQA_RELEASE_TAG_URL.c_str());
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "zilliqa");
   curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteString);
