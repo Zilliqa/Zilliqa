@@ -49,7 +49,7 @@ bool GetIPPortFromSocket(string socket, string& ip, int& port) {
   try {
     port = boost::lexical_cast<int>(addr_parts.back());
     return true;
-  } catch (boost::bad_lexical_cast) {
+  } catch (boost::bad_lexical_cast&) {
     return false;
   }
   // Defense

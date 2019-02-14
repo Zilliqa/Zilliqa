@@ -139,8 +139,8 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadConstantNumeric("DELAY_FIRSTXNEPOCH_IN_MS", "node.epoch_timing.")};
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadConstantNumeric("FETCHING_MISSING_DATA_TIMEOUT", "node.epoch_timing.")};
-const unsigned int FINALBLOCK_DELAY_IN_MS{
-    ReadConstantNumeric("FINALBLOCK_DELAY_IN_MS", "node.epoch_timing.")};
+const unsigned int ANNOUNCEMENT_DELAY_IN_MS{
+    ReadConstantNumeric("ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
 const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{ReadConstantNumeric(
     "LOOKUP_DELAY_SEND_TXNPACKET_IN_MS", "node.epoch_timing.")};
 const unsigned int MICROBLOCK_TIMEOUT{

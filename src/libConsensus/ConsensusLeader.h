@@ -26,7 +26,6 @@
 
 #include "ConsensusCommon.h"
 #include "libCrypto/MultiSig.h"
-#include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
 typedef std::function<bool(const bytes& errorMsg, const Peer& from)>

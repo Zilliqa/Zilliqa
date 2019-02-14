@@ -18,14 +18,15 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
-> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v4.0.1`)
+> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v4.0.2`)
 
 ## Zilliqa Mainnet
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 1** | [**Link**](https://explorer.zilliqa.com/) |
+| **Block Explorer 2** | [**Link**](https://viewblock.io/zilliqa) |
 
 ## Developer Testnet
 
@@ -136,3 +137,4 @@ $ git checkout master
 | **Development discussion** | <a href="https://gitter.im/Zilliqa/" target="_blank"><img src="http://img.shields.io/badge/chat-on%20gitter-077a8f.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
+| **Security bug bounty** | https://bugcrowd.com/zilliqa |

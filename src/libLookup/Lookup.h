@@ -27,7 +27,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
@@ -51,7 +50,7 @@ class Synchronizer;
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
 
 /// Processes requests pertaining to network, transaction, or block information
-class Lookup : public Executable, public Broadcastable {
+class Lookup : public Executable {
   Mediator& m_mediator;
 
   // Info about lookup node
@@ -195,9 +194,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
-  bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
-  bool GetStateFromLookupNodes();
   bool GetStateFromSeedNodes();
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
@@ -213,7 +210,7 @@ class Lookup : public Executable, public Broadcastable {
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
 
-  bool SetDSCommitteInfo();
+  bool SetDSCommitteInfo(bool replaceMyPeerWithDefault = false);
 
   DequeOfShard GetShardPeers();
   std::vector<Peer> GetNodePeers();

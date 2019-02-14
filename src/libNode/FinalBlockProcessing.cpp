@@ -33,7 +33,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -42,6 +41,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -330,7 +330,13 @@ void Node::UpdateStateForNextConsensusRound() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+
+    if (m_mediator.m_ds->m_mode != DirectoryService::IDLE && GUARD_MODE) {
+      m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    } else {
+      m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+    }
   }
 
   if (m_consensusMyID == m_consensusLeaderID) {
@@ -558,7 +564,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   if (!VerifyTimestamp(
           txBlock.GetTimestamp(),
           CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
-              (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000)) {
+              (TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000)) {
     return false;
   }
 

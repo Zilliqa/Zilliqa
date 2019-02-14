@@ -117,10 +117,6 @@ def run_setup(numnodes, printnodes):
 			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
 	keys_file.close()
 
-	# Create config_lookup.xml with pubkey and IP info of all DS nodes
-	tree = ET.ElementTree(nodes)
-	tree.write("config_lookup.xml")
-
 def patch_constants_xml(filepath, read_txn=False):
         root = ET.parse(filepath).getroot()
 
@@ -186,7 +182,7 @@ def run_start():
 
 
 	for x in range(0, count):
-		shutil.copyfile('config_lookup.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
+		shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 		shutil.copyfile('dsnodes.xml',LOCAL_RUN_FOLDER+testfolders_list[x]+'/dsnodes.xml')
 		# FIXME: every lookup node has the option USE_REMOTE_TXN_CREATOR set to true, which seemingly

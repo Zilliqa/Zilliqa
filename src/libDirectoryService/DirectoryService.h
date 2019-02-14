@@ -31,7 +31,6 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libCrypto/Schnorr.h"
@@ -41,7 +40,6 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerStore.h"
 #include "libNetwork/ShardStruct.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
@@ -109,7 +107,7 @@ using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
 
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
-class DirectoryService : public Executable, public Broadcastable {
+class DirectoryService : public Executable {
   std::chrono::system_clock::time_point m_timespec;
 
   enum Action {
@@ -435,11 +433,6 @@ class DirectoryService : public Executable, public Broadcastable {
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
-  enum RunFinalBlockConsensusOptions : unsigned char {
-    NORMAL = 0x00,
-    FROM_VIEWCHANGE
-  };
-
   enum DirState : unsigned char {
     POW_SUBMISSION = 0x00,
     DSBLOCK_CONSENSUS_PREP,
@@ -562,10 +555,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// Start synchronization with lookup as a DS node
   void StartSynchronization();
 
-  /// Implements the GetBroadcastList function inherited from Broadcastable.
-  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                     const Peer& broadcast_originator);
-
   /// Launches separate thread to execute sharding consensus after wait_window
   /// seconds.
   void ScheduleShardingConsensus(const unsigned int wait_window);
@@ -577,7 +566,7 @@ class DirectoryService : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsDS();
 
-  void RunConsensusOnFinalBlock(RunFinalBlockConsensusOptions options = NORMAL);
+  void RunConsensusOnFinalBlock();
 
   // Coinbase
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,

@@ -26,7 +26,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/Broadcastable.h"
 #include "common/Constants.h"
 #include "common/Executable.h"
 #include "depends/common/FixedHash.h"
@@ -39,14 +38,13 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/PeerStore.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
 class Retriever;
 
 /// Implements PoW submission and sharding node functionality.
-class Node : public Executable, public Broadcastable {
+class Node : public Executable {
   enum Action {
     STARTPOW = 0x00,
     PROCESS_DSBLOCK,
@@ -116,7 +114,7 @@ class Node : public Executable, public Broadcastable {
   std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-  std::vector<TxnHash> m_txnsOrdering;
+  std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
                      std::unordered_map<TxnHash, TransactionWithReceipt>>
@@ -125,8 +123,8 @@ class Node : public Executable, public Broadcastable {
   // operates under m_mutexProcessedTransaction
   std::vector<TxnHash> m_TxnOrder;
 
-  uint64_t m_gasUsedTotal;
-  boost::multiprecision::uint128_t m_txnFees;
+  uint64_t m_gasUsedTotal = 0;
+  boost::multiprecision::uint128_t m_txnFees = 0;
 
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
@@ -288,7 +286,8 @@ class Node : public Executable, public Broadcastable {
   bool CheckMicroBlockTranReceiptHash();
 
   void NotifyTimeout(bool& txnProcTimeout);
-  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
+  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
+                          std::vector<TxnHash>& missingtranHashes);
 
   // Fallback Consensus
   void FallbackTimerLaunch();
@@ -440,10 +439,6 @@ class Node : public Executable, public Broadcastable {
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
-  /// Implements the GetBroadcastList function inherited from Broadcastable.
-  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                     const Peer& broadcast_originator);
-
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
@@ -482,9 +477,7 @@ class Node : public Executable, public Broadcastable {
   void CallActOnFinalblock();
 
   void ProcessTransactionWhenShardLeader();
-  bool ProcessTransactionWhenShardBackup(
-      const std::vector<TxnHash>& tranHashes,
-      std::vector<TxnHash>& missingtranHashes);
+  void ProcessTransactionWhenShardBackup();
   bool ComposeMicroBlock();
   bool CheckMicroBlockValidity(bytes& errorMsg);
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,

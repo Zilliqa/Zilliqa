@@ -31,7 +31,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
-#include "libNetwork/PeerStore.h"
+#include "libNetwork/ShardStruct.h"
 
 /// Stores information on the header part of the VC block.
 class VCBlockHeader : public BlockHeaderBase {

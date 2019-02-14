@@ -35,6 +35,9 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
+  // Satisfy linker
+  Account acc1(0, 0);
+
   uint64_t blockNumberInput = TestUtils::DistUint64();
   uint8_t difficultyLevelInput = TestUtils::DistUint8();
   Peer submitterPeerInput = Peer();
@@ -77,10 +80,6 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   DSPowSolution dsps3;
   dsps3 = dsps2;
   BOOST_REQUIRE(dsps2 == dsps3);
-
-  // !!! If this line is deleted then linker error occures (which is weard
-  // anyway) !!!
-  Account acc1(0, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

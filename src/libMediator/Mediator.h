@@ -122,6 +122,8 @@ class Mediator {
 
   bool CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
                                  const uint64_t& epochNum);
+
+  void SetupLogLevel();
 };
 
 #endif  // __MEDIATOR_H__

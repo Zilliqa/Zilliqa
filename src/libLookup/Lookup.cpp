@@ -172,6 +172,7 @@ void Lookup::SetLookupNodes() {
           m_multipliers.emplace_back(pubKey, lookup_node);
         }
         m_lookupNodes.emplace_back(pubKey, lookup_node);
+        LOG_GENERAL(INFO, "Added lookup " << lookup_node);
       }
     }
     level++;
@@ -565,13 +566,6 @@ bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   return true;
 }
 
-bool Lookup::GetStateFromLookupNodes() {
-  LOG_MARKER();
-  SendMessageToRandomLookupNode(ComposeGetStateMessage());
-
-  return true;
-}
-
 bool Lookup::GetStateFromSeedNodes() {
   SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
@@ -677,14 +671,6 @@ bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
   return true;
 }
 
-bool Lookup::GetStateDeltaFromLookupNodes(const uint64_t& blockNum) {
-  LOG_MARKER();
-
-  SendMessageToRandomLookupNode(ComposeGetStateDeltaMessage(blockNum));
-
-  return true;
-}
-
 bool Lookup::GetStateDeltaFromSeedNodes(const uint64_t& blockNum)
 
 {
@@ -693,13 +679,7 @@ bool Lookup::GetStateDeltaFromSeedNodes(const uint64_t& blockNum)
   return true;
 }
 
-bool Lookup::SetDSCommitteInfo() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::SetDSCommitteInfo not expected to be called from "
-                "other than the LookUp node.");
-    return true;
-  }
+bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
   // Populate tree structure pt
 
   LOG_MARKER();
@@ -722,7 +702,14 @@ bool Lookup::SetDSCommitteInfo() {
       struct in_addr ip_addr;
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
-      m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
+
+      if (replaceMyPeerWithDefault && (key == m_mediator.m_selfKey.second)) {
+        m_mediator.m_DSCommittee->emplace_back(make_pair(key, Peer()));
+        LOG_GENERAL(INFO, "Added self " << Peer());
+      } else {
+        m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
+        LOG_GENERAL(INFO, "Added peer " << peer);
+      }
     }
   }
 
@@ -1728,7 +1715,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
     num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
     auto now = std::chrono::system_clock::now();
     auto wait_seconds = chrono::seconds(
-        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        ((TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000) *
         num_block);
 
     GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
@@ -1801,8 +1788,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   bool isVacuousEpoch =
       (0 == (m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
                 NUM_FINAL_BLOCK_PER_POW);
+
   m_mediator.m_currentEpochNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  // To trigger m_isVacuousEpoch calculation
+  m_mediator.IncreaseEpochNum();
 
   m_mediator.m_consensusID =
       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW;

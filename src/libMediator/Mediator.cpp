@@ -45,7 +45,9 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_txBlockRand({{0}}),
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
-      m_curSWInfo() {}
+      m_curSWInfo() {
+  SetupLogLevel();
+}
 
 Mediator::~Mediator() {}
 
@@ -138,7 +140,7 @@ void Mediator::IncreaseEpochNum() {
     num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
     auto now = std::chrono::system_clock::now();
     auto wait_seconds = chrono::seconds(
-        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        ((TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000) *
         num_block);
 
     GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
@@ -207,4 +209,30 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
   }
 
   return true;
+}
+
+void Mediator::SetupLogLevel() {
+  LOG_MARKER();
+  switch (DEBUG_LEVEL) {
+    case 1: {
+      LOG_DISPLAY_LEVEL_ABOVE(FATAL);
+      break;
+    }
+    case 2: {
+      LOG_DISPLAY_LEVEL_ABOVE(WARNING);
+      break;
+    }
+    case 3: {
+      LOG_DISPLAY_LEVEL_ABOVE(INFO);
+      break;
+    }
+    case 4: {
+      LOG_DISPLAY_LEVEL_ABOVE(DEBUG);
+      break;
+    }
+    default: {
+      LOG_DISPLAY_LEVEL_ABOVE(INFO);
+      break;
+    }
+  }
 }

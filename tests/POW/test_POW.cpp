@@ -393,6 +393,27 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
+BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
+  POW& POWClient = POW::GetInstance();
+  std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+  std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
+
+  // Light client mine and verify
+  uint8_t difficultyToUse = 50;
+  uint64_t blockToUse = 0;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
+  ethash_mining_result_t winning_result = POWClient.PoWMine(
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
+  BOOST_REQUIRE(!winning_result.success);
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(!verifyLight);
+}
+
 // Please enable the OPENCL_GPU_MINE option in constants.xml to run this test
 // case
 BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
