@@ -64,24 +64,28 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
   }
 
   // TODO: Does this require a separate entry in constants.xml?
-  std::string testDir;
+  std::string testDir, scillaSourceFile;
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    testDir = SCILLA_ROOT + "/" + version + "/tests/contracts/" + contrName;
+    testDir = SCILLA_ROOT + "/" + version + "/tests/runner/" + contrName;
+    scillaSourceFile = SCILLA_ROOT + "/" + version + "/tests/contracts/" +
+                       contrName + ".scilla";
   } else {
-    testDir = SCILLA_ROOT + "/tests/contracts/" + contrName;
+    testDir = SCILLA_ROOT + "/tests/runner/" + contrName;
+    scillaSourceFile =
+        SCILLA_ROOT + "/tests/contracts/" + contrName + ".scilla";
   }
 
-  std::cout << "testDir: " << testDir << "\n";
+  LOG_GENERAL(INFO, "ScillaTestUtil::testDir: " << testDir << "\n");
 
   if (!boost::filesystem::is_directory(testDir)) {
     return false;
   }
 
-  if (!boost::filesystem::is_regular_file(testDir + "/contract.scilla")) {
+  if (!boost::filesystem::is_regular_file(scillaSourceFile)) {
     return false;
   }
 
-  std::ifstream in(testDir + "/contract.scilla", std::ios::binary);
+  std::ifstream in(scillaSourceFile, std::ios::binary);
   t.code = {std::istreambuf_iterator<char>(in),
             std::istreambuf_iterator<char>()};
 
