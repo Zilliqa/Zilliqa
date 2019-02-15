@@ -311,6 +311,11 @@
         <DSPUBKEY></DSPUBKEY>
         -->
     </ds_guard>
+    <new_ds_guard>
+        <!--Pubkey to be provided in testnet/mainnet.
+        <DSPUBKEY></DSPUBKEY>
+        -->
+    </new_ds_guard>
     <shard_guard>
         <!--Pubkey to be provided in testnet/mainnet.
         <SHARDPUBKEY></SHARDPUBKEY>
