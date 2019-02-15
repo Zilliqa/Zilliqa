@@ -253,6 +253,10 @@ bool ConsensusLeader::StartConsensusSubsets() {
       }
     }
   }
+
+  // Shuffle the peer list so we don't always send challenges in same sequence
+  random_shuffle(peerInfo.begin(), peerInfo.end());
+
   P2PComm::GetInstance().SendMessage(peerInfo, challenge);
 
   return true;
