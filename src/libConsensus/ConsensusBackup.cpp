@@ -279,7 +279,7 @@ bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
 
 bool ConsensusBackup::GenerateResponseMessage(
     bytes& response, unsigned int offset,
-    vector<ResponseSubsetInfo> subsetInfo) {
+    const vector<ResponseSubsetInfo>& subsetInfo) {
   LOG_MARKER();
 
   // Assemble response message body

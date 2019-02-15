@@ -67,8 +67,9 @@ class ConsensusBackup : public ConsensusCommon {
                                    ConsensusMessageType returnmsgtype,
                                    State nextstate);
   bool ProcessMessageChallenge(const bytes& challenge, unsigned int offset);
-  bool GenerateResponseMessage(bytes& response, unsigned int offset,
-                               std::vector<ResponseSubsetInfo> subsetInfo);
+  bool GenerateResponseMessage(
+      bytes& response, unsigned int offset,
+      const std::vector<ResponseSubsetInfo>& subsetInfo);
   bool ProcessMessageCollectiveSigCore(const bytes& collectivesig,
                                        unsigned int offset, Action action,
                                        State nextstate);
