@@ -747,7 +747,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     allPoWs = m_allPoWs;
   }
 
-    {
+  {
     std::lock_guard<std::mutex> g(m_mutexAllDSPOWs);
     allDSPoWs = m_allDSPoWs;
   }
