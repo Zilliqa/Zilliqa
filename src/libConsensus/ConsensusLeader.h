@@ -53,13 +53,16 @@ class ConsensusLeader : public ConsensusCommon {
   unsigned int m_numForConsensus;
   unsigned int m_numForConsensusFailure;
 
+  bool m_DS;
+  unsigned int m_numOfSubsets;
   // Received commits
   std::mutex m_mutex;
   std::atomic<unsigned int> m_commitCounter;
 
   std::mutex m_mutexAnnounceSubsetConsensus;
   std::condition_variable cv_scheduleSubsetConsensus;
-  bool m_allCommitsReceived;
+  bool m_sufficientCommitsReceived;
+  unsigned int m_sufficientCommitsNumForSubsets;
 
   std::vector<bool> m_commitMap;
   std::vector<CommitPoint>
@@ -104,7 +107,7 @@ class ConsensusLeader : public ConsensusCommon {
   bool CheckStateSubset(uint16_t subsetID, Action action);
   void SetStateSubset(uint16_t subsetID, State newState);
   void GenerateConsensusSubsets();
-  void StartConsensusSubsets();
+  bool StartConsensusSubsets();
   void SubsetEnded(uint16_t subsetID);
   bool ProcessMessageCommitCore(const bytes& commit, unsigned int offset,
                                 Action action,
@@ -113,8 +116,7 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageCommit(const bytes& commit, unsigned int offset);
   bool ProcessMessageCommitFailure(const bytes& commitFailureMsg,
                                    unsigned int offset, const Peer& from);
-  bool GenerateChallengeMessage(bytes& challenge, unsigned int offset,
-                                uint16_t subsetID);
+  bool GenerateChallengeMessage(bytes& challenge, unsigned int offset);
   bool ProcessMessageResponseCore(const bytes& response, unsigned int offset,
                                   Action action,
                                   ConsensusMessageType returnmsgtype,
@@ -142,8 +144,8 @@ class ConsensusLeader : public ConsensusCommon {
       unsigned char ins_byte,        // instruction byte representing consensus
                                      // messages for the Executable class
       NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
-      ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc);
-
+      ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc,
+      bool isDS = false);
   /// Destructor.
   ~ConsensusLeader();
 

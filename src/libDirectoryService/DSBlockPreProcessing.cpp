@@ -877,7 +877,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
       static_cast<uint8_t>(DIRECTORY), static_cast<uint8_t>(DSBLOCKCONSENSUS),
-      NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
+      NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc(), true));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

@@ -6678,10 +6678,8 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
 
 bool Messenger::SetConsensusChallenge(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
-    const uint16_t leaderID, const CommitPoint& aggregatedCommit,
-    const PubKey& aggregatedKey, const Challenge& challenge,
-    const PairOfKey& leaderKey) {
+    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const vector<ChallengeSubsetInfo>& subsetInfo, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -6691,14 +6689,17 @@ bool Messenger::SetConsensusChallenge(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_leaderid(leaderID);
-  result.mutable_consensusinfo()->set_subsetid(subsetID);
-  SerializableToProtobufByteArray(
-      aggregatedCommit,
-      *result.mutable_consensusinfo()->mutable_aggregatedcommit());
-  SerializableToProtobufByteArray(
-      aggregatedKey, *result.mutable_consensusinfo()->mutable_aggregatedkey());
-  SerializableToProtobufByteArray(
-      challenge, *result.mutable_consensusinfo()->mutable_challenge());
+
+  for (const auto& subset : subsetInfo) {
+    ConsensusChallenge::SubsetInfo* si =
+        result.mutable_consensusinfo()->add_subsetinfo();
+
+    SerializableToProtobufByteArray(subset.aggregatedCommit,
+                                    *si->mutable_aggregatedcommit());
+    SerializableToProtobufByteArray(subset.aggregatedKey,
+                                    *si->mutable_aggregatedkey());
+    SerializableToProtobufByteArray(subset.challenge, *si->mutable_challenge());
+  }
 
   if (!result.consensusinfo().IsInitialized()) {
     LOG_GENERAL(WARNING, "ConsensusChallenge.Data initialization failed");
@@ -6729,9 +6730,8 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, uint16_t& subsetID, const bytes& blockHash,
-    const uint16_t leaderID, CommitPoint& aggregatedCommit,
-    PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey) {
+    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    vector<ChallengeSubsetInfo>& subsetInfo, const PubKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -6789,14 +6789,16 @@ bool Messenger::GetConsensusChallenge(
     return false;
   }
 
-  subsetID = result.consensusinfo().subsetid();
+  for (const auto& proto_si : result.consensusinfo().subsetinfo()) {
+    ChallengeSubsetInfo si;
 
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().aggregatedcommit(),
-                                  aggregatedCommit);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().aggregatedkey(),
-                                  aggregatedKey);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().challenge(),
-                                  challenge);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.aggregatedcommit(),
+                                    si.aggregatedCommit);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.aggregatedkey(), si.aggregatedKey);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.challenge(), si.challenge);
+
+    subsetInfo.emplace_back(si);
+  }
 
   bytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
@@ -6815,9 +6817,8 @@ bool Messenger::GetConsensusChallenge(
 
 bool Messenger::SetConsensusResponse(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const uint16_t subsetID, const bytes& blockHash,
-    const uint16_t backupID, const Response& response,
-    const PairOfKey& backupKey) {
+    const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
+    const vector<ResponseSubsetInfo>& subsetInfo, const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6827,9 +6828,12 @@ bool Messenger::SetConsensusResponse(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
-  result.mutable_consensusinfo()->set_subsetid(subsetID);
-  SerializableToProtobufByteArray(
-      response, *result.mutable_consensusinfo()->mutable_response());
+
+  for (const auto& subset : subsetInfo) {
+    ConsensusResponse::SubsetInfo* si =
+        result.mutable_consensusinfo()->add_subsetinfo();
+    SerializableToProtobufByteArray(subset.response, *si->mutable_response());
+  }
 
   if (!result.consensusinfo().IsInitialized()) {
     LOG_GENERAL(WARNING, "ConsensusResponse.Data initialization failed");
@@ -6861,7 +6865,7 @@ bool Messenger::SetConsensusResponse(
 bool Messenger::GetConsensusResponse(
     const bytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    uint16_t& subsetID, Response& response, const DequeOfNode& committeeKeys) {
+    vector<ResponseSubsetInfo>& subsetInfo, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6922,9 +6926,13 @@ bool Messenger::GetConsensusResponse(
     return false;
   }
 
-  subsetID = result.consensusinfo().subsetid();
+  for (const auto& proto_si : result.consensusinfo().subsetinfo()) {
+    ResponseSubsetInfo si;
 
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().response(), response);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.response(), si.response);
+
+    subsetInfo.emplace_back(si);
+  }
 
   bytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());

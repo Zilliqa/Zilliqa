@@ -724,26 +724,27 @@ class Messenger {
 
   static bool SetConsensusChallenge(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const uint16_t subsetID,
-      const bytes& blockHash, const uint16_t leaderID,
-      const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-      const Challenge& challenge, const PairOfKey& leaderKey);
+      const uint64_t blockNumber, const bytes& blockHash,
+      const uint16_t leaderID,
+      const std::vector<ChallengeSubsetInfo>& subsetInfo,
+      const PairOfKey& leaderKey);
   static bool GetConsensusChallenge(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, uint16_t& subsetID, const bytes& blockHash,
-      const uint16_t leaderID, CommitPoint& aggregatedCommit,
-      PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
+      const uint64_t blockNumber, const bytes& blockHash,
+      const uint16_t leaderID, std::vector<ChallengeSubsetInfo>& subsetInfo,
+      const PubKey& leaderKey);
 
   static bool SetConsensusResponse(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const uint16_t subsetID,
-      const bytes& blockHash, const uint16_t backupID, const Response& response,
+      const uint64_t blockNumber, const bytes& blockHash,
+      const uint16_t backupID,
+      const std::vector<ResponseSubsetInfo>& subsetInfo,
       const PairOfKey& backupKey);
   static bool GetConsensusResponse(const bytes& src, const unsigned int offset,
                                    const uint32_t consensusID,
                                    const uint64_t blockNumber,
                                    const bytes& blockHash, uint16_t& backupID,
-                                   uint16_t& subsetID, Response& response,
+                                   std::vector<ResponseSubsetInfo>& subsetInfo,
                                    const DequeOfNode& committeeKeys);
 
   static bool SetConsensusCollectiveSig(

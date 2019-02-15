@@ -858,16 +858,19 @@ message ConsensusCommit
 
 message ConsensusChallenge
 {
+    message SubsetInfo
+    {
+        required ByteArray aggregatedcommit = 1;
+        required ByteArray aggregatedkey    = 2;
+        required ByteArray challenge        = 3;
+    }
     message ConsensusInfo
     {
         required uint32 consensusid         = 1;
         required uint64 blocknumber         = 2;
         required bytes blockhash            = 3; // 32 bytes
         required uint32 leaderid            = 4; // only lower 2 bytes used
-        required uint32 subsetid            = 5; // only lower 2 byte used
-        required ByteArray aggregatedcommit = 6;
-        required ByteArray aggregatedkey    = 7;
-        required ByteArray challenge        = 8;
+        repeated SubsetInfo subsetinfo      = 5;
     }
     required ConsensusInfo consensusinfo    = 1;
     required ByteArray pubkey               = 2;
@@ -876,14 +879,17 @@ message ConsensusChallenge
 
 message ConsensusResponse
 {
+    message SubsetInfo
+    {
+        required ByteArray response      = 1;
+    }
     message ConsensusInfo
     {
         required uint32 consensusid      = 1;
         required uint64 blocknumber      = 2;
         required bytes blockhash         = 3; // 32 bytes
         required uint32 backupid         = 4; // only lower 2 byte used
-        required uint32 subsetid         = 5; // only lower 2 byte used
-        required ByteArray response      = 6;
+        repeated SubsetInfo subsetinfo   = 5;
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray pubkey            = 2;

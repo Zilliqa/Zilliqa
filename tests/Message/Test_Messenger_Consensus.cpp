@@ -77,29 +77,44 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  uint16_t subsetID = TestUtils::DistUint16();
   bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
-  CommitPoint aggregatedCommit = CommitPoint(CommitSecret());
-  PubKey aggregatedKey = PubKey(PrivKey());
-  Challenge challenge(aggregatedCommit, aggregatedKey,
-                      bytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
   PairOfKey leaderKey;
   leaderKey.first = PrivKey();
   leaderKey.second = PubKey(leaderKey.first);
 
-  BOOST_CHECK(Messenger::SetConsensusChallenge(
-      dst, offset, consensusID, blockNumber, subsetID, blockHash, leaderID,
-      aggregatedCommit, aggregatedKey, challenge, leaderKey));
+  vector<ChallengeSubsetInfo> subsetInfo;
 
-  Challenge challengeDeserialized;
+  for (unsigned int i = 0; i < 2; i++) {
+    ChallengeSubsetInfo si;
+    si.aggregatedCommit = CommitPoint(CommitSecret());
+    si.aggregatedKey = PubKey(PrivKey());
+    si.challenge =
+        Challenge(si.aggregatedCommit, si.aggregatedKey,
+                  bytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
+    subsetInfo.emplace_back(si);
+  }
+
+  BOOST_CHECK(Messenger::SetConsensusChallenge(dst, offset, consensusID,
+                                               blockNumber, blockHash, leaderID,
+                                               subsetInfo, leaderKey));
+
+  vector<ChallengeSubsetInfo> subsetInfoDeserialized;
 
   BOOST_CHECK(Messenger::GetConsensusChallenge(
-      dst, offset, consensusID, blockNumber, subsetID, blockHash, leaderID,
-      aggregatedCommit, aggregatedKey, challengeDeserialized,
-      leaderKey.second));
+      dst, offset, consensusID, blockNumber, blockHash, leaderID,
+      subsetInfoDeserialized, leaderKey.second));
 
-  BOOST_CHECK(challenge == challengeDeserialized);
+  BOOST_CHECK(subsetInfo.size() == subsetInfoDeserialized.size());
+
+  for (unsigned int i = 0; i < subsetInfo.size(); i++) {
+    BOOST_CHECK(subsetInfo.at(i).aggregatedCommit ==
+                subsetInfoDeserialized.at(i).aggregatedCommit);
+    BOOST_CHECK(subsetInfo.at(i).aggregatedKey ==
+                subsetInfoDeserialized.at(i).aggregatedKey);
+    BOOST_CHECK(subsetInfo.at(i).challenge ==
+                subsetInfoDeserialized.at(i).challenge);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommitFailure) {
