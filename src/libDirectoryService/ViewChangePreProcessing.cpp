@@ -378,6 +378,14 @@ void DirectoryService::ScheduleViewChangeTimeout() {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Initiated view change again");
 
+    if (m_mode == PRIMARY_DS) {
+      ConsensusLeader* cl =
+          dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+      if (cl != nullptr) {
+        cl->Audit();
+      }
+    }
+
     auto func = [this]() -> void { RunConsensusOnViewChange(); };
     DetachedFunction(1, func);
   }
