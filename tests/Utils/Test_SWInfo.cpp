@@ -37,6 +37,8 @@ BOOST_AUTO_TEST_SUITE(SWInfoTest)
 
 /// SW Info test of constructors and getters
 BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
+  INIT_STDOUT_LOGGER();
+
   SWInfo swInfo(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   SWInfo swInfoCopy(swInfo);
   BOOST_CHECK(!(swInfo > swInfoCopy));
@@ -60,6 +62,10 @@ BOOST_AUTO_TEST_CASE(syscommand_test) {
   std::string output;
   SysCommand::ExecuteCmdWithOutput(input, output);
   BOOST_CHECK_EQUAL(output, "TEST\n");
+}
+
+BOOST_AUTO_TEST_CASE(test_check_latest_sw_version) {
+  SWInfo::IsLatestVersion();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

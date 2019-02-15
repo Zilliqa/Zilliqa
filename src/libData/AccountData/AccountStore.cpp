@@ -270,22 +270,6 @@ bool AccountStore::RetrieveFromDisk() {
   try {
     h256 root(rootBytes);
     m_state.setRoot(root);
-    for (const auto& i : m_state) {
-      Address address(i.first);
-
-      Account account;
-      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
-                                   0)) {
-        LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-        continue;
-      }
-
-      if (account.isContract()) {
-        account.SetAddress(address);
-      }
-
-      m_addressToAccount->insert({address, account});
-    }
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
                              << boost::diagnostic_information(e));
