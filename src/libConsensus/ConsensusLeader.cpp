@@ -209,7 +209,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 bool ConsensusLeader::StartConsensusSubsets() {
   LOG_MARKER();
 
-  ConsensusMessageType type;
+  ConsensusMessageType type = ConsensusMessageType::CHALLENGE;
   // Update overall internal state
   if (m_state == ANNOUNCE_DONE) {
     m_state = CHALLENGE_DONE;
@@ -217,6 +217,9 @@ bool ConsensusLeader::StartConsensusSubsets() {
   } else if (m_state == COLLECTIVESIG_DONE) {
     m_state = FINALCHALLENGE_DONE;
     type = ConsensusMessageType::FINALCHALLENGE;
+  } else {
+    LOG_GENERAL(WARNING, "Wrong state");
+    return false;
   }
 
   m_numSubsetsRunning = m_consensusSubsets.size();
