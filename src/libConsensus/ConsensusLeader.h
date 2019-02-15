@@ -53,7 +53,6 @@ class ConsensusLeader : public ConsensusCommon {
   // Consensus session settings
   unsigned int m_numForConsensus;
   unsigned int m_numForConsensusFailure;
-  unsigned int m_txnProcessingTimeout;
 
   bool m_DS;
   unsigned int m_numOfSubsets;

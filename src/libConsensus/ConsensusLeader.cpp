@@ -823,15 +823,6 @@ ConsensusLeader::ConsensusLeader(
   m_commitFailureCounter = 0;
   m_numSubsetsRunning = 0;
 
-  // Timeout value is referred from `Node::NotifyTimeout`,
-  // It is meant to give backups enough time to finish processing transactions
-  // and send back the commits
-  m_txnProcessingTimeout = std::max(
-      0, ((int)MICROBLOCK_TIMEOUT -
-          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
-          (int)CONSENSUS_OBJECT_TIMEOUT) /
-             2);
-
   m_sufficientCommitsNumForSubsets =
       ceil((double)m_committee.size() * COMMIT_TOLERANCE_PERCENT / 100);
 
@@ -902,9 +893,7 @@ bool ConsensusLeader::StartConsensus(
       std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
       m_sufficientCommitsReceived = false;
       if (cv_scheduleSubsetConsensus.wait_for(
-              cv_lk,
-              std::chrono::seconds(m_txnProcessingTimeout +
-                                   COMMIT_WINDOW_IN_SECONDS),
+              cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
               [&] { return m_sufficientCommitsReceived; })) {
         LOG_GENERAL(INFO,
                     "Received sufficient commits within the Commit window. !!");
