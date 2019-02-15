@@ -25,6 +25,7 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <event2/util.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <signal.h>
 #include <stdint.h>
@@ -182,6 +183,11 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   }
 
   try {
+    long arg;
+    fd_set myset;
+    struct timeval timeout;
+    int valopt;
+    socklen_t lon;
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
@@ -202,19 +208,72 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
     serv_addr.sin_port = htons(peer.m_listenPortHost);
 
-    if (connect(cli_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <
-        0) {
-      LOG_GENERAL(WARNING, "Socket connect failed. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address: " << peer);
-      if (P2PComm::IsHostHavingNetworkIssue()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " to blacklist");
-        Blacklist::GetInstance().Add(peer.m_ipAddress);
-      }
+    // Set non-blocking
+    if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
+      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      return false;
+    }
+    arg |= O_NONBLOCK;
+    if (fcntl(cli_sock, F_SETFL, arg) < 0) {
+      LOG_GENERAL(WARNING, "couldn't set socket as non-blocking");
+      return false;
+    }
 
+    int status;
+    bool connectStat = true;
+    if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
+                          sizeof(serv_addr))) < 0) {
+      if (errno != EINPROGRESS) {
+        LOG_GENERAL(WARNING, "Error connecting!");
+        connectStat = false;
+      } else {
+        timeout.tv_sec = CONNECTION_TIMEOUT_IN_SECONDS;
+        timeout.tv_usec = 0;
+        FD_ZERO(&myset);
+        FD_SET(cli_sock, &myset);
+        status = select(cli_sock + 1, NULL, &myset, NULL, &timeout);
+
+        if (status < 0 && errno != EINTR) {
+          LOG_GENERAL(WARNING, "Error connecting!");
+          connectStat = false;
+        } else if (status > 0) {
+          // Socket selected for write
+          lon = sizeof(int);
+          if (getsockopt(cli_sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt),
+                         &lon) < 0) {
+            LOG_GENERAL(WARNING, "Error getsockopt!");
+            connectStat = false;
+          }  // Check the value returned...
+          else if (valopt) {
+            LOG_GENERAL(WARNING, "Error connecting: " << valopt << " - "
+                                                      << strerror(valopt));
+            connectStat = false;
+          }
+        } else {
+          LOG_GENERAL(WARNING, "Timeout connecting!");
+          connectStat = false;
+        }
+      }
+    }
+
+    if (!connectStat) {  // Rule : if connectStat is false, always blacklist
+                         // them.
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
+      return false;
+    }
+
+    // Set to blocking mode again...
+    if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
+      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      return false;
+    }
+    arg &= (~O_NONBLOCK);
+    if (fcntl(cli_sock, F_SETFL, arg) < 0) {
+      LOG_GENERAL(WARNING, "couldn't set socket as blocking again");
       return false;
     }
 
@@ -257,7 +316,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
 
     if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN)) {
       LOG_GENERAL(WARNING, "Wrong message hash length.");
-      return false;
+      return true;
     }
 
     length -= HASH_LEN;
@@ -273,21 +332,26 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes message,
                               unsigned char startbyte, const bytes hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
-    retry_counter++;
-    LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
-                                                  << MAXRETRYCONN
-                                                  << ". IP address: " << peer);
-
-    if (P2PComm::IsHostHavingNetworkIssue()) {
+    // comment this since we already check this in SendMessageSocketCore() and
+    // also add to blacklist
+    /*if (P2PComm::IsHostHavingNetworkIssue()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << peer.GetPrintableIPAddress()
                                << " to blacklist");
       Blacklist::GetInstance().Add(peer.m_ipAddress);
       return;
+    }*/
+
+    if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
+      return;
     }
 
-    if (retry_counter > MAXRETRYCONN) {
+    LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
+                                                  << MAXRETRYCONN
+                                                  << ". IP address: " << peer);
+
+    if (++retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
                   "Socket connect failed over " << MAXRETRYCONN << " times.");
       return;
