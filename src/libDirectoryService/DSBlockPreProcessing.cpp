@@ -740,10 +740,16 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
   MapOfPubKeyPoW allPoWs;
+  MapOfPubKeyPoW allDSPoWs;
 
   {
     std::lock_guard<std::mutex> g(m_mutexAllPOW);
     allPoWs = m_allPoWs;
+  }
+
+  {
+    std::lock_guard<std::mutex> g(m_mutexAllDSPOWs);
+    allDSPoWs = m_allDSPoWs;
   }
 
   if (allPoWs.size() > MAX_SHARD_NODE_NUM) {
@@ -764,8 +770,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         LOG_GENERAL(INFO,
                     "Node " << pubKeyPoW.first
                             << " failed to join because priority not enough.");
-        if (m_allDSPoWs.find(pubKeyPoW.first) != m_allDSPoWs.end()) {
-          m_allDSPoWs.erase(pubKeyPoW.first);
+        if (allDSPoWs.find(pubKeyPoW.first) != allDSPoWs.end()) {
+          allDSPoWs.erase(pubKeyPoW.first);
         }
       }
     }
@@ -773,7 +779,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     allPoWs.swap(tmpAllPoWs);
   }
 
-  auto sortedDSPoWSolns = SortPoWSoln(m_allDSPoWs);
+  auto sortedDSPoWSolns = SortPoWSoln(allDSPoWs);
   auto sortedPoWSolns = SortPoWSoln(allPoWs, true);
 
   map<PubKey, Peer> powDSWinners;
