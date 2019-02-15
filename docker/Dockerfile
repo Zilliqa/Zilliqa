@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla:v0.1.1
+FROM zilliqa/scilla:v0.2.0
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -51,7 +51,7 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG ZILLIQA_VERSION=v4.0.2
+ARG ZILLIQA_VERSION=v4.1.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

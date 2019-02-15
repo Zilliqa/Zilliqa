@@ -22,7 +22,7 @@
 #include <iostream>
 #include "common/Serializable.h"
 
-const std::string VERSION_TAG = "v4.0.2";
+const std::string VERSION_TAG = "v4.1.0";
 const std::string ZILLIQA_BRAND = "Copyright (C) Zilliqa. Version " +
                                   VERSION_TAG + ".  <https://www.zilliqa.com/>";
 
