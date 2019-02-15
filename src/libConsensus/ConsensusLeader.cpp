@@ -894,6 +894,41 @@ bool ConsensusLeader::ProcessMessage(const bytes& message, unsigned int offset,
   return result;
 }
 
+void ConsensusLeader::Audit() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutex);
+
+  for (unsigned int subsetID = 0; subsetID < m_consensusSubsets.size();
+       subsetID++) {
+    ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+
+    if ((subset.state == CHALLENGE_DONE) ||
+        (subset.state == FINALCHALLENGE_DONE)) {
+      if (subset.commitMap.size() != m_committee.size()) {
+        LOG_GENERAL(WARNING, "Wrong commit map size");
+        continue;
+      }
+      if (subset.commitMap.size() != subset.responseMap.size()) {
+        LOG_GENERAL(WARNING, "Wrong response map size");
+        continue;
+      }
+
+      LOG_GENERAL(INFO, "[Subset " << subsetID << "] State = "
+                                   << GetStateString(subset.state));
+      LOG_GENERAL(INFO, "Missing responses:");
+
+      for (unsigned int peerIndex = 0; peerIndex < m_committee.size();
+           peerIndex++) {
+        if (subset.commitMap.at(peerIndex) &&
+            !subset.responseMap.at(peerIndex)) {
+          LOG_GENERAL(INFO, m_committee.at(peerIndex).second);
+        }
+      }
+    }
+  }
+}
+
 #define MAKE_LITERAL_PAIR(s) \
   { s, #s }
 

@@ -1273,6 +1273,15 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
       std::cv_status::timeout) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Initiated DS block view change. ");
+
+    if (m_mode == PRIMARY_DS) {
+      ConsensusLeader* cl =
+          dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+      if (cl != nullptr) {
+        cl->Audit();
+      }
+    }
+
     auto func = [this]() -> void { RunConsensusOnViewChange(); };
     DetachedFunction(1, func);
   }

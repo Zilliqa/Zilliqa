@@ -1185,6 +1185,15 @@ void DirectoryService::RunConsensusOnFinalBlock() {
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Initiated final block view change");
+
+      if (m_mode == PRIMARY_DS) {
+        ConsensusLeader* cl =
+            dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+        if (cl != nullptr) {
+          cl->Audit();
+        }
+      }
+
       auto func2 = [this]() -> void {
         RemoveDSMicroBlock();  // Remove DS microblock from my list of
                                // microblocks

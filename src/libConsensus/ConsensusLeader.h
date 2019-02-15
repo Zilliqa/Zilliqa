@@ -158,6 +158,9 @@ class ConsensusLeader : public ConsensusCommon {
 
   unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }
 
+  /// Function to check for missing responses
+  void Audit();
+
  private:
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
