@@ -1,4 +1,4 @@
-# Zilliqa (codename _Durian_)
+# Zilliqa 
 
 <p align="center">
     <img src="https://github.com/Zilliqa/Zilliqa/blob/master/img/zilliqa-logo-color.png" width="200" height="200">
