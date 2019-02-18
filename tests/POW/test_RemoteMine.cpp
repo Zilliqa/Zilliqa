@@ -59,8 +59,8 @@ void TestRemoteMineCase_1() {
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   auto boundary = POW::DifficultyLevelInInt(difficultyToUse);
 
-  ethash_mining_result_t winning_result =
-      POWClient.RemoteMine(keyPair, blockToUse, headerHash, boundary);
+  ethash_mining_result_t winning_result = POWClient.RemoteMine(
+      keyPair, blockToUse, headerHash, boundary, POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -70,8 +70,8 @@ void TestRemoteMineCase_1() {
   difficultyToUse = DS_POW_DIFFICULTY;
   boundary = POW::DifficultyLevelInInt(difficultyToUse);
 
-  winning_result =
-      POWClient.RemoteMine(keyPair, blockToUse, headerHash, boundary);
+  winning_result = POWClient.RemoteMine(keyPair, blockToUse, headerHash,
+                                        boundary, POW_WINDOW_IN_SECONDS);
   verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);

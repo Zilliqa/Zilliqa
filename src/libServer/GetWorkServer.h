@@ -147,7 +147,7 @@ class GetWorkServer : public AbstractStubServer {
   // if wait_ms < 0: wait until the first accept result
   // if wait_ms = 0: return current result immediately
   // if wait_ms > 0: wait until timeout, return the last result
-  ethash_mining_result_t GetResult(const int &wait_ms = -1);
+  ethash_mining_result_t GetResult(int waitTime);
 
   bool UpdateCurrentResult(const ethash_mining_result_t &newResult);
 

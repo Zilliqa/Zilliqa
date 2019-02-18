@@ -183,7 +183,7 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
 
 ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
                                         ethash_hash256 const& headerHash,
-                                        uint8_t difficulty) {
+                                        uint8_t difficulty, int timeWindow) {
   LOG_MARKER();
   int ethash_epoch = ethash::get_epoch_number(blockNum);
   std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
@@ -193,15 +193,14 @@ ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
   PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
 
   GetWorkServer::GetInstance().StartMining(work);
-  // -1: wait for the 1st accept result
-  auto result = GetWorkServer::GetInstance().GetResult(-1);
+  auto result = GetWorkServer::GetInstance().GetResult(timeWindow);
   GetWorkServer::GetInstance().StopMining();
   return result;
 }
 
 ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
                                       ethash_hash256 const& boundary,
-                                      uint64_t startNonce) {
+                                      uint64_t startNonce, int timeWindow) {
   uint64_t nonce = startNonce;
   auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -216,13 +215,14 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
     nonce++;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       m_shouldMine = false;
       break;
     }
@@ -234,7 +234,7 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
 
 ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
                                      ethash_hash256 const& boundary,
-                                     uint64_t startNonce) {
+                                     uint64_t startNonce, int timeWindow) {
   uint64_t nonce = startNonce;
   auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -249,13 +249,14 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
     nonce++;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       m_shouldMine = false;
       break;
     }
@@ -267,8 +268,8 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
 
 ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
                                         ethash_hash256 const& headerHash,
-                                        uint8_t difficulty,
-                                        uint64_t startNonce) {
+                                        uint8_t difficulty, uint64_t startNonce,
+                                        int timeWindow) {
   std::vector<std::unique_ptr<std::thread>> vecThread;
   uint64_t nonce = startNonce;
   m_minerIndex = 0;
@@ -277,8 +278,9 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     miningResult = ethash_mining_result_t{"", "", 0, false};
   }
   for (size_t i = 0; i < m_miners.size(); ++i) {
-    vecThread.push_back(std::make_unique<std::thread>(
-        [&] { MineFullGPUThread(blockNum, headerHash, difficulty, nonce); }));
+    vecThread.push_back(std::make_unique<std::thread>([&] {
+      MineFullGPUThread(blockNum, headerHash, difficulty, nonce, timeWindow);
+    }));
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -301,21 +303,22 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
 ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
                                        uint64_t blockNum,
                                        ethash_hash256 const& headerHash,
-                                       ethash_hash256 const& boundary) {
+                                       ethash_hash256 const& boundary,
+                                       int timeWindow) {
   LOG_MARKER();
 
   m_shouldMine = true;
 
   ethash_mining_result_t miningResult{"", "", 0, false};
-  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary)) {
+  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary, timeWindow)) {
     LOG_GENERAL(WARNING, "Failed to send work package to mining proxy.");
     return miningResult;
   }
 
   uint64_t nonce = 0;
   ethash_hash256 mixHash;
-  bool checkResult =
-      CheckMiningResult(pairOfKey, headerHash, boundary, nonce, mixHash);
+  bool checkResult = CheckMiningResult(pairOfKey, headerHash, boundary, nonce,
+                                       mixHash, timeWindow);
   if (!checkResult) {
     LOG_GENERAL(WARNING, "Failed to check pow result from mining proxy.");
     return miningResult;
@@ -342,7 +345,7 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
 
 bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                           ethash_hash256 const& headerHash,
-                          ethash_hash256 const& boundary) {
+                          ethash_hash256 const& boundary, int timeWindow) {
   LOG_MARKER();
 
   bytes tmp;
@@ -372,7 +375,7 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   auto strPoWTime =
       DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(
-          POW_WINDOW_IN_SECONDS);
+          timeWindow);
   jsonValue[4] = "0x" + strPoWTime;
   auto powTimeBytes =
       DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(
@@ -419,7 +422,7 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
 bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256 const& headerHash,
                             ethash_hash256 const& boundary, uint64_t& nonce,
-                            ethash_hash256& mixHash) {
+                            ethash_hash256& mixHash, int timeWindow) {
   Json::Value jsonValue;
 
   bytes tmp;
@@ -459,13 +462,14 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
 
   while (m_shouldMine) {
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Waiting mining proxy return PoW result timeout, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       return false;
     }
 
@@ -579,7 +583,8 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
 }
 
 void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
-                            uint8_t difficulty, uint64_t nonce) {
+                            uint8_t difficulty, uint64_t nonce,
+                            int timeWindow) {
   LOG_MARKER();
   auto index = m_minerIndex.load(std::memory_order_relaxed);
   ++m_minerIndex;
@@ -619,16 +624,19 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
     wp.startNonce = solution.nonce;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
+      m_shouldMine = false;
       break;
     }
   }
+
   m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
   m_cvMiningResult.notify_one();
   return;
@@ -685,7 +693,8 @@ ethash_hash256 POW::GenHeaderHash(
 ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
                                     const PairOfKey& pairOfKey,
                                     const ethash_hash256& headerHash,
-                                    bool fullDataset, uint64_t startNonce) {
+                                    bool fullDataset, uint64_t startNonce,
+                                    int timeWindow) {
   LOG_MARKER();
   // mutex required to prevent a new mining to begin before previous mining
   // operation has ended(ie. m_shouldMine=false has been processed) and
@@ -699,15 +708,16 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
   m_shouldMine = true;
 
   if (REMOTE_MINE) {
-    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary);
+    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary, timeWindow);
   } else if (GETWORK_SERVER_MINE) {
-    result = MineGetWork(blockNum, headerHash, difficulty);
+    result = MineGetWork(blockNum, headerHash, difficulty, timeWindow);
   } else if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
-    result = MineFullGPU(blockNum, headerHash, difficulty, startNonce);
+    result =
+        MineFullGPU(blockNum, headerHash, difficulty, startNonce, timeWindow);
   } else if (fullDataset) {
-    result = MineFull(headerHash, boundary, startNonce);
+    result = MineFull(headerHash, boundary, startNonce, timeWindow);
   } else {
-    result = MineLight(headerHash, boundary, startNonce);
+    result = MineLight(headerHash, boundary, startNonce, timeWindow);
   }
   return result;
 }
