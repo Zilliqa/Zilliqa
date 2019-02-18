@@ -42,21 +42,23 @@ BOOST_AUTO_TEST_SUITE(blockchaintest)
 void appendBlockLinkAndChain_v(BlockLinkChain& blc, vector<BlockLink>& bl_v,
                                const uint8_t& min, const uint8_t& max) {
   if (max < min) {
-    throw "Invalid range, to < from + 1";
+    string throw_s =
+        "Invalid range, max " + to_string(max) + " <  min" + to_string(min);
+    throw throw_s.c_str();
   }
 
   uint8_t lastIndex = bl_v.size();
+  uint8_t lastIndex_new =
+      lastIndex + TestUtils::RandomIntInRng<uint8_t>(min, max);
 
-  for (uint8_t i = lastIndex;
-       i < lastIndex + TestUtils::RandomIntInRng<uint8_t>(min, max); i++) {
-    uint64_t index = i;
+  for (uint16_t i = lastIndex; i < lastIndex_new; i++) {
     uint64_t dsindex = TestUtils::DistUint64();
     BlockType blocktype =
         static_cast<BlockType>(TestUtils::RandomIntInRng<unsigned char>(0, 4));
     BlockHash blockhash = BlockHash::random();
     bl_v.push_back(
-        make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype, blockhash));
-    BOOST_CHECK_MESSAGE(blc.AddBlockLink(index, dsindex, blocktype, blockhash),
+        make_tuple(BLOCKLINK_VERSION, i, dsindex, blocktype, blockhash));
+    BOOST_CHECK_MESSAGE(blc.AddBlockLink(i, dsindex, blocktype, blockhash),
                         "Cannot add block link\n");
   }
 }
@@ -85,7 +87,7 @@ BOOST_AUTO_TEST_CASE(BlockLinkChain_test) {
 
   // Get and compare added random BlockLink
   uint8_t randBlockLinkIndex =
-      TestUtils::RandomIntInRng<uint8_t>(0, blTest_v.size() - 1);
+      TestUtils::RandomIntInRng<uint16_t>(0, blTest_v.size() - 1);
   BOOST_CHECK_MESSAGE(
       blc.GetBlockLink(randBlockLinkIndex) == blTest_v[randBlockLinkIndex],
       "BlockLink in BlockLinkChain not equals to added one.\n");
@@ -130,23 +132,6 @@ BOOST_AUTO_TEST_CASE(BlockLinkChain_test) {
       "Can add BlockLink with index " + to_string(index_old) +
           " lower then the latest index " + to_string(blc.GetLatestIndex()) +
           ".\n");
-}
-
-DSBlockHeader createDSBlockHeader(const uint64_t& blockNum) {
-  return DSBlockHeader(TestUtils::DistUint8(), TestUtils::DistUint8(),
-                       TestUtils::GenerateRandomPubKey(), blockNum,
-                       TestUtils::DistUint64(), TestUtils::DistUint128(),
-                       SWInfo(), map<PubKey, Peer>(), DSBlockHashSet(),
-                       TestUtils::DistUint32(), CommitteeHash(), BlockHash());
-}
-
-TxBlockHeader createTxBlockHeader(const uint64_t& blockNum) {
-  return TxBlockHeader(TestUtils::DistUint64(), TestUtils::DistUint64(),
-                       TestUtils::DistUint128(), blockNum, TxBlockHashSet(),
-                       TestUtils::DistUint32(),
-                       TestUtils::GenerateRandomPubKey(),
-                       TestUtils::DistUint64(), TestUtils::DistUint32(),
-                       CommitteeHash(), BlockHash());
 }
 
 template <class T1, class T2>
@@ -210,10 +195,10 @@ BOOST_AUTO_TEST_CASE(DSBlockChain_test) {
                       "DSBlockChain returned blockCount not equal to zero "
                       "after construction " +
                           to_string(block_count) + ".\n");
-  DSBlock dsb_0(createDSBlockHeader(0), CoSignatures());
-  DSBlock dsb_1(createDSBlockHeader(1), CoSignatures());
+  DSBlock dsb_0(TestUtils::createDSBlockHeader(0), CoSignatures());
+  DSBlock dsb_1(TestUtils::createDSBlockHeader(1), CoSignatures());
   DSBlock lastBlock =
-      DSBlock(createDSBlockHeader(BLOCKCHAIN_SIZE), CoSignatures());
+      DSBlock(TestUtils::createDSBlockHeader(BLOCKCHAIN_SIZE), CoSignatures());
 
   test_BlockChain(dsbc, dsb_0, dsb_1, lastBlock, dsb_empty);
 }
@@ -238,11 +223,11 @@ BOOST_AUTO_TEST_CASE(TxBlockChain_test) {
                       "after construction " +
                           to_string(block_count) + ".\n");
 
-  TxBlock txb_0(createTxBlockHeader(0), std::vector<MicroBlockInfo>(),
-                CoSignatures());
-  TxBlock txb_1(createTxBlockHeader(1), std::vector<MicroBlockInfo>(),
-                CoSignatures());
-  TxBlock lastBlock = TxBlock(createTxBlockHeader(BLOCKCHAIN_SIZE),
+  TxBlock txb_0(TestUtils::createTxBlockHeader(0),
+                std::vector<MicroBlockInfo>(), CoSignatures());
+  TxBlock txb_1(TestUtils::createTxBlockHeader(1),
+                std::vector<MicroBlockInfo>(), CoSignatures());
+  TxBlock lastBlock = TxBlock(TestUtils::createTxBlockHeader(BLOCKCHAIN_SIZE),
                               std::vector<MicroBlockInfo>(), CoSignatures());
 
   test_BlockChain(txbc, txb_0, txb_1, lastBlock, txb_empty);

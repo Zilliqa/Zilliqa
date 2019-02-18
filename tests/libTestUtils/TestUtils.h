@@ -65,6 +65,8 @@ MicroBlockHeader GenerateRandomMicroBlockHeader();
 TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
+DSBlockHeader createDSBlockHeader(const uint64_t&);
+TxBlockHeader createTxBlockHeader(const uint64_t&);
 CoSignatures GenerateRandomCoSignatures();
 Signature GetSignature(const bytes&, const PairOfKey&);
 Signature GenerateRandomSignature();
