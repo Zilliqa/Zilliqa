@@ -55,7 +55,6 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   std::string rawAccountBase = m_state.at(address);
   if (rawAccountBase.empty()) {
-    LOG_GENERAL(WARNING, "Didn't find account in m_state");
     return nullptr;
   }
 
