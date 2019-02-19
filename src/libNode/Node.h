@@ -102,6 +102,7 @@ class Node : public Executable {
 
   // Final Block Buffer for seed node
   std::vector<bytes> m_seedTxnBlksBuffer;
+  std::mutex m_mutexSeedTxnBlksBuffer;
 
   // Persistence Retriever
   std::shared_ptr<Retriever> m_retriever;
