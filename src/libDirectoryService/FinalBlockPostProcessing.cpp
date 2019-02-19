@@ -327,7 +327,9 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
 
-    if (consensus_id == m_mediator.m_consensusID) {
+    if (consensus_id == m_mediator.m_consensusID &&
+        senderPubKey ==
+            m_mediator.m_DSCommittee->at(m_consensusLeaderID).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
       if (!m_stopRecvNewMBSubmission) {
