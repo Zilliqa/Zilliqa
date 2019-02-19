@@ -114,6 +114,13 @@ int GetWorkServer::GetSecondsToNextPoW() {
 
 // GetResult returns the Pow Result
 ethash_mining_result_t GetWorkServer::GetResult(int waitTime) {
+  {
+    lock_guard<mutex> g(m_mutexResult);
+    if (!m_isMining || m_curResult.success) {
+      return m_curResult;
+    }
+  }
+
   std::unique_lock<std::mutex> lk(m_mutexResult);
   if (m_cvGotResult.wait_for(lk, chrono::seconds(waitTime)) ==
       std::cv_status::timeout) {
