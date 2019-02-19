@@ -532,6 +532,12 @@ void Node::PrepareGoodStateForFinalBlock() {
 
 bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from) {
+  return ProcessFinalBlockCore(message, offset, from);
+}
+
+bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
+                                 [[gnu::unused]] const Peer& from,
+                                 bool buffered) {
   LOG_MARKER();
 
   uint64_t dsBlockNumber = 0;
@@ -547,6 +553,22 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   }
 
   lock_guard<mutex> g(m_mutexFinalBlock);
+
+  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC &&
+      LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    // Buffer the Final Block
+    m_seedTxnBlksBuffer.push_back(message);
+    return false;
+  } else if (!m_seedTxnBlksBuffer.empty() && !buffered) {
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+      // If seed node is synced and have buffer txn blocks
+      for (auto& txnblk : m_seedTxnBlksBuffer) {
+        ProcessFinalBlockCore(txnblk, offset, Peer(), true);
+      }
+    }
+    // clear the buffer anyways
+    m_seedTxnBlksBuffer.clear();
+  }
 
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),

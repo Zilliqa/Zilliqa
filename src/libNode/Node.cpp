@@ -1842,7 +1842,11 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
           return true;
         }
       }
-    } else  // IS_LOOKUP_NODE
+    } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+               ins_byte == NodeInstructionType::FINALBLOCK)  // Is seed node
+    {
+      return false;
+    } else  // Is lookup node
     {
       return true;
     }
