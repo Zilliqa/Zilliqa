@@ -253,6 +253,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
         break;
       case SyncType::RECOVERY_ALL_SYNC:
         LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        // When doing recovery, make sure to let other lookups know I'm back
+        // online
+        if (LOOKUP_NODE_MODE) {
+          if (!m_mediator.m_lookup->GetMyLookupOnline()) {
+            LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
+          }
+        }
         break;
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");

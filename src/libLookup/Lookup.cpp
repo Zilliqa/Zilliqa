@@ -2280,13 +2280,6 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
-    return false;
-  }
-
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
 
