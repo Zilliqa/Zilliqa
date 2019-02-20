@@ -103,7 +103,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   }
 
   if (!TransferBalance(fromAddr, toAddr, amount)) {
-    IncreaseBalance(fromAddr, gasDeposit);
+    if (!IncreaseBalance(fromAddr, gasDeposit)) {
+      LOG_GENERAL(FATAL, "IncreaseBalance failed for gasDeposit");
+    }
     return false;
   }
 
@@ -113,7 +115,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  IncreaseBalance(fromAddr, gasRefund);
+  if (!IncreaseBalance(fromAddr, gasRefund)) {
+    LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
+  }
 
   IncreaseNonce(fromAddr);
 
@@ -243,7 +247,9 @@ bool AccountStoreBase<MAP>::TransferBalance(
     if (IncreaseBalance(to, delta)) {
       return true;
     } else {
-      IncreaseBalance(from, delta);
+      if (!IncreaseBalance(from, delta)) {
+        LOG_GENERAL(FATAL, "IncreaseBalance failed for delta");
+      }
     }
   }
 

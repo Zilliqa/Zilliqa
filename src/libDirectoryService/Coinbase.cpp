@@ -302,8 +302,10 @@ void DirectoryService::InitCoinbase() {
                                     << reward_each_lookup);
 
   // Add rewards come from gas fee back to the coinbase account
-  AccountStore::GetInstance().IncreaseBalanceTemp(coinbaseAddress,
-                                                  m_totalTxnFees);
+  if (!AccountStore::GetInstance().IncreaseBalanceTemp(coinbaseAddress,
+                                                       m_totalTxnFees)) {
+    LOG_GENERAL(WARNING, "IncreaseBalanceTemp for coinbaseAddress failed");
+  }
 
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
