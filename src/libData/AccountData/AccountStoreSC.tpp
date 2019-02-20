@@ -887,13 +887,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("_accepted")) {
-    LOG_GENERAL(WARNING,
-                "The json output of this contract doesn't contain _accepted");
-    receipt.AddError(NO_ACCEPTED_FOUND);
-    return false;
-  }
-
   if (!_json.isMember("message") || !_json.isMember("states") ||
       !_json.isMember("events")) {
     if (_json.isMember("errors")) {
@@ -903,6 +896,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
       receipt.AddError(OUTPUT_ILLEGAL);
     }
+    return false;
+  }
+
+  if (!_json.isMember("_accepted")) {
+    LOG_GENERAL(WARNING,
+                "The json output of this contract doesn't contain _accepted");
+    receipt.AddError(NO_ACCEPTED_FOUND);
     return false;
   }
 
