@@ -177,6 +177,11 @@ if(DM_TEST_DM_MOREMB_HALF)
     add_definitions(-DDM_TEST_DM_MOREMB_HALF)
 endif()
 
+if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
+    message(STATUS "SJ 1 test enabled")
+    add_definitions(-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
