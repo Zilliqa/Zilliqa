@@ -558,15 +558,14 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       // Buffer the Final Block
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
       m_seedTxnBlksBuffer.push_back(message);
-      LOG_GENERAL(INFO, "Seed not yet synced, so buffered this final block");
+      LOG_GENERAL(INFO, "Seed not synced, buffered this FBLK");
       return false;
     } else {
       // If seed node is synced and have buffered txn blocks
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
       if (!m_seedTxnBlksBuffer.empty()) {
-        LOG_GENERAL(INFO,
-                    "Seed is synced, so processing buffered final blocks");
-        for (auto& txnblk : m_seedTxnBlksBuffer) {
+        LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
+        for (const auto& txnblk : m_seedTxnBlksBuffer) {
           ProcessFinalBlockCore(txnblk, offset, Peer(), true);
         }
         // clear the buffer since all buffered ones are checked and processed
