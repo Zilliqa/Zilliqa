@@ -1755,7 +1755,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
           LOG_GENERAL(INFO,
                       "Processing txnblks recvd from lookup is slow "
                       "(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)");
-          this_thread::sleep_for(chrono::seconds(5));
+          this_thread::sleep_for(chrono::seconds(10));
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         CommitTxBlocks(txBlocks);
