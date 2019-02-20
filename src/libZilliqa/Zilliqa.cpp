@@ -256,7 +256,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
         // When doing recovery, make sure to let other lookups know I'm back
         // online
         if (LOOKUP_NODE_MODE) {
-          if (!m_mediator.m_lookup->GetMyLookupOnline()) {
+          if (!m_mediator.m_lookup->GetMyLookupOnline(true)) {
             LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
           }
         }

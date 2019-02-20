@@ -2745,7 +2745,7 @@ bool Lookup::GetMyLookupOffline() {
   return true;
 }
 
-bool Lookup::GetMyLookupOnline() {
+bool Lookup::GetMyLookupOnline(bool fromRecovery) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::GetMyLookupOnline not expected to be called from "
@@ -2755,7 +2755,8 @@ bool Lookup::GetMyLookupOnline() {
 
   LOG_MARKER();
   bool found = false;
-  {
+
+  if (!fromRecovery) {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     auto selfPeer(m_mediator.m_selfPeer);
     auto selfPubkey(m_mediator.m_selfKey.second);
@@ -2772,6 +2773,10 @@ bool Lookup::GetMyLookupOnline() {
       LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodesOffline");
       return false;
     }
+  } else {
+    // If recovering a lookup, we don't expect it to be in the offline list, so
+    // just set found to true here
+    found = true;
   }
 
   if (found) {
