@@ -1754,7 +1754,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           LOG_GENERAL(INFO,
                       "Processing txnblks recvd from lookup is slow "
-                      "(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)");)
+                      "(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)");
           this_thread::sleep_for(chrono::seconds(5));
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
