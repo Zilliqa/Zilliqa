@@ -3150,7 +3150,7 @@ void Lookup::ComposeAndSendGetShardingStructureFromSeed() {
     return;
   }
 
-  SendMessageToRandomLookupNode(message);
+  SendMessageToRandomSeedNode(message);
 }
 
 bool Lookup::Execute(const bytes& message, unsigned int offset,
