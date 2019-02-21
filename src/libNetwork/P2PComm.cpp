@@ -257,7 +257,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
 
     if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN)) {
       LOG_GENERAL(WARNING, "Wrong message hash length.");
-      return false;
+      return true;
     }
 
     length -= HASH_LEN;
@@ -273,21 +273,26 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes message,
                               unsigned char startbyte, const bytes hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
-    retry_counter++;
-    LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
-                                                  << MAXRETRYCONN
-                                                  << ". IP address: " << peer);
-
-    if (P2PComm::IsHostHavingNetworkIssue()) {
+    // comment this since we already check this in SendMessageSocketCore() and
+    // also add to blacklist
+    /*if (P2PComm::IsHostHavingNetworkIssue()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << peer.GetPrintableIPAddress()
                                << " to blacklist");
       Blacklist::GetInstance().Add(peer.m_ipAddress);
       return;
+    }*/
+
+    if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
+      return;
     }
 
-    if (retry_counter > MAXRETRYCONN) {
+    LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
+                                                  << MAXRETRYCONN
+                                                  << ". IP address: " << peer);
+
+    if (++retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
                   "Socket connect failed over " << MAXRETRYCONN << " times.");
       return;
