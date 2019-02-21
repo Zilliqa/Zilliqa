@@ -13,8 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG BASE=zilliqa/scilla:v0.2.0
+ARG BASE=zilliqa/scilla:non-root
 FROM ${BASE}
+
+USER root
+RUN groupadd zilliqa && useradd -m -g zilliqa zilliqa
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -68,6 +71,8 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && rm -rf ${BUILD_DIR}
+
+USER zilliqa
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 

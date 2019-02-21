@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # This Dockerfile is incomplete and should only be used with other Dockerfiles
+USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
     gdb \
@@ -27,3 +28,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install setuptools \
     && pip install urllib3 kubernetes netaddr boto3 awscli
 
+USER zilliqa
