@@ -306,9 +306,10 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
     // don't buffer the Final block consensus message if i am non-ds node
-    if (m_mode == Mode::IDLE) {
+    if (m_mode != Mode::BACKUP_DS) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Ignoring final block consensus message");
+                "Ignoring final block consensus message from wrong timing if "
+                "not backup");
       return false;
     }
     // Only buffer the Final block consensus message if in the immediate states
@@ -327,7 +328,9 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
 
-    if (consensus_id == m_mediator.m_consensusID) {
+    if (consensus_id == m_mediator.m_consensusID &&
+        senderPubKey ==
+            m_mediator.m_DSCommittee->at(m_consensusLeaderID).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
       if (!m_stopRecvNewMBSubmission) {
