@@ -533,6 +533,13 @@ void Node::PrepareGoodStateForFinalBlock() {
 bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
+  return ProcessFinalBlockCore(message, offset, from);
+}
+
+bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
+                                 [[gnu::unused]] const Peer& from,
+                                 bool buffered) {
+  LOG_MARKER();
 
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
@@ -546,8 +553,28 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexFinalBlock);
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !buffered) {
+    if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
+      // Buffer the Final Block
+      lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
+      m_seedTxnBlksBuffer.push_back(message);
+      LOG_GENERAL(INFO, "Seed not synced, buffered this FBLK");
+      return false;
+    } else {
+      // If seed node is synced and have buffered txn blocks
+      lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
+      if (!m_seedTxnBlksBuffer.empty()) {
+        LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
+        for (const auto& txnblk : m_seedTxnBlksBuffer) {
+          ProcessFinalBlockCore(txnblk, offset, Peer(), true);
+        }
+        // clear the buffer since all buffered ones are checked and processed
+        m_seedTxnBlksBuffer.clear();
+      }
+    }
+  }
 
+  lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),
                    TXBLOCK_VERSION);
