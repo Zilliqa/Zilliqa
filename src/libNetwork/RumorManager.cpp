@@ -191,7 +191,9 @@ void RumorManager::SpreadBufferedRumors() {
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
   PubKey senderPubKey;
-  senderPubKey.Deserialize(message, 0);
+  if (senderPubKey.Deserialize(message, 0) != 0) {
+    return false;
+  }
 
   if (find(m_fullNetworkKeys.begin(), m_fullNetworkKeys.end(), senderPubKey) ==
       m_fullNetworkKeys.end()) {
@@ -202,7 +204,9 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 
   // verify if signature matches the one in message.
   Signature toVerify;
-  toVerify.Deserialize(message, PUB_KEY_SIZE);
+  if (toVerify.Deserialize(message, PUB_KEY_SIZE) != 0) {
+    return false;
+  }
 
   bytes raw_message(message.begin() + PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE +
                         SIGNATURE_RESPONSE_SIZE,
@@ -365,7 +369,9 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
        SIGN_VERIFY_NONEMPTY_MSGTYP)) {
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
-    senderPubKey.Deserialize(message, 0);
+    if (senderPubKey.Deserialize(message, 0) != 0) {
+      return {false, {}};
+    }
 
     // Verify if the pub key of sender (myview) is same as pubkey received in
     // message
@@ -385,7 +391,9 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
 
     // verify if signature matches the one in message.
     Signature toVerify;
-    toVerify.Deserialize(message, PUB_KEY_SIZE);
+    if (toVerify.Deserialize(message, PUB_KEY_SIZE) != 0) {
+      return {false, {}};
+    }
 
     message_wo_keysig.insert(message_wo_keysig.end(),
                              message.begin() + PUB_KEY_SIZE +
