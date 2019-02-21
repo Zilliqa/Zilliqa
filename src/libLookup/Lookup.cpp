@@ -1204,8 +1204,6 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
 bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                      [[gnu::unused]] unsigned int offset,
                                      [[gnu::unused]] const Peer& from) {
-  LOG_GENERAL(WARNING, "Function not in used");
-  return false;
   LOG_MARKER();
 
   uint32_t portNo = 0;
@@ -1238,8 +1236,6 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
 bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
                                      [[gnu::unused]] unsigned int offset,
                                      [[gnu::unused]] const Peer& from) {
-  LOG_GENERAL(WARNING, "Function not in used");
-  return false;
   LOG_MARKER();
 
   DequeOfShard shards;
