@@ -117,7 +117,17 @@ void Lookup::InitSync() {
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
+    // Ask for the sharding structure from lookup
     ComposeAndSendGetShardingStructureFromSeed();
+    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+    if (cv_shardStruct.wait_for(
+            cv_lk,
+            std::chrono::seconds(NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
+      LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
+    } else {
+      ProcessEntireShardingStructure();
+    }
   };
   DetachedFunction(1, func);
 }
@@ -1272,6 +1282,8 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
   m_mediator.m_ds->m_shards = move(shards);
+
+  cv_shardStruct.notify_all();
 
   return true;
 }

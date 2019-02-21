@@ -114,6 +114,9 @@ class Lookup : public Executable {
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
+  std::mutex m_mutexShardStruct;
+  std::condition_variable cv_shardStruct;
+
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 
