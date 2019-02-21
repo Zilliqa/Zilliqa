@@ -258,7 +258,6 @@ extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
 extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
-extern const unsigned int CONNECTION_TIMEOUT_IN_SECONDS;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
