@@ -129,6 +129,8 @@ class Lookup : public Executable {
 
   bytes ComposeGetOfflineLookupNodes();
 
+  void ComposeAndSendGetShardingStructureFromSeed();
+
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,

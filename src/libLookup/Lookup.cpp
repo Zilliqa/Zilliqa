@@ -117,6 +117,7 @@ void Lookup::InitSync() {
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
+    ComposeAndSendGetShardingStructureFromSeed();
   };
   DetachedFunction(1, func);
 }
@@ -1205,33 +1206,32 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                      [[gnu::unused]] const Peer& from) {
   LOG_GENERAL(WARNING, "Function not in used");
   return false;
-  // LOG_MARKER();
+  LOG_MARKER();
 
-  // uint32_t portNo = 0;
+  uint32_t portNo = 0;
 
-  // if (!Messenger::GetLookupGetShardsFromSeed(message, offset, portNo)) {
-  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //             "Messenger::GetLookupGetShardsFromSeed failed.");
-  //   return false;
-  // }
+  if (!Messenger::GetLookupGetShardsFromSeed(message, offset, portNo)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupGetShardsFromSeed failed.");
+    return false;
+  }
 
-  // Peer requestingNode(from.m_ipAddress, portNo);
-  // bytes msg = {MessageType::LOOKUP,
-  // LookupInstructionType::SETSHARDSFROMSEED};
+  Peer requestingNode(from.m_ipAddress, portNo);
+  bytes msg = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
 
-  // lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+  lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
-  // if (!Messenger::SetLookupSetShardsFromSeed(
-  //         msg, MessageOffset::BODY, m_mediator.m_selfKey,
-  //         SHARDINGSTRUCTURE_VERSION, m_mediator.m_ds->m_shards)) {
-  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //             "Messenger::SetLookupSetShardsFromSeed failed.");
-  //   return false;
-  // }
+  if (!Messenger::SetLookupSetShardsFromSeed(
+          msg, MessageOffset::BODY, m_mediator.m_selfKey,
+          SHARDINGSTRUCTURE_VERSION, m_mediator.m_ds->m_shards)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::SetLookupSetShardsFromSeed failed.");
+    return false;
+  }
 
-  // P2PComm::GetInstance().SendMessage(requestingNode, msg);
+  P2PComm::GetInstance().SendMessage(requestingNode, msg);
 
-  // return true;
+  return true;
 }
 
 // Ex-Archival node code
@@ -1240,45 +1240,44 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
                                      [[gnu::unused]] const Peer& from) {
   LOG_GENERAL(WARNING, "Function not in used");
   return false;
-  // LOG_MARKER();
+  LOG_MARKER();
 
-  // DequeOfShard shards;
-  // PubKey lookupPubKey;
-  // uint32_t shardingStructureVersion = 0;
-  // if (!Messenger::GetLookupSetShardsFromSeed(
-  //         message, offset, lookupPubKey, shardingStructureVersion, shards)) {
-  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //             "Messenger::GetLookupSetShardsFromSeed failed.");
-  //   return false;
-  // }
+  DequeOfShard shards;
+  PubKey lookupPubKey;
+  uint32_t shardingStructureVersion = 0;
+  if (!Messenger::GetLookupSetShardsFromSeed(
+          message, offset, lookupPubKey, shardingStructureVersion, shards)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetShardsFromSeed failed.");
+    return false;
+  }
 
-  // if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-  //   LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected:
-  //   "
-  //                            << SHARDINGSTRUCTURE_VERSION
-  //                            << " Actual: " << shardingStructureVersion);
-  //   return false;
-  // }
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected:"
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
+    return false;
+  }
 
-  // if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
-  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //             "The message sender pubkey: "
-  //                 << lookupPubKey << " is not in my lookup node list.");
-  //   return false;
-  // }
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
 
-  // LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
+  LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
 
-  // uint32_t i = 0;
-  // for (const auto& shard : shards) {
-  //   LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
-  //   i++;
-  // }
-  // lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+  uint32_t i = 0;
+  for (const auto& shard : shards) {
+    LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
+    i++;
+  }
+  lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
-  // m_mediator.m_ds->m_shards = move(shards);
+  m_mediator.m_ds->m_shards = move(shards);
 
-  // return true;
+  return true;
 }
 
 // UNUSED
@@ -3141,6 +3140,21 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
   } else {
     SendMessageToRandomSeedNode(message);
   }
+}
+
+void Lookup::ComposeAndSendGetShardingStructureFromSeed() {
+  LOG_MARKER();
+  bytes message = {MessageType::LOOKUP,
+                   LookupInstructionType::GETSHARDSFROMSEED};
+
+  if (!Messenger::SetLookupGetShardsFromSeed(
+          message, MessageOffset::BODY,
+          m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
+    return;
+  }
+
+  SendMessageToRandomLookupNode(message);
 }
 
 bool Lookup::Execute(const bytes& message, unsigned int offset,
