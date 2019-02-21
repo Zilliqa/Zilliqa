@@ -210,12 +210,13 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
 
     // Set non-blocking
     if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
-      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      LOG_GENERAL(WARNING, "could not get flags on TCP listening socket...");
       return false;
     }
     arg |= O_NONBLOCK;
     if (fcntl(cli_sock, F_SETFL, arg) < 0) {
-      LOG_GENERAL(WARNING, "couldn't set socket as non-blocking");
+      LOG_GENERAL(WARNING,
+                  "could not set TCP listening socket to be non-blocking...");
       return false;
     }
 
@@ -224,7 +225,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
                           sizeof(serv_addr))) < 0) {
       if (errno != EINPROGRESS) {
-        LOG_GENERAL(WARNING, "Error connecting!");
+        LOG_GENERAL(WARNING, "Error connecting(1), Cancelling connection!");
         connectStat = false;
       } else {
         timeout.tv_sec = CONNECTION_TIMEOUT_IN_SECONDS;
@@ -234,23 +235,23 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
         status = select(cli_sock + 1, NULL, &myset, NULL, &timeout);
 
         if (status < 0 && errno != EINTR) {
-          LOG_GENERAL(WARNING, "Error connecting!");
+          LOG_GENERAL(WARNING, "Error connecting(2), Cancelling connection!");
           connectStat = false;
         } else if (status > 0) {
           // Socket selected for write
           lon = sizeof(int);
           if (getsockopt(cli_sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt),
                          &lon) < 0) {
-            LOG_GENERAL(WARNING, "Error getsockopt!");
+            LOG_GENERAL(WARNING, "Error in getsockopt, Cancelling connection!");
             connectStat = false;
           }  // Check the value returned...
           else if (valopt) {
-            LOG_GENERAL(WARNING, "Error connecting: " << valopt << " - "
-                                                      << strerror(valopt));
+            LOG_GENERAL(WARNING, "Error in delayed connection() : "
+                                     << valopt << " - " << strerror(valopt));
             connectStat = false;
           }
         } else {
-          LOG_GENERAL(WARNING, "Timeout connecting!");
+          LOG_GENERAL(WARNING, "Timeout connecting, Cancelling connection!");
           connectStat = false;
         }
       }
@@ -268,12 +269,13 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
 
     // Set to blocking mode again...
     if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
-      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      LOG_GENERAL(WARNING, "could not get flags on TCP listening socket...");
       return false;
     }
     arg &= (~O_NONBLOCK);
     if (fcntl(cli_sock, F_SETFL, arg) < 0) {
-      LOG_GENERAL(WARNING, "couldn't set socket as blocking again");
+      LOG_GENERAL(WARNING,
+                  "could not set TCP listening socket to be blocking again...");
       return false;
     }
 
