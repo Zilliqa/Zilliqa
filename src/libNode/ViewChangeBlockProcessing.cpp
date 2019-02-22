@@ -256,7 +256,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
                                               DequeOfNode& dsComm) {
   if (GUARD_MODE) {
-    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
+    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition required");
     return;
   }
 
@@ -287,7 +287,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
 void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
                                                       DequeOfNode& dsComm) {
   if (GUARD_MODE) {
-    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
+    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition required");
     return;
   }
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
