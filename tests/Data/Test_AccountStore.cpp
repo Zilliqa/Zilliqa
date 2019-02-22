@@ -438,4 +438,31 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
       "address1 in AccountStore has no balance after deserializing delta");
 }
 
+BOOST_AUTO_TEST_CASE(commitRevertible) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  AccountStore::GetInstance().SerializeDelta();
+  auto root0 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 21,
+      "address1 in AccountStore has no balance after CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root0,
+                      "StateRootHash didn't change after CommitTempRevertible");
+  AccountStore::GetInstance().RevertCommitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 0,
+                      "address1 in AccountStore balance didn't revert");
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root1) && (root2 == root0),
+                      "StateRootHash didn't revert");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
