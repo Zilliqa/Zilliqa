@@ -465,4 +465,37 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
                       "StateRootHash didn't revert");
 }
 
+BOOST_AUTO_TEST_CASE(commitRevertible2) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+
+  AccountStore::GetInstance().IncreaseBalanceTemp(address1, 1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 22,
+                      "address1 in AccountStore balance didn't change after "
+                      "CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root2,
+                      "StateRootHash didn't change after CommitTempRevertible");
+
+  AccountStore::GetInstance().RevertCommitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+                      "address1 in AccountStore balance didn't revert");
+  auto root3 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root3) && (root3 == root1),
+                      "StateRootHash didn't revert");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
