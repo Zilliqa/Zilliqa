@@ -230,6 +230,7 @@ endif()
 
 if (MEMORY_SANITIZER)
     add_compile_options(-fsanitize=memory)
+    add_compile_options(-fsanitize-memory-track-origins=2)
     add_compile_options(-fno-omit-frame-pointer)
     add_compile_options(-fPIE)
     link_libraries(-fsanitize=memory)
