@@ -498,4 +498,37 @@ BOOST_AUTO_TEST_CASE(commitRevertible2) {
                       "StateRootHash didn't revert");
 }
 
+BOOST_AUTO_TEST_CASE(DiskOperation) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
+
+  auto balance1 = AccountStore::GetInstance().GetBalance(address1);
+
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().MoveUpdatesToDisk(),
+                      "AccountStore::MoveUpdatesToDisk failed");
+  AccountStore::GetInstance().InitSoft();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) != balance1,
+      "Balance after InitSoft is still the same");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() != root1,
+                      "StateRootHash after InitSoft is still the same");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().RetrieveFromDisk(),
+                      "AccountStore::RetrieveFromDisk failed");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == balance1,
+      "Balance after RetrieveFromDisk is different");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root1,
+                      "StateRootHash after RetrieveFromDisk is different");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
