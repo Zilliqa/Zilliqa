@@ -27,6 +27,9 @@ using namespace std;
 namespace
 {
     const int DISCOVERY_TIME_OUT = 2000;
+#if MINIUPNPC_API_VERSION >= 14
+    const int TTL  = 2;
+#endif
 }
 
 NAT::NAT()
