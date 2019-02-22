@@ -402,4 +402,40 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
                       "State root didn't match after deserialize");
 }
 
+BOOST_AUTO_TEST_CASE(stateDelta) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
+                      "SerializeDelta failed");
+  auto statehash = AccountStore::GetInstance().GetStateDeltaHash();
+  BOOST_CHECK_MESSAGE(statehash != dev::h256(), "StateDeltaHash is null");
+  bytes rawdelta;
+  AccountStore::GetInstance().GetSerializedDelta(rawdelta);
+  AccountStore::GetInstance().InitTemp();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().DeserializeDeltaTemp(rawdelta, 0),
+      "AccountStore::DeserializeDeltaTemp failed");
+  AccountStore::GetInstance().SerializeDelta();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetStateDeltaHash() == statehash,
+      "StateDeltaHash after DeserializeDeltaTemp doesn't match original");
+
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 0,
+      "address1 in AccountStore has balance before deserializing delta");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DeserializeDelta(rawdelta, 0),
+                      "AccountStore::DeserializeDelta failed");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 21,
+      "address1 in AccountStore has no balance after deserializing delta");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
