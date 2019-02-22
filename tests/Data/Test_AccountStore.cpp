@@ -350,6 +350,7 @@ BOOST_AUTO_TEST_CASE(increaseNonce) {
 
   Account account1(21, 211);
   AccountStore::GetInstance().AddAccount(address1, account1);
+
   AccountStore::GetInstance().UpdateStateTrieAll();
   auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
@@ -364,6 +365,41 @@ BOOST_AUTO_TEST_CASE(increaseNonce) {
                       "IncreaseNonce didn't change nonce rightly!");
 
   BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseNonce didn't change root!");
+}
+
+BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
+
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  bytes rawstates;
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Serialize(rawstates, 0),
+                      "AccountStore::Serialize failed");
+
+  AccountStore::GetInstance().Init();
+  auto root0 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(root1 != root0,
+                      "State root didn't change after AccountStore::Init");
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Deserialize(rawstates, 0),
+                      "AccountStore::Deserialize failed");
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+                      "IncreaseNonce changed balance! ");
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 211,
+                      "IncreaseNonce didn't change nonce rightly!");
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root1,
+                      "State root didn't match after deserialize");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
