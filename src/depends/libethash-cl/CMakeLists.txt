@@ -38,6 +38,6 @@ include_directories(..)
 
 find_library(OPENCL_LIBRARIES OpenCL ENV LD_LIBRARY_PATH)
 
-add_library(ethash-cl SHARED ${SOURCES})
+add_library(ethash-cl ${SOURCES})
 target_link_libraries(ethash-cl PUBLIC Common ethash)
 target_link_libraries(ethash-cl PRIVATE ${OPENCL_LIBRARIES})

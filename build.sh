@@ -40,6 +40,10 @@ do
         CMAKE_EXTRA_OPTIONS="-DADDRESS_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with AddressSanitizer"
     ;;
+    msan)
+        CMAKE_EXTRA_OPTIONS="-DMEMORY_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with MemorySanitizer"
+    ;;
     style)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_format_fix=1
