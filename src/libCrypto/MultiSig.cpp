@@ -42,8 +42,10 @@ CommitSecret::CommitSecret()
       LOG_GENERAL(WARNING, "Value to commit rand failed");
       break;
     }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
   } while (BN_is_zero(m_s.get()));
-
+#pragma clang diagnostic pop
   m_initialized = (!err);
 }
 

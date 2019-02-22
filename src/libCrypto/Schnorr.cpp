@@ -145,7 +145,10 @@ bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;
         }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
       } while (BN_is_zero(k.get()));
+#pragma clang diagnostic pop
 
       // 2. Compute the commitment Q = kG, where G is the base point
       err = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), k.get(), NULL, NULL,

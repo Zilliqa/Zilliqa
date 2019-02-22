@@ -51,7 +51,10 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free) {
       LOG_GENERAL(WARNING, "Private key generation failed");
       break;
     }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
   } while (BN_is_zero(m_d.get()));
+#pragma clang diagnostic pop
 }
 
 PrivKey::PrivKey(const bytes& src, unsigned int offset)
