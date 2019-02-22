@@ -1259,9 +1259,8 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
   }
 
   if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected:"
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
+    LOG_CHECK_FAIL("Sharding structure version", shardingStructureVersion,
+                   SHARDINGSTRUCTURE_VERSION);
     return false;
   }
 
@@ -3158,7 +3157,7 @@ void Lookup::ComposeAndSendGetShardingStructureFromSeed() {
   if (!Messenger::SetLookupGetShardsFromSeed(
           message, MessageOffset::BODY,
           m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetShardsFromSeed");
     return;
   }
 
