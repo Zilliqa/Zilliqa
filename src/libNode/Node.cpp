@@ -1850,7 +1850,7 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
           return true;
         }
       }
-    } else  // Is lookup node
+    } else  // IS_LOOKUP_NODE
     {
       return true;
     }
