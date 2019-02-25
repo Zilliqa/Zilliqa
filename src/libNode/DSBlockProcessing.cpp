@@ -618,7 +618,17 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       }
 
       if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-        SendDSBlockToOtherShardNodes(message);
+        // Avoid using the original message for broadcasting in case it contains
+        // excess data beyond the VCDSBlock
+        bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+
+        if (!Messenger::SetNodeVCDSBlocksMessage(
+                message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
+                shardingStructureVersion, m_mediator.m_ds->m_shards)) {
+          LOG_GENERAL(WARNING, "Messenger::SetNodeVCDSBlocksMessage failed");
+        } else {
+          SendDSBlockToOtherShardNodes(message2);
+        }
       }
 
       // Finally, start as a shard node
