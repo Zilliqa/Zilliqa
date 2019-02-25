@@ -295,7 +295,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       receipt.update();
 
-      this->IncreaseNonce(fromAddr);
+      if (!this->IncreaseNonce(fromAddr)) {
+        return false;
+      }
 
       LOG_GENERAL(
           INFO,
@@ -320,9 +322,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
-        this->IncreaseNonce(fromAddr);
-
-        return true;
+        return this->IncreaseNonce(fromAddr);
       }
     }
 
@@ -460,7 +460,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetResult(false);
       receipt.update();
 
-      this->IncreaseNonce(fromAddr);
+      if (!this->IncreaseNonce(fromAddr)) {
+        return false;
+      }
 
       LOG_GENERAL(
           INFO,
@@ -470,7 +472,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
   }
 
-  this->IncreaseNonce(fromAddr);
+  if (!this->IncreaseNonce(fromAddr)) {
+    return false;
+  }
 
   receipt.SetResult(true);
   receipt.update();
@@ -1146,8 +1150,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                 "ParseCallContract failed of calling contract: " << recipient);
     return false;
   }
-  this->IncreaseNonce(t_address);
-  return true;
+  return this->IncreaseNonce(t_address);
 }
 
 template <class MAP>
