@@ -776,7 +776,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   }
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      !m_mediator.GetIsVacuousEpoch()) {
+      !m_mediator.GetIsVacuousEpoch() &&
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     ProcessTransactionWhenShardBackup();
   }
