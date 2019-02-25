@@ -62,6 +62,7 @@ Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
+  m_syncType.store(SyncType::NO_SYNC);
 }
 
 Lookup::~Lookup() {}
@@ -3572,7 +3573,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(const bytes& message,
 }
 
 void Lookup::SetSyncType(SyncType syncType) {
-  m_syncType = syncType;
+  m_syncType.store(syncType);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Set sync type to " << syncType);
 }
