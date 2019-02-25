@@ -1147,10 +1147,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   uint32_t shardId = 0;
   PubKey lookupPubKey;
   vector<Transaction> transactions;
+  Signature signature;
 
   if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
                                          dsBlockNum, shardId, lookupPubKey,
-                                         transactions)) {
+                                         transactions, signature)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeForwardTxnBlock failed.");
     return false;
@@ -1164,6 +1165,17 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   }
 
   LOG_GENERAL(INFO, "Received from " << from);
+
+  // Avoid using the original message for broadcasting in case it contains
+  // excess data beyond the TxnPacket
+  bytes message2 = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
+  if (!Messenger::SetNodeForwardTxnBlock(
+          message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
+          lookupPubKey, transactions, signature)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeForwardTxnBlock failed.");
+    return false;
+  }
 
   {
     // The check here is in case the lookup send the packet
@@ -1463,10 +1475,11 @@ void Node::CommitTxnPacketBuffer() {
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
+    Signature signature;
 
-    if (!Messenger::GetNodeForwardTxnBlock(message, MessageOffset::BODY,
-                                           epochNumber, dsBlockNum, shardId,
-                                           lookupPubKey, transactions)) {
+    if (!Messenger::GetNodeForwardTxnBlock(
+            message, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
+            lookupPubKey, transactions, signature)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
