@@ -30,6 +30,12 @@ S3ReleaseTarBall=""
 useNewUpgradeMethod="Y"
 applyUpgrade="N"
 
+# [MUST BE FILLED IN] Only when using old upgrading method (useNewUpgradeMethod = "N"), need to take care on these fields
+GitHubToken="empty_token"
+packageName="package"
+releaseTitle="title"
+releaseDescription="description"
+
 # [MUST BE FILLED IN] Only when applying upgrading immediately (applyUpgrade = "Y"), need to take care on these fields
 testnet="empty_testnet"
 current_cluster_name="empty_cluster" # eg: dev.k8s.z7a.xyz
@@ -39,12 +45,6 @@ S3PersistentDBFileName="empty_testnet" ## need not be same as testnet name ex: t
                                  ## S3PersistentDBFileName should be 'multi'  
 lookup_no="0"
 shouldUploadPersistentDB="Y"
-
-# [MUST BE FILLED IN] Only when using old upgrading method (useNewUpgradeMethod = "Y"), need to take care on these fields
-GitHubToken="empty_token"
-packageName="package"
-releaseTitle="title"
-releaseDescription="description"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
