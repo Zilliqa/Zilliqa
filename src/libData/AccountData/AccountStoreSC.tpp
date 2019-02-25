@@ -281,7 +281,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       this->m_addressToAccount->erase(toAddr);
       return false;
     }
-    this->IncreaseBalance(fromAddr, gasRefund);
+    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
+    }
     if (!ret || !ret_checker) {
       this->m_addressToAccount->erase(toAddr);
 
@@ -446,7 +448,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    this->IncreaseBalance(fromAddr, gasRefund);
+    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
+    }
 
     if (transaction.GetGasLimit() < gasRemained) {
       LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
