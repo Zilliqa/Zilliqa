@@ -163,6 +163,8 @@ const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
     "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
+    "NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{

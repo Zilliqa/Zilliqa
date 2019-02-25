@@ -20,23 +20,27 @@
 #######################################################################################
 
 # [MUST BE FILLED IN] User configuration settings
-GitHubToken=""
-packageName=""
-releaseTitle=""
-releaseDescription=""
 privKeyFile=""
 pubKeyFile=""
 constantFile=""
 constantLookupFile=""
-constantArchivalLookupFile=""
-useNewUpgradeMethod=""
+constantNewLookupFile=""
+S3ReleaseTarBall=""
 
-# if using new upgrade mechanism via s3
-S3UpgradeFileName=""
-testnet=""
-current_cluster_name="" # eg: dev.k8s.z7a.xyz
+useNewUpgradeMethod="Y"
+applyUpgrade="N"
+
+# [MUST BE FILLED IN] Only when using old upgrading method (useNewUpgradeMethod = "N"), need to take care on these fields
+GitHubToken="empty_token"
+packageName="package"
+releaseTitle="title"
+releaseDescription="description"
+
+# [MUST BE FILLED IN] Only when applying upgrading immediately (applyUpgrade = "Y"), need to take care on these fields
+testnet="empty_testnet"
+current_cluster_name="empty_cluster" # eg: dev.k8s.z7a.xyz
 #optional for auto upload the persistent data to S3 DB and ask all nodes to download from S3
-S3PersistentDBFileName="" ## need not be same as testnet name ex: tesnet multiregion - multi_m1 and multi_m2
+S3PersistentDBFileName="empty_testnet" ## need not be same as testnet name ex: tesnet multiregion - multi_m1 and multi_m2
                                  ## and backup script would create DB with filename multi.tar.gz. So in this case
                                  ## S3PersistentDBFileName should be 'multi'  
 lookup_no="0"
@@ -77,23 +81,23 @@ scillaSigLine=30
 # user-defined-helper-functions
 function download_verify_s3db_zilliqa_only()
 {
-   echo "Ask all nodes to download and verify s3 database bucket : ${S3UpgradeFileName} for zilliqa"
+   echo "Ask all nodes to download and verify s3 database bucket : ${S3ReleaseTarBall} for zilliqa"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u zilliqa -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -d  \"${S3UpgradeFileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u zilliqa -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -d  \"${S3ReleaseTarBall}\""
 }
 
 function download_verify_replace_s3db_scilla_only()
 {
-   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3UpgradeFileName} for scilla"
+   echo "Ask all nodes to download, verify and upgrade s3 database bucket : ${S3ReleaseTarBall} for scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u scilla -k \"${public_keys}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3ReleaseTarBall}\""
 }
 
 function download_verify_s3db_both()
 {
-   echo "Ask all nodes to download and verify s3 database bucket : ${S3UpgradeFileName} for zilliqa and scilla"
+   echo "Ask all nodes to download and verify s3 database bucket : ${S3ReleaseTarBall} for zilliqa and scilla"
    public_keys=$(cat ${pubKeyFile}| tr '\n' ' ')
-   run_cmd_for_all_in_parallel "./download_and_verify.sh -u both -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3UpgradeFileName}\""
+   run_cmd_for_all_in_parallel "./download_and_verify.sh -u both -k \"${public_keys}\" -z \"${zilliqaDebFile}\" -i \"${zilliqaSha}\" -q \"${zilliqaSignature}\" -s \"${scillaDebFile}\" -p \"${scillaSha}\" -r \"${scillaSignature}\" -d \"${S3ReleaseTarBall}\""
 }
 
 # Set the context name explicitly
@@ -427,8 +431,8 @@ if [ ! -f "${constantLookupFile}" ]; then
     exit 0
 fi
 
-if [ ! -z "$constantArchivalLookupFile" ] && [ ! -f "${constantArchivalLookupFile}" ]; then
-    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantArchivalLookupFile} not found, please confirm constantArchivalLookupFile field in release.sh!\033[0m\n"
+if [ ! -z "$constantNewLookupFile" ] && [ ! -f "${constantNewLookupFile}" ]; then
+    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantNewLookupFile} not found, please confirm constantNewLookupFile field in release.sh!\033[0m\n"
     exit 0
 fi
 
@@ -454,7 +458,7 @@ fi
 # Read information from files
 constantFile="$(realpath ${constantFile})"
 constantLookupFile="$(realpath ${constantLookupFile})"
-[ ! -z "$constantArchivalLookupFile" ] && constantArchivalLookupFile="$(realpath ${constantArchivalLookupFile})"
+[ ! -z "$constantNewLookupFile" ] && constantNewLookupFile="$(realpath ${constantNewLookupFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
@@ -610,11 +614,11 @@ if [ -z "$useNewUpgradeMethod" ]; then # Upload package onto GitHub
 	  -H "Content-Type:application/octet-stream"  \
 	  --data-binary @"${constantLookupFile}" \
 	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLookupFile##*/}_lookup"
-	[ ! -z "$constantArchivalLookupFile" ] && curl -v -s  \
+	[ ! -z "$constantNewLookupFile" ] && curl -v -s  \
 	  -H "Authorization: token ${GitHubToken}" \
 	  -H "Content-Type:application/octet-stream"  \
-	  --data-binary @"${constantArchivalLookupFile}" \
-	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantArchivalLookupFile##*/}_archivallookup"
+	  --data-binary @"${constantNewLookupFile}" \
+	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantNewLookupFile##*/}_newlookup"
 	if [ "$scillaPath" != "" ]; then
 		curl -v -s \
 		  -H "Authorization: token ${GitHubToken}" \
@@ -628,10 +632,10 @@ else
     ##################################################################################################  
     # Use the new upgrade mechanism :
     # Steps:
-    #       1. Create the tar.gz file with $S3UpgradeFileName
+    #       1. Create the tar.gz file with $S3ReleaseTarBall
     #          tar.gz file contains zilliqa and/or scilla package.
     #       2. Upload it to S3.   
-    #       3. Download latest tar.gz on all nodes from s3 in download/$S3UpgradeFileName.tar.gz extract and verify packages.
+    #       3. Download latest tar.gz on all nodes from s3 in download/$S3ReleaseTarBall.tar.gz extract and verify packages.
     #       4. If only scilla, extract scilla deb 
     #       5. If only zilliqa or both zilliqa & scilla, 
     #           5.a Create SUSPEND_LAUNCH in all nodes.
@@ -654,16 +658,16 @@ else
 	
     ## zip the release
     cp ${constantLookupFile} ${constantLookupFile}_lookup
-    [ ! -z "$constantArchivalLookupFile" ] && cp ${constantArchivalLookupFile} ${constantArchivalLookupFile}_archivallookup
-    cmd="tar cfz ${S3UpgradeFileName}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
+    cmd="tar cfz ${S3ReleaseTarBall}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     [ "$releaseZilliqa" = "true" ] && cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
-    [ ! -z "${constantArchivalLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantArchivalLookupFile}) $(basename ${constantArchivalLookupFile})_archivallookup"
+    [ ! -z "${constantNewLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantNewLookupFile}) $(basename ${constantNewLookupFile})_newlookup"
     [ ! -z "${scillaPath}" ] && cmd="${cmd} -C $(realpath ./) ${Scilla_Deb}"
 
     $cmd
 
     #### Step 2 ####
-    # upload to S3 the ${S3UpgradeFileName}.tar.gz 
+    # upload to S3 the ${S3ReleaseTarBall}.tar.gz
     cat << EOF > UploadToS3Script.py
 #!/usr/bin/env python
 import boto3
@@ -681,7 +685,9 @@ print("Uploaded")
 EOF
 
     chmod 755 UploadToS3Script.py
-    python ./UploadToS3Script.py "${S3UpgradeFileName}.tar.gz"
+    python ./UploadToS3Script.py "${S3ReleaseTarBall}.tar.gz"
+
+    [ "$applyUpgrade" == "N" ] && exit
 
     #### Ask for confirmation from user if want to continue?? can check s3 if package is uploaded and is correct? #####
     read -p "Make sure release was uploaded to S3. Shall we continue [Yy]: " -n 1 -r
@@ -775,7 +781,7 @@ EOF
         cmd_upgrade="${cmd_upgrade_zilliqa_scilla}"
     elif [ "$releaseZilliqa" = "true" ]; then
         cmd_upgrade="${cmd_upgrade_zilliqa_only}"
-    elif [ "$scillaPath" != "" ]; then 
+    elif [ "$scillaPath" != "" ]; then
         cmd_upgrade="${cmd_upgrade_scilla_only}"
     fi
     upgrade

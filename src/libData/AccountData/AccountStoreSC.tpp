@@ -281,7 +281,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       this->m_addressToAccount->erase(toAddr);
       return false;
     }
-    this->IncreaseBalance(fromAddr, gasRefund);
+    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
+    }
     if (!ret || !ret_checker) {
       this->m_addressToAccount->erase(toAddr);
 
@@ -295,7 +297,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       receipt.update();
 
-      this->IncreaseNonce(fromAddr);
+      if (!this->IncreaseNonce(fromAddr)) {
+        return false;
+      }
 
       LOG_GENERAL(
           INFO,
@@ -320,9 +324,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
-        this->IncreaseNonce(fromAddr);
-
-        return true;
+        return this->IncreaseNonce(fromAddr);
       }
     }
 
@@ -446,7 +448,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    this->IncreaseBalance(fromAddr, gasRefund);
+    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
+    }
 
     if (transaction.GetGasLimit() < gasRemained) {
       LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
@@ -460,7 +464,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetResult(false);
       receipt.update();
 
-      this->IncreaseNonce(fromAddr);
+      if (!this->IncreaseNonce(fromAddr)) {
+        return false;
+      }
 
       LOG_GENERAL(
           INFO,
@@ -470,7 +476,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
   }
 
-  this->IncreaseNonce(fromAddr);
+  if (!this->IncreaseNonce(fromAddr)) {
+    return false;
+  }
 
   receipt.SetResult(true);
   receipt.update();
@@ -1146,8 +1154,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                 "ParseCallContract failed of calling contract: " << recipient);
     return false;
   }
-  this->IncreaseNonce(t_address);
-  return true;
+  return this->IncreaseNonce(t_address);
 }
 
 template <class MAP>

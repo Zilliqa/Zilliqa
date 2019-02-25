@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(increaseNonce) {
   AccountStore::GetInstance().UpdateStateTrieAll();
   auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-  AccountStore::GetInstance().IncreaseNonce(address1);
+  BOOST_CHECK(AccountStore::GetInstance().IncreaseNonce(address1));
   AccountStore::GetInstance().UpdateStateTrieAll();
   auto root2 = AccountStore::GetInstance().GetStateRootHash();
 

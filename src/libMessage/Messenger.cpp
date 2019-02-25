@@ -558,7 +558,10 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                               : 0 - accbase.GetBalance().convert_to<int256_t>();
   account.ChangeBalance(balanceDelta);
 
-  account.IncreaseNonceBy(accbase.GetNonce());
+  if (!account.IncreaseNonceBy(accbase.GetNonce())) {
+    LOG_GENERAL(WARNING, "IncreaseNonceBy failed");
+    return false;
+  }
 
   if ((protoAccount.has_code() && protoAccount.code().size() > 0) ||
       account.isContract()) {

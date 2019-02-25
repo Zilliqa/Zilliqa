@@ -212,7 +212,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating final block");
 
-  if (!m_mediator.GetIsVacuousEpoch()) {
+  if (!m_mediator.GetIsVacuousEpoch() &&
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader();
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
@@ -1037,7 +1044,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_2
-  if (!m_mediator.GetIsVacuousEpoch()) {
+  if (!m_mediator.GetIsVacuousEpoch() &&
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     m_mediator.m_node->ProcessTransactionWhenShardBackup();
   }
 

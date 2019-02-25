@@ -138,7 +138,7 @@ bool DirectoryService::ProcessPoWPacketSubmission(
 
 bool DirectoryService::ProcessPoWSubmission(const bytes& message,
                                             unsigned int offset,
-                                            [[gnu::unused]] const Peer& from) {
+                                            const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -173,6 +173,14 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
     return false;
   }
 
+  if (from.GetIpAddress() != submitterPeer.GetIpAddress()) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The sender ip adress " << from.GetPrintableIPAddress()
+                                      << " not match with address in message "
+                                      << submitterPeer.GetPrintableIPAddress());
+    return false;
+  }
+
   if (resultingHash.size() != 64) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Wrong resultingHash size "
@@ -190,6 +198,18 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
 
   {
     std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+    auto submittedNumber =
+        std::count_if(m_powSolutions.begin(), m_powSolutions.end(),
+                      [&submitterKey](const DSPowSolution& soln) {
+                        return submitterKey == soln.GetSubmitterKey();
+                      });
+    if (submittedNumber >= POW_SUBMISSION_LIMIT) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Node " << submitterKey
+                        << " submitted pow count already reach limit");
+      return false;
+    }
+
     m_powSolutions.emplace_back(DSPowSolution(
         blockNumber, difficultyLevel, submitterPeer, submitterKey, nonce,
         resultingHash, mixHash, lookupId, gasPrice, signature));
