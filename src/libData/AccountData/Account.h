@@ -169,11 +169,12 @@ class Account : public AccountBase {
                   bool temp, bool revertible = false);
 
   /// Only called during UpdateAccountsTemp
-  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries,
+                  bool temp = false);
 
   std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
 
-  Json::Value GetInitJson() const;
+  Json::Value GetInitJson(bool temp) const;
 
   Json::Value GetStateJson(bool temp) const;
 

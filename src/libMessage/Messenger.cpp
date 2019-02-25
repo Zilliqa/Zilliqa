@@ -396,7 +396,8 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   AccountBaseToProtobuf(account, *protoAccountBase);
 
   if (protoAccountBase->has_codehash()) {
-    protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
+    bytes codebytes = account.GetCode();
+    protoAccount.set_code(codebytes.data(), codebytes.size());
     for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
       ProtoAccount::StorageData* entry = protoAccount.add_storage();
       entry->set_keyhash(keyHash.data(), keyHash.size);

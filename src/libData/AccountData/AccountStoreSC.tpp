@@ -47,11 +47,9 @@ void AccountStoreSC<MAP>::Init() {
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
-                                         const unsigned int& numShards,
-                                         const bool& isDS,
-                                         const Transaction& transaction,
-                                         TransactionReceipt& receipt) {
+bool AccountStoreSC<MAP>::UpdateAccounts(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    const Transaction& transaction, TransactionReceipt& receipt, bool temp) {
   // LOG_MARKER();
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
@@ -164,7 +162,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     // Initiate the contract account, including setting the contract code
     // store the immutable states
     if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
-                                 toAddr, blockNum, true)) {
+                                 toAddr, blockNum, temp)) {
       LOG_GENERAL(WARNING, "InitContract failed");
       init = false;
     }
@@ -427,7 +425,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                                         << " microseconds");
     }
 
-    if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt)) {
+    if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, temp)) {
       if (m_curDepth > 0) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
       }
@@ -800,12 +798,13 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                             const std::string& runnerPrint,
                                             TransactionReceipt& receipt,
-                                            bool first) {
+                                            bool temp, bool first) {
   Json::Value jsonOutput;
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt, first);
+  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt, first,
+                                     temp);
 }
 
 template <class MAP>
@@ -857,7 +856,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt, bool first) {
+    TransactionReceipt& receipt, bool first, bool temp) {
   // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1028,7 +1027,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   if (first) {
     if (ret) {
-      if (!contractAccount->SetStorage(state_entries)) {
+      if (!contractAccount->SetStorage(state_entries, temp)) {
         LOG_GENERAL(WARNING, "SetStorage failed");
       }
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1041,7 +1040,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     Contract::ContractStorage::GetContractStorage().BufferCurrentState();
   }
 
-  if (!contractAccount->SetStorage(state_entries)) {
+  if (!contractAccount->SetStorage(state_entries, temp)) {
     LOG_GENERAL(WARNING, "SetStorage failed");
   }
 
@@ -1141,7 +1140,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   Address t_address = m_curContractAddr;
   m_curSenderAddr = m_curContractAddr;
   m_curContractAddr = recipient;
-  if (!ParseCallContract(gasRemained, runnerPrint, receipt, false)) {
+  if (!ParseCallContract(gasRemained, runnerPrint, receipt, temp, false)) {
     LOG_GENERAL(WARNING,
                 "ParseCallContract failed of calling contract: " << recipient);
     return false;

@@ -35,7 +35,8 @@ void AccountStoreTrie<DB, MAP>::Init() {
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
                                           unsigned int offset) const {
-  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(dst, offset, m_state)) {
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
+          dst, offset, m_state, this->m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }
