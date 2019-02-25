@@ -136,15 +136,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     }
 
     m_mediator.m_currentEpochNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
-
-    if ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
-            NUM_FINAL_BLOCK_PER_POW ==
-        0) {
-      m_mediator.m_isVacuousEpoch = true;
-    } else {
-      m_mediator.m_isVacuousEpoch = false;
-    }
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    m_mediator.IncreaseEpochNum();
 
     if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
