@@ -115,7 +115,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
   IncreaseBalance(fromAddr, gasRefund);
 
-  IncreaseNonce(fromAddr);
+  if (!IncreaseNonce(fromAddr)) {
+    return false;
+  }
 
   receipt.SetResult(true);
   receipt.SetCumGas(NORMAL_TRAN_GAS);
