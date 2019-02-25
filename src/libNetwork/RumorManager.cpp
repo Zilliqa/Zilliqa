@@ -279,6 +279,10 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
     } else {
       LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
     }
+  } else {
+    LOG_GENERAL(WARNING, "Ignore msg. Msg Size :"
+                             << message.size() << ", Expected Range: 1 - "
+                             << MAX_GOSSIP_MSG_SIZE_IN_BYTES);
   }
 
   return false;
