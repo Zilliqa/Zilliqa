@@ -82,7 +82,8 @@ class POW {
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
                                  const PairOfKey& pairOfKey,
                                  const ethash_hash256& headerHash,
-                                 bool fullDataset, uint64_t startNonce);
+                                 bool fullDataset, uint64_t startNonce,
+                                 int timeWindow);
 
   /// Terminates proof-of-work mining.
   void StopMining();
@@ -110,15 +111,16 @@ class POW {
   ethash_mining_result_t RemoteMine(const PairOfKey& pairOfKey,
                                     uint64_t blockNum,
                                     ethash_hash256 const& headerHash,
-                                    ethash_hash256 const& boundary);
+                                    ethash_hash256 const& boundary,
+                                    int timeWindow);
 
   bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                        ethash_hash256 const& headerHash,
-                       ethash_hash256 const& boundary);
+                       ethash_hash256 const& boundary, int timeWindow);
   bool CheckMiningResult(const PairOfKey& pairOfKey,
                          ethash_hash256 const& headerHash,
                          ethash_hash256 const& boundary, uint64_t& nonce,
-                         ethash_hash256& mixHash);
+                         ethash_hash256& mixHash, int timeWindow);
   bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
                         uint64_t nonce, const ethash_hash256& headerHash,
                         const ethash_hash256& mixHash,
@@ -141,18 +143,19 @@ class POW {
 
   ethash_mining_result_t MineLight(ethash_hash256 const& headerHash,
                                    ethash_hash256 const& boundary,
-                                   uint64_t startNonce);
+                                   uint64_t startNonce, int timeWindow);
   ethash_mining_result_t MineFull(ethash_hash256 const& headerHash,
                                   ethash_hash256 const& boundary,
-                                  uint64_t startNonce);
+                                  uint64_t startNonce, int timeWindow);
   ethash_mining_result_t MineGetWork(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
-                                     uint8_t difficulty);
+                                     uint8_t difficulty, int timeWindow);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
-                                     uint8_t difficulty, uint64_t startNonce);
+                                     uint8_t difficulty, uint64_t startNonce,
+                                     int timeWindow);
   void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
-                         uint8_t difficulty, uint64_t nonce);
+                         uint8_t difficulty, uint64_t nonce, int timeWindow);
   void InitOpenCL();
   void InitCUDA();
 };
