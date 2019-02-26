@@ -51,14 +51,20 @@ class JSONUtils {
 
   /// Convert a string to Json object
   bool convertStrtoJson(const std::string& str, Json::Value& dstObj) {
-    std::string errors;
-    std::lock_guard<std::mutex> g(m_mutexReader);
-    if (!m_reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
-                         &errors)) {
-      LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
-      return false;
+    bool result = true;
+    try {
+      std::string errors;
+      std::lock_guard<std::mutex> g(m_mutexReader);
+      if (!m_reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
+                           &errors)) {
+        LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
+        result = false;
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+      result = false;
     }
-    return true;
+    return result;
   }
 
   /// Convert a Json object to string
