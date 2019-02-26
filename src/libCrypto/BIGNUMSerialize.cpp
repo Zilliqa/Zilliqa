@@ -29,6 +29,13 @@ std::mutex BIGNUMSerialize::m_mutexBIGNUM;
 shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
                                               unsigned int offset,
                                               unsigned int size) {
+  // Check for offset overflow
+  if ((offset + size) < size) {
+    LOG_GENERAL(WARNING,
+                "Overflow detected. offset = " << offset << " size = " << size);
+    return nullptr;
+  }
+
   if (offset + size > src.size()) {
     LOG_GENERAL(WARNING,
                 "Can't get BIGNUM. offset = " << offset << " size = " << size
@@ -45,6 +52,13 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
 
 void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
                                 unsigned int size, shared_ptr<BIGNUM> value) {
+  // Check for offset overflow
+  if ((offset + size) < size) {
+    LOG_GENERAL(WARNING,
+                "Overflow detected. offset = " << offset << " size = " << size);
+    return;
+  }
+
   // This mutex is to prevent multi-threaded issues with the use of openssl
   // functions
   lock_guard<mutex> g(m_mutexBIGNUM);
