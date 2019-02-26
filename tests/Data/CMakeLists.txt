@@ -12,7 +12,7 @@ target_include_directories(Test_LogEntry PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_
 target_link_libraries(Test_LogEntry PUBLIC AccountData Utils TestUtils)
 add_test(NAME Test_LogEntry COMMAND Test_LogEntry)
 
-add_executable(Test_AccountStore Test_AccountStore.cpp)
+add_executable(Test_AccountStore Test_AccountStore.cpp ScillaTestUtil.cpp)
 target_include_directories(Test_AccountStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_AccountStore PUBLIC AccountData Trie Utils Crypto Message)
 add_test(NAME Test_AccountStore COMMAND Test_AccountStore)
