@@ -227,7 +227,7 @@ class Lookup : public Executable {
   bool GetMyLookupOffline();
 
   // Set my lookup ip online in other lookup nodes
-  bool GetMyLookupOnline();
+  bool GetMyLookupOnline(bool fromRecovery = false);
 
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
