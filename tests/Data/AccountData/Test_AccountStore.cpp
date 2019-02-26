@@ -22,11 +22,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/AccountStoreSC.h"
 #include "libData/AccountData/Address.h"
-#include "libUtils/DataConversion.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 
 BOOST_AUTO_TEST_SUITE(accountstoretest)
@@ -37,6 +36,11 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   LOG_MARKER();
 
   AccountStore::GetInstance().Init();
+
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetStateDeltaHash() == dev::h256(),
+      "Wrong StateDeltaHash: AccountStore initial state is wrong"
+      "(state delta hash != empty hash)!");
 
   // Check account store is initially empty
   BOOST_CHECK_MESSAGE(
@@ -109,6 +113,8 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   BOOST_CHECK_MESSAGE(
       AccountStore::GetInstance().GetStateRootHash() == root2,
       "Wrong root: Call to MoveUpdatesToDisk() has changed the root hash!");
+
+  AccountStore::GetInstance().RetrieveFromDisk();
 }
 
 BOOST_AUTO_TEST_CASE(varyingOrderOfAddAccountCalls) {
@@ -364,6 +370,58 @@ BOOST_AUTO_TEST_CASE(increaseNonce) {
                       "IncreaseNonce didn't change nonce rightly!");
 
   BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseNonce didn't change root!");
+}
+
+BOOST_AUTO_TEST_CASE(serialization) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  AccountStore& as = AccountStore::GetInstance();
+
+  bytes src;
+  bytes dst;
+  BOOST_CHECK_EQUAL(true, as.Serialize(src, 0));
+  BOOST_CHECK_EQUAL(true, as.Deserialize(dst, 0));
+  BOOST_CHECK_EQUAL(true, as.SerializeDelta());
+  as.GetSerializedDelta(dst);
+  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, true));
+  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, false));
+  BOOST_CHECK_EQUAL(true, as.DeserializeDeltaTemp(dst, 0));
+
+  // Increase coverage
+  as.AddAccountDuringDeserialization(Address(), Account(), Account(), false,
+                                     true);
+  as.AddAccountDuringDeserialization(Address(), Account(), Account(), true,
+                                     true);
+}
+
+BOOST_AUTO_TEST_CASE(temporaries) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  Address addr = Address().random();
+  TransactionReceipt tr = TransactionReceipt();
+  BOOST_CHECK_EQUAL(false, AccountStore::GetInstance().UpdateAccountsTemp(
+                               TestUtils::DistUint64(), TestUtils::DistUint32(),
+                               true, Transaction(), tr));
+  BOOST_CHECK_EQUAL(false, AccountStore::GetInstance().UpdateCoinbaseTemp(
+                               ++addr, ++addr, TestUtils::DistUint128()));
+
+  BOOST_CHECK_EQUAL(true,
+                    AccountStore::GetInstance().GetNonceTemp(++addr) == 0);
+}
+
+BOOST_AUTO_TEST_CASE(commit) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  // Increase coverage
+  AccountStore::GetInstance().CommitTemp();
+  AccountStore::GetInstance().CommitTempRevertible();
+  AccountStore::GetInstance().RevertCommitTemp();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

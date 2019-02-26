@@ -17,11 +17,7 @@
 
 #include <array>
 #include <string>
-#include "libCrypto/Schnorr.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/Address.h"
-#include "libPersistence/ContractStorage.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -57,6 +53,20 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   Account acc1 = Account();
 
+  // Not contract
+  BOOST_CHECK_EQUAL(acc1.GetInitJson(), Json::arrayValue);
+  BOOST_CHECK_EQUAL(true, acc1.GetRawStorage(dev::h256(), true).empty());
+  BOOST_CHECK_EQUAL(acc1.GetStateJson(true), Json::arrayValue);
+  BOOST_CHECK_EQUAL(0, acc1.GetCode().size());
+
+  // Not contract
+  vector<StateEntry> entries;
+  entries.emplace_back("count", true, "Int32", "0");
+  BOOST_CHECK_EQUAL(false, acc1.SetStorage(entries));
+
+  std::pair<Json::Value, Json::Value> roots;
+  BOOST_CHECK_EQUAL(false, acc1.GetStorageJson(roots, true));
+
   bytes code = {'h', 'e', 'l', 'l', 'o'};
 
   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
@@ -82,7 +92,6 @@ BOOST_AUTO_TEST_CASE(testInit) {
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
   BOOST_CHECK_EQUAL(true, addr1 == acc1.GetAddress());
 
-  std::pair<Json::Value, Json::Value> roots;
   acc1.GetStorageJson(roots, true);
 
   LOG_GENERAL(INFO, "roots.first " << JSONUtils::GetInstance().convertJsontoStr(
@@ -99,9 +108,6 @@ BOOST_AUTO_TEST_CASE(testInit) {
                               root[0]["type"] == "Uint128" &&
                               root[0]["value"] == "0");
   BOOST_CHECK_EQUAL(true, roots.second == root);
-
-  vector<StateEntry> entries;
-  entries.emplace_back("count", true, "Int32", "0");
 
   dev::h256 stateRoot1 = acc1.GetStorageRoot();
 
@@ -123,6 +129,13 @@ BOOST_AUTO_TEST_CASE(testInit) {
   }
   BOOST_CHECK_EQUAL(
       1 + 2 + 1, entry_num);  // InitData(1) + BlockChainData(2) + InputData(1)
+
+  dev::h256 stateRoot3 = dev::h256::random();
+  acc1.SetStorageRoot(stateRoot3);
+  BOOST_CHECK_EQUAL(true, stateRoot3 == acc1.GetStorageRoot());
+
+  // Now contract set
+  BOOST_CHECK_EQUAL(true, acc1.GetInitJson() == Json::arrayValue);
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
@@ -218,6 +231,24 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
+}
+
+BOOST_AUTO_TEST_CASE(testOstream) {
+  uint128_t balance = TestUtils::DistUint128();
+  uint64_t nonce = TestUtils::DistUint64();
+  dev::h256 storageRoot = dev::h256::random();
+  dev::h256 codeHash = dev::h256::random();
+  std::ostringstream oss_test;
+  oss_test << balance << " " << nonce << " " << storageRoot << " " << codeHash;
+
+  Account acc1(balance, nonce);
+  acc1.SetNonce(nonce);
+  acc1.SetStorageRoot(storageRoot);
+  acc1.SetCodeHash(codeHash);
+
+  std::ostringstream oss;
+  oss << acc1;
+  BOOST_CHECK_EQUAL(0, oss_test.str().compare(oss.str()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
