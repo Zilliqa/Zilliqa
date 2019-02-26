@@ -114,6 +114,9 @@ class Lookup : public Executable {
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
+  std::mutex m_mutexShardStruct;
+  std::condition_variable cv_shardStruct;
+
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 
@@ -128,6 +131,8 @@ class Lookup : public Executable {
   bytes ComposeGetLookupOnlineMessage();
 
   bytes ComposeGetOfflineLookupNodes();
+
+  void ComposeAndSendGetShardingStructureFromSeed();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);

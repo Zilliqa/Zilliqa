@@ -189,8 +189,8 @@ BOOST_AUTO_TEST_CASE(testNonce) {
   uint64_t nonce_incr = TestUtils::DistUint16();
 
   Account acc1(0, nonce);
-  acc1.IncreaseNonce();
-  acc1.IncreaseNonceBy(nonce_incr);
+  BOOST_CHECK(acc1.IncreaseNonce());
+  BOOST_CHECK(acc1.IncreaseNonceBy(nonce_incr));
   BOOST_CHECK_EQUAL(nonce + nonce_incr + 1, acc1.GetNonce());
 
   nonce = TestUtils::DistUint64();
