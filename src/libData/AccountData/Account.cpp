@@ -213,13 +213,13 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries) {
+bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
   if (!isContract()) {
     return false;
   }
 
   return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot, true);
+      m_address, state_entries, m_storageRoot, temp);
 }
 
 bool Account::SetStorage(const Address& addr,
@@ -279,13 +279,13 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
-Json::Value Account::GetInitJson() const {
+Json::Value Account::GetInitJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
   }
 
   pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots, false)) {
+  if (!GetStorageJson(roots, temp)) {
     LOG_GENERAL(WARNING, "GetStorageJson failed");
     return Json::arrayValue;
   }

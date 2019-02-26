@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(testInit) {
     }
   }
   BOOST_CHECK_EQUAL(
-      1 + 2 + 1, entry_num);  // InitData(1) + BlockChainData(2) + InputData(1)
+      1 + 1 + 1, entry_num);  // InitData(1) + BlockChainData(1) + InputData(1)
 
   dev::h256 stateRoot3 = dev::h256::random();
   acc1.SetStorageRoot(stateRoot3);

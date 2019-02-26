@@ -31,10 +31,11 @@ class MessengerAccountStoreTrie {
   // ============================================================================
   // Primitives
   // ============================================================================
-  template <class DB>
+  template <class DB, class MAP>
   static bool SetAccountStoreTrie(
       bytes& dst, const unsigned int offset,
-      const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie);
+      const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie,
+      const std::shared_ptr<MAP>& addressToAccount);
 };
 
 #endif  // __MESSENGERACCOUNTSTORETRIE_H__
