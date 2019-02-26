@@ -1200,7 +1200,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
            0) ||
           m_justDidFallback))) {
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace_back(message);
+      m_txnPacketBuffer.emplace_back(message2);
       return true;
     }
   }
@@ -1229,14 +1229,14 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
               << std::setw(15) << std::left
               << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+              << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
               << "] RECVFROMLOOKUP");
-    m_txnPacketBuffer.emplace_back(message);
+    m_txnPacketBuffer.emplace_back(message2);
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neighbor and process it");
-    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
+    return ProcessTxnPacketFromLookupCore(message2, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }
 
