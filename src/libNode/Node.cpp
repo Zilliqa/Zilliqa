@@ -1147,10 +1147,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   uint32_t shardId = 0;
   PubKey lookupPubKey;
   vector<Transaction> transactions;
+  Signature signature;
 
   if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
                                          dsBlockNum, shardId, lookupPubKey,
-                                         transactions)) {
+                                         transactions, signature)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeForwardTxnBlock failed.");
     return false;
@@ -1164,6 +1165,17 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   }
 
   LOG_GENERAL(INFO, "Received from " << from);
+
+  // Avoid using the original message for broadcasting in case it contains
+  // excess data beyond the TxnPacket
+  bytes message2 = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
+  if (!Messenger::SetNodeForwardTxnBlock(
+          message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
+          lookupPubKey, transactions, signature)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeForwardTxnBlock failed.");
+    return false;
+  }
 
   {
     // The check here is in case the lookup send the packet
@@ -1188,7 +1200,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
            0) ||
           m_justDidFallback))) {
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace_back(message);
+      m_txnPacketBuffer.emplace_back(message2);
       return true;
     }
   }
@@ -1217,14 +1229,14 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
               << std::setw(15) << std::left
               << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+              << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
               << "] RECVFROMLOOKUP");
-    m_txnPacketBuffer.emplace_back(message);
+    m_txnPacketBuffer.emplace_back(message2);
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neighbor and process it");
-    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
+    return ProcessTxnPacketFromLookupCore(message2, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }
 
@@ -1463,10 +1475,11 @@ void Node::CommitTxnPacketBuffer() {
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
+    Signature signature;
 
-    if (!Messenger::GetNodeForwardTxnBlock(message, MessageOffset::BODY,
-                                           epochNumber, dsBlockNum, shardId,
-                                           lookupPubKey, transactions)) {
+    if (!Messenger::GetNodeForwardTxnBlock(
+            message, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
+            lookupPubKey, transactions, signature)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
