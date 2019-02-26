@@ -84,7 +84,7 @@ class Lookup : public Executable {
   std::condition_variable cv_startPoWSubmission;
 
   /// To indicate which type of synchronization is using
-  SyncType m_syncType = SyncType::NO_SYNC;
+  std::atomic<SyncType> m_syncType;  // = SyncType::NO_SYNC;
 
   void SetAboveLayer();
 
@@ -227,7 +227,7 @@ class Lookup : public Executable {
   bool GetMyLookupOffline();
 
   // Set my lookup ip online in other lookup nodes
-  bool GetMyLookupOnline();
+  bool GetMyLookupOnline(bool fromRecovery = false);
 
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
@@ -335,7 +335,7 @@ class Lookup : public Executable {
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
-  inline SyncType GetSyncType() const { return m_syncType; }
+  inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
 
   bool m_fetchedOfflineLookups = false;
