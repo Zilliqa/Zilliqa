@@ -228,6 +228,12 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
 
   lock_guard<mutex> g(m_mutexConsensus);
 
+  if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in MICROBLOCK_CONSENSUS state");
+    return false;
+  }
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }

@@ -592,6 +592,10 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
 
   LOG_MARKER();
 
+  if (m_state != POW_SUBMISSION) {
+    SetState(POW_SUBMISSION);
+  }
+
   m_mediator.m_consensusID = 0;
   m_mediator.m_node->SetConsensusLeaderID(0);
 
@@ -601,7 +605,6 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
 
   m_mediator.m_node->CleanMicroblockConsensusBuffer();
 
-  SetState(POW_SUBMISSION);
   cv_POWSubmission.notify_all();
 
   POW::GetInstance().EthashConfigureClient(

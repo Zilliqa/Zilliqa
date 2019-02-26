@@ -1152,7 +1152,9 @@ void DirectoryService::RunConsensusOnFinalBlock() {
       RejoinAsDS();
     }
 
-    SetState(FINALBLOCK_CONSENSUS_PREP);
+    if (m_state != FINALBLOCK_CONSENSUS_PREP) {
+      SetState(FINALBLOCK_CONSENSUS_PREP);
+    }
 
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
