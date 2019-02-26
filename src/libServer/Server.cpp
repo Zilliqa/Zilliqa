@@ -170,6 +170,10 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
     }
 
+    if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
+      throw JsonRpcException(RPC_VERIFY_REJECTED, "Code size is too large");
+    }
+
     if (tx.GetGasPrice() <
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
       throw JsonRpcException(RPC_VERIFY_REJECTED,

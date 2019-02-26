@@ -145,6 +145,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
     }
   }
 
+  if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Code size " << tx.GetCode().size()
+                           << " larger than maximum code size allowed "
+                           << MAX_CODE_SIZE_IN_BYTES);
+    return false;
+  }
+
   if (tx.GetGasPrice() <
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
