@@ -40,9 +40,9 @@ bool checkExistenceAndAdd(MAP& m, const KEY& k) {
   }
 }
 
-Transaction crateTransaction(const uint128_t& gasPrice, const TxnHash& tranID,
-                             const PubKey& senderPubKey,
-                             const uint64_t& nonce) {
+Transaction createTransaction(const uint128_t& gasPrice, const TxnHash& tranID,
+                              const PubKey& senderPubKey,
+                              const uint64_t& nonce) {
   return Transaction(
       tranID, TestUtils::DistUint32(), nonce, Address().random(), senderPubKey,
       TestUtils::DistUint128(), gasPrice, TestUtils::DistUint64(),
@@ -64,9 +64,9 @@ Transaction generateUniqueTransaction() {
   PubKey senderPubKey;
   uint64_t nonce;
 
-  // Make sure that all the initializers for a Transaction object later used for
-  // TxnPool members will be unique not necessary but easier to check all at
-  // once rather than just necessary tuples.
+  // Make sure that all the initializers for a Transaction object used later for
+  // TxnPool will be unique (not necessary but easier to check all at
+  // once rather than just tuples).
   bool uniq = true;
   do {
     gasPrice = TestUtils::DistUint128();
@@ -82,7 +82,7 @@ Transaction generateUniqueTransaction() {
     uniq &= checkExistenceAndAdd(nonce_m, nonce);
   } while (!uniq);
 
-  return crateTransaction(gasPrice, tranID, senderPubKey, nonce);
+  return createTransaction(gasPrice, tranID, senderPubKey, nonce);
 }
 
 std::vector<Transaction> generateUniqueTransactionVector(
@@ -107,39 +107,64 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   std::vector<Transaction> transaction_v;
   generateUniqueTransactionVector(transaction_v, TestUtils::Dist1to99() + 1);
 
-  for (uint i = 0; i < transaction_v.size(); i++) {
-    BOOST_CHECK_EQUAL(true, tp.insert(transaction_v[i]));
-    BOOST_CHECK_EQUAL(true, tp.exist(transaction_v[i].GetTranID()));
+  // ============================================================
+  // Insert Transactions in TxnPool and check that inserted elements can be
+  // queried back
+  // ============================================================
+  for (auto& t : transaction_v) {
+    BOOST_CHECK_EQUAL(true, tp.insert(t));
+    BOOST_CHECK_EQUAL(true, tp.exist(t.GetTranID()));
     Transaction tran = Transaction();
-    BOOST_CHECK_EQUAL(true, tp.get(transaction_v[i].GetTranID(), tran));
-    BOOST_CHECK_EQUAL(true, tran == transaction_v[i]);
+    BOOST_CHECK_EQUAL(true, tp.get(t.GetTranID(), tran));
+    BOOST_CHECK_EQUAL(true, tran == t);
   }
+  // ============================================================
+  // Try to find non existing Transaction
+  // ============================================================
+  Transaction tran_unique = generateUniqueTransaction();
+  BOOST_CHECK_EQUAL(false, tp.exist(tran_unique.GetTranID()));
 
+  // ============================================================
+  // Check that number of inserted elements equals
+  // ============================================================
   BOOST_CHECK_EQUAL(transaction_v.size(), tp.size());
+
+  // ============================================================
+  // Try to insert the same Transaction again
+  // ============================================================
   BOOST_CHECK_EQUAL(false,
                     tp.insert(transaction_v[TestUtils::RandomIntInRng<uint8_t>(
                         0, transaction_v.size() - 1)]));
 
+  // ============================================================
+  // Insert existing Transaction but with higher gas price (+1)
+  // ============================================================
   Transaction transactionHigherGas;
+  // Find the existing Transaction with gasPrice < MAX (gasPrice)
+  int i = 0;
   while (true) {
-    int i = 0;
     uint128_t gasprice = transaction_v[i].GetGasPrice();
     if (gasprice < gasprice + 1) {
-      transactionHigherGas = crateTransaction(
+      transactionHigherGas = createTransaction(
           gasprice + 1, transaction_v[i].GetTranID(),
           transaction_v[i].GetSenderPubKey(), transaction_v[i].GetNonce());
       break;
     }
     ++i;
   }
-  tp.insert(transactionHigherGas);
-  Transaction transactionHigherGas_test = transactionHigherGas;
-  tp.findSameNonceButHigherGas(transactionHigherGas_test);
-  BOOST_CHECK_EQUAL(true, transactionHigherGas == transactionHigherGas_test);
+  BOOST_CHECK_EQUAL(true, tp.insert(transactionHigherGas));
 
-  BOOST_CHECK_EQUAL(true, tp.findOne(transactionHigherGas_test));
-  Transaction tran_unique = generateUniqueTransaction();
+  // ============================================================
+  // Test if findSameNonceButHigherGas returns same Transaction but with higher
+  // gas
+  // ============================================================
+  Transaction transactionLoverGas_test = transaction_v[i];
+  tp.findSameNonceButHigherGas(transactionLoverGas_test);
+  BOOST_CHECK_EQUAL(true, transactionHigherGas == transactionLoverGas_test);
 
+  // ============================================================
+  // Try to find all the transactions
+  // ============================================================
   Transaction transactionTest;
   uint size = tp.size();
   for (uint i = 0; i < size; i++) {
