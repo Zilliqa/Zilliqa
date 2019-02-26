@@ -1866,6 +1866,10 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
       if (GUARD_MODE) {
         Blacklist::GetInstance().Exclude(
             dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
+        LOG_GENERAL(INFO,
+                    "Add ds guard "
+                        << dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress
+                        << " to blacklist exclude list");
       }
     }
   }
