@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
@@ -834,6 +835,13 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
          indexOfDSGuard++) {
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
+
+        Blacklist::GetInstance().RemoveExclude(
+            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
+        LOG_GENERAL(INFO, "Removed "
+                              << m_mediator.m_DSCommittee->at(indexOfDSGuard)
+                                     .second.m_ipAddress
+                              << " from blacklist exclude list")
         LOG_GENERAL(INFO,
                     "[update ds guard] DS guard to be updated is at index "
                         << indexOfDSGuard << " "
