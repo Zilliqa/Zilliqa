@@ -243,6 +243,22 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
                 "I am backup member of the DS shard");
     }
   }
+
+  switch (viewChangeState) {
+    case DSBLOCK_CONSENSUS:
+    case DSBLOCK_CONSENSUS_PREP:
+      SetState(DSBLOCK_CONSENSUS_PREP);
+      break;
+    case FINALBLOCK_CONSENSUS:
+    case FINALBLOCK_CONSENSUS_PREP:
+      SetState(FINALBLOCK_CONSENSUS_PREP);
+      break;
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
+    default:
+      break;
+  }
+
   auto func = [this, viewChangeState]() -> void {
     ProcessNextConsensus(viewChangeState);
   };
@@ -423,6 +439,12 @@ bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
   }
 
   lock_guard<mutex> g(m_mutexConsensus);
+
+  if (!CheckState(PROCESS_VIEWCHANGECONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_VIEWCHANGECONSENSUS state");
+    return false;
+  }
 
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;

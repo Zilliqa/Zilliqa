@@ -712,6 +712,12 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
   lock_guard<mutex> g(m_mutexConsensus);
 
+  if (!CheckState(PROCESS_DSBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_DSBLOCKCONSENSUS state");
+    return false;
+  }
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }

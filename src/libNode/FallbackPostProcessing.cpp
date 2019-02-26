@@ -198,6 +198,8 @@ void Node::ProcessFallbackConsensusWhenDone() {
                                                   {'0'});
     }
 
+    SetState(POW_SUBMISSION);
+
     // Detach a thread, Pending for POW Submission and RunDSBlockConsensus
     auto func = [this]() -> void {
       m_mediator.m_ds->StartNewDSEpochConsensus(true);
@@ -305,6 +307,12 @@ bool Node::ProcessFallbackConsensus(const bytes& message, unsigned int offset,
   }
 
   lock_guard<mutex> g(m_mutexConsensus);
+
+  if (!CheckState(PROCESS_FALLBACKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_FALLBACKCONSENSUS state");
+    return false;
+  }
 
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;

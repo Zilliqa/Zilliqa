@@ -1230,7 +1230,9 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
     RejoinAsDS();
   }
 
-  SetState(DSBLOCK_CONSENSUS_PREP);
+  if (m_state != DSBLOCK_CONSENSUS_PREP) {
+    SetState(DSBLOCK_CONSENSUS_PREP);
+  }
 
   {
     lock_guard<mutex> h(m_mutexCoinbaseRewardees);
