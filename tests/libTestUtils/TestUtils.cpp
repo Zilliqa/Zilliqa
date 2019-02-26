@@ -183,6 +183,20 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
                              prevHash);
 }
 
+DSBlockHeader createDSBlockHeader(const uint64_t& blockNum) {
+  return DSBlockHeader(DistUint8(), DistUint8(), GenerateRandomPubKey(),
+                       blockNum, DistUint64(), DistUint128(), SWInfo(),
+                       map<PubKey, Peer>(), DSBlockHashSet(), DistUint32(),
+                       CommitteeHash(), BlockHash());
+}
+
+TxBlockHeader createTxBlockHeader(const uint64_t& blockNum) {
+  return TxBlockHeader(DistUint64(), DistUint64(), DistUint128(), blockNum,
+                       TxBlockHashSet(), DistUint32(), GenerateRandomPubKey(),
+                       DistUint64(), DistUint32(), CommitteeHash(),
+                       BlockHash());
+}
+
 DequeOfNode GenerateRandomDSCommittee(uint32_t size) {
   DequeOfNode ds_c;
   for (uint32_t i = 1; i <= size; i++) {

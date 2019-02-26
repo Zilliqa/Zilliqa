@@ -41,9 +41,10 @@ Test_scenarios=("-DVC_TEST_DS_SUSPEND_3=1 "
                 "-DDM_TEST_DM_MORETXN_HALF=1 "
                 "-DDM_TEST_DM_MOREMB_HALF=1 "
                 "-DADDRESS_SANITIZER=ON "
-                "-DTHREAD_SANITIZER=ON " )
+                "-DTHREAD_SANITIZER=ON "
+                "-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW=1 " )
 
-Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" "dm7" "dm8" "dm9" "asan" "tsan" )
+Test_scenarios_name=( "vc2" "vc4" "vc1vc6" "vc3vc6" "vc7" "vc8" "dm1" "dm2" "dm3" "dm4" "dm5" "dm6" "dm7" "dm8" "dm9" "asan" "tsan" "sj1" )
 
 cmd=$0
 

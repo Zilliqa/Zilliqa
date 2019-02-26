@@ -92,13 +92,11 @@ void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
 const uint128_t& AccountBase::GetBalance() const { return m_balance; }
 
 bool AccountBase::IncreaseNonce() {
-  ++m_nonce;
-  return true;
+  return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
 }
 
 bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
-  m_nonce += nonceDelta;
-  return true;
+  return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
 }
 
 void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }

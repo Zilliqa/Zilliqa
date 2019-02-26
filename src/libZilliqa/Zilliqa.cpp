@@ -90,6 +90,7 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
     if (msg_type < msg_handlers_count) {
       if (msg_handlers[msg_type] == NULL) {
         LOG_GENERAL(WARNING, "Message type NULL");
+        delete message;
         return;
       }
 

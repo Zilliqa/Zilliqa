@@ -100,6 +100,10 @@ class Node : public Executable {
   std::mutex m_mutexCVWaitDSBlock;
   std::condition_variable cv_waitDSBlock;
 
+  // Final Block Buffer for seed node
+  std::vector<bytes> m_seedTxnBlksBuffer;
+  std::mutex m_mutexSeedTxnBlksBuffer;
+
   // Persistence Retriever
   std::shared_ptr<Retriever> m_retriever;
 
@@ -229,6 +233,8 @@ class Node : public Executable {
                                       const Peer& from);
   bool ProcessFinalBlock(const bytes& message, unsigned int offset,
                          const Peer& from);
+  bool ProcessFinalBlockCore(const bytes& message, unsigned int offset,
+                             const Peer& from, bool buffered = false);
   bool ProcessMBnForwardTransaction(const bytes& message,
                                     unsigned int cur_offset, const Peer& from);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);

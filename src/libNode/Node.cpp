@@ -136,7 +136,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     }
 
     m_mediator.m_currentEpochNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    m_mediator.IncreaseEpochNum();
 
     if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
@@ -1842,7 +1843,11 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
           return true;
         }
       }
-    } else  // IS_LOOKUP_NODE
+    } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+               ins_byte == NodeInstructionType::FINALBLOCK)  // Is seed node
+    {
+      return false;
+    } else  // Is lookup node
     {
       return true;
     }
