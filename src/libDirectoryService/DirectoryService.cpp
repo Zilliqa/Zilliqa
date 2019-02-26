@@ -849,6 +849,13 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
                         << " -> " << dsGuardNewNetworkInfo);
         m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
             dsGuardNewNetworkInfo;
+
+        if (GUARD_MODE) {
+          Blacklist::GetInstance().Exclude(dsGuardNewNetworkInfo.m_ipAddress);
+          LOG_GENERAL(INFO, "Add ds guard " << dsGuardNewNetworkInfo.m_ipAddress
+                                            << " to blacklist exclude list");
+        }
+
         break;
       }
     }
