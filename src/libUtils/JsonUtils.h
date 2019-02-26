@@ -51,10 +51,10 @@ class JSONUtils {
 
   /// Convert a string to Json object
   bool convertStrtoJson(const std::string& str, Json::Value& dstObj) {
-    std::lock_guard<std::mutex> g(m_mutexReader);
     bool result = true;
     try {
       std::string errors;
+      std::lock_guard<std::mutex> g(m_mutexReader);
       if (!m_reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
                            &errors)) {
         LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
