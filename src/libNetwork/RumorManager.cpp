@@ -224,7 +224,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
-  if (message.size() > 0 and message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
+  if (message.size() > 0 && message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
     RawBytes hash = HashUtils::BytesToHash(message);
     std::string output;
     if (!DataConversion::Uint8VecToHexStr(hash, output)) {
