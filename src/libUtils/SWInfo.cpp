@@ -249,11 +249,8 @@ bool SWInfo::IsLatestVersion() {
     Json::Value jsonLatestTag = jsonValue[0];
     std::string latestTag = jsonLatestTag["name"].asCString();
 
-    LOG_GENERAL(INFO, "The latest software tag: " << latestTag);
+    LOG_GENERAL(INFO, "The latest software version: " << latestTag);
     if (VERSION_TAG < latestTag) {
-      LOG_GENERAL(WARNING, "Please use latest version: "
-                               << latestTag
-                               << ", current using version: " << VERSION_TAG);
       return false;
     }
   } catch (const std::exception& e) {
