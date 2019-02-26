@@ -147,6 +147,8 @@ void Mediator::IncreaseEpochNum() {
   }
 
   LOG_GENERAL(INFO, "Epoch number is now " << m_currentEpochNum);
+
+  LOG_STATE("Epoch = " << m_currentEpochNum);
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
