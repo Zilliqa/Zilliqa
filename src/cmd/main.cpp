@@ -38,7 +38,6 @@ using namespace boost::multiprecision;
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_UNHANDLED_EXCEPTION -2
-#define ERROR_OLD_SW -3
 
 namespace po = boost::program_options;
 
@@ -140,11 +139,7 @@ int main(int argc, const char* argv[]) {
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 
     if (SyncType::NEW_SYNC == synctype && CHAIN_ID == MAINNET_CHAIN_ID) {
-      if (!SWInfo::IsLatestVersion()) {
-        std::cerr << "ERROR: please use latest software to join" << std::endl
-                  << std::endl;
-        return ERROR_OLD_SW;
-      }
+      SWInfo::IsLatestVersion();
     }
 
     if (address == "NAT") {

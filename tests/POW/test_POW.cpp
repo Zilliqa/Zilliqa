@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 10;
+  uint8_t difficultyToUse = 5;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
