@@ -1131,8 +1131,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if (!(m_state == VIEWCHANGE_CONSENSUS ||
-          m_state == MICROBLOCK_SUBMISSION || 
+    if (!(m_state == VIEWCHANGE_CONSENSUS || m_state == MICROBLOCK_SUBMISSION ||
           m_state == FINALBLOCK_CONSENSUS_PREP)) {
       LOG_GENERAL(WARNING,
                   "DirectoryService::RunConsensusOnFinalBlock "
