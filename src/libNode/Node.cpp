@@ -493,22 +493,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   // Add ds guard nodes to blacklist exclusion list
-  if (GUARD_MODE) {
-    unsigned int dsIndex = 0;
-    for (auto& i : *m_mediator.m_DSCommittee) {
-      if (dsIndex < Guard::GetInstance().GetNumOfDSGuard()) {
-        // Check node in not self node
-        if (!(i.first == m_mediator.m_selfKey.second)) {
-          Blacklist::GetInstance().Exclude(i.second.m_ipAddress);
-          LOG_GENERAL(INFO, "Added ds guard " << i.second
-                                              << " to blacklist exclude list");
-        }
-        dsIndex++;
-      } else {
-        break;
-      }
-    }
-  }
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
 
   bytes metaRes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
