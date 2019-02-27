@@ -132,6 +132,8 @@ class AccountStore
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
 
+  Account* GetAccountTemp(const Address& address);
+
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,

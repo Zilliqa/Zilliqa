@@ -221,6 +221,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
 
+  if (isVacuousEpoch) {
+    SetState(POW_SUBMISSION);
+  } else {
+    SetState(MICROBLOCK_SUBMISSION);
+  }
+
   auto func = [this, isVacuousEpoch]() mutable -> void {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "START OF a new EPOCH");
     if (isVacuousEpoch) {
@@ -229,7 +235,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       StartNewDSEpochConsensus();
     } else {
       m_mediator.m_node->UpdateStateForNextConsensusRound();
-      SetState(MICROBLOCK_SUBMISSION);
       m_stopRecvNewMBSubmission = false;
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
@@ -454,6 +459,12 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   }
 
   lock_guard<mutex> g(m_mutexConsensus);
+
+  if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_FINALBLOCKCONSENSUS state");
+    return false;
+  }
 
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;

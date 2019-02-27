@@ -376,12 +376,17 @@ class Messenger {
       const uint64_t& dsBlockNum, const uint32_t& shardId,
       const PairOfKey& lookupKey, std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
-  static bool GetNodeForwardTxnBlock(const bytes& src,
-                                     const unsigned int offset,
-                                     uint64_t& epochNumber,
-                                     uint64_t& dsBlockNum, uint32_t& shardId,
-                                     PubKey& lookupPubKey,
-                                     std::vector<Transaction>& txns);
+  static bool SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
+                                     const uint64_t& epochNumber,
+                                     const uint64_t& dsBlockNum,
+                                     const uint32_t& shardId,
+                                     const PubKey& lookupKey,
+                                     std::vector<Transaction>& txns,
+                                     const Signature& signature);
+  static bool GetNodeForwardTxnBlock(
+      const bytes& src, const unsigned int offset, uint64_t& epochNumber,
+      uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
+      std::vector<Transaction>& txns, Signature& signature);
 
   static bool SetNodeMicroBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,

@@ -139,7 +139,14 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
   }
 
   if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
-    SendVCBlockToOtherShardNodes(message);
+    // Avoid using the original message for broadcasting in case it contains
+    // excess data beyond the VCBlock
+    bytes message2 = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+    if (!Messenger::SetNodeVCBlock(message2, MessageOffset::BODY, vcblock)) {
+      LOG_GENERAL(WARNING, "Messenger::SetNodeVCBlock failed");
+    } else {
+      SendVCBlockToOtherShardNodes(message2);
+    }
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

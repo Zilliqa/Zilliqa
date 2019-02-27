@@ -521,8 +521,28 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee,
                               m_mediator.m_dsBlockChain.GetLastBlock());
 
+  uint16_t lastBlockHash = 0;
+  if (m_mediator.m_currentEpochNum > 1) {
+    lastBlockHash =
+        DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetHashForRandom()
+                                            .asBytes());
+  }
+
+  if (!GUARD_MODE) {
+    m_mediator.m_ds->SetConsensusLeaderID(lastBlockHash %
+                                          m_mediator.m_DSCommittee->size());
+  } else {
+    m_mediator.m_ds->SetConsensusLeaderID(
+        lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
+  }
+
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "lastBlockHash " << lastBlockHash << ", new DS leader Id "
+                             << m_mediator.m_ds->GetConsensusLeaderID());
+
   if (!LOOKUP_NODE_MODE) {
-    uint32_t ds_size = m_mediator.m_DSCommittee->size();
     POW::GetInstance().StopMining();
     m_stillMiningPrimary = false;
 
@@ -552,26 +572,6 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       }
       newDSMemberIndex--;
     }
-
-    uint16_t lastBlockHash = 0;
-    if (m_mediator.m_currentEpochNum > 1) {
-      lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetHashForRandom()
-              .asBytes());
-    }
-
-    if (!GUARD_MODE) {
-      m_mediator.m_ds->SetConsensusLeaderID(lastBlockHash % ds_size);
-    } else {
-      m_mediator.m_ds->SetConsensusLeaderID(
-          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
-    }
-
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "lastBlockHash " << lastBlockHash << ", new DS leader Id "
-                               << m_mediator.m_ds->GetConsensusLeaderID());
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
@@ -618,7 +618,17 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       }
 
       if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-        SendDSBlockToOtherShardNodes(message);
+        // Avoid using the original message for broadcasting in case it contains
+        // excess data beyond the VCDSBlock
+        bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+
+        if (!Messenger::SetNodeVCDSBlocksMessage(
+                message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
+                shardingStructureVersion, m_mediator.m_ds->m_shards)) {
+          LOG_GENERAL(WARNING, "Messenger::SetNodeVCDSBlocksMessage failed");
+        } else {
+          SendDSBlockToOtherShardNodes(message2);
+        }
       }
 
       // Finally, start as a shard node

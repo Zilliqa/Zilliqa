@@ -524,7 +524,7 @@ Json::Value Server::GetSmartContractInit(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetInitJson();
+    return account->GetInitJson(false);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {

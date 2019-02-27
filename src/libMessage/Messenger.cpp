@@ -396,7 +396,8 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   AccountBaseToProtobuf(account, *protoAccountBase);
 
   if (protoAccountBase->has_codehash()) {
-    protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
+    bytes codebytes = account.GetCode();
+    protoAccount.set_code(codebytes.data(), codebytes.size());
     for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
       ProtoAccount::StorageData* entry = protoAccount.add_storage();
       entry->set_keyhash(keyHash.data(), keyHash.size);
@@ -4415,12 +4416,59 @@ bool Messenger::SetNodeForwardTxnBlock(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
-                                       const unsigned int offset,
-                                       uint64_t& epochNumber,
-                                       uint64_t& dsBlockNum, uint32_t& shardId,
-                                       PubKey& lookupPubKey,
-                                       std::vector<Transaction>& txns) {
+bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
+                                       const uint64_t& epochNumber,
+                                       const uint64_t& dsBlockNum,
+                                       const uint32_t& shardId,
+                                       const PubKey& lookupKey,
+                                       std::vector<Transaction>& txns,
+                                       const Signature& signature) {
+  LOG_MARKER();
+
+  NodeForwardTxnBlock result;
+
+  result.set_epochnumber(epochNumber);
+  result.set_dsblocknum(dsBlockNum);
+  result.set_shardid(shardId);
+  SerializableToProtobufByteArray(lookupKey, *result.mutable_pubkey());
+
+  unsigned int txnsCount = 0;
+
+  unsigned int msg_size = 0;
+
+  for (const auto& txn : txns) {
+    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+      break;
+    }
+    ProtoTransaction* protoTxn = new ProtoTransaction();
+    TransactionToProtobuf(txn, *protoTxn);
+    unsigned txn_size = protoTxn->ByteSize();
+    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
+        txn_size >= SMALL_TXN_SIZE) {
+      continue;
+    }
+    *result.add_transactions() = *protoTxn;
+    txnsCount++;
+    msg_size += txn_size;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Epoch: " << epochNumber << " shardId: " << shardId
+                              << " Txns: " << txnsCount);
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeForwardTxnBlock(
+    const bytes& src, const unsigned int offset, uint64_t& epochNumber,
+    uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
+    std::vector<Transaction>& txns, Signature& signature) {
   LOG_MARKER();
 
   NodeForwardTxnBlock result;
@@ -4443,7 +4491,6 @@ bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
     }
-    Signature signature;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {

@@ -89,7 +89,6 @@ AccountStore& AccountStore::GetInstance() {
 
 bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
-
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
   return AccountStoreTrie<
       dev::OverlayDB, std::unordered_map<Address, Account>>::Serialize(src,
@@ -278,6 +277,10 @@ bool AccountStore::RetrieveFromDisk() {
   return true;
 }
 
+Account* AccountStore::GetAccountTemp(const Address& address) {
+  return m_accountStoreTemp->GetAccount(address);
+}
+
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
@@ -288,7 +291,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   lock_guard<mutex> g(m_mutexDelta);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt);
+                                            transaction, receipt, true);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
