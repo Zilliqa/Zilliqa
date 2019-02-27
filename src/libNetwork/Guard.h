@@ -68,6 +68,8 @@ class Guard {
 
   unsigned int GetNumOfDSGuard();
   unsigned int GetNumOfShardGuard();
+  void AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm,
+                                        const PubKey& selfPubkey);
 
   // To check if IP is a valid v4 IP and not belongs to exclusion list
   bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
