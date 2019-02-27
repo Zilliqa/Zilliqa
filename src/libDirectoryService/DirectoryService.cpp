@@ -161,7 +161,6 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     return false;
   }
 
-  // Peer primary(message, offset);
   Peer primary;
   if (primary.Deserialize(message, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
@@ -852,8 +851,9 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 
         if (GUARD_MODE) {
           Blacklist::GetInstance().Exclude(dsGuardNewNetworkInfo.m_ipAddress);
-          LOG_GENERAL(INFO, "Add ds guard " << dsGuardNewNetworkInfo.m_ipAddress
-                                            << " to blacklist exclude list");
+          LOG_GENERAL(INFO, "Added ds guard "
+                                << dsGuardNewNetworkInfo.m_ipAddress
+                                << " to blacklist exclude list");
         }
 
         break;
