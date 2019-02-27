@@ -113,9 +113,9 @@ bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
 bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 
-  lock(m_mutexDelta, m_mutexPrimary);
-  lock_guard<mutex> g(m_mutexDelta, adopt_lock);
-  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, adopt_lock);
+  unique_lock<mutex> g(m_mutexDelta, defer_lock);
+  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, defer_lock);
+  lock(g, g2);
 
   m_stateDeltaSerialized.clear();
 
@@ -142,9 +142,9 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   LOG_MARKER();
 
   if (revertible) {
-    lock(m_mutexPrimary, m_mutexRevertibles);
-    unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-    lock_guard<mutex> g2(m_mutexRevertibles, adopt_lock);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+    unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
+    lock(g, g2);
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
