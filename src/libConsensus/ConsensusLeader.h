@@ -112,21 +112,24 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageCommitCore(const bytes& commit, unsigned int offset,
                                 Action action,
                                 ConsensusMessageType returnmsgtype,
-                                State nextstate);
-  bool ProcessMessageCommit(const bytes& commit, unsigned int offset);
+                                State nextstate, const Peer& from);
+  bool ProcessMessageCommit(const bytes& commit, unsigned int offset,
+                            const Peer& from);
   bool ProcessMessageCommitFailure(const bytes& commitFailureMsg,
                                    unsigned int offset, const Peer& from);
   bool GenerateChallengeMessage(bytes& challenge, unsigned int offset);
   bool ProcessMessageResponseCore(const bytes& response, unsigned int offset,
                                   Action action,
                                   ConsensusMessageType returnmsgtype,
-                                  State nextstate);
-  bool ProcessMessageResponse(const bytes& response, unsigned int offset);
+                                  State nextstate, const Peer& from);
+  bool ProcessMessageResponse(const bytes& response, unsigned int offset,
+                              const Peer& from);
   bool GenerateCollectiveSigMessage(bytes& collectivesig, unsigned int offset,
                                     uint16_t subsetID);
-  bool ProcessMessageFinalCommit(const bytes& finalcommit, unsigned int offset);
+  bool ProcessMessageFinalCommit(const bytes& finalcommit, unsigned int offset,
+                                 const Peer& from);
   bool ProcessMessageFinalResponse(const bytes& finalresponse,
-                                   unsigned int offset);
+                                   unsigned int offset, const Peer& from);
 
  public:
   /// Constructor.
