@@ -214,6 +214,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
     switch (syncType) {
       case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
+        Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+            *m_mediator.m_DSCommittee);
         break;
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
