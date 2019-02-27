@@ -755,7 +755,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 
   vector<Peer> peerInfo;
   {
-    // Gossip to all DS committee
+    // Multicast to all DS committee
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (auto const& i : *m_mediator.m_DSCommittee) {
       if (i.second.m_listenPortHost != 0) {
@@ -764,26 +764,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
   }
 
-  if (BROADCAST_GOSSIP_MODE) {
-    // Choose N DS nodes to be recipient ds guard network info update message
-    // TODO: changge to N ds nodes who co-sign on the ds block
-    std::vector<Peer> networkInfoUpdateReceivers;
-    unsigned int numOfNetworkInfoReceivers =
-        std::min(NUM_GOSSIP_RECEIVERS, (unsigned int)peerInfo.size());
-
-    for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
-      networkInfoUpdateReceivers.emplace_back(peerInfo.at(i));
-
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "networkInfoUpdateReceivers: " << peerInfo.at(i));
-    }
-
-    P2PComm::GetInstance().SendRumorToForeignPeers(
-        networkInfoUpdateReceivers, updatedsguardidentitymessage);
-
-  } else {
-    P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
-  }
+  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
 
   m_awaitingToSubmitNetworkInfoUpdate = false;
 
