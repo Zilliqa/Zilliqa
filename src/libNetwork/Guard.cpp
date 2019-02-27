@@ -222,14 +222,12 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
   }
 }
 
-void Guard::AddDSGuardToBlacklistExcludeList(
-    const DequeOfNode& dsComm, const PubKey& selfPubkey = PubKey()) {
+void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
   if (GUARD_MODE) {
     unsigned int dsIndex = 0;
     for (const auto& i : dsComm) {
       if (dsIndex < GetNumOfDSGuard()) {
-        // Check node in not self node
-        if (!(i.first == selfPubkey)) {
+        if (IsNodeInDSGuardList(i.first)) {
           Blacklist::GetInstance().Exclude(i.second.m_ipAddress);
           LOG_GENERAL(INFO,
                       "Excluding ds guard " << i.second << " from blacklist");
