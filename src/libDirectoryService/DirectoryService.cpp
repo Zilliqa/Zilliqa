@@ -257,6 +257,10 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     m_consensusMyID++;
   }
 
+  // Add ds guard to exclude list for ds comm at bootstrap
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
+
   m_consensusLeaderID = 0;
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
