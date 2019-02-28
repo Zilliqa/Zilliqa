@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
@@ -160,7 +161,6 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     return false;
   }
 
-  // Peer primary(message, offset);
   Peer primary;
   if (primary.Deserialize(message, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
@@ -256,6 +256,10 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     }
     m_consensusMyID++;
   }
+
+  // Add ds guard to exclude list for ds comm at bootstrap
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
 
   m_consensusLeaderID = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -834,6 +838,13 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
          indexOfDSGuard++) {
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
+
+        Blacklist::GetInstance().RemoveExclude(
+            m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
+        LOG_GENERAL(INFO,
+                    "Removed "
+                        << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
+                        << " from blacklist exclude list")
         LOG_GENERAL(INFO,
                     "[update ds guard] DS guard to be updated is at index "
                         << indexOfDSGuard << " "
@@ -841,6 +852,13 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
                         << " -> " << dsGuardNewNetworkInfo);
         m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
             dsGuardNewNetworkInfo;
+
+        if (GUARD_MODE) {
+          Blacklist::GetInstance().Exclude(dsGuardNewNetworkInfo.m_ipAddress);
+          LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
+                                              << " to blacklist exclude list");
+        }
+
         break;
       }
     }

@@ -25,6 +25,7 @@
 #include <iostream>
 #include <string>
 
+#include "Blacklist.h"
 #include "Peer.h"
 #include "common/Messages.h"
 #include "libConsensus/ConsensusCommon.h"
@@ -218,6 +219,28 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
     m_IPExclusionRange.emplace_back(sd_c, ft_c);
   } else {
     m_IPExclusionRange.emplace_back(ft_c, sd_c);
+  }
+}
+
+void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
+  if (GUARD_MODE) {
+    unsigned int dsIndex = 0;
+    for (const auto& i : dsComm) {
+      if (dsIndex < GetNumOfDSGuard()) {
+        // Ensure it is not 0.0.0.0
+        if (IsNodeInDSGuardList(i.first) && i.second.m_ipAddress != 0) {
+          Blacklist::GetInstance().Exclude(i.second.m_ipAddress);
+          LOG_GENERAL(INFO,
+                      "Excluding ds guard " << i.second << " from blacklist");
+        } else {
+          LOG_GENERAL(WARNING,
+                      "Unable to exclude " << i.second << " from blacklist");
+        }
+        dsIndex++;
+      } else {
+        break;
+      }
+    }
   }
 }
 

@@ -1531,6 +1531,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     *m_mediator.m_DSCommittee = move(dsNodes);
 
+    // Add ds guard to exclude list for lookup at bootstrap
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "SetDSInfoFromSeed from " << from << " for numPeers "
                                         << m_mediator.m_DSCommittee->size());
@@ -2212,6 +2216,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
       m_mediator.m_node->SetState(Node::SYNC);
     }
   } else {
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I have successfully join the network");
   }
