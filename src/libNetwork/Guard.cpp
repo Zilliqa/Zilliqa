@@ -234,6 +234,7 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
         }
         dsIndex++;
       } else {
+        LOG_GENERAL(WARNING, "Unable to exclude non ds guard " << i.second);
         break;
       }
     }
