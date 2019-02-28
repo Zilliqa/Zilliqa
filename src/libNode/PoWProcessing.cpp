@@ -484,6 +484,9 @@ bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
     rand2 = m_mediator.m_txBlockRand;
   }
 
+  // Add ds guard to exclude list for new node
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
   // Start mining
   StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 
