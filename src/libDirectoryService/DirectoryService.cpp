@@ -841,10 +841,10 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 
         Blacklist::GetInstance().RemoveExclude(
             m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
-        LOG_GENERAL(INFO, "Removed "
-                              << m_mediator.m_DSCommittee->at(indexOfDSGuard)
-                                     .second.m_ipAddress
-                              << " from blacklist exclude list")
+        LOG_GENERAL(INFO,
+                    "Removed "
+                        << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
+                        << " from blacklist exclude list")
         LOG_GENERAL(INFO,
                     "[update ds guard] DS guard to be updated is at index "
                         << indexOfDSGuard << " "
@@ -855,9 +855,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 
         if (GUARD_MODE) {
           Blacklist::GetInstance().Exclude(dsGuardNewNetworkInfo.m_ipAddress);
-          LOG_GENERAL(INFO, "Added ds guard "
-                                << dsGuardNewNetworkInfo.m_ipAddress
-                                << " to blacklist exclude list");
+          LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
+                                              << " to blacklist exclude list");
         }
 
         break;
