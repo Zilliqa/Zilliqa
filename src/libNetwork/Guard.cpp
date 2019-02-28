@@ -227,14 +227,17 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
     unsigned int dsIndex = 0;
     for (const auto& i : dsComm) {
       if (dsIndex < GetNumOfDSGuard()) {
-        if (IsNodeInDSGuardList(i.first)) {
+        // Ensure it is not 0.0.0.0
+        if (IsNodeInDSGuardList(i.first) && i.second.m_ipAddress != 0) {
           Blacklist::GetInstance().Exclude(i.second.m_ipAddress);
           LOG_GENERAL(INFO,
                       "Excluding ds guard " << i.second << " from blacklist");
+        } else {
+          LOG_GENERAL(WARNING,
+                      "Unable to exclude " << i.second << " from blacklist");
         }
         dsIndex++;
       } else {
-        LOG_GENERAL(WARNING, "Unable to exclude non ds guard " << i.second);
         break;
       }
     }
