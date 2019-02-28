@@ -51,7 +51,7 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG ZILLIQA_VERSION=v4.1.0
+ARG ZILLIQA_VERSION=v4.2.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
