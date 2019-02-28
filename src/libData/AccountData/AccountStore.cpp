@@ -178,9 +178,9 @@ void AccountStore::MoveRootToDisk(const h256& root) {
 bool AccountStore::MoveUpdatesToDisk() {
   LOG_MARKER();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   unordered_map<string, string> code_batch;
 
@@ -238,9 +238,9 @@ bool AccountStore::MoveUpdatesToDisk() {
 void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   try {
     m_state.db()->rollback();
@@ -257,9 +257,9 @@ bool AccountStore::RetrieveFromDisk() {
 
   InitSoft();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   bytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
