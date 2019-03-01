@@ -221,6 +221,7 @@ bool AccountStore::MoveUpdatesToDisk() {
   }
 
   try {
+    RepopulateStateTrie();
     m_state.db()->commit();
     m_prevRoot = m_state.root();
     MoveRootToDisk(m_prevRoot);

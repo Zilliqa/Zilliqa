@@ -28,6 +28,11 @@ AccountStoreTrie<DB, MAP>::AccountStoreTrie()
 template <class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::Init() {
   AccountStoreSC<MAP>::Init();
+  InitTrie();
+}
+
+template <class DB, class MAP>
+void AccountStoreTrie<DB, MAP>::InitTrie() {
   m_state.init();
   m_prevRoot = m_state.root();
 }
@@ -114,6 +119,37 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
   }
 
   return true;
+}
+
+template <class DB, class MAP>
+void AccountStoreTrie<DB, MAP>::RepopulateStateTrie() {
+  LOG_MARKER();
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    auto iter = this->m_addressToAccount->find(address);
+
+    if (iter != this->m_addressToAccount->end()) {
+      continue;
+    }
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      continue;
+    }
+    if (account.isContract()) {
+      account.SetAddress(address);
+    }
+
+    this->m_addressToAccount->insert({address, account});
+  }
+
+  m_db.ResetDB();
+  InitTrie();
+
+  UpdateStateTrieAll();
 }
 
 template <class DB, class MAP>
