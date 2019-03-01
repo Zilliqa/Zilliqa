@@ -361,14 +361,15 @@ void DirectoryService::InitCoinbase() {
   // First, reward the lookups directly
   uint128_t suc_lookup_counter = 0;
 
+  LOG_GENERAL(INFO, "[CNBSE] Rewarding lookups...");
   for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
     const auto& epochNum = epochNumShardRewardee.first;
     const auto& shards = epochNumShardRewardee.second;
-    LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum << " epoch");
+    LOG_GENERAL(INFO, "[CNBSE] Rewarding epoch " << epochNum);
     if (shards.count(CoinbaseReward::LOOKUP_REWARD) != 0) {
       const auto& lookupIdRewardee = shards.at(CoinbaseReward::LOOKUP_REWARD);
-      LOG_GENERAL(INFO, "[CNBSE] Rewarding " << CoinbaseReward::LOOKUP_REWARD
-                                             << " shard");
+      LOG_GENERAL(INFO,
+                  "[CNBSE] Rewarding shard " << CoinbaseReward::LOOKUP_REWARD);
       for (const auto& pk : lookupIdRewardee) {
         const auto& addr = Account::GetAddressFromPublicKey(pk);
         if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
@@ -387,9 +388,11 @@ void DirectoryService::InitCoinbase() {
   unordered_map<PubKey, vector<uint64_t>> nodeAndRewardEpochsMap;
   uint128_t suc_counter = 0;
 
+  LOG_GENERAL(INFO, "[CNBSE] Rewarding DS and shard nodes...");
   for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
     const auto& epochNum = epochNumShardRewardee.first;
     const auto& shards = epochNumShardRewardee.second;
+    LOG_GENERAL(INFO, "[CNBSE] Rewarding epoch " << epochNum);
     for (const auto& shardIdRewardee : shards) {
       const auto& shardId = shardIdRewardee.first;
       const auto& rewardees = shardIdRewardee.second;
@@ -397,16 +400,16 @@ void DirectoryService::InitCoinbase() {
       if (shardId == CoinbaseReward::LOOKUP_REWARD) {
         continue;
       }
-      LOG_GENERAL(INFO, "[CNBSE] Rewarding " << shardId << " shard");
+      LOG_GENERAL(INFO, "[CNBSE] Rewarding shard " << shardId);
       for (const auto& pk : rewardees) {
         // If pubkey does not exist in the map it is added after calling
         // operator[] and the vector defaults to empty
         auto& rewardEpochs = nodeAndRewardEpochsMap[pk];
 
-        if ((rewardEpochs.size() == 0) && GUARD_MODE) {
+        if (rewardEpochs.size() == 0) {
           // First time seeing this pk. Need to check guard list.
-          if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
-              Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+          if (GUARD_MODE && (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
+                             Guard::GetInstance().IsNodeInShardGuardList(pk))) {
             // This is a new guard. Increment success counter and set
             // rewardEpochs to reserved value for guard.
             suc_counter++;
