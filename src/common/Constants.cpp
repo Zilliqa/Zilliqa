@@ -41,6 +41,12 @@ unsigned int ReadConstantNumeric(const string& propertyName,
   return pt.get<unsigned int>(path + propertyName);
 }
 
+double ReadConstantDouble(const string& propertyName,
+                          const char* path = "node.general.") {
+  auto pt = PTree::GetInstance();
+  return pt.get<double>(path + propertyName);
+}
+
 string ReadConstantString(string propertyName,
                           const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
@@ -115,6 +121,8 @@ const unsigned int SHARD_NUM_CONSENSUS_SUBSETS{
     ReadConstantNumeric("SHARD_NUM_CONSENSUS_SUBSETS", "node.consensus.")};
 const unsigned int COMMIT_TOLERANCE_PERCENT{
     ReadConstantNumeric("COMMIT_TOLERANCE_PERCENT", "node.consensus.")};
+const double SHARD_GUARD_TOL{
+    ReadConstantDouble("SHARD_GUARD_TOL", "node.consensus.")};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
