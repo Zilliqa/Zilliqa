@@ -50,7 +50,7 @@ class Zilliqa {
  public:
   /// Constructor.
   Zilliqa(const PairOfKey& key, const Peer& peer,
-          unsigned int syncType = SyncType::NO_SYNC,
+          SyncType syncType = SyncType::NO_SYNC,
           bool toRetrieveHistory = false);
 
   /// Destructor.

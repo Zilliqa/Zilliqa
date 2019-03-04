@@ -129,11 +129,11 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   delete message;
 }
 
-Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
+Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                  bool toRetrieveHistory)
     : m_mediator(key, peer),
       m_ds(m_mediator),
-      m_lookup(m_mediator),
+      m_lookup(m_mediator, syncType),
       m_n(m_mediator, syncType, toRetrieveHistory),
       m_msgQueue(MSGQUEUE_SIZE),
       m_httpserver(SERVER_PORT),
@@ -218,7 +218,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
         if (!toRetrieveHistory) {
-          m_mediator.m_lookup->SetSyncType(SyncType::NEW_SYNC);
           m_n.m_runFromLate = true;
           m_n.StartSynchronization();
         } else {
@@ -229,7 +228,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
       case SyncType::NEW_LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a new lookup node");
         if (!toRetrieveHistory) {
-          m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
           m_lookup.InitSync();
         } else {
           LOG_GENERAL(FATAL,
@@ -238,18 +236,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
         break;
       case SyncType::NORMAL_SYNC:
         LOG_GENERAL(INFO, "Sync as a normal node");
-        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
         break;
       case SyncType::DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds node");
-        m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_ds.StartSynchronization();
         break;
       case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
-        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_lookup.StartSynchronization();
         break;
       case SyncType::RECOVERY_ALL_SYNC:
@@ -264,7 +259,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
         break;
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");
-        m_mediator.m_lookup->SetSyncType(SyncType::GUARD_DS_SYNC);
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
         m_ds.StartSynchronization();
         break;
