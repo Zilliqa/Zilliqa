@@ -42,51 +42,79 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  uint num_shard_members = DistUint8();
-
   Mediator mediator(GenerateRandomKeyPair(), GenerateRandomPeer());
   DirectoryService dummyDS(mediator);
   Node dummyNode(mediator, 0, true);  // Unused in code anyways
   Lookup dummyLookup(mediator);
+  const uint64_t nonce{0};
   auto dummyValidator = make_shared<Validator>(mediator);
+  AccountStore::GetInstance().Init();
 
+  AccountStore::GetInstance().AddAccount(Address(),
+                                         {TOTAL_COINBASE_REWARD, nonce});
+  AccountStore::GetInstance().UpdateStateTrieAll();
+
+  const uint32_t min_ds_size = 600;
+  const uint32_t min_comm_size = 100;
   // 2 shards
 
   mediator.RegisterColleagues(&dummyDS, &dummyNode, &dummyLookup,
                               dummyValidator.get());
 
-  auto dummy_shard_0 = GenerateRandomShard(num_shard_members);
+  auto dummy_shard_size = (DistUint8() % min_comm_size) + min_comm_size;
 
-  auto dummy_shard_1 = GenerateRandomShard(num_shard_members);
+  auto dummy_ds_size = DistUint8() % min_ds_size + min_ds_size;
+  auto dummy_shards = GenerateDequeueOfShard(dummy_shard_size);
 
-  auto dummy_ds_comm = GenerateRandomShard(num_shard_members);
+  auto dummy_ds_comm = GenerateRandomDSCommittee(dummy_ds_size);
 
   auto random_epoch_num = DistUint64();
 
-  vector<bool> b1 = GenerateRandomBooleanVector(num_shard_members);
+  vector<bool> b1, b2;
 
-  vector<bool> b2 = GenerateRandomBooleanVector(num_shard_members);
+  int i = 0;
+  for (const auto& shard : dummy_shards) {
+    b1 = GenerateRandomBooleanVector(shard.size());
 
-  dummyDS.SaveCoinbaseCore(b1, b2, dummy_shard_0, 0, random_epoch_num);
+    b2 = GenerateRandomBooleanVector(shard.size());
+    dummyDS.SaveCoinbaseCore(b1, b2, shard, i++, random_epoch_num);
+  }
 
-  dummyDS.SaveCoinbaseCore(b1, b2, dummy_shard_1, 1, random_epoch_num);
+  b1 = GenerateRandomBooleanVector(dummy_ds_comm.size());
+  b2 = GenerateRandomBooleanVector(dummy_ds_comm.size());
 
   dummyDS.SaveCoinbaseCore(b1, b2, dummy_ds_comm,
                            CoinbaseReward::FINALBLOCK_REWARD, random_epoch_num);
+  *mediator.m_DSCommittee = dummy_ds_comm;
+  dummyDS.m_shards = dummy_shards;
 
   dummyDS.InitCoinbase();
 
+  AccountStore::GetInstance().SerializeDelta();
+
+  AccountStore::GetInstance().CommitTempRevertible();
+
   boost::multiprecision::uint128_t totalReward = 0;
 
-  for (const auto& shard : {dummy_shard_0, dummy_shard_1, dummy_ds_comm}) {
+  auto calcReward = [&totalReward](const auto& shard) {
     for (const auto& shardMember : shard) {
       const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardMember);
       const auto& address = Account::GetAddressFromPublicKey(pubKey);
       const Account* account = AccountStore::GetInstance().GetAccount(address);
+      if (account == nullptr) {
+        LOG_GENERAL(WARNING, pubKey << " " << address);
+        continue;
+      }
       totalReward += account->GetBalance();
     }
+  };
+
+  calcReward(dummy_ds_comm);
+  for (const auto& shard : dummy_shards) {
+    calcReward(shard);
   }
-  LOG_GENERAL(INFO, totalReward / COINBASE_REWARD_PER_DS
+
+  LOG_GENERAL(INFO, (totalReward * 100) / COINBASE_REWARD_PER_DS
                         << " " << 100 - LOOKUP_REWARD_IN_PERCENT);
 }
 
