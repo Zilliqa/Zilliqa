@@ -170,8 +170,8 @@ int main(int argc, const char* argv[]) {
       std::cout << "WARNING: loadconfig deprecated" << std::endl;
     }
 
-    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info, synctype,
-                    vm.count("recovery"));
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
+                    (SyncType)synctype, vm.count("recovery"));
     auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
       zilliqa.Dispatch(message);
     };

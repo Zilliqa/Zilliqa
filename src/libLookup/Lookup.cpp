@@ -56,13 +56,21 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
+Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
+  m_syncType.store(SyncType::NO_SYNC);
+  vector<SyncType> ignorable_syncTypes = {NO_SYNC, RECOVERY_ALL_SYNC, DB_VERIF};
+  if (syncType >= SYNC_TYPE_COUNT) {
+    LOG_GENERAL(FATAL, "Invalid SyncType");
+  }
+  if (find(ignorable_syncTypes.begin(), ignorable_syncTypes.end(), syncType) ==
+      ignorable_syncTypes.end()) {
+    m_syncType = syncType;
+  }
   SetLookupNodes();
   SetAboveLayer();
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
-  m_syncType.store(SyncType::NO_SYNC);
 }
 
 Lookup::~Lookup() {}

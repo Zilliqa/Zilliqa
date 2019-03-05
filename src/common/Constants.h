@@ -90,7 +90,8 @@ enum SyncType : unsigned int {
   RECOVERY_ALL_SYNC,
   NEW_LOOKUP_SYNC,
   GUARD_DS_SYNC,
-  DB_VERIF
+  DB_VERIF,
+  SYNC_TYPE_COUNT
 };
 
 namespace Contract {

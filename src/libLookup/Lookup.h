@@ -141,7 +141,7 @@ class Lookup : public Executable {
 
  public:
   /// Constructor.
-  Lookup(Mediator& mediator);
+  Lookup(Mediator& mediator, SyncType syncType);
 
   /// Destructor.
   ~Lookup();
