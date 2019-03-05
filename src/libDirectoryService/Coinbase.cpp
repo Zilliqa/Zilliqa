@@ -325,14 +325,12 @@ void DirectoryService::InitCoinbase() {
     const auto& pk = ds.first;
     Address addr = Account::GetAddressFromPublicKey(pk);
     auto& isGuard = pubKeyAndIsGuard[pk];
-    if (GUARD_MODE) {
-      if (Guard::GetInstance().IsNodeInDSGuardList(pk)) {
-        isGuard = true;
-        if (addr == myAddr) {
-          LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
-        }
-        continue;
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(pk)) {
+      isGuard = true;
+      if (addr == myAddr) {
+        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
       }
+      continue;
     }
     isGuard = false;
     nonGuard.emplace_back(addr);
@@ -358,7 +356,7 @@ void DirectoryService::InitCoinbase() {
     for (const auto& node : shard) {
       const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
       auto& isGuard = pubKeyAndIsGuard[pk];
-      if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+      if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pk)) {
         isGuard = true;
         continue;
       }
