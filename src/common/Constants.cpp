@@ -121,8 +121,6 @@ const unsigned int SHARD_NUM_CONSENSUS_SUBSETS{
     ReadConstantNumeric("SHARD_NUM_CONSENSUS_SUBSETS", "node.consensus.")};
 const unsigned int COMMIT_TOLERANCE_PERCENT{
     ReadConstantNumeric("COMMIT_TOLERANCE_PERCENT", "node.consensus.")};
-const double SHARD_GUARD_TOL{
-    ReadConstantDouble("SHARD_GUARD_TOL", "node.consensus.")};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
@@ -275,6 +273,8 @@ const bool EXCLUDE_PRIV_IP{
     ReadConstantString("EXCLUDE_PRIV_IP", "node.guard_mode.") == "true"};
 const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
+const double SHARD_GUARD_TOL{
+    ReadConstantDouble("SHARD_GUARD_TOL", "node.guard_mode.")};
 
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
