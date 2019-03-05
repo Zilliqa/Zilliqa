@@ -129,6 +129,7 @@ extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const std::string GENESIS_PUBKEY;
+extern const unsigned int UPGRADE_TARGET_DS_NUM;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
