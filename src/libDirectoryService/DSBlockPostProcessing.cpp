@@ -475,8 +475,7 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 }
 
-void DirectoryService::ProcessDSBlockConsensusWhenDone(
-    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset) {
+void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessDSBlockConsensusWhenDone not "
@@ -634,11 +633,14 @@ bool DirectoryService::ProcessDSBlockConsensus(
   // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
 
   uint32_t unused_consensus_id = 0;
+  bytes unused_reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, unused_consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(message, offset,
+                                            unused_consensus_id, senderPubKey,
+                                            unused_reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -727,7 +729,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
   if (state == ConsensusCommon::State::DONE) {
     m_viewChangeCounter = 0;
     cv_viewChangeDSBlock.notify_all();
-    ProcessDSBlockConsensusWhenDone(message, offset);
+    ProcessDSBlockConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "No consensus reached. Wait for view change");

@@ -312,8 +312,7 @@ class DirectoryService : public Executable {
   void UpdateMyDSModeAndConsensusId();
   void UpdateDSCommiteeComposition();
 
-  void ProcessDSBlockConsensusWhenDone(const bytes& message,
-                                       unsigned int offset);
+  void ProcessDSBlockConsensusWhenDone();
 
   // internal calls from ProcessFinalBlockConsensus
   bool ComposeFinalBlockMessageForSender(bytes& finalblock_message);
