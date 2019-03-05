@@ -101,10 +101,9 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
       const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardMember);
       const auto& address = Account::GetAddressFromPublicKey(pubKey);
       const Account* account = AccountStore::GetInstance().GetAccount(address);
-      if (account == nullptr) {
-        LOG_GENERAL(WARNING, pubKey << " " << address);
-        continue;
-      }
+      BOOST_CHECK_MESSAGE(account != nullptr,
+                          "Address: " << address << " PubKey: " << pubKey
+                                      << " did not get reward");
       totalReward += account->GetBalance();
     }
   };
@@ -114,8 +113,13 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
     calcReward(shard);
   }
 
-  LOG_GENERAL(INFO, (totalReward * 100) / COINBASE_REWARD_PER_DS
-                        << " " << 100 - LOOKUP_REWARD_IN_PERCENT);
+  auto percRewarded = (totalReward * 100) / COINBASE_REWARD_PER_DS;
+
+  auto expectedPerc = 100 - LOOKUP_REWARD_IN_PERCENT;
+
+  BOOST_CHECK_MESSAGE(
+      percRewarded - 1 <= expectedPerc && percRewarded + 1 >= expectedPerc,
+      "Percent: " << percRewarded << " does not match");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
