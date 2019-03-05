@@ -665,10 +665,17 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
 
       if (trimmedGuardCount + trimmedNonGuardCount < numNodesAfterTrim) {
         LOG_GENERAL(WARNING,
-                    "Network has less than 1/3 non shard guard node. Filling "
-                    "it with guard nodes");
+                    "trimmedGuardCount: "
+                        << trimmedGuardCount
+                        << " trimmedNonGuardCount: " << trimmedNonGuardCount
+                        << " numNodesAfterTrim: " << numNodesAfterTrim);
         trimmedGuardCount +=
             (numNodesAfterTrim - trimmedGuardCount - trimmedNonGuardCount);
+        LOG_GENERAL(WARNING,
+                    "Added  "
+                        << (numNodesAfterTrim - trimmedGuardCount -
+                            trimmedNonGuardCount)
+                        << " to trimmedGuardCount to form a complete shard.");
       }
 
       // Assign all shard guards first
