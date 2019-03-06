@@ -834,7 +834,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // To-do: Handle exceptions.
   // TODO: Revise DS block structure
   {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
                       blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
