@@ -357,8 +357,8 @@ void DirectoryService::InitCoinbase() {
   for (const auto& shard : m_shards) {
     for (const auto& node : shard) {
       const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
-      auto& isGuard = pubKeyAndIsGuard[pk];
       if (GUARD_MODE) {
+        auto& isGuard = pubKeyAndIsGuard[pk];
         if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
           isGuard = true;
           continue;
