@@ -263,8 +263,8 @@ void Node::StartFirstTxEpoch() {
     m_consensusLeaderID =
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
   } else {
-    m_consensusLeaderID = CalculateShardLeaderWhenInGuardMode(
-        lastBlockHash, m_myShardMembers->size());
+    m_consensusLeaderID =
+        CalculateShardLeader(lastBlockHash, m_myShardMembers->size());
   }
 
   // Check if I am the leader or backup of the shard

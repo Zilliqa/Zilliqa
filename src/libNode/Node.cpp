@@ -958,17 +958,16 @@ void Node::StartSynchronization() {
   DetachedFunction(1, func);
 }
 
-uint32_t Node::CalculateShardLeaderWhenInGuardMode(uint16_t lastBlockHash,
-                                                   uint32_t sizeOfShard) {
+uint32_t Node::CalculateShardLeader(uint16_t lastBlockHash,
+                                    uint32_t sizeOfShard) {
   LOG_MARKER();
   if (GUARD_MODE) {
     uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
 
     unsigned int iterationCount = 0;
-    unsigned int tolerance = 100;
     while (!Guard::GetInstance().IsNodeInShardGuardList(
                m_myShardMembers->at(consensusLeaderIndex).first) &&
-           (iterationCount < tolerance)) {
+           (iterationCount < SHARD_LEADER_SELECT_TOL)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
