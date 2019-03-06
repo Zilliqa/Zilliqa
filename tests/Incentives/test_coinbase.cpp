@@ -87,7 +87,10 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   *mediator.m_DSCommittee = dummy_ds_comm;
   dummyDS.m_shards = dummy_shards;
 
-  for (uint i = 0; i < NUM_FINAL_BLOCK_PER_POW; i++) {
+  const uint num_test_epoch =
+      1;  // Can be changed to NUM_FINAL_BLOCK_PER_POW for proper testing
+
+  for (uint i = 0; i < num_test_epoch; i++) {
     uint j = 0;
     for (const auto& shard : dummy_shards) {
       b1 = GenerateRandomBooleanVector(shard.size());
