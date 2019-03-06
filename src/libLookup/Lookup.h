@@ -153,7 +153,7 @@ class Lookup : public Executable {
   // Hardcoded for now -- to be called by constructor
   void SetLookupNodes();
 
-  void SetLookupNodes(VectorOfNode);
+  void SetLookupNodes(const VectorOfNode&);
 
   bool CheckStateRoot();
 

@@ -141,7 +141,7 @@ void Lookup::InitSync() {
   DetachedFunction(1, func);
 }
 
-void Lookup::SetLookupNodes(VectorOfNode lookupNodes) {
+void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
   // Only used for random testing
   m_lookupNodes = lookupNodes;
 }
