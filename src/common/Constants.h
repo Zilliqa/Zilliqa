@@ -239,6 +239,7 @@ extern const unsigned int CUDA_SCHEDULE_FLAG;
 extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE;
+extern const double SHARD_GUARD_TOL;
 
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
