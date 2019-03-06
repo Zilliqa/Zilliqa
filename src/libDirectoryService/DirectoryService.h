@@ -287,10 +287,6 @@ class DirectoryService : public Executable {
   boost::multiprecision::uint128_t GetIncreasedGasPrice();
   bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
 
-  void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
-                      const std::map<PubKey, Peer>& powDSWinner,
-                      const MapOfPubKeyPoW& dsPow);
-
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,

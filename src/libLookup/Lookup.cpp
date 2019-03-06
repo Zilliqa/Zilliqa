@@ -144,6 +144,7 @@ void Lookup::InitSync() {
 void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
   // Only used for random testing
   m_lookupNodes = lookupNodes;
+  m_lookupNodesStatic = lookupNodes;
 }
 
 void Lookup::SetLookupNodes() {
@@ -214,6 +215,8 @@ void Lookup::SetLookupNodes() {
                                  m_mediator.m_selfPeer);
     }
   }
+
+  m_lookupNodesStatic = m_lookupNodes;
 }
 
 void Lookup::SetAboveLayer() {
@@ -406,8 +409,14 @@ VectorOfNode Lookup::GetLookupNodes() const {
   return m_lookupNodes;
 }
 
+VectorOfNode Lookup::GetLookupNodesStatic() const {
+  LOG_MARKER();
+  lock_guard<mutex> lock(m_mutexLookupNodes);
+  return m_lookupNodesStatic;
+}
+
 bool Lookup::IsLookupNode(const PubKey& pubKey) const {
-  VectorOfNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodesStatic();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&pubKey](const PairOfNode& node) {
                         return node.first == pubKey;
@@ -415,7 +424,7 @@ bool Lookup::IsLookupNode(const PubKey& pubKey) const {
 }
 
 bool Lookup::IsLookupNode(const Peer& peerInfo) const {
-  VectorOfNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodesStatic();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&peerInfo](const PairOfNode& node) {
                         return node.second.GetIpAddress() ==
@@ -1278,7 +1287,7 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -2405,7 +2414,7 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -3047,7 +3056,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!Lookup::VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
