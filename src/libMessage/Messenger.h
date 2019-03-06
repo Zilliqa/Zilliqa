@@ -678,8 +678,9 @@ class Messenger {
   // ============================================================================
 
   template <class T>
-  static bool GetConsensusID(const bytes& src, const unsigned int offset,
-                             uint32_t& consensusID, PubKey& senderPubKey) {
+  static bool PreProcessMessage(const bytes& src, const unsigned int offset,
+                                uint32_t& consensusID, PubKey& senderPubKey,
+                                bytes& reserializedSrc) {
     T consensus_message;
 
     consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -710,6 +711,13 @@ class Messenger {
     }
 
     consensusID = consensus_message.consensusinfo().consensusid();
+
+    // Copy src into reserializedSrc, trimming away any excess bytes beyond the
+    // definition of protobuf message T
+    reserializedSrc.resize(offset + consensus_message.ByteSize());
+    copy(src.begin(), src.begin() + offset, reserializedSrc.begin());
+    consensus_message.SerializeToArray(reserializedSrc.data() + offset,
+                                       consensus_message.ByteSize());
 
     return true;
   }

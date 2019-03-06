@@ -91,11 +91,13 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
   }
 
   uint32_t consensus_id = 0;
+  bytes reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(
+          message, offset, consensus_id, senderPubKey, reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -105,8 +107,8 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
   }
 
   if (m_state != MICROBLOCK_CONSENSUS) {
-    AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
-                                   senderPubKey);
+    AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                   from, senderPubKey);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process micro block arrived early, saved to buffer");
@@ -122,10 +124,10 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
 
-      AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
-                                     senderPubKey);
+      AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                     from, senderPubKey);
     } else {
-      return ProcessMicroBlockConsensusCore(message, offset, from);
+      return ProcessMicroBlockConsensusCore(reserialized_message, offset, from);
     }
   }
 
