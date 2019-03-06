@@ -73,6 +73,8 @@ Signature GenerateRandomSignature();
 
 DequeOfNode GenerateRandomDSCommittee(uint32_t);
 
+std::vector<bool> GenerateRandomBooleanVector(size_t);
+
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);
 std::string GenerateRandomString(size_t);

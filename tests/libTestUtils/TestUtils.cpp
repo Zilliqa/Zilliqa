@@ -63,6 +63,15 @@ Peer GenerateRandomPeer() {
   return Peer(ip_address, listen_port_host);
 }
 
+vector<bool> GenerateRandomBooleanVector(size_t n) {
+  vector<bool> vec;
+  for (uint i = 0; i < n; i++) {
+    auto randNum = DistUint32();
+    vec.emplace_back((randNum % 2 == 0));
+  }
+  return vec;
+}
+
 Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
   uint128_t ip_address = DistUint32();
   uint32_t listen_port_host = DistUint32();
