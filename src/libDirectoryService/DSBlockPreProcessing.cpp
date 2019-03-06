@@ -39,7 +39,6 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/ShardSizeCalculator.h"
 #include "libUtils/TimestampVerifier.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -110,13 +109,6 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
                                         .GetHeader()
                                         .GetDifficulty())
                   << ", new difficulty " << std::to_string(difficulty));
-  }
-
-  if (UpgradeManager::GetInstance().HasNewSW()) {
-    if (UpgradeManager::GetInstance().DownloadSW()) {
-      lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-      m_mediator.m_curSWInfo = *UpgradeManager::GetInstance().GetLatestSWInfo();
-    }
   }
 
   return numOfElectedDSMembers;
@@ -1062,17 +1054,6 @@ bool DirectoryService::DSBlockValidator(
     LOG_GENERAL(WARNING, "Failed to verify gas price");
     return false;
   }
-
-  auto func = [this]() mutable -> void {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo()) {
-      if (UpgradeManager::GetInstance().DownloadSW()) {
-        m_mediator.m_curSWInfo =
-            *UpgradeManager::GetInstance().GetLatestSWInfo();
-      }
-    }
-  };
-  DetachedFunction(1, func);
 
   return true;
 }

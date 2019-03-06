@@ -30,7 +30,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 
@@ -223,19 +222,6 @@ void Node::ProcessFallbackConsensusWhenDone() {
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
         m_consensusMyID, composeFallbackBlockMessageForSender);
-  }
-
-  if (m_mediator.GetIsVacuousEpoch()) {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-    }
-
-    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().InstallScilla();
-    }
   }
 }
 
