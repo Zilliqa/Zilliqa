@@ -55,14 +55,14 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   AccountStore::GetInstance().UpdateStateTrieAll();
 
   const uint32_t min_ds_size = 600;
-  const uint32_t min_comm_size = 100;
+  const uint32_t min_num_shards = 5;
   const uint32_t min_lookup_size = 5;
   // 2 shards
 
   mediator.RegisterColleagues(&dummyDS, &dummyNode, &dummyLookup,
                               dummyValidator.get());
 
-  auto dummy_shard_size = (DistUint8() % min_comm_size) + min_comm_size;
+  auto dummy_shard_size = (DistUint8() % min_num_shards) + min_num_shards;
 
   auto dummy_ds_size = DistUint8() % min_ds_size + min_ds_size;
   auto dummy_shards = GenerateDequeueOfShard(dummy_shard_size);
@@ -71,8 +71,9 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   auto dummy_lookup_num = DistUint8() % min_lookup_size + min_lookup_size;
 
-  auto random_epoch_num = DistUint64();
-
+  LOG_GENERAL(INFO, "Shard size: " << dummy_shard_size
+                                   << " DS size: " << dummy_ds_size
+                                   << " Lookup Num: " << dummy_lookup_num);
   VectorOfNode lookupNodes;
 
   for (uint i = 0; i < dummy_lookup_num; i++) {
@@ -83,21 +84,24 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   vector<bool> b1, b2;
 
-  int i = 0;
-  for (const auto& shard : dummy_shards) {
-    b1 = GenerateRandomBooleanVector(shard.size());
-
-    b2 = GenerateRandomBooleanVector(shard.size());
-    dummyDS.SaveCoinbaseCore(b1, b2, shard, i++, random_epoch_num);
-  }
-
-  b1 = GenerateRandomBooleanVector(dummy_ds_comm.size());
-  b2 = GenerateRandomBooleanVector(dummy_ds_comm.size());
-
-  dummyDS.SaveCoinbaseCore(b1, b2, dummy_ds_comm,
-                           CoinbaseReward::FINALBLOCK_REWARD, random_epoch_num);
   *mediator.m_DSCommittee = dummy_ds_comm;
   dummyDS.m_shards = dummy_shards;
+
+  for (uint i = 0; i < NUM_FINAL_BLOCK_PER_POW; i++) {
+    uint j = 0;
+    for (const auto& shard : dummy_shards) {
+      b1 = GenerateRandomBooleanVector(shard.size());
+
+      b2 = GenerateRandomBooleanVector(shard.size());
+      dummyDS.SaveCoinbaseCore(b1, b2, shard, j++, i + 1);
+    }
+
+    b1 = GenerateRandomBooleanVector(dummy_ds_comm.size());
+    b2 = GenerateRandomBooleanVector(dummy_ds_comm.size());
+
+    dummyDS.SaveCoinbaseCore(b1, b2, dummy_ds_comm,
+                             CoinbaseReward::FINALBLOCK_REWARD, i + 1);
+  }
 
   dummyDS.InitCoinbase();
 
@@ -130,11 +134,11 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   auto lookupReward = totalReward - normalReward;
 
-  auto lookupRewardPerc = (lookupReward * 100) / COINBASE_REWARD_PER_DS;
+  const auto lookupRewardPerc = (lookupReward * 100) / COINBASE_REWARD_PER_DS;
 
-  auto percRewarded = (normalReward * 100) / COINBASE_REWARD_PER_DS;
+  const auto percRewarded = (normalReward * 100) / COINBASE_REWARD_PER_DS;
 
-  auto expectedPercNormal = 100 - LOOKUP_REWARD_IN_PERCENT;
+  const auto expectedPercNormal = 100 - LOOKUP_REWARD_IN_PERCENT;
 
   BOOST_CHECK_MESSAGE(percRewarded - 1 <= expectedPercNormal &&
                           percRewarded + 1 >= expectedPercNormal,
