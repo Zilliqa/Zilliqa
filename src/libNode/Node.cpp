@@ -958,6 +958,33 @@ void Node::StartSynchronization() {
   DetachedFunction(1, func);
 }
 
+uint32_t Node::CalculateShardLeaderWhenInGuardMode(uint16_t lastBlockHash,
+                                                   uint32_t sizeOfShard) {
+  LOG_MARKER();
+  if (GUARD_MODE) {
+    uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
+
+    unsigned int iterationCount = 0;
+    unsigned int tolerance = 100;
+    while (!Guard::GetInstance().IsNodeInShardGuardList(
+               m_myShardMembers->at(consensusLeaderIndex).first) &&
+           (iterationCount < tolerance)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "consensusLeaderIndex " << consensusLeaderIndex
+                                        << " is not a shard guard.");
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
+          lastBlockHash));
+      lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+      consensusLeaderIndex = lastBlockHash % sizeOfShard;
+      iterationCount++;
+    }
+    return consensusLeaderIndex;
+  } else {
+    return lastBlockHash % sizeOfShard;
+  }
+}
+
 bool Node::CheckState(Action action) {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       action != PROCESS_MICROBLOCKCONSENSUS) {
