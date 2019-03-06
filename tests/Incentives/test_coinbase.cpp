@@ -56,6 +56,7 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   const uint32_t min_ds_size = 600;
   const uint32_t min_comm_size = 100;
+  const uint32_t min_lookup_size = 5;
   // 2 shards
 
   mediator.RegisterColleagues(&dummyDS, &dummyNode, &dummyLookup,
@@ -68,7 +69,17 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   auto dummy_ds_comm = GenerateRandomDSCommittee(dummy_ds_size);
 
+  auto dummy_lookup_num = DistUint8() % min_lookup_size + min_lookup_size;
+
   auto random_epoch_num = DistUint64();
+
+  VectorOfNode lookupNodes;
+
+  for (uint i = 0; i < dummy_lookup_num; i++) {
+    lookupNodes.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer());
+  }
+
+  dummyLookup.SetLookupNodes(lookupNodes);
 
   vector<bool> b1, b2;
 
@@ -113,13 +124,28 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
     calcReward(shard);
   }
 
-  auto percRewarded = (totalReward * 100) / COINBASE_REWARD_PER_DS;
+  auto normalReward = totalReward;
 
-  auto expectedPerc = 100 - LOOKUP_REWARD_IN_PERCENT;
+  calcReward(lookupNodes);
 
-  BOOST_CHECK_MESSAGE(
-      percRewarded - 1 <= expectedPerc && percRewarded + 1 >= expectedPerc,
-      "Percent: " << percRewarded << " does not match");
+  auto lookupReward = totalReward - normalReward;
+
+  auto lookupRewardPerc = (lookupReward * 100) / COINBASE_REWARD_PER_DS;
+
+  auto percRewarded = (normalReward * 100) / COINBASE_REWARD_PER_DS;
+
+  auto expectedPercNormal = 100 - LOOKUP_REWARD_IN_PERCENT;
+
+  BOOST_CHECK_MESSAGE(percRewarded - 1 <= expectedPercNormal &&
+                          percRewarded + 1 >= expectedPercNormal,
+                      "Percent: " << percRewarded << " does not match");
+
+  BOOST_CHECK_MESSAGE(totalReward == COINBASE_REWARD_PER_DS,
+                      "total reward wrong");
+
+  BOOST_CHECK_MESSAGE(lookupRewardPerc - 1 <= LOOKUP_REWARD_IN_PERCENT &&
+                          lookupRewardPerc + 1 >= LOOKUP_REWARD_IN_PERCENT,
+                      "Lookup reward doesn't match");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
