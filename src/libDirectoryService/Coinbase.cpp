@@ -324,15 +324,17 @@ void DirectoryService::InitCoinbase() {
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     const auto& pk = ds.first;
     Address addr = Account::GetAddressFromPublicKey(pk);
-    auto& isGuard = pubKeyAndIsGuard[pk];
-    if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(pk)) {
-      isGuard = true;
-      if (addr == myAddr) {
-        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+    if (GUARD_MODE) {
+      auto& isGuard = pubKeyAndIsGuard[pk];
+      if (Guard::GetInstance().IsNodeInDSGuardList(pk)) {
+        isGuard = true;
+        if (addr == myAddr) {
+          LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        }
+        continue;
       }
-      continue;
+      isGuard = false;
     }
-    isGuard = false;
     nonGuard.emplace_back(addr);
 
     if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
@@ -356,11 +358,13 @@ void DirectoryService::InitCoinbase() {
     for (const auto& node : shard) {
       const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
       auto& isGuard = pubKeyAndIsGuard[pk];
-      if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pk)) {
-        isGuard = true;
-        continue;
+      if (GUARD_MODE) {
+        if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+          isGuard = true;
+          continue;
+        }
+        isGuard = false;
       }
-      isGuard = false;
       Address addr = Account::GetAddressFromPublicKey(pk);
       nonGuard.emplace_back(addr);
 
@@ -402,8 +406,7 @@ void DirectoryService::InitCoinbase() {
         }
       } else {
         for (const auto& pk : rewardees) {
-          const auto& isGuard = pubKeyAndIsGuard[pk];
-          if (isGuard) {
+          if (GUARD_MODE && pubKeyAndIsGuard[pk]) {
             suc_counter++;
           } else {
             const auto& addr = Account::GetAddressFromPublicKey(pk);
