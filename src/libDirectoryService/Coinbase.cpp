@@ -307,26 +307,39 @@ void DirectoryService::InitCoinbase() {
     LOG_GENERAL(WARNING, "IncreaseBalanceTemp for coinbaseAddress failed");
   }
 
-  uint128_t suc_counter = 0;
-  uint128_t suc_lookup_counter = 0;
   const auto& myAddr =
       Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second);
 
-  // Reward to all nodes
+  // This list is for lucky draw candidates
+  vector<Address> nonGuard;
+
+  // Give the base reward to all DS and shard nodes in the network
+
+  // This list will be used in the cosig reward part to help avoid unnecessary
+  // repeated checking of guard list
+  unordered_map<PubKey, bool> pubKeyAndIsGuard;
+
   // DS nodes
+  LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to DS nodes...");
   for (const auto& ds : *m_mediator.m_DSCommittee) {
-    Address addr = Account::GetAddressFromPublicKey(ds.first);
+    const auto& pk = ds.first;
+    Address addr = Account::GetAddressFromPublicKey(pk);
     if (GUARD_MODE) {
-      if (Guard::GetInstance().IsNodeInDSGuardList(ds.first)) {
+      auto& isGuard = pubKeyAndIsGuard[pk];
+      if (Guard::GetInstance().IsNodeInDSGuardList(pk)) {
+        isGuard = true;
         if (addr == myAddr) {
           LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
         }
         continue;
       }
+      isGuard = false;
     }
+    nonGuard.emplace_back(addr);
+
     if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
                                                         base_reward_each)) {
-      LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
+      LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
     } else {
       if (addr == myAddr) {
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -338,76 +351,87 @@ void DirectoryService::InitCoinbase() {
       }
     }
   }
-  // shard nodes
+
+  // Shard nodes
+  LOG_GENERAL(INFO, "[CNBSE] Rewarding base reward to shard nodes...");
   for (const auto& shard : m_shards) {
     for (const auto& node : shard) {
-      if (Guard::GetInstance().IsNodeInShardGuardList(
-              std::get<SHARD_NODE_PUBKEY>(node))) {
-        continue;
+      const auto& pk = std::get<SHARD_NODE_PUBKEY>(node);
+      if (GUARD_MODE) {
+        auto& isGuard = pubKeyAndIsGuard[pk];
+        if (Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+          isGuard = true;
+          continue;
+        }
+        isGuard = false;
       }
-      Address addr =
-          Account::GetAddressFromPublicKey(std::get<SHARD_NODE_PUBKEY>(node));
+      Address addr = Account::GetAddressFromPublicKey(pk);
+      nonGuard.emplace_back(addr);
+
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
                                                           base_reward_each)) {
-        LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
+        LOG_GENERAL(WARNING, "Could not reward base reward  " << addr);
       }
       // No need to log as shard node won't call InitCoinbase
     }
   }
 
   // Reward based on cosigs
-  vector<Address> nonGuard;
-  for (auto const& epochNumShardRewardee : m_coinbaseRewardees) {
-    LOG_GENERAL(
-        INFO, "[CNBSE] Rewarding " << epochNumShardRewardee.first << " epoch");
 
-    for (auto const& shardIdRewardee : epochNumShardRewardee.second) {
-      LOG_GENERAL(INFO,
-                  "[CNBSE] Rewarding " << shardIdRewardee.first << " shard");
-      if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
-        for (auto const& pk : shardIdRewardee.second) {
+  uint128_t suc_counter = 0;
+  uint128_t suc_lookup_counter = 0;
+
+  LOG_GENERAL(
+      INFO,
+      "[CNBSE] Rewarding cosig rewards to lookup, DS, and shard nodes...");
+
+  for (const auto& epochNumShardRewardee : m_coinbaseRewardees) {
+    const auto& epochNum = epochNumShardRewardee.first;
+    const auto& shards = epochNumShardRewardee.second;
+    LOG_GENERAL(INFO, "[CNBSE] Rewarding epoch " << epochNum);
+    for (const auto& shardIdRewardee : shards) {
+      const auto& shardId = shardIdRewardee.first;
+      const auto& rewardees = shardIdRewardee.second;
+      LOG_GENERAL(INFO, "[CNBSE] Rewarding shard " << shardId);
+      if (shardId == CoinbaseReward::LOOKUP_REWARD) {
+        for (const auto& pk : rewardees) {
           const auto& addr = Account::GetAddressFromPublicKey(pk);
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each_lookup)) {
-            LOG_GENERAL(WARNING, "Could Not reward " << addr);
+            LOG_GENERAL(WARNING, "Could not reward " << addr << " - " << pk);
           } else {
             nonGuard.emplace_back(addr);
             suc_lookup_counter++;
           }
         }
       } else {
-        for (auto const& pk : shardIdRewardee.second) {
-          if (GUARD_MODE) {
-            if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
-                Guard::GetInstance().IsNodeInShardGuardList(pk)) {
-              suc_counter++;
-              continue;
-            }
-          }
-          const auto& addr = Account::GetAddressFromPublicKey(pk);
-          if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, coinbaseAddress, reward_each)) {
-            LOG_GENERAL(WARNING, "Could Not reward " << addr);
-          } else {
-            if (addr == myAddr) {
-              LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                        "[REWARD] Rewarded " << reward_each << " for blk "
-                                             << epochNumShardRewardee.first);
-              LOG_STATE("[REWARD]["
-                        << setw(15) << left
-                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                        << m_mediator.m_currentEpochNum << "][" << reward_each
-                        << "] for blk " << epochNumShardRewardee.first);
-            }
+        for (const auto& pk : rewardees) {
+          if (GUARD_MODE && pubKeyAndIsGuard[pk]) {
             suc_counter++;
-            nonGuard.emplace_back(addr);
+          } else {
+            const auto& addr = Account::GetAddressFromPublicKey(pk);
+            if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                    addr, coinbaseAddress, reward_each)) {
+              LOG_GENERAL(WARNING, "Could not reward " << addr << " - " << pk);
+            } else {
+              if (addr == myAddr) {
+                LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                          "[REWARD] Rewarded " << reward_each << " for blk "
+                                               << epochNum);
+                LOG_STATE("[REWARD]["
+                          << setw(15) << left
+                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                          << "][" << m_mediator.m_currentEpochNum << "]["
+                          << reward_each << "] for blk " << epochNum);
+              }
+              suc_counter++;
+            }
           }
         }
       }
     }
   }
 
-  //
   uint128_t balance_left = total_reward - (suc_counter * reward_each) -
                            (suc_lookup_counter * reward_each_lookup) -
                            (node_count * base_reward_each);
