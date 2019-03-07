@@ -113,7 +113,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         }
         // commit the state to disk
         AccountStore::GetInstance().MoveUpdatesToDisk();
-        
+
         firstStateDeltaIndex = i + 1;
       }
     } else  // we rely on next statedelta that covers this missing one
