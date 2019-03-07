@@ -69,8 +69,8 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   // create states from last 10 * NUM_FINAL_BLOCK_PER_POW txn blocks
   unsigned int upper_bound_txnblk = (lastBlockNum - extra_txblocks);
   unsigned int lower_bound_txnblk =
-      (lastBlockNum - extra_txblocks + 1 > 10 * NUM_FINAL_BLOCK_PER_POW)
-          ? lastBlockNum - extra_txblocks + 1 - 10 * NUM_FINAL_BLOCK_PER_POW
+      ((lastBlockNum - extra_txblocks + 1) > 10 * NUM_FINAL_BLOCK_PER_POW)
+          ? (lastBlockNum - extra_txblocks + 1) - (10 * NUM_FINAL_BLOCK_PER_POW)
           : 0;
 
   // clear all the state deltas from disk.
@@ -90,7 +90,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
       } catch (std::exception& e) {
         LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
       }
-      if (i + 1 % NUM_FINAL_BLOCK_PER_POW ==
+      if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
           0) {  // state-delta from vacous epoch
         // refresh state-delta after copy over
         BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
