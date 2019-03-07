@@ -297,12 +297,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");
-      if (m_server.StartListening()) {
-        LOG_GENERAL(INFO, "API Server started successfully");
-        m_lookup.SetServerTrue();
-      } else {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
-      }
+      m_lookup.SetServerTrue();
+    }
+
+    if (m_server.StartListening()) {
+      LOG_GENERAL(INFO, "API Server started successfully");
+    } else {
+      LOG_GENERAL(WARNING, "API Server couldn't start");
     }
   };
   DetachedFunction(1, func);
