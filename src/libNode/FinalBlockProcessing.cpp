@@ -334,7 +334,8 @@ void Node::UpdateStateForNextConsensusRound() {
       m_consensusLeaderID =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     } else {
-      m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+      m_consensusLeaderID =
+          CalculateShardLeader(lastBlockHash, m_myShardMembers->size());
     }
   }
 
