@@ -121,7 +121,7 @@
         </cuda>
     </gpu>
     <guard_mode>
-        <GUARD_MODE>false</GUARD_MODE>
+        <GUARD_MODE>true</GUARD_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
         <!-- Unit for window time is seconds.-->
         <WINDOW_FOR_DS_NETWORK_INFO_UPDATE>300</WINDOW_FOR_DS_NETWORK_INFO_UPDATE>
@@ -134,7 +134,7 @@
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>5</COMM_SIZE>
-        <NUM_DS_ELECTION>2</NUM_DS_ELECTION>
+        <NUM_DS_ELECTION>1</NUM_DS_ELECTION>
         <!-- SHARD_SIZE_TOLERANCE_LO must be smaller than COMM_SIZE -->
         <SHARD_SIZE_TOLERANCE_LO>1</SHARD_SIZE_TOLERANCE_LO>
         <SHARD_SIZE_TOLERANCE_HI>1</SHARD_SIZE_TOLERANCE_HI>
