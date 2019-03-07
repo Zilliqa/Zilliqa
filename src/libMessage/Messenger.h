@@ -507,20 +507,40 @@ class Messenger {
                                              const unsigned int offset,
                                              const uint64_t blockNum,
                                              const uint32_t listenPort);
+  static bool SetLookupGetStateDeltasFromSeed(bytes& dst,
+                                              const unsigned int offset,
+                                              uint64_t& lowBlockNum,
+                                              uint64_t& highBlockNum,
+                                              const uint32_t listenPort);
   static bool GetLookupGetStateDeltaFromSeed(const bytes& src,
                                              const unsigned int offset,
                                              uint64_t& blockNum,
                                              uint32_t& listenPort);
+  static bool GetLookupGetStateDeltasFromSeed(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& lowBlockNum,
+                                              uint64_t& highBlockNum,
+                                              uint32_t& listenPort);
   static bool SetLookupSetStateDeltaFromSeed(bytes& dst,
                                              const unsigned int offset,
                                              const uint64_t blockNum,
                                              const PairOfKey& lookupKey,
                                              const bytes& stateDelta);
+  static bool SetLookupSetStateDeltasFromSeed(
+      bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
+      const uint64_t highBlockNum, const PairOfKey& lookupKey,
+      const std::vector<bytes>& stateDeltas);
   static bool GetLookupSetStateDeltaFromSeed(const bytes& src,
                                              const unsigned int offset,
                                              uint64_t& blockNum,
                                              PubKey& lookupPubKey,
                                              bytes& stateDelta);
+  static bool GetLookupSetStateDeltasFromSeed(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& lowBlockNum,
+                                              uint64_t& highBlockNum,
+                                              PubKey& lookupPubKey,
+                                              std::vector<bytes>& stateDeltas);
   static bool SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
                                         const uint32_t listenPort);
   static bool GetLookupGetStateFromSeed(const bytes& src,
