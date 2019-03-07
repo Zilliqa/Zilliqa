@@ -265,6 +265,8 @@ class Lookup : public Executable {
                                  const Peer& from);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
+  bool ProcessGetStateDeltasFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
   // UNUSED
