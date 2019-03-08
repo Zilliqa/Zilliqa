@@ -1187,7 +1187,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodesStatic(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Sender pubkey " << lookupPubKey << " not in lookup list");
