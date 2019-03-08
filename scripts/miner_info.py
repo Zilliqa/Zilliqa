@@ -69,7 +69,7 @@ def main():
 
 	args = parse_arguments(options_dictionary.keys())
 	
-	query_url = args.url+":"+str(PORT);
+	query_url = "http://"+args.address+":"+str(PORT);
 
 	response = get_response([],options_dictionary[args.option],query_url)
 
