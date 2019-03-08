@@ -390,6 +390,8 @@ const bool REJOIN_NODE_NOT_IN_NETWORK{
     "true"};
 const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
+const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
+    ReadConstantNumeric("INCRDB_DSNUMS_WITH_STATEDELTAS", "node.recovery.")};
 
 // Smart contract constants
 const string SCILLA_ROOT{
