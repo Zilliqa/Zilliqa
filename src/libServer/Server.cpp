@@ -72,7 +72,13 @@ Server::~Server(){
     // destructor
 };
 
-string Server::GetNetworkId() { return to_string(CHAIN_ID); }
+string Server::GetNetworkId() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+    ;
+  }
+  return to_string(CHAIN_ID);
+}
 
 bool Server::StartCollectorThread() {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
@@ -158,6 +164,10 @@ bool Server::StartCollectorThread() {
 
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
@@ -324,6 +334,10 @@ Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
 Json::Value Server::GetTransaction(const string& transactionHash) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
@@ -352,6 +366,10 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
 }
 
 Json::Value Server::GetDsBlock(const string& blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertDSblocktoJson(
@@ -374,6 +392,10 @@ Json::Value Server::GetDsBlock(const string& blockNum) {
 }
 
 Json::Value Server::GetTxBlock(const string& blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertTxBlocktoJson(
@@ -396,6 +418,10 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
 }
 
 string Server::GetMinimumGasPrice() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock()
       .GetHeader()
       .GetGasPrice()
@@ -403,6 +429,10 @@ string Server::GetMinimumGasPrice() {
 }
 
 Json::Value Server::GetLatestDsBlock() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   LOG_MARKER();
   DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
@@ -415,6 +445,11 @@ Json::Value Server::GetLatestDsBlock() {
 
 Json::Value Server::GetLatestTxBlock() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -426,6 +461,10 @@ Json::Value Server::GetLatestTxBlock() {
 
 Json::Value Server::GetBalance(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -465,6 +504,10 @@ Json::Value Server::GetBalance(const string& address) {
 Json::Value Server::GetSmartContractState(const string& address) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -501,6 +544,10 @@ Json::Value Server::GetSmartContractState(const string& address) {
 Json::Value Server::GetSmartContractInit(const string& address) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -535,6 +582,10 @@ Json::Value Server::GetSmartContractInit(const string& address) {
 
 Json::Value Server::GetSmartContractCode(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -571,6 +622,11 @@ Json::Value Server::GetSmartContractCode(const string& address) {
 
 Json::Value Server::GetSmartContracts(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
@@ -622,6 +678,10 @@ Json::Value Server::GetSmartContracts(const string& address) {
 }
 
 string Server::GetContractAddressFromTransactionID(const string& tranID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(tranID);
@@ -652,6 +712,11 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
 
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
   return numPeers + m_mediator.m_DSCommittee->size();
@@ -660,25 +725,45 @@ unsigned int Server::GetNumPeers() {
 string Server::GetNumTxBlocks() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return to_string(m_mediator.m_txBlockChain.GetBlockCount());
 }
 
 string Server::GetNumDSBlocks() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return to_string(m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 uint8_t Server::GetPrevDSDifficulty() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
 }
 
 uint8_t Server::GetPrevDifficulty() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
 }
 
 string Server::GetNumTransactions() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   lock_guard<mutex> g(m_mutexBlockTxPair);
 
@@ -696,6 +781,10 @@ string Server::GetNumTransactions() {
 }
 
 size_t Server::GetNumTransactions(uint64_t blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -713,6 +802,10 @@ size_t Server::GetNumTransactions(uint64_t blockNum) {
 }
 double Server::GetTransactionRate() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   uint64_t refBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -768,6 +861,10 @@ double Server::GetTransactionRate() {
 double Server::GetDSBlockRate() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
   boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
@@ -803,6 +900,10 @@ double Server::GetDSBlockRate() {
 
 double Server::GetTxBlockRate() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
   boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
@@ -848,7 +949,9 @@ string Server::GetCurrentDSEpoch() {
 
 Json::Value Server::DSBlockListing(unsigned int page) {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t currBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
@@ -940,7 +1043,9 @@ Json::Value Server::DSBlockListing(unsigned int page) {
 
 Json::Value Server::TxBlockListing(unsigned int page) {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
@@ -1033,7 +1138,9 @@ Json::Value Server::TxBlockListing(unsigned int page) {
 
 Json::Value Server::GetBlockchainInfo() {
   Json::Value _json;
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   _json["NumPeers"] = Server::GetNumPeers();
   _json["NumTxBlocks"] = Server::GetNumTxBlocks();
   _json["NumDSBlocks"] = Server::GetNumDSBlocks();
@@ -1052,7 +1159,9 @@ Json::Value Server::GetBlockchainInfo() {
 
 Json::Value Server::GetRecentTransactions() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   lock_guard<mutex> g(m_mutexRecentTxns);
   Json::Value _json;
   uint64_t actualSize(m_RecentTransactions.capacity());
@@ -1075,7 +1184,9 @@ void Server::AddToRecentTransactions(const TxnHash& txhash) {
 }
 Json::Value Server::GetShardingStructure() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     Json::Value _json;
 
@@ -1102,7 +1213,9 @@ Json::Value Server::GetShardingStructure() {
 
 string Server::GetNumTxnsTxEpoch() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     return to_string(
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
@@ -1116,7 +1229,9 @@ string Server::GetNumTxnsTxEpoch() {
 
 string Server::GetNumTxnsDSEpoch() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
     auto latestTxBlockNum = latestTxBlock.GetBlockNum();
@@ -1165,7 +1280,9 @@ string Server::GetNumTxnsDSEpoch() {
 
 Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
   LOG_MARKER();
-  // LOG_GENERAL(INFO, txBlockNum << " " << shardID);
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t txNum;
   Json::Value _json = Json::arrayValue;
   try {
