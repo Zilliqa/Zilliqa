@@ -1338,3 +1338,17 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
 
   return _json;
 }
+
+string Server::GetNodeType() {
+  if (!m_mediator.m_lookup->AlreadyJoinedNetwork()) {
+    return "Not in network";
+  } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    return "Lookup";
+  } else if (LOOKUP_NODE_MODE) {
+    return "Seed";
+  } else if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    return "DS Node";
+  } else {
+    return "Shard Node";
+  }
+}
