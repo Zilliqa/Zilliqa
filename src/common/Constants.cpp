@@ -449,6 +449,8 @@ const unsigned int PACKET_BYTESIZE_LIMIT{
     ReadConstantNumeric("PACKET_BYTESIZE_LIMIT", "node.transactions.")};
 const unsigned int SMALL_TXN_SIZE{
     ReadConstantNumeric("SMALL_TXN_SIZE", "node.transactions.")};
+const unsigned int ACCOUNT_IO_BATCH_SIZE{
+    ReadConstantNumeric("ACCOUNT_IO_BATCH_SIZE", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
