@@ -590,10 +590,11 @@ class DirectoryService : public Executable {
   void StartNewDSEpochConsensus(bool fromFallback = false,
                                 bool isRejoin = false);
 
-  static uint8_t CalculateNewDifficultyCore(
-      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-      int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
-      int64_t numBlockPerYear);
+  static uint8_t CalculateNewDifficultyCore(uint8_t currentDifficulty,
+                                            uint8_t minDifficulty,
+                                            int64_t powSubmissions,
+                                            int64_t expectedNodes,
+                                            uint32_t powChangeoAdj);
 
   /// Calculate node priority to determine which node has the priority to join
   /// the network.
