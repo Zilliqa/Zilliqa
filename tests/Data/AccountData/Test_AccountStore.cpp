@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   BOOST_CHECK_MESSAGE(
       AccountStore::GetInstance().GetStateRootHash() == root1,
       "Wrong root: Call to MoveUpdatesToDisk() has changed the root "
-      "hash!");
+      "hash! current: "
+          << AccountStore::GetInstance().GetStateRootHash());
 
   // Retrieve entry from persistent storage
   // Check that account store is restored
@@ -113,9 +114,10 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 10,
                       "Wrong balance: Call to MoveUpdatesToDisk() has "
                       "changed the balance at addr!");
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().GetStateRootHash() == root2,
-      "Wrong root: Call to MoveUpdatesToDisk() has changed the root hash!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root2,
+                      "Wrong root: Call to MoveUpdatesToDisk() has changed the "
+                      "root hash! current: "
+                          << AccountStore::GetInstance().GetStateRootHash());
 
   AccountStore::GetInstance().RetrieveFromDisk();
 }
