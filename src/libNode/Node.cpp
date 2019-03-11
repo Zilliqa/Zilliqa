@@ -995,7 +995,8 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
 
     unsigned int iterationCount = 0;
     while (!Guard::GetInstance().IsNodeInShardGuardList(
-               std::get<0>(shardMembers.at(consensusLeaderIndex))) &&
+               std::get<SHARD_NODE_PUBKEY>(
+                   shardMembers.at(consensusLeaderIndex))) &&
            (iterationCount < SHARD_LEADER_SELECT_TOL)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
