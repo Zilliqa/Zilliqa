@@ -535,7 +535,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     return false;
   }
 
-  if (SyncType::NEW_SYNC == syncType) {
+  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC) {
     return true;
   }
 
