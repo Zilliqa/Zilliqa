@@ -2138,7 +2138,16 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
     }
   }
 
-  if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+  bool isAnyTxBlkFromVacuousEpoch = false;
+  for (auto i = lowBlockNum; i < highBlockNum; i++) {
+    if (lowBlockNum + 1 % NUM_FINAL_BLOCK_PER_POW == 0) {
+      isAnyTxBlkFromVacuousEpoch = true;
+      break;
+    }
+  }
+
+  if (isAnyTxBlkFromVacuousEpoch &&
+      !AccountStore::GetInstance().MoveUpdatesToDisk()) {
     LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
     return false;
   }

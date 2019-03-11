@@ -105,7 +105,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
               INFO,
               "Try fetching statedelta and deserializing to state for txnBlk:"
                   << j);
-          if (BlockStorage::GetBlockStorage().GetStateDelta(i, stateDelta)) {
+          if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
             if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
               LOG_GENERAL(
                   WARNING,
