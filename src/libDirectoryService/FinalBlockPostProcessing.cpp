@@ -154,7 +154,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   if (isVacuousEpoch) {
     auto writeStateToDisk = [this]() mutable -> void {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              ENABLE_REPOPULATE && m_mediator.m_dsBlockChain.GetLastBlock()
+                                               .GetHeader()
+                                               .GetBlockNum() %
+                                           REPOPULATE_STATE_PER_N_DS ==
+                                       REPOPULATE_STATE_IN_DS)) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       }

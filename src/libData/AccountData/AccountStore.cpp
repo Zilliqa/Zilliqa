@@ -175,7 +175,7 @@ void AccountStore::MoveRootToDisk(const h256& root) {
     LOG_GENERAL(INFO, "FAIL: Put metadata failed");
 }
 
-bool AccountStore::MoveUpdatesToDisk() {
+bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -221,7 +221,7 @@ bool AccountStore::MoveUpdatesToDisk() {
   }
 
   try {
-    if (!RepopulateStateTrie()) {
+    if (repopulate && !RepopulateStateTrie()) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
     }
     m_state.db()->commit();
@@ -244,6 +244,8 @@ bool AccountStore::RepopulateStateTrie() {
   unsigned int counter = 0;
   bool batched_once = false;
 
+  vector<pair<Address, bytes>> entries;
+
   for (const auto& i : m_state) {
     counter++;
 
@@ -253,7 +255,8 @@ bool AccountStore::RepopulateStateTrie() {
               *this->m_addressToAccount)) {
         LOG_GENERAL(WARNING, "PutTempState failed");
       } else {
-        this->m_addressToAccount->clear();
+        // this->m_addressToAccount->clear();
+        entries.clear();
         counter = 0;
         batched_once = true;
       }
@@ -372,7 +375,9 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       TransactionReceipt& receipt) {
   // LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDelta);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDelta, defer_lock);
+  lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                             transaction, receipt, true);

@@ -129,7 +129,7 @@ class AccountStore
   bool RepopulateStateTrie();
 
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk();
+  bool MoveUpdatesToDisk(bool repopulate = false);
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
   void DiscardUnsavedUpdates();
