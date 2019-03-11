@@ -49,8 +49,6 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   dev::h256 GetStateRootHash() const;
   bool UpdateStateTrieAll();
 
-  void RepopulateStateTrie();
-
   void PrintAccountState() override;
 };
 
