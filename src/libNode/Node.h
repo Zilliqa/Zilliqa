@@ -563,7 +563,12 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  uint32_t CalculateShardLeader(uint16_t lastBlockHash, uint32_t sizeOfShard);
+  uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
+                                               uint32_t sizeOfShard,
+                                               const DequeOfNode& shardMembers);
+  uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
+                                         uint32_t sizeOfShard,
+                                         const Shard& shardMembers);
 
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
