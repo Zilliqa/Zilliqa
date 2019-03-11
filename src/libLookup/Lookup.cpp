@@ -2140,7 +2140,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
 
   bool isAnyTxBlkFromVacuousEpoch = false;
   for (auto i = lowBlockNum; i < highBlockNum; i++) {
-    if (lowBlockNum + 1 % NUM_FINAL_BLOCK_PER_POW == 0) {
+    if ((i + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
       isAnyTxBlkFromVacuousEpoch = true;
       break;
     }
