@@ -62,6 +62,7 @@ def make_options_dictionary(options_dict):
 	options_dict["epoch"] = "GetCurrentMiniEpoch"
 	options_dict["dsepoch"] = "GetCurrentDSEpoch"
 	options_dict["type"] = "GetNodeType"
+	options_dict["ds"] = "GetDSCommitee"
 
 def main():
 	options_dictionary = {}

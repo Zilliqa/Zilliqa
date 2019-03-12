@@ -1352,3 +1352,15 @@ string Server::GetNodeType() {
     return "Shard Node";
   }
 }
+
+Json::Value Server::GetDSCommittee() {
+  if (m_mediator.m_DSCommittee == NULL) {
+    throw JsonRpcException(RPC_INTERNAL_ERROR, "DS Committee empty");
+  }
+
+  lock_guard<mutex>(m_mediator.m_mutexDSCommittee);
+
+  const DequeOfNode& dq = *m_mediator.m_DSCommittee;
+
+  return JSONConversion::convertDequeOfNode(dq);
+}
