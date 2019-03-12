@@ -425,6 +425,8 @@ class DirectoryService : public Executable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   uint64_t CalculateNumberOfBlocksPerYear() const;
 
+  void ReloadGuardedShards(DequeOfShard& shards);
+
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
@@ -521,6 +523,9 @@ class DirectoryService : public Executable {
 
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
+
+  /// Force multicast when sending block to shard
+  bool m_forceMulticast = false;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.

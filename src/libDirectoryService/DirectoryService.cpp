@@ -452,6 +452,8 @@ bool DirectoryService::CleanVariables() {
   m_consensusLeaderID = 0;
   m_mediator.m_consensusID = 0;
 
+  m_forceMulticast = false;
+
   return true;
 }
 
@@ -714,6 +716,19 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
   {
     lock_guard<mutex> g(m_mutexPowSolution);
     m_powSolutions.clear();
+  }
+}
+
+void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
+  for (const auto& shard : m_shards) {
+    Shard t_shard;
+    for (const auto& node : shard) {
+      if (Guard::GetInstance().IsNodeInShardGuardList(
+              std::get<SHARD_NODE_PUBKEY>(node))) {
+        t_shard.emplace_back(node);
+      }
+    }
+    shards.emplace_back(t_shard);
   }
 }
 
