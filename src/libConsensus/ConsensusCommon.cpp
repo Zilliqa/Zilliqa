@@ -191,40 +191,49 @@ PairOfNode ConsensusCommon::GetCommitteeMember(const unsigned int index) {
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 
-bool ConsensusCommon::GetConsensusID(const bytes& message,
-                                     const unsigned int offset,
-                                     uint32_t& consensusID,
-                                     PubKey& senderPubKey) const {
+bool ConsensusCommon::PreProcessMessage(const bytes& message,
+                                        const unsigned int offset,
+                                        uint32_t& consensusID,
+                                        PubKey& senderPubKey,
+                                        bytes& reserializedMessage) const {
   if (message.size() > offset) {
     switch (message.at(offset)) {
       case ConsensusMessageType::ANNOUNCE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusAnnouncement>(
-            message, offset + 1, consensusID, senderPubKey);
+        return Messenger::PreProcessMessage<
+            ZilliqaMessage::ConsensusAnnouncement>(message, offset + 1,
+                                                   consensusID, senderPubKey,
+                                                   reserializedMessage);
       case ConsensusMessageType::CONSENSUSFAILURE:
-        return Messenger::GetConsensusID<
+        return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusConsensusFailure>(
-            message, offset + 1, consensusID, senderPubKey);
+            message, offset + 1, consensusID, senderPubKey,
+            reserializedMessage);
       case ConsensusMessageType::COMMIT:
       case ConsensusMessageType::FINALCOMMIT:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommit>(
-            message, offset + 1, consensusID, senderPubKey);
+        return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusCommit>(
+            message, offset + 1, consensusID, senderPubKey,
+            reserializedMessage);
       case ConsensusMessageType::COMMITFAILURE:
-        return Messenger::GetConsensusID<
+        return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusCommitFailure>(message, offset + 1,
-                                                    consensusID, senderPubKey);
+                                                    consensusID, senderPubKey,
+                                                    reserializedMessage);
       case ConsensusMessageType::CHALLENGE:
       case ConsensusMessageType::FINALCHALLENGE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusChallenge>(
-            message, offset + 1, consensusID, senderPubKey);
+        return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusChallenge>(
+            message, offset + 1, consensusID, senderPubKey,
+            reserializedMessage);
       case ConsensusMessageType::RESPONSE:
       case ConsensusMessageType::FINALRESPONSE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusResponse>(
-            message, offset + 1, consensusID, senderPubKey);
+        return Messenger::PreProcessMessage<ZilliqaMessage::ConsensusResponse>(
+            message, offset + 1, consensusID, senderPubKey,
+            reserializedMessage);
       case ConsensusMessageType::COLLECTIVESIG:
       case ConsensusMessageType::FINALCOLLECTIVESIG:
-        return Messenger::GetConsensusID<
+        return Messenger::PreProcessMessage<
             ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
-                                                    consensusID, senderPubKey);
+                                                    consensusID, senderPubKey,
+                                                    reserializedMessage);
       default:
         LOG_GENERAL(WARNING,
                     "Unknown msg type " << (unsigned int)message.at(offset));

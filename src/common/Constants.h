@@ -90,7 +90,8 @@ enum SyncType : unsigned int {
   RECOVERY_ALL_SYNC,
   NEW_LOOKUP_SYNC,
   GUARD_DS_SYNC,
-  DB_VERIF
+  DB_VERIF,
+  SYNC_TYPE_COUNT
 };
 
 namespace Contract {
@@ -128,6 +129,7 @@ extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const std::string GENESIS_PUBKEY;
+extern const unsigned int UPGRADE_TARGET_DS_NUM;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -237,6 +239,8 @@ extern const unsigned int CUDA_SCHEDULE_FLAG;
 extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE;
+extern const double SHARD_GUARD_TOL;
+extern const unsigned int SHARD_LEADER_SELECT_TOL;
 
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;

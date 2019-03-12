@@ -41,6 +41,12 @@ unsigned int ReadConstantNumeric(const string& propertyName,
   return pt.get<unsigned int>(path + propertyName);
 }
 
+double ReadConstantDouble(const string& propertyName,
+                          const char* path = "node.general.") {
+  auto pt = PTree::GetInstance();
+  return pt.get<double>(path + propertyName);
+}
+
 string ReadConstantString(string propertyName,
                           const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
@@ -69,6 +75,8 @@ const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 const string GENESIS_PUBKEY{
     ReadConstantString("GENESIS_PUBKEY", "node.general.")};
+const unsigned int UPGRADE_TARGET_DS_NUM{
+    ReadConstantNumeric("UPGRADE_TARGET_DS_NUM")};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -267,7 +275,10 @@ const bool EXCLUDE_PRIV_IP{
     ReadConstantString("EXCLUDE_PRIV_IP", "node.guard_mode.") == "true"};
 const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
-
+const double SHARD_GUARD_TOL{
+    ReadConstantDouble("SHARD_GUARD_TOL", "node.guard_mode.")};
+const unsigned int SHARD_LEADER_SELECT_TOL{
+    ReadConstantNumeric("SHARD_LEADER_SELECT_TOL", "node.guard_mode.")};
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};

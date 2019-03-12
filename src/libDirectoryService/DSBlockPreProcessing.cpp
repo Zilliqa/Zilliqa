@@ -39,7 +39,6 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/ShardSizeCalculator.h"
 #include "libUtils/TimestampVerifier.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -110,13 +109,6 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
                                         .GetHeader()
                                         .GetDifficulty())
                   << ", new difficulty " << std::to_string(difficulty));
-  }
-
-  if (UpgradeManager::GetInstance().HasNewSW()) {
-    if (UpgradeManager::GetInstance().DownloadSW()) {
-      lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-      m_mediator.m_curSWInfo = *UpgradeManager::GetInstance().GetLatestSWInfo();
-    }
   }
 
   return numOfElectedDSMembers;
@@ -660,16 +652,22 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // "FilteredPoWOrderSorter"
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
-      uint32_t trimmedGuardCount =
-          ceil(numNodesAfterTrim * ConsensusCommon::TOLERANCE_FRACTION);
+      uint32_t trimmedGuardCount = ceil(numNodesAfterTrim * SHARD_GUARD_TOL);
       uint32_t trimmedNonGuardCount = numNodesAfterTrim - trimmedGuardCount;
 
       if (trimmedGuardCount + trimmedNonGuardCount < numNodesAfterTrim) {
         LOG_GENERAL(WARNING,
-                    "Network has less than 1/3 non shard guard node. Filling "
-                    "it with guard nodes");
+                    "trimmedGuardCount: "
+                        << trimmedGuardCount
+                        << " trimmedNonGuardCount: " << trimmedNonGuardCount
+                        << " numNodesAfterTrim: " << numNodesAfterTrim);
         trimmedGuardCount +=
             (numNodesAfterTrim - trimmedGuardCount - trimmedNonGuardCount);
+        LOG_GENERAL(WARNING,
+                    "Added  "
+                        << (numNodesAfterTrim - trimmedGuardCount -
+                            trimmedNonGuardCount)
+                        << " to trimmedGuardCount to form a complete shard.");
       }
 
       // Assign all shard guards first
@@ -842,7 +840,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // To-do: Handle exceptions.
   // TODO: Revise DS block structure
   {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
                       blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
@@ -1062,17 +1059,6 @@ bool DirectoryService::DSBlockValidator(
     LOG_GENERAL(WARNING, "Failed to verify gas price");
     return false;
   }
-
-  auto func = [this]() mutable -> void {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo()) {
-      if (UpgradeManager::GetInstance().DownloadSW()) {
-        m_mediator.m_curSWInfo =
-            *UpgradeManager::GetInstance().GetLatestSWInfo();
-      }
-    }
-  };
-  DetachedFunction(1, func);
 
   return true;
 }

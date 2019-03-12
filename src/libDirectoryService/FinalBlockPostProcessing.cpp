@@ -34,7 +34,6 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -201,19 +200,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     }
   }
 
-  if (isVacuousEpoch) {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-    }
-
-    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().InstallScilla();
-    }
-  }
-
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitRevertibles();
   m_stateDeltaFromShards.clear();
@@ -295,11 +281,13 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   }
 
   uint32_t consensus_id = 0;
+  bytes reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(
+          message, offset, consensus_id, senderPubKey, reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -327,8 +315,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
       return false;
     }
 
-    AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                   senderPubKey);
+    AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                   from, senderPubKey);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
@@ -355,10 +343,10 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
                 "Buffer final block with larger consensus ID ("
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
-      AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                     senderPubKey);
+      AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                     from, senderPubKey);
     } else {
-      return ProcessFinalBlockConsensusCore(message, offset, from);
+      return ProcessFinalBlockConsensusCore(reserialized_message, offset, from);
     }
   }
 
