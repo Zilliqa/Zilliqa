@@ -197,17 +197,19 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
       } else {
         syncType = SyncType::NORMAL_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
 
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
             syncType = SyncType::DS_SYNC;
+            m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
             break;
           }
         }
       }
-      m_mediator.m_lookup->SetSyncType(syncType);
     }
 
     LogSelfNodeInfo(key, peer);
