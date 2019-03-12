@@ -30,6 +30,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -180,11 +181,17 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
   }
 
+  DequeOfShard t_shards;
+  if (m_forceMulticast && GUARD_MODE) {
+    ReloadGuardedShards(t_shards);
+  }
+
   DataSender::GetInstance().SendDataToOthers(
-      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
+      *m_finalBlock, *m_mediator.m_DSCommittee,
+      t_shards.empty() ? m_shards : t_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeFinalBlockMessageForSender);
+      composeFinalBlockMessageForSender, m_forceMulticast.load());
 
   LOG_STATE(
       "[FLBLK]["
