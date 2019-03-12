@@ -868,6 +868,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
+      m_mediator.m_ds->m_forceMulticast = true;
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
@@ -884,8 +885,6 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    m_mediator.m_ds->m_forceMulticast = true;
-
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
