@@ -207,6 +207,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           }
         }
       }
+      m_mediator.m_lookup->SetSyncType(syncType);
     }
 
     LogSelfNodeInfo(key, peer);
