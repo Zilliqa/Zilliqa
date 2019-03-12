@@ -528,14 +528,13 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
   bool tx_result = m_retriever->RetrieveTxBlocks(
-      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-                           SyncType::RECOVERY_ALL_SYNC == syncType));
+      wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK);
 
   if (!tx_result) {
     return false;
   }
 
-  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC) {
+  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType) {
     return true;
   }
 
