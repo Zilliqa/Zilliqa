@@ -255,16 +255,25 @@ void AccountStore::DiscardUnsavedUpdates() {
 bool AccountStore::RetrieveFromDisk() {
   LOG_MARKER();
 
+  bytes rootBytes;
+  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+    return false;
+  }
+  LOG_PAYLOAD(INFO, "Retrieved stateroot: ", rootBytes,
+              Logger::MAX_BYTES_TO_DISPLAY);
+
   InitSoft();
+  rootBytes.clear();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
   }
+  LOG_PAYLOAD(INFO, "Retrieved stateroot: ", rootBytes,
+              Logger::MAX_BYTES_TO_DISPLAY);
 
   try {
     h256 root(rootBytes);
