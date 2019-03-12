@@ -188,10 +188,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   DataSender::GetInstance().SendDataToOthers(
       *m_finalBlock, *m_mediator.m_DSCommittee,
-      (m_forceMulticast && GUARD_MODE) ? t_shards : m_shards, t_microBlocks,
+      t_shards.empty() ? m_shards : t_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeFinalBlockMessageForSender, m_forceMulticast);
+      composeFinalBlockMessageForSender, m_forceMulticast.load());
 
   LOG_STATE(
       "[FLBLK]["

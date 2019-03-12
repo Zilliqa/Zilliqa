@@ -329,10 +329,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
     DataSender::GetInstance().SendDataToOthers(
         *m_pendingVCBlock, tmpDSCommittee,
-        (m_forceMulticast && GUARD_MODE) ? t_shards : m_shards, t_microBlocks,
+        t_shards.empty() ? m_shards : t_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeVCBlockForSender, m_forceMulticast,
+        m_consensusMyID, composeVCBlockForSender, m_forceMulticast.load(),
         t_sendDataToLookupFunc);
   }
 }

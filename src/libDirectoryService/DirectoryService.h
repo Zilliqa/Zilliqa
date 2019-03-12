@@ -525,7 +525,7 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtFinalConsensus = false;
 
   /// Force multicast when sending block to shard
-  bool m_forceMulticast = false;
+  std::atomic<bool> m_forceMulticast;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.

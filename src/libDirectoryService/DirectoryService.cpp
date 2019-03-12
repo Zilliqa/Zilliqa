@@ -53,6 +53,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
   m_consensusLeaderID = 0;
   m_mediator.m_consensusID = 1;
   m_viewChangeCounter = 0;
+  m_forceMulticast = false;
 }
 
 DirectoryService::~DirectoryService() {}
