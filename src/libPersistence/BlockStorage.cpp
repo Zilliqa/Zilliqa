@@ -500,6 +500,12 @@ bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
   return (ret == 0);
 }
 
+bool BlockStorage::PutStateRoot(const bytes& data) {
+  LOG_MARKER();
+  int ret = m_stateRootDB->Insert(std::to_string((int)STATEROOT), data);
+  return (ret == 0);
+}
+
 bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   LOG_MARKER();
   string metaString = m_metadataDB->Lookup(std::to_string((int)type));
@@ -510,6 +516,20 @@ bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   }
 
   data = bytes(metaString.begin(), metaString.end());
+
+  return true;
+}
+
+bool BlockStorage::GetStateRoot(bytes& data) {
+  LOG_MARKER();
+  string stateRoot = m_stateRootDB->Lookup(std::to_string((int)STATEROOT));
+
+  if (stateRoot.empty()) {
+    LOG_GENERAL(INFO, "No state root found")
+    return false;
+  }
+
+  data = bytes(stateRoot.begin(), stateRoot.end());
 
   return true;
 }
@@ -1014,6 +1034,11 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       }
       break;
     }
+    case STATE_ROOT: {
+      lock_guard<mutex> g(m_mutexStateRoot);
+      ret = m_stateRootDB->ResetDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
@@ -1101,6 +1126,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       }
       break;
     }
+    case STATE_ROOT: {
+      lock_guard<mutex> g(m_mutexStateRoot);
+      ret = m_stateRootDB->RefreshDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Refresh DB " << type << " failed");
@@ -1181,6 +1211,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_diagnosticDBCoinbase->GetDBName());
       break;
     }
+    case STATE_ROOT: {
+      lock_guard<mutex> g(m_mutexStateRoot);
+      ret.push_back(m_stateRootDB->GetDBName());
+      break;
+    }
   }
 
   return ret;
@@ -1194,7 +1229,7 @@ bool BlockStorage::ResetAll() {
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
            ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE);
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
@@ -1202,6 +1237,6 @@ bool BlockStorage::ResetAll() {
            ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE);
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   }
 }
