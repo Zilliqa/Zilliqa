@@ -135,7 +135,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
       return false;
     }
 
-    if (toRetrieveHistory && SyncType::NEW_SYNC == syncType) {
+    if (SyncType::NEW_SYNC == syncType || SyncType::NEWLOOKUP_SYNC == syncType) {
       return true;
     }
 
