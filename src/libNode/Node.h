@@ -448,7 +448,7 @@ class Node : public Executable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType, bool& wakeupForUpgrade);
+  bool StartRetrieveHistory(const SyncType syncType);
 
   bool ValidateDB();
 
