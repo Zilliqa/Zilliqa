@@ -262,7 +262,10 @@ bool AccountStore::RetrieveFromDisk() {
   lock(g, g2);
 
   bytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
+  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)
+      // To support backward compatibilty - lookup with new binary trying to
+      // recover from old database
+      && !BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
   }
 
