@@ -1007,10 +1007,9 @@ uint8_t DirectoryService::CalculateNewDifficulty(
                 << std::to_string(currentDifficulty) << ", expectedNodes "
                 << EXPECTED_SHARD_NODE_NUM << ", powSubmissions "
                 << powSubmissions);
-  return CalculateNewDifficultyCore(
-      currentDifficulty, POW_DIFFICULTY, powSubmissions,
-      EXPECTED_SHARD_NODE_NUM, POW_CHANGE_TO_ADJ_DIFF,
-      m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
+  return CalculateNewDifficultyCore(currentDifficulty, POW_DIFFICULTY,
+                                    powSubmissions, EXPECTED_SHARD_NODE_NUM,
+                                    POW_CHANGE_TO_ADJ_DIFF);
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
@@ -1022,18 +1021,17 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
                             << ", NUM_DS_ELECTION " << NUM_DS_ELECTION
                             << ", dsPowSubmissions " << dsPowSubmissions);
 
-  return CalculateNewDifficultyCore(
-      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, NUM_DS_ELECTION,
-      POW_CHANGE_TO_ADJ_DS_DIFF, m_mediator.m_currentEpochNum,
-      CalculateNumberOfBlocksPerYear());
+  return CalculateNewDifficultyCore(dsDifficulty, DS_POW_DIFFICULTY,
+                                    dsPowSubmissions, NUM_DS_ELECTION,
+                                    POW_CHANGE_TO_ADJ_DS_DIFF);
 }
 
-uint8_t DirectoryService::CalculateNewDifficultyCore(
-    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-    int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
-    int64_t numBlockPerYear) {
+uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
+                                                     uint8_t minDifficulty,
+                                                     int64_t powSubmissions,
+                                                     int64_t expectedNodes,
+                                                     uint32_t powChangeoAdj) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
-  constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
   int64_t adjustment = 0;
   if (expectedNodes > 0 && expectedNodes != powSubmissions) {
@@ -1058,17 +1056,8 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
     adjustment = -MAX_ADJUST_STEP;
   }
 
-  uint8_t newDifficulty = std::max((uint8_t)(adjustment + currentDifficulty),
-                                   (uint8_t)(minDifficulty));
-
-  // Within 10 years, every year increase the difficulty by one.
-  if (currentEpochNum / numBlockPerYear <= MAX_INCREASE_DIFFICULTY_YEARS &&
-      currentEpochNum % numBlockPerYear == 0) {
-    LOG_GENERAL(INFO, "At one year epoch " << currentEpochNum
-                                           << ", increase difficulty by 1.");
-    ++newDifficulty;
-  }
-  return newDifficulty;
+  return std::max((uint8_t)(adjustment + currentDifficulty),
+                  (uint8_t)(minDifficulty));
 }
 
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
