@@ -1999,7 +1999,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   m_mediator.UpdateTxBlockRand();
 
-  if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
+  if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
+      (m_syncType != SyncType::NEW_LOOKUP_SYNC)) {
     if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
       LOG_EPOCH(
           INFO, m_mediator.m_currentEpochNum,
