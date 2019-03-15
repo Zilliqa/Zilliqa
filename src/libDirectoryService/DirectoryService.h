@@ -628,9 +628,11 @@ class DirectoryService : public Executable {
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
+  std::string GetStateString() const;
+
  private:
   static std::map<DirState, std::string> DirStateStrings;
-  std::string GetStateString() const;
+
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);

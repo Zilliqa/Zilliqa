@@ -1364,3 +1364,14 @@ Json::Value Server::GetDSCommittee() {
 
   return JSONConversion::convertDequeOfNode(dq);
 }
+
+string Server::GetNodeState() {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+    return m_mediator.m_node->GetStateString();
+  } else {
+    return m_mediator.m_ds->GetStateString();
+  }
+}
