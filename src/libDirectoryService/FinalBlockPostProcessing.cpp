@@ -330,7 +330,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
 
     if (consensus_id == m_mediator.m_consensusID &&
         senderPubKey ==
-            m_mediator.m_DSCommittee->at(m_consensusLeaderID).first) {
+            m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
       if (!m_stopRecvNewMBSubmission) {
