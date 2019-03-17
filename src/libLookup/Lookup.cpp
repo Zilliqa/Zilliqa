@@ -1157,9 +1157,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
 
-  } else if (lowBlockNum <= m_mediator.m_dsBlockChain.GetLastBlock()
-                                .GetHeader()
-                                .GetEpochNum()) {
+  } else if (lowBlockNum == 1) {
     // To get block num from dsblockchain instead of txblock chain as node
     // recover from the last ds epoch
     lowBlockNum =

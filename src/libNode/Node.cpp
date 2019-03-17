@@ -54,6 +54,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/SysCommand.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libValidator/Validator.h"
@@ -105,6 +106,11 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
     : m_mediator(mediator) {}
 
 Node::~Node() {}
+
+bool Node::DownloadPersistenceFromS3() {
+  std::string cmd = "downloadIncrDB.py > downloadIncrDB-log.txt";
+  return SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmd);
+}
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   LOG_MARKER();
@@ -1606,7 +1612,11 @@ void Node::RejoinAsNormal() {
       m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
       this->CleanVariables();
       this->m_mediator.m_ds->CleanVariables();
-      this->Install(SyncType::NORMAL_SYNC);
+      bool toRetrieveFromHistory = false;
+      if (this->DownloadPersistenceFromS3()) {
+        toRetrieveFromHistory = true;
+      }
+      this->Install(SyncType::NORMAL_SYNC, toRetrieveFromHistory);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);

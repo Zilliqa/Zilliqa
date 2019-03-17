@@ -472,7 +472,11 @@ void DirectoryService::RejoinAsDS() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
-      m_mediator.m_node->Install(SyncType::DS_SYNC);
+      bool toRetrieveFromHistory = false;
+      if (m_mediator.m_node->DownloadPersistenceFromS3()) {
+        toRetrieveFromHistory = true;
+      }
+      m_mediator.m_node->Install(SyncType::DS_SYNC, toRetrieveFromHistory);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
