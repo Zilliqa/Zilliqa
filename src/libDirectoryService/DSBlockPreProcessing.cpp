@@ -1093,8 +1093,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup DS node. Waiting for DS block announcement. "
             "Leader is at index  "
-                << m_consensusLeaderID << " "
-                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+                << GetConsensusLeaderID() << " "
+                << m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).second);
 
   // Dummy values for now
   uint32_t consensusID = 0x0;
@@ -1112,7 +1112,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
 
   m_consensusObject.reset(new ConsensusBackup(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
-      m_consensusMyID, m_consensusLeaderID, m_mediator.m_selfKey.first,
+      m_consensusMyID, GetConsensusLeaderID(), m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<uint8_t>(DIRECTORY),
       static_cast<uint8_t>(DSBLOCKCONSENSUS), func));
 
