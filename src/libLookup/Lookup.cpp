@@ -2142,7 +2142,8 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
         return false;
       }
       BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
-      if (txBlkNum + 1 % NUM_FINAL_BLOCK_PER_POW == 0) {
+      if (((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) &&
+          (txBlkNum + NUM_FINAL_BLOCK_PER_POW < highBlockNum)) {
         if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
           LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
           return false;
