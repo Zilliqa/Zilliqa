@@ -1972,18 +1972,17 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
   }
 
-  bool getStateFromSeedInVacuous = false;
-  if (m_syncType == SyncType::NEW_SYNC ||
-      m_syncType == SyncType::NEW_LOOKUP_SYNC) {  // only for new node joining
+  bool getStateFromSeedInVacuous = true;
+  if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     // Get the state-delta for all txBlocks from random lookup nodes
     GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
-
     std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
     if (cv_setStateDeltasFromSeed.wait_for(
             cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
         std::cv_status::timeout) {
       LOG_GENERAL(WARNING, "Didn't receive statedeltas!");
-      getStateFromSeedInVacuous = true;
+    } else {
+      getStateFromSeedInVacuous = false;
     }
   }
 
@@ -2004,8 +2003,19 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
-    } else if (m_syncType == SyncType::NEW_SYNC) {
+    } else if (m_syncType == SyncType::NEW_SYNC ||
+               m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
+    } else if (m_syncType == SyncType::DS_SYNC ||
+               m_syncType == SyncType::GUARD_DS_SYNC) {
+      if (!m_currDSExpired &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+              m_mediator.m_currentEpochNum) {
+        m_isFirstLoop = true;
+        SetSyncType(SyncType::NO_SYNC);
+        m_mediator.m_ds->FinishRejoinAsDS();
+      }
+      m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.

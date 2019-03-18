@@ -472,11 +472,12 @@ void DirectoryService::RejoinAsDS() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
-      bool toRetrieveFromHistory = false;
-      if (m_mediator.m_node->DownloadPersistenceFromS3()) {
-        toRetrieveFromHistory = true;
+      if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+        LOG_GENERAL(
+            WARNING,
+            "Downloading persistence from S3 failed. Rejoin might fail!");
       }
-      m_mediator.m_node->Install(SyncType::DS_SYNC, toRetrieveFromHistory);
+      m_mediator.m_node->Install(SyncType::DS_SYNC, true);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);

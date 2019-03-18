@@ -108,8 +108,12 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
-  std::string cmd = "downloadIncrDB.py > downloadIncrDB-log.txt";
-  return SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmd);
+  LOG_MARKER();
+  unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
+  if (status != 0)
+    return false;
+  else
+    return true;
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
@@ -1612,11 +1616,12 @@ void Node::RejoinAsNormal() {
       m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
       this->CleanVariables();
       this->m_mediator.m_ds->CleanVariables();
-      bool toRetrieveFromHistory = false;
-      if (this->DownloadPersistenceFromS3()) {
-        toRetrieveFromHistory = true;
+      if (!this->DownloadPersistenceFromS3()) {
+        LOG_GENERAL(
+            WARNING,
+            "Downloading persistence from S3 failed. Rejoin might fail!");
       }
-      this->Install(SyncType::NORMAL_SYNC, toRetrieveFromHistory);
+      this->Install(SyncType::NORMAL_SYNC, true);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
