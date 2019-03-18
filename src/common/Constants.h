@@ -339,6 +339,10 @@ extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
 extern const unsigned int PACKET_BYTESIZE_LIMIT;
 extern const unsigned int SMALL_TXN_SIZE;
+extern const unsigned int ACCOUNT_IO_BATCH_SIZE;
+extern const bool ENABLE_REPOPULATE;
+extern const unsigned int REPOPULATE_STATE_PER_N_DS;
+extern const unsigned int REPOPULATE_STATE_IN_DS;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

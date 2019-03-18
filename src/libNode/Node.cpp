@@ -1863,9 +1863,25 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
   LOG_GENERAL(INFO, "Received from lookup " << from);
 
   {
-    // Process and update ds committee network info
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+      if (GUARD_MODE) {
+        auto it =
+            find_if(m_mediator.m_DSCommittee->begin(),
+                    m_mediator.m_DSCommittee->begin() +
+                        Guard::GetInstance().GetNumOfDSGuard(),
+                    [&dsguardupdate](const PairOfNode& element) {
+                      return element.first == dsguardupdate.m_dsGuardPubkey;
+                    });
+
+        if (it != m_mediator.m_DSCommittee->end()) {
+          Blacklist::GetInstance().RemoveExclude(it->second.m_ipAddress);
+          LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
+                                       << " from blacklist exclude list");
+        }
+      }
+
+      // Process and update ds committee network info
       replace_if(m_mediator.m_DSCommittee->begin(),
                  m_mediator.m_DSCommittee->begin() +
                      Guard::GetInstance().GetNumOfDSGuard(),
@@ -1878,6 +1894,14 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                             << dsguardupdate.m_dsGuardPubkey
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
+      if (GUARD_MODE) {
+        Blacklist::GetInstance().Exclude(
+            dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
+        LOG_GENERAL(INFO,
+                    "Added ds guard "
+                        << dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress
+                        << " to blacklist exclude list");
+      }
     }
   }
 

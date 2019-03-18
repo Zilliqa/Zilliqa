@@ -65,6 +65,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
       ignorable_syncTypes.end()) {
     m_syncType = syncType;
   }
+  m_receivedRaiseStartPoW.store(false);
   SetLookupNodes();
   SetAboveLayer();
   if (LOOKUP_NODE_MODE) {
@@ -2075,11 +2076,6 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
     return false;
   }
 
-  if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-    return false;
-  }
-
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
       m_mediator.m_txBlockChain.GetLastBlock().GetB2(),
@@ -2706,7 +2702,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return true;
   }
 
-  if (m_receivedRaiseStartPoW) {
+  if (m_receivedRaiseStartPoW.load()) {
     LOG_GENERAL(WARNING, "Already raised start pow");
     return false;
   }
@@ -2748,7 +2744,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   // DS leader has informed me that it's time to start PoW
-  m_receivedRaiseStartPoW = true;
+  m_receivedRaiseStartPoW.store(true);
   cv_startPoWSubmission.notify_all();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2760,7 +2756,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   this_thread::sleep_for(
       chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                       POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
-  m_receivedRaiseStartPoW = false;
+  m_receivedRaiseStartPoW.store(false);
   cv_startPoWSubmission.notify_all();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2807,7 +2803,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   // Wait a while if I haven't received RAISESTARTPOW from DS leader yet
   // Wait time = time it takes to finish the vacuous epoch (or at least part of
   // it) + actual PoW window
-  if (!m_receivedRaiseStartPoW) {
+  if (!m_receivedRaiseStartPoW.load()) {
     std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
 
     if (cv_startPoWSubmission.wait_for(
@@ -2820,7 +2816,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
       return false;
     }
 
-    if (!m_receivedRaiseStartPoW) {
+    if (!m_receivedRaiseStartPoW.load()) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "PoW duration already passed");
       return false;

@@ -43,7 +43,6 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -191,13 +190,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   if (BlockStorage::GetBlockStorage().GetVCBlock(temp_blockHash, VCBlockptr)) {
     LOG_GENERAL(WARNING,
                 "Duplicated vc block detected. 0x" << temp_blockHash.hex());
-    return false;
-  }
-
-  // Check timestamp
-  if (!VerifyTimestamp(vcblock.GetTimestamp(),
-                       CONSENSUS_OBJECT_TIMEOUT + VIEWCHANGE_TIME +
-                           VIEWCHANGE_PRECHECK_TIME + VIEWCHANGE_EXTRA_TIME)) {
     return false;
   }
 
