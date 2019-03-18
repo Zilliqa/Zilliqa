@@ -194,11 +194,18 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
-    if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
+    bool skip_install = false;
+    while (!m_n.Install((SyncType)syncType, toRetrieveHistory) &&
+           !skip_install) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+        skip_install = true;
+      } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
+                                       SyncType::NEW_SYNC == syncType)) {
+        skip_install = false;
       } else {
+        skip_install = true;
         syncType = SyncType::NORMAL_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
 

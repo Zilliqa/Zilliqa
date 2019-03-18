@@ -2876,7 +2876,11 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  InitMining(index);
+  if (!InitMining(index)) {
+    // Mining failed try Rejoin again
+    m_mediator.m_node->RejoinAsNormal();
+    return false;
+  }
 
   return true;
 }

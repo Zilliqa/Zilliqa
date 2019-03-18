@@ -1613,15 +1613,18 @@ void Node::RejoinAsNormal() {
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-      this->CleanVariables();
-      this->m_mediator.m_ds->CleanVariables();
-      if (!this->DownloadPersistenceFromS3()) {
-        LOG_GENERAL(
-            WARNING,
-            "Downloading persistence from S3 failed. Rejoin might fail!");
+      bool installed = false;
+      while (!installed) {
+        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+        this->CleanVariables();
+        this->m_mediator.m_ds->CleanVariables();
+        if (!this->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 failed. Rejoin might fail!");
+        }
+        installed = this->Install(SyncType::NORMAL_SYNC, true);
       }
-      this->Install(SyncType::NORMAL_SYNC, true);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);

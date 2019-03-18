@@ -470,14 +470,17 @@ void DirectoryService::RejoinAsDS() {
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
       m_mode == BACKUP_DS) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
-      m_mediator.m_node->CleanVariables();
-      if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-        LOG_GENERAL(
-            WARNING,
-            "Downloading persistence from S3 failed. Rejoin might fail!");
+      bool installed = false;
+      while (!installed) {
+        m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
+        m_mediator.m_node->CleanVariables();
+        if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 failed. Rejoin might fail!");
+        }
+        installed = m_mediator.m_node->Install(SyncType::DS_SYNC, true);
       }
-      m_mediator.m_node->Install(SyncType::DS_SYNC, true);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
