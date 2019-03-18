@@ -40,7 +40,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
+bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
   bytes powpacketmessage = {MessageType::DIRECTORY,
@@ -78,15 +78,6 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
       peerList.push_back(i.second);
     }
     P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
-  }
-
-  for (auto& sol : m_powSolutions) {
-    // No point processing the other solutions if DS Block consensus is starting
-    if ((m_state == DSBLOCK_CONSENSUS_PREP) || (m_state == DSBLOCK_CONSENSUS)) {
-      LOG_GENERAL(INFO, "Too late");
-      break;
-    }
-    ProcessPoWSubmissionFromPacket(sol);
   }
 
   return true;
@@ -130,7 +121,7 @@ bool DirectoryService::ProcessPoWPacketSubmission(
       LOG_GENERAL(INFO, "Too late");
       break;
     }
-    ProcessPoWSubmissionFromPacket(sol);
+    VerifyPoWSubmission(sol);
   }
 
   return true;
@@ -210,23 +201,25 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
       return false;
     }
 
-    m_powSolutions.emplace_back(DSPowSolution(
-        blockNumber, difficultyLevel, submitterPeer, submitterKey, nonce,
-        resultingHash, mixHash, lookupId, gasPrice, signature));
+    DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
+                          submitterKey, nonce, resultingHash, mixHash, lookupId,
+                          gasPrice, signature);
+
+    if (VerifyPoWSubmission(powSoln)) {
+      m_powSolutions.emplace_back(powSoln);
+    }
   }
 
   return true;
 }
 
-bool DirectoryService::ProcessPoWSubmissionFromPacket(
-    const DSPowSolution& sol) {
+bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "DirectoryService::ProcessPoWSubmissionFromPacket not expected to be "
-        "called from LookUp node.");
+    LOG_GENERAL(WARNING,
+                "DirectoryService::VerifyPoWSubmission not expected to be "
+                "called from LookUp node.");
     return true;
   }
 
