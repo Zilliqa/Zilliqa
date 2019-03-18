@@ -58,9 +58,10 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         // skip all extra blocks
         extraStateDeltas.clear();
         trimIncompletedBlocks = true;
+        break;
+      } else {
+        extraStateDeltas.push_back(stateDelta);
       }
-
-      extraStateDeltas.push_back(stateDelta);
     }
   }
 
