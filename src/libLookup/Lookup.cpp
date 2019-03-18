@@ -1977,15 +1977,18 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   bool getStateFromSeedInVacuous = false;
   if (m_syncType == SyncType::NEW_SYNC ||
       m_syncType == SyncType::NEW_LOOKUP_SYNC) {  // only for new node joining
-    // Get the state-delta for all txBlocks from random lookup nodes
-    GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
+    while (true) {
+      // Get the state-delta for all txBlocks from random lookup nodes
+      GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
 
-    std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
-    if (cv_setStateDeltasFromSeed.wait_for(
-            cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
-      LOG_GENERAL(WARNING, "Didn't receive statedeltas!");
-      getStateFromSeedInVacuous = true;
+      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
+      if (cv_setStateDeltasFromSeed.wait_for(
+              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(WARNING, "Didn't receive statedeltas! Will try again");
+      } else {
+        break;
+      }
     }
   }
 
@@ -2122,26 +2125,35 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                 << from << " for blocks: " << lowBlockNum << " to "
                 << highBlockNum);
 
-  for (const auto& delta : stateDeltas) {
-    if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {
-      LOG_GENERAL(WARNING,
-                  "AccountStore::GetInstance().DeserializeDelta failed");
-      return false;
-    }
-  }
-
-  bool isAnyTxBlkFromVacuousEpoch = false;
-  for (auto i = lowBlockNum; i <= highBlockNum; i++) {
-    if ((i + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
-      isAnyTxBlkFromVacuousEpoch = true;
-      break;
-    }
-  }
-
-  if (isAnyTxBlkFromVacuousEpoch &&
-      !AccountStore::GetInstance().MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+  if (stateDeltas.size() != highBlockNum - lowBlockNum + 1) {
+    LOG_GENERAL(WARNING, "SateDeltas recvd:" << stateDeltas.size()
+                                             << " , Expected: "
+                                             << highBlockNum - lowBlockNum + 1);
     return false;
+  }
+
+  int txBlkNum = lowBlockNum;
+  bytes tmp;
+  for (const auto& delta : stateDeltas) {
+    // TBD - To verify state delta hash against one from TxBlk.
+    // But not crucial right now since we do verify sender i.e lookup and trust
+    // it.
+
+    if (!BlockStorage::GetBlockStorage().GetStateDelta(txBlkNum, tmp)) {
+      if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDelta failed");
+        return false;
+      }
+      BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
+      if (txBlkNum + 1 % NUM_FINAL_BLOCK_PER_POW == 0) {
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+          LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+          return false;
+        }
+      }
+      txBlkNum++;
+    }
   }
 
   cv_setStateDeltasFromSeed.notify_all();
