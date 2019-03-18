@@ -244,8 +244,6 @@ bool AccountStore::RepopulateStateTrie() {
   unsigned int counter = 0;
   bool batched_once = false;
 
-  vector<pair<Address, bytes>> entries;
-
   for (const auto& i : m_state) {
     counter++;
 
@@ -256,7 +254,6 @@ bool AccountStore::RepopulateStateTrie() {
         LOG_GENERAL(WARNING, "PutTempState failed");
       } else {
         // this->m_addressToAccount->clear();
-        entries.clear();
         counter = 0;
         batched_once = true;
       }
