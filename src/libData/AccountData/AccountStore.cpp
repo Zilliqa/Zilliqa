@@ -265,9 +265,8 @@ bool AccountStore::RepopulateStateTrie() {
     Address address(i.first);
 
     if (!batched_once) {
-      auto iter = this->m_addressToAccount->find(address);
-
-      if (iter != this->m_addressToAccount->end()) {
+      if (this->m_addressToAccount->find(address) !=
+          this->m_addressToAccount->end()) {
         continue;
       }
     }
