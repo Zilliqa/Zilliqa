@@ -455,8 +455,9 @@ const bool ENABLE_REPOPULATE{
     ReadConstantString("ENABLE_REPOPULATE", "node.transactions.") == "true"};
 const unsigned int REPOPULATE_STATE_PER_N_DS{
     ReadConstantNumeric("REPOPULATE_STATE_PER_N_DS", "node.transactions.")};
-const unsigned int REPOPULATE_STATE_IN_DS{
-    ReadConstantNumeric("REPOPULATE_STATE_IN_DS", "node.transactions.")};
+const unsigned int REPOPULATE_STATE_IN_DS{std::min(
+    ReadConstantNumeric("REPOPULATE_STATE_IN_DS", "node.transactions."),
+    REPOPULATE_STATE_PER_N_DS - 1)};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
