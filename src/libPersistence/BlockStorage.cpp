@@ -1240,3 +1240,24 @@ bool BlockStorage::ResetAll() {
            ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   }
 }
+
+// Don't use short-circuit logical AND (&&) here so that we attempt to refresh
+// all databases
+bool BlockStorage::RefreshAll() {
+  if (!LOOKUP_NODE_MODE) {
+    return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
+           RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
+           RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
+           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT);
+  } else  // IS_LOOKUP_NODE
+  {
+    return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
+           RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
+           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
+           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
+           RefreshDB(STATE_DELTA) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT);
+  }
+}

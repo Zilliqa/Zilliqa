@@ -204,6 +204,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
                                        SyncType::NEW_SYNC == syncType)) {
         skip_install = false;
+        this_thread::sleep_for(chrono::seconds(5));
+        m_n.CleanVariables();
+        if (!m_n.DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 failed. Join might fail!");
+        }
+        BlockStorage::GetBlockStorage().RefreshAll();
       } else {
         skip_install = true;
         syncType = SyncType::NORMAL_SYNC;

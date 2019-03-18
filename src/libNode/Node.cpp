@@ -1613,8 +1613,7 @@ void Node::RejoinAsNormal() {
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      bool installed = false;
-      while (!installed) {
+      while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
@@ -1623,7 +1622,11 @@ void Node::RejoinAsNormal() {
               WARNING,
               "Downloading persistence from S3 failed. Rejoin might fail!");
         }
-        installed = this->Install(SyncType::NORMAL_SYNC, true);
+        BlockStorage::GetBlockStorage().RefreshAll();
+        if (this->Install(SyncType::NORMAL_SYNC, true)) {
+          break;
+        };
+        this_thread::sleep_for(chrono::seconds(5));
       }
       this->StartSynchronization();
     };
