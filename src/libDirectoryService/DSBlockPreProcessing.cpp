@@ -386,7 +386,8 @@ bool DirectoryService::VerifyDifficulty() {
 }
 
 bool DirectoryService::VerifyPoWOrdering(
-    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader) {
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader,
+    const MapOfPubKeyPoW& priorityNodePoWs) {
   // Requires mutex for m_shards
   bytes lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
@@ -399,13 +400,13 @@ bool DirectoryService::VerifyPoWOrdering(
   const float MISORDER_TOLERANCE =
       (float)MISORDER_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT;
   const uint32_t MAX_MISORDER_NODE =
-      std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
+      std::ceil(priorityNodePoWs.size() * MISORDER_TOLERANCE);
 
   LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
                                    << MISORDER_TOLERANCE << " = "
                                    << MAX_MISORDER_NODE << " nodes.");
 
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
+  auto sortedPoWSolns = SortPoWSoln(priorityNodePoWs, true);
   InjectPoWForDSNode(sortedPoWSolns,
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
@@ -563,10 +564,12 @@ bool DirectoryService::VerifyPoWOrdering(
   return ret;
 }
 
-bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
+bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
+                                          MapOfPubKeyPoW& priorityNodePoWs) {
   // If the PoW submissions less than the max number of nodes, then all nodes
   // can join, no need to verify.
   if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM) {
+    priorityNodePoWs = m_allPoWs;
     return true;
   }
 
@@ -607,6 +610,14 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
                              << MAX_NODE_OUT_OF_LIST);
     return false;
   }
+
+  for (const auto& pubKeyPoW : m_allPoWs) {
+    if (setTopPriorityNodes.find(pubKeyPoW.first) !=
+        setTopPriorityNodes.end()) {
+      priorityNodePoWs.insert(pubKeyPoW);
+    }
+  }
+
   return true;
 }
 
@@ -1038,12 +1049,13 @@ bool DirectoryService::DSBlockValidator(
   // Verify the node priority before do the PoW trimming inside
   // VerifyPoWOrdering.
   ClearReputationOfNodeWithoutPoW();
-  if (!VerifyNodePriority(m_tempShards)) {
+  MapOfPubKeyPoW priorityNodePoWs;
+  if (!VerifyNodePriority(m_tempShards, priorityNodePoWs)) {
     LOG_GENERAL(WARNING, "Failed to verify node priority");
     return false;
   }
 
-  if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader)) {
+  if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader, priorityNodePoWs)) {
     LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
   }
