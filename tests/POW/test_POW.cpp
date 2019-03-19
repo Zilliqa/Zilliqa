@@ -688,4 +688,23 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 14);
 }
 
+BOOST_AUTO_TEST_CASE(devided_boundary) {
+  std::cout << "Start test devided_boundary" << std::endl;
+
+  for (uint8_t diff = 1; diff < 255; diff++) {
+    auto boundary = POW::DifficultyLevelInIntDevided(diff);
+    std::string str_boundary = POW::BlockhashToHexString(boundary);
+
+    std::cout << "Devided D->B: " << int(diff) << "->" << str_boundary
+              << std::endl;
+
+    auto difficulty = POW::DevidedBoundaryToDifficulty(boundary);
+
+    std::cout << "Devided B->D: " << str_boundary << "->" << int(difficulty)
+              << std::endl;
+
+    BOOST_REQUIRE(difficulty == diff);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

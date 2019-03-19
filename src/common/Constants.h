@@ -266,6 +266,8 @@ extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 extern const unsigned int CONNECTION_TIMEOUT_IN_SECONDS;
 
 // PoW constants
+extern const unsigned int POW_BOUNDARY_N_DEVIDED;
+extern const unsigned int POW_BOUNDARY_N_DEVIDED_START;
 extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;

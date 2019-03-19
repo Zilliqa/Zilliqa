@@ -319,6 +319,8 @@ const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 
 // PoW constants
+const unsigned int POW_BOUNDARY_N_DEVIDED = 8;
+const unsigned int POW_BOUNDARY_N_DEVIDED_START = 32;
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
                          "true"};
 const bool FULL_DATASET_MINE{

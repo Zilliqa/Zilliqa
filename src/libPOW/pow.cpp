@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <openssl/bn.h>
+#include <openssl/err.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <chrono>
 #include <ctime>
@@ -147,6 +149,211 @@ ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
                                  0x0F, 0x07, 0x03, 0x01};
   b[firstNbytesToSet] = masks[nBytesBitsToSet];
   return StringToBlockhash(BytesToHexString(b, UINT256_SIZE));
+}
+
+ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
+  if (difficulty < POW_BOUNDARY_N_DEVIDED_START) {
+    return DifficultyLevelInInt(difficulty);
+  }
+
+  // calc new difficulty level
+  uint8_t n_level =
+      (difficulty - POW_BOUNDARY_N_DEVIDED_START) / POW_BOUNDARY_N_DEVIDED;
+  uint8_t m_sub_level =
+      (difficulty - POW_BOUNDARY_N_DEVIDED_START) % POW_BOUNDARY_N_DEVIDED;
+  uint8_t difficulty_level = POW_BOUNDARY_N_DEVIDED_START + n_level;
+
+  ethash_hash256 cur_bounday = DifficultyLevelInInt(difficulty_level);
+  ethash_hash256 new_boundary;
+  bytes bytes_n_divided =
+      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(
+          POW_BOUNDARY_N_DEVIDED);
+  bytes bytes_sub_level =
+      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(m_sub_level);
+
+  // create BIGNUM context
+  BN_CTX* ctx = BN_CTX_new();
+  if (ctx == nullptr) {
+    LOG_GENERAL(WARNING, "Failed to create BIGNUM context");
+    return new_boundary;
+  }
+
+  // Python implement
+  // cur_boundary = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // step = (cur_boundary >> 1) // N_DIVIDED
+  // new_boundary = cur_boundary - step * m_sub_level
+
+  bool success = false;
+
+  BIGNUM* bn_cur_bounday = BN_bin2bn(cur_bounday.bytes, UINT256_SIZE, nullptr);
+  BIGNUM* bn_n_devided =
+      BN_bin2bn(bytes_n_divided.data(), UINT256_SIZE, nullptr);
+  BIGNUM* bn_sub_level =
+      BN_bin2bn(bytes_sub_level.data(), UINT256_SIZE, nullptr);
+  BIGNUM* bn_new_bounday = BN_new();
+  BIGNUM* bn_step = BN_new();
+  BIGNUM* bn_temp = BN_new();
+
+  while (bn_cur_bounday && bn_new_bounday && bn_step && bn_n_devided &&
+         bn_sub_level && bn_temp) {
+    if (!BN_rshift(bn_temp, bn_cur_bounday, 1)) {
+      break;
+    }
+
+    if (!BN_div(bn_step, NULL, bn_temp, bn_n_devided, ctx)) {
+      break;
+    }
+
+    if (!BN_mul(bn_temp, bn_step, bn_sub_level, ctx)) {
+      break;
+    }
+
+    if (!BN_sub(bn_new_bounday, bn_cur_bounday, bn_temp)) {
+      break;
+    }
+
+    uint8_t buf[UINT256_SIZE];
+    std::fill(buf, buf + UINT256_SIZE, 0x00);
+    auto n_bytes = BN_num_bytes(bn_new_bounday);
+    BN_bn2bin(bn_new_bounday, buf + (UINT256_SIZE - n_bytes));
+
+    new_boundary = StringToBlockhash(BytesToHexString(buf, UINT256_SIZE));
+
+    success = true;
+    break;
+  }
+
+  // free BIGNUM memory
+  if (bn_cur_bounday) {
+    BN_clear_free(bn_cur_bounday);
+  }
+  if (bn_new_bounday) {
+    BN_clear_free(bn_new_bounday);
+  }
+  if (bn_n_devided) {
+    BN_clear_free(bn_n_devided);
+  }
+  if (bn_sub_level) {
+    BN_clear_free(bn_sub_level);
+  }
+  if (bn_temp) {
+    BN_clear_free(bn_temp);
+  }
+  if (ctx) {
+    BN_CTX_free(ctx);
+  }
+
+  // check error
+  if (!success) {
+    LOG_GENERAL(WARNING,
+                "Error in DifficultyLevelInIntDevided: " << ERR_get_error());
+  }
+
+  return new_boundary;
+}
+
+uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
+  uint8_t difficulty = 0;
+
+  // create BIGNUM context
+  BN_CTX* ctx = BN_CTX_new();
+  if (ctx == nullptr) {
+    LOG_GENERAL(WARNING, "Failed to create BIGNUM context");
+    return difficulty;
+  }
+
+  bytes bytes_n_divided =
+      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(
+          POW_BOUNDARY_N_DEVIDED);
+
+  bool success = false;
+
+  BIGNUM* bn_cur_level = nullptr;
+  BIGNUM* bn_delta = BN_new();
+  BIGNUM* bn_step = BN_new();
+  BIGNUM* bn_temp = BN_new();
+  BIGNUM* bn_boundary = BN_bin2bn(boundary.bytes, UINT256_SIZE, nullptr);
+  BIGNUM* bn_n_devided =
+      BN_bin2bn(bytes_n_divided.data(), UINT256_SIZE, nullptr);
+
+  difficulty = UINT256_SIZE * 8 - BN_num_bits(bn_boundary);
+
+  if (difficulty < (uint8_t)POW_BOUNDARY_N_DEVIDED_START) {
+    success = true;
+  } else {
+    while (bn_delta && bn_step && bn_temp && bn_boundary && bn_n_devided) {
+      bn_cur_level = BN_bin2bn(DifficultyLevelInInt(difficulty).bytes,
+                               UINT256_SIZE, nullptr);
+      if (!bn_cur_level) {
+        break;
+      }
+
+      if (!BN_rshift(bn_temp, bn_cur_level, 1)) {
+        break;
+      }
+
+      if (!BN_div(bn_step, NULL, bn_temp, bn_n_devided, ctx)) {
+        break;
+      }
+
+      if (!BN_sub(bn_delta, bn_cur_level, bn_boundary)) {
+        break;
+      }
+
+      if (!BN_div(bn_temp, NULL, bn_delta, bn_step, ctx)) {
+        break;
+      }
+
+      char* p = BN_bn2dec(bn_temp);
+      if (!p) {
+        break;
+      }
+      int m = atoi(p);
+      OPENSSL_free(p);
+      assert(m < POW_BOUNDARY_N_DEVIDED);
+
+      difficulty =
+          POW_BOUNDARY_N_DEVIDED_START +
+          (difficulty - POW_BOUNDARY_N_DEVIDED_START) * POW_BOUNDARY_N_DEVIDED;
+
+      difficulty += (uint8_t)m;
+
+      success = true;
+
+      break;
+    }
+  }
+
+  // free BIGNUM memory
+  if (bn_cur_level) {
+    BN_clear_free(bn_cur_level);
+  }
+  if (bn_delta) {
+    BN_clear_free(bn_delta);
+  }
+  if (bn_step) {
+    BN_clear_free(bn_step);
+  }
+  if (bn_temp) {
+    BN_clear_free(bn_temp);
+  }
+  if (bn_boundary) {
+    BN_clear_free(bn_boundary);
+  }
+  if (bn_n_devided) {
+    BN_clear_free(bn_n_devided);
+  }
+  if (ctx) {
+    BN_CTX_free(ctx);
+  }
+
+  if (!success) {
+    LOG_GENERAL(WARNING,
+                "Error in DevidedBoundaryToDifficulty: " << ERR_get_error());
+    return 0;
+  }
+
+  return difficulty;
 }
 
 bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
