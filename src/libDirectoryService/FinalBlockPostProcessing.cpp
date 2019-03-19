@@ -30,6 +30,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -152,11 +153,28 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   DetachedFunction(1, resumeBlackList);
 
   if (isVacuousEpoch) {
-    if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-      return;
-    }
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+    auto writeStateToDisk = [this]() mutable -> void {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              ENABLE_REPOPULATE && m_mediator.m_dsBlockChain.GetLastBlock()
+                                               .GetHeader()
+                                               .GetBlockNum() %
+                                           REPOPULATE_STATE_PER_N_DS ==
+                                       REPOPULATE_STATE_IN_DS)) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+        return;
+      }
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+      LOG_STATE("[FLBLK][" << setw(15) << left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] FINISH WRITE STATE TO DISK");
+    };
+    DetachedFunction(1, writeStateToDisk);
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
@@ -180,11 +198,17 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
   }
 
+  DequeOfShard t_shards;
+  if (m_forceMulticast && GUARD_MODE) {
+    ReloadGuardedShards(t_shards);
+  }
+
   DataSender::GetInstance().SendDataToOthers(
-      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
+      *m_finalBlock, *m_mediator.m_DSCommittee,
+      t_shards.empty() ? m_shards : t_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeFinalBlockMessageForSender);
+      composeFinalBlockMessageForSender, m_forceMulticast.load());
 
   LOG_STATE(
       "[FLBLK]["
@@ -323,7 +347,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
 
     if (consensus_id == m_mediator.m_consensusID &&
         senderPubKey ==
-            m_mediator.m_DSCommittee->at(m_consensusLeaderID).first) {
+            m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
       if (!m_stopRecvNewMBSubmission) {

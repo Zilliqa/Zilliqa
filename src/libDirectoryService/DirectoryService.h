@@ -290,8 +290,10 @@ class DirectoryService : public Executable {
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
-                         const MapOfPubKeyPoW& allPoWsFromLeader);
-  bool VerifyNodePriority(const DequeOfShard& shards);
+                         const MapOfPubKeyPoW& allPoWsFromLeader,
+                         const MapOfPubKeyPoW& priorityNodePoWs);
+  bool VerifyNodePriority(const DequeOfShard& shards,
+                          MapOfPubKeyPoW& priorityNodePoWs);
 
   // internal calls from RunConsensusOnDSBlock
   bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -425,6 +427,8 @@ class DirectoryService : public Executable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   uint64_t CalculateNumberOfBlocksPerYear() const;
 
+  void ReloadGuardedShards(DequeOfShard& shards);
+
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
@@ -522,6 +526,9 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
 
+  /// Force multicast when sending block to shard
+  std::atomic<bool> m_forceMulticast;
+
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
   DirectoryService(Mediator& mediator);
@@ -590,10 +597,11 @@ class DirectoryService : public Executable {
   void StartNewDSEpochConsensus(bool fromFallback = false,
                                 bool isRejoin = false);
 
-  static uint8_t CalculateNewDifficultyCore(
-      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-      int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
-      int64_t numBlockPerYear);
+  static uint8_t CalculateNewDifficultyCore(uint8_t currentDifficulty,
+                                            uint8_t minDifficulty,
+                                            int64_t powSubmissions,
+                                            int64_t expectedNodes,
+                                            uint32_t powChangeoAdj);
 
   /// Calculate node priority to determine which node has the priority to join
   /// the network.

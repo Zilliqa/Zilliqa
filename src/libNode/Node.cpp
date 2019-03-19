@@ -128,9 +128,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   }
 
   if (toRetrieveHistory) {
-    bool wakeupForUpgrade = false;
-
-    if (!StartRetrieveHistory(syncType, wakeupForUpgrade)) {
+    if (!StartRetrieveHistory(syncType)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
@@ -140,7 +138,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     m_mediator.IncreaseEpochNum();
 
-    if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
+    if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
     }
 
@@ -199,17 +197,13 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     /// When non-rejoin mode, call wake-up or recovery
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
-      if (wakeupForUpgrade) {
+      if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
         WakeupAtDSEpoch();
       } else {
-        if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
-          WakeupAtDSEpoch();
-        } else {
-          WakeupAtTxEpoch();
-        }
-
-        return true;
+        WakeupAtTxEpoch();
       }
+
+      return true;
     }
   }
 
@@ -430,8 +424,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType,
-                                bool& wakeupForUpgrade) {
+bool Node::StartRetrieveHistory(const SyncType syncType) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -497,22 +490,11 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
 
-  bytes metaRes;
-  if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
-                                                  metaRes)) {
-    if (metaRes[0] == '1') {
-      wakeupForUpgrade = true;
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
-                                                  {'0'});
-    }
-  }
-
-  if (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType) {
+  if (SyncType::RECOVERY_ALL_SYNC == syncType) {
     Blacklist::GetInstance().Enable(false);
   }
 
-  if (!LOOKUP_NODE_MODE &&
-      (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
+  if (!LOOKUP_NODE_MODE && SyncType::RECOVERY_ALL_SYNC == syncType) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << WAIT_LOOKUP_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
@@ -522,15 +504,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
-  bool ds_result = m_retriever->RetrieveBlockLink(
-      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-                           SyncType::RECOVERY_ALL_SYNC == syncType));
+  bool ds_result =
+      m_retriever->RetrieveBlockLink(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                                     SyncType::RECOVERY_ALL_SYNC == syncType);
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result = m_retriever->RetrieveTxBlocks(
-      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-                           SyncType::RECOVERY_ALL_SYNC == syncType));
+  bool tx_result =
+      m_retriever->RetrieveTxBlocks(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                                    SyncType::RECOVERY_ALL_SYNC == syncType);
 
   if (!tx_result) {
     return false;
@@ -538,7 +520,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   /// Retrieve lacked Tx blocks from lookup nodes
   if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
-      !(LOOKUP_NODE_MODE && wakeupForUpgrade) &&
       SyncType::RECOVERY_ALL_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -603,7 +584,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// 3. Not from re-join mode &&
   /// 4. Not from recovery-all mode &&
   /// 5. Still in first DS epoch, or in vacuous epoch
-  if (!LOOKUP_NODE_MODE && !wakeupForUpgrade &&
+  if (!LOOKUP_NODE_MODE &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
       SyncType::RECOVERY_ALL_SYNC != syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
@@ -868,6 +849,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
+      m_mediator.m_ds->m_forceMulticast = true;
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);

@@ -314,8 +314,17 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
       return false;
     }
   } else {
-    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
-        difficultyLevel != expectedShardGuardDiff) {
+    bool difficultyCorrect = true;
+    if (Guard::GetInstance().IsNodeInShardGuardList(submitterPubKey)) {
+      if (difficultyLevel != expectedShardGuardDiff) {
+        difficultyCorrect = false;
+      }
+    } else if (difficultyLevel != expectedDSDiff &&
+               difficultyLevel != expectedDiff) {
+      difficultyCorrect = false;
+    }
+
+    if (!difficultyCorrect) {
       LOG_CHECK_FAIL("Difficulty level", to_string(difficultyLevel),
                      to_string(expectedDSDiff)
                          << " or " << to_string(expectedDiff) << " or "

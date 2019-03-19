@@ -50,9 +50,10 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
     cv_POWSubmission.notify_all();
   }
   m_mode = IDLE;
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   m_mediator.m_consensusID = 1;
   m_viewChangeCounter = 0;
+  m_forceMulticast = false;
 }
 
 DirectoryService::~DirectoryService() {}
@@ -261,16 +262,16 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
 
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
-    m_consensusLeaderID =
+    SetConsensusLeaderID(
         DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
                                             .GetHeader()
                                             .GetHashForRandom()
                                             .asBytes()) %
-        m_mediator.m_DSCommittee->size();
+        m_mediator.m_DSCommittee->size());
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -387,6 +388,7 @@ void DirectoryService::IncrementConsensusMyID() { m_consensusMyID++; }
 // Set m_consensusLeaderID
 void DirectoryService::SetConsensusLeaderID(uint16_t id) {
   m_consensusLeaderID = id;
+  LOG_STATE("DSConsensusLeaderID = " << m_consensusLeaderID);
 }
 
 // Get m_consensusLeaderID
@@ -449,8 +451,10 @@ bool DirectoryService::CleanVariables() {
   m_sharingAssignment.clear();
   m_viewChangeCounter = 0;
   m_mode = IDLE;
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   m_mediator.m_consensusID = 0;
+
+  m_forceMulticast = false;
 
   return true;
 }
@@ -532,7 +536,7 @@ bool DirectoryService::FinishRejoinAsDS() {
     dsComm = *m_mediator.m_DSCommittee;
   }
 
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   PairOfNode dsLeader;
@@ -543,7 +547,7 @@ bool DirectoryService::FinishRejoinAsDS() {
           return pubKeyPeer.second == dsLeader.second;
         });
     if (iterDSLeader != dsComm.end()) {
-      m_consensusLeaderID = iterDSLeader - dsComm.begin();
+      SetConsensusLeaderID(iterDSLeader - dsComm.begin());
     } else {
       LOG_GENERAL(WARNING,
                   "Failed to find DS leader index in DS committee, Invoke "
@@ -714,6 +718,19 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
   {
     lock_guard<mutex> g(m_mutexPowSolution);
     m_powSolutions.clear();
+  }
+}
+
+void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
+  for (const auto& shard : m_shards) {
+    Shard t_shard;
+    for (const auto& node : shard) {
+      if (Guard::GetInstance().IsNodeInShardGuardList(
+              std::get<SHARD_NODE_PUBKEY>(node))) {
+        t_shard.emplace_back(node);
+      }
+    }
+    shards.emplace_back(t_shard);
   }
 }
 
@@ -991,10 +1008,9 @@ uint8_t DirectoryService::CalculateNewDifficulty(
                 << std::to_string(currentDifficulty) << ", expectedNodes "
                 << EXPECTED_SHARD_NODE_NUM << ", powSubmissions "
                 << powSubmissions);
-  return CalculateNewDifficultyCore(
-      currentDifficulty, POW_DIFFICULTY, powSubmissions,
-      EXPECTED_SHARD_NODE_NUM, POW_CHANGE_TO_ADJ_DIFF,
-      m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
+  return CalculateNewDifficultyCore(currentDifficulty, POW_DIFFICULTY,
+                                    powSubmissions, EXPECTED_SHARD_NODE_NUM,
+                                    POW_CHANGE_TO_ADJ_DIFF);
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
@@ -1006,18 +1022,17 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
                             << ", NUM_DS_ELECTION " << NUM_DS_ELECTION
                             << ", dsPowSubmissions " << dsPowSubmissions);
 
-  return CalculateNewDifficultyCore(
-      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, NUM_DS_ELECTION,
-      POW_CHANGE_TO_ADJ_DS_DIFF, m_mediator.m_currentEpochNum,
-      CalculateNumberOfBlocksPerYear());
+  return CalculateNewDifficultyCore(dsDifficulty, DS_POW_DIFFICULTY,
+                                    dsPowSubmissions, NUM_DS_ELECTION,
+                                    POW_CHANGE_TO_ADJ_DS_DIFF);
 }
 
-uint8_t DirectoryService::CalculateNewDifficultyCore(
-    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
-    int64_t expectedNodes, uint32_t powChangeoAdj, int64_t currentEpochNum,
-    int64_t numBlockPerYear) {
+uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
+                                                     uint8_t minDifficulty,
+                                                     int64_t powSubmissions,
+                                                     int64_t expectedNodes,
+                                                     uint32_t powChangeoAdj) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
-  constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
   int64_t adjustment = 0;
   if (expectedNodes > 0 && expectedNodes != powSubmissions) {
@@ -1042,17 +1057,8 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
     adjustment = -MAX_ADJUST_STEP;
   }
 
-  uint8_t newDifficulty = std::max((uint8_t)(adjustment + currentDifficulty),
-                                   (uint8_t)(minDifficulty));
-
-  // Within 10 years, every year increase the difficulty by one.
-  if (currentEpochNum / numBlockPerYear <= MAX_INCREASE_DIFFICULTY_YEARS &&
-      currentEpochNum % numBlockPerYear == 0) {
-    LOG_GENERAL(INFO, "At one year epoch " << currentEpochNum
-                                           << ", increase difficulty by 1.");
-    ++newDifficulty;
-  }
-  return newDifficulty;
+  return std::max((uint8_t)(adjustment + currentDifficulty),
+                  (uint8_t)(minDifficulty));
 }
 
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
