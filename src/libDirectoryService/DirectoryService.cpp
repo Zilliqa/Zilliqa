@@ -473,6 +473,7 @@ void DirectoryService::RejoinAsDS() {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_mediator.m_node->CleanVariables();
+        this->CleanVariables();
         if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
