@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <openssl/bn.h>
-#include <openssl/err.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <chrono>
 #include <ctime>
@@ -38,6 +36,8 @@
 #ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
+
+using namespace boost::multiprecision;
 
 POW::POW() {
   m_currentBlockNum = 0;
@@ -135,6 +135,19 @@ bool POW::CheckDificulty(const ethash_hash256& result,
   return ethash::is_less_or_equal(result, boundary);
 }
 
+size_t POW::CountLeadingZeros(const ethash_hash256& boundary) {
+  size_t count = 0;
+
+  for (unsigned char b : boundary.bytes) {
+    if (b != 0x00) {
+      count += DataConversion::clz(b);
+      break;
+    }
+    count += 8;
+  }
+  return count;
+}
+
 ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
   uint8_t b[UINT256_SIZE];
   std::fill(b, b + UINT256_SIZE, 0xFF);
@@ -163,197 +176,53 @@ ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
       (difficulty - POW_BOUNDARY_N_DEVIDED_START) % POW_BOUNDARY_N_DEVIDED;
   uint8_t difficulty_level = POW_BOUNDARY_N_DEVIDED_START + n_level;
 
-  ethash_hash256 cur_bounday = DifficultyLevelInInt(difficulty_level);
-  ethash_hash256 new_boundary;
-  bytes bytes_n_divided =
-      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(
-          POW_BOUNDARY_N_DEVIDED);
-  bytes bytes_sub_level =
-      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(m_sub_level);
-
-  // create BIGNUM context
-  BN_CTX* ctx = BN_CTX_new();
-  if (ctx == nullptr) {
-    LOG_GENERAL(WARNING, "Failed to create BIGNUM context");
-    return new_boundary;
-  }
-
   // Python implement
   // cur_boundary = bytes_to_int(calc_zero_bytes(difficulty_level))
   // step = (cur_boundary >> 1) // N_DIVIDED
   // new_boundary = cur_boundary - step * m_sub_level
 
-  bool success = false;
+  uint256_t cur_boundary(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t step = (cur_boundary >> 1) / POW_BOUNDARY_N_DEVIDED;
+  uint256_t new_boundary = cur_boundary - step * m_sub_level;
 
-  BIGNUM* bn_cur_bounday = BN_bin2bn(cur_bounday.bytes, UINT256_SIZE, nullptr);
-  BIGNUM* bn_n_devided =
-      BN_bin2bn(bytes_n_divided.data(), UINT256_SIZE, nullptr);
-  BIGNUM* bn_sub_level =
-      BN_bin2bn(bytes_sub_level.data(), UINT256_SIZE, nullptr);
-  BIGNUM* bn_new_bounday = BN_new();
-  BIGNUM* bn_step = BN_new();
-  BIGNUM* bn_temp = BN_new();
-
-  while (bn_cur_bounday && bn_new_bounday && bn_step && bn_n_devided &&
-         bn_sub_level && bn_temp) {
-    if (!BN_rshift(bn_temp, bn_cur_bounday, 1)) {
-      break;
-    }
-
-    if (!BN_div(bn_step, NULL, bn_temp, bn_n_devided, ctx)) {
-      break;
-    }
-
-    if (!BN_mul(bn_temp, bn_step, bn_sub_level, ctx)) {
-      break;
-    }
-
-    if (!BN_sub(bn_new_bounday, bn_cur_bounday, bn_temp)) {
-      break;
-    }
-
-    uint8_t buf[UINT256_SIZE];
-    std::fill(buf, buf + UINT256_SIZE, 0x00);
-    auto n_bytes = BN_num_bytes(bn_new_bounday);
-    BN_bn2bin(bn_new_bounday, buf + (UINT256_SIZE - n_bytes));
-
-    new_boundary = StringToBlockhash(BytesToHexString(buf, UINT256_SIZE));
-
-    success = true;
-    break;
-  }
-
-  // free BIGNUM memory
-  if (bn_cur_bounday) {
-    BN_clear_free(bn_cur_bounday);
-  }
-  if (bn_new_bounday) {
-    BN_clear_free(bn_new_bounday);
-  }
-  if (bn_n_devided) {
-    BN_clear_free(bn_n_devided);
-  }
-  if (bn_sub_level) {
-    BN_clear_free(bn_sub_level);
-  }
-  if (bn_temp) {
-    BN_clear_free(bn_temp);
-  }
-  if (ctx) {
-    BN_CTX_free(ctx);
-  }
-
-  // check error
-  if (!success) {
-    LOG_GENERAL(WARNING,
-                "Error in DifficultyLevelInIntDevided: " << ERR_get_error());
-  }
-
-  return new_boundary;
+  return StringToBlockhash(
+      DataConversion::IntegerToHexString<uint256_t, UINT256_SIZE>(
+          new_boundary));
 }
 
 uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
-  uint8_t difficulty = 0;
+  uint8_t difficulty_level = POW::CountLeadingZeros(boundary);
 
-  // create BIGNUM context
-  BN_CTX* ctx = BN_CTX_new();
-  if (ctx == nullptr) {
-    LOG_GENERAL(WARNING, "Failed to create BIGNUM context");
-    return difficulty;
+  if (difficulty_level < POW_BOUNDARY_N_DEVIDED_START) {
+    return difficulty_level;
   }
 
-  bytes bytes_n_divided =
-      DataConversion::IntegerToBytes<uint32_t, UINT256_SIZE>(
-          POW_BOUNDARY_N_DEVIDED);
+  // Python implement
+  // i_cur_level = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // i_cur_boundary = bytes_to_int(boundary)
+  // step = (i_cur_level >> 1) // N_DIVIDED
+  // m = (i_cur_level - i_cur_boundary) // step
+  // n = (difficulty_level - 32)
+  // new_difficulty = 32 + n * N_DIVIDED + m
 
-  bool success = false;
+  uint256_t i_cur_level(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t i_cur_boundary("0x" +
+                           BytesToHexString(boundary.bytes, UINT256_SIZE));
 
-  BIGNUM* bn_cur_level = nullptr;
-  BIGNUM* bn_delta = BN_new();
-  BIGNUM* bn_step = BN_new();
-  BIGNUM* bn_temp = BN_new();
-  BIGNUM* bn_boundary = BN_bin2bn(boundary.bytes, UINT256_SIZE, nullptr);
-  BIGNUM* bn_n_devided =
-      BN_bin2bn(bytes_n_divided.data(), UINT256_SIZE, nullptr);
+  uint256_t step = (i_cur_level >> 1) / POW_BOUNDARY_N_DEVIDED;
 
-  difficulty = UINT256_SIZE * 8 - BN_num_bits(bn_boundary);
+  uint256_t n_level = difficulty_level - POW_BOUNDARY_N_DEVIDED_START;
 
-  if (difficulty < (uint8_t)POW_BOUNDARY_N_DEVIDED_START) {
-    success = true;
-  } else {
-    while (bn_delta && bn_step && bn_temp && bn_boundary && bn_n_devided) {
-      bn_cur_level = BN_bin2bn(DifficultyLevelInInt(difficulty).bytes,
-                               UINT256_SIZE, nullptr);
-      if (!bn_cur_level) {
-        break;
-      }
+  uint256_t m_sub_level = (i_cur_level - i_cur_boundary) / step;
+  assert(m_sub_level < (unsigned)POW_BOUNDARY_N_DEVIDED);
 
-      if (!BN_rshift(bn_temp, bn_cur_level, 1)) {
-        break;
-      }
+  uint256_t difficulty =
+      POW_BOUNDARY_N_DEVIDED_START + n_level * POW_BOUNDARY_N_DEVIDED;
+  difficulty += m_sub_level;
 
-      if (!BN_div(bn_step, NULL, bn_temp, bn_n_devided, ctx)) {
-        break;
-      }
-
-      if (!BN_sub(bn_delta, bn_cur_level, bn_boundary)) {
-        break;
-      }
-
-      if (!BN_div(bn_temp, NULL, bn_delta, bn_step, ctx)) {
-        break;
-      }
-
-      char* p = BN_bn2dec(bn_temp);
-      if (!p) {
-        break;
-      }
-      int m = atoi(p);
-      OPENSSL_free(p);
-      assert(m < POW_BOUNDARY_N_DEVIDED);
-
-      difficulty =
-          POW_BOUNDARY_N_DEVIDED_START +
-          (difficulty - POW_BOUNDARY_N_DEVIDED_START) * POW_BOUNDARY_N_DEVIDED;
-
-      difficulty += (uint8_t)m;
-
-      success = true;
-
-      break;
-    }
-  }
-
-  // free BIGNUM memory
-  if (bn_cur_level) {
-    BN_clear_free(bn_cur_level);
-  }
-  if (bn_delta) {
-    BN_clear_free(bn_delta);
-  }
-  if (bn_step) {
-    BN_clear_free(bn_step);
-  }
-  if (bn_temp) {
-    BN_clear_free(bn_temp);
-  }
-  if (bn_boundary) {
-    BN_clear_free(bn_boundary);
-  }
-  if (bn_n_devided) {
-    BN_clear_free(bn_n_devided);
-  }
-  if (ctx) {
-    BN_CTX_free(ctx);
-  }
-
-  if (!success) {
-    LOG_GENERAL(WARNING,
-                "Error in DevidedBoundaryToDifficulty: " << ERR_get_error());
-    return 0;
-  }
-
-  return difficulty;
+  return (uint8_t)difficulty;
 }
 
 bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
@@ -394,7 +263,8 @@ ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
   LOG_MARKER();
   int ethash_epoch = ethash::get_epoch_number(blockNum);
   std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
-  std::string boundary = BlockhashToHexString(DifficultyLevelInInt(difficulty));
+  std::string boundary =
+      BlockhashToHexString(DifficultyLevelInIntDevided(difficulty));
   std::string headerStr = BlockhashToHexString(headerHash);
 
   PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
@@ -819,7 +689,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
       return;
     }
     auto hashResult = LightHash(blockNum, headerHash, solution.nonce);
-    auto boundary = DifficultyLevelInInt(difficulty);
+    auto boundary = DifficultyLevelInIntDevided(difficulty);
     if (ethash::is_less_or_equal(hashResult.final_hash, boundary)) {
       m_vecMiningResult[index] =
           ethash_mining_result_t{BlockhashToHexString(hashResult.final_hash),
@@ -907,7 +777,7 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
   // result.success has been returned)
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
   EthashConfigureClient(blockNum, fullDataset);
-  auto boundary = DifficultyLevelInInt(difficulty);
+  auto boundary = DifficultyLevelInIntDevided(difficulty);
 
   ethash_mining_result_t result;
 
@@ -934,7 +804,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::string& winning_mixhash) {
   LOG_MARKER();
   EthashConfigureClient(blockNum);
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   auto winnning_result = StringToBlockhash(winning_result);
   auto winningMixhash = StringToBlockhash(winning_mixhash);
 
@@ -956,13 +826,13 @@ ethash::result POW::LightHash(uint64_t blockNum,
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   return ethash::is_less_or_equal(result, boundary);
 }
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   ethash_hash256 hashResult = StringToBlockhash(result);
   return ethash::is_less_or_equal(hashResult, boundary);
 }

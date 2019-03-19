@@ -319,8 +319,6 @@ const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 
 // PoW constants
-const unsigned int POW_BOUNDARY_N_DEVIDED = 8;
-const unsigned int POW_BOUNDARY_N_DEVIDED_START = 32;
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
                          "true"};
 const bool FULL_DATASET_MINE{
@@ -341,6 +339,10 @@ const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
     ReadConstantNumeric("POW_DIFFICULTY", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DEVIDED{
+    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DEVIDED_START{
+    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED_START", "node.pow.")};
 const unsigned int POW_SUBMISSION_LIMIT{
     ReadConstantNumeric("POW_SUBMISSION_LIMIT", "node.pow.")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{

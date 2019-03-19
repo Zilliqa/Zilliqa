@@ -688,10 +688,205 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 14);
 }
 
+BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large) {
+  uint8_t currentDifficulty = 5;
+  uint8_t minDifficulty = 5;
+  int64_t powSubmissions = 110;
+  int64_t expectedNodes = 100;
+  uint32_t adjustThreshold = 9;
+
+  int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 6);
+
+  // test difficulty increase
+  currentDifficulty = 11;
+  expectedNodes = 1800;
+  powSubmissions = 1900;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 12);
+
+  currentDifficulty = 26;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 28);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 1898;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 1899;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 32);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 33);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 39);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 3000;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 40);
+
+  currentDifficulty = 51;
+  expectedNodes = 1800;
+  powSubmissions = 2400;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 57);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1898;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 64);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1899;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 65);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1998;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 66);
+
+  currentDifficulty = 79;
+  expectedNodes = 1800;
+  powSubmissions = 3000;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 87);
+
+  currentDifficulty = 184;
+  expectedNodes = 1800;
+  powSubmissions = 2100;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 187);
+
+  // test difficulty decrease
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1400;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 30);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1702;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 32);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1701;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1700;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 33;
+  expectedNodes = 1800;
+  powSubmissions = 500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 30);
+
+  currentDifficulty = 99;
+  expectedNodes = 1800;
+  powSubmissions = 500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 91);
+
+  currentDifficulty = 75;
+  expectedNodes = 1800;
+  powSubmissions = 1200;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 69);
+}
+
 BOOST_AUTO_TEST_CASE(devided_boundary) {
   std::cout << "Start test devided_boundary" << std::endl;
 
-  for (uint8_t diff = 1; diff < 255; diff++) {
+  for (size_t diff = 1; diff < 256; diff++) {
     auto boundary = POW::DifficultyLevelInIntDevided(diff);
     std::string str_boundary = POW::BlockhashToHexString(boundary);
 

@@ -1032,7 +1032,11 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t powSubmissions,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
-  constexpr int8_t MAX_ADJUST_STEP = 2;
+  int8_t MAX_ADJUST_STEP = 2;
+  if (currentDifficulty >= POW_BOUNDARY_N_DEVIDED_START) {
+    minDifficulty = POW_BOUNDARY_N_DEVIDED_START - 2;
+    MAX_ADJUST_STEP = POW_BOUNDARY_N_DEVIDED;
+  }
 
   int64_t adjustment = 0;
   if (expectedNodes > 0 && expectedNodes != powSubmissions) {
