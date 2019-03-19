@@ -108,7 +108,10 @@ class DataConversion {
   template <typename T, size_t SIZE>
   static bytes IntegerToBytes(T value) {
     bytes result(SIZE);
-    for (size_t i = 0; i < SIZE; i++) {
+
+    std::fill(result.begin(), result.end(), 0x00);
+
+    for (size_t i = 0; i < sizeof(T); i++) {
       result[SIZE - i - 1] = (value >> (i * 8));
     }
     return result;
