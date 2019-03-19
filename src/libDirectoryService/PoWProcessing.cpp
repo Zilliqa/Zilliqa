@@ -200,14 +200,26 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
                         << " submitted pow count already reach limit");
       return false;
     }
+  }
 
-    DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
-                          submitterKey, nonce, resultingHash, mixHash, lookupId,
-                          gasPrice, signature);
+  DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
+                        submitterKey, nonce, resultingHash, mixHash, lookupId,
+                        gasPrice, signature);
 
-    if (VerifyPoWSubmission(powSoln)) {
-      m_powSolutions.emplace_back(powSoln);
+  if (VerifyPoWSubmission(powSoln)) {
+    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+    auto submittedNumber =
+        std::count_if(m_powSolutions.begin(), m_powSolutions.end(),
+                      [&submitterKey](const DSPowSolution& soln) {
+                        return submitterKey == soln.GetSubmitterKey();
+                      });
+    if (submittedNumber >= POW_SUBMISSION_LIMIT) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Node " << submitterKey
+                        << " submitted pow count already reach limit");
+      return false;
     }
+    m_powSolutions.emplace_back(powSoln);
   }
 
   return true;
