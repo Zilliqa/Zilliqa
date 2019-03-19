@@ -204,7 +204,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
                                        SyncType::NEW_SYNC == syncType)) {
         skip_install = false;
-        this_thread::sleep_for(chrono::seconds(5));
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         m_n.CleanVariables();
         if (!m_n.DownloadPersistenceFromS3()) {
           LOG_GENERAL(

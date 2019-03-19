@@ -482,7 +482,7 @@ void DirectoryService::RejoinAsDS() {
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }
-        this_thread::sleep_for(chrono::seconds(5));
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
       this->StartSynchronization();
     };
