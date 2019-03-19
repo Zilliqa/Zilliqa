@@ -110,10 +110,7 @@ Node::~Node() {}
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
-  if (status != 0)
-    return false;
-  else
-    return true;
+  return status == 0;
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
