@@ -65,6 +65,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
       ignorable_syncTypes.end()) {
     m_syncType = syncType;
   }
+  m_receivedRaiseStartPoW.store(false);
   SetLookupNodes();
   SetAboveLayer();
   if (LOOKUP_NODE_MODE) {
@@ -1961,6 +1962,34 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
+
+  if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
+    unsigned int retry = 1;
+    while (retry <= RETRY_REJOINING_COUNT) {
+      // Get the state-delta for all txBlocks from random lookup nodes
+      GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
+      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
+      if (cv_setStateDeltasFromSeed.wait_for(
+              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(
+            WARNING,
+            "[Retry: " << retry
+                       << "] Didn't receive statedeltas! Will try again");
+        retry++;
+      } else {
+        break;
+      }
+    }
+    if (retry > RETRY_REJOINING_COUNT) {
+      LOG_GENERAL(WARNING, "Failed to receive state-deltas for txBlks: "
+                               << lowBlockNum << "-" << highBlockNum);
+      cv_setTxBlockFromSeed.notify_all();
+      cv_waitJoined.notify_all();
+      return;
+    }
+  }
+
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
@@ -1970,20 +1999,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-  }
-
-  bool getStateFromSeedInVacuous = true;
-  if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
-    // Get the state-delta for all txBlocks from random lookup nodes
-    GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
-    std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
-    if (cv_setStateDeltasFromSeed.wait_for(
-            cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
-      LOG_GENERAL(WARNING, "Didn't receive statedeltas!");
-    } else {
-      getStateFromSeedInVacuous = false;
-    }
   }
 
   m_mediator.m_currentEpochNum =
@@ -1998,7 +2013,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
       (m_syncType != SyncType::NEW_LOOKUP_SYNC)) {
-    if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
+    if (m_syncType == SyncType::RECOVERY_ALL_SYNC) {
       LOG_EPOCH(
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
@@ -2018,22 +2033,16 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Try getting state from lookup");
-      GetStateFromSeedNodes();
-    } else {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Already should have latest state by now.");
-      if (GetDSInfo()) {
-        if (!m_currDSExpired) {
-          if (FinishNewJoinAsLookup()) {
-            SetSyncType(SyncType::NO_SYNC);
-            m_isFirstLoop = true;
-          }
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "New lookup node - Already should have latest state by now.");
+    if (GetDSInfo()) {
+      if (!m_currDSExpired) {
+        if (FinishNewJoinAsLookup()) {
+          SetSyncType(SyncType::NO_SYNC);
+          m_isFirstLoop = true;
         }
-        m_currDSExpired = false;
       }
+      m_currDSExpired = false;
     }
   }
 
@@ -2077,11 +2086,6 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
 
   if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
-    return false;
-  }
-
-  if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
     return false;
   }
 
@@ -2130,26 +2134,36 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                 << from << " for blocks: " << lowBlockNum << " to "
                 << highBlockNum);
 
-  for (const auto& delta : stateDeltas) {
-    if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {
-      LOG_GENERAL(WARNING,
-                  "AccountStore::GetInstance().DeserializeDelta failed");
-      return false;
-    }
-  }
-
-  bool isAnyTxBlkFromVacuousEpoch = false;
-  for (auto i = lowBlockNum; i <= highBlockNum; i++) {
-    if ((i + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
-      isAnyTxBlkFromVacuousEpoch = true;
-      break;
-    }
-  }
-
-  if (isAnyTxBlkFromVacuousEpoch &&
-      !AccountStore::GetInstance().MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+  if (stateDeltas.size() != highBlockNum - lowBlockNum + 1) {
+    LOG_GENERAL(WARNING, "SateDeltas recvd:" << stateDeltas.size()
+                                             << " , Expected: "
+                                             << highBlockNum - lowBlockNum + 1);
     return false;
+  }
+
+  int txBlkNum = lowBlockNum;
+  bytes tmp;
+  for (const auto& delta : stateDeltas) {
+    // TBD - To verify state delta hash against one from TxBlk.
+    // But not crucial right now since we do verify sender i.e lookup and trust
+    // it.
+
+    if (!BlockStorage::GetBlockStorage().GetStateDelta(txBlkNum, tmp)) {
+      if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDelta failed");
+        return false;
+      }
+      BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
+      if (((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) &&
+          (txBlkNum + NUM_FINAL_BLOCK_PER_POW < highBlockNum)) {
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+          LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+          return false;
+        }
+      }
+      txBlkNum++;
+    }
   }
 
   cv_setStateDeltasFromSeed.notify_all();
@@ -2702,7 +2716,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return true;
   }
 
-  if (m_receivedRaiseStartPoW) {
+  if (m_receivedRaiseStartPoW.load()) {
     LOG_GENERAL(WARNING, "Already raised start pow");
     return false;
   }
@@ -2744,7 +2758,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   // DS leader has informed me that it's time to start PoW
-  m_receivedRaiseStartPoW = true;
+  m_receivedRaiseStartPoW.store(true);
   cv_startPoWSubmission.notify_all();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2756,7 +2770,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   this_thread::sleep_for(
       chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                       POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
-  m_receivedRaiseStartPoW = false;
+  m_receivedRaiseStartPoW.store(false);
   cv_startPoWSubmission.notify_all();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2803,7 +2817,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   // Wait a while if I haven't received RAISESTARTPOW from DS leader yet
   // Wait time = time it takes to finish the vacuous epoch (or at least part of
   // it) + actual PoW window
-  if (!m_receivedRaiseStartPoW) {
+  if (!m_receivedRaiseStartPoW.load()) {
     std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
 
     if (cv_startPoWSubmission.wait_for(
@@ -2816,7 +2830,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
       return false;
     }
 
-    if (!m_receivedRaiseStartPoW) {
+    if (!m_receivedRaiseStartPoW.load()) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "PoW duration already passed");
       return false;

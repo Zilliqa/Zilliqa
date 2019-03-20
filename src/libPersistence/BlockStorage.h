@@ -39,6 +39,7 @@ typedef std::shared_ptr<FallbackBlockWShardingStructure> FallbackBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
+typedef std::shared_ptr<std::pair<Address, Account>> StateSharedPtr;
 
 struct DiagnosticDataNodes {
   DequeOfShard shards;
@@ -97,6 +98,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
+  std::shared_ptr<LevelDB> m_tempStateDB;
   // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
   // unit test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
@@ -118,6 +120,7 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
+        m_tempStateDB(std::make_shared<LevelDB>("tempState")),
         m_diagnosticDBNodes(
             std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
         m_diagnosticDBCoinbase(
@@ -148,6 +151,7 @@ class BlockStorage : public Singleton<BlockStorage> {
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
+    TEMP_STATE,
     DIAGNOSTIC_NODES,
     DIAGNOSTIC_COINBASE,
     STATE_ROOT
@@ -275,6 +279,13 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
+  /// Write state to tempState in batch
+  bool PutTempState(const std::unordered_map<Address, Account>& states);
+
+  /// Get state from tempState in batch
+  bool GetTempStateInBatch(leveldb::Iterator*& iter,
+                           std::vector<StateSharedPtr>& states);
+
   /// Save data for diagnostic / monitoring purposes (nodes in network)
   bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
                               const DequeOfShard& shards,
@@ -339,6 +350,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::mutex m_mutexBlockLink;
   std::mutex m_mutexShardStructure;
   std::mutex m_mutexStateDelta;
+  std::mutex m_mutexTempState;
   std::mutex m_mutexTxBody;
   std::mutex m_mutexTxBodyTmp;
   std::mutex m_mutexDiagnostic;

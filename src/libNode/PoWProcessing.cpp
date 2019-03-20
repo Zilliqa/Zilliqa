@@ -117,8 +117,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
 
   auto startTime = std::chrono::high_resolution_clock::now();
-  int powTimeWindow =
-      POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+  int powTimeWindow = POW_WINDOW_IN_SECONDS;
 
   // Only in guard mode that shard guard can submit diffferent PoW
   if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(

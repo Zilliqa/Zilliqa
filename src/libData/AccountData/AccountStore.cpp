@@ -175,7 +175,7 @@ void AccountStore::MoveRootToDisk(const h256& root) {
     LOG_GENERAL(INFO, "FAIL: Put state root failed");
 }
 
-bool AccountStore::MoveUpdatesToDisk() {
+bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -221,6 +221,9 @@ bool AccountStore::MoveUpdatesToDisk() {
   }
 
   try {
+    if (repopulate && !RepopulateStateTrie()) {
+      LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
+    }
     m_state.db()->commit();
     m_prevRoot = m_state.root();
     MoveRootToDisk(m_prevRoot);
@@ -231,6 +234,86 @@ bool AccountStore::MoveUpdatesToDisk() {
   }
 
   m_addressToAccount->clear();
+
+  return true;
+}
+
+bool AccountStore::RepopulateStateTrie() {
+  LOG_MARKER();
+
+  unsigned int counter = 0;
+  bool batched_once = false;
+
+  for (const auto& i : m_state) {
+    counter++;
+
+    if (counter >= ACCOUNT_IO_BATCH_SIZE) {
+      // Write into db
+      if (!BlockStorage::GetBlockStorage().PutTempState(
+              *this->m_addressToAccount)) {
+        LOG_GENERAL(WARNING, "PutTempState failed");
+      } else {
+        // this->m_addressToAccount->clear();
+        counter = 0;
+        batched_once = true;
+      }
+    }
+
+    Address address(i.first);
+
+    if (!batched_once) {
+      if (this->m_addressToAccount->find(address) !=
+          this->m_addressToAccount->end()) {
+        continue;
+      }
+    }
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      continue;
+    }
+    if (account.isContract()) {
+      account.SetAddress(address);
+    }
+
+    this->m_addressToAccount->insert({address, account});
+  }
+
+  if (!this->m_addressToAccount->empty()) {
+    if (!BlockStorage::GetBlockStorage().PutTempState(
+            *(this->m_addressToAccount))) {
+      LOG_GENERAL(WARNING, "PutTempState failed");
+    } else {
+      this->m_addressToAccount->clear();
+      batched_once = true;
+    }
+  }
+
+  m_db.ResetDB();
+  InitTrie();
+
+  if (batched_once) {
+    return UpdateStateTrieFromTempStateDB();
+  } else {
+    return UpdateStateTrieAll();
+  }
+}
+
+bool AccountStore::UpdateStateTrieFromTempStateDB() {
+  LOG_MARKER();
+
+  leveldb::Iterator* iter = nullptr;
+
+  while (iter == nullptr || iter->Valid()) {
+    vector<StateSharedPtr> states;
+    BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states);
+    for (const auto& state : states) {
+      UpdateStateTrie(state->first, state->second);
+    }
+  }
+
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
 
   return true;
 }
@@ -291,7 +374,9 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       TransactionReceipt& receipt) {
   // LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDelta);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDelta, defer_lock);
+  lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                             transaction, receipt, true);
