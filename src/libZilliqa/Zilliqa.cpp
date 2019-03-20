@@ -160,7 +160,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     HttpServer httpserver(SERVER_PORT);
     m_server = make_shared<Server>(m_mediator, httpserver);
   } else {
-    LOG_GENERAL(FATAL, "IP_TO_BIND provided is not valid")
     TcpSocketServer tcpserver(IP_TO_BIND, SERVER_PORT);
     m_server = make_shared<Server>(m_mediator, tcpserver);
   }

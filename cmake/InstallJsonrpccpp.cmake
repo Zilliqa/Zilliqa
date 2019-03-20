@@ -1,5 +1,7 @@
 
 
+##File source: https://github.com/ethereum/cpp-dependencies/blob/master/jsonrpc.cmake
+
 
 # HTTP client from JSON RPC CPP requires curl library. It can find it itself,
 # but we need to know the libcurl location for static linking.
