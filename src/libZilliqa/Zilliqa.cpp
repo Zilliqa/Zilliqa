@@ -155,13 +155,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
-  HttpServer httpserver(SERVER_PORT);
 
   if (LOOKUP_NODE_MODE) {
+    HttpServer httpserver(SERVER_PORT);
     m_server = make_shared<Server>(m_mediator, httpserver);
   } else {
-    // TcpServer tcpserver("127.0.0.1",SERVER_PORT);
-    m_server = make_shared<Server>(m_mediator, httpserver);
+    TcpSocketServer tcpserver("127.0.0.1", SERVER_PORT);
+    m_server = make_shared<Server>(m_mediator, tcpserver);
   }
 
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
