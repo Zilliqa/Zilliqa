@@ -157,12 +157,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   m_validator = make_shared<Validator>(m_mediator);
 
   if (LOOKUP_NODE_MODE) {
-    HttpServer httpserver(SERVER_PORT);
-    m_server = make_shared<Server>(m_mediator, httpserver);
+    m_serverConnector = make_unique<HttpServer>(SERVER_PORT);
+
   } else {
-    TcpSocketServer tcpserver(IP_TO_BIND, SERVER_PORT);
-    m_server = make_shared<Server>(m_mediator, tcpserver);
+    m_serverConnector = make_unique<TcpSocketServer>(IP_TO_BIND, SERVER_PORT);
   }
+  if (m_serverConnector == nullptr) {
+    LOG_GENERAL(FATAL, "m_serverConnector NULL");
+  }
+  m_server = make_unique<Server>(m_mediator, *m_serverConnector);
 
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
@@ -306,7 +309,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    if (m_server->StartListening()) {
+    if (m_server == nullptr) {
+      LOG_GENERAL(INFO, "Pointer unitialized");
+    } else if (m_server->StartListening()) {
       LOG_GENERAL(INFO, "API Server started successfully");
     } else {
       LOG_GENERAL(WARNING, "API Server couldn't start");

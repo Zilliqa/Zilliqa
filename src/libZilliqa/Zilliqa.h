@@ -39,7 +39,8 @@ class Zilliqa {
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  std::shared_ptr<Server> m_server;
+  std::unique_ptr<Server> m_server;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_serverConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
