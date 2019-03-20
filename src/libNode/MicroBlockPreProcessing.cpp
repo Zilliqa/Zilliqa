@@ -668,11 +668,10 @@ void Node::ProcessTransactionWhenShardBackup() {
 void Node::UpdateBalanceForPreGeneratedAccounts() {
   LOG_MARKER();
   int counter = 0;
-  LOG_GENERAL(INFO,
-              "m_populated_address.size(): " << m_populated_addresses.size());
   for (unsigned int i = 0; i < m_populated_addresses.size(); i++) {
     if ((i % (m_mediator.m_ds->m_shards.size() + 1) == m_myshardId) &&
-        (i % NUM_FINAL_BLOCK_PER_POW == m_mediator.m_currentEpochNum)) {
+        (i % NUM_FINAL_BLOCK_PER_POW ==
+         (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW))) {
       AccountStore::GetInstance().IncreaseBalanceTemp(
           m_populated_addresses.at(i), 1);
       counter++;
