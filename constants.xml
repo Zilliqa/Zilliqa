@@ -172,7 +172,7 @@
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
         <NUM_FINAL_BLOCK_PER_POW>50</NUM_FINAL_BLOCK_PER_POW>
         <!-- Shard difficulty adjust by compare pow number to EXPECTED_SHARD_NODE_NUM -->
-        <POW_CHANGE_TO_ADJ_DIFF>59</POW_CHANGE_TO_ADJ_DIFF>
+        <POW_CHANGE_TO_ADJ_DIFF>99</POW_CHANGE_TO_ADJ_DIFF>
         <!-- DS difficulty adjust by compare DS pow number to NUM_DS_ELECTION -->
         <POW_CHANGE_TO_ADJ_DS_DIFF>5</POW_CHANGE_TO_ADJ_DS_DIFF>
         <DIFFICULTY_DIFF_TOL>4</DIFFICULTY_DIFF_TOL>
