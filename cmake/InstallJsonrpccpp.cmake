@@ -26,11 +26,11 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DHTTP_SERVER=On
                -DHTTP_CLIENT=On
                -DCOMPILE_TESTS=Off
-	-DTCP_SOCKET_SERVER=On
+               -DTCP_SOCKET_SERVER=On
                -DCOMPILE_STUBGEN=Off
                -DCOMPILE_EXAMPLES=Off
                # Point to jsoncpp library.
-               -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIR}
+               -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIRS}
                # Select jsoncpp include prefix: <json/...> or <jsoncpp/json/...>
                -DJSONCPP_INCLUDE_PREFIX=jsoncpp
                -DJSONCPP_LIBRARY=${JSONCPP_LIBRARY}
