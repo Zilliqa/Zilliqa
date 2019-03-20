@@ -272,6 +272,8 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
+  UpdateBalanceForPreGeneratedAccounts();
+
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
@@ -505,6 +507,8 @@ void Node::UpdateProcessedTransactions() {
 void Node::ProcessTransactionWhenShardBackup() {
   LOG_MARKER();
 
+  UpdateBalanceForPreGeneratedAccounts();
+
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
@@ -654,6 +658,16 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
+  }
+}
+
+void Node::UpdateBalanceForPreGeneratedAccounts() {
+  for (unsigned int i = 0; i < populated_addresses.size(); i++) {
+    if ((i % (m_mediator.m_ds->m_shards.size() + 1) == m_myshardId) &&
+        (i % NUM_FINAL_BLOCK_PER_POW == m_mediator.m_currentEpochNum)) {
+      AccountStore::GetInstance().IncreaseBalanceTemp(populated_addresses.at(i),
+                                                      1);
+    }
   }
 }
 

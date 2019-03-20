@@ -65,6 +65,26 @@ const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
+#define POPULATE_ACCOUNTS_FILE "testAccounts.txt"
+
+void populateAccounts() {
+  try {
+    string line;
+    fstream keys_file(POPULATE_ACCOUNTS_FILE, ios::in);
+
+    while (getline(keys_file, line)) {
+      vector<string> key_pair;  // pub/priv
+      boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
+      Address t_addr = Account::GetAddressFromPublicKey(
+          PubKey::GetPubKeyFromString(key_pair[0]));
+      AccountStore::GetInstance().AddAccount(t_addr, {0, 0});
+      populated_addresses.emplace_back(t_addr);
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Problem occured when processing keys on line: "
+              << populated_addresses.size() + 1 << endl;
+  }
+}
 
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
@@ -96,6 +116,11 @@ void addBalanceToGenesisAccount() {
   // Init account for issuing coinbase rewards
   AccountStore::GetInstance().AddAccount(Address(),
                                          {TOTAL_COINBASE_REWARD, nonce});
+
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    populateAccounts();
+  }
+
   AccountStore::GetInstance().UpdateStateTrieAll();
 }
 
