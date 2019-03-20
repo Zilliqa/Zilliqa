@@ -390,6 +390,11 @@ const bool REJOIN_NODE_NOT_IN_NETWORK{
 const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
+// Server Constants
+const unsigned int SERVER_PORT{
+    ReadConstantNumeric("SERVER_PORT", "node.server.")};
+const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.server.")};
+
 // Smart contract constants
 const string SCILLA_ROOT{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
