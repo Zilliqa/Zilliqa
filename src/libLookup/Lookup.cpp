@@ -2162,8 +2162,8 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
           return false;
         }
       }
-      txBlkNum++;
     }
+    txBlkNum++;    
   }
 
   cv_setStateDeltasFromSeed.notify_all();
