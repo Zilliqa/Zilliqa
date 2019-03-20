@@ -2163,7 +2163,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
         }
       }
     }
-    txBlkNum++;    
+    txBlkNum++;
   }
 
   cv_setStateDeltasFromSeed.notify_all();
