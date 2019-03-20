@@ -15,9 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/common/exception.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <chrono>
+#include "depends/jsonrpc/include/jsonrpccpp/server/connectors/tcpsocketserver.h"
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
@@ -135,9 +134,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_ds(m_mediator),
       m_lookup(m_mediator, syncType),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_msgQueue(MSGQUEUE_SIZE),
-      m_httpserver(SERVER_PORT),
-      m_server(m_mediator, m_httpserver)
+      m_msgQueue(MSGQUEUE_SIZE)
 
 {
   LOG_MARKER();
@@ -158,6 +155,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
+  HttpServer httpserver(SERVER_PORT);
+
+  if (LOOKUP_NODE_MODE) {
+    m_server = make_shared<Server>(m_mediator, httpserver);
+  } else {
+    // TcpServer tcpserver("127.0.0.1",SERVER_PORT);
+    m_server = make_shared<Server>(m_mediator, httpserver);
+  }
+
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
@@ -171,7 +177,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    m_server.StartCollectorThread();
+    m_server->StartCollectorThread();
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
@@ -300,7 +306,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    if (m_server.StartListening()) {
+    if (m_server->StartListening()) {
       LOG_GENERAL(INFO, "API Server started successfully");
     } else {
       LOG_GENERAL(WARNING, "API Server couldn't start");

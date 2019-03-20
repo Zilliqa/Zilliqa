@@ -8,6 +8,7 @@ endif()
 
 project(Zilliqa)
 
+
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
@@ -40,7 +41,14 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+if(NOT TARGET jsonrpc-project)
+    include(InstallJsonrpccpp)
+endif()
+
 include(InstallG3log)
+
+
+
 find_package(g3logger CONFIG REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
@@ -66,6 +74,7 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
+
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
@@ -182,6 +191,7 @@ if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
     add_definitions(-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
 endif()
 
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
@@ -231,18 +241,6 @@ if (ADDRESS_SANITIZER)
     add_compile_options(-fno-omit-frame-pointer)
     link_libraries(-fsanitize=address)
     message(STATUS "ADDRESS SANITIZER enabled")
-endif()
-
-if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
-    if (NOT TESTS)
-        message(FATAL_ERROR "TESTS is not ON")
-    endif()
-    include(CodeCoverage)
-    add_compile_options(--coverage)
-    link_libraries(--coverage)
-    add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
-    # TODO: remove the hardcoded number in -j option
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j2;--output-on-failure")
 endif()
 
 add_subdirectory (src)

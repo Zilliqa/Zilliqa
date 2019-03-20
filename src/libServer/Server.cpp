@@ -17,8 +17,8 @@
 
 #include "JSONConversion.h"
 
-#include <jsonrpccpp/server.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include "depends/jsonrpc/include/jsonrpccpp/server.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
@@ -55,8 +55,8 @@ const unsigned int TXN_PAGE_SIZE = 100;
 //[warning] do not make this constant too big as it loops over blockchain
 const unsigned int REF_BLOCK_DIFF = 1;
 
-Server::Server(Mediator& mediator, HttpServer& httpserver)
-    : AbstractZServer(httpserver), m_mediator(mediator) {
+Server::Server(Mediator& mediator, AbstractServerConnector& server)
+    : AbstractZServer(server), m_mediator(mediator) {
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;

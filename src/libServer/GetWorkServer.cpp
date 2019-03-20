@@ -17,7 +17,7 @@
 
 #include <chrono>
 
-#include <jsonrpccpp/server/connectors/httpserver.h>
+#include "depends/jsonrpc/include/jsonrpccpp/server/connectors/httpserver.h"
 #include "depends/libethash/include/ethash/ethash.hpp"
 
 #include "GetWorkServer.h"
