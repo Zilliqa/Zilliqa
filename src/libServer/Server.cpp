@@ -75,7 +75,6 @@ Server::~Server(){
 string Server::GetNetworkId() {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-    ;
   }
   return to_string(CHAIN_ID);
 }
