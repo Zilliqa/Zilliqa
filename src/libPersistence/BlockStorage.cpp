@@ -736,12 +736,12 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
 bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
                                  bytes& stateDelta) {
   LOG_MARKER();
-
-  string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
+  bool found = false;
+  string dataStr = m_stateDeltaDB->Lookup(finalBlockNum, found);
   stateDelta = bytes(dataStr.begin(), dataStr.end());
   LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
               stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
-  return true;
+  return found;
 }
 
 bool BlockStorage::PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
