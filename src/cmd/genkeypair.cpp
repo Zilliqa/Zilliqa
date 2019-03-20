@@ -39,18 +39,16 @@ void Print(const bytes& payload) {
 }
 
 int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[]) {
-  for (unsigned int i = 0; i < 1000000; i++) {
-    PairOfKey keypair = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey keypair = Schnorr::GetInstance().GenKeyPair();
 
-    bytes privkey, pubkey;
-    keypair.first.Serialize(privkey, 0);
-    keypair.second.Serialize(pubkey, 0);
+  bytes privkey, pubkey;
+  keypair.first.Serialize(privkey, 0);
+  keypair.second.Serialize(pubkey, 0);
 
-    Print(pubkey);
-    cout << " ";
-    Print(privkey);
-    cout << '\n';
-  }
+  Print(pubkey);
+  cout << " ";
+  Print(privkey);
+  cout << '\n';
 
   return 0;
 }
