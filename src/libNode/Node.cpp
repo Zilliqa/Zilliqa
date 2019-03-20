@@ -1116,6 +1116,13 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
   for (const auto& submittedTxn : txns) {
+    if (submittedTxn.GetContractType() != Transaction::NON_CONTRACT &&
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+            SC_DS_TARGET_NUM) {
+      LOG_GENERAL(
+          INFO, "Smart contract target DS num not meet, ignore smart contract");
+      continue;
+    }
     m_createdTxns.insert(submittedTxn);
   }
 
@@ -1445,6 +1452,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
+      if (txn.GetContractType() != Transaction::NON_CONTRACT &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+              SC_DS_TARGET_NUM) {
+        LOG_GENERAL(
+            INFO,
+            "Smart contract target DS num not meet, ignore smart contract");
+        continue;
+      }
+
       m_createdTxns.insert(txn);
     }
 

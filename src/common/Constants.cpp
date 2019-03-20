@@ -365,6 +365,8 @@ const unsigned int TXN_DS_TARGET_DIFFICULTY{
     ReadConstantNumeric("TXN_DS_TARGET_DIFFICULTY", "node.pow.")};
 const unsigned int TXN_DS_TARGET_NUM{
     ReadConstantNumeric("TXN_DS_TARGET_NUM", "node.pow.")};
+const unsigned int SC_DS_TARGET_NUM{
+    ReadConstantNumeric("SC_DS_TARGET_NUM", "node.pow.")};
 const unsigned int PRIORITY_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("PRIORITY_TOLERANCE_IN_PERCENT", "node.pow.")};
 

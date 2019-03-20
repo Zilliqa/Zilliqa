@@ -71,6 +71,13 @@ class Transaction : public SerializableDataBlock {
   Signature m_signature;
 
  public:
+  enum ContractType {
+    NON_CONTRACT = 0,
+    CONTRACT_CREATION,
+    CONTRACT_CALL,
+    ERROR
+  };
+
   /// Default constructor.
   Transaction();
 
@@ -174,6 +181,8 @@ class Transaction : public SerializableDataBlock {
 
   /// Assignment operator.
   Transaction& operator=(const Transaction& src);
+
+  ContractType GetContractType() const;
 };
 
 #endif  // __TRANSACTION_H__

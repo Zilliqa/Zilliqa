@@ -219,8 +219,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     }
 
     unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-    switch (GetTransactionType(tx)) {
-      case NON_CONTRACT:
+    switch (tx.GetContractType()) {
+      case Transaction::NON_CONTRACT:
         if (!ARCHIVAL_LOOKUP) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
         } else {
@@ -231,7 +231,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         ret["TranID"] = tx.GetTranID().hex();
         return ret;
         break;
-      case CONTRACT_CREATION:
+      case Transaction::CONTRACT_CREATION:
         if (!ARCHIVAL_LOOKUP) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
         } else {
@@ -244,7 +244,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
             Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
         return ret;
         break;
-      case CONTRACT_CALL: {
+      case Transaction::CONTRACT_CALL: {
         const Account* account =
             AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
@@ -287,7 +287,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         return ret;
       } break;
 
-      case ERROR:
+      case Transaction::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "Code is empty and To addr is null");
         break;
@@ -302,23 +302,6 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
-}
-
-Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
-  if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress) {
-    return CONTRACT_CALL;
-  }
-
-  if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
-    return CONTRACT_CREATION;
-  }
-
-  if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
-      tx.GetCode().empty()) {
-    return NON_CONTRACT;
-  }
-
-  return ERROR;
 }
 
 Json::Value Server::GetTransaction(const string& transactionHash) {

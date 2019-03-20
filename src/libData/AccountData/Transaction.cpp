@@ -209,3 +209,19 @@ Transaction& Transaction::operator=(const Transaction& src) {
 
   return *this;
 }
+
+Transaction::ContractType Transaction::GetContractType() const {
+  if (!GetData().empty() && GetToAddr() != NullAddress) {
+    return CONTRACT_CALL;
+  }
+
+  if (!GetCode().empty() && GetToAddr() == NullAddress) {
+    return CONTRACT_CREATION;
+  }
+
+  if (GetData().empty() && GetToAddr() != NullAddress && GetCode().empty()) {
+    return NON_CONTRACT;
+  }
+
+  return ERROR;
+}
