@@ -891,7 +891,15 @@ BOOST_AUTO_TEST_CASE(test_highest_difficulty) {
   int64_t expectedNodes = 100;
   uint32_t adjustThreshold = 9;
 
-  int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+  auto newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 255);
+
+  currentDifficulty = 253;
+  powSubmissions = 200;
+
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
       adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 255);
