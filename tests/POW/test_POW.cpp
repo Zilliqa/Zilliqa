@@ -883,6 +883,20 @@ BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 69);
 }
 
+BOOST_AUTO_TEST_CASE(test_highest_difficulty) {
+  std::cout << "Start test highest difficulty" << std::endl;
+  uint8_t currentDifficulty = 255;
+  uint8_t minDifficulty = 5;
+  int64_t powSubmissions = 110;
+  int64_t expectedNodes = 100;
+  uint32_t adjustThreshold = 9;
+
+  int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 255);
+}
+
 BOOST_AUTO_TEST_CASE(devided_boundary) {
   std::cout << "Start test devided_boundary" << std::endl;
 

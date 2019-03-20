@@ -1053,6 +1053,12 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
     }
   }
 
+  // Already reach the highest difficulty, cannot increase any more
+  if (adjustment > 0 &&
+      currentDifficulty >= std::numeric_limits<uint8_t>::max()) {
+    return currentDifficulty;
+  }
+
   // Restrict the adjustment step, prevent the difficulty jump up/down
   // dramatically.
   if (adjustment > MAX_ADJUST_STEP) {
