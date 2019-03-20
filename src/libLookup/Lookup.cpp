@@ -1157,12 +1157,17 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   if (lowBlockNum == 0) {
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
-
-  } else if (lowBlockNum == 1) {
-    // To get block num from dsblockchain instead of txblock chain as node
-    // recover from the last ds epoch
-    lowBlockNum =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  } else {
+    uint64_t lowestLimitNum = (m_mediator.m_dsBlockChain.GetBlockCount() >
+                               INCRDB_DSNUMS_WITH_STATEDELTAS)
+                                  ? (m_mediator.m_dsBlockChain.GetBlockCount() -
+                                     INCRDB_DSNUMS_WITH_STATEDELTAS) *
+                                        NUM_FINAL_BLOCK_PER_POW
+                                  : 0;
+    if (lowBlockNum <= lowestLimitNum) {
+      // Limit the number of txn blocks upto last N ds epochs
+      lowBlockNum = lowestLimitNum;
+    }
   }
 
   if (highBlockNum == 0) {
