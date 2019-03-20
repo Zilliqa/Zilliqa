@@ -65,12 +65,11 @@ const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
-#define POPULATE_ACCOUNTS_FILE "testAccounts.txt"
 
 void populateAccounts() {
   try {
     string line;
-    fstream keys_file(POPULATE_ACCOUNTS_FILE, ios::in);
+    fstream keys_file(PREGENED_ACCOUNTS_FILE, ios::in);
 
     while (getline(keys_file, line)) {
       vector<string> key_pair;  // pub/priv
