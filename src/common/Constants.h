@@ -319,6 +319,7 @@ extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
+extern const bool ENABLE_ACCOUNTS_POPULATING;
 
 // Transaction constants
 extern const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD;
