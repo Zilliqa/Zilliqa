@@ -43,8 +43,6 @@
 class Mediator;
 class Retriever;
 
-static std::vector<Address> populated_addresses;
-
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable {
   enum Action {
@@ -85,6 +83,9 @@ class Node : public Executable {
 
   // Sharding information
   std::atomic<uint32_t> m_numShards;
+
+  // pre-generated addresses
+  std::vector<Address> m_populated_addresses;
 
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
@@ -474,6 +475,10 @@ class Node : public Executable {
   void CommitMBnForwardedTransactionBuffer();
 
   void CleanCreatedTransaction();
+
+  void AddBalanceToGenesisAccount();
+
+  void PopulateAccounts();
 
   void UpdateBalanceForPreGeneratedAccounts();
 

@@ -272,7 +272,9 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
-  UpdateBalanceForPreGeneratedAccounts();
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    UpdateBalanceForPreGeneratedAccounts();
+  }
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -507,7 +509,9 @@ void Node::UpdateProcessedTransactions() {
 void Node::ProcessTransactionWhenShardBackup() {
   LOG_MARKER();
 
-  UpdateBalanceForPreGeneratedAccounts();
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    UpdateBalanceForPreGeneratedAccounts();
+  }
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -662,13 +666,20 @@ void Node::ProcessTransactionWhenShardBackup() {
 }
 
 void Node::UpdateBalanceForPreGeneratedAccounts() {
-  for (unsigned int i = 0; i < populated_addresses.size(); i++) {
+  LOG_MARKER();
+  int counter = 0;
+  LOG_GENERAL(INFO,
+              "m_populated_address.size(): " << m_populated_addresses.size());
+  for (unsigned int i = 0; i < m_populated_addresses.size(); i++) {
     if ((i % (m_mediator.m_ds->m_shards.size() + 1) == m_myshardId) &&
         (i % NUM_FINAL_BLOCK_PER_POW == m_mediator.m_currentEpochNum)) {
-      AccountStore::GetInstance().IncreaseBalanceTemp(populated_addresses.at(i),
-                                                      1);
+      AccountStore::GetInstance().IncreaseBalanceTemp(
+          m_populated_addresses.at(i), 1);
+      counter++;
     }
   }
+  LOG_GENERAL(INFO, "Number of pre-generated accounts get balance changed: "
+                        << counter);
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
