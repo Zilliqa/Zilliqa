@@ -1032,7 +1032,11 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t powSubmissions,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
-  constexpr int8_t MAX_ADJUST_STEP = 2;
+  int8_t MAX_ADJUST_STEP = 2;
+  if (currentDifficulty >= POW_BOUNDARY_N_DEVIDED_START) {
+    minDifficulty = POW_BOUNDARY_N_DEVIDED_START - 2;
+    MAX_ADJUST_STEP = POW_BOUNDARY_N_DEVIDED;
+  }
 
   int64_t adjustment = 0;
   if (expectedNodes > 0 && expectedNodes != powSubmissions) {
@@ -1057,8 +1061,10 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
     adjustment = -MAX_ADJUST_STEP;
   }
 
-  return std::max((uint8_t)(adjustment + currentDifficulty),
-                  (uint8_t)(minDifficulty));
+  uint16_t newDifficulty = (uint16_t)adjustment + (uint16_t)currentDifficulty;
+  newDifficulty =
+      std::min(newDifficulty, (uint16_t)std::numeric_limits<uint8_t>::max());
+  return std::max((uint8_t)(newDifficulty), (uint8_t)(minDifficulty));
 }
 
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {

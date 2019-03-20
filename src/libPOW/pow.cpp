@@ -37,6 +37,8 @@
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
 
+using namespace boost::multiprecision;
+
 POW::POW() {
   m_currentBlockNum = 0;
   m_epochContextLight =
@@ -133,6 +135,19 @@ bool POW::CheckDificulty(const ethash_hash256& result,
   return ethash::is_less_or_equal(result, boundary);
 }
 
+size_t POW::CountLeadingZeros(const ethash_hash256& boundary) {
+  size_t count = 0;
+
+  for (unsigned char b : boundary.bytes) {
+    if (b != 0x00) {
+      count += DataConversion::clz(b);
+      break;
+    }
+    count += 8;
+  }
+  return count;
+}
+
 ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
   uint8_t b[UINT256_SIZE];
   std::fill(b, b + UINT256_SIZE, 0xFF);
@@ -147,6 +162,67 @@ ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
                                  0x0F, 0x07, 0x03, 0x01};
   b[firstNbytesToSet] = masks[nBytesBitsToSet];
   return StringToBlockhash(BytesToHexString(b, UINT256_SIZE));
+}
+
+ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
+  if (difficulty < POW_BOUNDARY_N_DEVIDED_START) {
+    return DifficultyLevelInInt(difficulty);
+  }
+
+  // calc new difficulty level
+  uint8_t n_level =
+      (difficulty - POW_BOUNDARY_N_DEVIDED_START) / POW_BOUNDARY_N_DEVIDED;
+  uint8_t m_sub_level =
+      (difficulty - POW_BOUNDARY_N_DEVIDED_START) % POW_BOUNDARY_N_DEVIDED;
+  uint8_t difficulty_level = POW_BOUNDARY_N_DEVIDED_START + n_level;
+
+  // Python implement
+  // cur_boundary = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // step = (cur_boundary >> 1) // N_DIVIDED
+  // new_boundary = cur_boundary - step * m_sub_level
+
+  uint256_t cur_boundary(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t step = (cur_boundary >> 1) / POW_BOUNDARY_N_DEVIDED;
+  uint256_t new_boundary = cur_boundary - step * m_sub_level;
+
+  return StringToBlockhash(
+      DataConversion::IntegerToHexString<uint256_t, UINT256_SIZE>(
+          new_boundary));
+}
+
+uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
+  uint8_t difficulty_level = POW::CountLeadingZeros(boundary);
+
+  if (difficulty_level < POW_BOUNDARY_N_DEVIDED_START) {
+    return difficulty_level;
+  }
+
+  // Python implement
+  // i_cur_level = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // i_cur_boundary = bytes_to_int(boundary)
+  // step = (i_cur_level >> 1) // N_DIVIDED
+  // m = (i_cur_level - i_cur_boundary) // step
+  // n = (difficulty_level - 32)
+  // new_difficulty = 32 + n * N_DIVIDED + m
+
+  uint256_t i_cur_level(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t i_cur_boundary("0x" +
+                           BytesToHexString(boundary.bytes, UINT256_SIZE));
+
+  uint256_t step = (i_cur_level >> 1) / POW_BOUNDARY_N_DEVIDED;
+
+  uint256_t n_level = difficulty_level - POW_BOUNDARY_N_DEVIDED_START;
+
+  uint256_t m_sub_level = (i_cur_level - i_cur_boundary) / step;
+  assert(m_sub_level < (unsigned)POW_BOUNDARY_N_DEVIDED);
+
+  uint256_t difficulty =
+      POW_BOUNDARY_N_DEVIDED_START + n_level * POW_BOUNDARY_N_DEVIDED;
+  difficulty += m_sub_level;
+
+  return (uint8_t)difficulty;
 }
 
 bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
@@ -187,7 +263,8 @@ ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
   LOG_MARKER();
   int ethash_epoch = ethash::get_epoch_number(blockNum);
   std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
-  std::string boundary = BlockhashToHexString(DifficultyLevelInInt(difficulty));
+  std::string boundary =
+      BlockhashToHexString(DifficultyLevelInIntDevided(difficulty));
   std::string headerStr = BlockhashToHexString(headerHash);
 
   PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
@@ -612,7 +689,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
       return;
     }
     auto hashResult = LightHash(blockNum, headerHash, solution.nonce);
-    auto boundary = DifficultyLevelInInt(difficulty);
+    auto boundary = DifficultyLevelInIntDevided(difficulty);
     if (ethash::is_less_or_equal(hashResult.final_hash, boundary)) {
       m_vecMiningResult[index] =
           ethash_mining_result_t{BlockhashToHexString(hashResult.final_hash),
@@ -700,7 +777,7 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
   // result.success has been returned)
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
   EthashConfigureClient(blockNum, fullDataset);
-  auto boundary = DifficultyLevelInInt(difficulty);
+  auto boundary = DifficultyLevelInIntDevided(difficulty);
 
   ethash_mining_result_t result;
 
@@ -727,7 +804,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::string& winning_mixhash) {
   LOG_MARKER();
   EthashConfigureClient(blockNum);
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   auto winnning_result = StringToBlockhash(winning_result);
   auto winningMixhash = StringToBlockhash(winning_mixhash);
 
@@ -749,13 +826,13 @@ ethash::result POW::LightHash(uint64_t blockNum,
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   return ethash::is_less_or_equal(result, boundary);
 }
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   ethash_hash256 hashResult = StringToBlockhash(result);
   return ethash::is_less_or_equal(hashResult, boundary);
 }
