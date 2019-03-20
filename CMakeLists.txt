@@ -8,7 +8,6 @@ endif()
 
 project(Zilliqa)
 
-
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
@@ -25,17 +24,12 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     link_directories(${MINIUPNPC_LIBRARY_DIRS})
 
     find_package(jsoncpp REQUIRED)
-    find_package(libjson-rpc-cpp REQUIRED COMPONENTS jsonrpccommon jsonrpcserver)
     set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
-    set(JSONRPCCPP_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcserver")
-    set(JSONRPCCPP_CLIENT_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcclient")
 else()
     pkg_check_modules(JSONCPP REQUIRED jsoncpp)
     include_directories(${JSONCPP_INCLUDE_DIRS})
     link_directories(${JSONCPP_LIBRARY_DIRS})
     set(JSONCPP_LINK_TARGETS "jsoncpp")
-    set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
-    set(JSONRPCCPP_CLIENT_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-client")
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -46,9 +40,6 @@ if(NOT TARGET jsonrpc-project)
 endif()
 
 include(InstallG3log)
-
-
-
 find_package(g3logger CONFIG REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
@@ -74,7 +65,6 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
-
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
@@ -191,7 +181,6 @@ if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
     add_definitions(-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
 endif()
 
-
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
@@ -241,6 +230,18 @@ if (ADDRESS_SANITIZER)
     add_compile_options(-fno-omit-frame-pointer)
     link_libraries(-fsanitize=address)
     message(STATUS "ADDRESS SANITIZER enabled")
+endif()
+
+if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
+    if (NOT TESTS)
+        message(FATAL_ERROR "TESTS is not ON")
+    endif()
+    include(CodeCoverage)
+    add_compile_options(--coverage)
+    link_libraries(--coverage)
+    add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
+    # TODO: remove the hardcoded number in -j option
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j2;--output-on-failure")
 endif()
 
 add_subdirectory (src)
