@@ -1965,7 +1965,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
-    while (retry <= RETRY_REJOINING_COUNT) {
+    while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
       // Get the state-delta for all txBlocks from random lookup nodes
       GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
       std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
@@ -1981,7 +1981,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         break;
       }
     }
-    if (retry > RETRY_REJOINING_COUNT) {
+    if (retry > RETRY_GETSTATEDELTAS_COUNT) {
       LOG_GENERAL(WARNING, "Failed to receive state-deltas for txBlks: "
                                << lowBlockNum << "-" << highBlockNum);
       cv_setTxBlockFromSeed.notify_all();
