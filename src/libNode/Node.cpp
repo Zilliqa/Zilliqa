@@ -791,7 +791,7 @@ void Node::WakeupAtDSEpoch() {
 
         // create and send POW submission packets
         auto func2 = [this]() mutable -> void {
-          m_mediator.m_ds->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+          m_mediator.m_ds->SendPoWPacketSubmissionToOtherDSComm();
         };
         DetachedFunction(1, func2);
 
