@@ -1995,6 +1995,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     }
   }
 
+  // Check StateRootHash and One in last TxBlk
+  if (m_prevStateRootHashTemp !=
+      txBlocks.back().GetHeader().GetStateRootHash()) {
+    LOG_CHECK_FAIL("State root hash",
+                   txBlocks.back().GetHeader().GetStateRootHash(),
+                   m_prevStateRootHashTemp);
+    return;
+  }
+
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
@@ -2140,9 +2149,9 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                 << highBlockNum);
 
   if (stateDeltas.size() != highBlockNum - lowBlockNum + 1) {
-    LOG_GENERAL(WARNING, "SateDeltas recvd:" << stateDeltas.size()
-                                             << " , Expected: "
-                                             << highBlockNum - lowBlockNum + 1);
+    LOG_GENERAL(WARNING,
+                "StateDeltas recvd:" << stateDeltas.size() << " , Expected: "
+                                     << highBlockNum - lowBlockNum + 1);
     return false;
   }
 
@@ -2160,12 +2169,15 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
         return false;
       }
       BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
-      if (((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) &&
-          (txBlkNum + NUM_FINAL_BLOCK_PER_POW < highBlockNum)) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-          LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-          return false;
-        }
+      m_prevStateRootHashTemp = AccountStore::GetInstance().GetStateRootHash();
+    }
+    if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
+      if (ENABLE_REPOPULATE && ((txBlkNum + 1) % (NUM_FINAL_BLOCK_PER_POW *
+                                                  REPOPULATE_STATE_PER_N_DS) ==
+                                REPOPULATE_STATE_IN_DS)) {
+        AccountStore::GetInstance().MoveUpdatesToDisk(true);
+      } else if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
+        AccountStore::GetInstance().MoveUpdatesToDisk(false);
       }
     }
     txBlkNum++;
@@ -2453,29 +2465,30 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   auto dsBlockRand = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> txBlockRand{};
 
-  if (CheckStateRoot()) {
-    // Attempt PoW
-    m_startedPoW = true;
-    dsBlockRand = m_mediator.m_dsBlockRand;
-    txBlockRand = m_mediator.m_txBlockRand;
+  // state root could be changed after repopulating states. so check is moved
+  // before repopulating state in CommitTxBlocks. if (CheckStateRoot()) {
+  // Attempt PoW
+  m_startedPoW = true;
+  dsBlockRand = m_mediator.m_dsBlockRand;
+  txBlockRand = m_mediator.m_txBlockRand;
 
-    m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-    POW::GetInstance().EthashConfigureClient(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
-        FULL_DATASET_MINE);
+  m_mediator.m_node->SetState(Node::POW_SUBMISSION);
+  POW::GetInstance().EthashConfigureClient(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Starting PoW for new ds block number " << curDsBlockNum + 1);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
-    m_mediator.m_node->StartPoW(
-        curDsBlockNum + 1,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
-        dsBlockRand, txBlockRand, lookupIndex);
-  } else {
-    LOG_GENERAL(WARNING, "State root check failed");
-    return false;
-  }
+  m_mediator.m_node->StartPoW(
+      curDsBlockNum + 1,
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
+      dsBlockRand, txBlockRand, lookupIndex);
+  //} else {
+  //  LOG_GENERAL(WARNING, "State root check failed");
+  //  return false;
+  //}
 
   uint64_t lastTxBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -2895,13 +2908,7 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!InitMining(index)) {
-    // Mining failed try Rejoin again
-    m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-    m_mediator.m_node->RejoinAsNormal();
-    return false;
-  }
-
+  InitMining(index);
   return true;
 }
 
