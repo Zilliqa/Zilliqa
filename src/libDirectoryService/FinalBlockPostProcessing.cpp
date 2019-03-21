@@ -152,47 +152,24 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   DetachedFunction(1, resumeBlackList);
 
   if (isVacuousEpoch) {
-    bool repopulateTrie =
-        ENABLE_REPOPULATE &&
-        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() %
-             REPOPULATE_STATE_PER_N_DS ==
-         REPOPULATE_STATE_IN_DS);
-    if (repopulateTrie) {
-      StoreFinalBlockToDisk();
-      auto writeStateToDisk = [this]() mutable -> void {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk(true)) {
-          LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-          return;
-        }
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
-        LOG_STATE("[FLBLK][" << setw(15) << left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "]["
-                             << m_mediator.m_txBlockChain.GetLastBlock()
-                                        .GetHeader()
-                                        .GetBlockNum() +
-                                    1
-                             << "] FINISH WRITE STATE TO DISK");
-      };
-      DetachedFunction(1, writeStateToDisk);
-    } else {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk(false)) {
-        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-        // return;
-      }
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
-      StoreFinalBlockToDisk();
-      LOG_STATE("[FLBLK][" << setw(15) << left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "]["
-                           << m_mediator.m_txBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum() +
-                                  1
-                           << "] FINISH WRITE STATE TO DISK");
+    if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+            ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum() %
+                                      REPOPULATE_STATE_PER_N_DS ==
+                                  REPOPULATE_STATE_IN_DS))) {
+      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+      // return;
     }
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+    StoreFinalBlockToDisk();
+    LOG_STATE(
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] FINISH WRITE STATE TO DISK");
   } else {
     StoreFinalBlockToDisk();
     // Coinbase
