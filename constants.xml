@@ -199,6 +199,7 @@
         <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
     </recovery>
     <smart_contract>
+        <ENABLE_SC>false</ENABLE_SC>
         <SCILLA_ROOT/>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
