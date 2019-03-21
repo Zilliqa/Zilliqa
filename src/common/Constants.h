@@ -303,6 +303,7 @@ extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 
 // Smart contract constants
+extern const bool ENABLE_SC;
 extern const std::string SCILLA_ROOT;
 extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;

@@ -232,6 +232,10 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         return ret;
         break;
       case CONTRACT_CREATION:
+        if (!ENABLE_SC) {
+          ret["Info"] = "Smart contract is disabled";
+          return ret;
+        }
         if (!ARCHIVAL_LOOKUP) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
         } else {
@@ -245,6 +249,10 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         return ret;
         break;
       case CONTRACT_CALL: {
+        if (!ENABLE_SC) {
+          ret["Info"] = "Smart contract is disabled";
+          return ret;
+        }
         const Account* account =
             AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 

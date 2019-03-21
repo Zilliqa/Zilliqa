@@ -391,6 +391,8 @@ const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
 // Smart contract constants
+const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
+                     "true"};
 const string SCILLA_ROOT{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
 const string SCILLA_CHECKER{
