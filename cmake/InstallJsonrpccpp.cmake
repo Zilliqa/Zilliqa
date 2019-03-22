@@ -11,8 +11,6 @@ find_package(CURL REQUIRED)
 # but we need to know the MHD location for static linking.
 find_package(MHD REQUIRED)
 
-
-
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
@@ -32,8 +30,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                # Point to jsoncpp library.
                -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIRS}
                # Select jsoncpp include prefix: <json/...> or <jsoncpp/json/...>
-               -DJSONCPP_INCLUDE_PREFIX=jsoncpp
-               -DJSONCPP_LIBRARY=${JSONCPP_LIBRARY}
+               -DJSONCPP_INCLUDE_PREFIX=${JSON_PREFIX}
+               -DJSONCPP_LIBRARY=${JSONCPP_LIBRARY_DIRS}
                -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR}
                -DCURL_LIBRARY=${CURL_LIBRARY}
                -DMHD_INCLUDE_DIR=${MHD_INCLUDE_DIR}
