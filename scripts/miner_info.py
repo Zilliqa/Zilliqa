@@ -22,6 +22,7 @@ import hashlib
 import sys
 import argparse
 import csv
+import socket
 
 def generate_payload(params, methodName, id = 1):
 	payload = {"method":methodName,
@@ -31,30 +32,49 @@ def generate_payload(params, methodName, id = 1):
 	}
 	return payload
 
+def recvall(sock):
+    BUFF_SIZE = 4096 # 4 KiB
+    data = ""
+    while True:
+        part = str(sock.recv(BUFF_SIZE))
+        data += part
+        if len(part) < BUFF_SIZE:
+            # either 0 or end of data
+            break
+    return data
 
-def get_response(params, methodName, url, id = 1):
-	headers = {'content-type' : 'application/json'}
-	#print url
-	payload = generate_payload(params, methodName)
-	response = requests.post(url, data = json.dumps(payload), headers = headers)
 
-	if response.status_code != requests.codes.ok:
-		print "Error fetching "+ str(requests.status_codes._codes[response.status_code][0])
+def get_response(params, methodName, host, port, id = 1):
+
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	try:
+		sock.connect((host, port))
+		data = json.dumps(generate_payload(params, methodName))
+		sock.sendall(bytes(data+"\n"))		
+		received = recvall(sock)
+	except socket.error:
+		print "Socket error "
+		sock.close()
 		return None
 
-	assert (response.json()["id"] == id)
+	response = json.loads(received)
+
+	sock.close()
+
+	assert (response["id"] == id)
 	try:
-		return response.json()["result"]
+		return response["result"]
 	except KeyError:
-		print response.json()["error"]
+		print response["error"]
 		return None
 
 
 
 def parse_arguments(options):
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--address","-a",help="URL for querying, default: localhost", default="127.0.0.1")
+	parser.add_argument("--address","-a",help="host address for querying, default: localhost", default="127.0.0.1")
 	parser.add_argument("option",help="input option for the query", choices=options)
+	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
 	args = parser.parse_args()
 	return args
 
@@ -68,13 +88,11 @@ def make_options_dictionary(options_dict):
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	PORT = 4201; #default port	
+	
 
 	args = parse_arguments(options_dictionary.keys())
-	
-	query_url = "http://"+args.address+":"+str(PORT);
 
-	response = get_response([],options_dictionary[args.option],query_url)
+	response = get_response([],options_dictionary[args.option],args.address, args.port)
 
 	if response == None:
 		print "Could not get result"
