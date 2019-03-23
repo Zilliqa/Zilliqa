@@ -173,9 +173,12 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
     }
     catch(const Json::Exception &e)
     {
-        client_connection->code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-        client_connection->server->SendResponse("Exception while reading Json ", client_connection);
-        delete client_connection;
+        if(client_connection!= nullptr)
+        {
+            client_connection->code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+            client_connection->server->SendResponse("Exception while reading Json ", client_connection);
+            delete client_connection;
+        }
         *con_cls = NULL;
         return MHD_YES;
     }
