@@ -16,7 +16,7 @@
  */
 
 #include <jsonrpccpp/common/exception.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
+
 #include <chrono>
 
 #include "Zilliqa.h"

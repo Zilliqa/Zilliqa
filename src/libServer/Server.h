@@ -425,7 +425,7 @@ class Server : public AbstractZServer {
   static std::mutex m_mutexRecentTxns;
 
  public:
-  Server(Mediator& mediator, jsonrpc::HttpServer& httpserver);
+  Server(Mediator& mediator, jsonrpc::AbstractServerConnector& httpserver);
   ~Server();
 
   virtual std::string GetNetworkId();

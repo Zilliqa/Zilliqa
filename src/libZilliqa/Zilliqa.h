@@ -18,9 +18,9 @@
 #ifndef __ZILLIQA_H__
 #define __ZILLIQA_H__
 
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <vector>
 
+#include "depends/safehttpserver/safehttpserver.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
@@ -40,7 +40,7 @@ class Zilliqa {
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  jsonrpc::HttpServer m_httpserver;
+  jsonrpc::SafeHttpServer m_httpserver;
   Server m_server;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
