@@ -20,7 +20,6 @@
 
 #include <vector>
 
-#include "depends/safehttpserver/safehttpserver.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
@@ -40,8 +39,8 @@ class Zilliqa {
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  jsonrpc::SafeHttpServer m_httpserver;
-  Server m_server;
+  std::unique_ptr<Server> m_server;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_serverConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 

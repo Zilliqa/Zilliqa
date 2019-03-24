@@ -15,8 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
+#include "jsonrpccpp/server.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
@@ -214,6 +213,18 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                            "param01", jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetTransactionsForTxBlockI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetNodeType", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::GetNodeTypeI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, NULL),
+        &AbstractZServer::GetDSCommitteeI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetNodeState", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::GetNodeStateI);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
@@ -371,6 +382,21 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                                  Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
+  inline virtual void GetNodeTypeI(const Json::Value& request,
+                                   Json::Value& response) {
+    (void)request;
+    response = this->GetNodeType();
+  }
+  inline virtual void GetDSCommitteeI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->GetDSCommittee();
+  }
+  inline virtual void GetNodeStateI(const Json::Value& request,
+                                    Json::Value& response) {
+    (void)request;
+    response = this->GetNodeState();
+  }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
@@ -405,6 +431,9 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetSmartContractInit(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
   virtual Json::Value GetTransactionsForTxBlock(const std::string& param01) = 0;
+  virtual std::string GetNodeType() = 0;
+  virtual Json::Value GetDSCommittee() = 0;
+  virtual std::string GetNodeState() = 0;
 };
 
 class Server : public AbstractZServer {
@@ -425,7 +454,7 @@ class Server : public AbstractZServer {
   static std::mutex m_mutexRecentTxns;
 
  public:
-  Server(Mediator& mediator, jsonrpc::AbstractServerConnector& httpserver);
+  Server(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~Server();
 
   virtual std::string GetNetworkId();
@@ -458,6 +487,8 @@ class Server : public AbstractZServer {
   virtual Json::Value GetShardingStructure();
   virtual std::string GetNumTxnsDSEpoch();
   virtual std::string GetNumTxnsTxEpoch();
+  virtual std::string GetNodeType();
+  virtual Json::Value GetDSCommittee();
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent
@@ -465,6 +496,7 @@ class Server : public AbstractZServer {
   size_t GetNumTransactions(uint64_t blockNum);
   ContractType GetTransactionType(const Transaction& tx) const;
   bool StartCollectorThread();
+  std::string GetNodeState();
 
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);

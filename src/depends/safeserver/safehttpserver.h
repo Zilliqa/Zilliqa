@@ -27,7 +27,8 @@ typedef intptr_t ssize_t;
 
 #include <map>
 #include <microhttpd.h>
-#include <jsonrpccpp/server/abstractserverconnector.h>
+#include "jsonrpccpp/server/abstractserverconnector.h"
+#include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 
 namespace jsonrpc
 {

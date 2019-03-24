@@ -3,7 +3,7 @@ add_subdirectory (libDatabase)
 add_subdirectory (libethash)
 add_subdirectory (libTrie)
 add_subdirectory (NAT)
-add_subdirectory (safehttpserver)
+add_subdirectory (safeserver)
 
 if(OPENCL_MINE)
     add_subdirectory (libethash-cl)

@@ -18,7 +18,7 @@
 #include <chrono>
 
 #include "depends/libethash/include/ethash/ethash.hpp"
-#include "depends/safehttpserver/safehttpserver.h"
+#include "depends/safeserver/safehttpserver.h"
 
 #include "GetWorkServer.h"
 #include "common/Constants.h"

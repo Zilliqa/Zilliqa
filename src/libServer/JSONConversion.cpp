@@ -276,3 +276,15 @@ const Json::Value JSONConversion::convertTxtoJson(
 
   return _json;
 }
+
+const Json::Value JSONConversion::convertDequeOfNode(const DequeOfNode& nodes) {
+  Json::Value _json = Json::arrayValue;
+
+  for (const auto& node : nodes) {
+    Json::Value temp;
+    temp["PubKey"] = static_cast<string>(node.first);
+    temp["NetworkInfo"] = static_cast<string>(node.second);
+    _json.append(temp);
+  }
+  return _json;
+}

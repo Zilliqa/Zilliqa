@@ -63,7 +63,6 @@ const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-const unsigned int SERVER_PORT = 4201;
 
 // Number of initial ds epoch number, including genesis epoch
 const unsigned int INIT_DS_EPOCH_NUM = 2;
@@ -307,6 +306,10 @@ extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
+
+// Server Constants
+extern const unsigned int SERVER_PORT;
+extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 
 // Smart contract constants
 extern const bool ENABLE_SC;
