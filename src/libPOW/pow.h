@@ -28,8 +28,8 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "depends/jsonrpc/include/jsonrpccpp/client.h"
-#include "depends/jsonrpc/include/jsonrpccpp/client/connectors/httpclient.h"
+#include "jsonrpccpp/client.h"
+#include "jsonrpccpp/client/connectors/httpclient.h"
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "depends/jsonrpc/include/jsonrpccpp/server.h"
-#include "depends/jsonrpc/include/jsonrpccpp/server/connectors/httpserver.h"
+#include "jsonrpccpp/server.h"
+#include "jsonrpccpp/server/connectors/httpserver.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>

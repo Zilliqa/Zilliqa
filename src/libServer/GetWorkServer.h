@@ -20,8 +20,8 @@
 
 #include <chrono>
 
-#include "depends/jsonrpc/include/jsonrpccpp/server.h"
-#include "depends/jsonrpc/include/jsonrpccpp/server/abstractserverconnector.h"
+#include "jsonrpccpp/server.h"
+#include "jsonrpccpp/server/abstractserverconnector.h"
 
 #include "common/Constants.h"
 #include "libPOW/pow.h"

@@ -18,7 +18,7 @@
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include "depends/jsonrpc/include/jsonrpccpp/server.h"
+#include "jsonrpccpp/server.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>

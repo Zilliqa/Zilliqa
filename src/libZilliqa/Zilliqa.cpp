@@ -16,7 +16,7 @@
  */
 
 #include <chrono>
-#include "depends/jsonrpc/include/jsonrpccpp/server/connectors/tcpsocketserver.h"
+#include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
