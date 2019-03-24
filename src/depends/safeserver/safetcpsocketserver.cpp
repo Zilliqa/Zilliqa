@@ -7,10 +7,14 @@
  * @license See attached LICENSE.txt
  ************************************************************************/
 
+#if defined(unix) || defined(__unix__) || defined(__unix)
+#define _UNIX_PREDEF_
+#endif
+
 #include "safetcpsocketserver.h"
 #ifdef __WIN32__
 #include "jsonrpccpp/server/connectors/windowstcpsocketserver.h"
-#elif __unix__
+#elif defined(_UNIX_PREDEF_)
 #include "safelinuxtcpsocketserver.h"
 #endif
 #include <string>
@@ -23,7 +27,7 @@ SafeTcpSocketServer::SafeTcpSocketServer(const std::string& ipToBind, const unsi
 {
 #ifdef __WIN32__
 	this->realSocket = new WindowsTcpSocketServer(ipToBind, port);
-#elif __unix__
+#elif defined(_UNIX_PREDEF_)
 	this->realSocket = new SafeLinuxTcpSocketServer(ipToBind, port);
 #else
 	this->realSocket = NULL;
