@@ -1061,28 +1061,10 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
     adjustment = -MAX_ADJUST_STEP;
   }
 
-  uint16_t newDifficulty = (uint16_t)adjustment + (uint16_t)currentDifficulty;
+  int16_t newDifficulty = (int16_t)adjustment + (int16_t)currentDifficulty;
   newDifficulty =
-      std::min(newDifficulty, (uint16_t)std::numeric_limits<uint8_t>::max());
+      std::min(newDifficulty, (int16_t)std::numeric_limits<uint8_t>::max());
   return std::max((uint8_t)(newDifficulty), (uint8_t)(minDifficulty));
-}
-
-uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
-  // Every year, always increase the difficulty by 1, to encourage miners to
-  // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS +
-  // POWPACKETSUBMISSION_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50,
-  // TX_DISTRIBUTE_TIME_IN_MS = 10000, ANNOUNCEMENT_DELAY_IN_MS = 3000,
-  // estimated blocks in a year is 1971000.
-  uint64_t estimatedBlocksOneYear =
-      365 * 24 * 3600 /
-      (((POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS) /
-        NUM_FINAL_BLOCK_PER_POW) +
-       ((TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000));
-
-  // Round to integral multiple of NUM_FINAL_BLOCK_PER_POW
-  estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW) *
-                           NUM_FINAL_BLOCK_PER_POW;
-  return estimatedBlocksOneYear;
 }
 
 int64_t DirectoryService::GetAllPoWSize() const {
