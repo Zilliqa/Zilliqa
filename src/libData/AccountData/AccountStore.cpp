@@ -171,8 +171,8 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
 
 void AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
-  if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
-    LOG_GENERAL(INFO, "FAIL: Put metadata failed");
+  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes()))
+    LOG_GENERAL(INFO, "FAIL: Put state root failed");
 }
 
 bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
@@ -345,7 +345,10 @@ bool AccountStore::RetrieveFromDisk() {
   lock(g, g2);
 
   bytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)
+      // To support backward compatibilty - lookup with new binary trying to
+      // recover from old database
+      && !BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
   }
 

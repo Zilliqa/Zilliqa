@@ -122,6 +122,10 @@ class Lookup : public Executable {
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
 
+  // Get StateDeltas from seed
+  std::mutex m_mutexSetStateDeltasFromSeed;
+  std::condition_variable cv_setStateDeltasFromSeed;
+
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 
@@ -131,6 +135,8 @@ class Lookup : public Executable {
   bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
+  bytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
+                                     uint64_t highBlockNum);
 
   bytes ComposeGetLookupOfflineMessage();
   bytes ComposeGetLookupOnlineMessage();
@@ -210,6 +216,8 @@ class Lookup : public Executable {
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
+  bool GetStateDeltasFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+
   bool GetStateFromSeedNodes();
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
@@ -265,6 +273,8 @@ class Lookup : public Executable {
                                  const Peer& from);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
+  bool ProcessGetStateDeltasFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
   // UNUSED
@@ -300,8 +310,12 @@ class Lookup : public Executable {
   bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
                                  const Peer& from);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
+  void PrepareForStartPow();
+  bool GetDSInfo();
   bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
+  bool ProcessSetStateDeltasFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from);
   bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
 

@@ -134,6 +134,11 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
       return false;
     }
 
+    if (SyncType::NEW_SYNC == syncType ||
+        SyncType::NEW_LOOKUP_SYNC == syncType) {
+      return true;
+    }
+
     m_mediator.m_currentEpochNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     m_mediator.IncreaseEpochNum();
@@ -511,11 +516,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType) {
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
   bool tx_result =
-      m_retriever->RetrieveTxBlocks(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-                                    SyncType::RECOVERY_ALL_SYNC == syncType);
+      m_retriever->RetrieveTxBlocks(RECOVERY_TRIM_INCOMPLETED_BLOCK);
 
   if (!tx_result) {
     return false;
+  }
+
+  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType) {
+    return true;
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes

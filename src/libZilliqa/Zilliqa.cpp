@@ -220,21 +220,23 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
-        if (!toRetrieveHistory) {
+        if (toRetrieveHistory) {
           m_n.m_runFromLate = true;
           m_n.StartSynchronization();
         } else {
           LOG_GENERAL(WARNING,
-                      "Error: Sync for new node shouldn't retrieve history");
+                      "Error: Sync for new node should retrieve history as "
+                      "much as possible!");
         }
         break;
       case SyncType::NEW_LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a new lookup node");
-        if (!toRetrieveHistory) {
+        if (toRetrieveHistory) {
           m_lookup.InitSync();
         } else {
           LOG_GENERAL(FATAL,
-                      "Error: Sync for new lookup shouldn't retrieve history");
+                      "Error: Sync for new lookup should retrieve history as "
+                      "much as possible");
         }
         break;
       case SyncType::NORMAL_SYNC:

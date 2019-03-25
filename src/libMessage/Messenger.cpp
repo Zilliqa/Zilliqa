@@ -5334,7 +5334,28 @@ bool Messenger::SetLookupGetStateDeltaFromSeed(bytes& dst,
   result.set_listenport(listenPort);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed");
+    LOG_GENERAL(WARNING, "LookupGetStateDeltaFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetLookupGetStateDeltasFromSeed(bytes& dst,
+                                                const unsigned int offset,
+                                                uint64_t& lowBlockNum,
+                                                uint64_t& highBlockNum,
+                                                const uint32_t listenPort) {
+  LOG_MARKER();
+
+  LookupGetStateDeltasFromSeed result;
+
+  result.set_lowblocknum(lowBlockNum);
+  result.set_highblocknum(highBlockNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetStateDeltasFromSeed initialization failed");
     return false;
   }
 
@@ -5352,11 +5373,34 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed");
+    LOG_GENERAL(WARNING, "LookupGetStateDeltaFromSeed initialization failed");
     return false;
   }
 
   blockNum = result.blocknum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::GetLookupGetStateDeltasFromSeed(const bytes& src,
+                                                const unsigned int offset,
+                                                uint64_t& lowBlockNum,
+                                                uint64_t& highBlockNum,
+                                                uint32_t& listenPort) {
+  LOG_MARKER();
+
+  LookupGetStateDeltasFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetStateDeltasFromSeed initialization failed");
+    return false;
+  }
+
+  lowBlockNum = result.lowblocknum();
+  highBlockNum = result.highblocknum();
   listenPort = result.listenport();
 
   return true;
@@ -5388,7 +5432,7 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
 
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                    signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign DS blocks");
+    LOG_GENERAL(WARNING, "Failed to sign StateDelta");
     return false;
   }
 
@@ -5396,6 +5440,48 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetStateDeltaFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetLookupSetStateDeltasFromSeed(
+    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
+    const uint64_t highBlockNum, const PairOfKey& lookupKey,
+    const vector<bytes>& stateDeltas) {
+  LOG_MARKER();
+
+  LookupSetStateDeltasFromSeed result;
+
+  result.mutable_data()->set_lowblocknum(lowBlockNum);
+  result.mutable_data()->set_highblocknum(highBlockNum);
+
+  for (const auto& delta : stateDeltas) {
+    result.mutable_data()->add_statedeltas(delta.data(), delta.size());
+  }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetStateDeltasFromSeed.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign StateDeltas");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStateDeltasFromSeed initialization failed");
     return false;
   }
 
@@ -5433,6 +5519,45 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in state delta");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::GetLookupSetStateDeltasFromSeed(
+    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<bytes>& stateDeltas) {
+  LOG_MARKER();
+
+  LookupSetStateDeltasFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStateDeltasFromSeed initialization failed");
+    return false;
+  }
+
+  lowBlockNum = result.data().lowblocknum();
+  highBlockNum = result.data().highblocknum();
+  stateDeltas.clear();
+  for (const auto& delta : result.data().statedeltas()) {
+    bytes tmp;
+    tmp.resize(delta.size());
+    std::copy(delta.begin(), delta.end(), tmp.begin());
+    stateDeltas.emplace_back(tmp);
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in state deltas");
     return false;
   }
 

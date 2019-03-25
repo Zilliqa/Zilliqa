@@ -184,6 +184,7 @@ extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 extern const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS;
 extern const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS;
+extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;
@@ -301,6 +302,7 @@ extern const std::string UPGRADE_HOST_REPO;
 extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
+extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 
 // Smart contract constants
 extern const bool ENABLE_SC;

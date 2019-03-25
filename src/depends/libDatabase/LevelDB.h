@@ -121,6 +121,9 @@ public:
     /// Reset the entire database.
     bool ResetDB();
 
+    /// Refresh the entire database.
+    bool RefreshDB();
+
 private:
     bool ResetDBForNormalNode();
     bool ResetDBForLookupNode();

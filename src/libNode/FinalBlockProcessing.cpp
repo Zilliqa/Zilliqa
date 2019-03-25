@@ -63,8 +63,6 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
 
   AddBlock(txBlock);
 
-  m_mediator.IncreaseEpochNum();
-
   // At this point, the transactions in the last Epoch is no longer useful, thus
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
@@ -75,6 +73,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   txBlock.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
+
+  m_mediator.IncreaseEpochNum();
 
   string prevHashStr;
   if (!DataConversion::charArrToHexStr(m_mediator.m_txBlockChain.GetLastBlock()

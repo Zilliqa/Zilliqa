@@ -654,12 +654,32 @@ message LookupGetStateDeltaFromSeed
     required uint32 listenport   = 2;
 }
 
+message LookupGetStateDeltasFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
 message LookupSetStateDeltaFromSeed
 {
     message Data
     {
         required uint64 blocknum     = 1;
         required bytes statedelta    = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
+}
+
+message LookupSetStateDeltasFromSeed
+{
+    message Data
+    {
+        required uint64 lowblocknum    = 1;
+        required uint64 highblocknum   = 2;
+        repeated bytes statedeltas = 3;
     }
     required Data data           = 1;
     required ByteArray pubkey    = 2;

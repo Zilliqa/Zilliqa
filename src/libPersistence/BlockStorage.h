@@ -104,6 +104,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
   std::shared_ptr<LevelDB> m_diagnosticDBNodes;
   std::shared_ptr<LevelDB> m_diagnosticDBCoinbase;
+  std::shared_ptr<LevelDB> m_stateRootDB;
   /// used for historical data
   std::shared_ptr<LevelDB> m_txnHistoricalDB;
   std::shared_ptr<LevelDB> m_MBHistoricalDB;
@@ -124,6 +125,7 @@ class BlockStorage : public Singleton<BlockStorage> {
             std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
         m_diagnosticDBCoinbase(
             std::make_shared<LevelDB>("diagnosticCoinb", path, diagnostic)),
+        m_stateRootDB(std::make_shared<LevelDB>("stateRoot")),
         m_diagnosticDBNodesCounter(0),
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
@@ -151,7 +153,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     STATE_DELTA,
     TEMP_STATE,
     DIAGNOSTIC_NODES,
-    DIAGNOSTIC_COINBASE
+    DIAGNOSTIC_COINBASE,
+    STATE_ROOT
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -247,8 +250,14 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Save Last Transactions Trie Root Hash
   bool PutMetadata(MetaType type, const bytes& data);
 
+  /// Save state root
+  bool PutStateRoot(const bytes& data);
+
   /// Retrieve Last Transactions Trie Root Hash
   bool GetMetadata(MetaType type, bytes& data);
+
+  // Retrieve the state root
+  bool GetStateRoot(bytes& data);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,
@@ -319,6 +328,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
+  /// Refresh a DB
+  bool RefreshDB(DBTYPE type);
+
   std::vector<std::string> GetDBName(DBTYPE type);
 
   /// Clean all DB
@@ -339,6 +351,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::mutex m_mutexTxBody;
   std::mutex m_mutexTxBodyTmp;
   std::mutex m_mutexDiagnostic;
+  std::mutex m_mutexStateRoot;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;

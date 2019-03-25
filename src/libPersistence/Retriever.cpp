@@ -22,21 +22,18 @@
 #include <exception>
 #include <vector>
 
-#include <boost/filesystem.hpp>
-
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
-
-using namespace boost::filesystem;
-namespace filesys = boost::filesystem;
+#include "libUtils/FileSystem.h"
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
 bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   LOG_MARKER();
   std::list<TxBlockSharedPtr> blocks;
+  std::vector<bytes> extraStateDeltas;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
     LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
     return false;
@@ -50,32 +47,121 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
   unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
 
+  /// Retrieve final block state delta from last DS epoch to
+  /// current TX epoch and buffer the statedelta for each.
+  for (const auto& block : blocks) {
+    if (block->GetHeader().GetBlockNum() >= lastBlockNum + 1 - extra_txblocks) {
+      bytes stateDelta;
+      if (!BlockStorage::GetBlockStorage().GetStateDelta(
+              block->GetHeader().GetBlockNum(), stateDelta)) {
+        // if any of state-delta is not fetched from extra txblocks set, simple
+        // skip all extra blocks
+        extraStateDeltas.clear();
+        trimIncompletedBlocks = true;
+        break;
+      } else {
+        extraStateDeltas.push_back(stateDelta);
+      }
+    }
+  }
+
+  if ((lastBlockNum - extra_txblocks + 1) %
+          (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
+      0) {
+    // we must have latest state currently. so need not recreate states
+    LOG_GENERAL(INFO, "Current state is up-to-date until txblk :"
+                          << lastBlockNum - extra_txblocks);
+  } else {
+    // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
+    // NUM_FINAL_BLOCK_PER_POW txn blocks
+    unsigned int lower_bound_txnblk =
+        ((lastBlockNum - extra_txblocks + 1) >
+         INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
+            ? (((lastBlockNum - extra_txblocks + 1) /
+                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)) *
+               (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW))
+            : 0;
+    unsigned int upper_bound_txnblk = lastBlockNum - extra_txblocks;
+
+    LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
+                          << lower_bound_txnblk << " - " << upper_bound_txnblk);
+
+    // clear all the state deltas from disk.
+    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+
+    std::string target = "persistence/stateDelta";
+    unsigned int firstStateDeltaIndex = lower_bound_txnblk;
+    for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
+      // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
+      // local persistence/stateDelta
+      std::string source = "StateDeltaFromS3/stateDelta_" + std::to_string(i);
+      if (boost::filesystem::exists(source)) {
+        try {
+          recursive_copy_dir(source, target);
+        } catch (std::exception& e) {
+          LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
+        }
+
+        if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
+            0) {  // state-delta from vacous epoch
+          // refresh state-delta after copy over
+          BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
+
+          // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
+          for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
+            if (!bfs::exists("StateDeltaFromS3/stateDelta_" +
+                             std::to_string(j))) {
+              continue;
+            }
+            bytes stateDelta;
+            LOG_GENERAL(
+                INFO,
+                "Try fetching statedelta and deserializing to state for txnBlk:"
+                    << j);
+            if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
+              if (!AccountStore::GetInstance().DeserializeDelta(stateDelta,
+                                                                0)) {
+                LOG_GENERAL(
+                    WARNING,
+                    "AccountStore::GetInstance().DeserializeDelta failed");
+                return false;
+              }
+            }
+          }
+          // commit the state to disk
+          AccountStore::GetInstance().MoveUpdatesToDisk();
+          // clear the stateDelta db
+          BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+          firstStateDeltaIndex = i + 1;
+        }
+      } else  // we rely on next statedelta that covers this missing one
+      {
+        LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
+                                 << i << ". This can happen. Not a problem!");
+        // Do nothing
+      }
+    }
+  }
+
   if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
       BlockStorage::GetBlockStorage().DeleteTxBlock(lastBlockNum - i);
       blocks.pop_back();
     }
-  }
-
-  for (const auto& block : blocks) {
-    m_mediator.m_node->AddBlock(*block);
-  }
-
-  /// Retrieve final block state delta from last DS epoch to
-  /// current TX epoch
-  for (const auto& block : blocks) {
-    if (block->GetHeader().GetBlockNum() >= lastBlockNum + 1 - extra_txblocks) {
-      bytes stateDelta;
-      BlockStorage::GetBlockStorage().GetStateDelta(
-          block->GetHeader().GetBlockNum(), stateDelta);
-
+  } else {
+    /// Put extra state delta from last DS epoch
+    for (const auto& stateDelta : extraStateDeltas) {
       if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
       }
     }
+  }
+
+  for (const auto& block : blocks) {
+    m_mediator.m_node->AddBlock(*block);
   }
 
   return true;
