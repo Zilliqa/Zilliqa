@@ -57,7 +57,7 @@ void TestRemoteMineCase_1() {
   uint8_t difficultyToUse = POW_DIFFICULTY;
   uint64_t blockToUse = 1000;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  auto boundary = POW::DifficultyLevelInInt(difficultyToUse);
+  auto boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
   ethash_mining_result_t winning_result = POWClient.RemoteMine(
       keyPair, blockToUse, headerHash, boundary, POW_WINDOW_IN_SECONDS);
@@ -68,7 +68,7 @@ void TestRemoteMineCase_1() {
             << " result " << verifyLight << std::endl;
 
   difficultyToUse = DS_POW_DIFFICULTY;
-  boundary = POW::DifficultyLevelInInt(difficultyToUse);
+  boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
   winning_result = POWClient.RemoteMine(keyPair, blockToUse, headerHash,
                                         boundary, POW_WINDOW_IN_SECONDS);

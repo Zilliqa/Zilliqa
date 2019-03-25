@@ -116,6 +116,14 @@ class DataConversion {
 
   /// Normalize alphanumeric hex string to lower and remove prefix "0x"
   static bool NormalizeHexString(std::string& s);
+
+  static size_t clz(uint8_t x) {
+    static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
+                                                    0, 0, 0, 0, 0, 0, 0, 0};
+    auto upper = (x >> 4) & 0x0F;
+    auto lower = x & 0x0F;
+    return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+  }
 };
 
 #endif  // __DATACONVERSION_H__

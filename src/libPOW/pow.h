@@ -65,6 +65,7 @@ class POW {
   static std::string BlockhashToHexString(const ethash_hash256& _hash);
   static bool CheckDificulty(const ethash_hash256& result,
                              const ethash_hash256& boundary);
+  static size_t CountLeadingZeros(const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
   static POW& GetInstance();
@@ -99,6 +100,8 @@ class POW {
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
       uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
+  static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
+  static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
   ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& headerHash,
                            uint64_t nonce);
   bool CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,

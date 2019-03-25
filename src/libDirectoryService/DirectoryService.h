@@ -425,7 +425,6 @@ class DirectoryService : public Executable {
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
-  uint64_t CalculateNumberOfBlocksPerYear() const;
 
   void ReloadGuardedShards(DequeOfShard& shards);
 
