@@ -85,7 +85,7 @@ class Node : public Executable {
   std::atomic<uint32_t> m_numShards;
 
   // pre-generated addresses
-  std::vector<Address> m_populated_addresses;
+  std::vector<Address> m_populatedAddresses;
 
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;

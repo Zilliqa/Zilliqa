@@ -71,17 +71,20 @@ void Node::PopulateAccounts() {
     string line;
     fstream keys_file(PREGENED_ACCOUNTS_FILE, ios::in);
 
-    while (getline(keys_file, line)) {
+    unsigned int counter = 0;
+
+    while (getline(keys_file, line) && counter < NUM_ACCOUNTS_PREGENERATE) {
       vector<string> key_pair;  // pub/priv
       boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
       Address t_addr = Account::GetAddressFromPublicKey(
           PubKey::GetPubKeyFromString(key_pair[0]));
       AccountStore::GetInstance().AddAccount(t_addr, {0, 0});
-      m_populated_addresses.emplace_back(t_addr);
+      m_populatedAddresses.emplace_back(t_addr);
+      counter++;
     }
   } catch (std::exception& e) {
-    std::cerr << "Problem occured when processing keys on line: "
-              << m_populated_addresses.size() + 1 << endl;
+    LOG_GENERAL(WARNING, "Problem occured when processing keys on line: "
+                             << m_populatedAddresses.size() + 1);
   }
 }
 
