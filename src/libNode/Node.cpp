@@ -54,6 +54,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/SysCommand.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libValidator/Validator.h"
@@ -105,6 +106,12 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
     : m_mediator(mediator) {}
 
 Node::~Node() {}
+
+bool Node::DownloadPersistenceFromS3() {
+  LOG_MARKER();
+  unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
+  return status == 0;
+}
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   LOG_MARKER();
@@ -1603,10 +1610,21 @@ void Node::RejoinAsNormal() {
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-      this->CleanVariables();
-      this->m_mediator.m_ds->CleanVariables();
-      this->Install(SyncType::NORMAL_SYNC);
+      while (true) {
+        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+        this->CleanVariables();
+        this->m_mediator.m_ds->CleanVariables();
+        if (!this->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 failed. Rejoin might fail!");
+        }
+        BlockStorage::GetBlockStorage().RefreshAll();
+        if (this->Install(SyncType::NORMAL_SYNC, true)) {
+          break;
+        };
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
