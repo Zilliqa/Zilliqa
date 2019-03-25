@@ -320,6 +320,7 @@ extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const bool ENABLE_ACCOUNTS_POPULATING;
+extern const unsigned int NUM_ACCOUNTS_PREGENERATE;
 extern const std::string PREGENED_ACCOUNTS_FILE;
 
 // Transaction constants
