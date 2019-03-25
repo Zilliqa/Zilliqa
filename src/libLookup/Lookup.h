@@ -88,6 +88,9 @@ class Lookup : public Executable {
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
+  // Store the StateRootHash of latest txBlock before States are repopulated.
+  StateHash m_prevStateRootHashTemp;
+
   /// To indicate which type of synchronization is using
   std::atomic<SyncType> m_syncType;  // = SyncType::NO_SYNC;
 

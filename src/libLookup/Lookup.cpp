@@ -1157,14 +1157,17 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   if (lowBlockNum == 0) {
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
-
-  } else if (lowBlockNum <= m_mediator.m_dsBlockChain.GetLastBlock()
-                                .GetHeader()
-                                .GetEpochNum()) {
-    // To get block num from dsblockchain instead of txblock chain as node
-    // recover from the last ds epoch
-    lowBlockNum =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  } else {
+    uint64_t lowestLimitNum = (m_mediator.m_dsBlockChain.GetBlockCount() >
+                               INCRDB_DSNUMS_WITH_STATEDELTAS)
+                                  ? (m_mediator.m_dsBlockChain.GetBlockCount() -
+                                     INCRDB_DSNUMS_WITH_STATEDELTAS) *
+                                        NUM_FINAL_BLOCK_PER_POW
+                                  : 0;
+    if (lowBlockNum <= lowestLimitNum) {
+      // Limit the number of txn blocks upto last N ds epochs
+      lowBlockNum = lowestLimitNum;
+    }
   }
 
   if (highBlockNum == 0) {
@@ -1964,6 +1967,43 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
+
+  if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
+    unsigned int retry = 1;
+    while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
+      // Get the state-delta for all txBlocks from random lookup nodes
+      GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
+      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
+      if (cv_setStateDeltasFromSeed.wait_for(
+              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(
+            WARNING,
+            "[Retry: " << retry
+                       << "] Didn't receive statedeltas! Will try again");
+        retry++;
+      } else {
+        break;
+      }
+    }
+    if (retry > RETRY_GETSTATEDELTAS_COUNT) {
+      LOG_GENERAL(WARNING, "Failed to receive state-deltas for txBlks: "
+                               << lowBlockNum << "-" << highBlockNum);
+      cv_setTxBlockFromSeed.notify_all();
+      cv_waitJoined.notify_all();
+      return;
+    }
+  }
+
+  // Check StateRootHash and One in last TxBlk
+  if (m_prevStateRootHashTemp !=
+      txBlocks.back().GetHeader().GetStateRootHash()) {
+    LOG_CHECK_FAIL("State root hash",
+                   txBlocks.back().GetHeader().GetStateRootHash(),
+                   m_prevStateRootHashTemp);
+    return;
+  }
+
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
@@ -1973,24 +2013,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-  }
-
-  bool getStateFromSeedInVacuous = false;
-  if (m_syncType == SyncType::NEW_SYNC ||
-      m_syncType == SyncType::NEW_LOOKUP_SYNC) {  // only for new node joining
-    while (true) {
-      // Get the state-delta for all txBlocks from random lookup nodes
-      GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
-
-      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
-      if (cv_setStateDeltasFromSeed.wait_for(
-              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Didn't receive statedeltas! Will try again");
-      } else {
-        break;
-      }
-    }
   }
 
   m_mediator.m_currentEpochNum =
@@ -2005,31 +2027,36 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
       (m_syncType != SyncType::NEW_LOOKUP_SYNC)) {
-    if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
+    if (m_syncType == SyncType::RECOVERY_ALL_SYNC) {
       LOG_EPOCH(
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
-    } else if (m_syncType == SyncType::NEW_SYNC) {
+    } else if (m_syncType == SyncType::NEW_SYNC ||
+               m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
+    } else if (m_syncType == SyncType::DS_SYNC ||
+               m_syncType == SyncType::GUARD_DS_SYNC) {
+      if (!m_currDSExpired &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+              m_mediator.m_currentEpochNum) {
+        m_isFirstLoop = true;
+        SetSyncType(SyncType::NO_SYNC);
+        m_mediator.m_ds->FinishRejoinAsDS();
+      }
+      m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Try getting state from lookup");
-      GetStateFromSeedNodes();
-    } else {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Already should have latest state by now.");
-      if (GetDSInfo()) {
-        if (!m_currDSExpired) {
-          if (FinishNewJoinAsLookup()) {
-            SetSyncType(SyncType::NO_SYNC);
-            m_isFirstLoop = true;
-          }
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "New lookup node - Already should have latest state by now.");
+    if (GetDSInfo()) {
+      if (!m_currDSExpired) {
+        if (FinishNewJoinAsLookup()) {
+          SetSyncType(SyncType::NO_SYNC);
+          m_isFirstLoop = true;
         }
-        m_currDSExpired = false;
       }
+      m_currDSExpired = false;
     }
   }
 
@@ -2122,9 +2149,9 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                 << highBlockNum);
 
   if (stateDeltas.size() != highBlockNum - lowBlockNum + 1) {
-    LOG_GENERAL(WARNING, "SateDeltas recvd:" << stateDeltas.size()
-                                             << " , Expected: "
-                                             << highBlockNum - lowBlockNum + 1);
+    LOG_GENERAL(WARNING,
+                "StateDeltas recvd:" << stateDeltas.size() << " , Expected: "
+                                     << highBlockNum - lowBlockNum + 1);
     return false;
   }
 
@@ -2142,15 +2169,18 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
         return false;
       }
       BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
-      if (((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) &&
-          (txBlkNum + NUM_FINAL_BLOCK_PER_POW < highBlockNum)) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-          LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-          return false;
-        }
-      }
-      txBlkNum++;
+      m_prevStateRootHashTemp = AccountStore::GetInstance().GetStateRootHash();
     }
+    if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
+      if (ENABLE_REPOPULATE && ((txBlkNum + 1) % (NUM_FINAL_BLOCK_PER_POW *
+                                                  REPOPULATE_STATE_PER_N_DS) ==
+                                REPOPULATE_STATE_IN_DS)) {
+        AccountStore::GetInstance().MoveUpdatesToDisk(true);
+      } else if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
+        AccountStore::GetInstance().MoveUpdatesToDisk(false);
+      }
+    }
+    txBlkNum++;
   }
 
   cv_setStateDeltasFromSeed.notify_all();
@@ -2435,29 +2465,30 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   auto dsBlockRand = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> txBlockRand{};
 
-  if (CheckStateRoot()) {
-    // Attempt PoW
-    m_startedPoW = true;
-    dsBlockRand = m_mediator.m_dsBlockRand;
-    txBlockRand = m_mediator.m_txBlockRand;
+  // state root could be changed after repopulating states. so check is moved
+  // before repopulating state in CommitTxBlocks. if (CheckStateRoot()) {
+  // Attempt PoW
+  m_startedPoW = true;
+  dsBlockRand = m_mediator.m_dsBlockRand;
+  txBlockRand = m_mediator.m_txBlockRand;
 
-    m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-    POW::GetInstance().EthashConfigureClient(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
-        FULL_DATASET_MINE);
+  m_mediator.m_node->SetState(Node::POW_SUBMISSION);
+  POW::GetInstance().EthashConfigureClient(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Starting PoW for new ds block number " << curDsBlockNum + 1);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
-    m_mediator.m_node->StartPoW(
-        curDsBlockNum + 1,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
-        dsBlockRand, txBlockRand, lookupIndex);
-  } else {
-    LOG_GENERAL(WARNING, "State root check failed");
-    return false;
-  }
+  m_mediator.m_node->StartPoW(
+      curDsBlockNum + 1,
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
+      dsBlockRand, txBlockRand, lookupIndex);
+  //} else {
+  //  LOG_GENERAL(WARNING, "State root check failed");
+  //  return false;
+  //}
 
   uint64_t lastTxBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -2878,7 +2909,6 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
   }
 
   InitMining(index);
-
   return true;
 }
 

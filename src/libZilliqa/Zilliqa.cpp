@@ -194,10 +194,21 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
-    if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
+    while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+        break;
+      } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
+                                       SyncType::NEW_SYNC == syncType)) {
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        m_n.CleanVariables();
+        if (!m_n.DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 failed. Join might fail!");
+        }
+        BlockStorage::GetBlockStorage().RefreshAll();
       } else {
         syncType = SyncType::NORMAL_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
@@ -209,6 +220,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
             break;
           }
         }
+        break;
       }
     }
 
