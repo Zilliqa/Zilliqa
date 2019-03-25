@@ -309,7 +309,6 @@ extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 
 // Server Constants
 extern const unsigned int SERVER_PORT;
-extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 
 // Smart contract constants
 extern const bool ENABLE_SC;

@@ -22,7 +22,6 @@
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "depends/safeserver/safehttpserver.h"
-#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -157,13 +156,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   m_validator = make_shared<Validator>(m_mediator);
 
-  if (LOOKUP_NODE_MODE) {
-    m_serverConnector = make_unique<SafeHttpServer>(SERVER_PORT);
+  m_serverConnector = make_unique<SafeHttpServer>(SERVER_PORT);
 
-  } else {
-    m_serverConnector =
-        make_unique<SafeTcpSocketServer>(IP_TO_BIND, SERVER_PORT);
-  }
   if (m_serverConnector == nullptr) {
     LOG_GENERAL(FATAL, "m_serverConnector NULL");
   }
@@ -325,12 +319,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    if (m_server == nullptr) {
-      LOG_GENERAL(INFO, "Pointer unitialized");
-    } else if (m_server->StartListening()) {
-      LOG_GENERAL(INFO, "API Server started successfully");
-    } else {
-      LOG_GENERAL(WARNING, "API Server couldn't start");
+    if (LOOKUP_NODE_MODE) {
+      if (m_server == nullptr) {
+        LOG_GENERAL(INFO, "Pointer unitialized");
+      } else if (m_server->StartListening()) {
+        LOG_GENERAL(INFO, "API Server started successfully");
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
+      }
     }
   };
   DetachedFunction(1, func);
