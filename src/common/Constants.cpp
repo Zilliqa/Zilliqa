@@ -444,6 +444,12 @@ const unsigned int FALLBACK_TEST_EPOCH{
 #endif  // FALLBACK_TEST
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
+const bool ENABLE_ACCOUNTS_POPULATING{
+    ReadConstantString("ENABLE_ACCOUNTS_POPULATING", "node.tests.") == "true"};
+const unsigned int NUM_ACCOUNTS_PREGENERATE{
+    ReadConstantNumeric("NUM_ACCOUNTS_PREGENERATE", "node.tests.")};
+const string PREGENED_ACCOUNTS_FILE{
+    ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
 const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{

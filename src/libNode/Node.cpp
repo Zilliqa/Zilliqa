@@ -68,7 +68,29 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
-void addBalanceToGenesisAccount() {
+void Node::PopulateAccounts() {
+  try {
+    string line;
+    fstream keys_file(PREGENED_ACCOUNTS_FILE, ios::in);
+
+    unsigned int counter = 0;
+
+    while (getline(keys_file, line) && counter < NUM_ACCOUNTS_PREGENERATE) {
+      vector<string> key_pair;  // pub/priv
+      boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
+      Address t_addr = Account::GetAddressFromPublicKey(
+          PubKey::GetPubKeyFromString(key_pair[0]));
+      AccountStore::GetInstance().AddAccount(t_addr, {0, 0});
+      m_populatedAddresses.emplace_back(t_addr);
+      counter++;
+    }
+  } catch (std::exception& e) {
+    LOG_GENERAL(WARNING, "Problem occured when processing keys on line: "
+                             << m_populatedAddresses.size() + 1);
+  }
+}
+
+void Node::AddBalanceToGenesisAccount() {
   LOG_MARKER();
 
   const uint128_t balance_each = TOTAL_GENESIS_TOKEN / GENESIS_WALLETS.size();
@@ -98,6 +120,11 @@ void addBalanceToGenesisAccount() {
   // Init account for issuing coinbase rewards
   AccountStore::GetInstance().AddAccount(Address(),
                                          {TOTAL_COINBASE_REWARD, nonce});
+
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    PopulateAccounts();
+  }
+
   AccountStore::GetInstance().UpdateStateTrieAll();
 }
 
@@ -274,7 +301,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
   if (syncType == SyncType::NO_SYNC) {
     m_mediator.m_consensusID = 1;
     m_consensusLeaderID = 1;
-    addBalanceToGenesisAccount();
+    AddBalanceToGenesisAccount();
   } else {
     m_mediator.m_consensusID = 0;
     m_consensusLeaderID = 0;

@@ -84,6 +84,9 @@ class Node : public Executable {
   // Sharding information
   std::atomic<uint32_t> m_numShards;
 
+  // pre-generated addresses
+  std::vector<Address> m_populatedAddresses;
+
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
   std::condition_variable cv_processConsensusMessage;
@@ -475,6 +478,12 @@ class Node : public Executable {
   void CommitMBnForwardedTransactionBuffer();
 
   void CleanCreatedTransaction();
+
+  void AddBalanceToGenesisAccount();
+
+  void PopulateAccounts();
+
+  void UpdateBalanceForPreGeneratedAccounts();
 
   void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
