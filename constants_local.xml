@@ -138,7 +138,7 @@
         <RPC_PORT>4201</RPC_PORT>
         <!-- Only for non-lookup nodes -->
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
-        <ENABLE_STATUS_RPC>false</ENABLE_SHARD_SERVER>
+        <ENABLE_STATUS_RPC>false</ENABLE_STATUS_RPC>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

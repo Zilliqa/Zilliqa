@@ -171,7 +171,8 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
     {
         delete client_connection;
     }
-        *con_cls = NULL;
+    *con_cls = NULL;
+    
     return MHD_YES;
     }
     catch(const Json::Exception &e)
