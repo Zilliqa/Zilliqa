@@ -63,7 +63,6 @@ const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-const unsigned int SERVER_PORT = 4201;
 
 // Number of initial ds epoch number, including genesis epoch
 const unsigned int INIT_DS_EPOCH_NUM = 2;
@@ -247,6 +246,11 @@ extern const unsigned int SHARD_LEADER_SELECT_TOL;
 
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
+
+// RPC Constants
+extern const unsigned int RPC_PORT;
+extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
+extern const bool ENABLE_STATUS_RPC;  //
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/common/exception.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <chrono>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
+#include "depends/safeserver/safehttpserver.h"
+#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -135,9 +135,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_ds(m_mediator),
       m_lookup(m_mediator, syncType),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_msgQueue(MSGQUEUE_SIZE),
-      m_httpserver(SERVER_PORT),
-      m_server(m_mediator, m_httpserver)
+      m_msgQueue(MSGQUEUE_SIZE)
 
 {
   LOG_MARKER();
@@ -158,6 +156,18 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
+
+  if (LOOKUP_NODE_MODE) {
+    m_serverConnector = make_unique<SafeHttpServer>(RPC_PORT);
+
+  } else {
+    m_serverConnector = make_unique<SafeTcpSocketServer>(IP_TO_BIND, RPC_PORT);
+  }
+  if (m_serverConnector == nullptr) {
+    LOG_GENERAL(FATAL, "m_serverConnector NULL");
+  }
+  m_server = make_unique<Server>(m_mediator, *m_serverConnector);
+
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
@@ -171,7 +181,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    m_server.StartCollectorThread();
+    m_server->StartCollectorThread();
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
@@ -311,11 +321,18 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");
-      if (m_server.StartListening()) {
-        LOG_GENERAL(INFO, "API Server started successfully");
-        m_lookup.SetServerTrue();
-      } else {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
+      m_lookup.SetServerTrue();
+    }
+
+    if (m_server == nullptr) {
+      LOG_GENERAL(INFO, "Pointer unitialized");
+    } else {
+      if ((LOOKUP_NODE_MODE) || (ENABLE_STATUS_RPC)) {
+        if (m_server->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
   };

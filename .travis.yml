@@ -6,8 +6,8 @@ cache:
 matrix:
   include:
     - os: linux
-    - os: osx
-      osx_image: xcode10.1
+    #- os: osx
+     # osx_image: xcode10.1
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then

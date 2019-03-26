@@ -289,6 +289,12 @@ const unsigned int SHARD_LEADER_SELECT_TOL{
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
 
+// RPC Constants
+const unsigned int RPC_PORT{ReadConstantNumeric("RPC_PORT", "node.jsonrpc.")};
+const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
+const bool ENABLE_STATUS_RPC{
+    ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
+
 // Network composition constants
 const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
