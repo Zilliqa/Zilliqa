@@ -207,6 +207,7 @@
     <server>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <SERVER_PORT>4201</SERVER_PORT>
+        <ENABLE_SHARD_SERVER>false</ENABLE_SHARD_SERVER>
     </server>
     <smart_contract>
         <ENABLE_SC>false</ENABLE_SC>
