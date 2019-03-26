@@ -247,6 +247,11 @@ extern const unsigned int SHARD_LEADER_SELECT_TOL;
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 
+// RPC Constants
+extern const unsigned int RPC_PORT;
+extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
+extern const bool ENABLE_STATUS_RPC;  //
+
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
@@ -306,11 +311,6 @@ extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
-
-// Server Constants
-extern const unsigned int SERVER_PORT;
-extern const std::string IP_TO_BIND;
-extern const bool ENABLE_SHARD_SERVER;  // Only for non-lookup nodes
 
 // Smart contract constants
 extern const bool ENABLE_SC;

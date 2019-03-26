@@ -289,6 +289,12 @@ const unsigned int SHARD_LEADER_SELECT_TOL{
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
 
+// RPC Constants
+const unsigned int RPC_PORT{ReadConstantNumeric("RPC_PORT", "node.jsonrpc.")};
+const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
+const bool ENABLE_STATUS_RPC{
+    ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
+
 // Network composition constants
 const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
@@ -401,13 +407,6 @@ const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
     ReadConstantNumeric("INCRDB_DSNUMS_WITH_STATEDELTAS", "node.recovery.")};
-
-// Server Constants
-const unsigned int SERVER_PORT{
-    ReadConstantNumeric("SERVER_PORT", "node.server.")};
-const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.server.")};
-const bool ENABLE_SHARD_SERVER{
-    ReadConstantString("ENABLE_SHARD_SERVER", "node.server.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

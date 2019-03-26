@@ -158,11 +158,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   m_validator = make_shared<Validator>(m_mediator);
 
   if (LOOKUP_NODE_MODE) {
-    m_serverConnector = make_unique<SafeHttpServer>(SERVER_PORT);
+    m_serverConnector = make_unique<SafeHttpServer>(RPC_PORT);
 
   } else {
-    m_serverConnector =
-        make_unique<SafeTcpSocketServer>(IP_TO_BIND, SERVER_PORT);
+    m_serverConnector = make_unique<SafeTcpSocketServer>(IP_TO_BIND, RPC_PORT);
   }
   if (m_serverConnector == nullptr) {
     LOG_GENERAL(FATAL, "m_serverConnector NULL");
@@ -328,7 +327,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     if (m_server == nullptr) {
       LOG_GENERAL(INFO, "Pointer unitialized");
     } else {
-      if ((LOOKUP_NODE_MODE) || (ENABLE_SHARD_SERVER)) {
+      if ((LOOKUP_NODE_MODE) || (ENABLE_STATUS_RPC)) {
         if (m_server->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
         } else {
