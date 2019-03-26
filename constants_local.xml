@@ -204,6 +204,7 @@
         <INCRDB_DSNUMS_WITH_STATEDELTAS>10</INCRDB_DSNUMS_WITH_STATEDELTAS>
     </recovery>
     <server>
+        <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <SERVER_PORT>4201</SERVER_PORT>
     </server>
     <smart_contract>

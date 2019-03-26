@@ -14,5 +14,5 @@ add_test(NAME Test_POW COMMAND Test_POW)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable (Test_RemoteMine test_RemoteMine.cpp)
-target_link_libraries(Test_RemoteMine PUBLIC ethash POW DirectoryService Lookup Node Server Utils Crypto Boost::unit_test_framework Boost::filesystem jsonrpc::client jsonrpc::common)
+target_link_libraries(Test_RemoteMine PUBLIC ethash POW DirectoryService Lookup Node Server Utils Crypto Boost::unit_test_framework Boost::filesystem)
 target_include_directories (Test_RemoteMine PUBLIC ${PROJECT_SOURCE_DIR}/src)

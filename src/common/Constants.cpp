@@ -405,6 +405,9 @@ const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
 // Server Constants
 const unsigned int SERVER_PORT{
     ReadConstantNumeric("SERVER_PORT", "node.server.")};
+const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.server.")};
+const bool ENABLE_SHARD_SERVER{
+    ReadConstantString("ENABLE_SHARD_SERVER", "node.server.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

@@ -65,7 +65,7 @@ file(MAKE_DIRECTORY ${JSONRPC_INCLUDE_DIR})  # Must exist.
 
 add_library(jsonrpc::common STATIC IMPORTED)
 set_property(TARGET jsonrpc::common PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-common${CMAKE_STATIC_LIBRARY_SUFFIX})
-set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES jsoncpp)
+set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES ${JSONCPP_LINK_TARGETS})
 set_property(TARGET jsonrpc::common PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JSONRPC_INCLUDE_DIR} ${JSONCPP_INCLUDE_DIR})
 add_dependencies(jsonrpc::common jsonrpc-project)
 
