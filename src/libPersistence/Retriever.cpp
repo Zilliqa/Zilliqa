@@ -56,6 +56,9 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
               block->GetHeader().GetBlockNum(), stateDelta)) {
         // if any of state-delta is not fetched from extra txblocks set, simple
         // skip all extra blocks
+        LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
+                              << block->GetHeader().GetBlockNum()
+                              << ". Will trim rest of txBlks");
         extraStateDeltas.clear();
         trimIncompletedBlocks = true;
         break;

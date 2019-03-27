@@ -1993,15 +1993,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       cv_waitJoined.notify_all();
       return;
     }
-  }
 
-  // Check StateRootHash and One in last TxBlk
-  if (m_prevStateRootHashTemp !=
-      txBlocks.back().GetHeader().GetStateRootHash()) {
-    LOG_CHECK_FAIL("State root hash",
-                   txBlocks.back().GetHeader().GetStateRootHash(),
-                   m_prevStateRootHashTemp);
-    return;
+    // Check StateRootHash and One in last TxBlk
+    if (m_prevStateRootHashTemp !=
+        txBlocks.back().GetHeader().GetStateRootHash()) {
+      LOG_CHECK_FAIL("State root hash",
+                     txBlocks.back().GetHeader().GetStateRootHash(),
+                     m_prevStateRootHashTemp);
+      return;
+    }
   }
 
   for (const auto& txBlock : txBlocks) {
@@ -2148,7 +2148,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                 << from << " for blocks: " << lowBlockNum << " to "
                 << highBlockNum);
 
-  if (stateDeltas.size() != highBlockNum - lowBlockNum + 1) {
+  if (stateDeltas.size() != (highBlockNum - lowBlockNum + 1)) {
     LOG_GENERAL(WARNING,
                 "StateDeltas recvd:" << stateDeltas.size() << " , Expected: "
                                      << highBlockNum - lowBlockNum + 1);

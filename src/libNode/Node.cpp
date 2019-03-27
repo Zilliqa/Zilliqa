@@ -1645,6 +1645,7 @@ void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
+        BlockStorage::GetBlockStorage().ResetAll();
         while (!this->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
