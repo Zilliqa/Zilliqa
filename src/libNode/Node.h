@@ -86,6 +86,7 @@ class Node : public Executable {
 
   // pre-generated addresses
   std::vector<Address> m_populatedAddresses;
+  unsigned int m_accountPopulated = 0;
 
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
@@ -481,7 +482,7 @@ class Node : public Executable {
 
   void AddBalanceToGenesisAccount();
 
-  void PopulateAccounts();
+  void PopulateAccounts(bool temp = false);
 
   void UpdateBalanceForPreGeneratedAccounts();
 

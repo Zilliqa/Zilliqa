@@ -170,6 +170,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
         << "] FINISH WRITE STATE TO DISK");
+    if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+        PREGEN_ACCOUNT_TIMES) {
+      m_mediator.m_node->PopulateAccounts();
+    }
   } else {
     StoreFinalBlockToDisk();
     // Coinbase

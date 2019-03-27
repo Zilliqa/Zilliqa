@@ -758,6 +758,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
         << "] FINISH WRITE STATE TO DISK");
+    if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+        PREGEN_ACCOUNT_TIMES) {
+      PopulateAccounts();
+    }
   }
 
   // m_mediator.HeartBeatPulse();
