@@ -1641,10 +1641,11 @@ void Node::RejoinAsNormal() {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
-        if (!this->DownloadPersistenceFromS3()) {
+        while (!this->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Rejoin might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
         if (this->Install(SyncType::NORMAL_SYNC, true)) {
