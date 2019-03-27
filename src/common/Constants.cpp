@@ -351,10 +351,10 @@ const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
     ReadConstantNumeric("POW_DIFFICULTY", "node.pow.")};
-const unsigned int POW_BOUNDARY_N_DEVIDED{
-    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED", "node.pow.")};
-const unsigned int POW_BOUNDARY_N_DEVIDED_START{
-    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED_START", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DIVIDED{
+    ReadConstantNumeric("POW_BOUNDARY_N_DIVIDED", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DIVIDED_START{
+    ReadConstantNumeric("POW_BOUNDARY_N_DIVIDED_START", "node.pow.")};
 const unsigned int POW_SUBMISSION_LIMIT{
     ReadConstantNumeric("POW_SUBMISSION_LIMIT", "node.pow.")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
