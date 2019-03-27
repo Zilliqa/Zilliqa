@@ -221,13 +221,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         }
         BlockStorage::GetBlockStorage().RefreshAll();
       } else {
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
             m_ds.RejoinAsDS();
             return;
           }
         }
-        m_n.RejoinAsNormal();
+        m_n.RejoinAsNormal(true);
         return;
       }
     }
