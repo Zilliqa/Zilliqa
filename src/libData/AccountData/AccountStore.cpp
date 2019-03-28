@@ -60,6 +60,12 @@ void AccountStore::InitSoft() {
   InitTemp();
 }
 
+void AccountStore::RefreshDB() {
+  LOG_MARKER();
+  lock_guard<mutex> g(m_mutexDB);
+  m_db.RefreshDB();
+}
+
 void AccountStore::InitTemp() {
   LOG_MARKER();
 
@@ -345,15 +351,19 @@ bool AccountStore::RetrieveFromDisk() {
   lock(g, g2);
 
   bytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)
-      // To support backward compatibilty - lookup with new binary trying to
-      // recover from old database
-      && !BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-    return false;
+  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
+    // To support backward compatibilty - lookup with new binary trying to
+    // recover from old database
+    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+      BlockStorage::GetBlockStorage().PutStateRoot(rootBytes);
+    } else {
+      return false;
+    }
   }
 
   try {
     h256 root(rootBytes);
+    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
     m_state.setRoot(root);
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "

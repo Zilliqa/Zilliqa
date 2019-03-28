@@ -150,6 +150,9 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Clean r_map
   void InitRevertibles();
+
+  /// Refresh all DB
+  bool RefreshAll();
 };
 
 }  // namespace Contract

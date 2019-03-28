@@ -136,11 +136,14 @@ Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
-  unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
-  return status == 0;
+  string output;
+  // TBD - find better way to capture the exit status of command
+  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py", output);
+  return (output.find("Done!") != std::string::npos);
 }
 
-bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
+bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
+                   bool rejoiningAfterRecover) {
   LOG_MARKER();
 
   m_txn_distribute_window_open = false;
@@ -162,14 +165,15 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   }
 
   if (toRetrieveHistory) {
-    if (!StartRetrieveHistory(syncType)) {
+    if (!StartRetrieveHistory(syncType, rejoiningAfterRecover)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
     }
 
     if (SyncType::NEW_SYNC == syncType ||
-        SyncType::NEW_LOOKUP_SYNC == syncType) {
+        SyncType::NEW_LOOKUP_SYNC == syncType ||
+        (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
       return true;
     }
 
@@ -463,7 +467,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType) {
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool rejoiningAfterRecover) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -556,7 +561,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType) {
     return false;
   }
 
-  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType) {
+  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
+      (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
     return true;
   }
 
@@ -1626,7 +1632,7 @@ void Node::AddBlock(const TxBlock& block) {
   m_mediator.m_txBlockChain.AddBlock(block);
 }
 
-void Node::RejoinAsNormal() {
+void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1636,18 +1642,20 @@ void Node::RejoinAsNormal() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    auto func = [this]() mutable -> void {
+    auto func = [this, rejoiningAfterRecover]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
-        if (!this->DownloadPersistenceFromS3()) {
+        while (!this->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Rejoin might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
-        if (this->Install(SyncType::NORMAL_SYNC, true)) {
+        AccountStore::GetInstance().RefreshDB();
+        if (this->Install(SyncType::NORMAL_SYNC, true, rejoiningAfterRecover)) {
           break;
         };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));

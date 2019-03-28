@@ -475,12 +475,14 @@ void DirectoryService::RejoinAsDS() {
         m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_mediator.m_node->CleanVariables();
         this->CleanVariables();
-        if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Rejoin might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }

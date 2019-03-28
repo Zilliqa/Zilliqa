@@ -204,6 +204,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
+    LogSelfNodeInfo(key, peer);
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
@@ -211,30 +212,30 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
                                        SyncType::NEW_SYNC == syncType)) {
-        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         m_n.CleanVariables();
-        if (!m_n.DownloadPersistenceFromS3()) {
+        while (!m_n.DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Join might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
       } else {
-        syncType = SyncType::NORMAL_SYNC;
-        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        bool isDsNode = false;
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
-            syncType = SyncType::DS_SYNC;
-            m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
+            isDsNode = true;
+            m_ds.RejoinAsDS();
             break;
           }
+        }
+        if (!isDsNode) {
+          m_n.RejoinAsNormal(true);
         }
         break;
       }
     }
-
-    LogSelfNodeInfo(key, peer);
 
     switch (syncType) {
       case SyncType::NO_SYNC:

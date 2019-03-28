@@ -56,6 +56,9 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
               block->GetHeader().GetBlockNum(), stateDelta)) {
         // if any of state-delta is not fetched from extra txblocks set, simple
         // skip all extra blocks
+        LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
+                              << block->GetHeader().GetBlockNum()
+                              << ". Will trim rest of txBlks");
         extraStateDeltas.clear();
         trimIncompletedBlocks = true;
         break;
@@ -146,10 +149,18 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         }
       } else  // we rely on next statedelta that covers this missing one
       {
-        LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
-                                 << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
         // Do nothing
       }
+    }
+  }
+
+  if (boost::filesystem::exists("StateDeltaFromS3")) {
+    try {
+      boost::filesystem::remove_all("StateDeltaFromS3");
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Failed to remove StateDeltaFromS3 directory");
     }
   }
 
@@ -161,12 +172,15 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   } else {
     /// Put extra state delta from last DS epoch
+    unsigned int extra_delta_index = lastBlockNum - extra_txblocks + 1;
     for (const auto& stateDelta : extraStateDeltas) {
       if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
       }
+      BlockStorage::GetBlockStorage().PutStateDelta(extra_delta_index++,
+                                                    stateDelta);
     }
   }
 
