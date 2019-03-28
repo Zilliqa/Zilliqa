@@ -73,6 +73,10 @@ void Blacklist::Clear() {
 }
 
 void Blacklist::Pop(unsigned int num_to_pop) {
+  if (!m_enabled) {
+    return;
+  }
+
   lock_guard<mutex> g(m_mutexBlacklistIP);
   LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistIP.size());
 
