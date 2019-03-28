@@ -243,7 +243,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         } else {
           LOG_GENERAL(FATAL,
                       "Error: Sync for new lookup should retrieve history as "
-                      "much as possible");
+                      "much as ppssible");
         }
         break;
       case SyncType::NORMAL_SYNC:
