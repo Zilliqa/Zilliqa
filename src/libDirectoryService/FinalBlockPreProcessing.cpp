@@ -1036,7 +1036,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
   // FIXME: Prechecking not working due at epoch 1 due to the way we have low
   // blocknum
-  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum != 0) {
+  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum > 10) {
     LOG_EPOCH(
         WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
