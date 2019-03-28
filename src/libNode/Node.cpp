@@ -1892,7 +1892,6 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
   {
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
-      // Remove old ds guard IP info from blacklist exclude list
       if (GUARD_MODE) {
         auto it =
             find_if(m_mediator.m_DSCommittee->begin(),
