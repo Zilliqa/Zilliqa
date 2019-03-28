@@ -23,8 +23,6 @@
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <algorithm>
 #include <map>
 #include <random>
@@ -5283,14 +5281,9 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
 
   LookupSetTxBlockFromSeed result;
 
-  google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
-                                                 src.size() - offset);
-  google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.ParseFromCodedStream(&codedIn) ||
-      !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
+  if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed");
     return false;
   }
@@ -5641,14 +5634,9 @@ bool Messenger::GetLookupSetStateFromSeed(const bytes& src,
 
   LookupSetStateFromSeed result;
 
-  google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
-                                                 src.size() - offset);
-  google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.ParseFromCodedStream(&codedIn) ||
-      !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
+  if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed");
     return false;
   }
@@ -6640,14 +6628,9 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     uint64_t& indexNum, PubKey& pubKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
-  google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
-                                                 src.size() - offset);
-  google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.ParseFromCodedStream(&codedIn) ||
-      !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
+  if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "LookupSetDirectoryBlocksFromSeed initialization failed");
     return false;

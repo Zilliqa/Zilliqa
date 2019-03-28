@@ -224,7 +224,7 @@ class DirectoryService : public Executable {
                             const Peer& from);
   bool ProcessPoWPacketSubmission(const bytes& message, unsigned int offset,
                                   const Peer& from);
-  bool VerifyPoWSubmission(const DSPowSolution& sol);
+  bool ProcessPoWSubmissionFromPacket(const DSPowSolution& sol);
 
   bool ProcessDSBlockConsensus(const bytes& message, unsigned int offset,
                                const Peer& from);
@@ -615,7 +615,7 @@ class DirectoryService : public Executable {
                               bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
 
-  bool SendPoWPacketSubmissionToOtherDSComm();
+  bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
 
   // Reset certain variables to the initial state
   bool CleanVariables();

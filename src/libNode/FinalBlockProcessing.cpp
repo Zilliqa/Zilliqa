@@ -732,6 +732,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
+    StoreFinalBlock(txBlock);
+
     // Check whether any ds guard change network info
     if (!LOOKUP_NODE_MODE) {
       QueryLookupForDSGuardNetworkInfoUpdate();
@@ -740,24 +742,28 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
-    if (!AccountStore::GetInstance().MoveUpdatesToDisk(
-            ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
-                                          .GetHeader()
-                                          .GetBlockNum() %
-                                      REPOPULATE_STATE_PER_N_DS ==
-                                  REPOPULATE_STATE_IN_DS))) {
-      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-      // return false;
-    }
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-    StoreFinalBlock(txBlock);
-    LOG_STATE(
-        "[FLBLK]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FINISH WRITE STATE TO DISK");
+    auto writeStateToDisk = [this]() mutable -> void {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              ENABLE_REPOPULATE && m_mediator.m_dsBlockChain.GetLastBlock()
+                                               .GetHeader()
+                                               .GetBlockNum() %
+                                           REPOPULATE_STATE_PER_N_DS ==
+                                       REPOPULATE_STATE_IN_DS)) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+        return;
+      }
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+      LOG_STATE("[FLBLK][" << setw(15) << left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] FINISH WRITE STATE TO DISK");
+    };
+    DetachedFunction(1, writeStateToDisk);
   }
 
   // m_mediator.HeartBeatPulse();
