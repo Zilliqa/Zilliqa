@@ -136,7 +136,7 @@ Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
-  unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
+  unsigned int status = system("./downloadIncrDB.py");
   return status == 0;
 }
 
