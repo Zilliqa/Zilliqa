@@ -302,7 +302,6 @@ class Lookup : public Executable {
   bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
                                  const Peer& from);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
-  void PrepareForStartPow();
   bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
   bool ProcessSetStateDeltasFromSeed(const bytes& message, unsigned int offset,

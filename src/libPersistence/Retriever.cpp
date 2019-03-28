@@ -66,14 +66,11 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   }
 
-  // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
-  // NUM_FINAL_BLOCK_PER_POW txn blocks
+  // create states from last 10 * NUM_FINAL_BLOCK_PER_POW txn blocks
   unsigned int upper_bound_txnblk = (lastBlockNum - extra_txblocks);
   unsigned int lower_bound_txnblk =
-      ((lastBlockNum - extra_txblocks + 1) >
-       INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
-          ? (lastBlockNum - extra_txblocks + 1) -
-                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
+      ((lastBlockNum - extra_txblocks + 1) > 10 * NUM_FINAL_BLOCK_PER_POW)
+          ? (lastBlockNum - extra_txblocks + 1) - (10 * NUM_FINAL_BLOCK_PER_POW)
           : 0;
 
   // clear all the state deltas from disk.
@@ -82,8 +79,8 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   std::string target = "persistence/stateDelta";
   unsigned int firstStateDeltaIndex = lower_bound_txnblk;
   for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
-    // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
-    // local persistence/stateDelta
+    // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over the local
+    // persistence/stateDelta
     std::string source = "StateDeltaFromS3/stateDelta_" + std::to_string(i);
     if (stdfs::exists(source)) {
       try {

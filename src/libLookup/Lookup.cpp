@@ -1889,56 +1889,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
   return true;
 }
 
-void Lookup::PrepareForStartPow() {
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "At new DS epoch now, already have state. Getting ready to "
-            "know for pow");
-  m_dsInfoWaitingNotifying = true;
-
-  GetDSInfoFromSeedNodes();
-
-  {
-    unique_lock<mutex> lock(m_mutexDSInfoUpdation);
-    while (!m_fetchedDSInfo) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Waiting for DSInfo");
-
-      if (cv_dsInfoUpdate.wait_for(lock,
-                                   chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
-          std::cv_status::timeout) {
-        // timed out
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "Timed out waiting for DSInfo");
-        m_dsInfoWaitingNotifying = false;
-        return;
-      }
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Get ProcessDsInfo Notified");
-      m_dsInfoWaitingNotifying = false;
-    }
-    m_fetchedDSInfo = false;
-  }
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "DSInfo received -> Ask lookup to let me know when to "
-            "start PoW");
-
-  // Ask lookup to inform me when it's time to do PoW
-  bytes getpowsubmission_message = {MessageType::LOOKUP,
-                                    LookupInstructionType::GETSTARTPOWFROMSEED};
-
-  if (!Messenger::SetLookupGetStartPoWFromSeed(
-          getpowsubmission_message, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost,
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetStartPoWFromSeed failed.");
-    return;
-  }
-
-  m_mediator.m_lookup->SendMessageToRandomSeedNode(getpowsubmission_message);
-}
-
 void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   LOG_GENERAL(INFO, "[TxBlockVerif]"
                         << "Success");
@@ -1999,7 +1949,56 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                 "At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
     } else if (m_syncType == SyncType::NEW_SYNC) {
-      PrepareForStartPow();
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "At new DS epoch now, already have state. Getting ready to "
+                "know for pow");
+      m_dsInfoWaitingNotifying = true;
+
+      GetDSInfoFromSeedNodes();
+
+      {
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+        while (!m_fetchedDSInfo) {
+          LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Waiting for DSInfo");
+
+          if (cv_dsInfoUpdate.wait_for(
+                  lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+              std::cv_status::timeout) {
+            // timed out
+            LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                      "Timed out waiting for DSInfo");
+            m_dsInfoWaitingNotifying = false;
+            return;
+          }
+          LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                    "Get ProcessDsInfo Notified");
+          m_dsInfoWaitingNotifying = false;
+        }
+        m_fetchedDSInfo = false;
+      }
+
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "DSInfo received -> Ask lookup to let me know when to "
+                "start PoW");
+
+      // Ask lookup to inform me when it's time to do PoW
+      bytes getpowsubmission_message = {
+          MessageType::LOOKUP, LookupInstructionType::GETSTARTPOWFROMSEED};
+
+      if (!Messenger::SetLookupGetStartPoWFromSeed(
+              getpowsubmission_message, MessageOffset::BODY,
+              m_mediator.m_selfPeer.m_listenPortHost,
+              m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum(),
+              m_mediator.m_selfKey)) {
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                  "Messenger::SetLookupGetStartPoWFromSeed failed.");
+        return;
+      }
+
+      m_mediator.m_lookup->SendMessageToRandomSeedNode(
+          getpowsubmission_message);
     }
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2110,7 +2109,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "ProcessSetStateDeltasFromSeed sent by "
-                << from << " for blocks: " << lowBlockNum << " to "
+                << from << " for blocks: " << lowBlockNum << "to "
                 << highBlockNum);
 
   for (const auto& delta : stateDeltas) {
@@ -2122,8 +2121,8 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
   }
 
   if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-    return false;
+      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+      return false;
   }
 
   cv_setStateDeltasFromSeed.notify_all();
