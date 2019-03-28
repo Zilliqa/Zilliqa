@@ -238,12 +238,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       case SyncType::NEW_LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a new lookup node");
-        if (toRetrieveHistory) {
+        if (!toRetrieveHistory) {
           m_lookup.InitSync();
         } else {
           LOG_GENERAL(FATAL,
-                      "Error: Sync for new lookup should retrieve history as "
-                      "much as ppssible");
+                      "Error: Sync for new lookup shouldn't retrieve history");
         }
         break;
       case SyncType::NORMAL_SYNC:

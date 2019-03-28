@@ -106,7 +106,7 @@ void Lookup::InitSync() {
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
 
     // Initialize all blockchains and blocklinkchain
-    // InitAsNewJoiner();
+    InitAsNewJoiner();
 
     // Set myself offline
     GetMyLookupOffline();
@@ -1889,11 +1889,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
   return true;
 }
 
-bool Lookup::GetDSInfo() {
-  LOG_MARKER();
+void Lookup::PrepareForStartPow() {
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "At new DS epoch now, already have state. Getting ready to "
+            "know for pow");
   m_dsInfoWaitingNotifying = true;
 
-  GetDSInfoFromLookupNodes();
+  GetDSInfoFromSeedNodes();
 
   {
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -1907,26 +1909,13 @@ bool Lookup::GetDSInfo() {
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Timed out waiting for DSInfo");
         m_dsInfoWaitingNotifying = false;
-        return false;
+        return;
       }
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Get ProcessDsInfo Notified");
       m_dsInfoWaitingNotifying = false;
     }
     m_fetchedDSInfo = false;
-  }
-  return true;
-}
-
-void Lookup::PrepareForStartPow() {
-  LOG_MARKER();
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "At new DS epoch now, already have state. Getting ready to "
-            "know for pow");
-
-  if (!GetDSInfo()) {
-    return;
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1967,8 +1956,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   }
 
   bool getStateFromSeedInVacuous = false;
-  if (m_syncType == SyncType::NEW_SYNC ||
-      m_syncType == SyncType::NEW_LOOKUP_SYNC) {  // only for new node joining
+  if (m_syncType == SyncType::NEW_SYNC) {  // only for new node joining
     // Get the state-delta for all txBlocks from random lookup nodes
     GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
 
@@ -2007,31 +1995,16 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
     if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
-      LOG_EPOCH(
-          INFO, m_mediator.m_currentEpochNum,
-          "New node - At new DS epoch now, try getting state from lookup");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
     } else if (m_syncType == SyncType::NEW_SYNC) {
       PrepareForStartPow();
     }
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    if (getStateFromSeedInVacuous) {  // getting statedeltas must have failed.
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Try getting state from lookup");
-      GetStateFromSeedNodes();
-    } else {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "New lookup node - Already should have latest state by now.");
-      if (GetDSInfo()) {
-        if (!m_currDSExpired) {
-          if (FinishNewJoinAsLookup()) {
-            SetSyncType(SyncType::NO_SYNC);
-            m_isFirstLoop = true;
-          }
-        }
-        m_currDSExpired = false;
-      }
-    }
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "New lookup - always try getting state from other lookup");
+    GetStateFromSeedNodes();
   }
 
   cv_setTxBlockFromSeed.notify_all();
