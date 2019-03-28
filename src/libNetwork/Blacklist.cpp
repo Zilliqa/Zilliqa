@@ -72,6 +72,28 @@ void Blacklist::Clear() {
   LOG_GENERAL(INFO, "Blacklist cleared");
 }
 
+void Blacklist::Pop(unsigned int num_to_pop) {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistIP.size());
+
+  unsigned int counter = 0;
+  for (auto it = m_blacklistIP.begin(); it != m_blacklistIP.end();) {
+    if (counter < num_to_pop) {
+      it = m_blacklistIP.erase(it);
+      counter++;
+    } else {
+      break;
+    }
+  }
+
+  LOG_GENERAL(INFO, "Removed " << counter << " nodes from blacklist");
+}
+
+unsigned int Blacklist::SizeOfBlacklist() {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  return m_blacklistIP.size();
+}
+
 void Blacklist::Enable(const bool enable) {
   if (!enable) {
     Clear();

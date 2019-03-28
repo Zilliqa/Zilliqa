@@ -64,6 +64,12 @@ class Blacklist {
   /// Node can clear the blacklist
   void Clear();
 
+  /// Remove n nodes from blacklist
+  void Pop(unsigned int num_to_pop);
+
+  /// Remove n nodes from blacklist
+  unsigned int SizeOfBlacklist();
+
   /// Enable / disable blacklist
   void Enable(const bool enable);
 

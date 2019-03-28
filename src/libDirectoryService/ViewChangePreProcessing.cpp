@@ -293,7 +293,7 @@ void DirectoryService::RunConsensusOnViewChange() {
     }
   }
 
-  Blacklist::GetInstance().Clear();
+  // Blacklist::GetInstance().Clear();
 
   uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
