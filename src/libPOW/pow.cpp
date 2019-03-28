@@ -165,16 +165,16 @@ ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
 }
 
 ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
-  if (difficulty < POW_BOUNDARY_N_DEVIDED_START) {
+  if (difficulty < POW_BOUNDARY_N_DIVIDED_START) {
     return DifficultyLevelInInt(difficulty);
   }
 
   // calc new difficulty level
   uint8_t n_level =
-      (difficulty - POW_BOUNDARY_N_DEVIDED_START) / POW_BOUNDARY_N_DEVIDED;
+      (difficulty - POW_BOUNDARY_N_DIVIDED_START) / POW_BOUNDARY_N_DIVIDED;
   uint8_t m_sub_level =
-      (difficulty - POW_BOUNDARY_N_DEVIDED_START) % POW_BOUNDARY_N_DEVIDED;
-  uint8_t difficulty_level = POW_BOUNDARY_N_DEVIDED_START + n_level;
+      (difficulty - POW_BOUNDARY_N_DIVIDED_START) % POW_BOUNDARY_N_DIVIDED;
+  uint8_t difficulty_level = POW_BOUNDARY_N_DIVIDED_START + n_level;
 
   // Python implement
   // cur_boundary = bytes_to_int(calc_zero_bytes(difficulty_level))
@@ -183,7 +183,7 @@ ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
 
   uint256_t cur_boundary(
       "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
-  uint256_t step = (cur_boundary >> 1) / POW_BOUNDARY_N_DEVIDED;
+  uint256_t step = (cur_boundary >> 1) / POW_BOUNDARY_N_DIVIDED;
   uint256_t new_boundary = cur_boundary - step * m_sub_level;
 
   return StringToBlockhash(
@@ -194,7 +194,7 @@ ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
 uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
   uint8_t difficulty_level = POW::CountLeadingZeros(boundary);
 
-  if (difficulty_level < POW_BOUNDARY_N_DEVIDED_START) {
+  if (difficulty_level < POW_BOUNDARY_N_DIVIDED_START) {
     return difficulty_level;
   }
 
@@ -211,15 +211,15 @@ uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
   uint256_t i_cur_boundary("0x" +
                            BytesToHexString(boundary.bytes, UINT256_SIZE));
 
-  uint256_t step = (i_cur_level >> 1) / POW_BOUNDARY_N_DEVIDED;
+  uint256_t step = (i_cur_level >> 1) / POW_BOUNDARY_N_DIVIDED;
 
-  uint256_t n_level = difficulty_level - POW_BOUNDARY_N_DEVIDED_START;
+  uint256_t n_level = difficulty_level - POW_BOUNDARY_N_DIVIDED_START;
 
   uint256_t m_sub_level = (i_cur_level - i_cur_boundary) / step;
-  assert(m_sub_level < (unsigned)POW_BOUNDARY_N_DEVIDED);
+  assert(m_sub_level < (unsigned)POW_BOUNDARY_N_DIVIDED);
 
   uint256_t difficulty =
-      POW_BOUNDARY_N_DEVIDED_START + n_level * POW_BOUNDARY_N_DEVIDED;
+      POW_BOUNDARY_N_DIVIDED_START + n_level * POW_BOUNDARY_N_DIVIDED;
   difficulty += m_sub_level;
 
   return (uint8_t)difficulty;
