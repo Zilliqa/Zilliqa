@@ -184,8 +184,6 @@ extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 extern const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS;
 extern const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS;
 extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
-extern const unsigned int RETRY_REJOINING_TIMEOUT;
-extern const unsigned int RETRY_GETSTATEDELTAS_COUNT;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;

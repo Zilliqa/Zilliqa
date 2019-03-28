@@ -126,16 +126,6 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
                     "AccountStore::GetInstance().DeserializeDelta failed");
                 return false;
               }
-              if (AccountStore::GetInstance().GetStateRootHash() !=
-                  (*std::next(blocks.begin(), j))
-                      ->GetHeader()
-                      .GetStateRootHash()) {
-                LOG_GENERAL(
-                    WARNING,
-                    "StateRoot in TxBlock(BlockNum: "
-                        << j << ") : does not match retrieved stateroot hash");
-                return false;
-              }
             }
           }
           // commit the state to disk

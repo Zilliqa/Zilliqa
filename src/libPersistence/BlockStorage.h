@@ -336,9 +336,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Clean all DB
   bool ResetAll();
 
-  /// Refresh all DB
-  bool RefreshAll();
-
  private:
   std::mutex m_mutexMetadata;
   std::mutex m_mutexDsBlockchain;

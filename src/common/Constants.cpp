@@ -175,10 +175,6 @@ const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
     "NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
     "GETSTATEDELTAS_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
-const unsigned int RETRY_REJOINING_TIMEOUT{
-    ReadConstantNumeric("RETRY_REJOINING_TIMEOUT", "node.epoch_timing.")};
-const unsigned int RETRY_GETSTATEDELTAS_COUNT{
-    ReadConstantNumeric("RETRY_GETSTATEDELTAS_COUNT", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{
