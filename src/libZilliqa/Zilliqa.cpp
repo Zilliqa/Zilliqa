@@ -209,7 +209,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         syncType = SyncType::LOOKUP_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
       } else {
-        skip_install = true;
         syncType = SyncType::NORMAL_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
 
