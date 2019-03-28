@@ -143,7 +143,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   // StoreMicroBlocksToDisk();
-  StoreFinalBlockToDisk();
 
   auto resumeBlackList = []() mutable -> void {
     this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
@@ -159,6 +158,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     }
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   } else {
+    StoreFinalBlockToDisk();
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
                  CoinbaseReward::FINALBLOCK_REWARD,
