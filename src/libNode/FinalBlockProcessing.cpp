@@ -730,6 +730,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
+    StoreFinalBlock(txBlock);
+
     // Check whether any ds guard change network info
     if (!LOOKUP_NODE_MODE) {
       QueryLookupForDSGuardNetworkInfoUpdate();
