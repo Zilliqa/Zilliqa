@@ -2878,7 +2878,6 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
   }
 
   InitMining(index);
-
   return true;
 }
 
