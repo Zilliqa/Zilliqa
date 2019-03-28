@@ -49,7 +49,8 @@ RUN apt-get update \
     python \
     python-pip \
     libsecp256k1-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install request clint
 
 ARG ZILLIQA_VERSION=v4.3.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
