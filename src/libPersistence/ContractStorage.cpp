@@ -483,4 +483,24 @@ void ContractStorage::Reset() {
   }
 }
 
+bool ContractStorage::RefreshAll() {
+  bool ret;
+  {
+    unique_lock<shared_timed_mutex> g(m_codeMutex);
+    ret = m_codeDB.RefreshDB();
+  }
+  if (ret) {
+    unique_lock<shared_timed_mutex> g(m_stateMainMutex);
+    {
+      unique_lock<shared_timed_mutex> g(m_stateIndexMutex);
+      ret = m_stateIndexDB.RefreshDB();
+    }
+    if (ret) {
+      unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+      ret = m_stateDataDB.RefreshDB();
+    }
+  }
+  return ret;
+}
+
 }  // namespace Contract
