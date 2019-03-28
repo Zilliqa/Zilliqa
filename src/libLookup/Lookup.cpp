@@ -1977,18 +1977,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   bool getStateFromSeedInVacuous = false;
   if (m_syncType == SyncType::NEW_SYNC ||
       m_syncType == SyncType::NEW_LOOKUP_SYNC) {  // only for new node joining
-    while (true) {
-      // Get the state-delta for all txBlocks from random lookup nodes
-      GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
+    // Get the state-delta for all txBlocks from random lookup nodes
+    GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
 
-      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
-      if (cv_setStateDeltasFromSeed.wait_for(
-              cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Didn't receive statedeltas! Will try again");
-      } else {
-        break;
-      }
+    std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
+    if (cv_setStateDeltasFromSeed.wait_for(
+            cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
+      LOG_GENERAL(WARNING, "Didn't receive statedeltas!");
+      getStateFromSeedInVacuous = true;
     }
   }
 
