@@ -743,8 +743,8 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
     LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
                 stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   } else {
-    LOG_GENERAL(
-        INFO, "Didn't find the state delata of final block " << finalBlockNum);
+    LOG_GENERAL(INFO,
+                "Didn't find state delta of final block " << finalBlockNum);
   }
 
   return found;

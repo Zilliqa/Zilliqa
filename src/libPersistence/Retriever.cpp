@@ -149,8 +149,8 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         }
       } else  // we rely on next statedelta that covers this missing one
       {
-        LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
-                                 << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
         // Do nothing
       }
     }
@@ -160,7 +160,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     try {
       boost::filesystem::remove_all("StateDeltaFromS3");
     } catch (std::exception& e) {
-      LOG_GENERAL(FATAL, "Failed to remove StateDeltaFromS3 directory");
+      LOG_GENERAL(WARNING, "Failed to remove StateDeltaFromS3 directory");
     }
   }
 

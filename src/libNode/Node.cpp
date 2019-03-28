@@ -137,14 +137,12 @@ Node::~Node() {}
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string output;
+  // TBD - find better way to capture the exit status of command
   SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py", output);
   if (output.find("Done!") != std::string::npos) {
     return true;
   }
   return false;
-  // int status = system("./downloadIncrDB.py");
-  // LOG_GENERAL(INFO, "Download Status: " << status);
-  // return (status == 0);
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
