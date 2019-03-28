@@ -1996,13 +1996,13 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     // Get the state-delta for all txBlocks from random lookup nodes
     GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
+
     std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
     if (cv_setStateDeltasFromSeed.wait_for(
             cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
         std::cv_status::timeout) {
       LOG_GENERAL(WARNING, "Didn't receive statedeltas!");
-    } else {
-      getStateFromSeedInVacuous = false;
+      getStateFromSeedInVacuous = true;
     }
   }
 
