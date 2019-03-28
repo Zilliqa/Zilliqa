@@ -50,7 +50,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
     cv_POWSubmission.notify_all();
   }
   m_mode = IDLE;
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   m_mediator.m_consensusID = 1;
   m_viewChangeCounter = 0;
   m_forceMulticast = false;
@@ -262,16 +262,16 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
 
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
-    m_consensusLeaderID =
+    SetConsensusLeaderID(
         DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
                                             .GetHeader()
                                             .GetHashForRandom()
                                             .asBytes()) %
-        m_mediator.m_DSCommittee->size();
+        m_mediator.m_DSCommittee->size());
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -388,6 +388,7 @@ void DirectoryService::IncrementConsensusMyID() { m_consensusMyID++; }
 // Set m_consensusLeaderID
 void DirectoryService::SetConsensusLeaderID(uint16_t id) {
   m_consensusLeaderID = id;
+  LOG_STATE("DSConsensusLeaderID = " << m_consensusLeaderID);
 }
 
 // Get m_consensusLeaderID
@@ -450,7 +451,7 @@ bool DirectoryService::CleanVariables() {
   m_sharingAssignment.clear();
   m_viewChangeCounter = 0;
   m_mode = IDLE;
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
   m_mediator.m_consensusID = 0;
 
   m_forceMulticast = false;
@@ -535,7 +536,7 @@ bool DirectoryService::FinishRejoinAsDS() {
     dsComm = *m_mediator.m_DSCommittee;
   }
 
-  m_consensusLeaderID = 0;
+  SetConsensusLeaderID(0);
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   PairOfNode dsLeader;
@@ -546,7 +547,7 @@ bool DirectoryService::FinishRejoinAsDS() {
           return pubKeyPeer.second == dsLeader.second;
         });
     if (iterDSLeader != dsComm.end()) {
-      m_consensusLeaderID = iterDSLeader - dsComm.begin();
+      SetConsensusLeaderID(iterDSLeader - dsComm.begin());
     } else {
       LOG_GENERAL(WARNING,
                   "Failed to find DS leader index in DS committee, Invoke "

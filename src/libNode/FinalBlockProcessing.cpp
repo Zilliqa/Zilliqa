@@ -58,11 +58,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool Node::StoreState() {
-  LOG_MARKER();
-  return AccountStore::GetInstance().MoveUpdatesToDisk();
-}
-
 void Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
 
@@ -721,6 +716,13 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     return false;
   }
 
+  auto resumeBlackList = []() mutable -> void {	
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));	
+    Blacklist::GetInstance().Enable(true);	
+  };	
+
+  DetachedFunction(1, resumeBlackList);
+
   if (!isVacuousEpoch) {
     if (!LoadUnavailableMicroBlockHashes(
             txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
@@ -740,20 +742,27 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
-    if (!StoreState()) {
-      LOG_GENERAL(WARNING, "StoreState failed, what to do?");
-      return false;
+    auto writeStateToDisk = [this]() mutable -> void {
+    if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+            ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum() %
+                                      REPOPULATE_STATE_PER_N_DS ==
+                                  REPOPULATE_STATE_IN_DS))) {
+      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+      // return false;
     }
-    StoreFinalBlock(txBlock);
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-  }
-
-  auto resumeBlackList = []() mutable -> void {
-    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
-    Blacklist::GetInstance().Enable(true);
+    LOG_STATE(	    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] FINISH WRITE STATE TO DISK");
   };
-
-  DetachedFunction(1, resumeBlackList);
+  DetachedFunction(1, writeStateToDisk);
+}
 
   // m_mediator.HeartBeatPulse();
 
