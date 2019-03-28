@@ -124,12 +124,8 @@ class AccountStore
   /// empty states data in memory
   void InitSoft();
 
-  bool UpdateStateTrieFromTempStateDB();
-
-  bool RepopulateStateTrie();
-
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk(bool repopulate = false);
+  bool MoveUpdatesToDisk();
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
   void DiscardUnsavedUpdates();

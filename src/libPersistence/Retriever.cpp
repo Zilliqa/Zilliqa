@@ -52,16 +52,10 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   for (const auto& block : blocks) {
     if (block->GetHeader().GetBlockNum() >= lastBlockNum + 1 - extra_txblocks) {
       bytes stateDelta;
-      if (!BlockStorage::GetBlockStorage().GetStateDelta(
-              block->GetHeader().GetBlockNum(), stateDelta)) {
-        // if any of state-delta is not fetched from extra txblocks set, simple
-        // skip all extra blocks
-        extraStateDeltas.clear();
-        trimIncompletedBlocks = true;
-        break;
-      } else {
-        extraStateDeltas.push_back(stateDelta);
-      }
+      BlockStorage::GetBlockStorage().GetStateDelta(
+          block->GetHeader().GetBlockNum(), stateDelta);
+
+      extraStateDeltas.push_back(stateDelta);
     }
   }
 

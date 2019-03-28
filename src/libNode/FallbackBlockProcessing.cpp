@@ -290,24 +290,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
                                      *m_mediator.m_DSCommittee,
                                      m_mediator.m_ds->m_shards);
     }
-
-    auto writeStateToDisk = [this]() mutable -> void {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-        return;
-      }
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
-      LOG_STATE("[FLBLK][" << setw(15) << left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "]["
-                           << m_mediator.m_txBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum() +
-                                  1
-                           << "] FINISH WRITE STATE TO DISK");
-    };
-    DetachedFunction(1, writeStateToDisk);
+    StoreState();
   }
 
   if (!LOOKUP_NODE_MODE) {
@@ -322,6 +305,8 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
         SendFallbackBlockToOtherShardNodes(message2);
       }
     }
+
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
 
     // Clean processedTxn may have been produced during last microblock
     // consensus

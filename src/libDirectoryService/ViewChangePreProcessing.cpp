@@ -298,7 +298,7 @@ void DirectoryService::RunConsensusOnViewChange() {
   uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
   if (m_viewChangeCounter == 1) {
-    faultyLeaderIndex = GetConsensusLeaderID();
+    faultyLeaderIndex = m_consensusLeaderID;
   } else {
     faultyLeaderIndex = m_candidateLeaderIndex;
   }
@@ -514,7 +514,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
   }
 
-  while (candidateLeaderIndex == GetConsensusLeaderID()) {
+  while (candidateLeaderIndex == m_consensusLeaderID) {
     LOG_GENERAL(INFO,
                 "Computed candidate leader is current faulty ds leader. Index: "
                     << candidateLeaderIndex);

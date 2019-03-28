@@ -290,10 +290,8 @@ class DirectoryService : public Executable {
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
-                         const MapOfPubKeyPoW& allPoWsFromLeader,
-                         const MapOfPubKeyPoW& priorityNodePoWs);
-  bool VerifyNodePriority(const DequeOfShard& shards,
-                          MapOfPubKeyPoW& priorityNodePoWs);
+                         const MapOfPubKeyPoW& allPoWsFromLeader);
+  bool VerifyNodePriority(const DequeOfShard& shards);
 
   // internal calls from RunConsensusOnDSBlock
   bool RunConsensusOnDSBlockWhenDSPrimary();

@@ -204,56 +204,6 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
   return true;
 }
 
-bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
-  // LOG_MARKER();
-
-  unordered_map<string, string> states_str;
-  for (const auto& state : states) {
-    bytes rawBytes;
-    if (!state.second.SerializeBase(rawBytes, 0)) {
-      LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
-      continue;
-    }
-    states_str.emplace(state.first.hex(),
-                       DataConversion::CharArrayToString(rawBytes));
-  }
-
-  return m_tempStateDB->BatchInsert(states_str);
-}
-
-bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
-                                       vector<StateSharedPtr>& states) {
-  // LOG_MARKER();
-
-  lock_guard<mutex> g(m_mutexTempState);
-
-  if (iter == nullptr) {
-    iter = m_tempStateDB->GetDB()->NewIterator(leveldb::ReadOptions());
-    iter->SeekToFirst();
-  }
-
-  unsigned int counter = 0;
-
-  for (; iter->Valid() && counter < ACCOUNT_IO_BATCH_SIZE;
-       iter->Next(), counter++) {
-    string addr_str = iter->key().ToString();
-    string acct_string = iter->value().ToString();
-    Address addr{addr_str};
-    Account acct;
-    if (!acct.DeserializeBase(bytes(acct_string.begin(), acct_string.end()),
-                              0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      continue;
-    }
-    StateSharedPtr state =
-        StateSharedPtr(new pair<Address, Account>(addr, acct));
-
-    states.emplace_back(state);
-  }
-
-  return true;
-}
-
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
                               DSBlockSharedPtr& block) {
   string blockString = m_dsBlockchainDB->Lookup(blockNum);
@@ -1068,11 +1018,6 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_stateDeltaDB->ResetDB();
       break;
     }
-    case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->ResetDB();
-      break;
-    }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
       ret = m_diagnosticDBNodes->ResetDB();
@@ -1186,11 +1131,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_stateRootDB->RefreshDB();
       break;
     }
-    case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->RefreshDB();
-      break;
-    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Refresh DB " << type << " failed");
@@ -1261,10 +1201,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
     }
-    case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
-      ret.push_back(m_tempStateDB->GetDBName());
-    }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
       ret.push_back(m_diagnosticDBNodes->GetDBName());
@@ -1292,17 +1228,15 @@ bool BlockStorage::ResetAll() {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
            ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
            ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   }
 }

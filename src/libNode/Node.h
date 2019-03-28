@@ -204,6 +204,7 @@ class Node : public Executable {
   bool IsMicroBlockTxRootHashInFinalBlock(const MBnForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
 
+  bool StoreState();
   // void StoreMicroBlocks();
   void StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();

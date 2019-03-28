@@ -28,11 +28,6 @@ AccountStoreTrie<DB, MAP>::AccountStoreTrie()
 template <class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::Init() {
   AccountStoreSC<MAP>::Init();
-  InitTrie();
-}
-
-template <class DB, class MAP>
-void AccountStoreTrie<DB, MAP>::InitTrie() {
   m_state.init();
   m_prevRoot = m_state.root();
 }
