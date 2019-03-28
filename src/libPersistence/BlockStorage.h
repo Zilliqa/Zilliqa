@@ -308,9 +308,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
-  /// Refresh a DB
-  bool RefreshDB(DBTYPE type);
-
   std::vector<std::string> GetDBName(DBTYPE type);
 
   /// Clean all DB
