@@ -1252,64 +1252,6 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
   return true;
 }
 
-bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
-                                           unsigned int offset,
-                                           const Peer& from) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Lookup::ProcessGetStateDeltasFromSeed not expected to be called "
-        "from other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  uint64_t lowBlockNum = 0;
-  uint64_t highBlockNum = 0;
-  uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupGetStateDeltasFromSeed(message, offset, lowBlockNum,
-                                                  highBlockNum, portNo)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetStateDeltasFromSeed failed.");
-    return false;
-  }
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "ProcessGetStateDeltasFromSeed requested by "
-                << from << " for blocks: " << lowBlockNum << " to "
-                << highBlockNum);
-
-  vector<bytes> stateDeltas;
-  for (auto i = lowBlockNum; i <= highBlockNum; i++) {
-    bytes stateDelta;
-    if (!BlockStorage::GetBlockStorage().GetStateDelta(i, stateDelta)) {
-      LOG_GENERAL(
-          INFO, "Block Number "
-                    << i << " absent. Didn't include it in response message.");
-    }
-    stateDeltas.emplace_back(stateDelta);
-  }
-
-  bytes stateDeltasMessage = {MessageType::LOOKUP,
-                              LookupInstructionType::SETSTATEDELTASFROMSEED};
-
-  if (!Messenger::SetLookupSetStateDeltasFromSeed(
-          stateDeltasMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-          m_mediator.m_selfKey, stateDeltas)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupSetStateDeltasFromSeed failed.");
-    return false;
-  }
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
-  LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, stateDeltasMessage);
-  return true;
-}
-
 // Ex-Archival node code
 bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                      [[gnu::unused]] unsigned int offset,
@@ -3442,9 +3384,7 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessGetDirectoryBlocksFromSeed,
       &Lookup::ProcessSetDirectoryBlocksFromSeed,
       &Lookup::ProcessGetStateDeltaFromSeed,
-      &Lookup::ProcessGetStateDeltasFromSeed,
       &Lookup::ProcessSetStateDeltaFromSeed,
-      &Lookup::ProcessSetStateDeltasFromSeed,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
