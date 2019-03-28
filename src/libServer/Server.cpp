@@ -847,6 +847,15 @@ string Server::GetCurrentMiniEpoch() {
   return to_string(m_mediator.m_currentEpochNum);
 }
 
+string Server::GetLatestEpochStatesUpdated() {
+  LOG_MARKER();
+  uint64_t epochNum;
+  if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(epochNum)) {
+    return "";
+  }
+  return to_string(epochNum);
+}
+
 string Server::GetCurrentDSEpoch() {
   LOG_MARKER();
 
@@ -1050,6 +1059,7 @@ Json::Value Server::GetBlockchainInfo() {
   _json["TxBlockRate"] = Server::GetTxBlockRate();
   _json["DSBlockRate"] = Server::GetDSBlockRate();
   _json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
+  _json["LatestEpochStatesUpdated"] = Server::GetLatestEpochStatesUpdated();
   _json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
   _json["NumTxnsDSEpoch"] = Server::GetNumTxnsDSEpoch();
   _json["NumTxnsTxEpoch"] = Server::GetNumTxnsTxEpoch();

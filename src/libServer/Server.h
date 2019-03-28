@@ -160,6 +160,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetCurrentMiniEpochI);
+    this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
+                                              jsonrpc::PARAMS_BY_POSITION,
+                                              jsonrpc::JSON_STRING, NULL),
+                           &AbstractZServer::GetLatestEpochStatesUpdatedI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
@@ -315,6 +319,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetCurrentMiniEpoch();
   }
+  inline virtual void GetLatestEpochStatesUpdatedI(const Json::Value& request,
+                                                   Json::Value& response) {
+    (void)request;
+    response = this->GetLatestEpochStatesUpdated();
+  }
   inline virtual void GetCurrentDSEpochI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
@@ -393,6 +402,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual uint8_t GetPrevDSDifficulty() = 0;
   virtual uint8_t GetPrevDifficulty() = 0;
   virtual std::string GetCurrentMiniEpoch() = 0;
+  virtual std::string GetLatestEpochStatesUpdated() = 0;
   virtual std::string GetCurrentDSEpoch() = 0;
   virtual Json::Value DSBlockListing(unsigned int param01) = 0;
   virtual Json::Value TxBlockListing(unsigned int param01) = 0;
@@ -450,6 +460,7 @@ class Server : public AbstractZServer {
   virtual uint8_t GetPrevDSDifficulty();
   virtual uint8_t GetPrevDifficulty();
   virtual std::string GetCurrentMiniEpoch();
+  virtual std::string GetLatestEpochStatesUpdated();
   virtual std::string GetCurrentDSEpoch();
   virtual Json::Value DSBlockListing(unsigned int page);
   virtual Json::Value TxBlockListing(unsigned int page);
