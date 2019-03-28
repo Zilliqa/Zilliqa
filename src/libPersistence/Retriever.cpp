@@ -59,81 +59,68 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   }
 
-  if ((lastBlockNum - extra_txblocks + 1) %
-          (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
-      0) {
-    // we must have latest state currently. so need not recreate states
-    LOG_GENERAL(INFO, "Current state is up-to-date until txblk :"
-                          << lastBlockNum - extra_txblocks);
-  } else {
-    // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
-    // NUM_FINAL_BLOCK_PER_POW txn blocks
-    unsigned int lower_bound_txnblk =
-        ((lastBlockNum - extra_txblocks + 1) >
-         INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
-            ? (((lastBlockNum - extra_txblocks + 1) /
-                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)) *
-               (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW))
-            : 0;
-    unsigned int upper_bound_txnblk = lastBlockNum - extra_txblocks;
+  // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
+  // NUM_FINAL_BLOCK_PER_POW txn blocks
+  unsigned int upper_bound_txnblk = (lastBlockNum - extra_txblocks);
+  unsigned int lower_bound_txnblk =
+      ((lastBlockNum - extra_txblocks + 1) >
+       INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
+          ? (lastBlockNum - extra_txblocks + 1) -
+                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
+          : 0;
 
-    LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
-                          << lower_bound_txnblk << " - " << upper_bound_txnblk);
+  // clear all the state deltas from disk.
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
 
-    // clear all the state deltas from disk.
-    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+  std::string target = "persistence/stateDelta";
+  unsigned int firstStateDeltaIndex = lower_bound_txnblk;
+  for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
+    // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
+    // local persistence/stateDelta
+    std::string source = "StateDeltaFromS3/stateDelta_" + std::to_string(i);
+    if (boost::filesystem::exists(source)) {
+      try {
+        recursive_copy_dir(source, target);
+      } catch (std::exception& e) {
+        LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
+      }
 
-    std::string target = "persistence/stateDelta";
-    unsigned int firstStateDeltaIndex = lower_bound_txnblk;
-    for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
-      // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
-      // local persistence/stateDelta
-      std::string source = "StateDeltaFromS3/stateDelta_" + std::to_string(i);
-      if (boost::filesystem::exists(source)) {
-        try {
-          recursive_copy_dir(source, target);
-        } catch (std::exception& e) {
-          LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
-        }
+      if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
+          0) {  // state-delta from vacous epoch
+        // refresh state-delta after copy over
+        BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
 
-        if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
-            0) {  // state-delta from vacous epoch
-          // refresh state-delta after copy over
-          BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
-
-          // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
-          for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-            if (!bfs::exists("StateDeltaFromS3/stateDelta_" +
-                             std::to_string(j))) {
-              continue;
-            }
-            bytes stateDelta;
-            LOG_GENERAL(
-                INFO,
-                "Try fetching statedelta and deserializing to state for txnBlk:"
-                    << j);
-            if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
-              if (!AccountStore::GetInstance().DeserializeDelta(stateDelta,
-                                                                0)) {
-                LOG_GENERAL(
-                    WARNING,
-                    "AccountStore::GetInstance().DeserializeDelta failed");
-                return false;
-              }
+        // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
+        for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
+          if (!bfs::exists("StateDeltaFromS3/stateDelta_" +
+                           std::to_string(j))) {
+            continue;
+          }
+          bytes stateDelta;
+          LOG_GENERAL(
+              INFO,
+              "Try fetching statedelta and deserializing to state for txnBlk:"
+                  << j);
+          if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
+            if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
+              LOG_GENERAL(
+                  WARNING,
+                  "AccountStore::GetInstance().DeserializeDelta failed");
+              return false;
             }
           }
-          // commit the state to disk
-          AccountStore::GetInstance().MoveUpdatesToDisk();
-          // clear the stateDelta db
-          BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
-          firstStateDeltaIndex = i + 1;
         }
-      } else  // we rely on next statedelta that covers this missing one
-      {
-        LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
-                                 << i << ". This can happen. Not a problem!");
-        // Do nothing
+        // commit the state to disk
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        // clear the stateDelta db
+        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+        firstStateDeltaIndex = i + 1;
       }
+    } else  // we rely on next statedelta that covers this missing one
+    {
+      LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+      // Do nothing
     }
   }
 

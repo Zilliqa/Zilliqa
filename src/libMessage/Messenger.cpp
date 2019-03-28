@@ -5540,6 +5540,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
     tmp.resize(delta.size());
     std::copy(delta.begin(), delta.end(), tmp.begin());
     stateDeltas.emplace_back(tmp);
+    // stateDeltas.emplace_back(delta);
   }
 
   bytes tmp(result.data().ByteSize());
