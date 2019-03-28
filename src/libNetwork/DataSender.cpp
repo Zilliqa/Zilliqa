@@ -63,8 +63,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
 
 void SendDataToShardNodesDefault(
     const bytes& message,
-    const std::deque<std::vector<Peer>>& sharded_receivers,
-    bool forceMulticast) {
+    const std::deque<std::vector<Peer>>& sharded_receivers) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToShardNodesDefault not expected to "
@@ -75,7 +74,7 @@ void SendDataToShardNodesDefault(
   LOG_MARKER();
 
   for (const auto& receivers : sharded_receivers) {
-    if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
+    if (BROADCAST_GOSSIP_MODE) {
       P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
     } else {
       P2PComm::GetInstance().SendBroadcastMessage(receivers, message);
@@ -150,14 +149,14 @@ void DataSender::DetermineNodesToSendDataTo(
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
     const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
-    const unsigned int& my_shards_hi, bool forceMulticast,
+    const unsigned int& my_shards_hi,
     std::deque<std::vector<Peer>>& sharded_receivers) {
   auto p = shards.begin();
   advance(p, my_shards_lo);
 
   for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
     std::vector<Peer> shardReceivers;
-    if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
+    if (BROADCAST_GOSSIP_MODE) {
       auto blockRecver = blockswcosigRecver.find(i);
       if (blockRecver != blockswcosigRecver.end()) {
         // cosigs found, select nodes with cosig
@@ -238,7 +237,7 @@ bool DataSender::SendDataToOthers(
     const VectorOfNode& lookups, const BlockHash& hashForRandom,
     const uint16_t& consensusMyId,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
-    bool forceMulticast, const SendDataToLookupFunc& sendDataToLookupFunc,
+    const SendDataToLookupFunc& sendDataToLookupFunc,
     const SendDataToShardFunc& sendDataToShardFunc) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -317,10 +316,9 @@ bool DataSender::SendDataToOthers(
         } else {
           std::deque<std::vector<Peer>> sharded_receivers;
           DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId,
-                                     my_shards_lo, my_shards_hi, forceMulticast,
+                                     my_shards_lo, my_shards_hi,
                                      sharded_receivers);
-          SendDataToShardNodesDefault(message, sharded_receivers,
-                                      forceMulticast);
+          SendDataToShardNodesDefault(message, sharded_receivers);
         }
       }
     }

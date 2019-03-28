@@ -529,8 +529,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 
   m_mediator.UpdateDSBlockRand();
 
-  m_forceMulticast = false;
-
   // Now we can update the sharding structure and transaction sharing
   // assignments
   if (m_mode == BACKUP_DS) {
@@ -579,7 +577,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
         *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeDSBlockMessageForSender, false,
+        m_consensusMyID, composeDSBlockMessageForSender,
         sendDSBlockToLookupNodesAndNewDSMembers, sendDSBlockToShardNodes);
   }
 

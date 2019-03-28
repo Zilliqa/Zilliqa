@@ -322,18 +322,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
     }
 
-    DequeOfShard t_shards;
-    if (m_forceMulticast && GUARD_MODE) {
-      ReloadGuardedShards(t_shards);
-    }
-
     DataSender::GetInstance().SendDataToOthers(
-        *m_pendingVCBlock, tmpDSCommittee,
-        t_shards.empty() ? m_shards : t_shards, t_microBlocks,
+        *m_pendingVCBlock, tmpDSCommittee, m_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeVCBlockForSender, m_forceMulticast.load(),
-        t_sendDataToLookupFunc);
+        m_consensusMyID, composeVCBlockForSender, t_sendDataToLookupFunc);
   }
 }
 

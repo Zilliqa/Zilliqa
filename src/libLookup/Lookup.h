@@ -62,11 +62,6 @@ class Lookup : public Executable {
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
 
-  // m_lookupNodes can change during operation if some lookups go offline.
-  // m_lookupNodesStatic is the fixed copy of m_lookupNodes after loading from
-  // constants.xml.
-  VectorOfNode m_lookupNodesStatic;
-
   // To ensure that the confirm of DS node rejoin won't be later than
   // It receiving a new DS block
   bool m_currDSExpired = false;
@@ -170,9 +165,6 @@ class Lookup : public Executable {
 
   // Getter for m_lookupNodes
   VectorOfNode GetLookupNodes() const;
-
-  // Getter for m_lookupNodesStatic
-  VectorOfNode GetLookupNodesStatic() const;
 
   // Getter for m_seedNodes
   VectorOfNode GetSeedNodes() const;

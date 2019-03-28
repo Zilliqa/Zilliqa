@@ -54,6 +54,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -334,8 +335,7 @@ void Node::UpdateStateForNextConsensusRound() {
       m_consensusLeaderID =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     } else {
-      m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
-          lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
+      m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
     }
   }
 
@@ -441,7 +441,7 @@ void Node::CallActOnFinalblock() {
       *m_microblock, *m_myShardMembers, {}, {},
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeMBnForwardTxnMessageForSender, false, SendDataToLookupFuncDefault,
+      composeMBnForwardTxnMessageForSender, SendDataToLookupFuncDefault,
       sendMbnFowardTxnToShardNodes);
 }
 
@@ -767,6 +767,19 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   // then I know I'm not), I can start doing PoW again
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
+
+  if (isVacuousEpoch) {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().InstallScilla();
+    }
+  }
 
   if (!LOOKUP_NODE_MODE) {
     if (toSendTxnToLookup) {

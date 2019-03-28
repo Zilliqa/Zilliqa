@@ -279,8 +279,7 @@ const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
 const double SHARD_GUARD_TOL{
     ReadConstantDouble("SHARD_GUARD_TOL", "node.guard_mode.")};
-const unsigned int SHARD_LEADER_SELECT_TOL{
-    ReadConstantNumeric("SHARD_LEADER_SELECT_TOL", "node.guard_mode.")};
+
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};

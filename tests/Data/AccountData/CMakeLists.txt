@@ -21,8 +21,3 @@ add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_Transaction PUBLIC Validator TestUtils)
 add_test(NAME Test_Transaction COMMAND Test_Transaction)
-
-add_executable(Test_TxnPool Test_TxnPool.cpp)
-target_include_directories(Test_TxnPool PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_TxnPool PUBLIC AccountData Crypto Trie Utils Persistence TestUtils)
-add_test(NAME Test_TxnPool COMMAND Test_TransactionReceipt)

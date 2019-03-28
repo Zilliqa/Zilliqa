@@ -98,6 +98,71 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   return true;
 }
 
+void DirectoryService::LookupCoinbase(
+    [[gnu::unused]] const DequeOfShard& shards,
+    [[gnu::unused]] const MapOfPubKeyPoW& allPow,
+    [[gnu::unused]] const map<PubKey, Peer>& powDSWinner,
+    [[gnu::unused]] const MapOfPubKeyPoW& dsPow) {
+  LOG_MARKER();
+  VectorOfNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& epochNum = m_mediator.m_currentEpochNum;
+
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+
+  for (const auto& lookupNode : vecLookup) {
+    LOG_GENERAL(INFO, " " << lookupNode.first);
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+        lookupNode.first);
+  }
+
+  /*for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      auto toFind = get<SHARD_NODE_PUBKEY>(shardNode);
+      auto it = allPow.find(toFind);
+      if (it == allPow.end()) {
+        LOG_GENERAL(INFO, "Could not find the node, maybe it is the oldest DS "
+  << toFind); continue;
+      }
+      const auto& lookupId = it->second.lookupId;
+      // Verify
+
+      if (lookupId >= vecLookup.size()) {
+        LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+        continue;
+      }
+      else
+      {
+        if(DEBUG_LEVEL >= 5)
+        {
+          LOG_GENERAL(INFO,"[LCNBSE]"<<"Awarded lookup "<<lookupId);
+        }
+      }
+
+      const auto& lookupPubkey = vecLookup.at(lookupId).first;
+      m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+          Account::GetAddressFromPublicKey(lookupPubkey));
+    }
+  }
+
+  for (const auto& dsWinner : powDSWinner) {
+    auto toFind = dsWinner.first;
+    auto it = dsPow.find(toFind);
+
+    if (it == dsPow.end()) {
+      LOG_GENERAL(FATAL, "Could not find " << toFind);
+    }
+    const auto& lookupId = it->second.lookupId;
+    if (lookupId >= vecLookup.size()) {
+      LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+      continue;
+    }
+
+    const auto& lookupPubkey = vecLookup.at(lookupId).first;
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+        Account::GetAddressFromPublicKey(lookupPubkey));
+  }*/
+}
+
 bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
                                     const int32_t& shard_id,
@@ -141,7 +206,7 @@ void DirectoryService::InitCoinbase() {
 
   LOG_MARKER();
 
-  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
+  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodes();
   const auto& epochNum = m_mediator.m_currentEpochNum;
 
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);

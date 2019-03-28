@@ -60,7 +60,7 @@ class DataSender : Singleton<DataSender> {
       const DequeOfShard& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
       const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
-      const unsigned int& my_shards_hi, bool forceMulticast,
+      const unsigned int& my_shards_hi,
       std::deque<std::vector<Peer>>& sharded_receivers);
 
   bool SendDataToOthers(
@@ -69,7 +69,6 @@ class DataSender : Singleton<DataSender> {
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
       const VectorOfNode& lookups, const BlockHash& hashForRandom,
       const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,
-      bool forceMulticast = false,
       const SendDataToLookupFunc& sendDataToLookupFunc =
           SendDataToLookupFuncDefault,
       const SendDataToShardFunc& sendDataToShardFunc = nullptr);

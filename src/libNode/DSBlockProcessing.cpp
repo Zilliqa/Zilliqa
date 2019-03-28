@@ -50,6 +50,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -262,8 +263,7 @@ void Node::StartFirstTxEpoch() {
     m_consensusLeaderID =
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
   } else {
-    m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
-        lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
+    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
   }
 
   // Check if I am the leader or backup of the shard
@@ -482,6 +482,17 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                                     m_myshardId);
 
   LogReceivedDSBlockDetails(dsblock);
+
+  auto func = [this, dsblock]() mutable -> void {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo()) {
+      if (UpgradeManager::GetInstance().DownloadSW()) {
+        m_mediator.m_curSWInfo =
+            *UpgradeManager::GetInstance().GetLatestSWInfo();
+      }
+    }
+  };
+  DetachedFunction(1, func);
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);

@@ -27,7 +27,13 @@
 
 class UpgradeManager {
  private:
+  std::shared_ptr<SWInfo> m_latestSWInfo;
+  bytes m_latestZilliqaSHA, m_latestScillaSHA;
   CURL* m_curl;
+  std::string m_constantFileName, m_constantLookupFileName,
+      m_constantArchivalLookupFileName;
+  std::string m_zilliqaPackageFileName, m_scillaPackageFileName;
+  std::mutex m_downloadMutex;
 
   UpgradeManager();
   ~UpgradeManager();
@@ -36,9 +42,26 @@ class UpgradeManager {
   UpgradeManager(UpgradeManager const&) = delete;
   void operator=(UpgradeManager const&) = delete;
 
+  static bool UnconfigureScillaPackage();
+
  public:
   /// Returns the singleton UpgradeManager instance.
   static UpgradeManager& GetInstance();
+
+  /// Check website, verify if sig is valid && SHA-256 is new
+  bool HasNewSW();
+
+  /// Download SW from website, then update current SHA-256 value & curSWInfo
+  bool DownloadSW();
+
+  /// Store all the useful states into metadata, create a new node with loading
+  /// the metadata, and kill current node
+  bool ReplaceNode(Mediator& mediator);
+
+  /// Install downloaded scilla to /scilla/majorVersion/
+  bool InstallScilla();
+
+  const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
 
   /// Should be only called internally, put in public just for testing
   std::string DownloadFile(const char* fileTail,

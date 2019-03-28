@@ -30,11 +30,11 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
-#include "libNetwork/Guard.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -181,17 +181,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
   }
 
-  DequeOfShard t_shards;
-  if (m_forceMulticast && GUARD_MODE) {
-    ReloadGuardedShards(t_shards);
-  }
-
   DataSender::GetInstance().SendDataToOthers(
-      *m_finalBlock, *m_mediator.m_DSCommittee,
-      t_shards.empty() ? m_shards : t_shards, t_microBlocks,
+      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeFinalBlockMessageForSender, m_forceMulticast.load());
+      composeFinalBlockMessageForSender);
 
   LOG_STATE(
       "[FLBLK]["
@@ -204,6 +198,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     if (m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
         TxnHash()) {
       m_mediator.m_node->CallActOnFinalblock();
+    }
+  }
+
+  if (isVacuousEpoch) {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      UpgradeManager::GetInstance().InstallScilla();
     }
   }
 

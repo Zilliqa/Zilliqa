@@ -283,7 +283,7 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
           *m_microblock, *m_myShardMembers, ds_shards, t_blocks,
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-          m_consensusMyID, composeMicroBlockMessageForSender, false, nullptr);
+          m_consensusMyID, composeMicroBlockMessageForSender, nullptr);
     }
 
     LOG_STATE(

@@ -455,7 +455,8 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
           timeWindow);
   jsonValue[4] = "0x" + strPoWTime;
   auto powTimeBytes =
-      DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(timeWindow);
+      DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(
+          POW_WINDOW_IN_SECONDS);
   tmp.insert(tmp.end(), powTimeBytes.begin(), powTimeBytes.end());
 
   if (tmp.size() != (PUB_KEY_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) +
