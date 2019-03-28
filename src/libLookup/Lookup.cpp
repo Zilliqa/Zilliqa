@@ -3154,12 +3154,11 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
     return true;
   }
 
-  if (m_syncType != SyncType::NO_SYNC && LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-      ins_byte ==
-          LookupInstructionType::SETSTATEDELTASFROMSEED)  // Is seed node
+  if (m_syncType != SyncType::NO_SYNC && LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP
+       && ins_byte == LookupInstructionType::SETSTATEDELTASFROMSEED) // Is seed node
   {
-    return false;
-  }
+      return false;
+  } 
 
   return m_syncType != SyncType::NO_SYNC &&
          (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED &&
