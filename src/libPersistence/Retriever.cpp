@@ -156,6 +156,14 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   }
 
+  if (boost::filesystem::exists("StateDeltaFromS3")) {
+    try {
+      boost::filesystem::remove_all("StateDeltaFromS3");
+    } catch (std::exception& e) {
+      LOG_GENERAL(FATAL, "Failed to remove StateDeltaFromS3 directory");
+    }
+  }
+
   if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
@@ -164,12 +172,15 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   } else {
     /// Put extra state delta from last DS epoch
+    unsigned int extra_delta_index = lastBlockNum - extra_txblocks + 1;
     for (const auto& stateDelta : extraStateDeltas) {
       if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
       }
+      BlockStorage::GetBlockStorage().PutStateDelta(extra_delta_index++,
+                                                    stateDelta);
     }
   }
 

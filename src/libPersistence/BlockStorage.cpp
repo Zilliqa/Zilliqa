@@ -738,9 +738,15 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
   LOG_MARKER();
   bool found = false;
   string dataStr = m_stateDeltaDB->Lookup(finalBlockNum, found);
-  stateDelta = bytes(dataStr.begin(), dataStr.end());
-  LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
-              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
+  if (found) {
+    stateDelta = bytes(dataStr.begin(), dataStr.end());
+    LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
+                stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
+  } else {
+    LOG_GENERAL(
+        INFO, "Didn't find the state delata of final block " << finalBlockNum);
+  }
+
   return found;
 }
 
@@ -1264,6 +1270,7 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     case TEMP_STATE: {
       lock_guard<mutex> g(m_mutexTempState);
       ret.push_back(m_tempStateDB->GetDBName());
+      break;
     }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
@@ -1315,15 +1322,16 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
            RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
            RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT);
+           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT);
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
            RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT);
+           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT);
   }
 }

@@ -205,7 +205,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     LogSelfNodeInfo(key, peer);
-    bool rejoinAlreadyInProgress = false;
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
@@ -223,14 +222,17 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         BlockStorage::GetBlockStorage().RefreshAll();
       } else {
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-        rejoinAlreadyInProgress = true;
+        bool isDsNode = false;
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
+            isDsNode = true;
             m_ds.RejoinAsDS();
             break;
           }
         }
-        m_n.RejoinAsNormal(true);
+        if (!isDsNode) {
+          m_n.RejoinAsNormal(true);
+        }
         break;
       }
     }
@@ -262,16 +264,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       case SyncType::NORMAL_SYNC:
         LOG_GENERAL(INFO, "Sync as a normal node");
-        if (!rejoinAlreadyInProgress) {
-          m_n.m_runFromLate = true;
-          m_n.StartSynchronization();
-        }
+        m_n.m_runFromLate = true;
+        m_n.StartSynchronization();
         break;
       case SyncType::DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds node");
-        if (!rejoinAlreadyInProgress) {
-          m_ds.StartSynchronization();
-        }
+        m_ds.StartSynchronization();
         break;
       case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
