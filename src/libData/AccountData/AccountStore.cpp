@@ -171,8 +171,8 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
 
 void AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
-  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes()))
-    LOG_GENERAL(INFO, "FAIL: Put state root failed");
+  if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
+    LOG_GENERAL(INFO, "FAIL: Put metadata failed");
 }
 
 bool AccountStore::MoveUpdatesToDisk() {
@@ -255,16 +255,25 @@ void AccountStore::DiscardUnsavedUpdates() {
 bool AccountStore::RetrieveFromDisk() {
   LOG_MARKER();
 
+  bytes rootBytes;
+  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+    return false;
+  }
+  LOG_PAYLOAD(INFO, "Retrieved stateroot: ", rootBytes,
+              Logger::MAX_BYTES_TO_DISPLAY);
+
   InitSoft();
+  rootBytes.clear();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
+  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
   }
+  LOG_PAYLOAD(INFO, "Retrieved stateroot: ", rootBytes,
+              Logger::MAX_BYTES_TO_DISPLAY);
 
   try {
     h256 root(rootBytes);
