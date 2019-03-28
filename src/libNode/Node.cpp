@@ -1645,7 +1645,6 @@ void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
-        BlockStorage::GetBlockStorage().ResetAll();
         while (!this->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
@@ -1653,6 +1652,7 @@ void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
         if (this->Install(SyncType::NORMAL_SYNC, true, rejoiningAfterRecover)) {
           break;
         };

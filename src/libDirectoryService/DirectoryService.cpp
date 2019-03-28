@@ -482,6 +482,7 @@ void DirectoryService::RejoinAsDS() {
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }

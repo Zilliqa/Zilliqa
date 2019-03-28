@@ -60,6 +60,13 @@ void AccountStore::InitSoft() {
   InitTemp();
 }
 
+void AccountStore::RefreshDB() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDB);
+  m_db.RefreshDB();
+}
+
 void AccountStore::InitTemp() {
   LOG_MARKER();
 
@@ -359,10 +366,8 @@ bool AccountStore::RetrieveFromDisk() {
     h256 root(rootBytes);
     LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
     std::string output;
-    if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state",
-                                         output)) {
-      LOG_GENERAL(INFO,
-                  "Current size of the states persistence: " << output);
+    if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state", output)) {
+      LOG_GENERAL(INFO, "Current size of the states persistence: " << output);
     }
     m_state.setRoot(root);
   } catch (const boost::exception& e) {
