@@ -207,7 +207,7 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
 bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
   // LOG_MARKER();
 
-   unordered_map<string, string> states_str;
+  unordered_map<string, string> states_str;
   for (const auto& state : states) {
     bytes rawBytes;
     if (!state.second.SerializeBase(rawBytes, 0)) {
@@ -218,23 +218,23 @@ bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
                        DataConversion::CharArrayToString(rawBytes));
   }
 
-   return m_tempStateDB->BatchInsert(states_str);
+  return m_tempStateDB->BatchInsert(states_str);
 }
 
- bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
+bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
                                        vector<StateSharedPtr>& states) {
   // LOG_MARKER();
 
-   lock_guard<mutex> g(m_mutexTempState);
+  lock_guard<mutex> g(m_mutexTempState);
 
-   if (iter == nullptr) {
+  if (iter == nullptr) {
     iter = m_tempStateDB->GetDB()->NewIterator(leveldb::ReadOptions());
     iter->SeekToFirst();
   }
 
-   unsigned int counter = 0;
+  unsigned int counter = 0;
 
-   for (; iter->Valid() && counter < ACCOUNT_IO_BATCH_SIZE;
+  for (; iter->Valid() && counter < ACCOUNT_IO_BATCH_SIZE;
        iter->Next(), counter++) {
     string addr_str = iter->key().ToString();
     string acct_string = iter->value().ToString();
@@ -248,10 +248,10 @@ bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
     StateSharedPtr state =
         StateSharedPtr(new pair<Address, Account>(addr, acct));
 
-     states.emplace_back(state);
+    states.emplace_back(state);
   }
 
-   return true;
+  return true;
 }
 
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
@@ -1165,15 +1165,15 @@ bool BlockStorage::ResetAll() {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
            ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE);
+           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
+           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
            ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE);
+           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
+           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE);
   }
 }

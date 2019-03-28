@@ -716,10 +716,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     return false;
   }
 
-  auto resumeBlackList = []() mutable -> void {	
-    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));	
-    Blacklist::GetInstance().Enable(true);	
-  };	
+  auto resumeBlackList = []() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
+    Blacklist::GetInstance().Enable(true);
+  };
 
   DetachedFunction(1, resumeBlackList);
 
@@ -743,26 +743,28 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     CleanMicroblockConsensusBuffer();
 
     auto writeStateToDisk = [this]() mutable -> void {
-    if (!AccountStore::GetInstance().MoveUpdatesToDisk(
-            ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
-                                          .GetHeader()
-                                          .GetBlockNum() %
-                                      REPOPULATE_STATE_PER_N_DS ==
-                                  REPOPULATE_STATE_IN_DS))) {
-      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-      // return false;
-    }
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-    LOG_STATE(	    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-        "[FLBLK]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FINISH WRITE STATE TO DISK");
-  };
-  DetachedFunction(1, writeStateToDisk);
-}
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetBlockNum() %
+                                        REPOPULATE_STATE_PER_N_DS ==
+                                    REPOPULATE_STATE_IN_DS))) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+        // return false;
+      }
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+      LOG_STATE("[FLBLK][" << setw(15) << left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] FINISH WRITE STATE TO DISK");
+    };
+    DetachedFunction(1, writeStateToDisk);
+  }
 
   // m_mediator.HeartBeatPulse();
 

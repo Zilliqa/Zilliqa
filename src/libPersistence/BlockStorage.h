@@ -273,7 +273,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Write state to tempState in batch
   bool PutTempState(const std::unordered_map<Address, Account>& states);
 
-   /// Get state from tempState in batch
+  /// Get state from tempState in batch
   bool GetTempStateInBatch(leveldb::Iterator*& iter,
                            std::vector<StateSharedPtr>& states);
 

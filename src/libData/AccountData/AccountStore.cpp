@@ -238,16 +238,16 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   return true;
 }
 
-bool AccountStore::RepopulateStateTrie() {	
+bool AccountStore::RepopulateStateTrie() {
   LOG_MARKER();
 
-   unsigned int counter = 0;
+  unsigned int counter = 0;
   bool batched_once = false;
 
-   for (const auto& i : m_state) {
+  for (const auto& i : m_state) {
     counter++;
 
-     if (counter >= ACCOUNT_IO_BATCH_SIZE) {
+    if (counter >= ACCOUNT_IO_BATCH_SIZE) {
       // Write into db
       if (!BlockStorage::GetBlockStorage().PutTempState(
               *this->m_addressToAccount)) {
@@ -259,16 +259,16 @@ bool AccountStore::RepopulateStateTrie() {
       }
     }
 
-     Address address(i.first);
+    Address address(i.first);
 
-     if (!batched_once) {
+    if (!batched_once) {
       if (this->m_addressToAccount->find(address) !=
           this->m_addressToAccount->end()) {
         continue;
       }
     }
 
-     Account account;
+    Account account;
     if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       continue;
@@ -277,10 +277,10 @@ bool AccountStore::RepopulateStateTrie() {
       account.SetAddress(address);
     }
 
-     this->m_addressToAccount->insert({address, account});
+    this->m_addressToAccount->insert({address, account});
   }
 
-   if (!this->m_addressToAccount->empty()) {
+  if (!this->m_addressToAccount->empty()) {
     if (!BlockStorage::GetBlockStorage().PutTempState(
             *(this->m_addressToAccount))) {
       LOG_GENERAL(WARNING, "PutTempState failed");
@@ -290,22 +290,22 @@ bool AccountStore::RepopulateStateTrie() {
     }
   }
 
-   m_db.ResetDB();
+  m_db.ResetDB();
   InitTrie();
 
-   if (batched_once) {
+  if (batched_once) {
     return UpdateStateTrieFromTempStateDB();
   } else {
     return UpdateStateTrieAll();
   }
 }
 
- bool AccountStore::UpdateStateTrieFromTempStateDB() {	
+bool AccountStore::UpdateStateTrieFromTempStateDB() {
   LOG_MARKER();
 
   leveldb::Iterator* iter = nullptr;
 
-   while (iter == nullptr || iter->Valid()) {
+  while (iter == nullptr || iter->Valid()) {
     vector<StateSharedPtr> states;
     BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states);
     for (const auto& state : states) {
@@ -313,10 +313,10 @@ bool AccountStore::RepopulateStateTrie() {
     }
   }
 
-   BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
 
-   return true;
-}	
+  return true;
+}
 
 void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();

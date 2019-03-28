@@ -84,7 +84,7 @@ class Lookup : public Executable {
   std::atomic<bool> m_startedTxnBatchThread;
 
   // Start PoW variables
-  std::atomic<bool> m_receivedRaiseStartPoW;	
+  std::atomic<bool> m_receivedRaiseStartPoW;
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
