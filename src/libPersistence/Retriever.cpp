@@ -80,6 +80,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
 
   std::string target = "persistence/stateDelta";
+  bool updateToDisk = false;
   unsigned int firstStateDeltaIndex = lower_bound_txnblk;
   for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
     // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
@@ -101,10 +102,6 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
         // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
         for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-          if (!stdfs::exists("StateDeltaFromS3/stateDelta_" +
-                             std::to_string(j))) {
-            continue;
-          }
           bytes stateDelta;
           LOG_GENERAL(
               INFO,
@@ -119,8 +116,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
             }
           }
         }
-        // commit the state to disk
-        AccountStore::GetInstance().MoveUpdatesToDisk();
+        updateToDisk = true;
         firstStateDeltaIndex = i + 1;
       }
     } else  // we rely on next statedelta that covers this missing one
@@ -129,6 +125,11 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
                                << i << ". This can happen. Not a problem!");
       // Do nothing
     }
+  }
+
+  // commit the state to disk
+  if (updateToDisk) {
+    AccountStore::GetInstance().MoveUpdatesToDisk();
   }
 
   if (trimIncompletedBlocks) {
