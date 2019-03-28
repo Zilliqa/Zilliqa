@@ -139,10 +139,7 @@ bool Node::DownloadPersistenceFromS3() {
   string output;
   // TBD - find better way to capture the exit status of command
   SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py", output);
-  if (output.find("Done!") != std::string::npos) {
-    return true;
-  }
-  return false;
+  return (output.find("Done!") != std::string::npos);
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
