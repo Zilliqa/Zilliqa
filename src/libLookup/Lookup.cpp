@@ -51,7 +51,6 @@
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -144,6 +143,7 @@ void Lookup::InitSync() {
 void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
   // Only used for random testing
   m_lookupNodes = lookupNodes;
+  m_lookupNodesStatic = lookupNodes;
 }
 
 void Lookup::SetLookupNodes() {
@@ -214,6 +214,8 @@ void Lookup::SetLookupNodes() {
                                  m_mediator.m_selfPeer);
     }
   }
+
+  m_lookupNodesStatic = m_lookupNodes;
 }
 
 void Lookup::SetAboveLayer() {
@@ -406,8 +408,14 @@ VectorOfNode Lookup::GetLookupNodes() const {
   return m_lookupNodes;
 }
 
+VectorOfNode Lookup::GetLookupNodesStatic() const {
+  LOG_MARKER();
+  lock_guard<mutex> lock(m_mutexLookupNodes);
+  return m_lookupNodesStatic;
+}
+
 bool Lookup::IsLookupNode(const PubKey& pubKey) const {
-  VectorOfNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodesStatic();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&pubKey](const PairOfNode& node) {
                         return node.first == pubKey;
@@ -415,7 +423,7 @@ bool Lookup::IsLookupNode(const PubKey& pubKey) const {
 }
 
 bool Lookup::IsLookupNode(const Peer& peerInfo) const {
-  VectorOfNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodesStatic();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&peerInfo](const PairOfNode& node) {
                         return node.second.GetIpAddress() ==
@@ -1278,7 +1286,7 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1867,19 +1875,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
-
-  if (isVacuousEpoch) {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-    }
-
-    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().InstallScilla();
-    }
-  }
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
@@ -2429,7 +2424,7 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -3070,7 +3065,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!Lookup::VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -3401,9 +3396,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
         uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
             m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-        uint32_t leader_id =
-            lastBlockHash % m_mediator.m_ds->m_shards.at(i).size();
-        LOG_GENERAL(INFO, "Shard leader id " << leader_id);
+        uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
+            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size(),
+            m_mediator.m_ds->m_shards.at(i));
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "Shard leader id " << leader_id);
 
         auto it = m_mediator.m_ds->m_shards.at(i).begin();
         // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader

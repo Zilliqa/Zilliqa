@@ -20,6 +20,7 @@
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <tuple>
 
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -874,6 +875,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
+      m_mediator.m_ds->m_forceMulticast = true;
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
@@ -963,6 +965,61 @@ void Node::StartSynchronization() {
   };
 
   DetachedFunction(1, func);
+}
+
+uint32_t Node::CalculateShardLeaderFromDequeOfNode(
+    uint16_t lastBlockHash, uint32_t sizeOfShard,
+    const DequeOfNode& shardMembers) {
+  LOG_MARKER();
+  if (GUARD_MODE) {
+    uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
+
+    unsigned int iterationCount = 0;
+    while (!Guard::GetInstance().IsNodeInShardGuardList(
+               shardMembers.at(consensusLeaderIndex).first) &&
+           (iterationCount < SHARD_LEADER_SELECT_TOL)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "consensusLeaderIndex " << consensusLeaderIndex
+                                        << " is not a shard guard.");
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
+          lastBlockHash));
+      lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+      consensusLeaderIndex = lastBlockHash % sizeOfShard;
+      iterationCount++;
+    }
+    return consensusLeaderIndex;
+  } else {
+    return lastBlockHash % sizeOfShard;
+  }
+}
+
+uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
+                                             uint32_t sizeOfShard,
+                                             const Shard& shardMembers) {
+  LOG_MARKER();
+  if (GUARD_MODE) {
+    uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
+
+    unsigned int iterationCount = 0;
+    while (!Guard::GetInstance().IsNodeInShardGuardList(
+               std::get<SHARD_NODE_PUBKEY>(
+                   shardMembers.at(consensusLeaderIndex))) &&
+           (iterationCount < SHARD_LEADER_SELECT_TOL)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "consensusLeaderIndex " << consensusLeaderIndex
+                                        << " is not a shard guard.");
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
+          lastBlockHash));
+      lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+      consensusLeaderIndex = lastBlockHash % sizeOfShard;
+      iterationCount++;
+    }
+    return consensusLeaderIndex;
+  } else {
+    return lastBlockHash % sizeOfShard;
+  }
 }
 
 bool Node::CheckState(Action action) {
@@ -1168,7 +1225,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodesStatic(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Sender pubkey " << lookupPubKey << " not in lookup list");

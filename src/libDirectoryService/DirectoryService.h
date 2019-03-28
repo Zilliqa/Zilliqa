@@ -287,10 +287,6 @@ class DirectoryService : public Executable {
   boost::multiprecision::uint128_t GetIncreasedGasPrice();
   bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
 
-  void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
-                      const std::map<PubKey, Peer>& powDSWinner,
-                      const MapOfPubKeyPoW& dsPow);
-
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
@@ -428,6 +424,8 @@ class DirectoryService : public Executable {
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
 
+  void ReloadGuardedShards(DequeOfShard& shards);
+
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
@@ -524,6 +522,9 @@ class DirectoryService : public Executable {
 
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
+
+  /// Force multicast when sending block to shard
+  std::atomic<bool> m_forceMulticast;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
