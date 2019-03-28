@@ -2118,11 +2118,11 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                   "AccountStore::GetInstance().DeserializeDelta failed");
       return false;
     }
-  }
 
-  if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+    if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
       LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
       return false;
+    }
   }
 
   cv_setStateDeltasFromSeed.notify_all();
