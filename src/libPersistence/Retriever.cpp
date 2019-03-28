@@ -81,7 +81,6 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
   std::string target = "persistence/stateDelta";
   bool updateToDisk = false;
-  unsigned int firstStateDeltaIndex = lower_bound_txnblk;
   for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
     // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
     // local persistence/stateDelta
@@ -95,30 +94,24 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
       }
 
-      if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
-          0) {  // state-delta from vacous epoch
+      if ((i + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
         // refresh state-delta after copy over
         BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
-
-        // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
-        for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-          bytes stateDelta;
-          LOG_GENERAL(
-              INFO,
-              "Try fetching statedelta and deserializing to state for txnBlk:"
-                  << j);
-          if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
-            if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
-              LOG_GENERAL(
-                  WARNING,
-                  "AccountStore::GetInstance().DeserializeDelta failed");
-              return false;
-            }
-          }
-        }
-        updateToDisk = true;
-        firstStateDeltaIndex = i + 1;
       }
+
+      bytes stateDelta;
+      LOG_GENERAL(
+          INFO, "Try fetching statedelta and deserializing to state for txnBlk:"
+                    << i);
+      if (BlockStorage::GetBlockStorage().GetStateDelta(i, stateDelta)) {
+        if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
+          LOG_GENERAL(WARNING,
+                      "AccountStore::GetInstance().DeserializeDelta failed");
+          return false;
+        }
+      }
+
+      updateToDisk = true;
     } else  // we rely on next statedelta that covers this missing one
     {
       LOG_GENERAL(WARNING, "Didn't find state-delta for TxnBlk:"
