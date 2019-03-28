@@ -27,6 +27,7 @@
 #include "libData/AccountData/Address.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SysCommand.h"
 
 #include "../ScillaTestUtil.h"
 
@@ -69,7 +70,8 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   BOOST_CHECK_MESSAGE(
       AccountStore::GetInstance().GetStateRootHash() == root1,
       "Wrong root: Call to MoveUpdatesToDisk() has changed the root "
-      "hash!");
+      "hash! current: "
+          << AccountStore::GetInstance().GetStateRootHash());
 
   // Retrieve entry from persistent storage
   // Check that account store is restored
@@ -112,9 +114,10 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 10,
                       "Wrong balance: Call to MoveUpdatesToDisk() has "
                       "changed the balance at addr!");
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().GetStateRootHash() == root2,
-      "Wrong root: Call to MoveUpdatesToDisk() has changed the root hash!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root2,
+                      "Wrong root: Call to MoveUpdatesToDisk() has changed the "
+                      "root hash! current: "
+                          << AccountStore::GetInstance().GetStateRootHash());
 
   AccountStore::GetInstance().RetrieveFromDisk();
 }
@@ -837,6 +840,81 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                     initJson1, stateJson1, initJson2, contrBalance);
   }
+}
+
+BOOST_AUTO_TEST_CASE(DiskOperation2) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  AccountStore::GetInstance().Init();
+
+  std::vector<std::vector<Address>> list_addresses;
+
+  for (auto i = 0; i < 1; i++) {
+    std::vector<Address> addresses;
+    int num_address = 100000;
+    for (auto i = 0; i < num_address; i++) {
+      PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+      Address address = Account::GetAddressFromPublicKey(pubKey);
+
+      Account account(21, 211);
+      AccountStore::GetInstance().AddAccount(address, account);
+      addresses.push_back(address);
+
+      if ((i % (num_address / 10)) == 0) {
+        LOG_GENERAL(INFO, i << " Added");
+      }
+    }
+
+    list_addresses.push_back(addresses);
+
+    LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 1");
+    AccountStore::GetInstance().UpdateStateTrieAll();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
+
+    std::string output;
+    if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state", output)) {
+      LOG_GENERAL(INFO, "Num of AddAccount: "
+                            << list_addresses.size() * addresses.size()
+                            << ", size of state db: " << output);
+    }
+
+    for (auto i = 0; i < 2; i++) {
+      AccountStore::GetInstance().InitSoft();
+      AccountStore::GetInstance().RetrieveFromDisk();
+
+      for (const auto& addr : addresses) {
+        AccountStore::GetInstance().IncreaseBalance(addr, 1);
+      }
+
+      LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 2_" << (i + 1));
+      AccountStore::GetInstance().UpdateStateTrieAll();
+      AccountStore::GetInstance().MoveUpdatesToDisk();
+
+      output.clear();
+      if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state",
+                                           output)) {
+        LOG_GENERAL(INFO,
+                    "After IncreaseBalance, size of state db: " << output);
+      }
+    }
+  }
+
+  AccountStore::GetInstance().InitSoft();
+  AccountStore::GetInstance().RetrieveFromDisk();
+
+  int num_errors = 0;
+
+  for (const auto& addresses : list_addresses) {
+    for (const auto& address : addresses) {
+      if (AccountStore::GetInstance().GetBalance(address) == 0) {
+        num_errors++;
+      }
+    }
+  }
+
+  BOOST_CHECK_EQUAL(0, num_errors);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

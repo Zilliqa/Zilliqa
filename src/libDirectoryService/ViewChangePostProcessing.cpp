@@ -203,15 +203,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     if (candidateLeaderInfo.first == m_mediator.m_selfKey.second &&
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
-      m_consensusLeaderID = m_consensusMyID.load();
+      SetConsensusLeaderID(m_consensusMyID.load());
     } else {
       DequeOfNode::iterator iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
                m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
 
       if (iterConsensusLeaderID != m_mediator.m_DSCommittee->end()) {
-        m_consensusLeaderID =
-            distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
+        SetConsensusLeaderID(
+            distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID));
       } else {
         LOG_GENERAL(WARNING, "FATAL Cannot find new leader in the ds committee "
                                  << candidateLeaderInfo.second);
@@ -219,7 +219,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       }
     }
 
-    LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
+    LOG_GENERAL(INFO, "New m_consensusLeaderID " << GetConsensusLeaderID());
     LOG_GENERAL(INFO, "New view of ds committee: ");
     for (auto& i : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(INFO, i.second);
@@ -231,7 +231,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
     }
     m_mediator.m_node->SetConsensusMyID(m_consensusMyID.load());
-    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
+    m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
     if (m_mediator.m_node->GetConsensusMyID() ==
         m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;

@@ -249,8 +249,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   } else {
     if (!GUARD_MODE) {
       m_consensusMyID += numOfIncomingDs;
-      m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
+      SetConsensusLeaderID(lastBlockHash % (m_mediator.m_DSCommittee->size()));
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     } else {
       // DS guards' indexes do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
@@ -260,12 +260,12 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
         LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
       }
       // Only DS guard can be ds leader
-      m_consensusLeaderID =
-          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
+      SetConsensusLeaderID(lastBlockHash %
+                           Guard::GetInstance().GetNumOfDSGuard());
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     }
 
-    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
+    if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==
         m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am now DS leader for the next round");
@@ -377,7 +377,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
+    m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
 
     if (m_mediator.m_node->GetConsensusMyID() ==
         m_mediator.m_node->GetConsensusLeaderID()) {
@@ -594,15 +594,16 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   UpdateDSCommiteeComposition();
   UpdateMyDSModeAndConsensusId();
 
-  if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
+  if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==
       m_mediator.m_selfKey.second) {
-    LOG_GENERAL(INFO, "New leader is at index " << m_consensusLeaderID << " "
+    LOG_GENERAL(INFO, "New leader is at index " << GetConsensusLeaderID() << " "
                                                 << m_mediator.m_selfPeer);
   } else {
     LOG_GENERAL(
-        INFO, "New leader is at index "
-                  << m_consensusLeaderID << " "
-                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+        INFO,
+        "New leader is at index "
+            << GetConsensusLeaderID() << " "
+            << m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).second);
   }
 
   LOG_GENERAL(INFO, "DS committee");
@@ -612,7 +613,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   }
 
   BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
-                                                 m_consensusLeaderID);
+                                                 GetConsensusLeaderID());
 
   StartFirstTxEpoch();
 }
