@@ -341,21 +341,24 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool RefreshAll();
 
  private:
-  std::mutex m_mutexMetadata;
-  std::mutex m_mutexDsBlockchain;
-  std::mutex m_mutexTxBlockchain;
-  std::mutex m_mutexMicroBlock;
-  std::mutex m_mutexDsCommittee;
-  std::mutex m_mutexVCBlock;
-  std::mutex m_mutexFallbackBlock;
-  std::mutex m_mutexBlockLink;
-  std::mutex m_mutexShardStructure;
-  std::mutex m_mutexStateDelta;
-  std::mutex m_mutexTempState;
-  std::mutex m_mutexTxBody;
-  std::mutex m_mutexTxBodyTmp;
   std::mutex m_mutexDiagnostic;
-  std::mutex m_mutexStateRoot;
+
+  mutable std::shared_timed_mutex m_mutexMetadata;
+  mutable std::shared_timed_mutex m_mutexDsBlockchain;
+  mutable std::shared_timed_mutex m_mutexTxBlockchain;
+  mutable std::shared_timed_mutex m_mutexMicroBlock;
+  mutable std::shared_timed_mutex m_mutexDsCommittee;
+  mutable std::shared_timed_mutex m_mutexVCBlock;
+  mutable std::shared_timed_mutex m_mutexFallbackBlock;
+  mutable std::shared_timed_mutex m_mutexBlockLink;
+  mutable std::shared_timed_mutex m_mutexShardStructure;
+  mutable std::shared_timed_mutex m_mutexStateDelta;
+  mutable std::shared_timed_mutex m_mutexTempState;
+  mutable std::shared_timed_mutex m_mutexTxBody;
+  mutable std::shared_timed_mutex m_mutexTxBodyTmp;
+  mutable std::shared_timed_mutex m_mutexStateRoot;
+  mutable std::shared_timed_mutex m_mutexTxnHistorical;
+  mutable std::shared_timed_mutex m_mutexMBHistorical;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;
