@@ -124,6 +124,9 @@ class AccountStore
   /// empty states data in memory
   void InitSoft();
 
+  /// Reset the reference to underlying leveldb
+  void RefreshDB();
+
   bool UpdateStateTrieFromTempStateDB();
 
   bool RepopulateStateTrie();

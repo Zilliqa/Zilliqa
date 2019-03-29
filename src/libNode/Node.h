@@ -427,7 +427,8 @@ class Node : public Executable {
   ~Node();
 
   /// Install the Node
-  bool Install(const SyncType syncType, const bool toRetrieveHistory = true);
+  bool Install(const SyncType syncType, const bool toRetrieveHistory = true,
+               bool rejoiningAfterRecover = false);
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -453,7 +454,8 @@ class Node : public Executable {
   bool DownloadPersistenceFromS3();
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType);
+  bool StartRetrieveHistory(const SyncType syncType,
+                            bool rejoiningAfterRecover = false);
 
   bool ValidateDB();
 
@@ -538,7 +540,7 @@ class Node : public Executable {
   bool LoadShardingStructure(bool callByRetrieve = false);
 
   // Rejoin the network as a shard node in case of failure happens in protocol
-  void RejoinAsNormal();
+  void RejoinAsNormal(bool rejoiningAfterRecover = false);
 
   /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
   void PrepareGoodStateForFinalBlock();
@@ -589,9 +591,11 @@ class Node : public Executable {
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
+  std::string GetStateString() const;
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
-  std::string GetStateString() const;
+
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   /// Fallback Consensus Related

@@ -81,4 +81,25 @@ BOOST_AUTO_TEST_CASE(test_fundamental) {
   LOG_GENERAL(INFO, "Test Blacklist termination done!");
 }
 
+BOOST_AUTO_TEST_CASE(test_pop) {
+  INIT_STDOUT_LOGGER();
+
+  Blacklist& bl = Blacklist::GetInstance();
+  bl.Clear();
+
+  for (boost::multiprecision::uint128_t i = 0; i < 100; ++i) {
+    bl.Add(i);
+  }
+
+  bl.Pop(5);
+  BOOST_CHECK_MESSAGE(bl.SizeOfBlacklist() == 95,
+                      "Unexpected blacklist size: " << bl.SizeOfBlacklist());
+
+  bl.Pop(1000);
+  BOOST_CHECK_MESSAGE(bl.SizeOfBlacklist() == 0,
+                      "Unexpected blacklist size: " << bl.SizeOfBlacklist());
+
+  LOG_GENERAL(INFO, "Test Blacklist pop done!");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

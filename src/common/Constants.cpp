@@ -289,6 +289,12 @@ const unsigned int SHARD_LEADER_SELECT_TOL{
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
 
+// RPC Constants
+const unsigned int RPC_PORT{ReadConstantNumeric("RPC_PORT", "node.jsonrpc.")};
+const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
+const bool ENABLE_STATUS_RPC{
+    ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
+
 // Network composition constants
 const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
@@ -323,6 +329,8 @@ const unsigned int MAX_READ_WATERMARK_IN_BYTES{
     ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
+const unsigned int BLACKLIST_NUM_TO_POP{
+    ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -345,10 +353,10 @@ const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
     ReadConstantNumeric("POW_DIFFICULTY", "node.pow.")};
-const unsigned int POW_BOUNDARY_N_DEVIDED{
-    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED", "node.pow.")};
-const unsigned int POW_BOUNDARY_N_DEVIDED_START{
-    ReadConstantNumeric("POW_BOUNDARY_N_DEVIDED_START", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DIVIDED{
+    ReadConstantNumeric("POW_BOUNDARY_N_DIVIDED", "node.pow.")};
+const unsigned int POW_BOUNDARY_N_DIVIDED_START{
+    ReadConstantNumeric("POW_BOUNDARY_N_DIVIDED_START", "node.pow.")};
 const unsigned int POW_SUBMISSION_LIMIT{
     ReadConstantNumeric("POW_SUBMISSION_LIMIT", "node.pow.")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{

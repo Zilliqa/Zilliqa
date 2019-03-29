@@ -40,6 +40,8 @@ class JSONConversion {
   static bool checkJsonTx(const Json::Value& _json);
   // Convert a Tx to JSON object
   static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr);
+  // Convert Deque of Node to Json
+  static const Json::Value convertDequeOfNode(const DequeOfNode& nodes);
 };
 
 #endif  // __JSONCONVERSION_H__

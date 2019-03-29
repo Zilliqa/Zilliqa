@@ -342,7 +342,8 @@ void DirectoryService::StartFirstTxEpoch() {
     m_allPoWs.clear();
   }
 
-  Blacklist::GetInstance().Clear();
+  // blacklist pop for ds nodes
+  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
