@@ -50,7 +50,7 @@ RUN apt-get update \
     python-pip \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install requests clint
+    && pip install request requests clint
 
 ############################### CUDA Installation ##############################
 # taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/base/Dockerfile
