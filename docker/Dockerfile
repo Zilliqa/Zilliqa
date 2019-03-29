@@ -50,6 +50,7 @@ RUN apt-get update \
     python-pip \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && pip install setuptools \
     && pip install request clint
 
 ARG ZILLIQA_VERSION=v4.3.0
