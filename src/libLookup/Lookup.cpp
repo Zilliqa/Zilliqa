@@ -1160,7 +1160,9 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   } else {
     uint64_t lowestLimitNum = (m_mediator.m_dsBlockChain.GetBlockCount() >
                                INCRDB_DSNUMS_WITH_STATEDELTAS)
-                                  ? (m_mediator.m_dsBlockChain.GetBlockCount() -
+                                  ? (m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetBlockNum() -
                                      INCRDB_DSNUMS_WITH_STATEDELTAS) *
                                         NUM_FINAL_BLOCK_PER_POW
                                   : 0;
