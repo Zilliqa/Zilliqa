@@ -871,7 +871,7 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
                                  bytes& stateDelta) {
   LOG_MARKER();
   bool found = false;
-  
+
   string dataStr;
   {
     shared_lock<shared_timed_mutex> g(m_mutexStateDelta);
@@ -885,6 +885,10 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
     LOG_GENERAL(INFO,
                 "Didn't find state delta of final block " << finalBlockNum);
   }
+
+  stateDelta = bytes(dataStr.begin(), dataStr.end());
+  LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
+              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
 
   return found;
 }
