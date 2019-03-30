@@ -28,8 +28,11 @@
 #include <string>
 #include <thread>
 #include <vector>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
 #include "jsonrpccpp/client.h"
 #include "jsonrpccpp/client/connectors/httpclient.h"
+#pragma GCC diagnostic pop
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
