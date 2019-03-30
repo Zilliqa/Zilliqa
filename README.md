@@ -18,7 +18,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
-> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v4.3.1`)
+> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v4.4.0`)
 
 ## Zilliqa Mainnet
 
@@ -70,8 +70,6 @@ In the coming months, we plan to have the following features:
 
 To run Zilliqa, we recommend the following as the minimum system requirements:
 
-> **NOTE:** We are in active development on Ubuntu 16.04. macOS is also supported.
-
 * x64 _Linux_ operating system such as _Ubuntu_
 * Intel i5 processor or later
 * 2 GB RAM or higher
@@ -89,12 +87,6 @@ To run Zilliqa, we recommend the following as the minimum system requirements:
         libssl-dev
     ```
 
-* macOS:
-
-    ```bash
-    brew install boost pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
-    ```
-
 ## Build from Source Code
 
 Build Zilliqa from the source:
@@ -102,7 +94,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone git@github.com:Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tag/v4.3.1 
+$ cd Zilliqa && git checkout tag/v4.4.0 
 
 # build Zilliqa binary
 $ ./build.sh
