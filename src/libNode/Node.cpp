@@ -173,8 +173,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
 
     if (SyncType::NEW_SYNC == syncType ||
         SyncType::NEW_LOOKUP_SYNC == syncType ||
-        (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType ||
-                                   SyncType::DS_SYNC == syncType))) {
+        (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
       return true;
     }
 
@@ -563,7 +562,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
-      (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
+      (rejoiningAfterRecover &&
+       (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {
     return true;
   }
 
