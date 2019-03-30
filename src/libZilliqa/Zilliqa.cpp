@@ -220,6 +220,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
       } else {
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
         bool isDsNode = false;
@@ -231,7 +232,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           }
         }
         if (!isDsNode) {
-          m_n.RejoinAsNormal(true);
+          m_n.RejoinAsNormal();
         }
         break;
       }
