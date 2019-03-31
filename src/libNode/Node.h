@@ -540,7 +540,7 @@ class Node : public Executable {
   bool LoadShardingStructure(bool callByRetrieve = false);
 
   // Rejoin the network as a shard node in case of failure happens in protocol
-  void RejoinAsNormal(bool rejoiningAfterRecover = false);
+  void RejoinAsNormal();
 
   /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
   void PrepareGoodStateForFinalBlock();
