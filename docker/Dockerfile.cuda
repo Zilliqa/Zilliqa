@@ -104,7 +104,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 ####################### End of CUDA Installation ###############################
 
-ARG ZILLIQA_VERSION=v4.4.0
+ARG ZILLIQA_VERSION=v4.4.1
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
