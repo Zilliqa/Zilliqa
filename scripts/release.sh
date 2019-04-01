@@ -24,6 +24,7 @@ privKeyFile=""
 pubKeyFile=""
 constantFile=""
 constantLookupFile=""
+constantLevel2LookupFile=""
 constantNewLookupFile=""
 S3ReleaseTarBall=""
 
@@ -406,7 +407,7 @@ if [ "$#" -ne 0 ]; then
     exit 0
 fi
 
-if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ]; then
+if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantLevel2LookupFile" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     exit 0
 fi
@@ -428,6 +429,11 @@ fi
 
 if [ ! -f "${constantLookupFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
+    exit 0
+fi
+
+if [ ! -z "$constantLevel2LookupFile" ] && [ ! -f "${constantLevel2LookupFile}" ]; then
+    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantLevel2LookupFile} not found, please confirm constantLevel2LookupFile field in release.sh!\033[0m\n"
     exit 0
 fi
 
@@ -458,6 +464,7 @@ fi
 # Read information from files
 constantFile="$(realpath ${constantFile})"
 constantLookupFile="$(realpath ${constantLookupFile})"
+[ ! -z "$constantLevel2LookupFile" ] && constantLevel2LookupFile="$(realpath ${constantLevel2LookupFile})"
 [ ! -z "$constantNewLookupFile" ] && constantNewLookupFile="$(realpath ${constantNewLookupFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
@@ -614,6 +621,11 @@ if [ -z "$useNewUpgradeMethod" ]; then # Upload package onto GitHub
 	  -H "Content-Type:application/octet-stream"  \
 	  --data-binary @"${constantLookupFile}" \
 	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLookupFile##*/}_lookup"
+	[ ! -z "$constantLevel2LookupFile" ] && curl -v -s  \
+	  -H "Authorization: token ${GitHubToken}" \
+	  -H "Content-Type:application/octet-stream"  \
+	  --data-binary @"${constantLevel2LookupFile}" \
+	  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLevel2LookupFile##*/}_level2lookup"
 	[ ! -z "$constantNewLookupFile" ] && curl -v -s  \
 	  -H "Authorization: token ${GitHubToken}" \
 	  -H "Content-Type:application/octet-stream"  \
@@ -658,9 +670,11 @@ else
 	
     ## zip the release
     cp ${constantLookupFile} ${constantLookupFile}_lookup
+    [ ! -z "$constantLevel2LookupFile" ] && cp ${constantLevel2LookupFile} ${constantLevel2LookupFile}_level2lookup
     [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
     cmd="tar cfz ${S3ReleaseTarBall}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     [ "$releaseZilliqa" = "true" ] && cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
+    [ ! -z "${constantLevel2LookupFile}" ] && cmd="${cmd} -C $(dirname ${constantLevel2LookupFile}) $(basename ${constantLevel2LookupFile})_level2lookup"
     [ ! -z "${constantNewLookupFile}" ] && cmd="${cmd} -C $(dirname ${constantNewLookupFile}) $(basename ${constantNewLookupFile})_newlookup"
     [ ! -z "${scillaPath}" ] && cmd="${cmd} -C $(realpath ./) ${Scilla_Deb}"
 
