@@ -22,10 +22,6 @@
 # [MUST BE FILLED IN] User configuration settings
 privKeyFile=""
 pubKeyFile=""
-constantFile=""
-constantLookupFile=""
-constantLevel2LookupFile=""
-constantNewLookupFile=""
 testnet_to_be_upgraded=""
 cluster_name="" # eg: dev.k8s.z7a.xyz
 
@@ -41,6 +37,7 @@ scillaPath=""
 
 # Environment variables
 releaseDir="release"
+constantsDir="constantsDir"
 versionFile="VERSION"
 dsNodeFile="dsnodes.xml"
 scillaVersionPath="/src/lang/base/Syntax.ml"
@@ -91,7 +88,7 @@ if [ "$#" -ne 0 ]; then
     exit 0
 fi
 
-if [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantLevel2LookupFile" = "" ] || [ "$testnet_to_be_upgraded" = "" ] || [ "$cluster_name" = "" ]; then
+if [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$testnet_to_be_upgraded" = "" ] || [ "$cluster_name" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     exit 0
 fi
@@ -103,26 +100,6 @@ fi
 
 if [ ! -f "${pubKeyFile}" ]; then
     echo -e "\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
-    exit 0
-fi
-
-if [ ! -f "${constantFile}" ]; then
-    echo -e "\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
-    exit 0
-fi
-
-if [ ! -f "${constantLookupFile}" ]; then
-    echo -e "\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
-    exit 0
-fi
-
-if [ ! -z "$constantLevel2LookupFile" ] && [ ! -f "${constantLevel2LookupFile}" ]; then
-    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantLevel2LookupFile} not found, please confirm constantLevel2LookupFile field in release.sh!\033[0m\n"
-    exit 0
-fi
-
-if [ ! -z "$constantNewLookupFile" ] && [ ! -f "${constantNewLookupFile}" ]; then
-    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantNewLookupFile} not found, please confirm constantNewLookupFile field in release.sh!\033[0m\n"
     exit 0
 fi
 
@@ -146,10 +123,15 @@ if [ "$releaseZilliqa" = "false" ] && [ ! -d "${scillaPath}" ]; then
 fi
 
 # Read information from files
-constantFile="$(realpath ${constantFile})"
-constantLookupFile="$(realpath ${constantLookupFile})"
-constantLevel2LookupFile="$(realpath ${constantLevel2LookupFile})"
-[ ! -z "$constantNewLookupFile" ] && constantNewLookupFile="$(realpath ${constantNewLookupFile})"
+rm -rf ${constantsDir}; mkdir ${constantsDir}; cd ${constantsDir}; mkdir l; mkdir l2; mkdir n; cd -;
+kubectl cp ${testnet_to_be_upgraded}-normal-0:/run/zilliqa/constants.xml ${constantsDir}/
+kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/
+kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/
+kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/
+constantFile="$(realpath ${constantsDir}/constants.xml)"
+constantLookupFile="$(realpath ${constantsDir}/l/constants.xml)"
+constantLevel2LookupFile="$(realpath ${constantsDir}/l2/constants.xml)"
+constantNewLookupFile="$(realpath ${constantsDir}/n/constants.xml)"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
