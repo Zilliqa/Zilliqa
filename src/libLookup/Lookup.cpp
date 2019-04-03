@@ -246,15 +246,6 @@ void Lookup::SetAboveLayer() {
   }
 }
 
-vector<Peer> Lookup::GetAboveLayer() {
-  vector<Peer> seedNodePeer;
-  lock_guard<mutex> g(m_mutexSeedNodes);
-  for (const auto& seedNode : m_seedNodes) {
-    seedNodePeer.emplace_back(seedNode.second);
-  }
-  return seedNodePeer;
-}
-
 VectorOfNode Lookup::GetSeedNodes() const {
   lock_guard<mutex> g(m_mutexSeedNodes);
 
