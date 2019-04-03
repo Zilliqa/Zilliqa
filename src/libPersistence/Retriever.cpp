@@ -276,7 +276,6 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         return false;
       }
       m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
-      m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
@@ -316,6 +315,8 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       m_mediator.m_node->UpdateDSCommitteeAfterFallback(
           shard_id, leaderPubKey, leaderNetworkInfo, dsComm, shards);
     }
+
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
 
     m_mediator.m_blocklinkchain.AddBlockLink(
         std::get<BlockLinkIndex::INDEX>(blocklink),
