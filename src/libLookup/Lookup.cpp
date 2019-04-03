@@ -942,6 +942,7 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
       resolved_ip);  // exclude this lookup ip from blacklisting
 
   Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
+  LOG_GENERAL(INFO, "Sending message to " << tmpPeer);
   P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
