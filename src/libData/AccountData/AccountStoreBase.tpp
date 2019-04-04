@@ -76,6 +76,13 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
+  if (!IsAccountExist(toAddr) &&
+      (transaction.GetAmount() <= transaction.GetGasPrice())) {
+    LOG_GENERAL(WARNING, "Too few amount " << transaction.GetAmount()
+                                           << " for creating a new account");
+    return false;
+  }
+
   boost::multiprecision::uint128_t gasDeposit = 0;
   if (!SafeMath<boost::multiprecision::uint128_t>::mul(
           transaction.GetGasLimit(), transaction.GetGasPrice(), gasDeposit)) {
@@ -163,7 +170,7 @@ void AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account) {
   // LOG_MARKER();
 
-  if (!IsAccountExist(address)) {
+  if (!IsAccountExist(address) && account.GetBalance() > 0) {
     m_addressToAccount->insert(std::make_pair(address, account));
     // UpdateStateTrie(address, account);
   }
