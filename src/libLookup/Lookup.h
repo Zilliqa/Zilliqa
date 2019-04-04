@@ -211,7 +211,6 @@ class Lookup : public Executable {
   void SendMessageToRandomSeedNode(const bytes& message) const;
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
-  std::vector<Peer> GetAboveLayer();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
   bool GetDSInfoFromLookupNodes(bool initialDS = false);

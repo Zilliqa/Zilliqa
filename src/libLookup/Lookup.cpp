@@ -246,15 +246,6 @@ void Lookup::SetAboveLayer() {
   }
 }
 
-vector<Peer> Lookup::GetAboveLayer() {
-  vector<Peer> seedNodePeer;
-  lock_guard<mutex> g(m_mutexSeedNodes);
-  for (const auto& seedNode : m_seedNodes) {
-    seedNodePeer.emplace_back(seedNode.second);
-  }
-  return seedNodePeer;
-}
-
 VectorOfNode Lookup::GetSeedNodes() const {
   lock_guard<mutex> g(m_mutexSeedNodes);
 
@@ -942,6 +933,7 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
       resolved_ip);  // exclude this lookup ip from blacklisting
 
   Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
+  LOG_GENERAL(INFO, "Sending message to " << tmpPeer);
   P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
