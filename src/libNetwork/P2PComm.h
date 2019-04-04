@@ -99,6 +99,9 @@ class P2PComm {
   Peer m_selfPeer;
   PairOfKey m_selfKey;
 
+  static std::mutex m_mutexPeerConnectionCount;
+  static std::map<uint128_t, uint32_t> m_peerConnectionCount;
+
   ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
 
   boost::lockfree::queue<SendJob*> m_sendQueue;
@@ -113,6 +116,7 @@ class P2PComm {
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr, int socklen,
                                        void* arg);
+  static void CloseAndFreeBufferEvent(struct bufferevent* bufev);
 
  public:
   /// Returns the singleton P2PComm instance.
