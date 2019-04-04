@@ -292,6 +292,8 @@ class DirectoryService : public Executable {
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromLeader,
                          const MapOfPubKeyPoW& priorityNodePoWs);
+  bool VerifyPoWFromLeader(const Peer& peer, const PubKey& pubKey,
+                           const PoWSolution& powSoln);
   bool VerifyNodePriority(const DequeOfShard& shards,
                           MapOfPubKeyPoW& priorityNodePoWs);
 
