@@ -629,8 +629,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
-    // blacklist pop for lookup
-    Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+    // Clear blacklist for lookup
+    Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
