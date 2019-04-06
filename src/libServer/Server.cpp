@@ -119,9 +119,7 @@ bool Server::StartCollectorThread() {
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
         {
           lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
-          if (m_mediator.m_lookup->m_txnShardMap.find(i) ==
-                  m_mediator.m_lookup->m_txnShardMap.end() ||
-              m_mediator.m_lookup->m_txnShardMap.at(i).empty()) {
+          if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
             continue;
           }
           hasTxn = true;
@@ -135,13 +133,16 @@ bool Server::StartCollectorThread() {
 
       bytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
-      if (!Messenger::SetForwardTxnBlockFromSeed(
-              msg, MessageOffset::BODY,
-              m_mediator.m_lookup
-                  ->m_txnShardMap[SEND_TYPE::ARCHIVAL_SEND_SHARD],
-              m_mediator.m_lookup
-                  ->m_txnShardMap[SEND_TYPE::ARCHIVAL_SEND_DS])) {
-        continue;
+      {
+        lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
+        if (!Messenger::SetForwardTxnBlockFromSeed(
+                msg, MessageOffset::BODY,
+                m_mediator.m_lookup->GetTxnFromShardMap(
+                    SEND_TYPE::ARCHIVAL_SEND_SHARD),
+                m_mediator.m_lookup->GetTxnFromShardMap(
+                    SEND_TYPE::ARCHIVAL_SEND_DS))) {
+          continue;
+        }
       }
 
       m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
@@ -226,10 +227,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     switch (GetTransactionType(tx)) {
       case NON_CONTRACT:
         if (!ARCHIVAL_LOOKUP) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          if (!m_mediator.m_lookup->AddToTxnShardMap(tx, shard)) {
+            throw JsonRpcException(
+                RPC_INTERNAL_ERROR,
+                "Transaction could not be added, either this txn already "
+                "exists or the seed has exceeded its limit");
+          }
         } else {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+          if (!m_mediator.m_lookup->AddToTxnShardMap(
+                  tx, SEND_TYPE::ARCHIVAL_SEND_SHARD)) {
+            throw JsonRpcException(
+                RPC_INTERNAL_ERROR,
+                "Transaction could not be added, either this txn already "
+                "exists or the seed has exceeded its limit");
+          }
         }
         ret["Info"] = "Non-contract txn, sent to shard";
         ret["TranID"] = tx.GetTranID().hex();
@@ -241,10 +252,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           return ret;
         }
         if (!ARCHIVAL_LOOKUP) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          if (!m_mediator.m_lookup->AddToTxnShardMap(tx, shard)) {
+            throw JsonRpcException(
+                RPC_INTERNAL_ERROR,
+                "Transaction could not be added, either this txn already "
+                "exists or the seed has exceeded its limit");
+          }
         } else {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+          if (!m_mediator.m_lookup->AddToTxnShardMap(
+                  tx, SEND_TYPE::ARCHIVAL_SEND_SHARD)) {
+            throw JsonRpcException(
+                RPC_INTERNAL_ERROR,
+                "Transaction could not be added, either this txn already "
+                "exists or the seed has exceeded its limit");
+          }
         }
         ret["Info"] = "Contract Creation txn, sent to shard";
         ret["TranID"] = tx.GetTranID().hex();
@@ -277,10 +298,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         }
         if ((to_shard == shard) && !sendToDs) {
           if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            if (!m_mediator.m_lookup->AddToTxnShardMap(tx, shard)) {
+              throw JsonRpcException(
+                  RPC_INTERNAL_ERROR,
+                  "Transaction could not be added, either this txn already "
+                  "exists or the seed has exceeded its limit");
+            }
           } else {
-            m_mediator.m_lookup->AddToTxnShardMap(
-                tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+            if (!m_mediator.m_lookup->AddToTxnShardMap(
+                    tx, SEND_TYPE::ARCHIVAL_SEND_SHARD)) {
+              throw JsonRpcException(
+                  RPC_INTERNAL_ERROR,
+                  "Transaction could not be added, either this txn already "
+                  "exists or the seed has exceeded its limit");
+            }
           }
           ret["Info"] =
               "Contract Txn, Shards Match of the sender "
@@ -288,10 +319,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["TranID"] = tx.GetTranID().hex();
         } else {
           if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+            if (!m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards)) {
+              throw JsonRpcException(
+                  RPC_INTERNAL_ERROR,
+                  "Transaction could not be added, either this txn already "
+                  "exists or the seed has exceeded its limit");
+            }
           } else {
-            m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                  SEND_TYPE::ARCHIVAL_SEND_DS);
+            if (!m_mediator.m_lookup->AddToTxnShardMap(
+                    tx, SEND_TYPE::ARCHIVAL_SEND_DS)) {
+              throw JsonRpcException(
+                  RPC_INTERNAL_ERROR,
+                  "Transaction could not be added, either this txn already "
+                  "exists or the seed has exceeded its limit");
+            }
           }
           ret["Info"] = "Contract Txn, Sent To Ds";
           ret["TranID"] = tx.GetTranID().hex();

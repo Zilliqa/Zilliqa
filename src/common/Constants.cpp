@@ -109,7 +109,8 @@ const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
-
+const unsigned int TXN_STORAGE_LIMIT{
+    ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};

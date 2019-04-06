@@ -71,6 +71,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
+  m_txnShardMap.second = 0;
 }
 
 Lookup::~Lookup() {}
@@ -2058,6 +2059,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   cv_waitJoined.notify_all();
 }
 
+const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
+  return m_txnShardMap.first[index];
+}
+
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
@@ -3542,7 +3547,20 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
-  m_txnShardMap[shardId].push_back(tx);
+  // case where txn already exist
+  if (find(m_txnShardMap.first[shardId].begin(),
+           m_txnShardMap.first[shardId].end(),
+           tx) == m_txnShardMap.first[shardId].end()) {
+    return false;
+  }
+
+  if (m_txnShardMap.second >= TXN_STORAGE_LIMIT) {
+    LOG_GENERAL(INFO, "Number of txns exceeded limit");
+    return false;
+  }
+
+  m_txnShardMap.first[shardId].push_back(tx);
+  m_txnShardMap.second++;
 
   return true;
 }
@@ -3557,7 +3575,15 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
-  m_txnShardMap[shardId].clear();
+  const uint32_t& count = m_txnShardMap.first[shardId].size();
+
+  if (count > m_txnShardMap.second) {
+    LOG_GENERAL(
+        FATAL,
+        "The number of elements in the counter variable is less than actual");
+  }
+  m_txnShardMap.second -= count;
+  m_txnShardMap.first[shardId].clear();
 
   return true;
 }
@@ -3629,7 +3655,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-      if (m_txnShardMap[i].empty() && mp[i].empty()) {
+      if (GetTxnFromShardMap(i).empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
         continue;
       }
@@ -3637,7 +3663,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
-          m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
+          m_mediator.m_selfKey, GetTxnFromShardMap(i), mp[i]);
     }
 
     if (!result) {
