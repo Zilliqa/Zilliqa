@@ -277,6 +277,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         } else {
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+          } else {
+            mapIndex = num_shards;
           }
           ret["Info"] = "Contract Txn, Sent To Ds";
         }
