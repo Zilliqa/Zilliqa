@@ -3550,7 +3550,7 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   // case where txn already exist
   if (find(m_txnShardMap.first[shardId].begin(),
            m_txnShardMap.first[shardId].end(),
-           tx) == m_txnShardMap.first[shardId].end()) {
+           tx) != m_txnShardMap.first[shardId].end()) {
     return false;
   }
 

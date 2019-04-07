@@ -494,6 +494,8 @@ class Server : public AbstractZServer {
   // gets the number of transaction starting from block blockNum to most recent
   // block
   size_t GetNumTransactions(uint64_t blockNum);
+  bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                   const Account* sender) const;
   ContractType GetTransactionType(const Transaction& tx) const;
   bool StartCollectorThread();
   std::string GetNodeState();
