@@ -58,7 +58,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
 
 DirectoryService::~DirectoryService() {}
 
-void DirectoryService::StartSynchronization() {
+void DirectoryService::StartSynchronization(bool clean) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartSynchronization not "
@@ -68,7 +68,9 @@ void DirectoryService::StartSynchronization() {
 
   LOG_MARKER();
 
-  this->CleanVariables();
+  if (clean) {
+    this->CleanVariables();
+  }
 
   if (!m_mediator.m_node->GetOfflineLookups()) {
     LOG_GENERAL(WARNING, "Cannot sync currently");
@@ -488,7 +490,7 @@ void DirectoryService::RejoinAsDS() {
         }
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
-      this->StartSynchronization();
+      this->StartSynchronization(false);
     };
     DetachedFunction(1, func);
   }

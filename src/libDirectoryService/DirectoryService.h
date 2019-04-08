@@ -556,7 +556,7 @@ class DirectoryService : public Executable {
   void IncrementConsensusMyID();
 
   /// Start synchronization with lookup as a DS node
-  void StartSynchronization();
+  void StartSynchronization(bool clean = true);
 
   /// Launches separate thread to execute sharding consensus after wait_window
   /// seconds.
