@@ -237,7 +237,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
        it != m_mediator.m_DSCommittee->end(); ++it) {
     // Look for my public key.
     if (m_mediator.m_selfKey.second == it->first) {
-      m_consensusMyID = it - m_mediator.m_DSCommittee->begin();
+      m_consensusMyID = std::distance(m_mediator.m_DSCommittee->begin(), it);
       isDropout = false;
       break;
     }

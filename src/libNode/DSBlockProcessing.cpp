@@ -530,7 +530,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
          it != m_mediator.m_DSCommittee->end(); ++it) {
       // Look for my public key.
       if (m_mediator.m_selfKey.second == it->first) {
-        uint16_t consensusIndex = it - m_mediator.m_DSCommittee->begin();
+        uint16_t consensusIndex =
+            std::distance(m_mediator.m_DSCommittee->begin(), it);
         isNewDSMember = true;
         m_mediator.m_ds->SetConsensusMyID(consensusIndex);
         break;
