@@ -250,6 +250,7 @@ void Node::StartFirstTxEpoch() {
   ResetConsensusId();
   // blacklist pop for shard nodes
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {

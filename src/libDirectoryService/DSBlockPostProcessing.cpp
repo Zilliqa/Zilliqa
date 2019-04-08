@@ -344,6 +344,7 @@ void DirectoryService::StartFirstTxEpoch() {
 
   // blacklist pop for ds nodes
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();

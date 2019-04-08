@@ -100,7 +100,7 @@ class P2PComm {
   PairOfKey m_selfKey;
 
   static std::mutex m_mutexPeerConnectionCount;
-  static std::map<uint128_t, uint32_t> m_peerConnectionCount;
+  static std::map<uint128_t, uint16_t> m_peerConnectionCount;
 
   ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
 
@@ -130,6 +130,7 @@ class P2PComm {
   void InitializeRumorManager(const VectorOfNode& peers,
                               const std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
+  static void ClearPeerConnectionCount();
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
