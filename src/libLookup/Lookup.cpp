@@ -3547,16 +3547,17 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
+  if (m_txnShardMap.second >= TXN_STORAGE_LIMIT) {
+    LOG_GENERAL(INFO, "Number of txns exceeded limit");
+    return false;
+  }
+
+
   // case where txn already exist
   if (find_if(m_txnShardMap.first[shardId].begin(),
               m_txnShardMap.first[shardId].end(), [tx](const Transaction& txn) {
                 return tx.GetTranID() == txn.GetTranID();
               }) != m_txnShardMap.first[shardId].end()) {
-    return false;
-  }
-
-  if (m_txnShardMap.second >= TXN_STORAGE_LIMIT) {
-    LOG_GENERAL(INFO, "Number of txns exceeded limit");
     return false;
   }
 
