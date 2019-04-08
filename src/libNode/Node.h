@@ -469,7 +469,8 @@ class Node : public Executable {
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
 
-  void UpdateDSCommiteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock);
+  void UpdateDSCommitteeComposition(DequeOfNode& dsComm,
+                                    const DSBlock& dsblock);
 
   void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
                                       const PubKey& leaderPubKey,
@@ -515,7 +516,7 @@ class Node : public Executable {
                 const std::array<unsigned char, UINT256_SIZE>& rand2,
                 const uint32_t lookupId = uint32_t() - 1);
 
-  /// Send PoW soln to DS Commitee
+  /// Send PoW soln to DS Committee
   bool SendPoWResultToDSComm(const uint64_t& block_num,
                              const uint8_t& difficultyLevel,
                              const uint64_t winningNonce,
@@ -566,10 +567,10 @@ class Node : public Executable {
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
 
-  void UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
-                                          DequeOfNode& dsComm);
-  void UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
-                                                  DequeOfNode& dsComm);
+  void UpdateDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
+                                           DequeOfNode& dsComm);
+  void UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
+                                                   DequeOfNode& dsComm);
 
   void UpdateProcessedTransactions();
 

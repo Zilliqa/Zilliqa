@@ -300,7 +300,7 @@ bool Validator::CheckDirBlocks(
       prevHash = dsblock.GetBlockHash();
       BlockStorage::GetBlockStorage().PutDSBlock(
           dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
-      m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
       BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
     } else if (typeid(VCBlock) == dirBlock.type()) {
@@ -332,7 +332,7 @@ bool Validator::CheckDirBlocks(
         break;
       }
 
-      m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(
+      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
           vcblock, mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,

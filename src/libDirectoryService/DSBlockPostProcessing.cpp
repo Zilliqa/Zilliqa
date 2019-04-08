@@ -33,6 +33,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/DSComposition.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -213,11 +214,6 @@ void DirectoryService::SendDSBlockToShardNodes(
 
 void DirectoryService::UpdateMyDSModeAndConsensusId() {
   LOG_MARKER();
-  uint16_t numOfIncomingDs = m_mediator.m_dsBlockChain.GetLastBlock()
-                                 .GetHeader()
-                                 .GetDSPoWWinners()
-                                 .size();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::UpdateMyDSModeAndConsensusId not "
@@ -233,38 +229,48 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
                                             .GetHashForRandom()
                                             .asBytes());
   }
-  // Check if I am the oldest backup DS (I will no longer be part of the DS
-  // committee)
-  if ((uint32_t)(m_consensusMyID + numOfIncomingDs) >=
-      m_mediator.m_DSCommittee->size()) {
+
+  // Find my new consensus ID.
+  DequeOfNode::iterator it;
+  bool isDropout = true;
+  for (it = m_mediator.m_DSCommittee->begin();
+       it != m_mediator.m_DSCommittee->end(); ++it) {
+    // Look for my public key.
+    if (m_mediator.m_selfKey.second == it->first) {
+      m_consensusMyID = it - m_mediator.m_DSCommittee->begin();
+      isDropout = false;
+      break;
+    }
+  }
+
+  // Check if I am one of the DS Committee drop outs.
+  if (isDropout) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I am among the oldest backup DS -> I am now just a shard node"
+              "I am among the DS Committee drop outs -> I may now be just a "
+              "shard node"
                   << "\n"
                   << DS_KICKOUT_MSG);
+    // If I am among the oldest DS members, then set the mode to IDLE.
     m_mode = IDLE;
 
     LOG_STATE("[IDENT][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][      ] IDLE");
   } else {
+    // Otherwise, set the new consensus leader.
+    LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
+
     if (!GUARD_MODE) {
-      m_consensusMyID += numOfIncomingDs;
       SetConsensusLeaderID(lastBlockHash % (m_mediator.m_DSCommittee->size()));
       LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     } else {
-      // DS guards' indexes do not change
-      if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
-        m_consensusMyID += numOfIncomingDs;
-        LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
-      } else {
-        LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
-      }
       // Only DS guard can be ds leader
       SetConsensusLeaderID(lastBlockHash %
                            Guard::GetInstance().GetNumOfDSGuard());
       LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     }
 
+    // Check if I am the DS leader and set the mode accordingly.
     if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==
         m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -287,44 +293,20 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   }
 }
 
-void DirectoryService::UpdateDSCommiteeComposition() {
+void DirectoryService::UpdateDSCommitteeComposition() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::UpdateDSCommiteeComposition not "
+                "DirectoryService::UpdateDSCommitteeComposition is not "
                 "expected to be called from LookUp node.");
     return;
   }
 
-  // Update the DS committee composition
+  // Update the DS committee composition.
   LOG_MARKER();
 
-  const map<PubKey, Peer> NewDSMembers =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
-  DequeOfNode::iterator it;
-
-  for (const auto& DSPowWinner : NewDSMembers) {
-    m_allPoWConns.erase(DSPowWinner.first);
-    if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      if (!GUARD_MODE) {
-        m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
-                                                Peer());
-      } else {
-        it = m_mediator.m_DSCommittee->begin() +
-             (Guard::GetInstance().GetNumOfDSGuard());
-        m_mediator.m_DSCommittee->emplace(it, m_mediator.m_selfKey.second,
-                                          Peer());
-      }
-    } else {
-      if (!GUARD_MODE) {
-        m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
-      } else {
-        it = m_mediator.m_DSCommittee->begin() +
-             (Guard::GetInstance().GetNumOfDSGuard());
-        m_mediator.m_DSCommittee->emplace(it, DSPowWinner);
-      }
-    }
-    m_mediator.m_DSCommittee->pop_back();
-  }
+  InternalUpdateDSCommitteeComposition(
+      m_mediator.m_selfKey.second, *m_mediator.m_DSCommittee,
+      m_mediator.m_dsBlockChain.GetLastBlock());
 }
 
 void DirectoryService::StartFirstTxEpoch() {
@@ -357,6 +339,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_totalTxnFees = 0;
   }
 
+  // If I am not one of the drop out nodes.
   if (m_mode != IDLE) {
     lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
@@ -443,9 +426,11 @@ void DirectoryService::StartFirstTxEpoch() {
       }
     };
     DetachedFunction(1, func);
+
+    // Otherwise, I am a drop out node.
   } else {
-    // The oldest DS committee member will be a shard node at this point -> need
-    // to set myself up as a shard node
+    // The oldest DS non-Byzantine committee member will be a shard node at this
+    // point -> need to set myself up as a shard node
 
     // I need to know my shard ID -> iterate through m_shards
     bool found = false;
@@ -460,18 +445,30 @@ void DirectoryService::StartFirstTxEpoch() {
       }
     }
 
+    // If I cannot find myself in the sharding structure, it means I must have
+    // been a non-performant node and must rejoin as normal.
     if (!found) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "WARNING: Oldest DS node not in any of the new shards!");
+                "WARNING: My DS node is not in any of the new shards! I must "
+                "have been removed from the DS Committee for bad performance. "
+                "Invoke Rejoin as Normal.");
+      m_mediator.m_node->RejoinAsNormal();
       return;
     }
 
-    // Process sharding structure as a shard node
+    // Process sharding structure as a shard node.
     if (!m_mediator.m_node->LoadShardingStructure()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "WARNING: Unable to load sharding structure after expiring "
+                "from the DS Commitee.");
       return;
     }
 
-    // Finally, start as a shard node
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Starting the first Tx epoch as a shard node after expiring from "
+              "the DS Commitee.");
+
+    // Finally, start as a shard node.
     m_mediator.m_node->StartFirstTxEpoch();
   }
 }
@@ -592,7 +589,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
       << "] AFTER SENDING DSBLOCK");
 
   ClearVCBlockVector();
-  UpdateDSCommiteeComposition();
+  UpdateDSCommitteeComposition();
   UpdateMyDSModeAndConsensusId();
 
   if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==

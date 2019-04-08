@@ -255,6 +255,8 @@ extern const bool ENABLE_STATUS_RPC;  //
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
+extern const double DS_PERFORMANCE_THRESHOLD_PERCENT;
+extern const unsigned int NUM_DS_BYZANTINE_REMOVED;
 extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
 extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
 

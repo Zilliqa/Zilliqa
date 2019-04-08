@@ -209,27 +209,91 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   }
 }
 
-void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
-                                          unsigned int numOfProposedDSMembers) {
-  // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
-  // gets included in sharding structure
-  if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
+void DirectoryService::InjectPoWForDSNode(
+    VectorOfPoWSoln& sortedPoWSolns, std::map<PubKey, Peer>& powDSWinners) {
+  // Calculate the number of removed members from the candidates.
+  unsigned int numOfRemovedMembers = 0;
+  for (const auto& DSCandidate : powDSWinners) {
+    if (CheckIfDSNode(DSCandidate.first)) {
+      ++numOfRemovedMembers;
+    }
+  }
+
+  unsigned int numOfWinners = powDSWinners.size() - numOfRemovedMembers;
+  unsigned int numOfExpiring = numOfWinners - numOfRemovedMembers;
+
+  // Check the computed parameters for correctness.
+  if (powDSWinners.size() > m_mediator.m_DSCommittee->size()) {
     LOG_GENERAL(WARNING,
                 "FATAL: number of proposed ds member is larger than current ds "
                 "committee. numOfProposedDSMembers: "
-                    << numOfProposedDSMembers << " m_DSCommittee size: "
+                    << powDSWinners.size() << " m_DSCommittee size: "
                     << m_mediator.m_DSCommittee->size());
     return;
   }
 
+  if (numOfRemovedMembers > powDSWinners.size()) {
+    LOG_GENERAL(WARNING,
+                "FATAL: number of ds members to be removed is larger than the "
+                "number of proposed ds members. numOfRemovedMembers: "
+                    << numOfRemovedMembers
+                    << " numOfProposedDSMembers: " << powDSWinners.size());
+    return;
+  }
+
+  if (numOfRemovedMembers > numOfWinners) {
+    LOG_GENERAL(WARNING,
+                "FATAL: number of ds members to be removed is larger than the "
+                "number of actual winners. numOfRemovedMembers: "
+                    << numOfRemovedMembers
+                    << " numOfWinners: " << numOfWinners);
+    return;
+  }
+
+  if (numOfExpiring > numOfWinners) {
+    LOG_GENERAL(WARNING,
+                "FATAL: number of ds members expiring is larger than the "
+                "number of actual winners. numOfExpiring: "
+                    << numOfExpiring << " numOfWinners: " << numOfWinners);
+    return;
+  }
+
+  if ((numOfRemovedMembers + numOfExpiring) != numOfWinners) {
+    LOG_GENERAL(
+        WARNING,
+        "FATAL: total number of members dropping out is not equal to the "
+        "number of actual winners. numOfRemovedMembers: "
+            << numOfRemovedMembers << " numOfExpiring: " << numOfExpiring
+            << " numOfWinners: " << numOfWinners);
+    return;
+  }
+
+  // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
+  // gets included in sharding structure
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   bytes serializedPubK;
-  for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
+
+  // Iterate through the current DS committee from the back, add a PoW
+  // solution for the expiring nodes.
+  DequeOfNode::reverse_iterator rit;
+  unsigned int counter = 0;
+
+  for (rit = m_mediator.m_DSCommittee->rbegin();
+       rit != m_mediator.m_DSCommittee->rend(); ++rit) {
+    // Only inject up to the number of benign expiring nodes.
+    if (counter >= numOfExpiring) {
+      break;
+    }
+
+    // Check if the current member is a node to be removed.
+    if (powDSWinners.find(rit->first) != powDSWinners.end()) {
+      // If it is, continue onto the next member.
+      continue;
+    }
+
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
-    const unsigned int dsCommitteeIndex =
-        m_mediator.m_DSCommittee->size() - 1 - i;
-    PubKey nodePubKey = m_mediator.m_DSCommittee->at(dsCommitteeIndex).first;
+    PubKey nodePubKey = rit->first;
     nodePubKey.Serialize(serializedPubK, 0);
     sha2.Update(serializedPubK);
     bytes PubKeyHash;
@@ -245,10 +309,8 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     bool isDupPubKey = false;
     for (const auto& soln : sortedPoWSolns) {
       if (soln.second == nodePubKey) {
-        LOG_GENERAL(
-            WARNING,
-            "Injected node also submitted a soln. "
-                << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
+        LOG_GENERAL(WARNING,
+                    "Injected node also submitted a soln. " << rit->second);
         isDupPubKey = true;
         break;
       }
@@ -264,16 +326,16 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     serializedPubK.clear();
 
     // Injecting into Pow Connections information
-    if (m_mediator.m_DSCommittee->at(dsCommitteeIndex).second == Peer()) {
+    if (rit->second == Peer()) {
       m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
       LOG_GENERAL(INFO,
                   "Injecting into PoW connections " << m_mediator.m_selfPeer);
     } else {
-      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(dsCommitteeIndex));
-      LOG_GENERAL(INFO,
-                  "Injecting into PoW connections "
-                      << m_mediator.m_DSCommittee->at(dsCommitteeIndex).second);
+      m_allPoWConns.emplace(*rit);
+      LOG_GENERAL(INFO, "Injecting into PoW connections " << rit->second);
     }
+
+    ++counter;
   }
 
   LOG_GENERAL(INFO, "Num PoWs after injection = " << sortedPoWSolns.size());
@@ -281,8 +343,25 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
 
 bool DirectoryService::VerifyPoWWinner(
     const MapOfPubKeyPoW& dsWinnerPoWsFromLeader) {
-  const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+  LOG_MARKER();
+
+  // Separate the PoW Winners from the nodes to be removed.
+  const auto& NewDSCandidates = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+  std::map<PubKey, Peer> NewDSMembers;
+  for (const auto& DSCandidate : NewDSCandidates) {
+    // Insert only if the candidate was not found as a current DS member.
+    if (!CheckIfDSNode(DSCandidate.first)) {
+      NewDSMembers[DSCandidate.first] = DSCandidate.second;
+    }
+  }
+
+  // From this point on, only actual PoW winners will be verified. The nodes to
+  // be removed will be verified separately.
+
+  // For each of the proposed DS winners,
   for (const auto& DSPowWinner : NewDSMembers) {
+    // Check that the proposed winner's connection information exists in our
+    // view of all PoW Conns. Add it if it does not.
     if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
       if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -295,6 +374,7 @@ bool DirectoryService::VerifyPoWWinner(
       m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
     }
 
+    // Check that the PoW submission exists for the winner.
     if (m_allDSPoWs.find(DSPowWinner.first) == m_allDSPoWs.end()) {
       LOG_GENERAL(INFO,
                   "Cannot find DS PoW for node: "
@@ -321,6 +401,7 @@ bool DirectoryService::VerifyPoWWinner(
           return false;
         }
 
+        // Validate the PoW submission
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
@@ -330,13 +411,15 @@ bool DirectoryService::VerifyPoWWinner(
                         << DSPowWinner.first);
           return false;
         }
-        // Insert the DS pow to my DS pow list so later can calcualte DS
+
+        // Insert the DS pow to my DS pow list so later can calculate DS
         // difficulty
         {
           std::lock_guard<mutex> lock(m_mutexAllPOW);
           m_allPoWs[DSPowWinner.first] = dsPowSoln;
         }
         AddDSPoWs(DSPowWinner.first, dsPowSoln);
+
       } else {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "WARNING: Cannot find the DS winner PoW in DS PoW list from "
@@ -345,6 +428,7 @@ bool DirectoryService::VerifyPoWWinner(
       }
     }
   }
+
   return true;
 }
 
@@ -385,9 +469,59 @@ bool DirectoryService::VerifyDifficulty() {
   return true;
 }
 
+bool DirectoryService::VerifyRemovedByzantineNodes() {
+  LOG_MARKER();
+  // Get the list of proposed DS candidates.
+  std::map<PubKey, Peer> dsPoWWinners =
+      m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+
+  // The PoW winners were validated before in DirectoryService::VerifyPoWWinner,
+  // hence it is safe to assume that the numOfProposedMembers is authoritative.
+  unsigned int numOfProposedMembers = 0;
+  for (const auto& candidate : dsPoWWinners) {
+    if (!CheckIfDSNode(candidate.first)) {
+      ++numOfProposedMembers;
+    }
+  }
+  unsigned int numOfRemovedMembers = dsPoWWinners.size() - numOfProposedMembers;
+
+  // Create an empty map to populate with our view of the DS member
+  // performances.
+  std::map<PubKey, Peer> comparedToBeRemoved;
+  unsigned int comparedNumOfRemoved =
+      InjectByzantineNodes(numOfProposedMembers, comparedToBeRemoved);
+
+  // Check that the number of nodes to remove matches the proposed
+  // DS block.
+  if (numOfRemovedMembers != comparedNumOfRemoved) {
+    LOG_GENERAL(WARNING,
+                "The number of nodes to be removed due to bad performance does "
+                "not match our view. numOfRemovedMembers: "
+                    << numOfRemovedMembers
+                    << " comparedNumOfRemoved: " << comparedNumOfRemoved);
+    return false;
+  }
+
+  // Check that all of the nodes we computed to remove are present in the
+  // proposed DS block.
+  for (const auto& member : comparedToBeRemoved) {
+    if (dsPoWWinners.find(member.first) == dsPoWWinners.end()) {
+      LOG_GENERAL(WARNING, "Expected "
+                               << member.first
+                               << " to be proposed for removal but could not "
+                                  "find it in the proposed DS block");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool DirectoryService::VerifyPoWOrdering(
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromLeader,
     const MapOfPubKeyPoW& priorityNodePoWs) {
+  LOG_MARKER();
+
   // Requires mutex for m_shards
   bytes lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
@@ -407,8 +541,14 @@ bool DirectoryService::VerifyPoWOrdering(
                                    << MAX_MISORDER_NODE << " nodes.");
 
   auto sortedPoWSolns = SortPoWSoln(priorityNodePoWs, true);
-  InjectPoWForDSNode(sortedPoWSolns,
-                     m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
+
+  // Count the number of actual PoW winners and removed nodes.
+  std::map<PubKey, Peer> dsPoWWinners =
+      m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+
+  // Inject expired DS members into the shard POW.
+  InjectPoWForDSNode(sortedPoWSolns, dsPoWWinners);
+
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
       string PoWkeyStr;
@@ -800,7 +940,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   auto sortedDSPoWSolns = SortPoWSoln(allDSPoWs);
   auto sortedPoWSolns = SortPoWSoln(allPoWs, true);
 
-  map<PubKey, Peer> powDSWinners;
+  std::map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;
   uint32_t version = DSBLOCK_VERSION;
   uint8_t dsDifficulty = 0;
@@ -808,11 +948,17 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   uint64_t blockNum = 0;
   BlockHash prevHash;
 
+  // Determine the DS PoW winners.
   unsigned int numOfProposedDSMembers = ComputeDSBlockParameters(
       sortedDSPoWSolns, sortedPoWSolns, powDSWinners, dsWinnerPoWs,
       dsDifficulty, difficulty, blockNum, prevHash);
 
-  InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
+  // Determine the losers from the performance.
+  InjectByzantineNodes(numOfProposedDSMembers, powDSWinners);
+
+  // Inject expired DS members into the shard POW.
+  InjectPoWForDSNode(sortedPoWSolns, powDSWinners);
+
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
       string powHashStr;
@@ -1069,6 +1215,12 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  // Verify the injected Byzantine nodes to be removed in the winners list.
+  if (!VerifyRemovedByzantineNodes()) {
+    LOG_GENERAL(WARNING, "Failed to verify the Byzantine nodes to be removed");
+    return false;
+  }
+
   // Start to verify difficulty from DS block number 2.
   if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1) {
     if (!VerifyDifficulty()) {
@@ -1216,6 +1368,130 @@ bool DirectoryService::ProcessShardingStructure(
   return true;
 }
 
+void DirectoryService::SaveDSPerformance() {
+  LOG_MARKER();
+  std::lock(m_mutexCoinbaseRewardees, m_mutexDsMemberPerformance);
+  std::lock_guard<mutex> h(m_mutexCoinbaseRewardees, std::adopt_lock);
+  std::lock_guard<mutex> g(m_mutexDsMemberPerformance, std::adopt_lock);
+
+  // Clear the previous performances.
+  m_dsMemberPerformance.clear();
+
+  DequeOfNode::iterator it_committee;
+  // Initialise the map with the DS Committee public keys mapped to 0.
+  // The map is ordered and thus, would retain the same ordering as the DS
+  // Committee.
+  for (it_committee = m_mediator.m_DSCommittee->begin();
+       it_committee != m_mediator.m_DSCommittee->end(); ++it_committee) {
+    m_dsMemberPerformance[it_committee->first] = 0;
+  }
+
+  // Go through the coinbase rewardees and tally the number of co-sigs.
+  // For each TX epoch,
+  std::map<PubKey, uint32_t>::iterator it_performance;
+  for (auto const& epochNum : m_coinbaseRewardees) {
+    // Find the DS Shard.
+    for (auto const& shard : epochNum.second) {
+      if (shard.first == CoinbaseReward::FINALBLOCK_REWARD) {
+        // Find the rewards that belong to the DS Shard.
+        for (auto const& pubkey : shard.second) {
+          // Check if the public key exists in the initialized map.
+          it_performance = m_dsMemberPerformance.find(pubkey);
+          if (it_performance == m_dsMemberPerformance.end()) {
+            LOG_GENERAL(WARNING,
+                        "Unknown (Not in DS Committee) public key "
+                            << pubkey
+                            << " found to have "
+                               "contributed co-sigs as a DS Committee member.");
+          } else {
+            // Increment the performance score if the public key exists.
+            ++m_dsMemberPerformance[pubkey];
+          }
+        }
+      }
+    }
+  }
+
+  // Display the performance scores of all the DS Committee members.
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "DS Committee Co-Signature Performance");
+  unsigned int index = 0;
+  uint32_t maxCoSigs = (NUM_FINAL_BLOCK_PER_POW - 1) * 2;
+  for (const auto& member : m_dsMemberPerformance) {
+    LOG_GENERAL(INFO, "[" << PAD(index++, 3, ' ') << "] " << member.first << " "
+                          << PAD(member.second, 4, ' ') << "/" << maxCoSigs);
+  }
+}
+
+unsigned int DirectoryService::InjectByzantineNodes(
+    unsigned int numOfProposedDSMembers, std::map<PubKey, Peer>& powDSWinners) {
+  LOG_MARKER();
+  std::lock_guard<mutex> g(m_mutexDsMemberPerformance);
+
+  // Do not inject Byzantine nodes on the first epoch when performance cannot be
+  // measured.
+  if (m_mediator.m_currentEpochNum <= 1) {
+    LOG_GENERAL(INFO,
+                "Skipping injecting Byzantine nodes for removal since "
+                "performance cannot be measured on the first epoch.");
+    return 0;
+  }
+
+  // Parameters
+  uint32_t maxCoSigs = (NUM_FINAL_BLOCK_PER_POW - 1) * 2;
+  uint32_t threshold = std::ceil(DS_PERFORMANCE_THRESHOLD_PERCENT * maxCoSigs);
+  unsigned int numToRemove =
+      std::min(NUM_DS_BYZANTINE_REMOVED, numOfProposedDSMembers);
+  unsigned int index;
+
+  // Build a list of Byzantine Nodes
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Evaluating performance of the current DS Committee.");
+  LOG_GENERAL(INFO, "maxCoSigs = " << maxCoSigs);
+  LOG_GENERAL(INFO, "threshold = " << threshold << " ("
+                                   << DS_PERFORMANCE_THRESHOLD_PERCENT << ")");
+  unsigned int numByzantine = 0;
+  index = 0;
+  DequeOfNode::iterator it;
+  for (it = m_mediator.m_DSCommittee->begin();
+       it != m_mediator.m_DSCommittee->end(); ++it) {
+    // Do not evaluate guard nodes.
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
+      continue;
+    }
+
+    // Check if the score is below the calculated threshold.
+    uint32_t score = m_dsMemberPerformance.at(it->first);
+    if (score < threshold) {
+      // Only add the node to be removed if there is still capacity.
+      if (numByzantine < numToRemove) {
+        // Check if the public key that was found to a Byzantine node is mine
+        // because the network information for mine is zeroed out.
+        if (it->first == m_mediator.m_selfKey.second) {
+          powDSWinners[it->first] = Peer();
+        } else {
+          powDSWinners[it->first] = it->second;
+        }
+      }
+
+      // Log the index and public key of a found Byzantine node regardless of if
+      // they will be removed.
+      LOG_GENERAL(INFO, "[" << PAD(index++, 3, ' ') << "] " << it->first << " "
+                            << PAD(score, 4, ' ') << "/" << maxCoSigs);
+      ++numByzantine;
+    }
+  }
+
+  // Log the general statistics of the computation.
+  unsigned int numRemoved = std::min(numToRemove, numByzantine);
+  LOG_GENERAL(INFO, "Number of DS members not meeting the co-sig threshold: "
+                        << numByzantine);
+  LOG_GENERAL(INFO,
+              "Number of Byzantine DS members to be removed: " << numRemoved);
+
+  return numRemoved;
+}
+
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1240,6 +1516,10 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   if (m_state != DSBLOCK_CONSENSUS_PREP) {
     SetState(DSBLOCK_CONSENSUS_PREP);
   }
+
+  // Record the performance of the coinbase rewardees to get the co-sigs
+  // before the variable is cleared.
+  SaveDSPerformance();
 
   {
     lock_guard<mutex> h(m_mutexCoinbaseRewardees);

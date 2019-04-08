@@ -233,7 +233,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  UpdateDSCommiteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
+  UpdateDSCommitteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE) {
     LOG_STATE("[VCBLK] DS = " << vcblock.GetHeader().GetViewChangeDSEpochNo()
@@ -251,9 +251,9 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
 /// This function asssume ddsComm to indicate 0.0.0.0 for current node
 /// If you change this function remember to change
-/// UpdateRetrieveDSCommiteeCompositionAfterVC()
-void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
-                                              DequeOfNode& dsComm) {
+/// UpdateRetrieveDSCommitteeCompositionAfterVC()
+void Node::UpdateDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
+                                               DequeOfNode& dsComm) {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
     return;
@@ -283,8 +283,8 @@ void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
 }
 
 // Only compares the pubkeys to kickout
-void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
-                                                      DequeOfNode& dsComm) {
+void Node::UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
+                                                       DequeOfNode& dsComm) {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
     return;

@@ -44,6 +44,7 @@
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/DSComposition.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
@@ -86,31 +87,13 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition(DequeOfNode& dsComm,
-                                       const DSBlock& dsblock) {
+void Node::UpdateDSCommitteeComposition(DequeOfNode& dsComm,
+                                        const DSBlock& dsblock) {
+  // Update the DS committee composition.
   LOG_MARKER();
-  const map<PubKey, Peer> NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
-  DequeOfNode::iterator it;
 
-  for (const auto& DSPowWinner : NewDSMembers) {
-    if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      if (!GUARD_MODE) {
-        dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
-      } else {
-        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
-        dsComm.emplace(it, m_mediator.m_selfKey.second, Peer());
-      }
-    } else {
-      if (!GUARD_MODE) {
-        dsComm.emplace_front(DSPowWinner);
-
-      } else {
-        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
-        dsComm.emplace(it, DSPowWinner);
-      }
-    }
-    dsComm.pop_back();
-  }
+  InternalUpdateDSCommitteeComposition(m_mediator.m_selfKey.second, dsComm,
+                                       dsblock);
 }
 
 bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
@@ -508,8 +491,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   m_mediator.UpdateDSBlockRand();  // Update the rand1 value for next PoW
-  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee,
-                              m_mediator.m_dsBlockChain.GetLastBlock());
+  UpdateDSCommitteeComposition(*m_mediator.m_DSCommittee,
+                               m_mediator.m_dsBlockChain.GetLastBlock());
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -536,35 +519,31 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     POW::GetInstance().StopMining();
     m_stillMiningPrimary = false;
 
-    // Assign from size -1 as it will get pop and push into ds committee data
-    // structure, Hence, the ordering is reverse.
+    // Check if we are a new DS Member and get our index if we are.
     const map<PubKey, Peer> dsPoWWinners =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
-    unsigned int newDSMemberIndex = dsPoWWinners.size() - 1;
 
-    // Under guard mode, first n member of ds comm belongs to DS guard.
-    // As such, new ds committee member should join ds comm at index
-    // newDSMemberIndex + num of ds guard
-    if (GUARD_MODE) {
-      newDSMemberIndex += Guard::GetInstance().GetNumOfDSGuard();
-    }
-
+    // Find my new consensus ID.
+    DequeOfNode::iterator it;
     bool isNewDSMember = false;
-
-    for (const auto& newDSMember : dsPoWWinners) {
-      if (m_mediator.m_selfKey.second == newDSMember.first) {
+    for (it = m_mediator.m_DSCommittee->begin();
+         it != m_mediator.m_DSCommittee->end(); ++it) {
+      // Look for my public key.
+      if (m_mediator.m_selfKey.second == it->first) {
+        uint16_t consensusIndex = it - m_mediator.m_DSCommittee->begin();
         isNewDSMember = true;
-        m_mediator.m_ds->SetConsensusMyID(newDSMemberIndex);
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "I won DS PoW. Currently, one of the new ds "
-                  "committee member with id "
-                      << m_mediator.m_ds->GetConsensusMyID());
+        m_mediator.m_ds->SetConsensusMyID(consensusIndex);
+        break;
       }
-      newDSMemberIndex--;
     }
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "I won DS PoW. Currently, one of the new ds "
+                "committee member with id "
+                    << m_mediator.m_ds->GetConsensusMyID());
+
       // Process sharding structure as a DS node
       if (!m_mediator.m_ds->ProcessShardingStructure(
               m_mediator.m_ds->m_shards,
