@@ -94,7 +94,8 @@ void InternalUpdateDSCommitteeComposition(const PubKey& selfKeyPub,
   for (uint32_t i = 0; i < NumWinners; ++i) {
     // One item is always removed every winner, with removal priority given to
     // 'loser' candidates before expiring nodes.
-    LOG_GENERAL(INFO, "Node dropped from DS Committee: " << dsComm.back().first);
+    LOG_GENERAL(INFO,
+                "Node dropped from DS Committee: " << dsComm.back().first);
     dsComm.pop_back();
   }
 }
