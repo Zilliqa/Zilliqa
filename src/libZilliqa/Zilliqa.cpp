@@ -227,7 +227,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
             isDsNode = true;
-            m_ds.RejoinAsDS();
+            m_ds.RejoinAsDS(false);
             break;
           }
         }
@@ -289,8 +289,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
-        //m_ds.StartSynchronization();
-        m_ds.RejoinAsDS();
+        // m_ds.StartSynchronization();
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
         LOG_GENERAL(INFO, "Intitialize DB verification");
