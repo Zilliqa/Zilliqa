@@ -25,8 +25,7 @@ void InternalUpdateDSCommitteeComposition(const PubKey& selfKeyPub,
   LOG_MARKER();
 
   // Get the map of all pow winners from the DS Block
-  const std::map<PubKey, Peer> NewDSMembers =
-      dsblock.GetHeader().GetDSPoWWinners();
+  const auto& NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
   DequeOfNode::iterator it;
   unsigned int NumWinners = 0;
 

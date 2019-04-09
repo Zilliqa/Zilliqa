@@ -471,8 +471,7 @@ bool DirectoryService::VerifyDifficulty() {
 bool DirectoryService::VerifyRemovedByzantineNodes() {
   LOG_MARKER();
   // Get the list of proposed DS candidates.
-  std::map<PubKey, Peer> dsPoWWinners =
-      m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+  const auto& dsPoWWinners = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
 
   // The PoW winners were validated before in DirectoryService::VerifyPoWWinner,
   // hence it is safe to assume that the numOfProposedMembers is authoritative.
