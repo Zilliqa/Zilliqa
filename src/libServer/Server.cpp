@@ -1412,23 +1412,37 @@ string Server::GetNodeState() {
   }
 }
 
+vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
+  // case when the number required is greater than total numbers being shuffled
+  if (size < num) {
+    num = size;
+  }
+  vector<uint> v(size);
+  iota(begin(v), end(v), 0);
+  shuffle(v.begin(), v.end(), eng);
+  vector<uint> newVec(v.begin(), v.begin() + num);
+  return newVec;
+}
+
 Json::Value Server::GetShardMembers(uint32_t shardID) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   const auto& num_shards = m_mediator.m_lookup->GetShardPeers().size();
-  if (num_shards >= shardID) {
+  if (num_shards <= shardID) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
   }
   Json::Value _json;
   try {
-    const auto& shard = m_mediator.m_lookup->GetShardPeers().at(shardID);
+    const auto shard = m_mediator.m_lookup->GetShardPeers().at(shardID);
     if (shard.empty()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
     }
-    uniform_int_distribution<> dist(0, shard.size() - 1);
-    for (uint i = 0; i < NUM_SHARD_PEER_TO_REVEAL; i++) {
-      const auto& node = shard.at(dist(m_eng));
+
+    auto random_vec =
+        GenUniqueIndices(shard.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
+    for (auto const& x : random_vec) {
+      const auto& node = shard.at(x);
       _json.append(JSONConversion::convertNode(node));
     }
     return _json;

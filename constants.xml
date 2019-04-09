@@ -137,6 +137,7 @@
     </heartbeat>
     <jsonrpc>
         <RPC_PORT>4201</RPC_PORT>
+        <NUM_SHARD_PEER_TO_REVEAL>5</NUM_SHARD_PEER_TO_REVEAL>
         <!-- Only for non-lookup nodes -->
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>false</ENABLE_STATUS_RPC>

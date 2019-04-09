@@ -230,6 +230,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_BOOLEAN, NULL),
         &AbstractZServer::IsTxnInMemPoolI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetShardMembersI);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
@@ -406,6 +411,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                       Json::Value& response) {
     response = this->IsTxnInMemPool(request[0u].asString());
   }
+  inline virtual void GetShardMembersI(const Json::Value& request,
+                                       Json::Value& response) {
+    (void)request;
+    response = this->GetShardMembers(request[0u].asUInt());
+  }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
@@ -444,6 +454,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
   virtual bool IsTxnInMemPool(const std::string& param01) = 0;
+  virtual Json::Value GetShardMembers(uint32_t shardID) = 0;
 };
 
 class Server : public AbstractZServer {

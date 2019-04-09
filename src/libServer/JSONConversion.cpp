@@ -288,6 +288,7 @@ const Json::Value JSONConversion::convertNode(const PairOfNode& node) {
 const Json::Value JSONConversion::convertNode(
     const std::tuple<PubKey, Peer, uint16_t>& node) {
   Json::Value _json;
+
   _json["PubKey"] = static_cast<string>(get<SHARD_NODE_PUBKEY>(node));
   _json["NetworkInfo"] = static_cast<string>(get<SHARD_NODE_PEER>(node));
   return _json;
