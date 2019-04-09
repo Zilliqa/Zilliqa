@@ -651,7 +651,7 @@ void Node::ProcessTransactionWhenShardBackup() {
 void Node::ReinstateMemPool(
     const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
     const vector<Transaction>& gasLimitExceededTxnBuffer) {
-  unique_lock<mutex> g(m_unconfirmedTxnsMutex);
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   // Put remaining txns back in pool
   for (const auto& kv : addrNonceTxnMap) {
@@ -668,8 +668,9 @@ void Node::ReinstateMemPool(
 }
 
 uint8_t Node::IsTxnInMemPool(const TxnHash& txhash) const {
-  unique_lock<mutex> g(m_unconfirmedTxnsMutex, defer_lock);
-  if (!g.try_lock()) {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex, defer_lock);
+  // Try to lock for 1 second
+  if (!g.try_lock_for(chrono::seconds(1))) {
     return 2;
   }
   if (m_unconfirmedTxns.find(txhash) == m_unconfirmedTxns.end()) {

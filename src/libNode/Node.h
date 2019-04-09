@@ -122,7 +122,7 @@ class Node : public Executable {
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
-  std::mutex mutable m_unconfirmedTxnsMutex;
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
   std::unordered_set<TxnHash> m_unconfirmedTxns;
 
   std::vector<TxnHash> m_expectedTranOrdering;
