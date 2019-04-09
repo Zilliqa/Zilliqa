@@ -432,15 +432,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   cv_TxnProcFinished.notify_all();
   // Put txns in map back into pool
-  for (const auto& kv : t_addrNonceTxnMap) {
-    for (const auto& nonceTxn : kv.second) {
-      t_createdTxns.insert(nonceTxn.second);
-    }
-  }
-
-  for (const auto& t : gasLimitExceededTxnBuffer) {
-    t_createdTxns.insert(t);
-  }
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
@@ -653,16 +645,37 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   cv_TxnProcFinished.notify_all();
 
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+}
+
+void Node::ReinstateMemPool(
+    const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
+    const vector<Transaction>& gasLimitExceededTxnBuffer) {
+  unique_lock<mutex> g(m_unconfirmedTxnsMutex);
+
   // Put remaining txns back in pool
-  for (const auto& kv : t_addrNonceTxnMap) {
+  for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
+      m_unconfirmedTxns.insert(nonceTxn.second.GetTranID());
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
+    m_unconfirmedTxns.insert(t.GetTranID());
   }
+}
+
+uint8_t Node::IsTxnInMemPool(const TxnHash& txhash) const {
+  unique_lock<mutex> g(m_unconfirmedTxnsMutex, defer_lock);
+  if (!g.try_lock()) {
+    return 2;
+  }
+  if (m_unconfirmedTxns.find(txhash) == m_unconfirmedTxns.end()) {
+    return 0;
+  }
+  return 1;
 }
 
 void Node::UpdateBalanceForPreGeneratedAccounts() {

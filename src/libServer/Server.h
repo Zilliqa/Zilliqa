@@ -225,6 +225,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         jsonrpc::Procedure("GetNodeState", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetNodeStateI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_BOOLEAN, NULL),
+        &AbstractZServer::IsTxnInMemPoolI);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
@@ -397,6 +401,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetNodeState();
   }
+  inline virtual void IsTxnInMemPoolI(const Json::Value& request,
+                                      Json::Value& response) {
+    response = this->IsTxnInMemPool(request[0u].asString());
+  }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
@@ -434,6 +442,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual std::string GetNodeType() = 0;
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
+  virtual bool IsTxnInMemPool(const std::string& param01) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -489,6 +498,7 @@ class Server : public AbstractZServer {
   virtual std::string GetNumTxnsTxEpoch();
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
+  virtual bool IsTxnInMemPool(const std::string& tranID);
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent

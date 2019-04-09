@@ -712,6 +712,37 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
   }
 }
 
+bool Server::IsTxnInMemPool(const string& tranID) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a lookup");
+  }
+  try {
+    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    TxnHash tranHash(tranID);
+
+    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
+      case 0:
+        return false;
+      case 1:
+        return true;
+      case 2:
+        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
+  }
+}
+
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();
 
