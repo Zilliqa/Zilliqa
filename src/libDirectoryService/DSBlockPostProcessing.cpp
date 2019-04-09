@@ -232,8 +232,9 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   }
 
   // Find my new consensus ID.
+  DequeOfNode::iterator it;
   bool isDropout = true;
-  for (auto& it = m_mediator.m_DSCommittee->begin();
+  for (it = m_mediator.m_DSCommittee->begin();
        it != m_mediator.m_DSCommittee->end(); ++it) {
     // Look for my public key.
     if (m_mediator.m_selfKey.second == it->first) {
