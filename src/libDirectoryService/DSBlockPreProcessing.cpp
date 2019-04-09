@@ -1376,9 +1376,8 @@ void DirectoryService::SaveDSPerformance() {
   m_dsMemberPerformance.clear();
 
   // Initialise the map with the DS Committee public keys mapped to 0.
-  for (auto it_committee = m_mediator.m_DSCommittee->begin();
-       it_committee != m_mediator.m_DSCommittee->end(); ++it_committee) {
-    m_dsMemberPerformance[it_committee->first] = 0;
+  for (const auto& member : m_mediator.m_DSCommittee) {
+    m_dsMemberPerformance[member.first] = 0;
   }
 
   // Go through the coinbase rewardees and tally the number of co-sigs.
