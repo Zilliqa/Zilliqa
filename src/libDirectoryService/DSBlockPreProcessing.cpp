@@ -275,10 +275,9 @@ void DirectoryService::InjectPoWForDSNode(
 
   // Iterate through the current DS committee from the back, add a PoW
   // solution for the expiring nodes.
-  DequeOfNode::reverse_iterator rit;
   unsigned int counter = 0;
 
-  for (rit = m_mediator.m_DSCommittee->rbegin();
+  for (auto rit = m_mediator.m_DSCommittee->rbegin();
        rit != m_mediator.m_DSCommittee->rend(); ++rit) {
     // Only inject up to the number of benign expiring nodes.
     if (counter >= numOfExpiring) {
@@ -1377,18 +1376,14 @@ void DirectoryService::SaveDSPerformance() {
   // Clear the previous performances.
   m_dsMemberPerformance.clear();
 
-  DequeOfNode::iterator it_committee;
   // Initialise the map with the DS Committee public keys mapped to 0.
-  // The map is ordered and thus, would retain the same ordering as the DS
-  // Committee.
-  for (it_committee = m_mediator.m_DSCommittee->begin();
+  for (auto it_committee = m_mediator.m_DSCommittee->begin();
        it_committee != m_mediator.m_DSCommittee->end(); ++it_committee) {
     m_dsMemberPerformance[it_committee->first] = 0;
   }
 
   // Go through the coinbase rewardees and tally the number of co-sigs.
   // For each TX epoch,
-  std::map<PubKey, uint32_t>::iterator it_performance;
   for (auto const& epochNum : m_coinbaseRewardees) {
     // Find the DS Shard.
     for (auto const& shard : epochNum.second) {
@@ -1396,8 +1391,8 @@ void DirectoryService::SaveDSPerformance() {
         // Find the rewards that belong to the DS Shard.
         for (auto const& pubkey : shard.second) {
           // Check if the public key exists in the initialized map.
-          it_performance = m_dsMemberPerformance.find(pubkey);
-          if (it_performance == m_dsMemberPerformance.end()) {
+          if (m_dsMemberPerformance.find(pubkey) ==
+              m_dsMemberPerformance.end()) {
             LOG_GENERAL(WARNING,
                         "Unknown (Not in DS Committee) public key "
                             << pubkey
@@ -1452,8 +1447,7 @@ unsigned int DirectoryService::InjectByzantineNodes(
                                    << DS_PERFORMANCE_THRESHOLD_PERCENT << ")");
   unsigned int numByzantine = 0;
   index = 0;
-  DequeOfNode::iterator it;
-  for (it = m_mediator.m_DSCommittee->begin();
+  for (auto it = m_mediator.m_DSCommittee->begin();
        it != m_mediator.m_DSCommittee->end(); ++it) {
     // Do not evaluate guard nodes.
     if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
