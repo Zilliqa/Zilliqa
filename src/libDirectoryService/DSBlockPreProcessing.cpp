@@ -1376,7 +1376,7 @@ void DirectoryService::SaveDSPerformance() {
   m_dsMemberPerformance.clear();
 
   // Initialise the map with the DS Committee public keys mapped to 0.
-  for (const auto& member : m_mediator.m_DSCommittee) {
+  for (const auto& member : *m_mediator.m_DSCommittee) {
     m_dsMemberPerformance[member.first] = 0;
   }
 
