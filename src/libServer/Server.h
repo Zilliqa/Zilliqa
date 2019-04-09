@@ -21,6 +21,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 #include <mutex>
+#include <random>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
@@ -461,6 +462,7 @@ class Server : public AbstractZServer {
   std::pair<uint64_t, CircularArray<std::string>> m_TxBlockCache;
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
+  std::mt19937 m_eng;
 
  public:
   Server(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
@@ -499,6 +501,7 @@ class Server : public AbstractZServer {
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
   virtual bool IsTxnInMemPool(const std::string& tranID);
+  virtual Json::Value GetShardMembers(uint32_t shardID);
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent

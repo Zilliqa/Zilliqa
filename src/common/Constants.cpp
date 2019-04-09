@@ -294,6 +294,8 @@ const unsigned int RPC_PORT{ReadConstantNumeric("RPC_PORT", "node.jsonrpc.")};
 const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
 const bool ENABLE_STATUS_RPC{
     ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
+const unsigned int NUM_SHARD_PEER_TO_REVEAL{
+    ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{

@@ -66,6 +66,8 @@ Server::Server(Mediator& mediator, AbstractServerConnector& server)
   m_RecentTransactions.resize(TXN_PAGE_SIZE);
   m_TxBlockCountSumPair.first = 0;
   m_TxBlockCountSumPair.second = 0;
+  random_device rd;
+  m_eng = mt19937(rd());
 }
 
 Server::~Server(){
@@ -1382,7 +1384,8 @@ string Server::GetNodeType() {
   } else if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     return "DS Node";
   } else {
-    return "Shard Node";
+    return string("Shard Node of shard") +
+           to_string(m_mediator.m_node->GetShardId());
   }
 }
 
@@ -1406,5 +1409,33 @@ string Server::GetNodeState() {
     return m_mediator.m_node->GetStateString();
   } else {
     return m_mediator.m_ds->GetStateString();
+  }
+}
+
+Json::Value Server::GetShardMembers(uint32_t shardID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  const auto& num_shards = m_mediator.m_lookup->GetShardPeers().size();
+  if (num_shards >= shardID) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
+  }
+  Json::Value _json;
+  try {
+    const auto& shard = m_mediator.m_lookup->GetShardPeers().at(shardID);
+    if (shard.empty()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
+    }
+    uniform_int_distribution<> dist(0, shard.size() - 1);
+    for (uint i = 0; i < NUM_SHARD_PEER_TO_REVEAL; i++) {
+      const auto& node = shard.at(dist(m_eng));
+      _json.append(JSONConversion::convertNode(node));
+    }
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
 }
