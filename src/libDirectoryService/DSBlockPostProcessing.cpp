@@ -220,6 +220,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
                 "expected to be called from LookUp node.");
     return;
   }
+  std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -303,6 +304,7 @@ void DirectoryService::UpdateDSCommitteeComposition() {
 
   // Update the DS committee composition.
   LOG_MARKER();
+  std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
   InternalUpdateDSCommitteeComposition(
       m_mediator.m_selfKey.second, *m_mediator.m_DSCommittee,

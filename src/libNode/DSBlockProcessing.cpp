@@ -491,8 +491,12 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   m_mediator.UpdateDSBlockRand();  // Update the rand1 value for next PoW
-  UpdateDSCommitteeComposition(*m_mediator.m_DSCommittee,
-                               m_mediator.m_dsBlockChain.GetLastBlock());
+
+  {
+    std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    UpdateDSCommitteeComposition(*m_mediator.m_DSCommittee,
+                                 m_mediator.m_dsBlockChain.GetLastBlock());
+  }
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
