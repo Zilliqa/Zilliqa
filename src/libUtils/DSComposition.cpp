@@ -32,11 +32,7 @@ void InternalUpdateDSCommitteeComposition(const PubKey& selfKeyPub,
   for (const auto& DSPowWinner : NewDSMembers) {
     // Check if the current pow candidate is an existing DS Committee member.
     // ('loser') and find its index.
-    for (it = dsComm.begin(); it != dsComm.end(); ++it) {
-      if (DSPowWinner.first == it->first) {
-        break;
-      }
-    }
+    it = std::find(dsComm.begin(), dsComm.end(), it->first);
     if (it != dsComm.end()) {
       LOG_GENERAL(
           INFO,
