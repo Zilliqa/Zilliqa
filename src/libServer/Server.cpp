@@ -742,7 +742,7 @@ Json::Value Server::IsTxnInMemPool(const string& tranID) {
         _json["present"] = true;
         _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
         _json["info"] = "Could not fit in as microblock gas limit reached";
-        return true;
+        return _json;
       case PoolTxnStatus::ERROR:
         throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
       default:
@@ -1436,17 +1436,18 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
   return newVec;
 }
 
-Json::Value Server::GetShardMembers(uint32_t shardID) {
+Json::Value Server::GetShardMembers(unsigned int shardID) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
-  const auto& num_shards = m_mediator.m_lookup->GetShardPeers().size();
+  const auto shards = m_mediator.m_lookup->GetShardPeers();
+  const auto& num_shards = shards.size();
   if (num_shards <= shardID) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
   }
   Json::Value _json;
   try {
-    const auto shard = m_mediator.m_lookup->GetShardPeers().at(shardID);
+    const auto& shard = shards.at(shardID);
     if (shard.empty()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
     }

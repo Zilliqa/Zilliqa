@@ -455,7 +455,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
   virtual Json::Value IsTxnInMemPool(const std::string& param01) = 0;
-  virtual Json::Value GetShardMembers(uint32_t shardID) = 0;
+  virtual Json::Value GetShardMembers(unsigned int param01) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -513,7 +513,7 @@ class Server : public AbstractZServer {
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
   virtual Json::Value IsTxnInMemPool(const std::string& tranID);
-  virtual Json::Value GetShardMembers(uint32_t shardID);
+  virtual Json::Value GetShardMembers(unsigned int shardID);
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent

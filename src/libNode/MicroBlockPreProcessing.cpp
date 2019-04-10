@@ -675,10 +675,11 @@ PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
   if (!g.try_lock_for(chrono::milliseconds(100))) {
     return PoolTxnStatus::ERROR;
   }
-  if (m_unconfirmedTxns.find(txhash) == m_unconfirmedTxns.end()) {
+  const auto res = m_unconfirmedTxns.find(txhash);
+  if (res == m_unconfirmedTxns.end()) {
     return PoolTxnStatus::NOT_PRESENT;
   }
-  return m_unconfirmedTxns.at(txhash);
+  return res->second;
 }
 
 void Node::UpdateBalanceForPreGeneratedAccounts() {
