@@ -58,6 +58,11 @@ target_include_directories(Test_IPConverter PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_IPConverter LINK_PUBLIC Utils)
 add_test(NAME Test_IPConverter COMMAND Test_IPConverter)
 
+add_executable(Test_DSComposition Test_DSComposition.cpp)
+target_include_directories(Test_DSComposition PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_DSComposition LINK_PUBLIC Utils Crypto Network Block)
+add_test(NAME Test_DSComposition COMMAND Test_DSComposition)
+
 add_executable(Test_SafeMath Test_SafeMath.cpp)
 target_include_directories(Test_SafeMath PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_SafeMath PUBLIC Utils)
