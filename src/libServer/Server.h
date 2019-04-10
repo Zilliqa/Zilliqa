@@ -228,7 +228,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         &AbstractZServer::GetNodeStateI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_BOOLEAN, NULL),
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::IsTxnInMemPoolI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
@@ -453,7 +454,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual std::string GetNodeType() = 0;
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
-  virtual bool IsTxnInMemPool(const std::string& param01) = 0;
+  virtual Json::Value IsTxnInMemPool(const std::string& param01) = 0;
   virtual Json::Value GetShardMembers(uint32_t shardID) = 0;
 };
 
@@ -511,7 +512,7 @@ class Server : public AbstractZServer {
   virtual std::string GetNumTxnsTxEpoch();
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
-  virtual bool IsTxnInMemPool(const std::string& tranID);
+  virtual Json::Value IsTxnInMemPool(const std::string& tranID);
   virtual Json::Value GetShardMembers(uint32_t shardID);
   static void AddToRecentTransactions(const dev::h256& txhash);
 

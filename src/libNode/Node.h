@@ -28,6 +28,7 @@
 
 #include "common/Constants.h"
 #include "common/Executable.h"
+#include "common/MempoolEnum.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -123,7 +124,7 @@ class Node : public Executable {
   TxnPool m_createdTxns, t_createdTxns;
 
   std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_set<TxnHash> m_unconfirmedTxns;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
@@ -584,7 +585,7 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  uint8_t IsTxnInMemPool(const TxnHash& txhash) const;
+  PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
 
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,

@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "Server.h"
+#include "common/MempoolEnum.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -714,7 +715,7 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
   }
 }
 
-bool Server::IsTxnInMemPool(const string& tranID) {
+Json::Value Server::IsTxnInMemPool(const string& tranID) {
   if (LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a lookup");
   }
@@ -725,13 +726,24 @@ bool Server::IsTxnInMemPool(const string& tranID) {
     }
 
     TxnHash tranHash(tranID);
+    Json::Value _json;
 
     switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
-      case 0:
-        return false;
-      case 1:
+      case PoolTxnStatus::NOT_PRESENT:
+        _json["present"] = false;
+        _json["code"] = PoolTxnStatus::NOT_PRESENT;
+        return _json;
+      case PoolTxnStatus::PRESENT_NONCE_HIGH:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
+        _json["info"] = "Nonce too high";
+        return _json;
+      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
+        _json["info"] = "Could not fit in as microblock gas limit reached";
         return true;
-      case 2:
+      case PoolTxnStatus::ERROR:
         throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");

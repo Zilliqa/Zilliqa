@@ -657,26 +657,28 @@ void Node::ReinstateMemPool(
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
-      m_unconfirmedTxns.insert(nonceTxn.second.GetTranID());
+      m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
+                                PoolTxnStatus::PRESENT_NONCE_HIGH);
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
-    m_unconfirmedTxns.insert(t.GetTranID());
+    m_unconfirmedTxns.emplace(t.GetTranID(),
+                              PoolTxnStatus::PRESENT_GAS_EXCEEDED);
   }
 }
 
-uint8_t Node::IsTxnInMemPool(const TxnHash& txhash) const {
+PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
   shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex, defer_lock);
-  // Try to lock for 1 second
-  if (!g.try_lock_for(chrono::seconds(1))) {
-    return 2;
+  // Try to lock for 100 ms
+  if (!g.try_lock_for(chrono::milliseconds(100))) {
+    return PoolTxnStatus::ERROR;
   }
   if (m_unconfirmedTxns.find(txhash) == m_unconfirmedTxns.end()) {
-    return 0;
+    return PoolTxnStatus::NOT_PRESENT;
   }
-  return 1;
+  return m_unconfirmedTxns.at(txhash);
 }
 
 void Node::UpdateBalanceForPreGeneratedAccounts() {

@@ -33,15 +33,15 @@ def generate_payload(params, methodName, id = 1):
 	return payload
 
 def recvall(sock):
-    BUFF_SIZE = 4096 # 4 KiB
-    data = ""
-    while True:
-        part = str(sock.recv(BUFF_SIZE))
-        data += part
-        if len(part) < BUFF_SIZE:
-            # either 0 or end of data
-            break
-    return data
+	BUFF_SIZE = 4096 # 4 KiB
+	data = ""
+	while True:
+		part = str(sock.recv(BUFF_SIZE))
+		data += part
+		if len(part) < BUFF_SIZE:
+			# either 0 or end of data
+			break
+	return data
 
 
 def get_response(params, methodName, host, port, id = 1):
@@ -50,7 +50,7 @@ def get_response(params, methodName, host, port, id = 1):
 	try:
 		sock.connect((host, port))
 		data = json.dumps(generate_payload(params, methodName))
-		sock.sendall(bytes(data+"\n"))		
+		sock.sendall(bytes(data+"\n"))      
 		received = recvall(sock)
 	except socket.error:
 		print "Socket error "
@@ -75,6 +75,7 @@ def parse_arguments(options):
 	parser.add_argument("--address","-a",help="host address for querying, default: localhost", default="127.0.0.1")
 	parser.add_argument("option",help="input option for the query", choices=options)
 	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
+	parser.add_argument("--params","-pm", nargs='?', help="parameter for the request")
 	args = parser.parse_args()
 	return args
 
@@ -84,15 +85,22 @@ def make_options_dictionary(options_dict):
 	options_dict["type"] = "GetNodeType"
 	options_dict["ds"] = "GetDSCommittee"
 	options_dict["state"] = "GetNodeState"
+	options_dict["checktxn"] = "IsTxnInMemPool"
 
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	
 
 	args = parse_arguments(options_dictionary.keys())
 
-	response = get_response([],options_dictionary[args.option],args.address, args.port)
+	if args.option == "checktxn": 
+		if not args.params:
+			print "\033[91mError\033[0m: Please use '--params' to pass valid txnhash for checktxn"
+			return 0
+		else:
+			args.params = [i.strip() for i in args.params]
+
+	response = get_response(args.params,options_dictionary[args.option],args.address, args.port)
 
 	if response == None:
 		print "Could not get result"
