@@ -119,14 +119,12 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (info.m_txnRootHash != TxnHash()) {
-        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                              << info.m_microBlockHash << " [TxnRootHash] "
-                              << info.m_txnRootHash << " shardID "
-                              << info.m_shardId);
-        m_unavailableMicroBlocks[blocknum].push_back(
-            {info.m_microBlockHash, info.m_txnRootHash});
-      }
+      LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                            << info.m_microBlockHash << " [TxnRootHash] "
+                            << info.m_txnRootHash << " shardID "
+                            << info.m_shardId);
+      m_unavailableMicroBlocks[blocknum].push_back(
+          {info.m_microBlockHash, info.m_txnRootHash});
     } else {
       if (info.m_shardId == m_myshardId) {
         if (m_microblock == nullptr) {
@@ -139,33 +137,19 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but Cosig not updated");
           // doRejoin = true;
+        } else if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
+          // Update transaction processed
+          UpdateProcessedTransactions();
+          toSendTxnToLookup = true;
         } else {
-          if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
-            if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (info.m_txnRootHash != TxnHash()) {
-                // Update transaction processed
-                UpdateProcessedTransactions();
-                toSendTxnToLookup = true;
-              } else {
-                LOG_GENERAL(WARNING,
-                            "My MicroBlock txRootHash ("
-                                << m_microblock->GetHeader().GetTxRootHash()
-                                << ") is not null"
-                                   " but isMicroBlockEmpty for me is "
-                                << info.m_txnRootHash);
-                return false;
-              }
-            }
-          } else {
-            LOG_GENERAL(WARNING,
-                        "The microblock hashes in finalblock doesn't "
-                        "match with the local one"
-                            << endl
-                            << "expected: " << m_microblock->GetBlockHash()
-                            << endl
-                            << "received: " << info.m_microBlockHash)
-            return false;
-          }
+          LOG_GENERAL(WARNING,
+                      "The microblock hashes in finalblock doesn't "
+                      "match with the local one"
+                          << endl
+                          << "expected: " << m_microblock->GetBlockHash()
+                          << endl
+                          << "received: " << info.m_microBlockHash)
+          return false;
         }
 
         break;
