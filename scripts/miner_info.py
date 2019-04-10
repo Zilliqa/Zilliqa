@@ -93,12 +93,9 @@ def main():
 
 	args = parse_arguments(options_dictionary.keys())
 
-	if args.option == "checktxn": 
-		if not args.params:
-			print "\033[91mError\033[0m: Please use '--params' to pass valid txnhash for checktxn"
-			return 0
-		else:
-			args.params = [i.strip() for i in args.params]
+	if args.option == "checktxn" and not args.params:
+		print "\033[91mError\033[0m: Please use '--params' to pass valid txnhash for checktxn"
+		return 0
 
 	response = get_response(args.params,options_dictionary[args.option],args.address, args.port)
 
