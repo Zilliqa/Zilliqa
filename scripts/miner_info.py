@@ -92,12 +92,15 @@ def main():
 	make_options_dictionary(options_dictionary)
 
 	args = parse_arguments(options_dictionary.keys())
+	params = []
+	if args.option == "checktxn" 
+		if not args.params:
+			print "\033[91mError\033[0m: Please use '--params' to pass valid txnhash for checktxn"
+			return 0
+		else:
+			params = [args.params]
 
-	if args.option == "checktxn" and not args.params:
-		print "\033[91mError\033[0m: Please use '--params' to pass valid txnhash for checktxn"
-		return 0
-
-	response = get_response(args.params,options_dictionary[args.option],args.address, args.port)
+	response = get_response(params,options_dictionary[args.option],args.address, args.port)
 
 	if response == None:
 		print "Could not get result"
