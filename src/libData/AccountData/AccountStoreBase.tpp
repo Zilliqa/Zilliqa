@@ -213,9 +213,7 @@ bool AccountStoreBase<MAP>::IncreaseBalance(
   }
 
   else if (account == nullptr) {
-    if (delta > 0) {
-      AddAccount(address, {delta, 0});
-    }
+    AddAccount(address, {delta, 0});
     return true;
   }
 
