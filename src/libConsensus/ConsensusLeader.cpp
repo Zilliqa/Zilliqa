@@ -274,6 +274,25 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     // Reset all other subsets to INITIAL so they reject any further messages
     // from their backups
     for (unsigned int i = 0; i < m_consensusSubsets.size(); i++) {
+      // Log the responses stats if its ds consensus and DS_GUARD mode
+      if (m_DS && GUARD_MODE) {
+        ConsensusSubset& subset = m_consensusSubsets.at(i);
+        unsigned int dsguardCount = 0, nondsguardCount = 0;
+        for (unsigned int j = 0; j < subset.responseMap.size(); j++) {
+          if (subset.responseMap[j]) {
+            if (j < Guard::GetInstance().GetNumOfDSGuard()) {
+              dsguardCount++;
+            } else {
+              nondsguardCount++;
+            }
+          }
+        }
+        LOG_GENERAL(INFO,
+                    "[SubsetID: " << i << "] Responses received: Guards = "
+                                  << dsguardCount
+                                  << ", Non-guards = " << nondsguardCount);
+      }
+
       if (i == subsetID) {
         continue;
       }
