@@ -141,21 +141,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
           // doRejoin = true;
         } else {
           if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
-            if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (info.m_txnRootHash != TxnHash()) {
-                // Update transaction processed
-                UpdateProcessedTransactions();
-                toSendTxnToLookup = true;
-              } else {
-                LOG_GENERAL(WARNING,
-                            "My MicroBlock txRootHash ("
-                                << m_microblock->GetHeader().GetTxRootHash()
-                                << ") is not null"
-                                   " but isMicroBlockEmpty for me is "
-                                << info.m_txnRootHash);
-                return false;
-              }
-            }
+            UpdateProcessedTransactions();
+            toSendTxnToLookup = true;
           } else {
             LOG_GENERAL(WARNING,
                         "The microblock hashes in finalblock doesn't "
