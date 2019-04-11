@@ -289,7 +289,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
-        // m_ds.StartSynchronization();
+        // downloads and sync from the persistence of incremental db and
+        // and rejoins the network as ds guard member
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
         m_ds.RejoinAsDS(false);
         break;
