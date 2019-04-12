@@ -314,7 +314,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     boost::multiprecision::uint128_t gasRefund;
     if (!SafeMath<boost::multiprecision::uint128_t>::mul(
             gasRemained, transaction.GetGasPrice(), gasRefund)) {
-      this->m_addressToAccount->erase(toAddr);
+      this->RemoveAccount(toAddr);
       return false;
     }
     if (!this->IncreaseBalance(fromAddr, gasRefund)) {
@@ -334,6 +334,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       receipt.update();
 
       if (!this->IncreaseNonce(fromAddr)) {
+        this->RemoveAccount(toAddr);
         return false;
       }
 
@@ -360,7 +361,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
-        return this->IncreaseNonce(fromAddr);
+        if (!this->IncreaseNonce(fromAddr)) {
+          this->RemoveAccount(toAddr);
+          return false;
+        }
+        return true;
       }
     }
 
