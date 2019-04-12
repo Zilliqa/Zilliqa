@@ -703,7 +703,7 @@ bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
   }
 
   try {
-    epochNum = stoul(epochNumStr);
+    epochNum = stoull(epochNumStr);
   } catch (...) {
     LOG_GENERAL(WARNING, "epochNumStr is not numeric");
     return false;
