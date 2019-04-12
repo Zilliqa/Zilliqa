@@ -283,13 +283,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
                       "Txn processing timeout! Interrupt current contract "
                       "deployment, pid: "
                           << pid);
-          try {
-            if (pid >= 0) {
-              kill(pid, SIGKILL);
-            }
-          } catch (const std::exception& e) {
-            LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
+          if (pid >= 0) {
+            kill(pid, SIGKILL);
           }
+
           receipt.AddError(EXECUTE_CMD_TIMEOUT);
           ret = false;
         }
@@ -768,7 +765,8 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       return false;
     }
   } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
+                                              << checkerPrint);
     return false;
   }
 
@@ -937,7 +935,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
                              << r_timer_end(tpStart));
     }
   } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    LOG_GENERAL(WARNING,
+                "Exception caught: " << e.what() << " outStr: " << outStr);
     return false;
   }
 
