@@ -20,10 +20,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/RootComputation.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <cstdint>
 #include <vector>
 

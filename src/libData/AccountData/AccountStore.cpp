@@ -406,8 +406,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   // Should the nonce increase ??
 }
 
-boost::multiprecision::uint128_t AccountStore::GetNonceTemp(
-    const Address& address) {
+uint128_t AccountStore::GetNonceTemp(const Address& address) {
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=

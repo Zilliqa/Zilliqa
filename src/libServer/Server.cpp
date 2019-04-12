@@ -18,12 +18,8 @@
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include "depends/jsonrpc/include/jsonrpccpp/server.h"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <iostream>
+#include "depends/jsonrpc/include/jsonrpccpp/server.h"
 
 #include "Server.h"
 #include "common/MempoolEnum.h"

@@ -20,10 +20,6 @@
 
 #include <stdint.h>
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <mutex>
 #include <string>
 #include <thread>
@@ -79,8 +75,8 @@ class POW {
   static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
@@ -100,8 +96,8 @@ class POW {
   static bytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
   static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);

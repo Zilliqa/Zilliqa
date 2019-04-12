@@ -18,12 +18,7 @@
 #ifndef __CIRCULARARRAY_H__
 #define __CIRCULARARRAY_H__
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <vector>
-
+#include "common/BaseType.h"
 #include "libUtils/Logger.h"
 
 /// Utility class - circular array data queue.

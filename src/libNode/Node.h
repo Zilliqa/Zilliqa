@@ -136,7 +136,7 @@ class Node : public Executable {
   std::vector<TxnHash> m_TxnOrder;
 
   uint64_t m_gasUsedTotal = 0;
-  boost::multiprecision::uint128_t m_txnFees = 0;
+  uint128_t m_txnFees = 0;
 
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
@@ -374,7 +374,7 @@ class Node : public Executable {
   };
 
   // Proposed gas price
-  boost::multiprecision::uint128_t m_proposedGasPrice;
+  uint128_t m_proposedGasPrice;
   std::mutex m_mutexGasPrice;
 
   // This process is newly invoked by shell from late node join script
@@ -531,7 +531,7 @@ class Node : public Executable {
                              const std::string& powResultHash,
                              const std::string& powMixhash,
                              const uint32_t& lookupId,
-                             const boost::multiprecision::uint128_t& gasPrice);
+                             const uint128_t& gasPrice);
 
   /// Used by oldest DS node to configure shard ID as a new shard node
   void SetMyshardId(uint32_t shardId);

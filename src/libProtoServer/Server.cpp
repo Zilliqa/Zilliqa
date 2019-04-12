@@ -16,10 +16,6 @@
  */
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <iostream>
 
 #include "Server.h"
@@ -444,10 +440,10 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      boost::multiprecision::uint128_t balance = account->GetBalance();
+      uint128_t balance = account->GetBalance();
       ret.set_balance(balance.str());
 
-      boost::multiprecision::uint128_t nonce = account->GetNonce();
+      uint128_t nonce = account->GetNonce();
       ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "

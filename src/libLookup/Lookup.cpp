@@ -429,7 +429,7 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
   string url = peer.GetHostname();
   auto resolved_ip = peer.GetIpAddress();  // existing one
   if (!url.empty()) {
-    boost::multiprecision::uint128_t tmpIp;
+    uint128_t tmpIp;
     if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
       resolved_ip = tmpIp;  // resolved one
     } else {

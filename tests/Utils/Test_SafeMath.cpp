@@ -209,52 +209,42 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
 
   LOG_GENERAL(INFO, "Test boost_uint128_t start...");
 
-  boost::multiprecision::uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+  uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
       num2("0x0000000000000000000000000000000B"), addRes, subRes1, subRes2,
       subRes3;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::add(
-                                  num1, num2, addRes),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::add(num1, num2, addRes),
                       "Test add failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                  addRes, num1, subRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                  addRes, num2, subRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::sub(addRes, num2, subRes2),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                   0, num2, subRes3),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
 
-  num1 = boost::multiprecision::uint128_t("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x00000000000000000000000000000001");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::add(
-                                   num1, num2, addRes),
+  num1 = uint128_t("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x00000000000000000000000000000001");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::add(num1, num2, addRes),
                       "Test add overflow failed!");
 
-  num1 = boost::multiprecision::uint128_t("0x00000000000000000FFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x000000000000000000000BBBBBBBBBBB");
-  boost::multiprecision::uint128_t mulRes, divRes1, divRes2;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::mul(
-                                  num1, num2, mulRes),
+  num1 = uint128_t("0x00000000000000000FFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x000000000000000000000BBBBBBBBBBB");
+  uint128_t mulRes, divRes1, divRes2;
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::mul(num1, num2, mulRes),
                       "Test mul failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::div(
-                                  mulRes, num1, divRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::div(mulRes, num1, divRes1),
                       "Test div failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::div(
-                                  mulRes, num2, divRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::div(mulRes, num2, divRes2),
                       "Test div failed!");
   BOOST_CHECK_MESSAGE(num1 == divRes2, "Test mul/div failed!");
   BOOST_CHECK_MESSAGE(num2 == divRes1, "Test mul/div failed!");
 
-  num1 = boost::multiprecision::uint128_t("0x000000000FFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x0000000000CCCCCCCCCCCCCCCCCCCCCC");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::mul(
-                                   num1, num2, mulRes),
+  num1 = uint128_t("0x000000000FFFFFFFFFFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x0000000000CCCCCCCCCCCCCCCCCCCCCC");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::mul(num1, num2, mulRes),
                       "Test mul overflow failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::div(
-                                   num2, 0, divRes1),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::div(num2, 0, divRes1),
                       "Test div error-handling failed!");
 
   LOG_GENERAL(INFO, "Test boost_uint128_t done!");

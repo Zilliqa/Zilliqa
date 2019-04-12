@@ -19,10 +19,6 @@
 #define __DSBLOCK_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "BlockBase.h"
 #include "common/Constants.h"

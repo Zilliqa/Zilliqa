@@ -20,10 +20,6 @@
 #include <functional>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"

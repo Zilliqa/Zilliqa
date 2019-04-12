@@ -44,7 +44,7 @@ bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i,
                    std::string version = "0");
 // Get _balance from output state of interpreter, from OUTPUT_JSON.
 // Return 0 on failure.
-boost::multiprecision::uint128_t GetBalanceFromOutput(void);
+uint128_t GetBalanceFromOutput(void);
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.

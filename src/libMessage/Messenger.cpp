@@ -1203,18 +1203,16 @@ bool ProtobufToTransactionWithReceipt(
 }
 
 void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
-  NumberToProtobufByteArray<boost::multiprecision::uint128_t,
-                            sizeof(boost::multiprecision::uint128_t)>(
+  NumberToProtobufByteArray<uint128_t, sizeof(uint128_t)>(
       peer.GetIpAddress(), *protoPeer.mutable_ipaddress());
 
   protoPeer.set_listenporthost(peer.GetListenPortHost());
 }
 
 void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
-  boost::multiprecision::uint128_t ipAddress;
-  ProtobufByteArrayToNumber<boost::multiprecision::uint128_t,
-                            sizeof(boost::multiprecision::uint128_t)>(
-      protoPeer.ipaddress(), ipAddress);
+  uint128_t ipAddress;
+  ProtobufByteArrayToNumber<uint128_t, sizeof(uint128_t)>(protoPeer.ipaddress(),
+                                                          ipAddress);
 
   peer = Peer(ipAddress, protoPeer.listenporthost());
 }
@@ -1439,7 +1437,7 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   const std::string& resultingHash = dsPowSubmission.data().resultinghash();
   const std::string& mixHash = dsPowSubmission.data().mixhash();
   const uint32_t& lookupId = dsPowSubmission.data().lookupid();
-  boost::multiprecision::uint128_t gasPrice;
+  uint128_t gasPrice;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       dsPowSubmission.data().gasprice(), gasPrice);
   Signature signature;

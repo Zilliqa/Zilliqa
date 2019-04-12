@@ -21,11 +21,6 @@
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <vector>
 
 #include "Address.h"
 #include "common/Constants.h"

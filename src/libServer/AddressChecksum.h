@@ -18,7 +18,7 @@
 #define __ADDRESS_CHECKSUM_H__
 
 #include <boost/algorithm/string.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
+
 #include "common/Constants.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/HashUtils.h"

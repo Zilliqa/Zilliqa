@@ -24,10 +24,6 @@
 #define BOOST_TEST_MODULE trietest
 #define BOOST_TEST_DYN_LINK
 #include <boost/filesystem/path.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 
 #include "depends/common/CommonIO.h"
