@@ -3,6 +3,7 @@
 add_subdirectory (cmd)
 add_subdirectory (Crypto)
 add_subdirectory (Data)
+add_subdirectory (DirectoryService)
 add_subdirectory (depends)
 add_subdirectory (Incentives)
 add_subdirectory (libTestUtils)
