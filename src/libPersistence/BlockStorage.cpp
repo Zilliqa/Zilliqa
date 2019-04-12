@@ -644,6 +644,14 @@ bool BlockStorage::PutStateRoot(const bytes& data) {
   return (ret == 0);
 }
 
+bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
+  LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
+  int ret =
+      m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
+  return (ret == 0);
+}
+
 bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   LOG_MARKER();
 
@@ -679,6 +687,29 @@ bool BlockStorage::GetStateRoot(bytes& data) {
 
   data = bytes(stateRoot.begin(), stateRoot.end());
 
+  return true;
+}
+
+bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
+  LOG_MARKER();
+
+  string epochNumStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
+    epochNumStr = m_stateRootDB->Lookup(LATEST_EPOCH_STATES_UPDATED);
+  }
+
+  if (epochNumStr.empty()) {
+    LOG_GENERAL(INFO, "No Latest Epoch State Updated get");
+    return false;
+  }
+
+  try {
+    epochNum = stoull(epochNumStr);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "epochNumStr is not numeric");
+    return false;
+  }
   return true;
 }
 
@@ -842,6 +873,7 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
                                  bytes& stateDelta) {
   LOG_MARKER();
   bool found = false;
+
   string dataStr;
   {
     shared_lock<shared_timed_mutex> g(m_mutexStateDelta);
@@ -1003,7 +1035,7 @@ void BlockStorage::GetDiagnosticDataNodes(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
@@ -1066,7 +1098,7 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
