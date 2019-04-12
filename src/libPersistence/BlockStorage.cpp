@@ -1035,7 +1035,7 @@ void BlockStorage::GetDiagnosticDataNodes(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
@@ -1098,7 +1098,7 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
