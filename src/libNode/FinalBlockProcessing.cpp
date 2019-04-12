@@ -736,10 +736,22 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
         BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
             m_mediator.m_currentEpochNum);
+        if (!LOOKUP_NODE_MODE) {
+          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                      {'0'});
+        } else {
+          // change if all microblock received from shards
+          lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
+          if (m_unavailableMicroBlocks.find(
+                  m_mediator.m_txBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+          }
+        }
         LOG_STATE("[FLBLK][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["
@@ -1027,8 +1039,17 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
               m_mediator.m_txBlockChain.GetLastBlock()
                   .GetHeader()
                   .GetBlockNum()) {
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
+        // change if states was moved to disk
+        uint64_t epochNum;
+        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
+                epochNum)) {
+          LOG_GENERAL(WARNING, "GetLatestEpochStatesUpdated failed");
+          return false;
+        }
+        if (epochNum == m_mediator.m_currentEpochNum) {
+          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                      {'0'});
+        }
         BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
       }
     }
