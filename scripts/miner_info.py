@@ -24,6 +24,8 @@ import argparse
 import csv
 import socket
 
+DEBUG_MODE = False
+
 def generate_payload(params, methodName, id = 1):
 
 	if params and not type(params) is list:
@@ -77,12 +79,15 @@ def get_response(params, methodName, host, port, batch):
 		data = json.dumps(generate_payload(params, methodName))
 	else:
 		data = json.dumps(gen_payload_batch(params, methodName))
-	print data
+	if DEBUG_MODE:
+		print "Request:\n\t"+data
 	recv = send_packet_tcp(data, host, port)
 	if not recv:
 		return None
 	response = json.loads(recv)
 
+	if DEBUG_MODE:
+		print "Response:\n\t"+response
 	return response
 
 
@@ -93,6 +98,7 @@ def parse_arguments(options):
 	parser.add_argument("option",help="input option for the query", choices=options)
 	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
 	parser.add_argument("--params","-pm",help="parameters", nargs='+')
+	parser.add_argument("--debug","-d",help="debug mode", action='store_true')
 	args = parser.parse_args()
 	return args
 
@@ -106,12 +112,37 @@ def make_options_dictionary(options_dict):
 	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
 
 
+def ProcessResponseCore(resp, param):
+	if param:
+		print "Parameter: "+str(param)+"\t",
+	try:
+		print resp["result"]
+	except KeyError:
+		print resp["error"]	
+
+def ProcessResponse(resp, params, batch):
+	if not batch:
+		ProcessResponseCore(resp, params)
+	else:
+#Assuming the params are in same order as thier starting from 1,2..
+		for i in resp:
+			try:
+				param = params[int(i["id"])-1]
+				ProcessResponseCore(i, param)
+			except KeyError:
+				print "Could not find id: "+i["id"]
+			
+
+
+
+
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
 	
-
+	global DEBUG_MODE
 	args = parse_arguments(options_dictionary.keys())
+	DEBUG_MODE = args.debug
 	batch = False
 
 	if args.option == "whitelist_add" or args.option == "whitelist_remove":
@@ -121,11 +152,11 @@ def main():
 		batch = True
 
 	response = get_response(args.params, options_dictionary[args.option], args.address, args.port, batch)
-
+	
 	if response == None:
 		print "Could not get result"
 	else:
-		print response
+		ProcessResponse(response,args.params, batch)
 
 	
 
