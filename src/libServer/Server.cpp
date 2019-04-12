@@ -1429,11 +1429,28 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
   if (size < num) {
     num = size;
   }
-  vector<uint> v(size);
-  iota(begin(v), end(v), 0);
-  shuffle(v.begin(), v.end(), eng);
-  vector<uint> newVec(v.begin(), v.begin() + num);
-  return newVec;
+  if (num == 0) {
+    return vector<uint>();
+  }
+  vector<uint> v(num);
+
+  for (uint i = 0; i < num; i++) {
+    uniform_int_distribution<> dis(
+        0, size - i - 1);  // random num between 0 to i-1
+    uint x = dis(eng);
+    uint j = 0;
+    for (j = 0; j < i; j++) {
+      if (x < v.at(j)) {
+        break;
+      }
+      x++;
+    }
+    for (uint k = j + 1; k <= i; k++) {
+      v.at(i + j + 1 - k) = v.at(i + j - k);
+    }
+    v.at(j) = x;
+  }
+  return v;
 }
 
 Json::Value Server::GetShardMembers(unsigned int shardID) {
