@@ -450,9 +450,8 @@ void DirectoryService::StartFirstTxEpoch() {
     // been a non-performant node and must rejoin as normal.
     if (!found) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "WARNING: My DS node is not in any of the new shards! I must "
-                "have been removed from the DS Committee for bad performance. "
-                "Invoke Rejoin as Normal.");
+                "My DS node signed insufficient blocks. Kicked out and "
+                "invoking RejoinAsNormal now.");
       m_mediator.m_node->RejoinAsNormal();
       return;
     }
