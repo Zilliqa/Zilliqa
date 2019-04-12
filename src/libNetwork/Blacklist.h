@@ -74,10 +74,10 @@ class Blacklist {
   void Enable(const bool enable);
 
   /// Node to be excluded from blacklisting
-  void Exclude(const boost::multiprecision::uint128_t& ip);
+  bool Exclude(const boost::multiprecision::uint128_t& ip);
 
   /// Remove node from exclusion list for blacklisting
-  void RemoveExclude(const boost::multiprecision::uint128_t& ip);
+  bool RemoveExclude(const boost::multiprecision::uint128_t& ip);
 };
 
 #endif  // __BLACKLIST_H__

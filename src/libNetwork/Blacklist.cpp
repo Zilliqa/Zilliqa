@@ -106,18 +106,18 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
-void Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
   if (!m_enabled) {
-    return;
+    return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_excludedIP.emplace(ip);
+  return m_excludedIP.emplace(ip).second;
 }
 
-void Blacklist::RemoveExclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::RemoveExclude(const boost::multiprecision::uint128_t& ip) {
   if (!m_enabled) {
-    return;
+    return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_excludedIP.erase(ip);
+  return (m_excludedIP.erase(ip) > 0);
 }

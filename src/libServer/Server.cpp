@@ -35,6 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
@@ -1375,5 +1376,62 @@ string Server::GetNodeState() {
     return m_mediator.m_node->GetStateString();
   } else {
     return m_mediator.m_ds->GetStateString();
+  }
+}
+
+bool Server::AddToBlacklistExclusion(const string& ipAddr) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+
+  try {
+    boost::multiprecision::uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().Exclude(numIP)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not add IP Address in exclusion list, already present");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool Server::RemoveFromBlacklistExclusion(const string& ipAddr) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+
+  try {
+    boost::multiprecision::uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().RemoveExclude(numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not remove IP Address from exclusion list");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
 }

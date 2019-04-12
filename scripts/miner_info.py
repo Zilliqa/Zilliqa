@@ -25,6 +25,9 @@ import csv
 import socket
 
 def generate_payload(params, methodName, id = 1):
+
+	if params and not type(params) is list:
+		params = [params]
 	payload = {"method":methodName,
 		"params":params,
 		"jsonrpc":"2.0",
@@ -44,29 +47,43 @@ def recvall(sock):
     return data
 
 
-def get_response(params, methodName, host, port, id = 1):
+def gen_payload_batch(params, methodName):
+	req = []
+	count = 1
+	for i in params:
+		data = generate_payload(i, methodName, count)
+		req.append(data)
+		count = count + 1
+	return req
 
+
+def send_packet_tcp(data, host, port):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
 		sock.connect((host, port))
-		data = json.dumps(generate_payload(params, methodName))
-		sock.sendall(bytes(data+"\n"))		
+		sock.sendall(data+"\n")
 		received = recvall(sock)
 	except socket.error:
-		print "Socket error "
+		print "Socket error"
 		sock.close()
 		return None
-
-	response = json.loads(received)
-
 	sock.close()
+	return received
 
-	assert (response["id"] == id)
-	try:
-		return response["result"]
-	except KeyError:
-		print response["error"]
+
+def get_response(params, methodName, host, port, batch):
+	
+	if not batch:
+		data = json.dumps(generate_payload(params, methodName))
+	else:
+		data = json.dumps(gen_payload_batch(params, methodName))
+	print data
+	recv = send_packet_tcp(data, host, port)
+	if not recv:
 		return None
+	response = json.loads(recv)
+
+	return response
 
 
 
@@ -75,6 +92,7 @@ def parse_arguments(options):
 	parser.add_argument("--address","-a",help="host address for querying, default: localhost", default="127.0.0.1")
 	parser.add_argument("option",help="input option for the query", choices=options)
 	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
+	parser.add_argument("--params","-pm",help="parameters", nargs='+')
 	args = parser.parse_args()
 	return args
 
@@ -84,6 +102,9 @@ def make_options_dictionary(options_dict):
 	options_dict["type"] = "GetNodeType"
 	options_dict["ds"] = "GetDSCommittee"
 	options_dict["state"] = "GetNodeState"
+	options_dict["whitelist_add"] = "AddToBlacklistExclusion"
+	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
+
 
 def main():
 	options_dictionary = {}
@@ -91,8 +112,15 @@ def main():
 	
 
 	args = parse_arguments(options_dictionary.keys())
+	batch = False
 
-	response = get_response([],options_dictionary[args.option],args.address, args.port)
+	if args.option == "whitelist_add" or args.option == "whitelist_remove":
+		if len(args.params) == 0:
+			print "Error: Params cannot be empty"
+			return 1
+		batch = True
+
+	response = get_response(args.params, options_dictionary[args.option], args.address, args.port, batch)
 
 	if response == None:
 		print "Could not get result"
