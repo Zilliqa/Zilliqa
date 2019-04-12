@@ -2054,6 +2054,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   cv_waitJoined.notify_all();
 }
 
+const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
+  return m_txnShardMap[index];
+}
+
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
@@ -3538,6 +3542,26 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
+  uint32_t size = 0;
+
+  for (const auto& x : m_txnShardMap) {
+    size += x.second.size();
+  }
+
+  if (size >= TXN_STORAGE_LIMIT) {
+    LOG_GENERAL(INFO, "Number of txns exceeded limit");
+    return false;
+  }
+
+  // case where txn already exist
+  if (find_if(m_txnShardMap[shardId].begin(), m_txnShardMap[shardId].end(),
+              [tx](const Transaction& txn) {
+                return tx.GetTranID() == txn.GetTranID();
+              }) != m_txnShardMap[shardId].end()) {
+    LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
+    return false;
+  }
+
   m_txnShardMap[shardId].push_back(tx);
 
   return true;
@@ -3625,7 +3649,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-      if (m_txnShardMap[i].empty() && mp[i].empty()) {
+      if (GetTxnFromShardMap(i).empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
         continue;
       }
@@ -3633,7 +3657,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
-          m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
+          m_mediator.m_selfKey, GetTxnFromShardMap(i), mp[i]);
     }
 
     if (!result) {

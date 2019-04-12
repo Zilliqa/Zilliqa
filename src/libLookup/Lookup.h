@@ -46,6 +46,11 @@
 class Mediator;
 class Synchronizer;
 
+// The "first" element in the pair is a map of shard to its transactions
+// The "second" element in the pair counts the total number of transactions in
+// the whole map
+using TxnShardMap = std::map<uint32_t, std::vector<Transaction>>;
+
 // Enum used to tell send type to seed node
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
 
@@ -125,6 +130,8 @@ class Lookup : public Executable {
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
 
+  TxnShardMap m_txnShardMap;
+
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
   std::condition_variable cv_setStateDeltasFromSeed;
@@ -181,7 +188,9 @@ class Lookup : public Executable {
   VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
-  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
+
+  const std::vector<Transaction>& GetTxnFromShardMap(
+      uint32_t index);  // Use m_txnShardMapMutex with this function
 
   bool IsLookupNode(const PubKey& pubKey) const;
 

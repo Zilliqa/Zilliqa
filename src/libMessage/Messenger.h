@@ -374,7 +374,7 @@ class Messenger {
   static bool SetNodeForwardTxnBlock(
       bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
       const uint64_t& dsBlockNum, const uint32_t& shardId,
-      const PairOfKey& lookupKey, std::vector<Transaction>& txnsCurrent,
+      const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
   static bool SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
                                      const uint64_t& epochNumber,
