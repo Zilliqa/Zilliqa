@@ -382,60 +382,65 @@ bool ContractStorage::GetContractStateJson(
 
   bool hasScillaVersion = false;
   pair<Json::Value, Json::Value> t_roots;
-  for (const auto& rawState : rawStates) {
-    StateEntry entry;
-    uint32_t version;
-    if (!Messenger::GetStateData(rawState, 0, entry, version)) {
-      LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
-      return false;
-    }
-
-    if (version != CONTRACT_STATE_VERSION) {
-      LOG_GENERAL(WARNING, "state data version "
-                               << version
-                               << " is not match to CONTRACT_STATE_VERSION "
-                               << CONTRACT_STATE_VERSION);
-      return false;
-    }
-
-    string tVname = std::get<VNAME>(entry);
-    bool tMutable = std::get<MUTABLE>(entry);
-    string tType = std::get<TYPE>(entry);
-    string tValue = std::get<VALUE>(entry);
-
-    if (!hasScillaVersion && tVname == "_scilla_version" && tType == "Uint32" &&
-        !tMutable) {
-      try {
-        scilla_version = boost::lexical_cast<uint32_t>(tValue);
-      } catch (...) {
-        LOG_GENERAL(WARNING,
-                    "_scilla_version " << tValue << " is not a number");
+  try {
+    for (const auto& rawState : rawStates) {
+      StateEntry entry;
+      uint32_t version;
+      if (!Messenger::GetStateData(rawState, 0, entry, version)) {
+        LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
         return false;
       }
 
-      hasScillaVersion = true;
-    }
-
-    Json::Value item;
-    item["vname"] = tVname;
-    item["type"] = tType;
-    if (tValue[0] == '[' || tValue[0] == '{') {
-      Json::Value obj;
-
-      if (!JSONUtils::GetInstance().convertStrtoJson(tValue, obj)) {
-        continue;
+      if (version != CONTRACT_STATE_VERSION) {
+        LOG_GENERAL(WARNING, "state data version "
+                                 << version
+                                 << " is not match to CONTRACT_STATE_VERSION "
+                                 << CONTRACT_STATE_VERSION);
+        return false;
       }
 
-      item["value"] = obj;
-    } else {
-      item["value"] = tValue;
-    }
+      string tVname = std::get<VNAME>(entry);
+      bool tMutable = std::get<MUTABLE>(entry);
+      string tType = std::get<TYPE>(entry);
+      string tValue = std::get<VALUE>(entry);
 
-    if (!tMutable) {
-      t_roots.first.append(item);
-    } else {
-      t_roots.second.append(item);
+      if (!hasScillaVersion && tVname == "_scilla_version" &&
+          tType == "Uint32" && !tMutable) {
+        try {
+          scilla_version = boost::lexical_cast<uint32_t>(tValue);
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "_scilla_version " << tValue << " is not a number");
+          return false;
+        }
+
+        hasScillaVersion = true;
+      }
+
+      Json::Value item;
+      item["vname"] = tVname;
+      item["type"] = tType;
+      if (tValue[0] == '[' || tValue[0] == '{') {
+        Json::Value obj;
+
+        if (!JSONUtils::GetInstance().convertStrtoJson(tValue, obj)) {
+          continue;
+        }
+
+        item["value"] = obj;
+      } else {
+        item["value"] = tValue;
+      }
+
+      if (!tMutable) {
+        t_roots.first.append(item);
+      } else {
+        t_roots.second.append(item);
+      }
     }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
   }
 
   if (!hasScillaVersion) {
