@@ -18,7 +18,6 @@
 #ifndef __DSCOMPOSITION_H__
 #define __DSCOMPOSITION_H__
 
-#include "Logger.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libNetwork/Guard.h"
