@@ -166,6 +166,9 @@ class ConsensusLeader : public ConsensusCommon {
   /// Function to check for missing responses
   void Audit();
 
+  /// Function to log the responses stats
+  void LogResponsesStats(unsigned int subsetID);
+
  private:
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;

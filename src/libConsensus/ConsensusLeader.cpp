@@ -265,6 +265,27 @@ bool ConsensusLeader::StartConsensusSubsets() {
   return true;
 }
 
+void ConsensusLeader::LogResponsesStats(unsigned int subsetID) {
+  if (m_DS && GUARD_MODE) {
+    LOG_MARKER();
+    ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+    unsigned int dsguardCount = 0, nondsguardCount = 0;
+    for (unsigned int i = 0; i < subset.responseMap.size(); i++) {
+      if (subset.responseMap[i]) {
+        if (i < Guard::GetInstance().GetNumOfDSGuard()) {
+          dsguardCount++;
+        } else {
+          nondsguardCount++;
+        }
+      }
+    }
+    LOG_GENERAL(
+        INFO, "[SubsetID: " << subsetID
+                            << "] Responses received: Guards = " << dsguardCount
+                            << ", Non-guards = " << nondsguardCount);
+  }
+}
+
 void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
   LOG_MARKER();
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
@@ -275,23 +296,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     // from their backups
     for (unsigned int i = 0; i < m_consensusSubsets.size(); i++) {
       // Log the responses stats if its ds consensus and DS_GUARD mode
-      if (m_DS && GUARD_MODE) {
-        ConsensusSubset& subset = m_consensusSubsets.at(i);
-        unsigned int dsguardCount = 0, nondsguardCount = 0;
-        for (unsigned int j = 0; j < subset.responseMap.size(); j++) {
-          if (subset.responseMap[j]) {
-            if (j < Guard::GetInstance().GetNumOfDSGuard()) {
-              dsguardCount++;
-            } else {
-              nondsguardCount++;
-            }
-          }
-        }
-        LOG_GENERAL(INFO,
-                    "[SubsetID: " << i << "] Responses received: Guards = "
-                                  << dsguardCount
-                                  << ", Non-guards = " << nondsguardCount);
-      }
+      LogResponsesStats(i);
 
       if (i == subsetID) {
         continue;
@@ -1005,6 +1010,8 @@ void ConsensusLeader::Audit() {
   for (unsigned int subsetID = 0; subsetID < m_consensusSubsets.size();
        subsetID++) {
     ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+
+    LogResponsesStats(subsetID);
 
     if ((subset.state == CHALLENGE_DONE) ||
         (subset.state == FINALCHALLENGE_DONE)) {
