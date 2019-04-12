@@ -49,8 +49,7 @@ class Synchronizer;
 // The "first" element in the pair is a map of shard to its transactions
 // The "second" element in the pair counts the total number of transactions in
 // the whole map
-using TxnShardMap =
-    std::pair<std::map<uint32_t, std::vector<Transaction>>, uint32_t>;
+using TxnShardMap = std::map<uint32_t, std::vector<Transaction>>;
 
 // Enum used to tell send type to seed node
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };

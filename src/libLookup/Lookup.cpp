@@ -71,7 +71,6 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
-  m_txnShardMap.second = 0;
 }
 
 Lookup::~Lookup() {}
@@ -2060,7 +2059,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 }
 
 const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
-  return m_txnShardMap.first[index];
+  return m_txnShardMap[index];
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
@@ -3547,21 +3546,27 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
-  if (m_txnShardMap.second >= TXN_STORAGE_LIMIT) {
+  uint32_t size = 0;
+
+  for (const auto& x : m_txnShardMap) {
+    size += x.second.size();
+  }
+
+  if (size >= TXN_STORAGE_LIMIT) {
     LOG_GENERAL(INFO, "Number of txns exceeded limit");
     return false;
   }
 
   // case where txn already exist
-  if (find_if(m_txnShardMap.first[shardId].begin(),
-              m_txnShardMap.first[shardId].end(), [tx](const Transaction& txn) {
+  if (find_if(m_txnShardMap[shardId].begin(), m_txnShardMap[shardId].end(),
+              [tx](const Transaction& txn) {
                 return tx.GetTranID() == txn.GetTranID();
-              }) != m_txnShardMap.first[shardId].end()) {
+              }) != m_txnShardMap[shardId].end()) {
+    LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
     return false;
   }
 
-  m_txnShardMap.first[shardId].push_back(tx);
-  m_txnShardMap.second++;
+  m_txnShardMap[shardId].push_back(tx);
 
   return true;
 }
@@ -3576,15 +3581,7 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
-  const uint32_t& count = m_txnShardMap.first[shardId].size();
-
-  if (count > m_txnShardMap.second) {
-    LOG_GENERAL(
-        FATAL,
-        "The number of elements in the counter variable is less than actual");
-  }
-  m_txnShardMap.second -= count;
-  m_txnShardMap.first[shardId].clear();
+  m_txnShardMap[shardId].clear();
 
   return true;
 }
