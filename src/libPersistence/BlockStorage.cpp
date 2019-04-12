@@ -536,6 +536,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
 
   leveldb::Iterator* it =
       m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  uint64_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
@@ -547,8 +548,9 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
     TxBlockSharedPtr block = TxBlockSharedPtr(
         new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
-    LOG_GENERAL(INFO, "Retrievd TxBlock Num:" << bns);
+    count++;
   }
+  LOG_GENERAL(INFO, "Retrievd " << count << " TxBlocks");
 
   delete it;
 
@@ -885,10 +887,6 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
     LOG_GENERAL(INFO,
                 "Didn't find state delta of final block " << finalBlockNum);
   }
-
-  stateDelta = bytes(dataStr.begin(), dataStr.end());
-  LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
-              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
 
   return found;
 }

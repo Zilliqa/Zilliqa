@@ -562,7 +562,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
-      (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
+      (rejoiningAfterRecover &&
+       (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {
     return true;
   }
 
@@ -649,10 +650,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Save coin base for final block, from last DS epoch to current TX epoch
   if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
-    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                                 .GetHeader()
-                                 .GetEpochNum() +
-                             1;
+    for (uint64_t blockNum =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -734,8 +733,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
-                1,
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -1632,7 +1630,7 @@ void Node::AddBlock(const TxBlock& block) {
   m_mediator.m_txBlockChain.AddBlock(block);
 }
 
-void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
+void Node::RejoinAsNormal() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1642,7 +1640,7 @@ void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    auto func = [this, rejoiningAfterRecover]() mutable -> void {
+    auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
@@ -1655,7 +1653,7 @@ void Node::RejoinAsNormal(bool rejoiningAfterRecover) {
         }
         BlockStorage::GetBlockStorage().RefreshAll();
         AccountStore::GetInstance().RefreshDB();
-        if (this->Install(SyncType::NORMAL_SYNC, true, rejoiningAfterRecover)) {
+        if (this->Install(SyncType::NORMAL_SYNC, true, true)) {
           break;
         };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));

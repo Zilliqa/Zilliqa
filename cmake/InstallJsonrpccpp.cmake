@@ -13,6 +13,10 @@ find_package(MHD REQUIRED)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
+##Supress deprecated warning
+ 
+set(JSONRPC_CXX_FLAGS "-Wno-deprecated") 
+
 set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DCMAKE_BUILD_TYPE=Release
                # Build static lib but suitable to be included in a shared lib.
@@ -35,7 +39,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR}
                -DCURL_LIBRARY=${CURL_LIBRARY}
                -DMHD_INCLUDE_DIR=${MHD_INCLUDE_DIR}
-               -DMHD_LIBRARY=${MHD_LIBRARY})
+               -DMHD_LIBRARY=${MHD_LIBRARY}
+               -DCMAKE_CXX_FLAGS=${JSONRPC_CXX_FLAGS})
 
 ExternalProject_Add(jsonrpc-project
     PREFIX src/depends/jsonrpc
@@ -84,3 +89,4 @@ add_dependencies(jsonrpc::server jsonrpc-project)
 
 unset(INSTALL_DIR)
 unset(CMAKE_ARGS)
+unset(JSONRPC_CXX_FLAGS)

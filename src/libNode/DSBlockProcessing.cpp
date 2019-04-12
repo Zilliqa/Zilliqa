@@ -249,6 +249,11 @@ void Node::StartFirstTxEpoch() {
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
   // blacklist pop for shard nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
 
   uint16_t lastBlockHash = 0;
@@ -629,8 +634,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
-    // blacklist pop for lookup
-    Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+    // Clear blacklist for lookup
+    Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();

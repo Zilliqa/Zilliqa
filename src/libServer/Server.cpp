@@ -135,9 +135,6 @@ bool Server::StartCollectorThread() {
 
       bytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
-      auto upperLayerNodes = m_mediator.m_lookup->GetAboveLayer();
-      auto upperLayerNode = upperLayerNodes.at(rand() % upperLayerNodes.size());
-
       if (!Messenger::SetForwardTxnBlockFromSeed(
               msg, MessageOffset::BODY,
               m_mediator.m_lookup
@@ -147,9 +144,7 @@ bool Server::StartCollectorThread() {
         continue;
       }
 
-      LOG_GENERAL(INFO, "Sent to " << upperLayerNode);
-
-      P2PComm::GetInstance().SendMessage(upperLayerNode, msg);
+      m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
       for (auto const& i :
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {

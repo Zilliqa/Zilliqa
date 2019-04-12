@@ -853,7 +853,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation2) {
 
   for (auto i = 0; i < 1; i++) {
     std::vector<Address> addresses;
-    int num_address = 100000;
+    int num_address = 10000;
     for (auto i = 0; i < num_address; i++) {
       PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
       Address address = Account::GetAddressFromPublicKey(pubKey);
