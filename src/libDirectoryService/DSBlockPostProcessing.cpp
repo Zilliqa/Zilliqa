@@ -349,6 +349,7 @@ void DirectoryService::StartFirstTxEpoch() {
         *m_mediator.m_DSCommittee);
   }
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();

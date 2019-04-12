@@ -56,6 +56,8 @@ const unsigned int GOSSIP_ROUND_LEN = 4;
 const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
+std::mutex P2PComm::m_mutexPeerConnectionCount;
+std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare {
@@ -469,10 +471,30 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
   }
 }
 
+void P2PComm::CloseAndFreeBufferEvent(struct bufferevent* bufev) {
+  int fd = bufferevent_getfd(bufev);
+  struct sockaddr_in cli_addr;
+  socklen_t addr_size = sizeof(struct sockaddr_in);
+  getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+  uint128_t ipAddr = cli_addr.sin_addr.s_addr;
+
+  std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+  if (m_peerConnectionCount[ipAddr] > 0) {
+    m_peerConnectionCount[ipAddr]--;
+  }
+
+  bufferevent_free(bufev);
+}
+
+void P2PComm::ClearPeerConnectionCount() {
+  std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+  m_peerConnectionCount.clear();
+}
+
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
-  unique_ptr<struct bufferevent, decltype(&bufferevent_free)> socket_closer(
-      bev, bufferevent_free);
+  unique_ptr<struct bufferevent, decltype(&CloseAndFreeBufferEvent)>
+      socket_closer(bev, CloseAndFreeBufferEvent);
 
   if (events & BEV_EVENT_ERROR) {
     LOG_GENERAL(WARNING, "Error from bufferevent.");
@@ -653,6 +675,15 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   LOG_GENERAL(DEBUG, "Incoming message from " << from);
+  {
+    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
+      LOG_GENERAL(WARNING, "Connection ignored from " << from);
+      evutil_closesocket(cli_sock);
+      return;
+    }
+    m_peerConnectionCount[from.GetIpAddress()]++;
+  }
 
   if (Blacklist::GetInstance().Exist(from.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
