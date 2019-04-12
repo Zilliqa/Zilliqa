@@ -261,8 +261,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   }
 
   // Add ds guard to exclude list for ds comm at bootstrap
-  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-      *m_mediator.m_DSCommittee);
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
 
   SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
