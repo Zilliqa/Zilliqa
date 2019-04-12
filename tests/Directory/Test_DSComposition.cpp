@@ -18,8 +18,8 @@
 #include <string>
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
+#include "libDirectoryService/DSComposition.h"
 #include "libNetwork/ShardStruct.h"
-#include "libUtils/DSComposition.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
