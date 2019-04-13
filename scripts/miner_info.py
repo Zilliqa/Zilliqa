@@ -116,7 +116,7 @@ def make_options_dictionary(options_dict):
 
 def ProcessResponseCore(resp, param):
 	if param:
-		print "Parameter: "+str(param)+"\t",
+		print "Parameter: "+str(param)+"\t:",
 	try:
 		print resp["result"]
 	except KeyError:
