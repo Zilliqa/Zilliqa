@@ -343,7 +343,13 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 
   // blacklist pop for ds nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();

@@ -1609,73 +1609,69 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  else {
-    bool isVerif = true;
+  bool isVerif = true;
 
-    if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
-      lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
-      LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << "Recvd initial ds config");
-      if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
-        LOG_GENERAL(WARNING, "The initial ds comm recvd and from file differs "
-                                 << dsNodes.size() << " "
-                                 << m_mediator.m_initialDSCommittee->size());
+  if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
+    lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
+    LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                          << "Recvd initial ds config");
+    if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
+      LOG_GENERAL(WARNING, "The initial ds comm recvd and from file differs "
+                               << dsNodes.size() << " "
+                               << m_mediator.m_initialDSCommittee->size());
+    }
+    for (unsigned int i = 0; i < dsNodes.size(); i++) {
+      if (!(m_mediator.m_initialDSCommittee->at(i) == dsNodes.at(i).first)) {
+        LOG_GENERAL(WARNING, "The key from ds comm recvd and from file differs "
+                                 << dsNodes.at(i).first << " "
+                                 << m_mediator.m_initialDSCommittee->at(i));
       }
-      for (unsigned int i = 0; i < dsNodes.size(); i++) {
-        if (!(m_mediator.m_initialDSCommittee->at(i) == dsNodes.at(i).first)) {
-          LOG_GENERAL(WARNING,
-                      "The key from ds comm recvd and from file differs "
-                          << dsNodes.at(i).first << " "
-                          << m_mediator.m_initialDSCommittee->at(i));
-        }
-      }
-
-      m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
     }
 
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    *m_mediator.m_DSCommittee = move(dsNodes);
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
+  }
 
-    // Add ds guard to exclude list for lookup at bootstrap
-    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-        *m_mediator.m_DSCommittee);
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  *m_mediator.m_DSCommittee = move(dsNodes);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "SetDSInfoFromSeed from " << from << " for numPeers "
-                                        << m_mediator.m_DSCommittee->size());
+  // Add ds guard to exclude list for lookup at bootstrap
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
 
-    unsigned int i = 0;
-    for (auto& ds : *m_mediator.m_DSCommittee) {
-      if ((GetSyncType() == SyncType::DS_SYNC ||
-           GetSyncType() == SyncType::GUARD_DS_SYNC) &&
-          ds.second == m_mediator.m_selfPeer) {
-        ds.second = Peer();
-      }
-      LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "SetDSInfoFromSeed from " << from << " for numPeers "
+                                      << m_mediator.m_DSCommittee->size());
+
+  unsigned int i = 0;
+  for (auto& ds : *m_mediator.m_DSCommittee) {
+    if ((GetSyncType() == SyncType::DS_SYNC ||
+         GetSyncType() == SyncType::GUARD_DS_SYNC) &&
+        ds.second == m_mediator.m_selfPeer) {
+      ds.second = Peer();
     }
+    LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
+  }
 
-    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
-        m_mediator.m_DSCommittee->size()) {
+  if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
+      m_mediator.m_DSCommittee->size()) {
+    isVerif = false;
+    LOG_GENERAL(
+        WARNING,
+        "Size of " << m_mediator.m_blocklinkchain.GetBuiltDSComm().size() << " "
+                   << m_mediator.m_DSCommittee->size() << " does not match");
+  }
+
+  for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
+    if (!(m_mediator.m_DSCommittee->at(i).first ==
+          m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
+      LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
       isVerif = false;
-      LOG_GENERAL(WARNING,
-                  "Size of "
-                      << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
-                      << " " << m_mediator.m_DSCommittee->size()
-                      << " does not match");
+      break;
     }
+  }
 
-    for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
-      if (!(m_mediator.m_DSCommittee->at(i).first ==
-            m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
-        LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
-        isVerif = false;
-        break;
-      }
-    }
-
-    if (isVerif) {
-      LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
-    }
+  if (isVerif) {
+    LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
   }
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
@@ -2056,6 +2052,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
+}
+
+const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
+  return m_txnShardMap[index];
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
@@ -3542,6 +3542,26 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
+  uint32_t size = 0;
+
+  for (const auto& x : m_txnShardMap) {
+    size += x.second.size();
+  }
+
+  if (size >= TXN_STORAGE_LIMIT) {
+    LOG_GENERAL(INFO, "Number of txns exceeded limit");
+    return false;
+  }
+
+  // case where txn already exist
+  if (find_if(m_txnShardMap[shardId].begin(), m_txnShardMap[shardId].end(),
+              [tx](const Transaction& txn) {
+                return tx.GetTranID() == txn.GetTranID();
+              }) != m_txnShardMap[shardId].end()) {
+    LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
+    return false;
+  }
+
   m_txnShardMap[shardId].push_back(tx);
 
   return true;
@@ -3629,7 +3649,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-      if (m_txnShardMap[i].empty() && mp[i].empty()) {
+      if (GetTxnFromShardMap(i).empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
         continue;
       }
@@ -3637,7 +3657,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
-          m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
+          m_mediator.m_selfKey, GetTxnFromShardMap(i), mp[i]);
     }
 
     if (!result) {

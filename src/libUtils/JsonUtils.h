@@ -64,7 +64,7 @@ class JSONUtils {
       LOG_GENERAL(WARNING, "Exception caught: " << e.what());
       result = false;
     }
-    return result;
+    return result && (dstObj.isObject() || dstObj.isArray());
   }
 
   /// Convert a Json object to string

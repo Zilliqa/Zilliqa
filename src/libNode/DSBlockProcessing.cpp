@@ -249,7 +249,13 @@ void Node::StartFirstTxEpoch() {
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
   // blacklist pop for shard nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {

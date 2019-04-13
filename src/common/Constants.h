@@ -77,6 +77,7 @@ enum MetaType : unsigned char {
   DSINCOMPLETED,
   LATESTACTIVEDSBLOCKNUM,
   WAKEUPFORUPGRADE,
+  LATEST_EPOCH_STATES_UPDATED,
 };
 
 // Sync Type
@@ -147,6 +148,7 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
+extern const unsigned int TXN_STORAGE_LIMIT;
 
 // Consensus constants
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
@@ -273,6 +275,7 @@ extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
 extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 extern const unsigned int CONNECTION_TIMEOUT_IN_SECONDS;
 extern const unsigned int BLACKLIST_NUM_TO_POP;
+extern const unsigned int MAX_PEER_CONNECTION;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;

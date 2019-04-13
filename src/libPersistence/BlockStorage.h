@@ -254,11 +254,17 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Save state root
   bool PutStateRoot(const bytes& data);
 
+  /// Save latest epoch when states were moved to disk
+  bool PutLatestEpochStatesUpdated(const uint64_t& epochNum);
+
   /// Retrieve Last Transactions Trie Root Hash
   bool GetMetadata(MetaType type, bytes& data);
 
   // Retrieve the state root
   bool GetStateRoot(bytes& data);
+
+  /// Save latest epoch when states were moved to disk
+  bool GetLatestEpochStatesUpdated(uint64_t& epochNum);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,

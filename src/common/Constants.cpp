@@ -109,7 +109,8 @@ const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
-
+const unsigned int TXN_STORAGE_LIMIT{
+    ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
@@ -333,6 +334,8 @@ const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
+const unsigned int MAX_PEER_CONNECTION{
+    ReadConstantNumeric("MAX_PEER_CONNECTION", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
