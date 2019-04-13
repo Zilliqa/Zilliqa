@@ -43,6 +43,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+#define REMOVED_FIELD_DSBLOCK_VERSION 2
+
 unsigned int DirectoryService::ComputeDSBlockParameters(
     const VectorOfPoWSoln& sortedDSPoWSolns, VectorOfPoWSoln& sortedPoWSolns,
     map<PubKey, Peer>& powDSWinners, MapOfPubKeyPoW& dsWinnerPoWs,
@@ -210,61 +212,29 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 }
 
 void DirectoryService::InjectPoWForDSNode(
-    VectorOfPoWSoln& sortedPoWSolns, std::map<PubKey, Peer>& powDSWinners) {
-  // Calculate the number of removed members from the candidates.
-  unsigned int numOfRemovedMembers = 0;
-  for (const auto& DSCandidate : powDSWinners) {
-    if (CheckIfDSNode(DSCandidate.first)) {
-      ++numOfRemovedMembers;
-    }
-  }
+    VectorOfPoWSoln& sortedPoWSolns, unsigned int numOfProposedDSMembers,
+    std::vector<PubKey>& removeDSNodePubkeys) {
+  LOG_MARKER();
 
-  unsigned int numOfWinners = powDSWinners.size() - numOfRemovedMembers;
-  unsigned int numOfExpiring = numOfWinners - numOfRemovedMembers;
+  unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
+  unsigned int numOfExpiring = numOfProposedDSMembers - numOfRemovedMembers;
 
   // Check the computed parameters for correctness.
-  if (powDSWinners.size() > m_mediator.m_DSCommittee->size()) {
+  if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
     LOG_GENERAL(WARNING,
                 "FATAL: number of proposed ds member is larger than current ds "
                 "committee. numOfProposedDSMembers: "
-                    << powDSWinners.size() << " m_DSCommittee size: "
+                    << numOfProposedDSMembers << " m_DSCommittee size: "
                     << m_mediator.m_DSCommittee->size());
     return;
   }
 
-  if (numOfRemovedMembers > powDSWinners.size()) {
+  if (numOfRemovedMembers > numOfProposedDSMembers) {
     LOG_GENERAL(WARNING,
                 "FATAL: number of ds members to be removed is larger than the "
                 "number of proposed ds members. numOfRemovedMembers: "
                     << numOfRemovedMembers
-                    << " numOfProposedDSMembers: " << powDSWinners.size());
-    return;
-  }
-
-  if (numOfRemovedMembers > numOfWinners) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of ds members to be removed is larger than the "
-                "number of actual winners. numOfRemovedMembers: "
-                    << numOfRemovedMembers
-                    << " numOfWinners: " << numOfWinners);
-    return;
-  }
-
-  if (numOfExpiring > numOfWinners) {
-    LOG_GENERAL(WARNING,
-                "FATAL: number of ds members expiring is larger than the "
-                "number of actual winners. numOfExpiring: "
-                    << numOfExpiring << " numOfWinners: " << numOfWinners);
-    return;
-  }
-
-  if ((numOfRemovedMembers + numOfExpiring) != numOfWinners) {
-    LOG_GENERAL(
-        WARNING,
-        "FATAL: total number of members dropping out is not equal to the "
-        "number of actual winners. numOfRemovedMembers: "
-            << numOfRemovedMembers << " numOfExpiring: " << numOfExpiring
-            << " numOfWinners: " << numOfWinners);
+                    << " numOfProposedDSMembers: " << numOfProposedDSMembers);
     return;
   }
 
@@ -285,7 +255,8 @@ void DirectoryService::InjectPoWForDSNode(
     }
 
     // Check if the current member is a node to be removed.
-    if (powDSWinners.find(rit->first) != powDSWinners.end()) {
+    if (std::find(removeDSNodePubkeys.begin(), removeDSNodePubkeys.end(),
+                  rit->first) != removeDSNodePubkeys.end()) {
       // If it is, continue onto the next member.
       continue;
     }
@@ -470,24 +441,21 @@ bool DirectoryService::VerifyDifficulty() {
 
 bool DirectoryService::VerifyRemovedByzantineNodes() {
   LOG_MARKER();
-  // Get the list of proposed DS candidates.
-  const auto& dsPoWWinners = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
 
-  // The PoW winners were validated before in DirectoryService::VerifyPoWWinner,
-  // hence it is safe to assume that the numOfProposedMembers is authoritative.
-  unsigned int numOfProposedMembers = 0;
-  for (const auto& candidate : dsPoWWinners) {
-    if (!CheckIfDSNode(candidate.first)) {
-      ++numOfProposedMembers;
-    }
-  }
-  unsigned int numOfRemovedMembers = dsPoWWinners.size() - numOfProposedMembers;
+  // Get the list of proposed DS members
+  const auto& powWinners = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+  unsigned int numOfProposedMembers = powWinners.size();
 
-  // Create an empty map to populate with our view of the DS member
-  // performances.
-  std::map<PubKey, Peer> comparedToBeRemoved;
+  // Get the list of DS members to remove
+  const auto& removeDSNodePubkeys =
+      m_pendingDSBlock->GetHeader().GetDSRemovePubKeys();
+  unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
+
+  // Create an empty vector to populate with our view of the DS members to
+  // remove.
+  std::vector<PubKey> comparedToBeRemoved;
   unsigned int comparedNumOfRemoved =
-      InjectByzantineNodes(numOfProposedMembers, comparedToBeRemoved);
+      DetermineByzantineNodes(numOfProposedMembers, comparedToBeRemoved);
 
   // Check that the number of nodes to remove matches the proposed
   // DS block.
@@ -502,10 +470,11 @@ bool DirectoryService::VerifyRemovedByzantineNodes() {
 
   // Check that all of the nodes we computed to remove are present in the
   // proposed DS block.
-  for (const auto& member : comparedToBeRemoved) {
-    if (dsPoWWinners.find(member.first) == dsPoWWinners.end()) {
+  for (const auto& pubkey : comparedToBeRemoved) {
+    if (std::find(removeDSNodePubkeys.begin(), removeDSNodePubkeys.end(),
+                  pubkey) == removeDSNodePubkeys.end()) {
       LOG_GENERAL(WARNING, "Expected "
-                               << member.first
+                               << pubkey
                                << " to be proposed for removal but could not "
                                   "find it in the proposed DS block");
       return false;
@@ -540,12 +509,16 @@ bool DirectoryService::VerifyPoWOrdering(
 
   auto sortedPoWSolns = SortPoWSoln(priorityNodePoWs, true);
 
-  // Count the number of actual PoW winners and removed nodes.
+  // Get the proposed DS members so we can get the size.
   std::map<PubKey, Peer> dsPoWWinners =
       m_pendingDSBlock->GetHeader().GetDSPoWWinners();
 
+  // Get the list of removed nodes.
+  std::vector<PubKey> removeDSNodePubkeys =
+      m_pendingDSBlock->GetHeader().GetDSRemovePubKeys();
+
   // Inject expired DS members into the shard POW.
-  InjectPoWForDSNode(sortedPoWSolns, dsPoWWinners);
+  InjectPoWForDSNode(sortedPoWSolns, dsPoWWinners.size(), removeDSNodePubkeys);
 
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
@@ -953,10 +926,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       dsDifficulty, difficulty, blockNum, prevHash);
 
   // Determine the losers from the performance.
-  InjectByzantineNodes(numOfProposedDSMembers, powDSWinners);
+  DetermineByzantineNodes(numOfProposedDSMembers, removeDSNodePubkeys);
 
   // Inject expired DS members into the shard POW.
-  InjectPoWForDSNode(sortedPoWSolns, powDSWinners);
+  InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers,
+                     removeDSNodePubkeys);
 
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
@@ -1214,10 +1188,16 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  // Verify the injected Byzantine nodes to be removed in the winners list.
-  if (!VerifyRemovedByzantineNodes()) {
-    LOG_GENERAL(WARNING, "Failed to verify the Byzantine nodes to be removed");
-    return false;
+  // Check if the current block version to be validated requires removed nodes
+  // validation.
+  if (m_pendingDSBlock->GetHeader().GetVersion() >=
+      REMOVED_FIELD_DSBLOCK_VERSION) {
+    // Verify the injected Byzantine nodes to be removed in the winners list.
+    if (!VerifyRemovedByzantineNodes()) {
+      LOG_GENERAL(WARNING,
+                  "Failed to verify the Byzantine nodes to be removed");
+      return false;
+    }
   }
 
   // Start to verify difficulty from DS block number 2.
@@ -1417,16 +1397,17 @@ void DirectoryService::SaveDSPerformance() {
   }
 }
 
-unsigned int DirectoryService::InjectByzantineNodes(
-    unsigned int numOfProposedDSMembers, std::map<PubKey, Peer>& powDSWinners) {
+unsigned int DirectoryService::DetermineByzantineNodes(
+    unsigned int numOfProposedDSMembers,
+    std::vector<PubKey>& removeDSNodePubkeys) {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mutexDsMemberPerformance);
 
-  // Do not inject Byzantine nodes on the first epoch when performance cannot be
-  // measured.
+  // Do not determine Byzantine nodes on the first epoch when performance cannot
+  // be measured.
   if (m_mediator.m_currentEpochNum <= 1) {
     LOG_GENERAL(INFO,
-                "Skipping injecting Byzantine nodes for removal since "
+                "Skipping determining Byzantine nodes for removal since "
                 "performance cannot be measured on the first epoch.");
     return 0;
   }
@@ -1458,13 +1439,7 @@ unsigned int DirectoryService::InjectByzantineNodes(
     if (score < threshold) {
       // Only add the node to be removed if there is still capacity.
       if (numByzantine < numToRemove) {
-        // Check if the public key that was found to a Byzantine node is mine
-        // because the network information for mine is zeroed out.
-        if (it->first == m_mediator.m_selfKey.second) {
-          powDSWinners[it->first] = Peer();
-        } else {
-          powDSWinners[it->first] = it->second;
-        }
+        removeDSNodePubkeys.emplace_back(it->first);
       }
 
       // Log the index and public key of a found Byzantine node regardless of if

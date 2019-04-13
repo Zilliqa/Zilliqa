@@ -284,7 +284,8 @@ class DirectoryService : public Executable {
                                         BlockHash& prevHash);
   void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
-                          std::map<PubKey, Peer>& powDSWinners);
+                          unsigned int numOfProposedDSMembers,
+                          std::vector<PubKey>& removeDSNodePubkeys);
 
   // Gas Pricer
   boost::multiprecision::uint128_t GetNewGasPrice();
@@ -306,8 +307,9 @@ class DirectoryService : public Executable {
 
   // DS Reputation
   void SaveDSPerformance();
-  unsigned int InjectByzantineNodes(unsigned int numOfProposedDSMembers,
-                                    std::map<PubKey, Peer>& powDSWinners);
+  unsigned int DetermineByzantineNodes(
+      unsigned int numOfProposedDSMembers,
+      std::vector<PubKey>& removeDSNodePubkeys);
 
   // internal calls from RunConsensusOnDSBlock
   bool RunConsensusOnDSBlockWhenDSPrimary();

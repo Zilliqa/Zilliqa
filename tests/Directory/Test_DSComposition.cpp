@@ -76,8 +76,7 @@ struct F {
 BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
   INIT_STDOUT_LOGGER();
 
-  // Create the winners. Note: no existing members of the DS Committee, hence no
-  // removals.
+  // Create the winners.
   std::map<PubKey, Peer> winners;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {
     PairOfKey candidateKeyPair = Schnorr::GetInstance().GenKeyPair();
@@ -188,30 +187,27 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
 BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
   INIT_STDOUT_LOGGER();
 
-  // Create the 'winners'. Note: NUM_OF_REMOVED existing members of the DS
-  // Committee, hence there are removals.
+  // Create the winners.
   std::map<PubKey, Peer> winners;
-  std::map<PubKey, Peer> candidates;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {
     PairOfKey candidateKeyPair = Schnorr::GetInstance().GenKeyPair();
     PubKey candidatePubKey = candidateKeyPair.second;
     Peer candidatePeer = Peer(LOCALHOST, BASE_PORT + COMMITTEE_SIZE + i);
     winners[candidatePubKey] = candidatePeer;
-    candidates[candidatePubKey] = candidatePeer;
-  }
-  for (int i = 0; i < NUM_OF_REMOVED; ++i) {
-    PairOfNode kp = dsComm.at(i);
-    candidates[kp.first] = kp.second;
   }
 
-  // Create the nodes to be removed.
+  // Create the removed members.
   std::vector<PubKey> removeDSNodePubkeys;
+  for (int i = 0; i < NUM_OF_REMOVED; ++i) {
+    PairOfNode kp = dsComm.at(i);
+    removeDSNodePubkeys.emplace_back(kp.first);
+  }
 
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
-                       GAS_PRICE, SWInfo(), candidates, removeDSNodePubkeys,
+                       GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
                        DSBlockHashSet());
   DSBlock block(header, CoSignatures());
 
