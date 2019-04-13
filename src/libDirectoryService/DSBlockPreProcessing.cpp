@@ -939,6 +939,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   auto sortedPoWSolns = SortPoWSoln(allPoWs, true);
 
   std::map<PubKey, Peer> powDSWinners;
+  std::vector<PubKey> removeDSNodePubkeys;
   MapOfPubKeyPoW dsWinnerPoWs;
   uint32_t version = DSBLOCK_VERSION;
   uint8_t dsDifficulty = 0;
@@ -1007,8 +1008,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
                       blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
-                      m_mediator.m_curSWInfo, powDSWinners, dsBlockHashSet,
-                      version, committeeHash, prevHash),
+                      m_mediator.m_curSWInfo, powDSWinners, removeDSNodePubkeys,
+                      dsBlockHashSet, version, committeeHash, prevHash),
         CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 

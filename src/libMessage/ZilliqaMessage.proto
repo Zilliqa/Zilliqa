@@ -78,8 +78,9 @@ message ProtoDSBlock
             optional ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
             // Add new members here
         }
-        repeated PowDSWinners dswinners = 10;  // Added in: v1.0, Deprecated in: N/A
+        repeated PowDSWinners dswinners = 10; // Added in: v1.0, Deprecated in: N/A
         optional DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
+        repeated ByteArray dsremoved = 12; // Added in: v4.5, Deprecated in: N/A
         // Add new members here
     }
     optional DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -293,7 +294,7 @@ message ProtoStateData
     optional string vname   = 2; // Added in: v1.0, Deprecated in: N/A
     optional bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
     optional string type    = 4; // Added in: v1.0, Deprecated in: N/A
-    optional string value   = 5; // Added in: v1.0, Deprecated in: N/A 
+    optional string value   = 5; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoAccountStore
@@ -1003,7 +1004,7 @@ message DSLookupSetDSGuardNetworkInfoUpdate
         required uint64 timestamp                   = 4;
     }
     required Data data                              = 1;
-    required ByteArray signature                    = 2; 
+    required ByteArray signature                    = 2;
 }
 
 // To update shard node of guard node's network info change

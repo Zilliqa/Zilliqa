@@ -86,11 +86,15 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
     winners[candidatePubKey] = candidatePeer;
   }
 
+  // Create the nodes to be removed. This should be empty for this test case.
+  std::vector<PubKey> removeDSNodePubkeys;
+
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
-                       GAS_PRICE, SWInfo(), winners, DSBlockHashSet());
+                       GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
+                       DSBlockHashSet());
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.
@@ -137,11 +141,15 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
   // Create the empty winners map.
   std::map<PubKey, Peer> winners;
 
+  // Creat the empty nodes to be removed vector.
+  std::vector<PubKey> removeDSNodePubkeys;
+
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
-                       GAS_PRICE, SWInfo(), winners, DSBlockHashSet());
+                       GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
+                       DSBlockHashSet());
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.
@@ -196,11 +204,15 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
     candidates[kp.first] = kp.second;
   }
 
+  // Create the nodes to be removed.
+  std::vector<PubKey> removeDSNodePubkeys;
+
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
-                       GAS_PRICE, SWInfo(), candidates, DSBlockHashSet());
+                       GAS_PRICE, SWInfo(), candidates, removeDSNodePubkeys,
+                       DSBlockHashSet());
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.

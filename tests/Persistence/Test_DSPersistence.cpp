@@ -64,11 +64,17 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
     powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
   }
 
-  return DSBlock(
-      DSBlockHeader(50, 20, pubKey1.second, blocknum, 0, PRECISION_MIN_VALUE,
-                    SWInfo(), powDSWinners, DSBlockHashSet(), DSBLOCK_VERSION,
-                    CommitteeHash(), prevHash1),
-      CoSignatures());
+  std::vector<PubKey> removeDSNodePubkeys;
+  for (int i = 0; i < 2; i++) {
+    removeDSNodePubkeys.emplace_back(
+        Schnorr::GetInstance().GenKeyPair().second);
+  }
+
+  return DSBlock(DSBlockHeader(50, 20, pubKey1.second, blocknum, 0,
+                               PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
+                               removeDSNodePubkeys, DSBlockHashSet(),
+                               DSBLOCK_VERSION, CommitteeHash(), prevHash1),
+                 CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {

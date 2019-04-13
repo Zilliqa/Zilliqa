@@ -44,6 +44,7 @@ class DSBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint128_t m_gasPrice;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
+  std::vector<PubKey> m_removeDSNodePubkeys;
   DSBlockHashSet m_hashset;
 
  public:
@@ -60,6 +61,7 @@ class DSBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
+                const std::vector<PubKey>& removeDSNodePubkeys,
                 const DSBlockHashSet& hashset, const uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
@@ -98,7 +100,11 @@ class DSBlockHeader : public BlockHeaderBase {
   /// block.
   const SWInfo& GetSWInfo() const;
 
+  // Returns the DS PoW Winners.
   const std::map<PubKey, Peer>& GetDSPoWWinners() const;
+
+  // Returns the DS members to remove for non-performance.
+  const std::vector<PubKey>& GetDSRemovePubKeys() const;
 
   /// Returns the digest that represents the hash of the sharding structure
   const ShardingHash& GetShardingHash() const;
@@ -134,6 +140,9 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
      << t.m_swInfo << std::endl;
   for (const auto& node : t.m_PoWDSWinners) {
     os << " PoWDSWinner    = " << node.first << " " << node.second << std::endl;
+  }
+  for (const auto& pubkey : t.m_removeDSNodePubkeys) {
+    os << " DSRemoved      = " << pubkey << std::endl;
   }
 
   return os;
