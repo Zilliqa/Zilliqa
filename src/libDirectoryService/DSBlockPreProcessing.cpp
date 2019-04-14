@@ -1338,16 +1338,129 @@ bool DirectoryService::ProcessShardingStructure(
   return true;
 }
 
+void DirectoryService::SaveDSPerformanceCore(
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+        coinbaseRewardees,
+    std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
+    uint64_t currentEpochNum, unsigned int numOfFinalBlock,
+    int finalblockRewardID) {
+  LOG_MARKER();
+
+  // Clear the previous performances.
+  dsMemberPerformance.clear();
+
+  // Initialise the map with the DS Committee public keys mapped to 0.
+  for (const auto& member : dsComm) {
+    dsMemberPerformance[member.first] = 0;
+  }
+
+  // Go through the coinbase rewardees and tally the number of co-sigs.
+  // For each TX epoch,
+  for (auto const& epochNum : coinbaseRewardees) {
+    // Find the DS Shard.
+    for (auto const& shard : epochNum.second) {
+      if (shard.first == finalblockRewardID) {
+        // Find the rewards that belong to the DS Shard.
+        for (auto const& pubkey : shard.second) {
+          // Check if the public key exists in the initialized map.
+          if (dsMemberPerformance.find(pubkey) == dsMemberPerformance.end()) {
+            LOG_GENERAL(WARNING,
+                        "Unknown (Not in DS Committee) public key "
+                            << pubkey
+                            << " found to have "
+                               "contributed co-sigs as a DS Committee member.");
+          } else {
+            // Increment the performance score if the public key exists.
+            ++dsMemberPerformance[pubkey];
+          }
+        }
+      }
+    }
+  }
+
+  // Display the performance scores of all the DS Committee members.
+  LOG_EPOCH(INFO, currentEpochNum, "DS Committee Co-Signature Performance");
+  unsigned int index = 0;
+  uint32_t maxCoSigs = (numOfFinalBlock - 1) * 2;
+  for (const auto& member : dsMemberPerformance) {
+    LOG_GENERAL(INFO, "[" << PAD(index++, 3, ' ') << "] " << member.first << " "
+                          << PAD(member.second, 4, ' ') << "/" << maxCoSigs);
+  }
+}
+
 void DirectoryService::SaveDSPerformance() {
   LOG_MARKER();
   std::lock(m_mutexCoinbaseRewardees, m_mutexDsMemberPerformance);
   std::lock_guard<mutex> h(m_mutexCoinbaseRewardees, std::adopt_lock);
   std::lock_guard<mutex> g(m_mutexDsMemberPerformance, std::adopt_lock);
 
-  InternalSaveDSPerformance(
-      m_coinbaseRewardees, m_dsMemberPerformance, *m_mediator.m_DSCommittee,
-      m_mediator.m_currentEpochNum, NUM_FINAL_BLOCK_PER_POW,
-      CoinbaseReward::FINALBLOCK_REWARD);
+  SaveDSPerformanceCore(m_coinbaseRewardees, m_dsMemberPerformance,
+                        *m_mediator.m_DSCommittee, m_mediator.m_currentEpochNum,
+                        NUM_FINAL_BLOCK_PER_POW,
+                        CoinbaseReward::FINALBLOCK_REWARD);
+}
+
+unsigned int DirectoryService::DetermineByzantineNodesCore(
+    unsigned int numOfProposedDSMembers,
+    std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
+    unsigned int numOfFinalBlock, double performanceThreshold,
+    unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+    std::map<PubKey, uint32_t>& dsMemberPerformance) {
+  LOG_MARKER();
+
+  // Do not determine Byzantine nodes on the first epoch when performance cannot
+  // be measured.
+  if (currentEpochNum <= 1) {
+    LOG_GENERAL(INFO,
+                "Skipping determining Byzantine nodes for removal since "
+                "performance cannot be measured on the first epoch.");
+    return 0;
+  }
+
+  // Parameters
+  uint32_t maxCoSigs = (numOfFinalBlock - 1) * 2;
+  uint32_t threshold = std::ceil(performanceThreshold * maxCoSigs);
+  unsigned int numToRemove =
+      std::min(maxByzantineRemoved, numOfProposedDSMembers);
+
+  // Build a list of Byzantine Nodes
+  LOG_EPOCH(INFO, currentEpochNum,
+            "Evaluating performance of the current DS Committee.");
+  LOG_GENERAL(INFO, "maxCoSigs = " << maxCoSigs);
+  LOG_GENERAL(
+      INFO, "threshold = " << threshold << " (" << performanceThreshold << ")");
+  unsigned int numByzantine = 0;
+  unsigned int index = 0;
+  for (auto it = dsComm.begin(); it != dsComm.end(); ++it) {
+    // Do not evaluate guard nodes.
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(it->first)) {
+      continue;
+    }
+
+    // Check if the score is below the calculated threshold.
+    uint32_t score = dsMemberPerformance.at(it->first);
+    if (score < threshold) {
+      // Only add the node to be removed if there is still capacity.
+      if (numByzantine < numToRemove) {
+        removeDSNodePubkeys.emplace_back(it->first);
+      }
+
+      // Log the index and public key of a found Byzantine node regardless of if
+      // they will be removed.
+      LOG_GENERAL(INFO, "[" << PAD(index++, 3, ' ') << "] " << it->first << " "
+                            << PAD(score, 4, ' ') << "/" << maxCoSigs);
+      ++numByzantine;
+    }
+  }
+
+  // Log the general statistics of the computation.
+  unsigned int numRemoved = std::min(numToRemove, numByzantine);
+  LOG_GENERAL(INFO, "Number of DS members not meeting the co-sig threshold: "
+                        << numByzantine);
+  LOG_GENERAL(INFO,
+              "Number of Byzantine DS members to be removed: " << numRemoved);
+
+  return numRemoved;
 }
 
 unsigned int DirectoryService::DetermineByzantineNodes(
@@ -1358,7 +1471,7 @@ unsigned int DirectoryService::DetermineByzantineNodes(
   std::lock_guard<mutex> g(m_mutexDsMemberPerformance, std::adopt_lock);
   std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee, std::adopt_lock);
 
-  return InternalDetermineByzantineNodes(
+  return DetermineByzantineNodesCore(
       numOfProposedDSMembers, removeDSNodePubkeys, m_mediator.m_currentEpochNum,
       NUM_FINAL_BLOCK_PER_POW, DS_PERFORMANCE_THRESHOLD_PERCENT,
       NUM_DS_BYZANTINE_REMOVED, *m_mediator.m_DSCommittee,

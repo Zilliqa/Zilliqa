@@ -115,7 +115,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
                           << ". Expected: " << COMMITTEE_SIZE);
 
   // Update the DS Composition.
-  InternalUpdateDSCommitteeComposition(selfPubKey, dsComm, block);
+  UpdateDSCommitteeCompositionCore(selfPubKey, dsComm, block);
 
   // Check updated commmitee size.
   BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE,
@@ -165,7 +165,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
                           << ". Expected: " << COMMITTEE_SIZE);
 
   // Update the DS Composition.
-  InternalUpdateDSCommitteeComposition(selfPubKey, dsComm, block);
+  UpdateDSCommitteeCompositionCore(selfPubKey, dsComm, block);
 
   // Check updated commmitee size.
   BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE,
@@ -232,7 +232,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
                           << ". Expected: " << COMMITTEE_SIZE);
 
   // Update the DS Composition.
-  InternalUpdateDSCommitteeComposition(selfPubKey, dsComm, block);
+  UpdateDSCommitteeCompositionCore(selfPubKey, dsComm, block);
 
   // Check updated commmitee size.
   BOOST_CHECK_MESSAGE(dsComm.size() == COMMITTEE_SIZE,

@@ -18,7 +18,7 @@
 #include <string>
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
-#include "libDirectoryService/DSComposition.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -94,8 +94,9 @@ BOOST_FIXTURE_TEST_CASE(test_CleanSave, F) {
     dsMemberPerformance[member.first] = 10;
   }
 
-  InternalSaveDSPerformance(coinbaseRewardees, dsMemberPerformance, dsComm,
-                            EPOCH_NUM, NUM_OF_FINAL_BLOCK, FINALBLOCK_REWARD);
+  DirectoryService::SaveDSPerformanceCore(
+      coinbaseRewardees, dsMemberPerformance, dsComm, EPOCH_NUM,
+      NUM_OF_FINAL_BLOCK, FINALBLOCK_REWARD);
 
   // Check the size.
   BOOST_CHECK_MESSAGE(dsMemberPerformance.size() == COMMITTEE_SIZE,
@@ -176,8 +177,9 @@ BOOST_FIXTURE_TEST_CASE(test_LegitimateCase, F) {
   // Create the member performance.
   std::map<PubKey, uint32_t> dsMemberPerformance;
 
-  InternalSaveDSPerformance(coinbaseRewardees, dsMemberPerformance, dsComm,
-                            EPOCH_NUM, NUM_OF_FINAL_BLOCK, FINALBLOCK_REWARD);
+  DirectoryService::SaveDSPerformanceCore(
+      coinbaseRewardees, dsMemberPerformance, dsComm, EPOCH_NUM,
+      NUM_OF_FINAL_BLOCK, FINALBLOCK_REWARD);
 
   // Check the size.
   BOOST_CHECK_MESSAGE(dsMemberPerformance.size() == COMMITTEE_SIZE,

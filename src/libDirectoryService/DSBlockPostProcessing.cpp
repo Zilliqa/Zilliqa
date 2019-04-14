@@ -305,9 +305,9 @@ void DirectoryService::UpdateDSCommitteeComposition() {
   LOG_MARKER();
   std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
-  InternalUpdateDSCommitteeComposition(
-      m_mediator.m_selfKey.second, *m_mediator.m_DSCommittee,
-      m_mediator.m_dsBlockChain.GetLastBlock());
+  UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second,
+                                   *m_mediator.m_DSCommittee,
+                                   m_mediator.m_dsBlockChain.GetLastBlock());
 }
 
 void DirectoryService::StartFirstTxEpoch() {

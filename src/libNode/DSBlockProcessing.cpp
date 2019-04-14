@@ -92,8 +92,8 @@ void Node::UpdateDSCommitteeComposition(DequeOfNode& dsComm,
   // Update the DS committee composition.
   LOG_MARKER();
 
-  InternalUpdateDSCommitteeComposition(m_mediator.m_selfKey.second, dsComm,
-                                       dsblock);
+  UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second, dsComm,
+                                   dsblock);
 }
 
 bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {

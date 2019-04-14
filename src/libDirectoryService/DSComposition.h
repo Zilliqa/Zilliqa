@@ -24,22 +24,9 @@
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
-void InternalUpdateDSCommitteeComposition(const PubKey& selfKeyPub,
-                                          DequeOfNode& dsComm,
-                                          const DSBlock& dsblock);
-
-unsigned int InternalDetermineByzantineNodes(
-    unsigned int numOfProposedDSMembers,
-    std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
-    unsigned int numOfFinalBlock, double performanceThreshold,
-    unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
-    std::map<PubKey, uint32_t>& dsMemberPerformance);
-
-void InternalSaveDSPerformance(
-    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
-        coinbaseRewardees,
-    std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
-    uint64_t currentEpochNum, unsigned int numOfFinalBlock,
-    int finalblockRewardID);
+// Used in both libDirectoryService and libNode
+void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
+                                      DequeOfNode& dsComm,
+                                      const DSBlock& dsblock);
 
 #endif  // __DSCOMPOSITION_H__
