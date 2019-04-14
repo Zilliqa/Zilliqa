@@ -61,6 +61,17 @@ bool DirectoryService::ComposeVCBlockForSender(bytes& vcblock_message) {
   return true;
 }
 
+void DirectoryService::CleanUpViewChange(bool isPrecheckFail) {
+  LOG_MARKER();
+  cv_ViewChangeVCBlock.notify_all();
+  m_candidateLeaderIndex = 0;
+  m_cumulativeFaultyLeaders.clear();
+
+  if (isPrecheckFail) {
+    m_viewChangeCounter = 0;
+  }
+}
+
 void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -71,9 +82,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
   m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
-
-  m_candidateLeaderIndex = 0;
-  m_cumulativeFaultyLeaders.clear();
 
   unsigned int index = 0;
   unsigned int count = 0;
@@ -462,7 +470,7 @@ bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
             "Consensus = " << m_consensusObject->GetStateString());
 
   if (state == ConsensusCommon::State::DONE) {
-    cv_ViewChangeVCBlock.notify_all();
+    CleanUpViewChange(false);
     ProcessViewChangeConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

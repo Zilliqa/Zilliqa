@@ -418,6 +418,7 @@ class DirectoryService : public Executable {
   bool VCFetchLatestDSTxBlockFromSeedNodes();
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
+  void CleanUpViewChange(bool isPrecheckFail);
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
