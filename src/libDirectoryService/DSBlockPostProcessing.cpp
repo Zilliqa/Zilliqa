@@ -20,6 +20,7 @@
 #include <iterator>
 #include <thread>
 
+#include "DSComposition.h"
 #include "DirectoryService.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -28,7 +29,6 @@
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
-#include "libDirectoryService/DSComposition.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"

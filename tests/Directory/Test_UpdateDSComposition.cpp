@@ -23,7 +23,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
-#define BOOST_TEST_MODULE dscomposition
+#define BOOST_TEST_MODULE updatedscomposition
 #define BOOST_TEST_DYN_LINK
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -44,7 +44,7 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(dscomposition)
+BOOST_AUTO_TEST_SUITE(updatedscomposition)
 
 struct F {
   F() {
