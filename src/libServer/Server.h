@@ -229,6 +229,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         jsonrpc::Procedure("GetNodeState", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetNodeStateI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("AddToBlacklistExclusion",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::AddToBlacklistExclusionI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("RemoveFromBlacklistExclusion",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::RemoveFromBlacklistExclusionI);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
@@ -406,6 +416,14 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetNodeState();
   }
+  inline virtual void AddToBlacklistExclusionI(const Json::Value& request,
+                                               Json::Value& response) {
+    response = this->AddToBlacklistExclusion(request[0u].asString());
+  }
+  inline virtual void RemoveFromBlacklistExclusionI(const Json::Value& request,
+                                                    Json::Value& response) {
+    response = this->RemoveFromBlacklistExclusion(request[0u].asString());
+  }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
@@ -444,6 +462,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual std::string GetNodeType() = 0;
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
+  virtual bool AddToBlacklistExclusion(const std::string& ipAddr) = 0;
+  virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -500,6 +520,9 @@ class Server : public AbstractZServer {
   virtual std::string GetNumTxnsTxEpoch();
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
+  virtual bool AddToBlacklistExclusion(const std::string& ipAddr);
+  virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
+
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent
