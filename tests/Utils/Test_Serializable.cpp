@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(testSerializable) {
   test<unsigned int>("unsigned int",
                      sizeof(unsigned int));  // native, machine-dependent size
   test<uint32_t>("uint32_t", sizeof(uint32_t));  // cstdint, fixed size
-  test<boost::multiprecision::uint256_t>("uint256_t",
-                                         32);  // boost, fixed size
+  test<uint256_t>("uint256_t",
+                  32);  // boost, fixed size
 }
 
 BOOST_AUTO_TEST_SUITE_END()

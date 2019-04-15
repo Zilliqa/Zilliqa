@@ -49,7 +49,7 @@ class AddressChecksum {
     }
     bytes hash_s = HashUtils::BytesToHash(tmpaddr);
 
-    boost::multiprecision::uint256_t temp_1 = 1;
+    uint256_t temp_1 = 1;
     std::string ret = "";
 
     std::string hash_str;
@@ -58,7 +58,7 @@ class AddressChecksum {
       return "";
     }
 
-    boost::multiprecision::uint256_t v("0x" + hash_str);
+    uint256_t v("0x" + hash_str);
 
     for (uint i = 0; i < lower_case_address.size(); i++) {
       if (lower_case_address.at(i) >= '0' && lower_case_address.at(i) <= '9') {

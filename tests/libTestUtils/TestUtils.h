@@ -50,7 +50,7 @@ uint16_t DistUint16();
 uint32_t DistUint32();
 uint64_t DistUint64();
 uint128_t DistUint128();
-boost::multiprecision::uint256_t DistUint256();
+uint256_t DistUint256();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);

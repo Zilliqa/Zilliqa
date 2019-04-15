@@ -155,8 +155,7 @@ template <class T>
 bool SafeMath<T>::IsUnsignedInt(const T& a) {
   return typeid(a) == typeid(uint8_t) || typeid(a) == typeid(uint16_t) ||
          typeid(a) == typeid(uint32_t) || typeid(a) == typeid(uint64_t) ||
-         typeid(a) == typeid(uint128_t) ||
-         typeid(a) == typeid(boost::multiprecision::uint256_t) ||
+         typeid(a) == typeid(uint128_t) || typeid(a) == typeid(uint256_t) ||
          typeid(a) == typeid(boost::multiprecision::uint512_t) ||
          typeid(a) == typeid(boost::multiprecision::uint1024_t);
 }

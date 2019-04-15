@@ -28,5 +28,6 @@
 
 using bytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
+using uint256_t = boost::multiprecision::uint256_t;
 
 #endif  // __BASETYPE_H__

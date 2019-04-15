@@ -46,7 +46,7 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version;
-  boost::multiprecision::uint128_t m_balance;
+  uint128_t m_balance;
   uint64_t m_nonce;
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
@@ -54,8 +54,8 @@ class AccountBase : public SerializableDataBlock {
  public:
   AccountBase() {}
 
-  AccountBase(const boost::multiprecision::uint128_t& balance,
-              const uint64_t& nonce, const uint32_t& version);
+  AccountBase(const uint128_t& balance, const uint64_t& nonce,
+              const uint32_t& version);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -68,17 +68,17 @@ class AccountBase : public SerializableDataBlock {
   const uint32_t& GetVersion() const;
 
   /// Increases account balance by the specified delta amount.
-  bool IncreaseBalance(const boost::multiprecision::uint128_t& delta);
+  bool IncreaseBalance(const uint128_t& delta);
 
   /// Decreases account balance by the specified delta amount.
-  bool DecreaseBalance(const boost::multiprecision::uint128_t& delta);
+  bool DecreaseBalance(const uint128_t& delta);
 
   bool ChangeBalance(const boost::multiprecision::int256_t& delta);
 
-  void SetBalance(const boost::multiprecision::uint128_t& balance);
+  void SetBalance(const uint128_t& balance);
 
   /// Returns the account balance.
-  const boost::multiprecision::uint128_t& GetBalance() const;
+  const uint128_t& GetBalance() const;
 
   void SetNonce(const uint64_t& nonce);
 
@@ -131,8 +131,8 @@ class Account : public AccountBase {
   Account(const bytes& src, unsigned int offset);
 
   /// Constructor for a account.
-  Account(const boost::multiprecision::uint128_t& balance,
-          const uint64_t& nonce, const uint32_t& version = ACCOUNT_VERSION);
+  Account(const uint128_t& balance, const uint64_t& nonce,
+          const uint32_t& version = ACCOUNT_VERSION);
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
