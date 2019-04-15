@@ -277,13 +277,28 @@ const Json::Value JSONConversion::convertTxtoJson(
   return _json;
 }
 
+const Json::Value JSONConversion::convertNode(const PairOfNode& node) {
+  Json::Value _json;
+  _json["PubKey"] = static_cast<string>(node.first);
+  _json["NetworkInfo"] = static_cast<string>(node.second);
+
+  return _json;
+}
+
+const Json::Value JSONConversion::convertNode(
+    const std::tuple<PubKey, Peer, uint16_t>& node) {
+  Json::Value _json;
+
+  _json["PubKey"] = static_cast<string>(get<SHARD_NODE_PUBKEY>(node));
+  _json["NetworkInfo"] = static_cast<string>(get<SHARD_NODE_PEER>(node));
+  return _json;
+}
+
 const Json::Value JSONConversion::convertDequeOfNode(const DequeOfNode& nodes) {
   Json::Value _json = Json::arrayValue;
 
   for (const auto& node : nodes) {
-    Json::Value temp;
-    temp["PubKey"] = static_cast<string>(node.first);
-    temp["NetworkInfo"] = static_cast<string>(node.second);
+    Json::Value temp = convertNode(node);
     _json.append(temp);
   }
   return _json;

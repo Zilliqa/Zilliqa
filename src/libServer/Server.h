@@ -21,6 +21,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 #include <mutex>
+#include <random>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
@@ -230,6 +231,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetNodeStateI);
     this->bindAndAddMethod(
+        jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::IsTxnInMemPoolI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetShardMembersI);
+    this->bindAndAddMethod(
         jsonrpc::Procedure("AddToBlacklistExclusion",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
                            "param01", jsonrpc::JSON_STRING, NULL),
@@ -416,6 +427,15 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetNodeState();
   }
+
+  inline virtual void IsTxnInMemPoolI(const Json::Value& request,
+                                      Json::Value& response) {
+    response = this->IsTxnInMemPool(request[0u].asString());
+  }
+  inline virtual void GetShardMembersI(const Json::Value& request,
+                                       Json::Value& response) {
+    response = this->GetShardMembers(request[0u].asUInt());
+  }
   inline virtual void AddToBlacklistExclusionI(const Json::Value& request,
                                                Json::Value& response) {
     response = this->AddToBlacklistExclusion(request[0u].asString());
@@ -462,6 +482,9 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual std::string GetNodeType() = 0;
   virtual Json::Value GetDSCommittee() = 0;
   virtual std::string GetNodeState() = 0;
+
+  virtual Json::Value IsTxnInMemPool(const std::string& param01) = 0;
+  virtual Json::Value GetShardMembers(unsigned int param01) = 0;
   virtual bool AddToBlacklistExclusion(const std::string& ipAddr) = 0;
   virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr) = 0;
 };
@@ -482,6 +505,7 @@ class Server : public AbstractZServer {
   std::pair<uint64_t, CircularArray<std::string>> m_TxBlockCache;
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
+  std::mt19937 m_eng;
 
  public:
   Server(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
@@ -520,6 +544,10 @@ class Server : public AbstractZServer {
   virtual std::string GetNumTxnsTxEpoch();
   virtual std::string GetNodeType();
   virtual Json::Value GetDSCommittee();
+
+  virtual Json::Value IsTxnInMemPool(const std::string& tranID);
+  virtual Json::Value GetShardMembers(unsigned int shardID);
+
   virtual bool AddToBlacklistExclusion(const std::string& ipAddr);
   virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
 

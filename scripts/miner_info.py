@@ -38,15 +38,15 @@ def generate_payload(params, methodName, id = 1):
 	return payload
 
 def recvall(sock):
-    BUFF_SIZE = 4096 # 4 KiB
-    data = ""
-    while True:
-        part = str(sock.recv(BUFF_SIZE))
-        data += part
-        if len(part) < BUFF_SIZE:
-            # either 0 or end of data
-            break
-    return data
+	BUFF_SIZE = 4096 # 4 KiB
+	data = ""
+	while True:
+		part = str(sock.recv(BUFF_SIZE))
+		data += part
+		if len(part) < BUFF_SIZE:
+			# either 0 or end of data
+			break
+	return data
 
 
 def gen_payload_batch(params, methodName):
@@ -99,6 +99,7 @@ def parse_arguments(options):
 	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
 	parser.add_argument("--params","-pm",help="parameters", nargs='+')
 	parser.add_argument("--debug","-d",help="debug mode", action='store_true')
+
 	args = parser.parse_args()
 	return args
 
@@ -108,13 +109,14 @@ def make_options_dictionary(options_dict):
 	options_dict["type"] = "GetNodeType"
 	options_dict["ds"] = "GetDSCommittee"
 	options_dict["state"] = "GetNodeState"
+	options_dict["checktxn"] = "IsTxnInMemPool"
 	options_dict["whitelist_add"] = "AddToBlacklistExclusion"
 	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
 
 
 def ProcessResponseCore(resp, param):
 	if param:
-		print "Parameter: "+str(param)+"\t",
+		print "Parameter: "+str(param)+"\t:",
 	try:
 		print resp["result"]
 	except KeyError:
@@ -133,19 +135,16 @@ def ProcessResponse(resp, params, batch):
 				print "Could not find id: "+i["id"]
 			
 
-
-
-
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	
+	option_param_required = ["checktxn","whitelist_add","whitelist_remove"]
 	global DEBUG_MODE
 	args = parse_arguments(options_dictionary.keys())
 	DEBUG_MODE = args.debug
 	batch = False
 
-	if args.option == "whitelist_add" or args.option == "whitelist_remove":
+	if args.option in option_param_required:
 		if len(args.params) == 0:
 			print "Error: Params cannot be empty"
 			return 1

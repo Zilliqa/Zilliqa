@@ -253,6 +253,7 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int RPC_PORT;
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STATUS_RPC;  //
+extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

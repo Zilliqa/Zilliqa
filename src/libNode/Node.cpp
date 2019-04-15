@@ -1760,6 +1760,10 @@ void Node::CleanCreatedTransaction() {
     m_processedTransactions.clear();
     t_processedTransactions.clear();
   }
+  {
+    std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
+  }
   m_TxnOrder.clear();
   m_gasUsedTotal = 0;
   m_txnFees = 0;

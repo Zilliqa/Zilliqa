@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "Server.h"
+#include "common/MempoolEnum.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -67,6 +68,8 @@ Server::Server(Mediator& mediator, AbstractServerConnector& server)
   m_RecentTransactions.resize(TXN_PAGE_SIZE);
   m_TxBlockCountSumPair.first = 0;
   m_TxBlockCountSumPair.second = 0;
+  random_device rd;
+  m_eng = mt19937(rd());
 }
 
 Server::~Server(){
@@ -700,6 +703,48 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value Server::IsTxnInMemPool(const string& tranID) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a lookup");
+  }
+  try {
+    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    TxnHash tranHash(tranID);
+    Json::Value _json;
+
+    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
+      case PoolTxnStatus::NOT_PRESENT:
+        _json["present"] = false;
+        _json["code"] = PoolTxnStatus::NOT_PRESENT;
+        return _json;
+      case PoolTxnStatus::PRESENT_NONCE_HIGH:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
+        _json["info"] = "Nonce too high";
+        return _json;
+      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
+        _json["info"] = "Could not fit in as microblock gas limit reached";
+        return _json;
+      case PoolTxnStatus::ERROR:
+        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
   }
 }
 
@@ -1352,7 +1397,8 @@ string Server::GetNodeType() {
   } else if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     return "DS Node";
   } else {
-    return "Shard Node";
+    return string("Shard Node of shard") +
+           to_string(m_mediator.m_node->GetShardId());
   }
 }
 
@@ -1376,6 +1422,66 @@ string Server::GetNodeState() {
     return m_mediator.m_node->GetStateString();
   } else {
     return m_mediator.m_ds->GetStateString();
+  }
+}
+
+vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
+  // case when the number required is greater than total numbers being shuffled
+  if (size < num) {
+    num = size;
+  }
+  if (num == 0) {
+    return vector<uint>();
+  }
+  vector<uint> v(num);
+
+  for (uint i = 0; i < num; i++) {
+    uniform_int_distribution<> dis(
+        0, size - i - 1);  // random num between 0 to i-1
+    uint x = dis(eng);
+    uint j = 0;
+    for (j = 0; j < i; j++) {
+      if (x < v.at(j)) {
+        break;
+      }
+      x++;
+    }
+    for (uint k = j + 1; k <= i; k++) {
+      v.at(i + j + 1 - k) = v.at(i + j - k);
+    }
+    v.at(j) = x;
+  }
+  return v;
+}
+
+Json::Value Server::GetShardMembers(unsigned int shardID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  const auto shards = m_mediator.m_lookup->GetShardPeers();
+  const auto& num_shards = shards.size();
+  if (num_shards <= shardID) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
+  }
+  Json::Value _json;
+  try {
+    const auto& shard = shards.at(shardID);
+    if (shard.empty()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
+    }
+
+    auto random_vec =
+        GenUniqueIndices(shard.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
+    for (auto const& x : random_vec) {
+      const auto& node = shard.at(x);
+      _json.append(JSONConversion::convertNode(node));
+    }
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
 }
 
