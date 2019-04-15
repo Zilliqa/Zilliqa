@@ -80,7 +80,7 @@ message ProtoDSBlock
         }
         repeated PowDSWinners dswinners = 10; // Added in: v1.0, Deprecated in: N/A
         optional DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
-        repeated ByteArray dsremoved = 12; // Added in: v4.5, Deprecated in: N/A
+        repeated ByteArray dsremoved = 12; // Added in: v2.0, Deprecated in: N/A
         // Add new members here
     }
     optional DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
