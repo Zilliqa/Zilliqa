@@ -230,6 +230,10 @@ void DirectoryService::InjectPoWForDSNode(
     return;
   }
 
+  // the number of removed members for non-performance has to be strictly less
+  // than the total number of new incoming members because the field only
+  // contains members that were removed for non-performance and not the expired
+  // ones.
   if (numOfRemovedMembers > numOfProposedDSMembers) {
     LOG_GENERAL(WARNING,
                 "FATAL: number of ds members to be removed is larger than the "

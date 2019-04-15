@@ -232,6 +232,10 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   }
 
   // Find my new consensus ID.
+  // isDropout implies two possibilities:
+  // 1. My node has expired naturally from the DS Committee due to old age.
+  // 2. My node was removed by the DS Committee due to lack of sufficient
+  // performance.
   bool isDropout = true;
   for (auto it = m_mediator.m_DSCommittee->begin();
        it != m_mediator.m_DSCommittee->end(); ++it) {
