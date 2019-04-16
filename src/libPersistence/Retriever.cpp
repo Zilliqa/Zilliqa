@@ -90,8 +90,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
 
     // clear all the state deltas from disk.
-    // BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
-    // AccountStore::GetInstance().RefreshDB();
+    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
 
     std::string target = "persistence/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
@@ -113,10 +112,6 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
           for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-            if (!bfs::exists("StateDeltaFromS3/stateDelta_" +
-                             std::to_string(j))) {
-              continue;
-            }
             bytes stateDelta;
             LOG_GENERAL(
                 INFO,
