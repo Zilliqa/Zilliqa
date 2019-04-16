@@ -91,6 +91,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
     // clear all the state deltas from disk.
     BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+    AccountStore::GetInstance().RefreshDB();
 
     std::string target = "persistence/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
