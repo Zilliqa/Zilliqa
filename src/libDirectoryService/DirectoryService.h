@@ -285,7 +285,7 @@ class DirectoryService : public Executable {
   void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers,
-                          std::vector<PubKey>& removeDSNodePubkeys);
+                          const std::vector<PubKey>& removeDSNodePubkeys);
 
   // Gas Pricer
   boost::multiprecision::uint128_t GetNewGasPrice();

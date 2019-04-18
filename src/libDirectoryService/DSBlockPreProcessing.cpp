@@ -44,8 +44,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#define REMOVED_FIELD_DSBLOCK_VERSION 2
-
 unsigned int DirectoryService::ComputeDSBlockParameters(
     const VectorOfPoWSoln& sortedDSPoWSolns, VectorOfPoWSoln& sortedPoWSolns,
     map<PubKey, Peer>& powDSWinners, MapOfPubKeyPoW& dsWinnerPoWs,
@@ -214,7 +212,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
 void DirectoryService::InjectPoWForDSNode(
     VectorOfPoWSoln& sortedPoWSolns, unsigned int numOfProposedDSMembers,
-    std::vector<PubKey>& removeDSNodePubkeys) {
+    const std::vector<PubKey>& removeDSNodePubkeys) {
   LOG_MARKER();
 
   unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
@@ -1185,6 +1183,7 @@ bool DirectoryService::DSBlockValidator(
 
   // Check if the current block version to be validated requires removed nodes
   // validation.
+  const uint32_t REMOVED_FIELD_DSBLOCK_VERSION = 2;
   if (m_pendingDSBlock->GetHeader().GetVersion() >=
       REMOVED_FIELD_DSBLOCK_VERSION) {
     // Verify the injected Byzantine nodes to be removed in the winners list.
