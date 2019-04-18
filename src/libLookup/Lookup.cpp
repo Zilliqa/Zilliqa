@@ -3122,6 +3122,7 @@ void Lookup::RejoinAsNewLookup() {
         };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
+      SetAboveLayer();
       InitSync();
     };
     DetachedFunction(1, func);
