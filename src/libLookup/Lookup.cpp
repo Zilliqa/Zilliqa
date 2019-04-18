@@ -3106,16 +3106,22 @@ void Lookup::RejoinAsNewLookup() {
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
-      this->CleanVariables();
-      while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-        LOG_GENERAL(
-            WARNING,
-            "Downloading persistence from S3 has failed. Will try again!");
+      while (true) {
+        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+        this->CleanVariables();
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        }
+        BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
+        if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
+          break;
+        };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
-      BlockStorage::GetBlockStorage().RefreshAll();
-      AccountStore::GetInstance().RefreshDB();
       InitSync();
     };
     DetachedFunction(1, func);

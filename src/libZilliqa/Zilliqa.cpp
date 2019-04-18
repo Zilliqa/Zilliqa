@@ -206,7 +206,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     LogSelfNodeInfo(key, peer);
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
-      if (LOOKUP_NODE_MODE) {
+      if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
         syncType = SyncType::LOOKUP_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         break;
