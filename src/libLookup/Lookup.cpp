@@ -3095,6 +3095,33 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
   return true;
 }
 
+void Lookup::RejoinAsNewLookup() {
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(WARNING,
+                "Lookup::RejoinAsNewLookup not expected to be called from "
+                "other than the NewLookup node.");
+    return;
+  }
+
+  LOG_MARKER();
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    auto func = [this]() mutable -> void {
+      m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+      this->CleanVariables();
+      while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+        LOG_GENERAL(
+            WARNING,
+            "Downloading persistence from S3 has failed. Will try again!");
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
+      BlockStorage::GetBlockStorage().RefreshAll();
+      AccountStore::GetInstance().RefreshDB();
+      InitSync();
+    };
+    DetachedFunction(1, func);
+  }
+}
+
 void Lookup::RejoinAsLookup() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

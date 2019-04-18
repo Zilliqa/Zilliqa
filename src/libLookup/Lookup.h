@@ -101,9 +101,13 @@ class Lookup : public Executable {
 
   void SetAboveLayer();
 
-  /// Post processing after the DS node successfully synchronized with the
+  /// Post processing after the lookup node successfully synchronized with the
   /// network
   bool FinishRejoinAsLookup();
+
+  /// Post processing after the newlookup node successfully synchronized with
+  /// the network
+  bool FinishRejoinAsNewLookup();
 
   /// Post processing after the new Lookup node successfully synchronized with
   /// the network
@@ -260,6 +264,10 @@ class Lookup : public Executable {
 
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
+
+  // Rejoin the network as a newlookup node in case of failure happens in
+  // protocol
+  void RejoinAsNewLookup();
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
