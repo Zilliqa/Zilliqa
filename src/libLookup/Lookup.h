@@ -113,9 +113,6 @@ class Lookup : public Executable {
   /// the network
   bool FinishNewJoinAsLookup();
 
-  // Reset certain variables to the initial state
-  bool CleanVariables();
-
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
@@ -380,6 +377,9 @@ class Lookup : public Executable {
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;

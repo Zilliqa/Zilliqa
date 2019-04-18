@@ -105,8 +105,9 @@ void Lookup::InitSync() {
     // and register me with multiplier.
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
 
-    // Initialize all blockchains and blocklinkchain
-    // InitAsNewJoiner();
+    if (m_seedNodes.empty()) {
+      SetAboveLayer();  // since may have called CleanVariable earlier
+    }
 
     // Set myself offline
     GetMyLookupOffline();
@@ -3122,7 +3123,6 @@ void Lookup::RejoinAsNewLookup() {
         };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
-      SetAboveLayer();
       InitSync();
     };
     DetachedFunction(1, func);

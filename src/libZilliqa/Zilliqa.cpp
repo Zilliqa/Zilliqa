@@ -212,7 +212,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
                                        SyncType::NEW_SYNC == syncType)) {
-        m_n.CleanVariables();
+        if (SyncType::NEW_LOOKUP_SYNC == syncType) {
+          m_lookup.CleanVariables();
+        } else {
+          m_n.CleanVariables();
+        }
         while (!m_n.DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
