@@ -105,10 +105,6 @@ class Lookup : public Executable {
   /// network
   bool FinishRejoinAsLookup();
 
-  /// Post processing after the newlookup node successfully synchronized with
-  /// the network
-  bool FinishRejoinAsNewLookup();
-
   /// Post processing after the new Lookup node successfully synchronized with
   /// the network
   bool FinishNewJoinAsLookup();
