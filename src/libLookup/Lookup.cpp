@@ -105,8 +105,9 @@ void Lookup::InitSync() {
     // and register me with multiplier.
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
 
-    // Initialize all blockchains and blocklinkchain
-    // InitAsNewJoiner();
+    if (m_seedNodes.empty()) {
+      SetAboveLayer();  // since may have called CleanVariable earlier
+    }
 
     // Set myself offline
     GetMyLookupOffline();
@@ -3093,6 +3094,39 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
     }
   }
   return true;
+}
+
+void Lookup::RejoinAsNewLookup() {
+  if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(WARNING,
+                "Lookup::RejoinAsNewLookup not expected to be called from "
+                "other than the NewLookup node.");
+    return;
+  }
+
+  LOG_MARKER();
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    auto func = [this]() mutable -> void {
+      while (true) {
+        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+        this->CleanVariables();
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        }
+        BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
+        if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
+          break;
+        };
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
+      InitSync();
+    };
+    DetachedFunction(1, func);
+  }
 }
 
 void Lookup::RejoinAsLookup() {

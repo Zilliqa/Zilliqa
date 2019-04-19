@@ -101,16 +101,13 @@ class Lookup : public Executable {
 
   void SetAboveLayer();
 
-  /// Post processing after the DS node successfully synchronized with the
+  /// Post processing after the lookup node successfully synchronized with the
   /// network
   bool FinishRejoinAsLookup();
 
   /// Post processing after the new Lookup node successfully synchronized with
   /// the network
   bool FinishNewJoinAsLookup();
-
-  // Reset certain variables to the initial state
-  bool CleanVariables();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -261,6 +258,10 @@ class Lookup : public Executable {
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
 
+  // Rejoin the network as a newlookup node in case of failure happens in
+  // protocol
+  void RejoinAsNewLookup();
+
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
   void CheckBufferTxBlocks();
@@ -372,6 +373,9 @@ class Lookup : public Executable {
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;

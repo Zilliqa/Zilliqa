@@ -614,7 +614,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
       if (!LOOKUP_NODE_MODE) {
         RejoinAsNormal();
-        return false;
+      } else if (ARCHIVAL_LOOKUP) {
+        m_mediator.m_lookup->RejoinAsNewLookup();
       }
     }
     return false;

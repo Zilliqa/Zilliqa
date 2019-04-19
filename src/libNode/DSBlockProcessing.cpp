@@ -428,6 +428,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           dsblock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
                 "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
+    if (dsblock.GetHeader().GetBlockNum() >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1) {
+      if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+        m_mediator.m_lookup->RejoinAsNewLookup();
+      }
+    }
     return false;
   }
 
