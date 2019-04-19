@@ -3097,7 +3097,7 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
 }
 
 void Lookup::RejoinAsNewLookup() {
-  if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
+  if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(WARNING,
                 "Lookup::RejoinAsNewLookup not expected to be called from "
                 "other than the NewLookup node.");
