@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 10;
+  uint8_t difficultyToUse = 3;
   uint64_t blockToUse = 34567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result =
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
-  difficultyToUse = 10;
+  difficultyToUse = 3;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_nonce,
