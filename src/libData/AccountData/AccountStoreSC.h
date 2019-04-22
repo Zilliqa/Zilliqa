@@ -155,9 +155,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                              const boost::multiprecision::uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
-  void CommitTransferBalanceAtomic();
+  void CommitTransferAtomic();
   /// discard the existing transfers in m_accountStoreAtomic
-  void DiscardTransferBalanceAtomic();
+  void DiscardTransferAtomic();
 
  protected:
   AccountStoreSC();
