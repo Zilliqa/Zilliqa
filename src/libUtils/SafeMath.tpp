@@ -191,7 +191,7 @@ bool SafeMath<T>::add_unsignint(const T& a, const T& b, T& result) {
 
 template <class T>
 bool SafeMath<T>::sub_signint(const T& a, const T& b, T& result) {
-  if (a > 0 && b < a - std::numeric_limits<T>::max()) {
+  if (a >= 0 && b < a - std::numeric_limits<T>::max()) {
     LOG_GENERAL(WARNING, "Subtraction Overflow!");
     return false;
   }

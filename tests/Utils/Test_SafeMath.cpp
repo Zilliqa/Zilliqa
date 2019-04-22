@@ -542,6 +542,23 @@ BOOST_AUTO_TEST_CASE(test_int8_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  int8_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false ==
+          SafeMath<int8_t>::sub(0, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false ==
+          SafeMath<int8_t>::sub(1, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true ==
+          SafeMath<int8_t>::sub(-1, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int8_t>::max() == subRes);
+
   LOG_GENERAL(INFO, "Test int8_t done!");
 }
 
@@ -600,6 +617,23 @@ BOOST_AUTO_TEST_CASE(test_int16_t) {
   num2 = 2;
   BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  int16_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int16_t>::sub(0, std::numeric_limits<int16_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int16_t>::sub(1, std::numeric_limits<int16_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int16_t>::sub(-1, std::numeric_limits<int16_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int16_t>::max() == subRes);
 
   LOG_GENERAL(INFO, "Test int16_t done!");
 }
@@ -660,6 +694,23 @@ BOOST_AUTO_TEST_CASE(test_int32_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  int32_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int32_t>::sub(0, std::numeric_limits<int32_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int32_t>::sub(1, std::numeric_limits<int32_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int32_t>::sub(-1, std::numeric_limits<int32_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int32_t>::max() == subRes);
+
   LOG_GENERAL(INFO, "Test int32_t done!");
 }
 
@@ -718,6 +769,23 @@ BOOST_AUTO_TEST_CASE(test_int64_t) {
   num2 = 2;
   BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  int64_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int64_t>::sub(0, std::numeric_limits<int64_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int64_t>::sub(1, std::numeric_limits<int64_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int64_t>::sub(-1, std::numeric_limits<int64_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int64_t>::max() == subRes);
 
   LOG_GENERAL(INFO, "Test int64_t done!");
 }
@@ -792,6 +860,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  boost::multiprecision::int128_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int128_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int128_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int128_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int128_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int128_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
+
   LOG_GENERAL(INFO, "Test boost_int128_t done!");
 }
 
@@ -864,6 +949,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::mul(
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  boost::multiprecision::int256_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int256_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int256_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int256_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int256_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int256_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
 
   LOG_GENERAL(INFO, "Test boost_int256_t done!");
 }
@@ -938,6 +1040,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  boost::multiprecision::int512_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int512_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int512_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int512_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int512_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int512_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
+
   LOG_GENERAL(INFO, "Test boost_int512_t done!");
 }
 
@@ -1011,6 +1130,24 @@ BOOST_AUTO_TEST_CASE(test_boost_int1024_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::mul(
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  boost::multiprecision::int1024_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int1024_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int1024_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int1024_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int1024_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int1024_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
 
   LOG_GENERAL(INFO, "Test boost_int1024_t done!");
 }
