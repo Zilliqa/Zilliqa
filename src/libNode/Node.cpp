@@ -1140,7 +1140,7 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING, "Invalid txn message, message size: "
                              << message.size()
                              << ", txn data offset: " << offset);
-    // TODO: Punish the node send invalid message, mostlikely an attack
+    // TODO: Punish the node send invalid message
     return true;
   }
 
