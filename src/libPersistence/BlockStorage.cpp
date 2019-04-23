@@ -46,9 +46,11 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
                             const BlockType& blockType) {
   int ret = -1;  // according to LevelDB::Insert return value
   if (blockType == BlockType::DS) {
+    unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
     ret = m_dsBlockchainDB->Insert(blockNum, body);
     LOG_GENERAL(INFO, "Stored DSBlock num = " << blockNum);
   } else if (blockType == BlockType::Tx) {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
     ret = m_txBlockchainDB->Insert(blockNum, body);
     LOG_GENERAL(INFO, "Stored TxBlock num = " << blockNum);
   }
@@ -71,6 +73,7 @@ bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
 
 bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
   int ret = -1;
+  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
   ret = m_VCBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
@@ -78,12 +81,14 @@ bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
 bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
                                     const bytes& body) {
   int ret = -1;
+  unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
   ret = m_fallbackBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
 
 bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
   int ret = -1;
+  unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
   ret = m_blockLinkDB->Insert(index, body);
   return (ret == 0);
 }
@@ -100,6 +105,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
     return false;
   } else  // IS_LOOKUP_NODE
   {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
     ret = m_txBodyDB->Insert(key, body) && m_txBodyTmpDB->Insert(key, body);
   }
 
@@ -108,6 +114,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
 
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const bytes& body) {
+  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
   int ret = m_microBlockDB->Insert(blockHash, body);
 
   return (ret == 0);
@@ -115,8 +122,14 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
 
 bool BlockStorage::InitiateHistoricalDB(const string& path) {
   // If not explicitly convert to string, calls the other constructor
-  m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
-  m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxnHistorical);
+    m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexMBHistorical);
+    m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
+  }
 
   return true;
 }
@@ -124,7 +137,10 @@ bool BlockStorage::InitiateHistoricalDB(const string& path) {
 bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
                                           TxBodySharedPtr& body) {
   std::string bodyString;
-  bodyString = m_txnHistoricalDB->Lookup(key);
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxnHistorical);
+    bodyString = m_txnHistoricalDB->Lookup(key);
+  }
   if (bodyString.empty()) {
     return false;
   }
@@ -136,7 +152,11 @@ bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
 
 bool BlockStorage::GetHistoricalMicroBlock(const BlockHash& blockhash,
                                            MicroBlockSharedPtr& microblock) {
-  string blockString = m_MBHistoricalDB->Lookup(blockhash);
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMBHistorical);
+    blockString = m_MBHistoricalDB->Lookup(blockhash);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -152,7 +172,12 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
   LOG_MARKER();
 
-  string blockString = m_microBlockDB->Lookup(blockHash);
+  string blockString;
+
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+    blockString = m_microBlockDB->Lookup(blockHash);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -169,6 +194,8 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
                                        const uint32_t hiShardId,
                                        list<MicroBlockSharedPtr>& blocks) {
   LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
 
   leveldb::Iterator* it =
       m_microBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
@@ -217,7 +244,7 @@ bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
     states_str.emplace(state.first.hex(),
                        DataConversion::CharArrayToString(rawBytes));
   }
-
+  unique_lock<shared_timed_mutex> g(m_mutexTempState);
   return m_tempStateDB->BatchInsert(states_str);
 }
 
@@ -225,7 +252,7 @@ bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
                                        vector<StateSharedPtr>& states) {
   // LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexTempState);
+  shared_lock<shared_timed_mutex> g(m_mutexTempState);
 
   if (iter == nullptr) {
     iter = m_tempStateDB->GetDB()->NewIterator(leveldb::ReadOptions());
@@ -256,7 +283,11 @@ bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
 
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
                               DSBlockSharedPtr& block) {
-  string blockString = m_dsBlockchainDB->Lookup(blockNum);
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
+    blockString = m_dsBlockchainDB->Lookup(blockNum);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -272,7 +303,11 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
                               VCBlockSharedPtr& block) {
-  string blockString = m_VCBlockDB->Lookup(blockhash);
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
+    blockString = m_VCBlockDB->Lookup(blockhash);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -287,20 +322,45 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
 }
 
 bool BlockStorage::ReleaseDB() {
-  m_txBodyDB.reset();
-  m_microBlockDB.reset();
-  m_VCBlockDB.reset();
-  m_txBlockchainDB.reset();
-  m_dsBlockchainDB.reset();
-  m_fallbackBlockDB.reset();
-  m_blockLinkDB.reset();
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+    m_txBodyDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+    m_microBlockDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
+    m_VCBlockDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    m_txBlockchainDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
+    m_dsBlockchainDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
+    m_fallbackBlockDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
+    m_blockLinkDB.reset();
+  }
   return true;
 }
 
 bool BlockStorage::GetFallbackBlock(
     const BlockHash& blockhash,
     FallbackBlockSharedPtr& fallbackblockwsharding) {
-  string blockString = m_fallbackBlockDB->Lookup(blockhash);
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
+    blockString = m_fallbackBlockDB->Lookup(blockhash);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -318,7 +378,11 @@ bool BlockStorage::GetFallbackBlock(
 
 bool BlockStorage::GetBlockLink(const uint64_t& index,
                                 BlockLinkSharedPtr& block) {
-  string blockString = m_blockLinkDB->Lookup(index);
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
+    blockString = m_blockLinkDB->Lookup(index);
+  }
 
   if (blockString.empty()) {
     return false;
@@ -345,8 +409,11 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
 
 bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
                               TxBlockSharedPtr& block) {
-  string blockString = m_txBlockchainDB->Lookup(blockNum);
-
+  string blockString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    blockString = m_txBlockchainDB->Lookup(blockNum);
+  }
   if (blockString.empty()) {
     return false;
   }
@@ -360,7 +427,10 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   std::string bodyString;
 
-  bodyString = m_txBodyDB->Lookup(key);
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxBody);
+    bodyString = m_txBodyDB->Lookup(key);
+  }
 
   if (bodyString.empty()) {
     return false;
@@ -373,22 +443,26 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete DSBlock Num: " << blocknum);
+  unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
   int ret = m_dsBlockchainDB->DeleteKey(blocknum);
   return (ret == 0);
 }
 
 bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
+  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
   int ret = m_VCBlockDB->DeleteKey(blockhash);
   return (ret == 0);
 }
 
 bool BlockStorage::DeleteFallbackBlock(const BlockHash& blockhash) {
+  unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
   int ret = m_fallbackBlockDB->DeleteKey(blockhash);
   return (ret == 0);
 }
 
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
+  unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
   int ret = m_txBlockchainDB->DeleteKey(blocknum);
   return (ret == 0);
 }
@@ -399,6 +473,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
     LOG_GENERAL(WARNING, "Non lookup node should not trigger this");
     return false;
   } else {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
     ret = m_txBodyDB->DeleteKey(key);
   }
 
@@ -424,6 +499,8 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
 
 bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
 
   leveldb::Iterator* it =
       m_dsBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
@@ -455,8 +532,11 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
 bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
+  shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+
   leveldb::Iterator* it =
       m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  uint64_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
@@ -468,8 +548,9 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
     TxBlockSharedPtr block = TxBlockSharedPtr(
         new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
-    LOG_GENERAL(INFO, "Retrievd TxBlock Num:" << bns);
+    count++;
   }
+  LOG_GENERAL(INFO, "Retrievd " << count << " TxBlocks");
 
   delete it;
 
@@ -491,6 +572,8 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
 
   LOG_MARKER();
 
+  shared_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
+
   leveldb::Iterator* it =
       m_txBodyTmpDB->GetDB()->NewIterator(leveldb::ReadOptions());
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -510,6 +593,9 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
 
 bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
   LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
+
   leveldb::Iterator* it =
       m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -546,19 +632,34 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
 
 bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
   LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexMetadata);
   int ret = m_metadataDB->Insert(std::to_string((int)type), data);
   return (ret == 0);
 }
 
 bool BlockStorage::PutStateRoot(const bytes& data) {
   LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret = m_stateRootDB->Insert(std::to_string((int)STATEROOT), data);
+  return (ret == 0);
+}
+
+bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
+  LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
+  int ret =
+      m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
   return (ret == 0);
 }
 
 bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   LOG_MARKER();
-  string metaString = m_metadataDB->Lookup(std::to_string((int)type));
+
+  string metaString;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMetadata);
+    metaString = m_metadataDB->Lookup(std::to_string((int)type));
+  }
 
   if (metaString.empty()) {
     LOG_GENERAL(INFO, "No metadata get")
@@ -572,7 +673,12 @@ bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
 
 bool BlockStorage::GetStateRoot(bytes& data) {
   LOG_MARKER();
-  string stateRoot = m_stateRootDB->Lookup(std::to_string((int)STATEROOT));
+
+  string stateRoot;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
+    stateRoot = m_stateRootDB->Lookup(std::to_string((int)STATEROOT));
+  }
 
   if (stateRoot.empty()) {
     LOG_GENERAL(INFO, "No state root found")
@@ -584,11 +690,34 @@ bool BlockStorage::GetStateRoot(bytes& data) {
   return true;
 }
 
+bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
+  LOG_MARKER();
+
+  string epochNumStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
+    epochNumStr = m_stateRootDB->Lookup(LATEST_EPOCH_STATES_UPDATED);
+  }
+
+  if (epochNumStr.empty()) {
+    LOG_GENERAL(INFO, "No Latest Epoch State Updated get");
+    return false;
+  }
+
+  try {
+    epochNum = stoull(epochNumStr);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "epochNumStr is not numeric");
+    return false;
+  }
+  return true;
+}
+
 bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
                                   const uint16_t& consensusLeaderID) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDsCommittee);
+  unique_lock<shared_timed_mutex> g(m_mutexDsCommittee);
   m_dsCommitteeDB->ResetDB();
   unsigned int index = 0;
   string leaderId = to_string(consensusLeaderID);
@@ -628,7 +757,7 @@ bool BlockStorage::GetDSCommittee(shared_ptr<DequeOfNode>& dsCommittee,
   LOG_MARKER();
 
   unsigned int index = 0;
-  lock_guard<mutex> g(m_mutexDsCommittee);
+  shared_lock<shared_timed_mutex> g(m_mutexDsCommittee);
   string strConsensusLeaderID = m_dsCommitteeDB->Lookup(index++);
 
   if (strConsensusLeaderID.empty()) {
@@ -636,7 +765,12 @@ bool BlockStorage::GetDSCommittee(shared_ptr<DequeOfNode>& dsCommittee,
     return false;
   }
 
-  consensusLeaderID = stoul(strConsensusLeaderID);
+  try {
+    consensusLeaderID = stoul(strConsensusLeaderID);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "strConsensusID is not numeric");
+    return false;
+  }
   LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
   string dataStr;
 
@@ -662,7 +796,7 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
                                      const uint32_t myshardId) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexShardStructure);
+  unique_lock<shared_timed_mutex> g(m_mutexShardStructure);
   m_shardStructureDB->ResetDB();
   unsigned int index = 0;
   string shardId = to_string(myshardId);
@@ -699,7 +833,7 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   string dataStr;
 
   {
-    lock_guard<mutex> g(m_mutexShardStructure);
+    shared_lock<shared_timed_mutex> g(m_mutexShardStructure);
     dataStr = m_shardStructureDB->Lookup(index++);
   }
 
@@ -721,6 +855,8 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
                                  const bytes& stateDelta) {
   LOG_MARKER();
 
+  unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
+
   if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
     LOG_PAYLOAD(WARNING,
                 "Failed to store state delta of final block " << finalBlockNum,
@@ -737,10 +873,21 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
                                  bytes& stateDelta) {
   LOG_MARKER();
   bool found = false;
-  string dataStr = m_stateDeltaDB->Lookup(finalBlockNum, found);
-  stateDelta = bytes(dataStr.begin(), dataStr.end());
-  LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
-              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
+
+  string dataStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexStateDelta);
+    dataStr = m_stateDeltaDB->Lookup(finalBlockNum, found);
+  }
+  if (found) {
+    stateDelta = bytes(dataStr.begin(), dataStr.end());
+    LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
+                stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
+  } else {
+    LOG_GENERAL(INFO,
+                "Didn't find state delta of final block " << finalBlockNum);
+  }
+
   return found;
 }
 
@@ -888,7 +1035,7 @@ void BlockStorage::GetDiagnosticDataNodes(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
@@ -951,7 +1098,7 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
     uint64_t dsBlockNum = 0;
     try {
-      dsBlockNum = stoul(dsBlockNumStr);
+      dsBlockNum = stoull(dsBlockNumStr);
     } catch (...) {
       LOG_GENERAL(WARNING,
                   "Non-numeric key " << dsBlockNumStr << " at index " << index);
@@ -1009,67 +1156,67 @@ bool BlockStorage::ResetDB(DBTYPE type) {
   bool ret = false;
   switch (type) {
     case META: {
-      lock_guard<mutex> g(m_mutexMetadata);
+      unique_lock<shared_timed_mutex> g(m_mutexMetadata);
       ret = m_metadataDB->ResetDB();
       break;
     }
     case DS_BLOCK: {
-      lock_guard<mutex> g(m_mutexDsBlockchain);
+      unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
       ret = m_dsBlockchainDB->ResetDB();
       break;
     }
     case TX_BLOCK: {
-      lock_guard<mutex> g(m_mutexTxBlockchain);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockchainDB->ResetDB();
       break;
     }
     case TX_BODY: {
-      lock_guard<mutex> g(m_mutexTxBody);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBody);
       ret = m_txBodyDB->ResetDB();
       break;
     }
     case TX_BODY_TMP: {
-      lock_guard<mutex> g(m_mutexTxBodyTmp);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
       ret = m_txBodyTmpDB->ResetDB();
       break;
     }
     case MICROBLOCK: {
-      lock_guard<mutex> g(m_mutexMicroBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
       ret = m_microBlockDB->ResetDB();
       break;
     }
     case DS_COMMITTEE: {
-      lock_guard<mutex> g(m_mutexDsCommittee);
+      unique_lock<shared_timed_mutex> g(m_mutexDsCommittee);
       ret = m_dsCommitteeDB->ResetDB();
       break;
     }
     case VC_BLOCK: {
-      lock_guard<mutex> g(m_mutexVCBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->ResetDB();
       break;
     }
     case FB_BLOCK: {
-      lock_guard<mutex> g(m_mutexFallbackBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
       ret = m_fallbackBlockDB->ResetDB();
       break;
     }
     case BLOCKLINK: {
-      lock_guard<mutex> g(m_mutexBlockLink);
+      unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
       ret = m_blockLinkDB->ResetDB();
       break;
     }
     case SHARD_STRUCTURE: {
-      lock_guard<mutex> g(m_mutexShardStructure);
+      unique_lock<shared_timed_mutex> g(m_mutexShardStructure);
       ret = m_shardStructureDB->ResetDB();
       break;
     }
     case STATE_DELTA: {
-      lock_guard<mutex> g(m_mutexStateDelta);
+      unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->ResetDB();
       break;
     }
     case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
+      unique_lock<shared_timed_mutex> g(m_mutexTempState);
       ret = m_tempStateDB->ResetDB();
       break;
     }
@@ -1090,7 +1237,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     }
     case STATE_ROOT: {
-      lock_guard<mutex> g(m_mutexStateRoot);
+      unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
       ret = m_stateRootDB->ResetDB();
       break;
     }
@@ -1106,62 +1253,62 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
   bool ret = false;
   switch (type) {
     case META: {
-      lock_guard<mutex> g(m_mutexMetadata);
+      unique_lock<shared_timed_mutex> g(m_mutexMetadata);
       ret = m_metadataDB->RefreshDB();
       break;
     }
     case DS_BLOCK: {
-      lock_guard<mutex> g(m_mutexDsBlockchain);
+      unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
       ret = m_dsBlockchainDB->RefreshDB();
       break;
     }
     case TX_BLOCK: {
-      lock_guard<mutex> g(m_mutexTxBlockchain);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockchainDB->RefreshDB();
       break;
     }
     case TX_BODY: {
-      lock_guard<mutex> g(m_mutexTxBody);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBody);
       ret = m_txBodyDB->RefreshDB();
       break;
     }
     case TX_BODY_TMP: {
-      lock_guard<mutex> g(m_mutexTxBodyTmp);
+      unique_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
       ret = m_txBodyTmpDB->RefreshDB();
       break;
     }
     case MICROBLOCK: {
-      lock_guard<mutex> g(m_mutexMicroBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
       ret = m_microBlockDB->RefreshDB();
       break;
     }
     case DS_COMMITTEE: {
-      lock_guard<mutex> g(m_mutexDsCommittee);
+      unique_lock<shared_timed_mutex> g(m_mutexDsCommittee);
       ret = m_dsCommitteeDB->RefreshDB();
       break;
     }
     case VC_BLOCK: {
-      lock_guard<mutex> g(m_mutexVCBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->RefreshDB();
       break;
     }
     case FB_BLOCK: {
-      lock_guard<mutex> g(m_mutexFallbackBlock);
+      unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
       ret = m_fallbackBlockDB->RefreshDB();
       break;
     }
     case BLOCKLINK: {
-      lock_guard<mutex> g(m_mutexBlockLink);
+      unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
       ret = m_blockLinkDB->RefreshDB();
       break;
     }
     case SHARD_STRUCTURE: {
-      lock_guard<mutex> g(m_mutexShardStructure);
+      unique_lock<shared_timed_mutex> g(m_mutexShardStructure);
       ret = m_shardStructureDB->RefreshDB();
       break;
     }
     case STATE_DELTA: {
-      lock_guard<mutex> g(m_mutexStateDelta);
+      unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->RefreshDB();
       break;
     }
@@ -1182,12 +1329,12 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       break;
     }
     case STATE_ROOT: {
-      lock_guard<mutex> g(m_mutexStateRoot);
+      unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
       ret = m_stateRootDB->RefreshDB();
       break;
     }
     case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
+      unique_lock<shared_timed_mutex> g(m_mutexTempState);
       ret = m_tempStateDB->RefreshDB();
       break;
     }
@@ -1202,68 +1349,69 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
   std::vector<std::string> ret;
   switch (type) {
     case META: {
-      lock_guard<mutex> g(m_mutexMetadata);
+      shared_lock<shared_timed_mutex> g(m_mutexMetadata);
       ret.push_back(m_metadataDB->GetDBName());
       break;
     }
     case DS_BLOCK: {
-      lock_guard<mutex> g(m_mutexDsBlockchain);
+      shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
       ret.push_back(m_dsBlockchainDB->GetDBName());
       break;
     }
     case TX_BLOCK: {
-      lock_guard<mutex> g(m_mutexTxBlockchain);
+      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret.push_back(m_txBlockchainDB->GetDBName());
       break;
     }
     case TX_BODY: {
-      lock_guard<mutex> g(m_mutexTxBody);
+      shared_lock<shared_timed_mutex> g(m_mutexTxBody);
       ret.push_back(m_txBodyDB->GetDBName());
       break;
     }
     case TX_BODY_TMP: {
-      lock_guard<mutex> g(m_mutexTxBodyTmp);
+      shared_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
       ret.push_back(m_txBodyTmpDB->GetDBName());
       break;
     }
     case MICROBLOCK: {
-      lock_guard<mutex> g(m_mutexMicroBlock);
+      shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
       ret.push_back(m_microBlockDB->GetDBName());
       break;
     }
     case DS_COMMITTEE: {
-      lock_guard<mutex> g(m_mutexDsCommittee);
+      shared_lock<shared_timed_mutex> g(m_mutexDsCommittee);
       ret.push_back(m_dsCommitteeDB->GetDBName());
       break;
     }
     case VC_BLOCK: {
-      lock_guard<mutex> g(m_mutexVCBlock);
+      shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret.push_back(m_VCBlockDB->GetDBName());
       break;
     }
     case FB_BLOCK: {
-      lock_guard<mutex> g(m_mutexFallbackBlock);
+      shared_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
       ret.push_back(m_fallbackBlockDB->GetDBName());
       break;
     }
     case BLOCKLINK: {
-      lock_guard<mutex> g(m_mutexBlockLink);
+      shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
       ret.push_back(m_blockLinkDB->GetDBName());
       break;
     }
     case SHARD_STRUCTURE: {
-      lock_guard<mutex> g(m_mutexShardStructure);
+      shared_lock<shared_timed_mutex> g(m_mutexShardStructure);
       ret.push_back(m_shardStructureDB->GetDBName());
       break;
     }
     case STATE_DELTA: {
-      lock_guard<mutex> g(m_mutexStateDelta);
+      shared_lock<shared_timed_mutex> g(m_mutexStateDelta);
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
     }
     case TEMP_STATE: {
-      lock_guard<mutex> g(m_mutexTempState);
+      shared_lock<shared_timed_mutex> g(m_mutexTempState);
       ret.push_back(m_tempStateDB->GetDBName());
+      break;
     }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
@@ -1276,7 +1424,7 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       break;
     }
     case STATE_ROOT: {
-      lock_guard<mutex> g(m_mutexStateRoot);
+      shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
       ret.push_back(m_stateRootDB->GetDBName());
       break;
     }
@@ -1315,15 +1463,18 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
            RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
            RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT);
+           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+           Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
            RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT);
+           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT) &
+           Contract::ContractStorage::GetContractStorage().RefreshAll();
   }
 }

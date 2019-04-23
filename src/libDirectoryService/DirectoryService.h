@@ -292,6 +292,8 @@ class DirectoryService : public Executable {
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromLeader,
                          const MapOfPubKeyPoW& priorityNodePoWs);
+  bool VerifyPoWFromLeader(const Peer& peer, const PubKey& pubKey,
+                           const PoWSolution& powSoln);
   bool VerifyNodePriority(const DequeOfShard& shards,
                           MapOfPubKeyPoW& priorityNodePoWs);
 
@@ -416,6 +418,7 @@ class DirectoryService : public Executable {
   bool VCFetchLatestDSTxBlockFromSeedNodes();
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
+  void CleanUpViewChange(bool isPrecheckFail);
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
@@ -554,14 +557,14 @@ class DirectoryService : public Executable {
   void IncrementConsensusMyID();
 
   /// Start synchronization with lookup as a DS node
-  void StartSynchronization();
+  void StartSynchronization(bool clean = true);
 
   /// Launches separate thread to execute sharding consensus after wait_window
   /// seconds.
   void ScheduleShardingConsensus(const unsigned int wait_window);
 
   /// Rejoin the network as a DS node in case of failure happens in protocol
-  void RejoinAsDS();
+  void RejoinAsDS(bool modeCheck = true);
 
   /// Post processing after the DS node successfully synchronized with the
   /// network
@@ -627,9 +630,11 @@ class DirectoryService : public Executable {
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
+  std::string GetStateString() const;
+
  private:
   static std::map<DirState, std::string> DirStateStrings;
-  std::string GetStateString() const;
+
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);

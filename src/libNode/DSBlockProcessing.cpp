@@ -248,7 +248,14 @@ void Node::StartFirstTxEpoch() {
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
-  Blacklist::GetInstance().Clear();
+  // blacklist pop for shard nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
+  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -421,6 +428,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           dsblock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
                 "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
+    if (dsblock.GetHeader().GetBlockNum() >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1) {
+      if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+        m_mediator.m_lookup->RejoinAsNewLookup();
+      }
+    }
     return false;
   }
 
@@ -628,6 +642,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
+    // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {

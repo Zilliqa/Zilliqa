@@ -72,6 +72,32 @@ void Blacklist::Clear() {
   LOG_GENERAL(INFO, "Blacklist cleared");
 }
 
+void Blacklist::Pop(unsigned int num_to_pop) {
+  if (!m_enabled) {
+    return;
+  }
+
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistIP.size());
+
+  unsigned int counter = 0;
+  for (auto it = m_blacklistIP.begin(); it != m_blacklistIP.end();) {
+    if (counter < num_to_pop) {
+      it = m_blacklistIP.erase(it);
+      counter++;
+    } else {
+      break;
+    }
+  }
+
+  LOG_GENERAL(INFO, "Removed " << counter << " nodes from blacklist");
+}
+
+unsigned int Blacklist::SizeOfBlacklist() {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  return m_blacklistIP.size();
+}
+
 void Blacklist::Enable(const bool enable) {
   if (!enable) {
     Clear();
@@ -80,18 +106,18 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
-void Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
   if (!m_enabled) {
-    return;
+    return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_excludedIP.emplace(ip);
+  return m_excludedIP.emplace(ip).second;
 }
 
-void Blacklist::RemoveExclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::RemoveExclude(const boost::multiprecision::uint128_t& ip) {
   if (!m_enabled) {
-    return;
+    return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_excludedIP.erase(ip);
+  return (m_excludedIP.erase(ip) > 0);
 }

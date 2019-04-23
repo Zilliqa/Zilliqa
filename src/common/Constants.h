@@ -63,7 +63,6 @@ const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-const unsigned int SERVER_PORT = 4201;
 
 // Number of initial ds epoch number, including genesis epoch
 const unsigned int INIT_DS_EPOCH_NUM = 2;
@@ -78,6 +77,7 @@ enum MetaType : unsigned char {
   DSINCOMPLETED,
   LATESTACTIVEDSBLOCKNUM,
   WAKEUPFORUPGRADE,
+  LATEST_EPOCH_STATES_UPDATED,
 };
 
 // Sync Type
@@ -148,6 +148,7 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
+extern const unsigned int TXN_STORAGE_LIMIT;
 
 // Consensus constants
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
@@ -248,6 +249,12 @@ extern const unsigned int SHARD_LEADER_SELECT_TOL;
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 
+// RPC Constants
+extern const unsigned int RPC_PORT;
+extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
+extern const bool ENABLE_STATUS_RPC;  //
+extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
+
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
@@ -267,6 +274,8 @@ extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
 extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 extern const unsigned int CONNECTION_TIMEOUT_IN_SECONDS;
+extern const unsigned int BLACKLIST_NUM_TO_POP;
+extern const unsigned int MAX_PEER_CONNECTION;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
@@ -279,8 +288,8 @@ extern const bool GETWORK_SERVER_MINE;
 extern const unsigned int GETWORK_SERVER_PORT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
-extern const unsigned int POW_BOUNDARY_N_DEVIDED;
-extern const unsigned int POW_BOUNDARY_N_DEVIDED_START;
+extern const unsigned int POW_BOUNDARY_N_DIVIDED;
+extern const unsigned int POW_BOUNDARY_N_DIVIDED_START;
 extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int POW_CHANGE_TO_ADJ_DIFF;

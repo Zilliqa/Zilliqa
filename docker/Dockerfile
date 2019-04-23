@@ -49,9 +49,11 @@ RUN apt-get update \
     python \
     python-pip \
     libsecp256k1-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install setuptools \
+    && pip install request requests clint futures
 
-ARG ZILLIQA_VERSION=v4.3.0
+ARG ZILLIQA_VERSION=v4.5.1
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

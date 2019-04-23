@@ -15,18 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BASETYPE_H__
-#define __BASETYPE_H__
+#ifndef __MEMPOOL_ENUM_H__
+#define __MEMPOOL_ENUM_H__
 
-#include <stdint.h>
-#include <vector>
+enum PoolTxnStatus : uint8_t {
+  NOT_PRESENT = 0,
+  PRESENT_NONCE_HIGH,
+  PRESENT_GAS_EXCEEDED,
+  ERROR
+};
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
-using bytes = std::vector<uint8_t>;
-using uint128_t = boost::multiprecision::uint128_t;
-
-#endif  // __BASETYPE_H__
+#endif  //__MEMPOOL_ENUM_H__

@@ -156,11 +156,14 @@ Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
-  unsigned int status = system("./downloadIncrDB.py > downloadIncrDB-log.txt");
-  return status == 0;
+  string output;
+  // TBD - find better way to capture the exit status of command
+  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py", output);
+  return (output.find("Done!") != std::string::npos);
 }
 
-bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
+bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
+                   bool rejoiningAfterRecover) {
   LOG_MARKER();
 
   m_txn_distribute_window_open = false;
@@ -182,14 +185,15 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   }
 
   if (toRetrieveHistory) {
-    if (!StartRetrieveHistory(syncType)) {
+    if (!StartRetrieveHistory(syncType, rejoiningAfterRecover)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
     }
 
     if (SyncType::NEW_SYNC == syncType ||
-        SyncType::NEW_LOOKUP_SYNC == syncType) {
+        SyncType::NEW_LOOKUP_SYNC == syncType ||
+        (rejoiningAfterRecover && (SyncType::NORMAL_SYNC == syncType))) {
       return true;
     }
 
@@ -483,7 +487,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(const SyncType syncType) {
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool rejoiningAfterRecover) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -576,7 +581,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType) {
     return false;
   }
 
-  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType) {
+  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
+      (rejoiningAfterRecover &&
+       (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {
     return true;
   }
 
@@ -663,10 +670,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType) {
   /// Save coin base for final block, from last DS epoch to current TX epoch
   if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
-    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                                 .GetHeader()
-                                 .GetEpochNum() +
-                             1;
+    for (uint64_t blockNum =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -748,8 +753,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType) {
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
-                1,
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -1661,13 +1665,15 @@ void Node::RejoinAsNormal() {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         this->CleanVariables();
         this->m_mediator.m_ds->CleanVariables();
-        if (!this->DownloadPersistenceFromS3()) {
+        while (!this->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Rejoin might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
-        if (this->Install(SyncType::NORMAL_SYNC, true)) {
+        AccountStore::GetInstance().RefreshDB();
+        if (this->Install(SyncType::NORMAL_SYNC, true, true)) {
           break;
         };
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
@@ -1773,6 +1779,10 @@ void Node::CleanCreatedTransaction() {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     m_processedTransactions.clear();
     t_processedTransactions.clear();
+  }
+  {
+    std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
   }
   m_TxnOrder.clear();
   m_gasUsedTotal = 0;

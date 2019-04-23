@@ -58,7 +58,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
 
 DirectoryService::~DirectoryService() {}
 
-void DirectoryService::StartSynchronization() {
+void DirectoryService::StartSynchronization(bool clean) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartSynchronization not "
@@ -68,7 +68,9 @@ void DirectoryService::StartSynchronization() {
 
   LOG_MARKER();
 
-  this->CleanVariables();
+  if (clean) {
+    this->CleanVariables();
+  }
 
   if (!m_mediator.m_node->GetOfflineLookups()) {
     LOG_GENERAL(WARNING, "Cannot sync currently");
@@ -259,8 +261,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   }
 
   // Add ds guard to exclude list for ds comm at bootstrap
-  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-      *m_mediator.m_DSCommittee);
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
 
   SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
@@ -459,7 +464,7 @@ bool DirectoryService::CleanVariables() {
   return true;
 }
 
-void DirectoryService::RejoinAsDS() {
+void DirectoryService::RejoinAsDS(bool modeCheck) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RejoinAsDS not expected to be called "
@@ -469,24 +474,26 @@ void DirectoryService::RejoinAsDS() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
-      m_mode == BACKUP_DS) {
+      (m_mode == BACKUP_DS || !modeCheck)) {
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_mediator.m_node->CleanVariables();
         this->CleanVariables();
-        if (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
-              "Downloading persistence from S3 failed. Rejoin might fail!");
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
         BlockStorage::GetBlockStorage().RefreshAll();
+        AccountStore::GetInstance().RefreshDB();
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
-      this->StartSynchronization();
+      this->StartSynchronization(false);
     };
     DetachedFunction(1, func);
   }
@@ -1045,9 +1052,9 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
   int8_t MAX_ADJUST_STEP = 2;
-  if (currentDifficulty >= POW_BOUNDARY_N_DEVIDED_START) {
-    minDifficulty = POW_BOUNDARY_N_DEVIDED_START - 2;
-    MAX_ADJUST_STEP = POW_BOUNDARY_N_DEVIDED;
+  if (currentDifficulty >= POW_BOUNDARY_N_DIVIDED_START) {
+    minDifficulty = POW_BOUNDARY_N_DIVIDED_START - 2;
+    MAX_ADJUST_STEP = POW_BOUNDARY_N_DIVIDED;
   }
 
   int64_t adjustment = 0;

@@ -284,10 +284,9 @@ bool DirectoryService::VerifyPoWWinner(
   const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
-      if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "WARNING: Why is the IP of the winner different from "
-                  "what I have in m_allPoWConns???");
+      const auto& peer = m_allPoWConns.at(DSPowWinner.first);
+      if (peer != DSPowWinner.second) {
+        LOG_CHECK_FAIL("PoW Winner IP", DSPowWinner.second, peer);
         return false;
       }
     } else {
@@ -442,64 +441,27 @@ bool DirectoryService::VerifyPoWOrdering(
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
 
-        LOG_GENERAL(INFO,
-                    "Checking for the key and PoW in the announcement...");
-
-        auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
-        if (pubKeyToPoW != allPoWsFromLeader.end()) {
-          const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
-          const auto& powSoln = pubKeyToPoW->second;
-          auto headerHash = POW::GenHeaderHash(
-              m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-              peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
-
-          auto difficulty =
-              (GUARD_MODE &&
-               Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
-                  ? (POW_DIFFICULTY / POW_DIFFICULTY)
-                  : m_mediator.m_dsBlockChain.GetLastBlock()
-                        .GetHeader()
-                        .GetDifficulty();
-
-          string resultStr, mixHashStr;
-          if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
-            ret = false;
-            break;
-          }
-
-          if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
-            ret = false;
-            break;
-          }
-
-          if (!POW::GetInstance().PoWVerify(
-                  m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
-                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
-            LOG_GENERAL(WARNING,
-                        "Failed to verify PoW solution from leader for node: "
-                            << toFind);
-            ret = false;
-            break;
-          }
-
-          result = powSoln.result;
-          m_allPoWs[pubKeyToPoW->first] = powSoln;
-
-          m_allPoWConns.emplace(toFind, peer);
-
-          auto dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                  .GetHeader()
-                                  .GetDSDifficulty();
-
-          if (POW::GetInstance().PoWVerify(
-                  m_pendingDSBlock->GetHeader().GetBlockNum(), dsDifficulty,
-                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
-            AddDSPoWs(toFind, pubKeyToPoW->second);
-          }
+        if (m_allPoWs.find(toFind) != m_allPoWs.end()) {
+          result = m_allPoWs.at(toFind).result;
+          LOG_GENERAL(INFO, "Found the PoW from local PoW list");
         } else {
-          LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
-          ret = false;
-          break;
+          LOG_GENERAL(INFO,
+                      "Checking for the key and PoW in the announcement...");
+          auto pubKeyToPoW = allPoWsFromLeader.find(toFind);
+          if (pubKeyToPoW != allPoWsFromLeader.end()) {
+            const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
+            const auto& powSoln = pubKeyToPoW->second;
+            if (VerifyPoWFromLeader(peer, pubKeyToPoW->first, powSoln)) {
+              result = powSoln.result;
+            } else {
+              ret = false;
+              break;
+            }
+          } else {
+            LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
+            ret = false;
+            break;
+          }
         }
       } else {
         result = it->first;
@@ -562,6 +524,52 @@ bool DirectoryService::VerifyPoWOrdering(
     return false;
   }
   return ret;
+}
+
+bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
+                                           const PubKey& pubKey,
+                                           const PoWSolution& powSoln) {
+  auto headerHash = POW::GenHeaderHash(
+      m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer.m_ipAddress,
+      pubKey, powSoln.lookupId, powSoln.gasPrice);
+
+  auto difficulty =
+      (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey))
+          ? (POW_DIFFICULTY / POW_DIFFICULTY)
+          : m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDifficulty();
+
+  string resultStr, mixHashStr;
+  if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+    return false;
+  }
+
+  if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+    return false;
+  }
+
+  if (!POW::GetInstance().PoWVerify(m_pendingDSBlock->GetHeader().GetBlockNum(),
+                                    difficulty, headerHash, powSoln.nonce,
+                                    resultStr, mixHashStr)) {
+    LOG_GENERAL(WARNING, "Failed to verify PoW solution from leader for node: "
+                             << pubKey);
+    return false;
+  }
+
+  m_allPoWs[pubKey] = powSoln;
+
+  m_allPoWConns.emplace(pubKey, peer);
+
+  auto dsDifficulty =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
+
+  if (POW::GetInstance().PoWVerify(m_pendingDSBlock->GetHeader().GetBlockNum(),
+                                   dsDifficulty, headerHash, powSoln.nonce,
+                                   resultStr, mixHashStr)) {
+    AddDSPoWs(pubKey, powSoln);
+  }
+  return true;
 }
 
 bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
@@ -1093,7 +1101,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
 
   // FIXME: Prechecking not working due at epoch 1 due to the way we have low
   // blocknum
-  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum != 0) {
+  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum > 10) {
     LOG_EPOCH(
         WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");

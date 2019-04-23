@@ -28,6 +28,7 @@
 
 #include "common/Constants.h"
 #include "common/Executable.h"
+#include "common/MempoolEnum.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -122,6 +123,10 @@ class Node : public Executable {
   std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
+
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
+
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
@@ -215,6 +220,10 @@ class Node : public Executable {
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
+
+  void ReinstateMemPool(
+      const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
+      const std::vector<Transaction>& gasLimitExceededTxnBuffer);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -428,7 +437,8 @@ class Node : public Executable {
   ~Node();
 
   /// Install the Node
-  bool Install(const SyncType syncType, const bool toRetrieveHistory = true);
+  bool Install(const SyncType syncType, const bool toRetrieveHistory = true,
+               bool rejoiningAfterRecover = false);
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -454,7 +464,8 @@ class Node : public Executable {
   bool DownloadPersistenceFromS3();
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType);
+  bool StartRetrieveHistory(const SyncType syncType,
+                            bool rejoiningAfterRecover = false);
 
   bool ValidateDB();
 
@@ -575,6 +586,8 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
+  PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
+
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
@@ -590,9 +603,11 @@ class Node : public Executable {
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
+  std::string GetStateString() const;
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
-  std::string GetStateString() const;
+
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   /// Fallback Consensus Related

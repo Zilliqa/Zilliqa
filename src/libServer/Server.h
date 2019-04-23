@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
+#include "jsonrpccpp/server.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 #include <mutex>
+#include <random>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
@@ -160,6 +160,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetCurrentMiniEpochI);
+    this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
+                                              jsonrpc::PARAMS_BY_POSITION,
+                                              jsonrpc::JSON_STRING, NULL),
+                           &AbstractZServer::GetLatestEpochStatesUpdatedI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
@@ -214,6 +218,38 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                            "param01", jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetTransactionsForTxBlockI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetNodeType", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::GetNodeTypeI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, NULL),
+        &AbstractZServer::GetDSCommitteeI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetNodeState", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::GetNodeStateI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::IsTxnInMemPoolI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetShardMembersI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("AddToBlacklistExclusion",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::AddToBlacklistExclusionI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("RemoveFromBlacklistExclusion",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::RemoveFromBlacklistExclusionI);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
@@ -315,6 +351,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetCurrentMiniEpoch();
   }
+  inline virtual void GetLatestEpochStatesUpdatedI(const Json::Value& request,
+                                                   Json::Value& response) {
+    (void)request;
+    response = this->GetLatestEpochStatesUpdated();
+  }
   inline virtual void GetCurrentDSEpochI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
@@ -371,6 +412,38 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                                  Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
+  inline virtual void GetNodeTypeI(const Json::Value& request,
+                                   Json::Value& response) {
+    (void)request;
+    response = this->GetNodeType();
+  }
+  inline virtual void GetDSCommitteeI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->GetDSCommittee();
+  }
+  inline virtual void GetNodeStateI(const Json::Value& request,
+                                    Json::Value& response) {
+    (void)request;
+    response = this->GetNodeState();
+  }
+
+  inline virtual void IsTxnInMemPoolI(const Json::Value& request,
+                                      Json::Value& response) {
+    response = this->IsTxnInMemPool(request[0u].asString());
+  }
+  inline virtual void GetShardMembersI(const Json::Value& request,
+                                       Json::Value& response) {
+    response = this->GetShardMembers(request[0u].asUInt());
+  }
+  inline virtual void AddToBlacklistExclusionI(const Json::Value& request,
+                                               Json::Value& response) {
+    response = this->AddToBlacklistExclusion(request[0u].asString());
+  }
+  inline virtual void RemoveFromBlacklistExclusionI(const Json::Value& request,
+                                                    Json::Value& response) {
+    response = this->RemoveFromBlacklistExclusion(request[0u].asString());
+  }
   virtual std::string GetNetworkId() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
@@ -393,6 +466,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual uint8_t GetPrevDSDifficulty() = 0;
   virtual uint8_t GetPrevDifficulty() = 0;
   virtual std::string GetCurrentMiniEpoch() = 0;
+  virtual std::string GetLatestEpochStatesUpdated() = 0;
   virtual std::string GetCurrentDSEpoch() = 0;
   virtual Json::Value DSBlockListing(unsigned int param01) = 0;
   virtual Json::Value TxBlockListing(unsigned int param01) = 0;
@@ -405,6 +479,14 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetSmartContractInit(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
   virtual Json::Value GetTransactionsForTxBlock(const std::string& param01) = 0;
+  virtual std::string GetNodeType() = 0;
+  virtual Json::Value GetDSCommittee() = 0;
+  virtual std::string GetNodeState() = 0;
+
+  virtual Json::Value IsTxnInMemPool(const std::string& param01) = 0;
+  virtual Json::Value GetShardMembers(unsigned int param01) = 0;
+  virtual bool AddToBlacklistExclusion(const std::string& ipAddr) = 0;
+  virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -423,9 +505,10 @@ class Server : public AbstractZServer {
   std::pair<uint64_t, CircularArray<std::string>> m_TxBlockCache;
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
+  std::mt19937 m_eng;
 
  public:
-  Server(Mediator& mediator, jsonrpc::HttpServer& httpserver);
+  Server(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~Server();
 
   virtual std::string GetNetworkId();
@@ -450,6 +533,7 @@ class Server : public AbstractZServer {
   virtual uint8_t GetPrevDSDifficulty();
   virtual uint8_t GetPrevDifficulty();
   virtual std::string GetCurrentMiniEpoch();
+  virtual std::string GetLatestEpochStatesUpdated();
   virtual std::string GetCurrentDSEpoch();
   virtual Json::Value DSBlockListing(unsigned int page);
   virtual Json::Value TxBlockListing(unsigned int page);
@@ -458,13 +542,25 @@ class Server : public AbstractZServer {
   virtual Json::Value GetShardingStructure();
   virtual std::string GetNumTxnsDSEpoch();
   virtual std::string GetNumTxnsTxEpoch();
+  virtual std::string GetNodeType();
+  virtual Json::Value GetDSCommittee();
+
+  virtual Json::Value IsTxnInMemPool(const std::string& tranID);
+  virtual Json::Value GetShardMembers(unsigned int shardID);
+
+  virtual bool AddToBlacklistExclusion(const std::string& ipAddr);
+  virtual bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
+
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
   size_t GetNumTransactions(uint64_t blockNum);
+  bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                   const Account* sender) const;
   ContractType GetTransactionType(const Transaction& tx) const;
   bool StartCollectorThread();
+  std::string GetNodeState();
 
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);

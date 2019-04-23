@@ -24,12 +24,15 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
-#include <jsonrpccpp/client.h>
-#include <jsonrpccpp/client/connectors/httpclient.h>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#include "jsonrpccpp/client.h"
+#include "jsonrpccpp/client/connectors/httpclient.h"
+#pragma GCC diagnostic pop
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"

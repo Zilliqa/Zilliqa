@@ -17,8 +17,8 @@
 
 #include "JSONConversion.h"
 
-#include <jsonrpccpp/server.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include "depends/jsonrpc/include/jsonrpccpp/server.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "Server.h"
+#include "common/MempoolEnum.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -35,6 +36,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
@@ -55,8 +57,8 @@ const unsigned int TXN_PAGE_SIZE = 100;
 //[warning] do not make this constant too big as it loops over blockchain
 const unsigned int REF_BLOCK_DIFF = 1;
 
-Server::Server(Mediator& mediator, HttpServer& httpserver)
-    : AbstractZServer(httpserver), m_mediator(mediator) {
+Server::Server(Mediator& mediator, AbstractServerConnector& server)
+    : AbstractZServer(server), m_mediator(mediator) {
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -66,13 +68,20 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
   m_RecentTransactions.resize(TXN_PAGE_SIZE);
   m_TxBlockCountSumPair.first = 0;
   m_TxBlockCountSumPair.second = 0;
+  random_device rd;
+  m_eng = mt19937(rd());
 }
 
 Server::~Server(){
     // destructor
 };
 
-string Server::GetNetworkId() { return to_string(CHAIN_ID); }
+string Server::GetNetworkId() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  return to_string(CHAIN_ID);
+}
 
 bool Server::StartCollectorThread() {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
@@ -114,9 +123,7 @@ bool Server::StartCollectorThread() {
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
         {
           lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
-          if (m_mediator.m_lookup->m_txnShardMap.find(i) ==
-                  m_mediator.m_lookup->m_txnShardMap.end() ||
-              m_mediator.m_lookup->m_txnShardMap.at(i).empty()) {
+          if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
             continue;
           }
           hasTxn = true;
@@ -130,21 +137,19 @@ bool Server::StartCollectorThread() {
 
       bytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
-      auto upperLayerNodes = m_mediator.m_lookup->GetAboveLayer();
-      auto upperLayerNode = upperLayerNodes.at(rand() % upperLayerNodes.size());
-
-      if (!Messenger::SetForwardTxnBlockFromSeed(
-              msg, MessageOffset::BODY,
-              m_mediator.m_lookup
-                  ->m_txnShardMap[SEND_TYPE::ARCHIVAL_SEND_SHARD],
-              m_mediator.m_lookup
-                  ->m_txnShardMap[SEND_TYPE::ARCHIVAL_SEND_DS])) {
-        continue;
+      {
+        lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
+        if (!Messenger::SetForwardTxnBlockFromSeed(
+                msg, MessageOffset::BODY,
+                m_mediator.m_lookup->GetTxnFromShardMap(
+                    SEND_TYPE::ARCHIVAL_SEND_SHARD),
+                m_mediator.m_lookup->GetTxnFromShardMap(
+                    SEND_TYPE::ARCHIVAL_SEND_DS))) {
+          continue;
+        }
       }
 
-      LOG_GENERAL(INFO, "Sent to " << upperLayerNode);
-
-      P2PComm::GetInstance().SendMessage(upperLayerNode, msg);
+      m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
 
       for (auto const& i :
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
@@ -156,8 +161,55 @@ bool Server::StartCollectorThread() {
   return true;
 }
 
+bool Server::ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                         const Account* sender) const {
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
+  }
+
+  if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
+    throw JsonRpcException(RPC_VERIFY_REJECTED, "Code size is too large");
+  }
+
+  if (tx.GetGasPrice() <
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
+    throw JsonRpcException(RPC_VERIFY_REJECTED,
+                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
+                               " lower than minimum allowable " +
+                               m_mediator.m_dsBlockChain.GetLastBlock()
+                                   .GetHeader()
+                                   .GetGasPrice()
+                                   .convert_to<string>());
+  }
+  if (!m_mediator.m_validator->VerifyTransaction(tx)) {
+    throw JsonRpcException(RPC_VERIFY_REJECTED, "Unable to verify transaction");
+  }
+
+  unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+
+  if (fromAddr == Address()) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Invalid address for issuing transactions");
+  }
+
+  if (sender == nullptr) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "The sender of the txn has no balance");
+  }
+
+  if (num_shards == 0) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
+  }
+
+  return true;
+}
+
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
@@ -166,92 +218,40 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
-    if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-      throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
-    }
-
-    if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
-      throw JsonRpcException(RPC_VERIFY_REJECTED, "Code size is too large");
-    }
-
-    if (tx.GetGasPrice() <
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
-      throw JsonRpcException(RPC_VERIFY_REJECTED,
-                             "GasPrice " +
-                                 tx.GetGasPrice().convert_to<string>() +
-                                 " lower than minimum allowable " +
-                                 m_mediator.m_dsBlockChain.GetLastBlock()
-                                     .GetHeader()
-                                     .GetGasPrice()
-                                     .convert_to<string>());
-    }
-
-    if (!m_mediator.m_validator->VerifyTransaction(tx)) {
-      throw JsonRpcException(RPC_VERIFY_REJECTED,
-                             "Unable to verify transaction");
-    }
-
-    // LOG_GENERAL(INFO, "Nonce: "<<tx.GetNonce().str()<<" toAddr:
-    // "<<tx.GetToAddr().hex()<<" senderPubKey:
-    // "<<static_cast<string>(tx.GetSenderPubKey());<<" amount:
-    // "<<tx.GetAmount().str());
-
-    unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+    Json::Value ret;
 
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-    if (fromAddr == Address()) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Invalid address for issuing transactions");
+    if (!ValidateTxn(tx, fromAddr, sender)) {
+      return ret;
     }
 
-    if (sender == nullptr) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "The sender of the txn has no balance");
-    }
-
-    Json::Value ret;
-
-    if (num_shards == 0) {
-      throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
-    }
-
-    unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    const unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+    const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    unsigned int mapIndex = shard;
     switch (GetTransactionType(tx)) {
       case NON_CONTRACT:
-        if (!ARCHIVAL_LOOKUP) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-        } else {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+        if (ARCHIVAL_LOOKUP) {
+          mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
         ret["Info"] = "Non-contract txn, sent to shard";
-        ret["TranID"] = tx.GetTranID().hex();
-        return ret;
         break;
       case CONTRACT_CREATION:
         if (!ENABLE_SC) {
-          ret["Info"] = "Smart contract is disabled";
-          return ret;
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        if (!ARCHIVAL_LOOKUP) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-        } else {
-          m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
+        if (ARCHIVAL_LOOKUP) {
+          mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
         ret["Info"] = "Contract Creation txn, sent to shard";
-        ret["TranID"] = tx.GetTranID().hex();
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
-        return ret;
         break;
       case CONTRACT_CALL: {
         if (!ENABLE_SC) {
-          ret["Info"] = "Smart contract is disabled";
-          return ret;
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
         const Account* account =
             AccountStore::GetInstance().GetAccount(tx.GetToAddr());
@@ -272,29 +272,21 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           sendToDs = _json["priority"].asBool();
         }
         if ((to_shard == shard) && !sendToDs) {
-          if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-          } else {
-            m_mediator.m_lookup->AddToTxnShardMap(
-                tx, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+          if (ARCHIVAL_LOOKUP) {
+            mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
           }
           ret["Info"] =
               "Contract Txn, Shards Match of the sender "
               "and reciever";
-          ret["TranID"] = tx.GetTranID().hex();
         } else {
-          if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+          if (ARCHIVAL_LOOKUP) {
+            mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
           } else {
-            m_mediator.m_lookup->AddToTxnShardMap(tx,
-                                                  SEND_TYPE::ARCHIVAL_SEND_DS);
+            mapIndex = num_shards;
           }
           ret["Info"] = "Contract Txn, Sent To Ds";
-          ret["TranID"] = tx.GetTranID().hex();
         }
-        return ret;
       } break;
-
       case ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "Code is empty and To addr is null");
@@ -302,6 +294,12 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
+    if (!m_mediator.m_lookup->AddToTxnShardMap(tx, mapIndex)) {
+      throw JsonRpcException(RPC_DATABASE_ERROR,
+                             "Txn could not be added as database exceeded "
+                             "limit or the txn was already present");
+    }
+    ret["TranID"] = tx.GetTranID().hex();
     return ret;
   } catch (const JsonRpcException& je) {
     throw je;
@@ -332,6 +330,10 @@ Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
 Json::Value Server::GetTransaction(const string& transactionHash) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
@@ -360,6 +362,10 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
 }
 
 Json::Value Server::GetDsBlock(const string& blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertDSblocktoJson(
@@ -382,6 +388,10 @@ Json::Value Server::GetDsBlock(const string& blockNum) {
 }
 
 Json::Value Server::GetTxBlock(const string& blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertTxBlocktoJson(
@@ -404,6 +414,10 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
 }
 
 string Server::GetMinimumGasPrice() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock()
       .GetHeader()
       .GetGasPrice()
@@ -411,6 +425,10 @@ string Server::GetMinimumGasPrice() {
 }
 
 Json::Value Server::GetLatestDsBlock() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   LOG_MARKER();
   DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
@@ -423,6 +441,11 @@ Json::Value Server::GetLatestDsBlock() {
 
 Json::Value Server::GetLatestTxBlock() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -434,6 +457,10 @@ Json::Value Server::GetLatestTxBlock() {
 
 Json::Value Server::GetBalance(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -473,6 +500,10 @@ Json::Value Server::GetBalance(const string& address) {
 Json::Value Server::GetSmartContractState(const string& address) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -509,6 +540,10 @@ Json::Value Server::GetSmartContractState(const string& address) {
 Json::Value Server::GetSmartContractInit(const string& address) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -543,6 +578,10 @@ Json::Value Server::GetSmartContractInit(const string& address) {
 
 Json::Value Server::GetSmartContractCode(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
@@ -579,6 +618,11 @@ Json::Value Server::GetSmartContractCode(const string& address) {
 
 Json::Value Server::GetSmartContracts(const string& address) {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
@@ -630,6 +674,10 @@ Json::Value Server::GetSmartContracts(const string& address) {
 }
 
 string Server::GetContractAddressFromTransactionID(const string& tranID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(tranID);
@@ -658,8 +706,55 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
   }
 }
 
+Json::Value Server::IsTxnInMemPool(const string& tranID) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a lookup");
+  }
+  try {
+    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    TxnHash tranHash(tranID);
+    Json::Value _json;
+
+    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
+      case PoolTxnStatus::NOT_PRESENT:
+        _json["present"] = false;
+        _json["code"] = PoolTxnStatus::NOT_PRESENT;
+        return _json;
+      case PoolTxnStatus::PRESENT_NONCE_HIGH:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
+        _json["info"] = "Nonce too high";
+        return _json;
+      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
+        _json["present"] = true;
+        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
+        _json["info"] = "Could not fit in as microblock gas limit reached";
+        return _json;
+      case PoolTxnStatus::ERROR:
+        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
+  }
+}
+
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
   return numPeers + m_mediator.m_DSCommittee->size();
@@ -668,25 +763,45 @@ unsigned int Server::GetNumPeers() {
 string Server::GetNumTxBlocks() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return to_string(m_mediator.m_txBlockChain.GetBlockCount());
 }
 
 string Server::GetNumDSBlocks() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return to_string(m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 uint8_t Server::GetPrevDSDifficulty() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
 }
 
 uint8_t Server::GetPrevDifficulty() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
 }
 
 string Server::GetNumTransactions() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   lock_guard<mutex> g(m_mutexBlockTxPair);
 
@@ -704,6 +819,10 @@ string Server::GetNumTransactions() {
 }
 
 size_t Server::GetNumTransactions(uint64_t blockNum) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -721,6 +840,10 @@ size_t Server::GetNumTransactions(uint64_t blockNum) {
 }
 double Server::GetTransactionRate() {
   LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
 
   uint64_t refBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -776,6 +899,10 @@ double Server::GetTransactionRate() {
 double Server::GetDSBlockRate() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
   boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
@@ -812,6 +939,10 @@ double Server::GetDSBlockRate() {
 double Server::GetTxBlockRate() {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
   string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
   boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
 
@@ -847,6 +978,15 @@ string Server::GetCurrentMiniEpoch() {
   return to_string(m_mediator.m_currentEpochNum);
 }
 
+string Server::GetLatestEpochStatesUpdated() {
+  LOG_MARKER();
+  uint64_t epochNum;
+  if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(epochNum)) {
+    return "";
+  }
+  return to_string(epochNum);
+}
+
 string Server::GetCurrentDSEpoch() {
   LOG_MARKER();
 
@@ -856,7 +996,9 @@ string Server::GetCurrentDSEpoch() {
 
 Json::Value Server::DSBlockListing(unsigned int page) {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t currBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
@@ -948,7 +1090,9 @@ Json::Value Server::DSBlockListing(unsigned int page) {
 
 Json::Value Server::TxBlockListing(unsigned int page) {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
@@ -1041,7 +1185,9 @@ Json::Value Server::TxBlockListing(unsigned int page) {
 
 Json::Value Server::GetBlockchainInfo() {
   Json::Value _json;
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   _json["NumPeers"] = Server::GetNumPeers();
   _json["NumTxBlocks"] = Server::GetNumTxBlocks();
   _json["NumDSBlocks"] = Server::GetNumDSBlocks();
@@ -1050,6 +1196,7 @@ Json::Value Server::GetBlockchainInfo() {
   _json["TxBlockRate"] = Server::GetTxBlockRate();
   _json["DSBlockRate"] = Server::GetDSBlockRate();
   _json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
+  _json["LatestEpochStatesUpdated"] = Server::GetLatestEpochStatesUpdated();
   _json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
   _json["NumTxnsDSEpoch"] = Server::GetNumTxnsDSEpoch();
   _json["NumTxnsTxEpoch"] = Server::GetNumTxnsTxEpoch();
@@ -1060,7 +1207,9 @@ Json::Value Server::GetBlockchainInfo() {
 
 Json::Value Server::GetRecentTransactions() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   lock_guard<mutex> g(m_mutexRecentTxns);
   Json::Value _json;
   uint64_t actualSize(m_RecentTransactions.capacity());
@@ -1083,7 +1232,9 @@ void Server::AddToRecentTransactions(const TxnHash& txhash) {
 }
 Json::Value Server::GetShardingStructure() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     Json::Value _json;
 
@@ -1110,7 +1261,9 @@ Json::Value Server::GetShardingStructure() {
 
 string Server::GetNumTxnsTxEpoch() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     return to_string(
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
@@ -1124,7 +1277,9 @@ string Server::GetNumTxnsTxEpoch() {
 
 string Server::GetNumTxnsDSEpoch() {
   LOG_MARKER();
-
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   try {
     auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
     auto latestTxBlockNum = latestTxBlock.GetBlockNum();
@@ -1173,7 +1328,9 @@ string Server::GetNumTxnsDSEpoch() {
 
 Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
   LOG_MARKER();
-  // LOG_GENERAL(INFO, txBlockNum << " " << shardID);
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   uint64_t txNum;
   Json::Value _json = Json::arrayValue;
   try {
@@ -1228,4 +1385,159 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum) {
   }
 
   return _json;
+}
+
+string Server::GetNodeType() {
+  if (!m_mediator.m_lookup->AlreadyJoinedNetwork()) {
+    return "Not in network";
+  } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    return "Seed";
+  } else if (LOOKUP_NODE_MODE) {
+    return "Lookup";
+  } else if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    return "DS Node";
+  } else {
+    return string("Shard Node of shard") +
+           to_string(m_mediator.m_node->GetShardId());
+  }
+}
+
+Json::Value Server::GetDSCommittee() {
+  if (m_mediator.m_DSCommittee == NULL) {
+    throw JsonRpcException(RPC_INTERNAL_ERROR, "DS Committee empty");
+  }
+
+  lock_guard<mutex>(m_mediator.m_mutexDSCommittee);
+
+  const DequeOfNode& dq = *m_mediator.m_DSCommittee;
+
+  return JSONConversion::convertDequeOfNode(dq);
+}
+
+string Server::GetNodeState() {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+    return m_mediator.m_node->GetStateString();
+  } else {
+    return m_mediator.m_ds->GetStateString();
+  }
+}
+
+vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
+  // case when the number required is greater than total numbers being shuffled
+  if (size < num) {
+    num = size;
+  }
+  if (num == 0) {
+    return vector<uint>();
+  }
+  vector<uint> v(num);
+
+  for (uint i = 0; i < num; i++) {
+    uniform_int_distribution<> dis(
+        0, size - i - 1);  // random num between 0 to i-1
+    uint x = dis(eng);
+    uint j = 0;
+    for (j = 0; j < i; j++) {
+      if (x < v.at(j)) {
+        break;
+      }
+      x++;
+    }
+    for (uint k = j + 1; k <= i; k++) {
+      v.at(i + j + 1 - k) = v.at(i + j - k);
+    }
+    v.at(j) = x;
+  }
+  return v;
+}
+
+Json::Value Server::GetShardMembers(unsigned int shardID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  const auto shards = m_mediator.m_lookup->GetShardPeers();
+  const auto& num_shards = shards.size();
+  if (num_shards <= shardID) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shard ID");
+  }
+  Json::Value _json;
+  try {
+    const auto& shard = shards.at(shardID);
+    if (shard.empty()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard size 0");
+    }
+
+    auto random_vec =
+        GenUniqueIndices(shard.size(), NUM_SHARD_PEER_TO_REVEAL, m_eng);
+    for (auto const& x : random_vec) {
+      const auto& node = shard.at(x);
+      _json.append(JSONConversion::convertNode(node));
+    }
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool Server::AddToBlacklistExclusion(const string& ipAddr) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+
+  try {
+    boost::multiprecision::uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().Exclude(numIP)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not add IP Address in exclusion list, already present");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool Server::RemoveFromBlacklistExclusion(const string& ipAddr) {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+
+  try {
+    boost::multiprecision::uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().RemoveExclude(numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not remove IP Address from exclusion list");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
 }

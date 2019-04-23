@@ -288,12 +288,13 @@ void DirectoryService::RunConsensusOnViewChange() {
       LOG_GENERAL(WARNING,
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
                   "whole network.");
+      CleanUpViewChange(true);
       RejoinAsDS();
       return;
     }
   }
 
-  Blacklist::GetInstance().Clear();
+  // Blacklist::GetInstance().Clear();
 
   uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
