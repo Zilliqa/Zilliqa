@@ -70,6 +70,7 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 void Node::PopulateAccounts(bool temp) {
   if (!ENABLE_ACCOUNTS_POPULATING) {
+    LOG_GENERAL(INFO, "Accounts Pregen is not enabled");
     return;
   }
 
