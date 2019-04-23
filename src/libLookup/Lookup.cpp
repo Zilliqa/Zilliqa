@@ -3418,7 +3418,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
-      return true;
     }
 
     if (m_syncType == SyncType::DS_SYNC ||
