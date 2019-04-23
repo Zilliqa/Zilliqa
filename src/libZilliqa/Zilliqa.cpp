@@ -158,12 +158,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   m_validator = make_shared<Validator>(m_mediator);
 
   if (LOOKUP_NODE_MODE) {
-    m_lookupServerConnector = make_unique<SafeHttpServer>(RPC_PORT);
+    m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
     m_lookupServer =
         make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
   }
   m_statusServerConnector =
-      make_unique<SafeTcpSocketServer>(IP_TO_BIND, RPC_PORT + 1);
+      make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
   m_statusServer =
       make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
   if (m_statusServer == nullptr) {

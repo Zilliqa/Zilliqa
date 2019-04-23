@@ -23,53 +23,7 @@
 class StatusServer : public Server,
                      public jsonrpc::AbstractServer<StatusServer> {
  public:
-  StatusServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server)
-      : Server(mediator),
-        jsonrpc::AbstractServer<StatusServer>(server,
-                                              jsonrpc::JSONRPC_SERVER_V2) {
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &Server::GetCurrentMiniEpochI);
-
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &Server::GetCurrentDSEpochI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetNodeType", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &Server::GetNodeTypeI);
-
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetNodeState", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &StatusServer::GetNodeStateI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("IsTxnInMemPool", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_OBJECT, "param01",
-                           jsonrpc::JSON_STRING, NULL),
-        &StatusServer::IsTxnInMemPoolI);
-
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("AddToBlacklistExclusion",
-                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
-                           "param01", jsonrpc::JSON_STRING, NULL),
-        &StatusServer::AddToBlacklistExclusionI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("RemoveFromBlacklistExclusion",
-                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
-                           "param01", jsonrpc::JSON_STRING, NULL),
-        &StatusServer::RemoveFromBlacklistExclusionI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_OBJECT, NULL),
-        &StatusServer::GetDSCommitteeI);
-    this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
-                                              jsonrpc::PARAMS_BY_POSITION,
-                                              jsonrpc::JSON_STRING, NULL),
-                           &StatusServer::GetLatestEpochStatesUpdatedI);
-  }
+  StatusServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   inline virtual void GetNodeStateI(const Json::Value& request,
                                     Json::Value& response) {
     (void)request;

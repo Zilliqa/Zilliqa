@@ -95,3 +95,11 @@ string Server::GetNodeType() {
            to_string(m_mediator.m_node->GetShardId());
   }
 }
+
+uint8_t Server::GetPrevDSDifficulty() {
+  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
+}
+
+uint8_t Server::GetPrevDifficulty() {
+  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
+}

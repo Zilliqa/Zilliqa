@@ -18,13 +18,9 @@
 #ifndef __SERVER_H__
 #define __SERVER_H__
 
-#include "jsonrpccpp/server.h"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <mutex>
 #include <random>
+#include "jsonrpccpp/server.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 #include "libMediator/Mediator.h"
@@ -94,9 +90,22 @@ class Server {
     response = this->GetNodeType();
   }
 
+  inline virtual void GetPrevDSDifficultyI(const Json::Value& request,
+                                           Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDSDifficulty();
+  }
+  inline virtual void GetPrevDifficultyI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDifficulty();
+  }
+
   virtual std::string GetCurrentMiniEpoch();
   virtual std::string GetCurrentDSEpoch();
   virtual std::string GetNodeType();
+  virtual uint8_t GetPrevDSDifficulty();
+  virtual uint8_t GetPrevDifficulty();
   ContractType GetTransactionType(const Transaction& tx) const;
 };
 

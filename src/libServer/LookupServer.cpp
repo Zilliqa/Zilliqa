@@ -109,11 +109,11 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
-      &LookupServer::GetPrevDSDifficultyI);
+      &Server::GetPrevDSDifficultyI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
-      &LookupServer::GetPrevDifficultyI);
+      &Server::GetPrevDifficultyI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
@@ -609,7 +609,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
     Json::Value ret;
     if (account != nullptr) {
-      boost::multiprecision::uint128_t balance = account->GetBalance();
+      uint128_t balance = account->GetBalance();
       uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
@@ -870,22 +870,6 @@ string LookupServer::GetNumDSBlocks() {
   return to_string(m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
-uint8_t LookupServer::GetPrevDSDifficulty() {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
-
-  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
-}
-
-uint8_t LookupServer::GetPrevDifficulty() {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
-
-  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
-}
-
 string LookupServer::GetNumTransactions() {
   LOG_MARKER();
 
@@ -1125,8 +1109,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint128_t cacheSize(
-        m_DSBlockCache.second.capacity());
+    uint128_t cacheSize(m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
       cacheSize = m_DSBlockCache.second.size();
     }
@@ -1219,8 +1202,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint128_t cacheSize(
-        m_TxBlockCache.second.capacity());
+    uint128_t cacheSize(m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {
       cacheSize = m_TxBlockCache.second.size();

@@ -25,9 +25,9 @@ class Mediator;
 class LookupServer : public Server,
                      public jsonrpc::AbstractServer<LookupServer> {
   std::mutex m_mutexBlockTxPair;
-  std::pair<uint64_t, boost::multiprecision::uint128_t> m_BlockTxPair;
+  std::pair<uint64_t, uint128_t> m_BlockTxPair;
   std::mutex m_mutexTxBlockCountSumPair;
-  std::pair<uint64_t, boost::multiprecision::uint128_t> m_TxBlockCountSumPair;
+  std::pair<uint64_t, uint128_t> m_TxBlockCountSumPair;
   uint64_t m_StartTimeTx;
   uint64_t m_StartTimeDs;
   std::mutex m_mutexDSBlockCache;
@@ -81,16 +81,6 @@ class LookupServer : public Server,
                                           Json::Value& response) {
     (void)request;
     response = this->GetMinimumGasPrice();
-  }
-  inline virtual void GetPrevDSDifficultyI(const Json::Value& request,
-                                           Json::Value& response) {
-    (void)request;
-    response = this->GetPrevDSDifficulty();
-  }
-  inline virtual void GetPrevDifficultyI(const Json::Value& request,
-                                         Json::Value& response) {
-    (void)request;
-    response = this->GetPrevDifficulty();
   }
   inline virtual void GetSmartContractsI(const Json::Value& request,
                                          Json::Value& response) {
@@ -192,35 +182,32 @@ class LookupServer : public Server,
     response = this->GetShardMembers(request[0u].asUInt());
   }
 
-  virtual std::string GetNetworkId();
-  virtual Json::Value CreateTransaction(const Json::Value& _json);
-  virtual Json::Value GetTransaction(const std::string& transactionHash);
-  virtual Json::Value GetDsBlock(const std::string& blockNum);
-  virtual Json::Value GetTxBlock(const std::string& blockNum);
-  virtual Json::Value GetLatestDsBlock();
-  virtual Json::Value GetLatestTxBlock();
-  virtual Json::Value GetBalance(const std::string& address);
-  virtual std::string GetMinimumGasPrice();
-  virtual Json::Value GetSmartContracts(const std::string& address);
-  virtual std::string GetContractAddressFromTransactionID(
-      const std::string& tranID);
-  virtual unsigned int GetNumPeers();
-  virtual std::string GetNumTxBlocks();
-  virtual std::string GetNumDSBlocks();
-  virtual std::string GetNumTransactions();
-  virtual double GetTransactionRate();
-  virtual double GetTxBlockRate();
-  virtual double GetDSBlockRate();
-  virtual uint8_t GetPrevDSDifficulty();
-  virtual uint8_t GetPrevDifficulty();
-  virtual Json::Value GetShardMembers(unsigned int shardID);
-  virtual Json::Value DSBlockListing(unsigned int page);
-  virtual Json::Value TxBlockListing(unsigned int page);
-  virtual Json::Value GetBlockchainInfo();
-  virtual Json::Value GetRecentTransactions();
-  virtual Json::Value GetShardingStructure();
-  virtual std::string GetNumTxnsDSEpoch();
-  virtual std::string GetNumTxnsTxEpoch();
+  std::string GetNetworkId();
+  Json::Value CreateTransaction(const Json::Value& _json);
+  Json::Value GetTransaction(const std::string& transactionHash);
+  Json::Value GetDsBlock(const std::string& blockNum);
+  Json::Value GetTxBlock(const std::string& blockNum);
+  Json::Value GetLatestDsBlock();
+  Json::Value GetLatestTxBlock();
+  Json::Value GetBalance(const std::string& address);
+  std::string GetMinimumGasPrice();
+  Json::Value GetSmartContracts(const std::string& address);
+  std::string GetContractAddressFromTransactionID(const std::string& tranID);
+  unsigned int GetNumPeers();
+  std::string GetNumTxBlocks();
+  std::string GetNumDSBlocks();
+  std::string GetNumTransactions();
+  double GetTransactionRate();
+  double GetTxBlockRate();
+  double GetDSBlockRate();
+  Json::Value GetShardMembers(unsigned int shardID);
+  Json::Value DSBlockListing(unsigned int page);
+  Json::Value TxBlockListing(unsigned int page);
+  Json::Value GetBlockchainInfo();
+  Json::Value GetRecentTransactions();
+  Json::Value GetShardingStructure();
+  std::string GetNumTxnsDSEpoch();
+  std::string GetNumTxnsTxEpoch();
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
