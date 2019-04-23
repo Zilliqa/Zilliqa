@@ -177,7 +177,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                              << "] FINISH WRITE STATE TO DISK");
       }
       if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
-          PREGEN_ACCOUNT_TIMES && ENABLE_ACCOUNTS_POPULATING) {
+              PREGEN_ACCOUNT_TIMES &&
+          ENABLE_ACCOUNTS_POPULATING) {
         m_mediator.m_node->PopulateAccounts();
       }
     };

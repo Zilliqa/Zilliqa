@@ -763,7 +763,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                                     1
                              << "] FINISH WRITE STATE TO DISK");
         if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
-            PREGEN_ACCOUNT_TIMES && ENABLE_ACCOUNTS_POPULATING) {
+                PREGEN_ACCOUNT_TIMES &&
+            ENABLE_ACCOUNTS_POPULATING) {
           PopulateAccounts();
         }
       }
