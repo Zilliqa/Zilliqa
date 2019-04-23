@@ -51,9 +51,8 @@ bool Node::GetLatestDSBlock() {
   unsigned int counter = 1;
   while (!m_mediator.m_lookup->m_fetchedLatestDSBlock &&
          counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-    m_synchronizer.FetchLatestDSBlocksSeed(
-        m_mediator.m_lookup,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+    m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+        m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
 
     {
       unique_lock<mutex> lock(

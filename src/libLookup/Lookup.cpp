@@ -3415,8 +3415,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   if (dsblocknumafter > dsblocknumbefore) {
-    if (m_syncType == SyncType::NO_SYNC &&
-        m_mediator.m_node->m_stillMiningPrimary) {
+    if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
       return true;
