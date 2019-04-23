@@ -2290,7 +2290,7 @@ bool Messenger::SetAccountBase(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetAccountBase(const bytes& src, const unsigned int offset,
                                AccountBase& accountbase) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2328,7 +2328,7 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
                            Account& account) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2396,7 +2396,7 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
 template <class MAP>
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
                                 MAP& addressToAccount) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2434,7 +2434,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
 
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
                                 AccountStore& accountStore) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2501,7 +2501,7 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
 bool Messenger::StateDeltaToAddressMap(
     const bytes& src, const unsigned int offset,
     unordered_map<Address, int256_t>& accountMap) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2543,7 +2543,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
                                      const bool revertible, bool temp) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2604,7 +2604,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStoreTemp& accountStoreTemp,
                                      bool temp) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2712,7 +2712,7 @@ bool Messenger::SetDSBlockHeader(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetDSBlockHeader(const bytes& src, const unsigned int offset,
                                  DSBlockHeader& dsBlockHeader) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2745,7 +2745,7 @@ bool Messenger::SetDSBlock(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetDSBlock(const bytes& src, const unsigned int offset,
                            DSBlock& dsBlock) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2779,7 +2779,7 @@ bool Messenger::SetMicroBlockHeader(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetMicroBlockHeader(const bytes& src, const unsigned int offset,
                                     MicroBlockHeader& microBlockHeader) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2813,7 +2813,7 @@ bool Messenger::SetMicroBlock(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetMicroBlock(const bytes& src, const unsigned int offset,
                               MicroBlock& microBlock) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2846,7 +2846,7 @@ bool Messenger::SetTxBlockHeader(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetTxBlockHeader(const bytes& src, const unsigned int offset,
                                  TxBlockHeader& txBlockHeader) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2879,7 +2879,7 @@ bool Messenger::SetTxBlock(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetTxBlock(const bytes& src, const unsigned int offset,
                            TxBlock& txBlock) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2912,7 +2912,7 @@ bool Messenger::SetVCBlockHeader(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetVCBlockHeader(const bytes& src, const unsigned int offset,
                                  VCBlockHeader& vcBlockHeader) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2945,7 +2945,7 @@ bool Messenger::SetVCBlock(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetVCBlock(const bytes& src, const unsigned int offset,
                            VCBlock& vcBlock) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -2982,7 +2982,7 @@ bool Messenger::SetFallbackBlockHeader(
 bool Messenger::GetFallbackBlockHeader(
     const bytes& src, const unsigned int offset,
     FallbackBlockHeader& fallbackBlockHeader) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3017,7 +3017,7 @@ bool Messenger::SetFallbackBlock(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetFallbackBlock(const bytes& src, const unsigned int offset,
                                  FallbackBlock& fallbackBlock) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3052,7 +3052,7 @@ bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
 bool Messenger::GetTransactionCoreInfo(const bytes& src,
                                        const unsigned int offset,
                                        TransactionCoreInfo& transaction) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3084,7 +3084,7 @@ bool Messenger::SetTransaction(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetTransaction(const bytes& src, const unsigned int offset,
                                Transaction& transaction) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3116,7 +3116,7 @@ bool Messenger::SetTransactionFileOffset(
 bool Messenger::GetTransactionFileOffset(const bytes& src,
                                          const unsigned int offset,
                                          std::vector<uint32_t>& txnOffsets) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3147,7 +3147,7 @@ bool Messenger::SetTransactionArray(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetTransactionArray(const bytes& src, const unsigned int offset,
                                     std::vector<Transaction>& txns) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3181,7 +3181,7 @@ bool Messenger::SetTransactionReceipt(
 bool Messenger::GetTransactionReceipt(const bytes& src,
                                       const unsigned int offset,
                                       TransactionReceipt& transactionReceipt) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3215,7 +3215,7 @@ bool Messenger::SetTransactionWithReceipt(
 bool Messenger::GetTransactionWithReceipt(
     const bytes& src, const unsigned int offset,
     TransactionWithReceipt& transactionWithReceipt) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3248,7 +3248,7 @@ bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetStateIndex(const bytes& src, const unsigned int offset,
                               vector<Contract::Index>& indexes) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3281,7 +3281,7 @@ bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
                              Contract::StateEntry& entry, uint32_t& version) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3314,7 +3314,7 @@ bool Messenger::SetPeer(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetPeer(const bytes& src, const unsigned int offset,
                         Peer& peer) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3359,7 +3359,7 @@ bool Messenger::GetBlockLink(
   ProtoBlockLink result;
   BlockHash blkhash;
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3412,7 +3412,7 @@ bool Messenger::SetFallbackBlockWShardingStructure(
 bool Messenger::GetFallbackBlockWShardingStructure(
     const bytes& src, const unsigned int offset, FallbackBlock& fallbackblock,
     uint32_t& shardingStructureVersion, DequeOfShard& shards) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3468,7 +3468,7 @@ bool Messenger::GetDiagnosticDataNodes(const bytes& src,
                                        DequeOfNode& dsCommittee) {
   ProtoDiagnosticDataNodes result;
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3532,7 +3532,7 @@ bool Messenger::SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
 bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
                                           const unsigned int offset,
                                           DiagnosticDataCoinbase& entry) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3619,7 +3619,7 @@ bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
                            PubKey& pubKey, uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3715,7 +3715,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
                                    uint32_t& lookupId, uint128_t& gasPrice) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3794,7 +3794,7 @@ bool Messenger::GetDSPowPacketSubmission(const bytes& src,
                                          PubKey& pubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3878,7 +3878,7 @@ bool Messenger::GetDSMicroBlockSubmission(
     vector<bytes>& stateDeltas, PubKey& pubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -3992,7 +3992,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     bytes& messageToCosign) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4128,7 +4128,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     shared_ptr<MicroBlock>& microBlock, bytes& messageToCosign) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4228,7 +4228,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
     const PubKey& leaderKey, VCBlock& vcBlock, bytes& messageToCosign) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4301,7 +4301,7 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
     uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4366,7 +4366,7 @@ bool Messenger::GetNodeVCDSBlocksMessage(const bytes& src,
                                          DequeOfShard& shards) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4426,7 +4426,7 @@ bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
                                   bytes& stateDelta) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4485,7 +4485,7 @@ bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
                                              MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4535,7 +4535,7 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
                                VCBlock& vcBlock) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4686,7 +4686,7 @@ bool Messenger::GetNodeForwardTxnBlock(
     std::vector<Transaction>& txns, Signature& signature) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4781,7 +4781,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
     const PubKey& leaderKey, MicroBlock& microBlock, bytes& messageToCosign) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4875,7 +4875,7 @@ bool Messenger::GetNodeFallbackBlockAnnouncement(
     bytes& messageToCosign) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4941,7 +4941,7 @@ bool Messenger::GetNodeFallbackBlock(const bytes& src,
                                      FallbackBlock& fallbackBlock) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -4982,7 +4982,7 @@ bool Messenger::ShardStructureToArray(bytes& dst, const unsigned int offset,
 bool Messenger::ArrayToShardStructure(const bytes& src,
                                       const unsigned int offset,
                                       uint32_t& version, DequeOfShard& shards) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5025,7 +5025,7 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
                                            uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5078,7 +5078,7 @@ bool Messenger::GetLookupGetSeedPeers(const bytes& src,
                                       uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5153,7 +5153,7 @@ bool Messenger::GetLookupSetSeedPeers(const bytes& src,
                                       vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5219,7 +5219,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
                                            bool& initialDS) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5284,7 +5284,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(
     uint32_t& dsCommitteeVersion, DequeOfNode& dsNodes, bool& initialDS) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5352,7 +5352,7 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const bytes& src,
                                             uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5421,7 +5421,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5490,7 +5490,7 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
                                             uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5647,7 +5647,7 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
                                                uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5674,7 +5674,7 @@ bool Messenger::GetLookupGetStateDeltasFromSeed(const bytes& src,
                                                 uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5784,7 +5784,7 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
                                                bytes& stateDelta) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5824,7 +5824,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<bytes>& stateDeltas) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -5884,7 +5884,7 @@ bool Messenger::GetLookupGetStateFromSeed(const bytes& src,
                                           uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6016,7 +6016,7 @@ bool Messenger::GetLookupSetLookupOffline(const bytes& src,
                                           PubKey& lookupPubkey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6089,7 +6089,7 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
                                          PubKey& pubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6143,7 +6143,7 @@ bool Messenger::GetLookupGetOfflineLookups(const bytes& src,
                                            uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6206,7 +6206,7 @@ bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
                                            vector<Peer>& nodes) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6253,7 +6253,7 @@ bool Messenger::GetLookupSetRaiseStartPoW(const bytes& src,
                                           PubKey& dsPubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6363,7 +6363,7 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const bytes& src,
                                              uint64_t& blockNumber) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6432,7 +6432,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
                                              PubKey& lookupPubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6487,7 +6487,7 @@ bool Messenger::GetForwardTxnBlockFromSeed(
     const bytes& src, const unsigned int offset,
     vector<Transaction>& shardTransactions,
     vector<Transaction>& dsTransactions) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6534,7 +6534,7 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
                                            uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6595,7 +6595,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const bytes& src,
                                            DequeOfShard& shards) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6659,7 +6659,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
     vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6728,7 +6728,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
                                                  vector<MicroBlock>& mbs) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6800,7 +6800,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
                                            uint32_t& portNo) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6869,7 +6869,7 @@ bool Messenger::GetLookupSetTxnsFromLookup(
     vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -6931,7 +6931,7 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
                                                     const unsigned int offset,
                                                     uint32_t& portNo,
                                                     uint64_t& indexNum) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7169,7 +7169,7 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
                                    const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7311,7 +7311,7 @@ bool Messenger::GetConsensusChallenge(
     vector<ChallengeSubsetInfo>& subsetInfo, const PubKey& leaderKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7450,7 +7450,7 @@ bool Messenger::GetConsensusResponse(
     vector<ResponseSubsetInfo>& subsetInfo, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7590,7 +7590,7 @@ bool Messenger::GetConsensusCollectiveSig(
     vector<bool>& bitmap, Signature& collectiveSig, const PubKey& leaderKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7722,7 +7722,7 @@ bool Messenger::GetConsensusCommitFailure(
     bytes& errorMsg, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7853,7 +7853,7 @@ bool Messenger::GetConsensusConsensusFailure(
     const PubKey& leaderKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -7961,7 +7961,7 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
     uint32_t& listenPort) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -8036,7 +8036,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
                                               PubKey& lookupPubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -8131,7 +8131,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
     Peer& dsGuardNewNetworkInfo, uint64_t& timestamp, PubKey& dsGuardPubkey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -8203,7 +8203,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
     uint64_t& dsEpochNumber) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -8293,7 +8293,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
     PubKey& lookupPubKey) {
   LOG_MARKER();
 
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
@@ -8371,7 +8371,7 @@ bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
                                         const unsigned int offset,
                                         PubKey& archivalPubKey, uint32_t& code,
                                         string& path) {
-  if (offset > src.size()) {
+  if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
