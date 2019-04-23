@@ -137,9 +137,11 @@
         <HEARTBEAT_INTERVAL_IN_SECONDS>10</HEARTBEAT_INTERVAL_IN_SECONDS>
     </heartbeat>
     <jsonrpc>
-        <RPC_PORT>4201</RPC_PORT>
+        <!-- Only for lookup nodes -->
+        <LOOKUP_RPC_PORT>4201</LOOKUP_RPC_PORT>
         <NUM_SHARD_PEER_TO_REVEAL>5</NUM_SHARD_PEER_TO_REVEAL>
-        <!-- Only for non-lookup nodes -->
+        <!-- Only for lookup nodes -->
+        <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>false</ENABLE_STATUS_RPC>
     </jsonrpc>
