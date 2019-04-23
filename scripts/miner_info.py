@@ -96,7 +96,7 @@ def parse_arguments(options):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--address","-a",help="host address for querying, default: localhost", default="127.0.0.1")
 	parser.add_argument("option",help="input option for the query", choices=options)
-	parser.add_argument("--port", "-p", help="port to query",default =4201,type=int )
+	parser.add_argument("--port", "-p", help="port to query",default =4301,type=int )
 	parser.add_argument("--params","-pm",help="parameters", nargs='+')
 	parser.add_argument("--debug","-d",help="debug mode", action='store_true')
 
@@ -112,6 +112,8 @@ def make_options_dictionary(options_dict):
 	options_dict["checktxn"] = "IsTxnInMemPool"
 	options_dict["whitelist_add"] = "AddToBlacklistExclusion"
 	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
+	options_dict["ds_difficulty"] = "GetPrevDSDifficulty"
+	options_dict["difficulty"] = "GetPrevDifficulty"
 
 
 def ProcessResponseCore(resp, param):

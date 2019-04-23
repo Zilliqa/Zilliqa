@@ -101,10 +101,6 @@ Json::Value StatusServer::GetDSCommittee() {
 }
 
 bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
-  if (LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
-  }
-
   try {
     uint128_t numIP;
 
@@ -130,10 +126,6 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
 }
 
 bool StatusServer::RemoveFromBlacklistExclusion(const string& ipAddr) {
-  if (LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
-  }
-
   try {
     uint128_t numIP;
 
@@ -170,7 +162,7 @@ string StatusServer::GetNodeState() {
 
 Json::Value StatusServer::IsTxnInMemPool(const string& tranID) {
   if (LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a lookup");
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
   }
   try {
     if (tranID.size() != TRAN_HASH_SIZE * 2) {
