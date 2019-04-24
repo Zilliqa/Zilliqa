@@ -123,10 +123,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                             << info.m_microBlockHash << " [TxnRootHash] "
                             << info.m_txnRootHash << " shardID "
                             << info.m_shardId);
-      if (info.m_shardId == m_mediator.m_ds->m_shards.size() &&
-          info.m_txnRootHash == TxnHash()) {
-        // do nothing
-      } else {
+      if (!(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
+            info.m_txnRootHash == TxnHash())) {
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
       }
