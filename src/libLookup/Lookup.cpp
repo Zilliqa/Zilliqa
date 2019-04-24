@@ -1644,15 +1644,15 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
   }
 
-  bool isVerif = true;
-
   if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() != dsNodes.size()) {
-    isVerif = false;
     LOG_GENERAL(
         WARNING, "Size of "
                      << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
                      << " " << dsNodes.size() << " does not match");
+    return false;
   }
+
+  bool isVerif = true;
 
   for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
     if (!(dsNodes.at(i).first ==
@@ -1663,11 +1663,9 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     }
   }
 
-  if (!isVerif) {
-    return false;
+  if (isVerif) {
+    LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
   }
-
-  LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
 
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
   *m_mediator.m_DSCommittee = move(dsNodes);
