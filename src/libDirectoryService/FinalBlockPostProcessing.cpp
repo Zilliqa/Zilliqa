@@ -49,7 +49,9 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     return true;
   }
 
-  if (m_mediator.m_node->m_microblock != nullptr) {
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Storing DS MicroBlock" << endl
                                       << *(m_mediator.m_node->m_microblock));
@@ -245,7 +247,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  if (m_mediator.m_node->m_microblock != nullptr) {
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
     m_mediator.m_node->CallActOnFinalblock();
   }
 
