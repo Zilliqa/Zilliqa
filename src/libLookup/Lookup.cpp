@@ -1592,19 +1592,23 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!LOOKUP_NODE_MODE) {
+  // If first epoch and I'm a lookup
+  if ((m_mediator.m_currentEpochNum <= 1) && LOOKUP_NODE_MODE) {
+    // Sender must be a DS guard (if in guard mode)
+    if (GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "First epoch, and message sender pubkey: "
+                    << senderPubKey << " is not in DS guard list.");
+      return false;
+    }
+  }
+  // If not first epoch or I'm not a lookup
+  else {
+    // Sender must be a lookup node
     if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "The message sender pubkey: "
                     << senderPubKey << " is not in my lookup node list.");
-      return false;
-    }
-  } else {
-    if ((m_mediator.m_currentEpochNum <= 1) && GUARD_MODE &&
-        !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "The message sender pubkey: " << senderPubKey
-                                              << " is not in DS guard list.");
       return false;
     }
   }
