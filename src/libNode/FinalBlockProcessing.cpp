@@ -708,11 +708,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   DetachedFunction(1, resumeBlackList);
 
+  if (!LoadUnavailableMicroBlockHashes(
+          txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
+    return false;
+  }
+
   if (!isVacuousEpoch) {
-    if (!LoadUnavailableMicroBlockHashes(
-            txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
-      return false;
-    }
     StoreFinalBlock(txBlock);
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");

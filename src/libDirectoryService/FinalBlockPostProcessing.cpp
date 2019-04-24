@@ -49,6 +49,19 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     return true;
   }
 
+  if (m_mediator.m_node->m_microblock != nullptr) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Storing DS MicroBlock" << endl
+                                      << *(m_mediator.m_node->m_microblock));
+    bytes body;
+    m_mediator.m_node->m_microblock->Serialize(body, 0);
+    if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
+      LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+      return false;
+    }
+  }
+
   // Add finalblock to txblockchain
   m_mediator.m_node->AddBlock(*m_finalBlock);
   m_mediator.IncreaseEpochNum();
@@ -79,18 +92,6 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     return false;
   }
 
-  if (m_mediator.m_node->m_microblock != nullptr) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Storing DS MicroBlock" << endl
-                                      << *(m_mediator.m_node->m_microblock));
-    bytes body;
-    m_mediator.m_node->m_microblock->Serialize(body, 0);
-    if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
-      LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
-      return false;
-    }
-  }
   return true;
 }
 
