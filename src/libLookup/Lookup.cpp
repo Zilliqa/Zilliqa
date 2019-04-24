@@ -1600,8 +1600,9 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
       return false;
     }
   } else {
-    if ((m_mediator.m_currentEpochNum <= 1) && GUARD_MODE &&
-        !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
+    if ((m_mediator.m_currentEpochNum <= 1) ||
+        (GUARD_MODE &&
+         !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey))) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "The message sender pubkey: " << senderPubKey
                                               << " is not in DS guard list.");
