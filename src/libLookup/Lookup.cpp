@@ -1571,14 +1571,6 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
 
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  if (LOOKUP_NODE_MODE && (m_mediator.m_currentEpochNum > 1)) {
-    LOG_GENERAL(
-        WARNING,
-        "Lookup::ProcessSetDSInfoFromSeed not expected to be called from "
-        "LookUp node.");
-    return true;
-  }
-
   LOG_MARKER();
 
   bool initialDS = false;
@@ -1608,7 +1600,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
       return false;
     }
   } else {
-    if (GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
+    if ((m_mediator.m_currentEpochNum <= 1) && GUARD_MODE &&
+        !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "The message sender pubkey: " << senderPubKey
                                               << " is not in DS guard list.");
