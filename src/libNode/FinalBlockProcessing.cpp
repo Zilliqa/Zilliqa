@@ -1028,9 +1028,6 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
 
     CommitForwardedTransactions(entry);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
-
     if (isEveryMicroBlockAvailable) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
           entry.m_microBlock.GetHeader().GetEpochNum());
