@@ -842,8 +842,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -967,8 +967,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   uint64_t startGas = gasRemained;
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -1022,7 +1022,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                     "Address: " << m_curContractAddr.hex()
                                 << ", The json output of states is corrupted");
         receipt.AddError(STATE_CORRUPTED);
-        continue;
+        return false;
       }
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
@@ -1128,6 +1128,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     if (ret) {
       if (!contractAccount->SetStorage(state_entries, temp)) {
         LOG_GENERAL(WARNING, "SetStorage failed");
+        return false;
       }
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
