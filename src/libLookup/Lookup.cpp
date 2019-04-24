@@ -1610,8 +1610,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  bool isVerif = true;
-
   if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
     lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
     LOG_GENERAL(INFO, "[DSINFOVERIF]"
@@ -1632,19 +1630,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
   }
 
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  *m_mediator.m_DSCommittee = move(dsNodes);
-
-  // Add ds guard to exclude list for lookup at bootstrap
-  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-      *m_mediator.m_DSCommittee);
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "SetDSInfoFromSeed from " << from << " for numPeers "
-                                      << m_mediator.m_DSCommittee->size());
+  LOG_EPOCH(
+      INFO, m_mediator.m_currentEpochNum,
+      "SetDSInfoFromSeed from " << from << " for numPeers " << dsNodes.size());
 
   unsigned int i = 0;
-  for (auto& ds : *m_mediator.m_DSCommittee) {
+  for (auto& ds : dsNodes) {
     if ((GetSyncType() == SyncType::DS_SYNC ||
          GetSyncType() == SyncType::GUARD_DS_SYNC) &&
         ds.second == m_mediator.m_selfPeer) {
@@ -1653,17 +1644,18 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
   }
 
-  if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
-      m_mediator.m_DSCommittee->size()) {
+  bool isVerif = true;
+
+  if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() != dsNodes.size()) {
     isVerif = false;
     LOG_GENERAL(
-        WARNING,
-        "Size of " << m_mediator.m_blocklinkchain.GetBuiltDSComm().size() << " "
-                   << m_mediator.m_DSCommittee->size() << " does not match");
+        WARNING, "Size of "
+                     << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
+                     << " " << dsNodes.size() << " does not match");
   }
 
   for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
-    if (!(m_mediator.m_DSCommittee->at(i).first ==
+    if (!(dsNodes.at(i).first ==
           m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
       LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
       isVerif = false;
@@ -1671,9 +1663,18 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     }
   }
 
-  if (isVerif) {
-    LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
+  if (!isVerif) {
+    return false;
   }
+
+  LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
+
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  *m_mediator.m_DSCommittee = move(dsNodes);
+
+  // Add ds guard to exclude list for lookup at bootstrap
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
