@@ -115,7 +115,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     LOG_GENERAL(INFO, "Create contract");
 
     uint64_t createGasPenalty = std::max(
-        CONTRACT_CREATE_GAS, (unsigned int)transaction.GetCode().size());
+        CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
+                                            transaction.GetData().size()));
 
     // Check if gaslimit meets the minimum requirement for contract deployment
     if (transaction.GetGasLimit() < createGasPenalty) {
@@ -370,10 +371,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   } else {
     LOG_GENERAL(INFO, "Call contract");
 
-    if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
+    uint64_t callGasPenalty = std::max(
+        CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+
+    if (transaction.GetGasLimit() < callGasPenalty) {
       LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than "
-                                        << CONTRACT_INVOKE_GAS);
+                                        << " less than " << callGasPenalty);
       return false;
     }
 
@@ -485,8 +488,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     }
     if (!ret) {
       DiscardTransferBalanceAtomic();
-      gasRemained = std::min(transaction.GetGasLimit() - CONTRACT_INVOKE_GAS,
-                             gasRemained);
+      gasRemained =
+          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
     } else {
       CommitTransferBalanceAtomic();
     }
