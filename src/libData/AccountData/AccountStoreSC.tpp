@@ -411,7 +411,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       return false;
     }
 
-    DiscardTransferBalanceAtomic();
+    DiscardTransferAtomic();
 
     if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
       LOG_GENERAL(WARNING, "DecreaseBalance failed");
@@ -487,11 +487,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       ret = false;
     }
     if (!ret) {
-      DiscardTransferBalanceAtomic();
+      DiscardTransferAtomic();
       gasRemained =
           std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
     } else {
-      CommitTransferBalanceAtomic();
+      CommitTransferAtomic();
     }
     boost::multiprecision::uint128_t gasRefund;
     if (!SafeMath<boost::multiprecision::uint128_t>::mul(
@@ -1010,7 +1010,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
-  Account* contractAccount = this->GetAccount(m_curContractAddr);
+  Account* contractAccount =
+      m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
     LOG_GENERAL(WARNING, "contractAccount is null ptr");
     receipt.AddError(CONTRACT_NOT_EXIST);
@@ -1099,11 +1100,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
 
     delete account;
-    account = this->GetAccount(recipient);
+    account = m_accountStoreAtomic->GetAccount(recipient);
 
     if (account == nullptr) {
       AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
-      account = this->GetAccount(recipient);
+      account = m_accountStoreAtomic->GetAccount(recipient);
     }
 
     // Recipient is non-contract
@@ -1271,12 +1272,12 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::CommitTransferBalanceAtomic() {
+void AccountStoreSC<MAP>::CommitTransferAtomic() {
   LOG_MARKER();
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
     Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
-      account->SetBalance(entry.second.GetBalance());
+      *account = entry.second;
     } else {
       // this->m_addressToAccount.emplace(std::make_pair(entry.first,
       // entry.second));
@@ -1286,7 +1287,7 @@ void AccountStoreSC<MAP>::CommitTransferBalanceAtomic() {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic() {
+void AccountStoreSC<MAP>::DiscardTransferAtomic() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
 }
