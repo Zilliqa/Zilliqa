@@ -241,6 +241,51 @@ CreateTransactionResponse Server::CreateTransaction(
         ret.set_tranid(tx.GetTranID().hex());
       }
 
+      switch (Transaction::GetTransactionType(tx)) {
+        case Transaction::CONTRACT_CALL: {
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+          if (account == nullptr) {
+            ret.set_error("To Addr is null");
+            return ret;
+          } else if (!account->isContract()) {
+            ret.set_error("Non - contract address called");
+            return ret;
+          }
+
+          unsigned int to_shard =
+              Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+
+          if (to_shard == shard) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            ret.set_info(
+                "Contract Txn, Shards Match of the sender and reciever");
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+            ret.set_info("Contract Txn, Sent To Ds");
+          }
+          ret.set_tranid(tx.GetTranID().hex());
+          break;
+        }
+        case Transaction::CONTRACT_CREATION: {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          ret.set_info("Contract Creation txn, sent to shard");
+          ret.set_tranid(tx.GetTranID().hex());
+          ret.set_contractaddress(
+              Account::GetAddressForContract(fromAddr, sender->GetNonce())
+                  .hex());
+          break;
+        }
+        case Transaction::NON_CONTRACT: {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          ret.set_info("Non-contract txn, sent to shard");
+          ret.set_tranid(tx.GetTranID().hex());
+          break;
+        }
+        default:
+          LOG_GENERAL(WARNING, "Type of transaction is not recognizable");
+      }
     } else {
       LOG_GENERAL(INFO, "No shards yet");
       ret.set_error("Could not create Transaction");

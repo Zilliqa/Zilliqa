@@ -132,7 +132,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
       // return false;
     }
 
-    if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress) {
+    if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
       unsigned int correct_shard_to =
           Transaction::GetShardIndex(tx.GetToAddr(), numShards);
       if (correct_shard_to != correct_shard_from) {
