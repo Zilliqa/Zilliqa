@@ -328,7 +328,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
 
       if (m_lookupServer == nullptr) {
-        LOG_GENERAL(INFO, "Lookup Server Unitialized");
+        LOG_GENERAL(WARNING, "m_lookupServer NULL");
       } else {
         if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
@@ -343,7 +343,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_statusServer =
           make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
       if (m_statusServer == nullptr) {
-        LOG_GENERAL(FATAL, "m_statusServer NULL");
+        LOG_GENERAL(WARNING, "m_statusServer NULL");
       } else {
         if (m_statusServer->StartListening()) {
           LOG_GENERAL(INFO, "Status Server started successfully");
