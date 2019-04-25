@@ -87,7 +87,7 @@ def get_response(params, methodName, host, port, batch):
 	response = json.loads(recv)
 
 	if DEBUG_MODE:
-		print "Response:\n\t"+response
+		print "Response:\n\t"+recv
 	return response
 
 
