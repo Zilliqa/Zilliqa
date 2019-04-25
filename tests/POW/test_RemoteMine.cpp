@@ -40,7 +40,7 @@ void TestRemoteMineCase_1() {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = generateRandomArray();
   std::array<unsigned char, 32> rand2 = generateRandomArray();
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   PrivKey privKey(
       DataConversion::StringToCharArray(
           "80AA3FB5F4A60E87F1387E758CAA9EB34FCE7BAC62E1BDE4FEFE92FEA5281223"),

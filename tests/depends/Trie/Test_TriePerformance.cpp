@@ -51,8 +51,7 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB) {
   clock_t start = clock();
 
   for (auto i = 0; i < 10000; i++) {
-    boost::multiprecision::uint128_t m_balance{i + 9999998945},
-        m_nonce{i + 9999998945};
+    uint128_t m_balance{i + 9999998945}, m_nonce{i + 9999998945};
     Address address;
 
     dev::RLPStream rlpStream(2);
@@ -93,8 +92,7 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress) {
   clock_t start = clock();
 
   for (auto i = 0u; i < 10000; i++) {
-    boost::multiprecision::uint128_t m_balance{i + 9999998945},
-        m_nonce{i + 9999998945};
+    uint128_t m_balance{i + 9999998945}, m_nonce{i + 9999998945};
     Address address{i};
 
     dev::RLPStream rlpStream(2);

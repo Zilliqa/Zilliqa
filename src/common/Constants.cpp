@@ -208,12 +208,12 @@ const unsigned int UNFILLED_PERCENT_LOW{
     ReadConstantNumeric("UNFILLED_PERCENT_LOW", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_HIGH{
     ReadConstantNumeric("UNFILLED_PERCENT_HIGH", "node.gas.")};
-const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE{
+const uint128_t GAS_PRICE_MIN_VALUE{
     ReadConstantString("GAS_PRICE_MIN_VALUE", "node.gas.")};
 const unsigned int GAS_PRICE_PRECISION{
     ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
-const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
-    SafeMath<boost::multiprecision::uint128_t>::power(10, GAS_PRICE_PRECISION)};
+const uint128_t PRECISION_MIN_VALUE{
+    SafeMath<uint128_t>::power(10, GAS_PRICE_PRECISION)};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadConstantNumeric("GAS_PRICE_DROP_RATIO", "node.gas.")};
 const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
@@ -472,11 +472,11 @@ const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
-const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{
+const uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
-const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS{
+const uint128_t COINBASE_REWARD_PER_DS{
     ReadConstantString("COINBASE_REWARD_PER_DS", "node.transactions.")};
-const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN{
+const uint128_t TOTAL_GENESIS_TOKEN{
     ReadConstantString("TOTAL_GENESIS_TOKEN", "node.transactions.")};
 const unsigned int BASE_REWARD_IN_PERCENT{
     ReadConstantNumeric("BASE_REWARD_IN_PERCENT", "node.transactions.")};

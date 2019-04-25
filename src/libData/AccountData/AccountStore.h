@@ -24,11 +24,6 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 #include "Account.h"
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
@@ -153,17 +148,16 @@ class AccountStore
   }
 
   /// increase balance for account in AccountStoreTemp
-  bool IncreaseBalanceTemp(const Address& address,
-                           const boost::multiprecision::uint128_t& delta) {
+  bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
     return m_accountStoreTemp->IncreaseBalance(address, delta);
   }
 
   /// get the nonce of an account in AccountStoreTemp
-  boost::multiprecision::uint128_t GetNonceTemp(const Address& address);
+  uint128_t GetNonceTemp(const Address& address);
 
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
-                          const boost::multiprecision::uint128_t& amount);
+                          const uint128_t& amount);
 
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,

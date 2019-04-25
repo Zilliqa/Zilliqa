@@ -435,7 +435,7 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
                    dev::h256& contrStateHash1, dev::h256& contrStateHash2,
                    bytes& contrCode1, bytes& contrCode2, Json::Value& initJson1,
                    Json::Value& stateJson1, Json::Value& initJson2,
-                   boost::multiprecision::uint128_t& contrBalance) {
+                   uint128_t& contrBalance) {
   uint64_t nonce = 0;
   PairOfKey owner = Schnorr::GetInstance().GenKeyPair();
   PairOfKey donor = Schnorr::GetInstance().GenKeyPair();
@@ -540,7 +540,7 @@ void CheckRFContract(bool temp, const Address& contrAddr1,
                      const bytes& contrCode2, const Json::Value& initJson1,
                      const Json::Value& stateJson1,
                      const Json::Value& initJson2,
-                     const boost::multiprecision::uint128_t& contrBalance) {
+                     const uint128_t& contrBalance) {
   // Check the contract with invocation
   Account* account1;
   if (temp) {
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -650,7 +650,7 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -708,7 +708,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -808,7 +808,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,

@@ -36,7 +36,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#include <boost/multiprecision/cpp_int.hpp>
+#include "common/BaseType.h"
 
 using namespace std;
 using namespace boost::multiprecision;

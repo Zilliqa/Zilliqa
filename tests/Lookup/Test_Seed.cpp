@@ -35,11 +35,6 @@
 #define BOOST_TEST_MODULE seedtest
 #include <boost/test/included/unit_test.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 using namespace std;
 using namespace boost::multiprecision;
 
