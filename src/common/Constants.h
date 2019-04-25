@@ -250,7 +250,8 @@ extern const unsigned int SHARD_LEADER_SELECT_TOL;
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 
 // RPC Constants
-extern const unsigned int RPC_PORT;
+extern const unsigned int LOOKUP_RPC_PORT;
+extern const unsigned int STATUS_RPC_PORT;
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STATUS_RPC;  //
 extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;

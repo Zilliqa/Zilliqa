@@ -43,7 +43,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
-#include "libServer/Server.h"
+#include "libServer/LookupServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -874,7 +874,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
 
   for (const auto& twr : entry.m_transactions) {
     if (LOOKUP_NODE_MODE) {
-      Server::AddToRecentTransactions(twr.GetTransaction().GetTranID());
+      LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
     }
 
     // Store TxBody to disk
