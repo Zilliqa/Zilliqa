@@ -123,8 +123,11 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                             << info.m_microBlockHash << " [TxnRootHash] "
                             << info.m_txnRootHash << " shardID "
                             << info.m_shardId);
-      m_unavailableMicroBlocks[blocknum].push_back(
-          {info.m_microBlockHash, info.m_txnRootHash});
+      if (!(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
+            info.m_txnRootHash == TxnHash())) {
+        m_unavailableMicroBlocks[blocknum].push_back(
+            {info.m_microBlockHash, info.m_txnRootHash});
+      }
     } else {
       if (info.m_shardId == m_myshardId) {
         if (m_microblock == nullptr) {
@@ -708,11 +711,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   DetachedFunction(1, resumeBlackList);
 
+  if (!LoadUnavailableMicroBlockHashes(
+          txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
+    return false;
+  }
+
   if (!isVacuousEpoch) {
-    if (!LoadUnavailableMicroBlockHashes(
-            txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
-      return false;
-    }
     StoreFinalBlock(txBlock);
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
@@ -1027,9 +1031,6 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
     m_mediator.m_lookup->AddMicroBlockToStorage(entry.m_microBlock);
 
     CommitForwardedTransactions(entry);
-
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
 
     if (isEveryMicroBlockAvailable) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(

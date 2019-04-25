@@ -1571,8 +1571,6 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
 
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  //#ifndef IS_LOOKUP_NODE
-
   LOG_MARKER();
 
   bool initialDS = false;
@@ -1594,7 +1592,19 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!LOOKUP_NODE_MODE) {
+  // If first epoch and I'm a lookup
+  if ((m_mediator.m_currentEpochNum <= 1) && LOOKUP_NODE_MODE) {
+    // Sender must be a DS guard (if in guard mode)
+    if (GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "First epoch, and message sender pubkey: "
+                    << senderPubKey << " is not in DS guard list.");
+      return false;
+    }
+  }
+  // If not first epoch or I'm not a lookup
+  else {
+    // Sender must be a lookup node
     if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "The message sender pubkey: "
@@ -1609,8 +1619,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                           << "Call Unsupported");
     return false;
   }
-
-  bool isVerif = true;
 
   if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
     lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
@@ -1632,19 +1640,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
   }
 
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  *m_mediator.m_DSCommittee = move(dsNodes);
-
-  // Add ds guard to exclude list for lookup at bootstrap
-  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-      *m_mediator.m_DSCommittee);
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "SetDSInfoFromSeed from " << from << " for numPeers "
-                                      << m_mediator.m_DSCommittee->size());
+  LOG_EPOCH(
+      INFO, m_mediator.m_currentEpochNum,
+      "SetDSInfoFromSeed from " << from << " for numPeers " << dsNodes.size());
 
   unsigned int i = 0;
-  for (auto& ds : *m_mediator.m_DSCommittee) {
+  for (auto& ds : dsNodes) {
     if ((GetSyncType() == SyncType::DS_SYNC ||
          GetSyncType() == SyncType::GUARD_DS_SYNC) &&
         ds.second == m_mediator.m_selfPeer) {
@@ -1653,17 +1654,18 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     LOG_GENERAL(INFO, "[" << PAD(i++, 3, ' ') << "] " << ds.second);
   }
 
-  if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
-      m_mediator.m_DSCommittee->size()) {
-    isVerif = false;
+  if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() != dsNodes.size()) {
     LOG_GENERAL(
-        WARNING,
-        "Size of " << m_mediator.m_blocklinkchain.GetBuiltDSComm().size() << " "
-                   << m_mediator.m_DSCommittee->size() << " does not match");
+        WARNING, "Size of "
+                     << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
+                     << " " << dsNodes.size() << " does not match");
+    return false;
   }
 
+  bool isVerif = true;
+
   for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
-    if (!(m_mediator.m_DSCommittee->at(i).first ==
+    if (!(dsNodes.at(i).first ==
           m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
       LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
       isVerif = false;
@@ -1674,6 +1676,13 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   if (isVerif) {
     LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
   }
+
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  *m_mediator.m_DSCommittee = move(dsNodes);
+
+  // Add ds guard to exclude list for lookup at bootstrap
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE

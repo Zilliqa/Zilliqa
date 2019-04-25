@@ -385,7 +385,7 @@ class DirectoryService : public Executable {
                            bytes& messageToCosign);
   bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
                                        VCBlockSharedPtr& prevVCBlockptr);
-  void StoreFinalBlockToDisk();
+  bool StoreFinalBlockToDisk();
 
   bool OnNodeFinalConsensusError(const bytes& errorMsg, const Peer& from);
   bool OnNodeMissingMicroBlocks(const bytes& errorMsg,

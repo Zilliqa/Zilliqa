@@ -1136,6 +1136,14 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     return true;
   }
 
+  if (offset >= message.size()) {
+    LOG_GENERAL(WARNING, "Invalid txn message, message size: "
+                             << message.size()
+                             << ", txn data offset: " << offset);
+    // TODO: Punish the node send invalid message
+    return true;
+  }
+
   unsigned int cur_offset = offset;
 
   auto msgBlockNum =

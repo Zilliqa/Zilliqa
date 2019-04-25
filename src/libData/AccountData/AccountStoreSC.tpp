@@ -115,7 +115,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     LOG_GENERAL(INFO, "Create contract");
 
     uint64_t createGasPenalty = std::max(
-        CONTRACT_CREATE_GAS, (unsigned int)transaction.GetCode().size());
+        CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
+                                            transaction.GetData().size()));
 
     // Check if gaslimit meets the minimum requirement for contract deployment
     if (transaction.GetGasLimit() < createGasPenalty) {
@@ -370,10 +371,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   } else {
     LOG_GENERAL(INFO, "Call contract");
 
-    if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
+    uint64_t callGasPenalty = std::max(
+        CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+
+    if (transaction.GetGasLimit() < callGasPenalty) {
       LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than "
-                                        << CONTRACT_INVOKE_GAS);
+                                        << " less than " << callGasPenalty);
       return false;
     }
 
@@ -485,8 +488,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     }
     if (!ret) {
       DiscardTransferAtomic();
-      gasRemained = std::min(transaction.GetGasLimit() - CONTRACT_INVOKE_GAS,
-                             gasRemained);
+      gasRemained =
+          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
     } else {
       CommitTransferAtomic();
     }
@@ -842,8 +845,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -967,8 +970,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   uint64_t startGas = gasRemained;
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -1023,7 +1026,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                     "Address: " << m_curContractAddr.hex()
                                 << ", The json output of states is corrupted");
         receipt.AddError(STATE_CORRUPTED);
-        continue;
+        return false;
       }
       std::string vname = s["vname"].asString();
       std::string type = s["type"].asString();
@@ -1129,6 +1132,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     if (ret) {
       if (!contractAccount->SetStorage(state_entries, temp)) {
         LOG_GENERAL(WARNING, "SetStorage failed");
+        return false;
       }
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
