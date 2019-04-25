@@ -39,14 +39,29 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::StoreFinalBlockToDisk() {
+bool DirectoryService::StoreFinalBlockToDisk() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StoreFinalBlockToDisk not expected to "
                 "be called from LookUp node.");
-    return;
+    return true;
+  }
+
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Storing DS MicroBlock" << endl
+                                      << *(m_mediator.m_node->m_microblock));
+    bytes body;
+    m_mediator.m_node->m_microblock->Serialize(body, 0);
+    if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
+      LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+      return false;
+    }
   }
 
   // Add finalblock to txblockchain
@@ -64,14 +79,22 @@ void DirectoryService::StoreFinalBlockToDisk() {
 
   bytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(
-      m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(
+          m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock)) {
+    LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+    return false;
+  }
 
   bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-  BlockStorage::GetBlockStorage().PutStateDelta(
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-      stateDelta);
+  if (!BlockStorage::GetBlockStorage().PutStateDelta(
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          stateDelta)) {
+    LOG_GENERAL(WARNING, "Failed to put statedelta in persistence");
+    return false;
+  }
+
+  return true;
 }
 
 bool DirectoryService::ComposeFinalBlockMessageForSender(
@@ -151,8 +174,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   DetachedFunction(1, resumeBlackList);
 
+  if (!StoreFinalBlockToDisk()) {
+    LOG_GENERAL(WARNING, "StoreFinalBlockToDisk failed!");
+    return;
+  }
+
   if (isVacuousEpoch) {
-    StoreFinalBlockToDisk();
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
@@ -179,7 +206,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     };
     DetachedFunction(1, writeStateToDisk);
   } else {
-    StoreFinalBlockToDisk();
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
                  CoinbaseReward::FINALBLOCK_REWARD,
@@ -221,11 +247,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
-    if (m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-        TxnHash()) {
-      m_mediator.m_node->CallActOnFinalblock();
-    }
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
+    m_mediator.m_node->CallActOnFinalblock();
   }
 
   AccountStore::GetInstance().InitTemp();
