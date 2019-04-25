@@ -1408,7 +1408,7 @@ unsigned int DirectoryService::DetermineByzantineNodesCore(
     std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
     unsigned int numOfFinalBlock, double performanceThreshold,
     unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
-    std::map<PubKey, uint32_t>& dsMemberPerformance) {
+    const std::map<PubKey, uint32_t>& dsMemberPerformance) {
   LOG_MARKER();
 
   // Do not determine Byzantine nodes on the first epoch when performance cannot

@@ -657,7 +657,7 @@ class DirectoryService : public Executable {
       std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
       unsigned int numOfFinalBlock, double performanceThreshold,
       unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
-      std::map<PubKey, uint32_t>& dsMemberPerformance);
+      const std::map<PubKey, uint32_t>& dsMemberPerformance);
 
  private:
   static std::map<DirState, std::string> DirStateStrings;
