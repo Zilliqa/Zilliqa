@@ -155,8 +155,7 @@ template <class T>
 bool SafeMath<T>::IsUnsignedInt(const T& a) {
   return typeid(a) == typeid(uint8_t) || typeid(a) == typeid(uint16_t) ||
          typeid(a) == typeid(uint32_t) || typeid(a) == typeid(uint64_t) ||
-         typeid(a) == typeid(boost::multiprecision::uint128_t) ||
-         typeid(a) == typeid(boost::multiprecision::uint256_t) ||
+         typeid(a) == typeid(uint128_t) || typeid(a) == typeid(uint256_t) ||
          typeid(a) == typeid(boost::multiprecision::uint512_t) ||
          typeid(a) == typeid(boost::multiprecision::uint1024_t);
 }
@@ -191,7 +190,7 @@ bool SafeMath<T>::add_unsignint(const T& a, const T& b, T& result) {
 
 template <class T>
 bool SafeMath<T>::sub_signint(const T& a, const T& b, T& result) {
-  if (a > 0 && b < a - std::numeric_limits<T>::max()) {
+  if (a >= 0 && b < a - std::numeric_limits<T>::max()) {
     LOG_GENERAL(WARNING, "Subtraction Overflow!");
     return false;
   }

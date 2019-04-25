@@ -32,18 +32,18 @@ BOOST_AUTO_TEST_CASE(test_fundamental) {
   Blacklist& bl = Blacklist::GetInstance();
   bl.Clear();
 
-  for (boost::multiprecision::uint128_t i = 0; i < 200; ++i) {
+  for (uint128_t i = 0; i < 200; ++i) {
     BOOST_CHECK_MESSAGE(bl.Exist(i) == false,
                         "Bad IP should not existed in the blacklist!");
   }
 
   LOG_GENERAL(INFO, "Test Blacklist initialization done!");
 
-  for (boost::multiprecision::uint128_t i = 0; i < 100; ++i) {
+  for (uint128_t i = 0; i < 100; ++i) {
     bl.Add(i);
   }
 
-  for (boost::multiprecision::uint128_t i = 0; i < 200; ++i) {
+  for (uint128_t i = 0; i < 200; ++i) {
     if (i < 100) {
       BOOST_CHECK_MESSAGE(bl.Exist(i) == true,
                           "Bad IP should existed in the blacklist!");
@@ -55,11 +55,11 @@ BOOST_AUTO_TEST_CASE(test_fundamental) {
 
   LOG_GENERAL(INFO, "Test Blacklist addition done!");
 
-  for (boost::multiprecision::uint128_t i = 0; i < 200; i += 2) {
+  for (uint128_t i = 0; i < 200; i += 2) {
     bl.Remove(i);
   }
 
-  for (boost::multiprecision::uint128_t i = 0; i < 200; ++i) {
+  for (uint128_t i = 0; i < 200; ++i) {
     if (i < 100 && (1 == (i % 2))) {
       BOOST_CHECK_MESSAGE(bl.Exist(i) == true,
                           "Bad IP should existed in the blacklist!");
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test_fundamental) {
 
   bl.Clear();
 
-  for (boost::multiprecision::uint128_t i = 0; i < 200; ++i) {
+  for (uint128_t i = 0; i < 200; ++i) {
     BOOST_CHECK_MESSAGE(bl.Exist(i) == false,
                         "Bad IP should not existed in the blacklist!");
   }
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(test_pop) {
   Blacklist& bl = Blacklist::GetInstance();
   bl.Clear();
 
-  for (boost::multiprecision::uint128_t i = 0; i < 100; ++i) {
+  for (uint128_t i = 0; i < 100; ++i) {
     bl.Add(i);
   }
 

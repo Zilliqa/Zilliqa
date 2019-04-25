@@ -19,17 +19,12 @@
 #define __DIRECTORYSERVICE_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <condition_variable>
 #include <deque>
 #include <list>
 #include <map>
 #include <set>
 #include <shared_mutex>
-#include <vector>
 
 #include "common/Constants.h"
 #include "common/Executable.h"
@@ -52,7 +47,7 @@ struct PoWSolution {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
   uint32_t lookupId;
-  boost::multiprecision::uint128_t gasPrice;
+  uint128_t gasPrice;
 
   PoWSolution()
       : nonce(0),
@@ -64,7 +59,7 @@ struct PoWSolution {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
               const std::array<unsigned char, 32>& m, uint32_t l,
-              const boost::multiprecision::uint128_t& gp)
+              const uint128_t& gp)
       : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
     return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
@@ -288,11 +283,11 @@ class DirectoryService : public Executable {
                           const std::vector<PubKey>& removeDSNodePubkeys);
 
   // Gas Pricer
-  boost::multiprecision::uint128_t GetNewGasPrice();
-  boost::multiprecision::uint128_t GetHistoricalMeanGasPrice();
-  boost::multiprecision::uint128_t GetDecreasedGasPrice();
-  boost::multiprecision::uint128_t GetIncreasedGasPrice();
-  bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
+  uint128_t GetNewGasPrice();
+  uint128_t GetHistoricalMeanGasPrice();
+  uint128_t GetDecreasedGasPrice();
+  uint128_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const uint128_t& gasPrice);
 
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
@@ -348,8 +343,7 @@ class DirectoryService : public Executable {
       const std::vector<bytes>& stateDeltas);
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
-                                  boost::multiprecision::uint128_t& allRewards,
-                                  uint32_t& numTxs);
+                                  uint128_t& allRewards, uint32_t& numTxs);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const bytes& stateDelta,
@@ -399,7 +393,7 @@ class DirectoryService : public Executable {
                            bytes& messageToCosign);
   bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
                                        VCBlockSharedPtr& prevVCBlockptr);
-  void StoreFinalBlockToDisk();
+  bool StoreFinalBlockToDisk();
 
   bool OnNodeFinalConsensusError(const bytes& errorMsg, const Peer& from);
   bool OnNodeMissingMicroBlocks(const bytes& errorMsg,
@@ -432,6 +426,7 @@ class DirectoryService : public Executable {
   bool VCFetchLatestDSTxBlockFromSeedNodes();
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
+  void CleanUpViewChange(bool isPrecheckFail);
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
@@ -520,7 +515,7 @@ class DirectoryService : public Executable {
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   std::unordered_map<uint64_t, std::unordered_map<BlockHash, bytes>>
       m_microBlockStateDeltas;
-  boost::multiprecision::uint128_t m_totalTxnFees;
+  uint128_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 
@@ -570,14 +565,14 @@ class DirectoryService : public Executable {
   void IncrementConsensusMyID();
 
   /// Start synchronization with lookup as a DS node
-  void StartSynchronization();
+  void StartSynchronization(bool clean = true);
 
   /// Launches separate thread to execute sharding consensus after wait_window
   /// seconds.
   void ScheduleShardingConsensus(const unsigned int wait_window);
 
   /// Rejoin the network as a DS node in case of failure happens in protocol
-  void RejoinAsDS();
+  void RejoinAsDS(bool modeCheck = true);
 
   /// Post processing after the DS node successfully synchronized with the
   /// network

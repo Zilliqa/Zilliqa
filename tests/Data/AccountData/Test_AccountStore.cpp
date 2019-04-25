@@ -388,12 +388,12 @@ BOOST_AUTO_TEST_CASE(serialization) {
   bytes src;
   bytes dst;
   BOOST_CHECK_EQUAL(true, as.Serialize(src, 0));
-  BOOST_CHECK_EQUAL(true, as.Deserialize(dst, 0));
+  BOOST_CHECK_EQUAL(false, as.Deserialize(dst, 0));
   BOOST_CHECK_EQUAL(true, as.SerializeDelta());
   as.GetSerializedDelta(dst);
-  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, true));
-  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, false));
-  BOOST_CHECK_EQUAL(true, as.DeserializeDeltaTemp(dst, 0));
+  BOOST_CHECK_EQUAL(false, as.DeserializeDelta(dst, 0, true));
+  BOOST_CHECK_EQUAL(false, as.DeserializeDelta(dst, 0, false));
+  BOOST_CHECK_EQUAL(false, as.DeserializeDeltaTemp(dst, 0));
 
   // Increase coverage
   as.AddAccountDuringDeserialization(Address(), Account(), Account(), false,
@@ -435,7 +435,7 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
                    dev::h256& contrStateHash1, dev::h256& contrStateHash2,
                    bytes& contrCode1, bytes& contrCode2, Json::Value& initJson1,
                    Json::Value& stateJson1, Json::Value& initJson2,
-                   boost::multiprecision::uint128_t& contrBalance) {
+                   uint128_t& contrBalance) {
   uint64_t nonce = 0;
   PairOfKey owner = Schnorr::GetInstance().GenKeyPair();
   PairOfKey donor = Schnorr::GetInstance().GenKeyPair();
@@ -540,7 +540,7 @@ void CheckRFContract(bool temp, const Address& contrAddr1,
                      const bytes& contrCode2, const Json::Value& initJson1,
                      const Json::Value& stateJson1,
                      const Json::Value& initJson2,
-                     const boost::multiprecision::uint128_t& contrBalance) {
+                     const uint128_t& contrBalance) {
   // Check the contract with invocation
   Account* account1;
   if (temp) {
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -650,7 +650,7 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -708,7 +708,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -808,7 +808,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
   bytes contrCode1, contrCode2;
   Json::Value initJson1, stateJson1, initJson2;
-  boost::multiprecision::uint128_t contrBalance;
+  uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
@@ -853,7 +853,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation2) {
 
   for (auto i = 0; i < 1; i++) {
     std::vector<Address> addresses;
-    int num_address = 100000;
+    int num_address = 10000;
     for (auto i = 0; i < num_address; i++) {
       PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
       Address address = Account::GetAddressFromPublicKey(pubKey);

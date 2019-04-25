@@ -19,10 +19,6 @@
 #define __DSBLOCKHEADER_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <map>
 
 #include "BlockHashSet.h"
@@ -41,7 +37,7 @@ class DSBlockHeader : public BlockHeaderBase {
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;     // Tx Epoch Num when the DS block was generated
-  boost::multiprecision::uint128_t m_gasPrice;
+  uint128_t m_gasPrice;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
   std::vector<PubKey> m_removeDSNodePubkeys;
@@ -57,8 +53,7 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
                 const PubKey& leaderPubKey, const uint64_t& blockNum,
-                const uint64_t& epochNum,
-                const boost::multiprecision::uint128_t& gasPrice,
+                const uint64_t& epochNum, const uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const std::vector<PubKey>& removeDSNodePubkeys,
@@ -94,7 +89,7 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Returns the number of global minimum gas price accepteable for the coming
   /// epoch
-  const boost::multiprecision::uint128_t& GetGasPrice() const;
+  const uint128_t& GetGasPrice() const;
 
   /// Returns the software version information used during creation of this
   /// block.

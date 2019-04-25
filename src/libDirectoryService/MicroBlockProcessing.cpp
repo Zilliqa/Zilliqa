@@ -151,6 +151,10 @@ bool DirectoryService::ProcessStateDelta(
 
   if (stateDelta.empty()) {
     LOG_GENERAL(INFO, "State Delta is empty");
+    if (microBlockStateDeltaHash != StateHash()) {
+      LOG_GENERAL(WARNING, "State Delta and StateDeltaHash inconsistent");
+      return false;
+    }
     return true;
   } else {
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());

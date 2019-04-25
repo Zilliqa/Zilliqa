@@ -112,10 +112,6 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
           for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-            if (!bfs::exists("StateDeltaFromS3/stateDelta_" +
-                             std::to_string(j))) {
-              continue;
-            }
             bytes stateDelta;
             LOG_GENERAL(
                 INFO,

@@ -288,6 +288,7 @@ void DirectoryService::RunConsensusOnViewChange() {
       LOG_GENERAL(WARNING,
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
                   "whole network.");
+      CleanUpViewChange(true);
       RejoinAsDS();
       return;
     }

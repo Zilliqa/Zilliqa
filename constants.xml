@@ -28,6 +28,7 @@
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
+        <TXN_STORAGE_LIMIT>100000</TXN_STORAGE_LIMIT>
     </seed>
     <consensus>
         <COMMIT_WINDOW_IN_SECONDS>10</COMMIT_WINDOW_IN_SECONDS>
@@ -136,10 +137,13 @@
         <HEARTBEAT_INTERVAL_IN_SECONDS>10</HEARTBEAT_INTERVAL_IN_SECONDS>
     </heartbeat>
     <jsonrpc>
-        <RPC_PORT>4201</RPC_PORT>
-        <!-- Only for non-lookup nodes -->
+        <!-- Only for lookup nodes -->
+        <LOOKUP_RPC_PORT>4201</LOOKUP_RPC_PORT>
+        <NUM_SHARD_PEER_TO_REVEAL>5</NUM_SHARD_PEER_TO_REVEAL>
+        <!-- Only for lookup nodes -->
+        <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
-        <ENABLE_STATUS_RPC>false</ENABLE_STATUS_RPC>
+        <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -168,6 +172,7 @@
         <MAX_READ_WATERMARK_IN_BYTES>20000000</MAX_READ_WATERMARK_IN_BYTES>
         <CONNECTION_TIMEOUT_IN_SECONDS>2</CONNECTION_TIMEOUT_IN_SECONDS>
         <BLACKLIST_NUM_TO_POP>5</BLACKLIST_NUM_TO_POP>
+        <MAX_PEER_CONNECTION>50</MAX_PEER_CONNECTION>
     </p2pcomm>
     <pow>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>

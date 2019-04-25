@@ -26,11 +26,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -650,10 +645,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Save coin base for final block, from last DS epoch to current TX epoch
   if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
-    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                                 .GetHeader()
-                                 .GetEpochNum() +
-                             1;
+    for (uint64_t blockNum =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -735,8 +728,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
-                1,
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -1136,6 +1128,14 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING,
                 "Node::ProcessSubmitMissingTxn not expected to be called "
                 "from LookUp node.");
+    return true;
+  }
+
+  if (offset >= message.size()) {
+    LOG_GENERAL(WARNING, "Invalid txn message, message size: "
+                             << message.size()
+                             << ", txn data offset: " << offset);
+    // TODO: Punish the node send invalid message
     return true;
   }
 
@@ -1762,6 +1762,10 @@ void Node::CleanCreatedTransaction() {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     m_processedTransactions.clear();
     t_processedTransactions.clear();
+  }
+  {
+    std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
   }
   m_TxnOrder.clear();
   m_gasUsedTotal = 0;

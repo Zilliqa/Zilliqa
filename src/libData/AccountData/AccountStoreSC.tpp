@@ -60,15 +60,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const boost::multiprecision::uint128_t& amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmount();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
   // Get the amount of deposit for running this txn
-  boost::multiprecision::uint128_t gasDeposit;
-  if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-          gasRemained, transaction.GetGasPrice(), gasDeposit)) {
+  uint128_t gasDeposit;
+  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                gasDeposit)) {
     return false;
   }
 
@@ -115,7 +115,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     LOG_GENERAL(INFO, "Create contract");
 
     uint64_t createGasPenalty = std::max(
-        CONTRACT_CREATE_GAS, (unsigned int)transaction.GetCode().size());
+        CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
+                                            transaction.GetData().size()));
 
     // Check if gaslimit meets the minimum requirement for contract deployment
     if (transaction.GetGasLimit() < createGasPenalty) {
@@ -159,21 +160,28 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     }
 
     bool init = true;
-    // Initiate the contract account, including setting the contract code
-    // store the immutable states
-    if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
-                                 toAddr, blockNum, temp)) {
-      LOG_GENERAL(WARNING, "InitContract failed");
-      init = false;
-    }
 
-    m_curBlockNum = blockNum;
-    if (init && !ExportCreateContractFiles(*toAccount)) {
-      LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
-      init = false;
-    }
+    try {
+      // Initiate the contract account, including setting the contract code
+      // store the immutable states
+      if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
+                                   toAddr, blockNum, temp)) {
+        LOG_GENERAL(WARNING, "InitContract failed");
+        init = false;
+      }
 
-    if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
+      m_curBlockNum = blockNum;
+      if (init && !ExportCreateContractFiles(*toAccount)) {
+        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
+        init = false;
+      }
+
+      if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
+        init = false;
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception caught in create account (1): " << e.what());
       init = false;
     }
 
@@ -189,14 +197,22 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     int pid = -1;
     auto func1 = [this, &checkerPrint, &ret_checker, &pid,
                   &receipt]() mutable -> void {
-      if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
-                                  GetContractCheckerCmdStr(m_root_w_version),
-                                  checkerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: "
-                                 << GetContractCheckerCmdStr(m_root_w_version));
-        receipt.AddError(EXECUTE_CMD_FAILED);
+      try {
+        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
+                                    GetContractCheckerCmdStr(m_root_w_version),
+                                    checkerPrint, pid)) {
+          LOG_GENERAL(WARNING,
+                      "ExecuteCmd failed: "
+                          << GetContractCheckerCmdStr(m_root_w_version));
+          receipt.AddError(EXECUTE_CMD_FAILED);
+          ret_checker = false;
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (1): "
+                                 << e.what());
         ret_checker = false;
       }
+
       cv_callContract.notify_all();
     };
     DetachedFunction(1, func1);
@@ -211,8 +227,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
           WARNING,
           "Txn processing timeout! Interrupt current contract check, pid: "
               << pid);
-      if (pid >= 0) {
-        kill(pid, SIGKILL);
+      try {
+        if (pid >= 0) {
+          kill(pid, SIGKILL);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
       }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret_checker = false;
@@ -231,15 +251,24 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       pid = -1;
       auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
                     &receipt]() mutable -> void {
-        if (!SysCommand::ExecuteCmd(
-                SysCommand::WITH_OUTPUT_PID,
-                GetCreateContractCmdStr(m_root_w_version, gasRemained),
-                runnerPrint, pid)) {
-          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                                   m_root_w_version, gasRemained));
-          receipt.AddError(EXECUTE_CMD_FAILED);
+        try {
+          if (!SysCommand::ExecuteCmd(
+                  SysCommand::WITH_OUTPUT_PID,
+                  GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                  runnerPrint, pid)) {
+            LOG_GENERAL(WARNING,
+                        "ExecuteCmd failed: " << GetCreateContractCmdStr(
+                            m_root_w_version, gasRemained));
+            receipt.AddError(EXECUTE_CMD_FAILED);
+            ret = false;
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(
+              WARNING,
+              "Exception caught in SysCommand::ExecuteCmd (2): " << e.what());
           ret = false;
         }
+
         cv_callContract.notify_all();
       };
       DetachedFunction(1, func2);
@@ -249,34 +278,41 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         cv_callContract.wait(lk);
       }
 
-      if (m_txnProcessTimeout) {
-        LOG_GENERAL(WARNING,
-                    "Txn processing timeout! Interrupt current contract "
-                    "deployment, pid: "
-                        << pid);
-        if (pid >= 0) {
-          kill(pid, SIGKILL);
-        }
-        receipt.AddError(EXECUTE_CMD_TIMEOUT);
-        ret = false;
-      }
+      try {
+        if (m_txnProcessTimeout) {
+          LOG_GENERAL(WARNING,
+                      "Txn processing timeout! Interrupt current contract "
+                      "deployment, pid: "
+                          << pid);
+          if (pid >= 0) {
+            kill(pid, SIGKILL);
+          }
 
-      if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+          receipt.AddError(EXECUTE_CMD_TIMEOUT);
+          ret = false;
+        }
+
+        if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+          ret = false;
+        }
+        if (!ret) {
+          gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
+                                 gasRemained);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING,
+                    "Exception caught in create account (2): " << e.what());
         ret = false;
-      }
-      if (!ret) {
-        gasRemained =
-            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
       }
     } else {
       gasRemained =
           std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
     }
 
-    boost::multiprecision::uint128_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-            gasRemained, transaction.GetGasPrice(), gasRefund)) {
-      this->m_addressToAccount->erase(toAddr);
+    uint128_t gasRefund;
+    if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                  gasRefund)) {
+      this->RemoveAccount(toAddr);
       return false;
     }
     if (!this->IncreaseBalance(fromAddr, gasRefund)) {
@@ -296,6 +332,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       receipt.update();
 
       if (!this->IncreaseNonce(fromAddr)) {
+        this->RemoveAccount(toAddr);
         return false;
       }
 
@@ -322,7 +359,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
-        return this->IncreaseNonce(fromAddr);
+        if (!this->IncreaseNonce(fromAddr)) {
+          this->RemoveAccount(toAddr);
+          return false;
+        }
+        return true;
       }
     }
 
@@ -330,10 +371,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   } else {
     LOG_GENERAL(INFO, "Call contract");
 
-    if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
+    uint64_t callGasPenalty = std::max(
+        CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+
+    if (transaction.GetGasLimit() < callGasPenalty) {
       LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than "
-                                        << CONTRACT_INVOKE_GAS);
+                                        << " less than " << callGasPenalty);
       return false;
     }
 
@@ -368,7 +411,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       return false;
     }
 
-    DiscardTransferBalanceAtomic();
+    DiscardTransferAtomic();
 
     if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
       LOG_GENERAL(WARNING, "DecreaseBalance failed");
@@ -392,13 +435,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
 
     auto func = [this, &runnerPrint, &ret, &pid, gasRemained,
                  &receipt]() mutable -> void {
-      if (!SysCommand::ExecuteCmd(
-              SysCommand::WITH_OUTPUT_PID,
-              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
-              pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                 m_root_w_version, gasRemained));
-        receipt.AddError(EXECUTE_CMD_FAILED);
+      try {
+        if (!SysCommand::ExecuteCmd(
+                SysCommand::WITH_OUTPUT_PID,
+                GetCallContractCmdStr(m_root_w_version, gasRemained),
+                runnerPrint, pid)) {
+          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                   m_root_w_version, gasRemained));
+          receipt.AddError(EXECUTE_CMD_FAILED);
+          ret = false;
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING,
+                    "Exception caught in call account (1): " << e.what());
         ret = false;
       }
       cv_callContract.notify_all();
@@ -416,8 +465,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
           WARNING,
           "Txn processing timeout! Interrupt current contract call, pid: "
               << pid);
-      if (pid >= 0) {
-        kill(pid, SIGKILL);
+      try {
+        if (pid >= 0) {
+          kill(pid, SIGKILL);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
       }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
@@ -434,15 +487,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       ret = false;
     }
     if (!ret) {
-      DiscardTransferBalanceAtomic();
-      gasRemained = std::min(transaction.GetGasLimit() - CONTRACT_INVOKE_GAS,
-                             gasRemained);
+      DiscardTransferAtomic();
+      gasRemained =
+          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
     } else {
-      CommitTransferBalanceAtomic();
+      CommitTransferAtomic();
     }
-    boost::multiprecision::uint128_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-            gasRemained, transaction.GetGasPrice(), gasRefund)) {
+    uint128_t gasRefund;
+    if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                  gasRefund)) {
       return false;
     }
 
@@ -524,17 +577,22 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
     return false;
   }
 
-  // Scilla code
-  std::ofstream os(INPUT_CODE);
-  os << DataConversion::CharArrayToString(contract.GetCode());
-  os.close();
+  try {
+    // Scilla code
+    std::ofstream os(INPUT_CODE);
+    os << DataConversion::CharArrayToString(contract.GetCode());
+    os.close();
 
-  // Initialize Json
-  JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
+    // Initialize Json
+    JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
 
-  // Block Json
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                           GetBlockStateJson(m_curBlockNum));
+    // Block Json
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                             GetBlockStateJson(m_curBlockNum));
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
 
   return true;
 }
@@ -567,23 +625,27 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
     return false;
   }
 
-  // Scilla code
-  std::ofstream os(INPUT_CODE);
-  os << DataConversion::CharArrayToString(contract.GetCode());
-  os.close();
+  try {
+    // Scilla code
+    std::ofstream os(INPUT_CODE);
+    os << DataConversion::CharArrayToString(contract.GetCode());
+    os.close();
 
-  // Initialize Json
-  JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
+    // Initialize Json
+    JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
 
-  // State Json
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_STATE_JSON, roots.second);
+    // State Json
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_STATE_JSON, roots.second);
 
-  // Block Json
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                           GetBlockStateJson(m_curBlockNum));
-
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
+    // Block Json
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                             GetBlockStateJson(m_curBlockNum));
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
   }
 
   return true;
@@ -599,20 +661,25 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     return false;
   }
 
-  // Message Json
-  std::string dataStr(transaction.GetData().begin(),
-                      transaction.GetData().end());
-  Json::Value msgObj;
-  if (!JSONUtils::GetInstance().convertStrtoJson(dataStr, msgObj)) {
+  try {
+    // Message Json
+    std::string dataStr(transaction.GetData().begin(),
+                        transaction.GetData().end());
+    Json::Value msgObj;
+    if (!JSONUtils::GetInstance().convertStrtoJson(dataStr, msgObj)) {
+      return false;
+    }
+    std::string prepend = "0x";
+    msgObj["_sender"] =
+        prepend +
+        Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+    msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
+
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
-  std::string prepend = "0x";
-  msgObj["_sender"] =
-      prepend +
-      Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
-  msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
-
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
 
   return true;
 }
@@ -627,7 +694,12 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     return false;
   }
 
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
+  try {
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
 
   return true;
 }
@@ -690,8 +762,14 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const std::string& checkerPrint, TransactionReceipt& receipt) {
   Json::Value root;
-  if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
-    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+  try {
+    if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
+      receipt.AddError(JSON_OUTPUT_CORRUPTED);
+      return false;
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
+                                              << checkerPrint);
     return false;
   }
 
@@ -767,8 +845,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -827,37 +905,44 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
   std::string outStr;
 
-  if (!in.is_open()) {
-    LOG_GENERAL(WARNING,
-                "Error opening output file or no output file generated");
+  try {
+    if (!in.is_open()) {
+      LOG_GENERAL(WARNING,
+                  "Error opening output file or no output file generated");
 
-    // Check the printout
-    if (!runnerPrint.empty()) {
-      outStr = runnerPrint;
+      // Check the printout
+      if (!runnerPrint.empty()) {
+        outStr = runnerPrint;
+      } else {
+        receipt.AddError(NO_OUTPUT);
+        return false;
+      }
     } else {
-      receipt.AddError(NO_OUTPUT);
+      outStr = {std::istreambuf_iterator<char>(in),
+                std::istreambuf_iterator<char>()};
+    }
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : outStr));
+
+    if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
+      receipt.AddError(JSON_OUTPUT_CORRUPTED);
       return false;
     }
-  } else {
-    outStr = {std::istreambuf_iterator<char>(in),
-              std::istreambuf_iterator<char>()};
-  }
-  LOG_GENERAL(
-      INFO,
-      "Output: " << std::endl
-                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                               "\n ... "
-                         : outStr));
-
-  if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
-    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
+                             << r_timer_end(tpStart));
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught: " << e.what() << " outStr: " << outStr);
     return false;
   }
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
-                           << r_timer_end(tpStart));
-  }
+
   return true;
 }
 
@@ -885,8 +970,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   uint64_t startGas = gasRemained;
   try {
-    gasRemained =
-        boost::lexical_cast<uint64_t>(_json["gas_remaining"].asString());
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
   } catch (...) {
     LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
                                     << " is not numeric");
@@ -925,7 +1010,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
-  Account* contractAccount = this->GetAccount(m_curContractAddr);
+  Account* contractAccount =
+      m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
     LOG_GENERAL(WARNING, "contractAccount is null ptr");
     receipt.AddError(CONTRACT_NOT_EXIST);
@@ -933,33 +1019,38 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
 
   std::vector<Contract::StateEntry> state_entries;
-  for (const auto& s : _json["states"]) {
-    if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value")) {
-      LOG_GENERAL(WARNING,
-                  "Address: " << m_curContractAddr.hex()
-                              << ", The json output of states is corrupted");
-      receipt.AddError(STATE_CORRUPTED);
-      continue;
-    }
-    std::string vname = s["vname"].asString();
-    std::string type = s["type"].asString();
-    std::string value =
-        s["value"].isString()
-            ? s["value"].asString()
-            : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
+  try {
+    for (const auto& s : _json["states"]) {
+      if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value")) {
+        LOG_GENERAL(WARNING,
+                    "Address: " << m_curContractAddr.hex()
+                                << ", The json output of states is corrupted");
+        receipt.AddError(STATE_CORRUPTED);
+        return false;
+      }
+      std::string vname = s["vname"].asString();
+      std::string type = s["type"].asString();
+      std::string value =
+          s["value"].isString()
+              ? s["value"].asString()
+              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
 
-    if (vname != "_balance") {
-      state_entries.push_back(std::make_tuple(vname, true, type, value));
+      if (vname != "_balance") {
+        state_entries.push_back(std::make_tuple(vname, true, type, value));
+      }
     }
-  }
 
-  for (const auto& e : _json["events"]) {
-    LogEntry entry;
-    if (!entry.Install(e, m_curContractAddr)) {
-      receipt.AddError(LOG_ENTRY_INSTALL_FAILED);
-      return false;
+    for (const auto& e : _json["events"]) {
+      LogEntry entry;
+      if (!entry.Install(e, m_curContractAddr)) {
+        receipt.AddError(LOG_ENTRY_INSTALL_FAILED);
+        return false;
+      }
+      receipt.AddEntry(entry);
     }
-    receipt.AddEntry(entry);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
   }
 
   bool ret = false;
@@ -970,6 +1061,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                 "null message in scilla output when invoking a "
                 "contract, transaction finished");
     ret = true;
+  } else if (!_json["message"].isObject()) {
+    LOG_GENERAL(WARNING,
+                "not null but not object message value in scilla output");
+    return false;
   }
 
   Address recipient;
@@ -989,7 +1084,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
 
     try {
-      m_curAmount = boost::lexical_cast<boost::multiprecision::uint128_t>(
+      m_curAmount = boost::lexical_cast<uint128_t>(
           _json["message"]["_amount"].asString());
     } catch (...) {
       LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
@@ -1005,11 +1100,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
 
     delete account;
-    account = this->GetAccount(recipient);
+    account = m_accountStoreAtomic->GetAccount(recipient);
 
     if (account == nullptr) {
       AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
-      account = this->GetAccount(recipient);
+      account = m_accountStoreAtomic->GetAccount(recipient);
     }
 
     // Recipient is non-contract
@@ -1037,6 +1132,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     if (ret) {
       if (!contractAccount->SetStorage(state_entries, temp)) {
         LOG_GENERAL(WARNING, "SetStorage failed");
+        return false;
       }
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
@@ -1102,13 +1198,19 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   int pid = -1;
   auto func = [this, &runnerPrint, &result, &pid, gasRemained,
                &receipt]() mutable -> void {
-    if (!SysCommand::ExecuteCmd(
-            SysCommand::WITH_OUTPUT_PID,
-            GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
-            pid)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                               m_root_w_version, gasRemained));
-      receipt.AddError(EXECUTE_CMD_FAILED);
+    try {
+      if (!SysCommand::ExecuteCmd(
+              SysCommand::WITH_OUTPUT_PID,
+              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
+              pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                 m_root_w_version, gasRemained));
+        receipt.AddError(EXECUTE_CMD_FAILED);
+        result = false;
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught in ParseCallContractJsonOutput: "
+                               << e.what());
       result = false;
     }
     cv_callContract.notify_all();
@@ -1129,8 +1231,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(WARNING,
                 "Txn processing timeout! Interrupt current contract call, pid: "
                     << pid);
-    if (pid >= 0) {
-      kill(pid, SIGKILL);
+    try {
+      if (pid >= 0) {
+        kill(pid, SIGKILL);
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception caught when calling kill pid: " << e.what());
     }
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     result = false;
@@ -1157,20 +1264,20 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(
-    const Address& from, const Address& to,
-    const boost::multiprecision::uint128_t& delta) {
+bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
+                                                const Address& to,
+                                                const uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::CommitTransferBalanceAtomic() {
+void AccountStoreSC<MAP>::CommitTransferAtomic() {
   LOG_MARKER();
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
     Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
-      account->SetBalance(entry.second.GetBalance());
+      *account = entry.second;
     } else {
       // this->m_addressToAccount.emplace(std::make_pair(entry.first,
       // entry.second));
@@ -1180,7 +1287,7 @@ void AccountStoreSC<MAP>::CommitTransferBalanceAtomic() {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic() {
+void AccountStoreSC<MAP>::DiscardTransferAtomic() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
 }

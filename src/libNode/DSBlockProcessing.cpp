@@ -16,10 +16,6 @@
  */
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -232,7 +228,13 @@ void Node::StartFirstTxEpoch() {
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
   // blacklist pop for shard nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -405,6 +407,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           dsblock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
                 "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
+    if (dsblock.GetHeader().GetBlockNum() >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1) {
+      if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+        m_mediator.m_lookup->RejoinAsNewLookup();
+      }
+    }
     return false;
   }
 

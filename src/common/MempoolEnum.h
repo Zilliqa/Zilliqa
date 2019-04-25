@@ -15,21 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TIMEUTILS_H__
-#define __TIMEUTILS_H__
+#ifndef __MEMPOOL_ENUM_H__
+#define __MEMPOOL_ENUM_H__
 
-#include <chrono>
-#include <string>
+enum PoolTxnStatus : uint8_t {
+  NOT_PRESENT = 0,
+  PRESENT_NONCE_HIGH,
+  PRESENT_GAS_EXCEEDED,
+  ERROR
+};
 
-std::chrono::system_clock::time_point r_timer_start();
-double r_timer_end(std::chrono::system_clock::time_point start_time);
-
-uint64_t get_time_as_int();
-struct tm* gmtime_safe(const time_t* timer);
-long int get_ms(const std::chrono::time_point<std::chrono::system_clock> time);
-
-std::string microsec_timestamp_to_readable(const uint64_t& timestamp);
-
-bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
-                           const uint64_t& hiBound);
-#endif  // __TIMEUTILS_H__
+#endif  //__MEMPOOL_ENUM_H__

@@ -46,6 +46,11 @@
 class Mediator;
 class Synchronizer;
 
+// The "first" element in the pair is a map of shard to its transactions
+// The "second" element in the pair counts the total number of transactions in
+// the whole map
+using TxnShardMap = std::map<uint32_t, std::vector<Transaction>>;
+
 // Enum used to tell send type to seed node
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
 
@@ -96,16 +101,13 @@ class Lookup : public Executable {
 
   void SetAboveLayer();
 
-  /// Post processing after the DS node successfully synchronized with the
+  /// Post processing after the lookup node successfully synchronized with the
   /// network
   bool FinishRejoinAsLookup();
 
   /// Post processing after the new Lookup node successfully synchronized with
   /// the network
   bool FinishNewJoinAsLookup();
-
-  // Reset certain variables to the initial state
-  bool CleanVariables();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -124,6 +126,8 @@ class Lookup : public Executable {
 
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;
+
+  TxnShardMap m_txnShardMap;
 
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
@@ -181,7 +185,9 @@ class Lookup : public Executable {
   VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
-  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
+
+  const std::vector<Transaction>& GetTxnFromShardMap(
+      uint32_t index);  // Use m_txnShardMapMutex with this function
 
   bool IsLookupNode(const PubKey& pubKey) const;
 
@@ -194,7 +200,7 @@ class Lookup : public Executable {
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
   // Try resolving ip from the given peer's DNS
-  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
+  uint128_t TryGettingResolvedIP(const Peer& peer) const;
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
@@ -251,6 +257,10 @@ class Lookup : public Executable {
 
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
+
+  // Rejoin the network as a newlookup node in case of failure happens in
+  // protocol
+  void RejoinAsNewLookup();
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
@@ -363,6 +373,9 @@ class Lookup : public Executable {
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;

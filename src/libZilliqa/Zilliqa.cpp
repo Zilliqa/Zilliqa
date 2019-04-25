@@ -157,17 +157,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   m_validator = make_shared<Validator>(m_mediator);
 
-  if (LOOKUP_NODE_MODE) {
-    m_serverConnector = make_unique<SafeHttpServer>(RPC_PORT);
-
-  } else {
-    m_serverConnector = make_unique<SafeTcpSocketServer>(IP_TO_BIND, RPC_PORT);
-  }
-  if (m_serverConnector == nullptr) {
-    LOG_GENERAL(FATAL, "m_serverConnector NULL");
-  }
-  m_server = make_unique<Server>(m_mediator, *m_serverConnector);
-
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
@@ -181,7 +170,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    m_server->StartCollectorThread();
+    m_lookupServer->StartCollectorThread();
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
@@ -206,13 +195,17 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     LogSelfNodeInfo(key, peer);
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
-      if (LOOKUP_NODE_MODE) {
+      if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
         syncType = SyncType::LOOKUP_SYNC;
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         break;
       } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
                                        SyncType::NEW_SYNC == syncType)) {
-        m_n.CleanVariables();
+        if (SyncType::NEW_LOOKUP_SYNC == syncType) {
+          m_lookup.CleanVariables();
+        } else {
+          m_n.CleanVariables();
+        }
         while (!m_n.DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
@@ -227,7 +220,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
             isDsNode = true;
-            m_ds.RejoinAsDS();
+            m_ds.RejoinAsDS(false);
             break;
           }
         }
@@ -289,7 +282,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
-        m_ds.StartSynchronization();
+        // downloads and sync from the persistence of incremental db and
+        // and rejoins the network as ds guard member
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
         LOG_GENERAL(INFO, "Intitialize DB verification");
@@ -326,14 +322,33 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    if (m_server == nullptr) {
-      LOG_GENERAL(INFO, "Pointer unitialized");
-    } else {
-      if ((LOOKUP_NODE_MODE) || (ENABLE_STATUS_RPC)) {
-        if (m_server->StartListening()) {
+    if (LOOKUP_NODE_MODE) {
+      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
+      m_lookupServer =
+          make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
+
+      if (m_lookupServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_lookupServer NULL");
+      } else {
+        if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
         } else {
           LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
+      }
+    }
+    if (ENABLE_STATUS_RPC) {
+      m_statusServerConnector =
+          make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+      m_statusServer =
+          make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
+      if (m_statusServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_statusServer NULL");
+      } else {
+        if (m_statusServer->StartListening()) {
+          LOG_GENERAL(INFO, "Status Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "Status Server couldn't start");
         }
       }
     }

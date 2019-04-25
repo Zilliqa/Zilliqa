@@ -329,12 +329,16 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
     return false;
   }
 
-  Json::Value balance;
-  balance["vname"] = "_balance";
-  balance["type"] = "Uint128";
-  balance["value"] = GetBalance().convert_to<string>();
-  roots.second.append(balance);
-
+  try {
+    Json::Value balance;
+    balance["vname"] = "_balance";
+    balance["type"] = "Uint128";
+    balance["value"] = GetBalance().convert_to<string>();
+    roots.second.append(balance);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
   // LOG_GENERAL(INFO, "States: " << root);
 
   return true;

@@ -109,7 +109,8 @@ const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
-
+const unsigned int TXN_STORAGE_LIMIT{
+    ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
@@ -207,12 +208,12 @@ const unsigned int UNFILLED_PERCENT_LOW{
     ReadConstantNumeric("UNFILLED_PERCENT_LOW", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_HIGH{
     ReadConstantNumeric("UNFILLED_PERCENT_HIGH", "node.gas.")};
-const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE{
+const uint128_t GAS_PRICE_MIN_VALUE{
     ReadConstantString("GAS_PRICE_MIN_VALUE", "node.gas.")};
 const unsigned int GAS_PRICE_PRECISION{
     ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
-const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
-    SafeMath<boost::multiprecision::uint128_t>::power(10, GAS_PRICE_PRECISION)};
+const uint128_t PRECISION_MIN_VALUE{
+    SafeMath<uint128_t>::power(10, GAS_PRICE_PRECISION)};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadConstantNumeric("GAS_PRICE_DROP_RATIO", "node.gas.")};
 const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
@@ -290,10 +291,15 @@ const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
 
 // RPC Constants
-const unsigned int RPC_PORT{ReadConstantNumeric("RPC_PORT", "node.jsonrpc.")};
+const unsigned int LOOKUP_RPC_PORT{
+    ReadConstantNumeric("LOOKUP_RPC_PORT", "node.jsonrpc.")};
+const unsigned int STATUS_RPC_PORT{
+    ReadConstantNumeric("STATUS_RPC_PORT", "node.jsonrpc.")};
 const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
 const bool ENABLE_STATUS_RPC{
     ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
+const unsigned int NUM_SHARD_PEER_TO_REVEAL{
+    ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
@@ -335,6 +341,8 @@ const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
+const unsigned int MAX_PEER_CONNECTION{
+    ReadConstantNumeric("MAX_PEER_CONNECTION", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -468,11 +476,11 @@ const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 
 // Transaction constants
-const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{
+const uint128_t TOTAL_COINBASE_REWARD{
     ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
-const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS{
+const uint128_t COINBASE_REWARD_PER_DS{
     ReadConstantString("COINBASE_REWARD_PER_DS", "node.transactions.")};
-const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN{
+const uint128_t TOTAL_GENESIS_TOKEN{
     ReadConstantString("TOTAL_GENESIS_TOKEN", "node.transactions.")};
 const unsigned int BASE_REWARD_IN_PERCENT{
     ReadConstantNumeric("BASE_REWARD_IN_PERCENT", "node.transactions.")};

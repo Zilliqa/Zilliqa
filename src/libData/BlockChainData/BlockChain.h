@@ -19,12 +19,6 @@
 #define __BLOCKCHAIN_H__
 
 #include <mutex>
-#include <vector>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"

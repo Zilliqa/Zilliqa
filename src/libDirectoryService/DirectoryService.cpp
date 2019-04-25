@@ -58,7 +58,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
 
 DirectoryService::~DirectoryService() {}
 
-void DirectoryService::StartSynchronization() {
+void DirectoryService::StartSynchronization(bool clean) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartSynchronization not "
@@ -68,7 +68,9 @@ void DirectoryService::StartSynchronization() {
 
   LOG_MARKER();
 
-  this->CleanVariables();
+  if (clean) {
+    this->CleanVariables();
+  }
 
   if (!m_mediator.m_node->GetOfflineLookups()) {
     LOG_GENERAL(WARNING, "Cannot sync currently");
@@ -259,8 +261,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   }
 
   // Add ds guard to exclude list for ds comm at bootstrap
-  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
-      *m_mediator.m_DSCommittee);
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
 
   SetConsensusLeaderID(0);
   if (m_mediator.m_currentEpochNum > 1) {
@@ -459,7 +464,7 @@ bool DirectoryService::CleanVariables() {
   return true;
 }
 
-void DirectoryService::RejoinAsDS() {
+void DirectoryService::RejoinAsDS(bool modeCheck) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RejoinAsDS not expected to be called "
@@ -469,7 +474,7 @@ void DirectoryService::RejoinAsDS() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
-      m_mode == BACKUP_DS) {
+      (m_mode == BACKUP_DS || !modeCheck)) {
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
@@ -488,7 +493,7 @@ void DirectoryService::RejoinAsDS() {
         }
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
-      this->StartSynchronization();
+      this->StartSynchronization(false);
     };
     DetachedFunction(1, func);
   }

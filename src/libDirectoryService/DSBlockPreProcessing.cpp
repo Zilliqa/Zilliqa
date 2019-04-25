@@ -326,10 +326,9 @@ bool DirectoryService::VerifyPoWWinner(
     // Check that the proposed winner's connection information exists in our
     // view of all PoW Conns. Add it if it does not.
     if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
-      if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "WARNING: Why is the IP of the winner different from "
-                  "what I have in m_allPoWConns???");
+      const auto& peer = m_allPoWConns.at(DSPowWinner.first);
+      if (peer != DSPowWinner.second) {
+        LOG_CHECK_FAIL("PoW Winner IP", DSPowWinner.second, peer);
         return false;
       }
     } else {

@@ -15,11 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <mutex>
+
+#include "common/BaseType.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
@@ -31,8 +29,8 @@ class Mediator;
 
 class Server {
   Mediator& m_mediator;
-  std::pair<uint64_t, boost::multiprecision::uint256_t> m_BlockTxPair;
-  std::pair<uint64_t, boost::multiprecision::uint256_t> m_TxBlockCountSumPair;
+  std::pair<uint64_t, uint256_t> m_BlockTxPair;
+  std::pair<uint64_t, uint256_t> m_TxBlockCountSumPair;
   uint64_t m_StartTimeTx;
   uint64_t m_StartTimeDs;
   std::pair<uint64_t, CircularArray<std::string>> m_DSBlockCache;
@@ -45,7 +43,7 @@ class Server {
   ~Server();
 
   // Auxillary functions.
-  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
+  uint256_t GetNumTransactions(uint64_t blockNum);
   void AddToRecentTransactions(const dev::h256& txhash);
   bool ValidateProtoTransaction(
       const ZilliqaMessage::ProtoTransaction& protoTransaction);

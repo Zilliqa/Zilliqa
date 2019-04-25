@@ -48,28 +48,20 @@ struct DiagnosticDataNodes {
 };
 
 struct DiagnosticDataCoinbase {
-  boost::multiprecision::uint128_t
-      nodeCount;  // Total num of nodes in the network for entire DS epoch
-  boost::multiprecision::uint128_t
-      sigCount;  // Total num of signatories for the mined blocks across all Tx
-                 // epochs
+  uint128_t nodeCount;  // Total num of nodes in the network for entire DS epoch
+  uint128_t sigCount;   // Total num of signatories for the mined blocks across
+                        // all Tx epochs
   uint32_t lookupCount;  // Num of lookup nodes
-  boost::multiprecision::uint128_t
+  uint128_t
       totalReward;  // Total reward based on COINBASE_REWARD_PER_DS and txn fees
-  boost::multiprecision::uint128_t
-      baseReward;  // Base reward based on BASE_REWARD_IN_PERCENT
-  boost::multiprecision::uint128_t
-      baseRewardEach;  // Base reward over nodeCount
-  boost::multiprecision::uint128_t
-      lookupReward;  // LOOKUP_REWARD_IN_PERCENT percent of remaining reward
-                     // after baseReward
-  boost::multiprecision::uint128_t
-      rewardEachLookup;  // lookupReward over lookupCount
-  boost::multiprecision::uint128_t
-      nodeReward;  // Remaining reward after lookupReward
-  boost::multiprecision::uint128_t rewardEach;  // nodeReward over sigCount
-  boost::multiprecision::uint128_t
-      balanceLeft;              // Remaining reward after nodeReward
+  uint128_t baseReward;         // Base reward based on BASE_REWARD_IN_PERCENT
+  uint128_t baseRewardEach;     // Base reward over nodeCount
+  uint128_t lookupReward;       // LOOKUP_REWARD_IN_PERCENT percent of remaining
+                                // reward after baseReward
+  uint128_t rewardEachLookup;   // lookupReward over lookupCount
+  uint128_t nodeReward;         // Remaining reward after lookupReward
+  uint128_t rewardEach;         // nodeReward over sigCount
+  uint128_t balanceLeft;        // Remaining reward after nodeReward
   PubKey luckyDrawWinnerKey;    // Recipient of balanceLeft (pubkey)
   Address luckyDrawWinnerAddr;  // Recipient of balanceLeft (address)
 
@@ -254,11 +246,17 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Save state root
   bool PutStateRoot(const bytes& data);
 
+  /// Save latest epoch when states were moved to disk
+  bool PutLatestEpochStatesUpdated(const uint64_t& epochNum);
+
   /// Retrieve Last Transactions Trie Root Hash
   bool GetMetadata(MetaType type, bytes& data);
 
   // Retrieve the state root
   bool GetStateRoot(bytes& data);
+
+  /// Save latest epoch when states were moved to disk
+  bool GetLatestEpochStatesUpdated(uint64_t& epochNum);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,

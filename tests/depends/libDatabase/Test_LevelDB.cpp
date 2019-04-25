@@ -24,10 +24,6 @@
 #define BOOST_TEST_MODULE trietest
 #define BOOST_TEST_DYN_LINK
 #include <boost/filesystem/path.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 
 #include "depends/common/CommonIO.h"
@@ -48,23 +44,21 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
 
   LevelDB m_testDB("test");
 
-  m_testDB.Insert((boost::multiprecision::uint256_t)1, "ABB");
+  m_testDB.Insert((uint256_t)1, "ABB");
 
-  BOOST_CHECK_MESSAGE(
-      m_testDB.Lookup((boost::multiprecision::uint256_t)1) == "ABB",
-      "ERROR: (boost_int, string)");
+  BOOST_CHECK_MESSAGE(m_testDB.Lookup((uint256_t)1) == "ABB",
+                      "ERROR: (boost_int, string)");
 
-  m_testDB.Insert((boost::multiprecision::uint256_t)2, "apples");
+  m_testDB.Insert((uint256_t)2, "apples");
 
-  BOOST_CHECK_MESSAGE(
-      m_testDB.Lookup((boost::multiprecision::uint256_t)2) == "apples",
-      "ERROR: (boost_int, string)");
+  BOOST_CHECK_MESSAGE(m_testDB.Lookup((uint256_t)2) == "apples",
+                      "ERROR: (boost_int, string)");
 
   bytes mangoMsg = {'m', 'a', 'n', 'g', 'o'};
 
-  m_testDB.Insert((boost::multiprecision::uint256_t)3, mangoMsg);
+  m_testDB.Insert((uint256_t)3, mangoMsg);
 
-  LOG_GENERAL(INFO, m_testDB.Lookup((boost::multiprecision::uint256_t)3));
+  LOG_GENERAL(INFO, m_testDB.Lookup((uint256_t)3));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
