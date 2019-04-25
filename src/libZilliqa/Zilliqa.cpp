@@ -157,19 +157,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   m_validator = make_shared<Validator>(m_mediator);
 
-  if (LOOKUP_NODE_MODE) {
-    m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
-    m_lookupServer =
-        make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
-  }
-  m_statusServerConnector =
-      make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
-  m_statusServer =
-      make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
-  if (m_statusServer == nullptr) {
-    LOG_GENERAL(FATAL, "m_statusServer NULL");
-  }
-
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
@@ -335,10 +322,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    if (m_lookupServer == nullptr) {
-      LOG_GENERAL(INFO, "Lookup Server Unitialized");
-    } else {
-      if (LOOKUP_NODE_MODE) {
+    if (LOOKUP_NODE_MODE) {
+      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
+      m_lookupServer =
+          make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
+
+      if (m_lookupServer == nullptr) {
+        LOG_GENERAL(INFO, "Lookup Server Unitialized");
+      } else {
         if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
         } else {
@@ -346,13 +337,19 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         }
       }
     }
-    if (m_statusServer == nullptr) {
-      LOG_GENERAL(INFO, "Status Server Unitialized");
-    } else if (ENABLE_STATUS_RPC) {
-      if (m_statusServer->StartListening()) {
-        LOG_GENERAL(INFO, "Status Server started successfully");
+    if (ENABLE_STATUS_RPC) {
+      m_statusServerConnector =
+          make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+      m_statusServer =
+          make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
+      if (m_statusServer == nullptr) {
+        LOG_GENERAL(FATAL, "m_statusServer NULL");
       } else {
-        LOG_GENERAL(WARNING, "Status Server couldn't start");
+        if (m_statusServer->StartListening()) {
+          LOG_GENERAL(INFO, "Status Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "Status Server couldn't start");
+        }
       }
     }
   };
