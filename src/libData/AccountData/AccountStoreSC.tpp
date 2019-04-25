@@ -72,290 +72,251 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
     return false;
   }
 
-  // Determine a normal txn
-  if (transaction.GetData().empty() && transaction.GetCode().empty()) {
-    // LOG_GENERAL(INFO, "Normal transaction");
+  switch (Transaction::GetTransactionType(transaction)) {
+    case Transaction::NON_CONTRACT: {
+      // LOG_GENERAL(INFO, "Normal transaction");
 
-    // Disallow normal transaction to contract account
-    Account* toAccount = this->GetAccount(toAddr);
-    if (toAccount != nullptr) {
-      if (toAccount->isContract()) {
-        LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
+      // Disallow normal transaction to contract account
+      Account* toAccount = this->GetAccount(toAddr);
+      if (toAccount != nullptr) {
+        if (toAccount->isContract()) {
+          LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
+          return false;
+        }
+      }
+
+      return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt);
+    }
+    case Transaction::CONTRACT_CREATION: {
+      LOG_GENERAL(INFO, "Create contract");
+
+      bool validToTransferBalance = true;
+
+      Account* fromAccount = this->GetAccount(fromAddr);
+      if (fromAccount == nullptr) {
+        LOG_GENERAL(WARNING, "Sender has no balance, reject");
         return false;
       }
-    }
 
-    return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt);
-  }
+      uint64_t createGasPenalty = std::max(
+          CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
+                                              transaction.GetData().size()));
 
-  bool callContract = false;
-
-  // Determine a contract calling txn
-  if (transaction.GetData().size() > 0 && toAddr != NullAddress &&
-      transaction.GetCode().empty()) {
-    callContract = true;
-  }
-
-  // Needed by gas handling
-  bool validToTransferBalance = true;
-
-  Account* fromAccount = this->GetAccount(fromAddr);
-  if (fromAccount == nullptr) {
-    LOG_GENERAL(WARNING, "Sender has no balance, reject");
-    return false;
-  }
-
-  // Determine a contract deployment txn
-  if (transaction.GetCode().size() > 0) {
-    if (toAddr != NullAddress) {
-      LOG_GENERAL(WARNING, "txn has non-empty code but with valid toAddr");
-      return false;
-    }
-
-    LOG_GENERAL(INFO, "Create contract");
-
-    uint64_t createGasPenalty = std::max(
-        CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
-                                            transaction.GetData().size()));
-
-    // Check if gaslimit meets the minimum requirement for contract deployment
-    if (transaction.GetGasLimit() < createGasPenalty) {
-      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than " << createGasPenalty);
-      return false;
-    }
-
-    // Check if the sender has enough balance to pay gasDeposit
-    if (fromAccount->GetBalance() < gasDeposit) {
-      LOG_GENERAL(WARNING,
-                  "The account doesn't have enough gas to create a contract");
-      return false;
-    }
-    // Check if the sender has enough balance to pay gasDeposit and transfer
-    // amount
-    else if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(WARNING,
-                  "The account (balance: "
-                      << fromAccount->GetBalance()
-                      << ") "
-                         "has enough balance to pay the gas price to deposit ("
-                      << gasDeposit
-                      << ") "
-                         "but not enough for transfer the amount ("
-                      << amount
-                      << "), "
-                         "create contract first and ignore amount "
-                         "transfer however");
-      validToTransferBalance = false;
-    }
-
-    // generate address for new contract account
-    toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
-    // instantiate the object for contract account
-    this->AddAccount(toAddr, {0, 0});
-    Account* toAccount = this->GetAccount(toAddr);
-    if (toAccount == nullptr) {
-      LOG_GENERAL(WARNING, "toAccount is null ptr");
-      return false;
-    }
-
-    bool init = true;
-
-    try {
-      // Initiate the contract account, including setting the contract code
-      // store the immutable states
-      if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
-                                   toAddr, blockNum, temp)) {
-        LOG_GENERAL(WARNING, "InitContract failed");
-        init = false;
+      // Check if gaslimit meets the minimum requirement for contract deployment
+      if (transaction.GetGasLimit() < createGasPenalty) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                          << " less than " << createGasPenalty);
+        return false;
       }
 
-      m_curBlockNum = blockNum;
-      if (init && !ExportCreateContractFiles(*toAccount)) {
-        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
-        init = false;
+      // Check if the sender has enough balance to pay gasDeposit
+      if (fromAccount->GetBalance() < gasDeposit) {
+        LOG_GENERAL(WARNING,
+                    "The account doesn't have enough gas to create a contract");
+        return false;
+      }
+      // Check if the sender has enough balance to pay gasDeposit and transfer
+      // amount
+      else if (fromAccount->GetBalance() < gasDeposit + amount) {
+        LOG_GENERAL(
+            WARNING,
+            "The account (balance: "
+                << fromAccount->GetBalance()
+                << ") "
+                   "has enough balance to pay the gas price to deposit ("
+                << gasDeposit
+                << ") "
+                   "but not enough for transfer the amount ("
+                << amount
+                << "), "
+                   "create contract first and ignore amount "
+                   "transfer however");
+        validToTransferBalance = false;
       }
 
-      if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
-        init = false;
+      // generate address for new contract account
+      toAddr =
+          Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
+      // instantiate the object for contract account
+      this->AddAccount(toAddr, {0, 0});
+      Account* toAccount = this->GetAccount(toAddr);
+      if (toAccount == nullptr) {
+        LOG_GENERAL(WARNING, "toAccount is null ptr");
+        return false;
       }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught in create account (1): " << e.what());
-      init = false;
-    }
 
-    if (!init) {
-      this->RemoveAccount(toAddr);
-      return false;
-    }
+      bool init = true;
 
-    // Undergo scilla checker
-    bool ret_checker = true;
-    std::string checkerPrint;
-
-    int pid = -1;
-    auto func1 = [this, &checkerPrint, &ret_checker, &pid,
-                  &receipt]() mutable -> void {
       try {
-        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
-                                    GetContractCheckerCmdStr(m_root_w_version),
-                                    checkerPrint, pid)) {
-          LOG_GENERAL(WARNING,
-                      "ExecuteCmd failed: "
-                          << GetContractCheckerCmdStr(m_root_w_version));
-          receipt.AddError(EXECUTE_CMD_FAILED);
-          ret_checker = false;
+        // Initiate the contract account, including setting the contract code
+        // store the immutable states
+        if (!toAccount->InitContract(transaction.GetCode(),
+                                     transaction.GetData(), toAddr, blockNum,
+                                     temp)) {
+          LOG_GENERAL(WARNING, "InitContract failed");
+          init = false;
+        }
+
+        m_curBlockNum = blockNum;
+        if (init && !ExportCreateContractFiles(*toAccount)) {
+          LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
+          init = false;
+        }
+
+        if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
+          init = false;
         }
       } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (1): "
-                                 << e.what());
-        ret_checker = false;
+        LOG_GENERAL(WARNING,
+                    "Exception caught in create account (1): " << e.what());
+        init = false;
       }
 
-      cv_callContract.notify_all();
-    };
-    DetachedFunction(1, func1);
-
-    {
-      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-      cv_callContract.wait(lk);
-    }
-
-    if (m_txnProcessTimeout) {
-      LOG_GENERAL(
-          WARNING,
-          "Txn processing timeout! Interrupt current contract check, pid: "
-              << pid);
-      try {
-        if (pid >= 0) {
-          kill(pid, SIGKILL);
-        }
-      } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
+      if (!init) {
+        this->RemoveAccount(toAddr);
+        return false;
       }
-      receipt.AddError(EXECUTE_CMD_TIMEOUT);
-      ret_checker = false;
-    }
 
-    if (ret_checker && !ParseContractCheckerOutput(checkerPrint, receipt)) {
-      ret_checker = false;
-    }
+      // Undergo scilla checker
+      bool ret_checker = true;
+      std::string checkerPrint;
 
-    // Undergo scilla runner
-    bool ret = true;
-
-    if (ret_checker) {
-      std::string runnerPrint;
-
-      pid = -1;
-      auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
+      int pid = -1;
+      auto func1 = [this, &checkerPrint, &ret_checker, &pid,
                     &receipt]() mutable -> void {
         try {
           if (!SysCommand::ExecuteCmd(
                   SysCommand::WITH_OUTPUT_PID,
-                  GetCreateContractCmdStr(m_root_w_version, gasRemained),
-                  runnerPrint, pid)) {
+                  GetContractCheckerCmdStr(m_root_w_version), checkerPrint,
+                  pid)) {
             LOG_GENERAL(WARNING,
-                        "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                            m_root_w_version, gasRemained));
+                        "ExecuteCmd failed: "
+                            << GetContractCheckerCmdStr(m_root_w_version));
             receipt.AddError(EXECUTE_CMD_FAILED);
-            ret = false;
+            ret_checker = false;
           }
         } catch (const std::exception& e) {
           LOG_GENERAL(
               WARNING,
-              "Exception caught in SysCommand::ExecuteCmd (2): " << e.what());
-          ret = false;
+              "Exception caught in SysCommand::ExecuteCmd (1): " << e.what());
+          ret_checker = false;
         }
 
         cv_callContract.notify_all();
       };
-      DetachedFunction(1, func2);
+      DetachedFunction(1, func1);
 
       {
         std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
         cv_callContract.wait(lk);
       }
 
-      try {
-        if (m_txnProcessTimeout) {
-          LOG_GENERAL(WARNING,
-                      "Txn processing timeout! Interrupt current contract "
-                      "deployment, pid: "
-                          << pid);
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(
+            WARNING,
+            "Txn processing timeout! Interrupt current contract check, pid: "
+                << pid);
+        try {
           if (pid >= 0) {
             kill(pid, SIGKILL);
           }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
+        }
+        receipt.AddError(EXECUTE_CMD_TIMEOUT);
+        ret_checker = false;
+      }
 
-          receipt.AddError(EXECUTE_CMD_TIMEOUT);
+      if (ret_checker && !ParseContractCheckerOutput(checkerPrint, receipt)) {
+        ret_checker = false;
+      }
+
+      // Undergo scilla runner
+      bool ret = true;
+
+      if (ret_checker) {
+        std::string runnerPrint;
+
+        pid = -1;
+        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
+                      &receipt]() mutable -> void {
+          try {
+            if (!SysCommand::ExecuteCmd(
+                    SysCommand::WITH_OUTPUT_PID,
+                    GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                    runnerPrint, pid)) {
+              LOG_GENERAL(WARNING,
+                          "ExecuteCmd failed: " << GetCreateContractCmdStr(
+                              m_root_w_version, gasRemained));
+              receipt.AddError(EXECUTE_CMD_FAILED);
+              ret = false;
+            }
+          } catch (const std::exception& e) {
+            LOG_GENERAL(
+                WARNING,
+                "Exception caught in SysCommand::ExecuteCmd (2): " << e.what());
+            ret = false;
+          }
+
+          cv_callContract.notify_all();
+        };
+        DetachedFunction(1, func2);
+
+        {
+          std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+          cv_callContract.wait(lk);
+        }
+
+        try {
+          if (m_txnProcessTimeout) {
+            LOG_GENERAL(WARNING,
+                        "Txn processing timeout! Interrupt current contract "
+                        "deployment, pid: "
+                            << pid);
+            if (pid >= 0) {
+              kill(pid, SIGKILL);
+            }
+
+            receipt.AddError(EXECUTE_CMD_TIMEOUT);
+            ret = false;
+          }
+
+          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+            ret = false;
+          }
+          if (!ret) {
+            gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
+                                   gasRemained);
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(WARNING,
+                      "Exception caught in create account (2): " << e.what());
           ret = false;
         }
-
-        if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
-          ret = false;
-        }
-        if (!ret) {
-          gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
-                                 gasRemained);
-        }
-      } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING,
-                    "Exception caught in create account (2): " << e.what());
-        ret = false;
+      } else {
+        gasRemained =
+            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
       }
-    } else {
-      gasRemained =
-          std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
-    }
 
-    boost::multiprecision::uint128_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-            gasRemained, transaction.GetGasPrice(), gasRefund)) {
-      this->RemoveAccount(toAddr);
-      return false;
-    }
-    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-      LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
-    }
-    if (!ret || !ret_checker) {
-      this->m_addressToAccount->erase(toAddr);
-
-      receipt.SetResult(false);
-      if (!ret) {
-        receipt.AddError(RUNNER_FAILED);
-      }
-      if (!ret_checker) {
-        receipt.AddError(CHECKER_FAILED);
-      }
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-      receipt.update();
-
-      if (!this->IncreaseNonce(fromAddr)) {
+      boost::multiprecision::uint128_t gasRefund;
+      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+              gasRemained, transaction.GetGasPrice(), gasRefund)) {
         this->RemoveAccount(toAddr);
         return false;
       }
+      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+        LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
+      }
+      if (!ret || !ret_checker) {
+        this->m_addressToAccount->erase(toAddr);
 
-      LOG_GENERAL(
-          INFO,
-          "Create contract failed, but return true in order to change state");
-
-      return true;  // Return true because the states already changed
-    }
-  }
-
-  if (!callContract) {
-    if (transaction.GetGasLimit() < gasRemained) {
-      LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                               << transaction.GetGasLimit() << " gasRemained: "
-                               << gasRemained << ". Must be something wrong!");
-      return false;
-    }
-
-    if (validToTransferBalance) {
-      if (!this->TransferBalance(fromAddr, toAddr, amount)) {
         receipt.SetResult(false);
-        receipt.AddError(BALANCE_TRANSFER_FAILED);
+        if (!ret) {
+          receipt.AddError(RUNNER_FAILED);
+        }
+        if (!ret_checker) {
+          receipt.AddError(CHECKER_FAILED);
+        }
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
@@ -363,167 +324,208 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
           this->RemoveAccount(toAddr);
           return false;
         }
-        return true;
+
+        LOG_GENERAL(
+            INFO,
+            "Create contract failed, but return true in order to change state");
+
+        return true;  // Return true because the states already changed
       }
-    }
 
-    receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-  } else {
-    LOG_GENERAL(INFO, "Call contract");
-
-    uint64_t callGasPenalty = std::max(
-        CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
-
-    if (transaction.GetGasLimit() < callGasPenalty) {
-      LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                        << " less than " << callGasPenalty);
-      return false;
-    }
-
-    if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(
-          WARNING,
-          "The account (balance: "
-              << fromAccount->GetBalance()
-              << ") "
-                 "has not enough balance to deposit the gas price to deposit ("
-              << gasDeposit
-              << ") "
-                 "and transfer the amount ("
-              << amount
-              << ") in the txn, "
-                 "rejected");
-      return false;
-    }
-
-    m_curSenderAddr = fromAddr;
-    m_curDepth = 0;
-
-    Account* toAccount = this->GetAccount(toAddr);
-    if (toAccount == nullptr) {
-      LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-      return false;
-    }
-
-    m_curBlockNum = blockNum;
-    if (!ExportCallContractFiles(*toAccount, transaction)) {
-      LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
-      return false;
-    }
-
-    DiscardTransferAtomic();
-
-    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
-      LOG_GENERAL(WARNING, "DecreaseBalance failed");
-      return false;
-    }
-
-    m_curGasLimit = transaction.GetGasLimit();
-    m_curGasPrice = transaction.GetGasPrice();
-    m_curContractAddr = toAddr;
-    m_curAmount = amount;
-    m_curNumShards = numShards;
-
-    std::chrono::system_clock::time_point tpStart;
-    if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      tpStart = r_timer_start();
-    }
-
-    std::string runnerPrint;
-    bool ret = true;
-    int pid = -1;
-
-    auto func = [this, &runnerPrint, &ret, &pid, gasRemained,
-                 &receipt]() mutable -> void {
-      try {
-        if (!SysCommand::ExecuteCmd(
-                SysCommand::WITH_OUTPUT_PID,
-                GetCallContractCmdStr(m_root_w_version, gasRemained),
-                runnerPrint, pid)) {
-          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                   m_root_w_version, gasRemained));
-          receipt.AddError(EXECUTE_CMD_FAILED);
-          ret = false;
-        }
-      } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING,
-                    "Exception caught in call account (1): " << e.what());
-        ret = false;
-      }
-      cv_callContract.notify_all();
-    };
-
-    DetachedFunction(1, func);
-
-    {
-      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-      cv_callContract.wait(lk);
-    }
-
-    if (m_txnProcessTimeout) {
-      LOG_GENERAL(
-          WARNING,
-          "Txn processing timeout! Interrupt current contract call, pid: "
-              << pid);
-      try {
-        if (pid >= 0) {
-          kill(pid, SIGKILL);
-        }
-      } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
-      }
-      receipt.AddError(EXECUTE_CMD_TIMEOUT);
-      ret = false;
-    }
-    if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      LOG_GENERAL(DEBUG, "Executed root transition in " << r_timer_end(tpStart)
-                                                        << " microseconds");
-    }
-
-    if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, temp)) {
-      if (m_curDepth > 0) {
-        Contract::ContractStorage::GetContractStorage().RevertPrevState();
-      }
-      ret = false;
-    }
-    if (!ret) {
-      DiscardTransferAtomic();
-      gasRemained =
-          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
-    } else {
-      CommitTransferAtomic();
-    }
-    boost::multiprecision::uint128_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-            gasRemained, transaction.GetGasPrice(), gasRefund)) {
-      return false;
-    }
-
-    if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-      LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
-    }
-
-    if (transaction.GetGasLimit() < gasRemained) {
-      LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                               << transaction.GetGasLimit() << " gasRemained: "
-                               << gasRemained << ". Must be something wrong!");
-      return false;
-    }
-
-    receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-    if (!ret) {
-      receipt.SetResult(false);
-      receipt.update();
-
-      if (!this->IncreaseNonce(fromAddr)) {
+      if (transaction.GetGasLimit() < gasRemained) {
+        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                                 << transaction.GetGasLimit()
+                                 << " gasRemained: " << gasRemained
+                                 << ". Must be something wrong!");
         return false;
       }
 
-      LOG_GENERAL(
-          INFO,
-          "Call contract failed, but return true in order to change state");
+      if (validToTransferBalance) {
+        if (!this->TransferBalance(fromAddr, toAddr, amount)) {
+          receipt.SetResult(false);
+          receipt.AddError(BALANCE_TRANSFER_FAILED);
+          receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+          receipt.update();
 
-      return true;  // Return true because the states already changed
+          if (!this->IncreaseNonce(fromAddr)) {
+            this->RemoveAccount(toAddr);
+            return false;
+          }
+          return true;
+        }
+      }
+
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      break;
+    }
+    case Transaction::CONTRACT_CALL: {
+      Account* fromAccount = this->GetAccount(fromAddr);
+      if (fromAccount == nullptr) {
+        LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        return false;
+      }
+
+      LOG_GENERAL(INFO, "Call contract");
+
+      uint64_t callGasPenalty = std::max(
+          CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+
+      if (transaction.GetGasLimit() < callGasPenalty) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                          << " less than " << callGasPenalty);
+        return false;
+      }
+
+      if (fromAccount->GetBalance() < gasDeposit + amount) {
+        LOG_GENERAL(WARNING, "The account (balance: "
+                                 << fromAccount->GetBalance()
+                                 << ") "
+                                    "has not enough balance to deposit the gas "
+                                    "price to deposit ("
+                                 << gasDeposit
+                                 << ") "
+                                    "and transfer the amount ("
+                                 << amount
+                                 << ") in the txn, "
+                                    "rejected");
+        return false;
+      }
+
+      m_curSenderAddr = fromAddr;
+      m_curDepth = 0;
+
+      Account* toAccount = this->GetAccount(toAddr);
+      if (toAccount == nullptr) {
+        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+        return false;
+      }
+
+      m_curBlockNum = blockNum;
+      if (!ExportCallContractFiles(*toAccount, transaction)) {
+        LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+        return false;
+      }
+
+      DiscardTransferAtomic();
+
+      if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+        LOG_GENERAL(WARNING, "DecreaseBalance failed");
+        return false;
+      }
+
+      m_curGasLimit = transaction.GetGasLimit();
+      m_curGasPrice = transaction.GetGasPrice();
+      m_curContractAddr = toAddr;
+      m_curAmount = amount;
+      m_curNumShards = numShards;
+
+      std::chrono::system_clock::time_point tpStart;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        tpStart = r_timer_start();
+      }
+
+      std::string runnerPrint;
+      bool ret = true;
+      int pid = -1;
+
+      auto func = [this, &runnerPrint, &ret, &pid, gasRemained,
+                   &receipt]() mutable -> void {
+        try {
+          if (!SysCommand::ExecuteCmd(
+                  SysCommand::WITH_OUTPUT_PID,
+                  GetCallContractCmdStr(m_root_w_version, gasRemained),
+                  runnerPrint, pid)) {
+            LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                     m_root_w_version, gasRemained));
+            receipt.AddError(EXECUTE_CMD_FAILED);
+            ret = false;
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(WARNING,
+                      "Exception caught in call account (1): " << e.what());
+          ret = false;
+        }
+        cv_callContract.notify_all();
+      };
+
+      DetachedFunction(1, func);
+
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
+
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(
+            WARNING,
+            "Txn processing timeout! Interrupt current contract call, pid: "
+                << pid);
+        try {
+          if (pid >= 0) {
+            kill(pid, SIGKILL);
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
+        }
+        receipt.AddError(EXECUTE_CMD_TIMEOUT);
+        ret = false;
+      }
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(DEBUG, "Executed root transition in "
+                               << r_timer_end(tpStart) << " microseconds");
+      }
+
+      if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, temp)) {
+        if (m_curDepth > 0) {
+          Contract::ContractStorage::GetContractStorage().RevertPrevState();
+        }
+        ret = false;
+      }
+      if (!ret) {
+        DiscardTransferAtomic();
+        gasRemained =
+            std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
+      } else {
+        CommitTransferAtomic();
+      }
+      boost::multiprecision::uint128_t gasRefund;
+      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+        return false;
+      }
+
+      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+        LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
+      }
+
+      if (transaction.GetGasLimit() < gasRemained) {
+        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                                 << transaction.GetGasLimit()
+                                 << " gasRemained: " << gasRemained
+                                 << ". Must be something wrong!");
+        return false;
+      }
+
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      if (!ret) {
+        receipt.SetResult(false);
+        receipt.update();
+
+        if (!this->IncreaseNonce(fromAddr)) {
+          return false;
+        }
+
+        LOG_GENERAL(
+            INFO,
+            "Call contract failed, but return true in order to change state");
+
+        return true;  // Return true because the states already changed
+      }
+      break;
+    }
+    default: {
+      LOG_GENERAL(WARNING, "Txn is not typed correctly")
+      return false;
     }
   }
 
@@ -534,7 +536,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   receipt.SetResult(true);
   receipt.update();
 
-  if (transaction.GetCode().size() > 0 || callContract) {
+  if (Transaction::GetTransactionType(transaction) ==
+          Transaction::CONTRACT_CREATION ||
+      Transaction::GetTransactionType(transaction) ==
+          Transaction::CONTRACT_CALL) {
     LOG_GENERAL(INFO, "Executing contract transaction finished");
   }
 
