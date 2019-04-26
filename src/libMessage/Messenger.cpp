@@ -2541,12 +2541,6 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
                                      const bool revertible, bool temp) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
   ProtoAccountStore result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
@@ -2602,12 +2596,6 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStoreTemp& accountStoreTemp,
                                      bool temp) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
   ProtoAccountStore result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
