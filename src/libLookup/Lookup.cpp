@@ -3657,8 +3657,8 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldShardSize) {
   DetachedFunction(1, main_func);
 }
 
-void Lookup::RectifyTxnSharMap(const uint32_t oldShardSize,
-                               const uint32_t newShardSize) {
+void Lookup::RectifyTxnShardMap(const uint32_t oldShardSize,
+                                const uint32_t newShardSize) {
   LOG_MARKER();
 
   auto t_start = std::chrono::high_resolution_clock::now();
@@ -3719,7 +3719,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldShardSize,
 
   if (oldShardSize != newShardSize) {
     auto rectifyFunc = [this, oldShardSize, newShardSize]() mutable -> void {
-      RectifyTxnSharMap(oldShardSize, newShardSize);
+      RectifyTxnShardMap(oldShardSize, newShardSize);
     };
     DetachedFunction(1, rectifyFunc);
   }

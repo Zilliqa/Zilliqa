@@ -216,7 +216,7 @@ class Lookup : public Executable {
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
 
-  void RectifyTxnSharMap(const uint32_t, const uint32_t);
+  void RectifyTxnShardMap(const uint32_t, const uint32_t);
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetDSInfoFromSeedNodes();
