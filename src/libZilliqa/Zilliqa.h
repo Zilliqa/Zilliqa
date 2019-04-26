@@ -23,7 +23,6 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
-#include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
 #include "libServer/StatusServer.h"

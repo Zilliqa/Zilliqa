@@ -24,6 +24,8 @@
 
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libDirectoryService/DirectoryService.h"
+#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/FileSystem.h"

@@ -37,6 +37,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/DataSender.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libServer/LookupServer.h"

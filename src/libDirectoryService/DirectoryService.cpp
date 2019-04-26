@@ -32,6 +32,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"

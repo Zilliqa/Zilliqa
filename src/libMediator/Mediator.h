@@ -23,11 +23,12 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libDirectoryService/DirectoryService.h"
-#include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
-#include "libNode/Node.h"
-#include "libValidator/Validator.h"
+
+class DirectoryService;
+class Node;
+class Lookup;
+class ValidatorBase;
 
 /// A mediator class for providing access to global members.
 class Mediator {

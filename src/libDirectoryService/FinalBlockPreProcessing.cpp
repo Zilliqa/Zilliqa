@@ -30,6 +30,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"

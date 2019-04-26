@@ -37,7 +37,6 @@
 #include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
 #include "libLookup/Synchronizer.h"
-#include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 

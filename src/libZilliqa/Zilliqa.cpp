@@ -32,6 +32,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace jsonrpc;

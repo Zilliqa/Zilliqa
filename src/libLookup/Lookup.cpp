@@ -43,6 +43,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/GetWorkServer.h"
@@ -51,6 +52,7 @@
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;

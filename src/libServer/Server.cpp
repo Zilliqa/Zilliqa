@@ -35,6 +35,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
+#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"

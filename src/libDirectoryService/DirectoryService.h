@@ -33,11 +33,9 @@
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
-#include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/ShardStruct.h"
 #include "libPersistence/BlockStorage.h"
-#include "libUtils/TimeUtils.h"
 
 class Mediator;
 

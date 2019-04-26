@@ -17,7 +17,9 @@
 
 #include "StatusServer.h"
 #include "JSONConversion.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Blacklist.h"
+#include "libNode/Node.h"
 
 using namespace jsonrpc;
 using namespace std;

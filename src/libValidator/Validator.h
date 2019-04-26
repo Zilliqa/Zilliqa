@@ -20,12 +20,9 @@
 
 #include <boost/variant.hpp>
 #include <string>
-#include "libData/AccountData/Transaction.h"
-#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
-#include "libNetwork/Peer.h"
 
 class Mediator;
 

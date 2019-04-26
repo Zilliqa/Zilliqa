@@ -33,6 +33,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace ZilliqaMessage;
