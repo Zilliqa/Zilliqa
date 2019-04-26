@@ -3661,8 +3661,6 @@ void Lookup::RectifyTxnSharMap(const uint32_t oldShardSize,
                                const uint32_t newShardSize) {
   LOG_MARKER();
 
-  bool debug = true;
-
   auto t_start = std::chrono::high_resolution_clock::now();
 
   map<uint, vector<Transaction>> tempTxnShardMap;
@@ -3683,11 +3681,6 @@ void Lookup::RectifyTxnSharMap(const uint32_t oldShardSize,
       unsigned int correct_shard =
           Transaction::GetShardIndex(fromAddr, newShardSize);
       tempTxnShardMap[correct_shard].push_back(tx);
-
-      if (debug && (correct_shard != shard.first)) {
-        LOG_GENERAL(INFO, fromAddr << " shifted from " << shard.first << " to "
-                                   << correct_shard);
-      }
     }
   }
   tempTxnShardMap[newShardSize] = move(m_txnShardMap[oldShardSize]);
