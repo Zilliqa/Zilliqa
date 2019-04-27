@@ -169,8 +169,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
-  } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    m_lookupServer->StartCollectorThread();
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
@@ -332,6 +330,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       } else {
         if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
+          if (ARCHIVAL_LOOKUP) {
+            m_lookupServer->StartCollectorThread();
+          }
         } else {
           LOG_GENERAL(WARNING, "API Server couldn't start");
         }
