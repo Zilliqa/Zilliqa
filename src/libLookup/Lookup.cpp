@@ -1904,7 +1904,7 @@ bool Lookup::GetDSInfo() {
   LOG_MARKER();
   m_dsInfoWaitingNotifying = true;
 
-  GetDSInfoFromLookupNodes();
+  GetDSInfoFromSeedNodes();
 
   {
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -2292,7 +2292,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
   } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     m_dsInfoWaitingNotifying = true;
 
-    GetDSInfoFromLookupNodes();
+    GetDSInfoFromSeedNodes();
 
     {
       unique_lock<mutex> lock(m_mutexDSInfoUpdation);
