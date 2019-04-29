@@ -216,6 +216,8 @@ class Lookup : public Executable {
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
 
+  void RectifyTxnShardMap(const uint32_t, const uint32_t);
+
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
@@ -272,10 +274,9 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread();
+  void SenderTxnBatchThread(const uint32_t);
 
-  void SendTxnPacketToNodes(uint32_t);
-
+  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);

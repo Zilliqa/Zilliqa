@@ -802,12 +802,14 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
     // Now only forwarded txn are left, so only call in lookup
 
+    uint32_t numShards = m_mediator.m_ds->GetNumShards();
+
     CommitMBnForwardedTransactionBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+      m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
   }
 

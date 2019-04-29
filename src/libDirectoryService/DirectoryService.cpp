@@ -140,6 +140,12 @@ bool DirectoryService::CheckState(Action action) {
   return true;
 }
 
+uint32_t DirectoryService::GetNumShards() const {
+  lock_guard<mutex> g(m_mutexShards);
+
+  return m_shards.size();
+}
+
 bool DirectoryService::ProcessSetPrimary(const bytes& message,
                                          unsigned int offset,
                                          [[gnu::unused]] const Peer& from) {
