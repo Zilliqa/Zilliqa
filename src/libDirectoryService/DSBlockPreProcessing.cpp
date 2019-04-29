@@ -45,10 +45,9 @@ using namespace std;
 using namespace boost::multiprecision;
 
 unsigned int DirectoryService::ComputeDSBlockParameters(
-    const VectorOfPoWSoln& sortedDSPoWSolns, VectorOfPoWSoln& sortedPoWSolns,
-    map<PubKey, Peer>& powDSWinners, MapOfPubKeyPoW& dsWinnerPoWs,
-    uint8_t& dsDifficulty, uint8_t& difficulty, uint64_t& blockNum,
-    BlockHash& prevHash) {
+    const VectorOfPoWSoln& sortedDSPoWSolns, map<PubKey, Peer>& powDSWinners,
+    MapOfPubKeyPoW& dsWinnerPoWs, uint8_t& dsDifficulty, uint8_t& difficulty,
+    uint64_t& blockNum, BlockHash& prevHash) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -68,9 +67,6 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
     }
     powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
     dsWinnerPoWs[submitter.second] = m_allDSPoWs[submitter.second];
-    sortedPoWSolns.erase(
-        remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
-        sortedPoWSolns.end());
     counter++;
   }
   if (sortedDSPoWSolns.size() == 0) {
@@ -499,8 +495,6 @@ bool DirectoryService::VerifyPoWOrdering(
                                    << MISORDER_TOLERANCE << " = "
                                    << MAX_MISORDER_NODE << " nodes.");
 
-  auto sortedPoWSolns = SortPoWSoln(priorityNodePoWs, true);
-
   // Get the proposed DS members so we can get the size.
   std::map<PubKey, Peer> dsPoWWinners =
       m_pendingDSBlock->GetHeader().GetDSPoWWinners();
@@ -508,6 +502,22 @@ bool DirectoryService::VerifyPoWOrdering(
   // Get the list of removed nodes.
   std::vector<PubKey> removeDSNodePubkeys =
       m_pendingDSBlock->GetHeader().GetDSRemovePubKeys();
+
+  // Sort and trim the PoW solutions
+  auto sortedPoWSolns =
+      SortPoWSoln(priorityNodePoWs, true, removeDSNodePubkeys.size());
+
+  // Remove the DS solutions from the PoW solutions.
+  for (const auto& winner : dsPoWWinners) {
+    const PubKey& toFind = winner.first;
+    auto it = std::remove_if(
+        sortedPoWSolns.begin(), sortedPoWSolns.end(),
+        [&toFind](
+            const std::pair<std::array<unsigned char, 32>, PubKey>& item) {
+          return item.second == toFind;
+        });
+    sortedPoWSolns.erase(it, sortedPoWSolns.end());
+  }
 
   // Inject expired DS members into the shard POW.
   InjectPoWForDSNode(sortedPoWSolns, dsPoWWinners.size(), removeDSNodePubkeys);
@@ -733,8 +743,9 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
   return true;
 }
 
-VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
-                                              bool trimBeyondCommSize) {
+VectorOfPoWSoln DirectoryService::SortPoWSoln(
+    const MapOfPubKeyPoW& mapOfPoWs, bool trimBeyondCommSize,
+    const unsigned int byzantineRemoved) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
   for (const auto& powsoln : mapOfPoWs) {
     PoWOrderSorter[powsoln.second.result] = powsoln.first;
@@ -744,10 +755,15 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
   VectorOfPoWSoln sortedPoWSolns;
   if (trimBeyondCommSize) {
     const uint32_t numNodesTotal = PoWOrderSorter.size();
+
+    // Number of Nodes to Trim. Account for the removed Byzantine nodes that do
+    // not get injected as a shard solution.
     const uint32_t numNodesAfterTrim =
-        ShardSizeCalculator::GetTrimmedShardCount(
-            m_mediator.GetShardSize(false), SHARD_SIZE_TOLERANCE_LO,
-            SHARD_SIZE_TOLERANCE_HI, numNodesTotal);
+        std::min(ShardSizeCalculator::GetTrimmedShardCount(
+                     m_mediator.GetShardSize(false), SHARD_SIZE_TOLERANCE_LO,
+                     SHARD_SIZE_TOLERANCE_HI, numNodesTotal) +
+                     byzantineRemoved,
+                 numNodesTotal);
 
     LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
                           << numNodesTotal << " to " << numNodesAfterTrim);
@@ -901,7 +917,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 
   auto sortedDSPoWSolns = SortPoWSoln(allDSPoWs);
-  auto sortedPoWSolns = SortPoWSoln(allPoWs, true);
 
   std::map<PubKey, Peer> powDSWinners;
   std::vector<PubKey> removeDSNodePubkeys;
@@ -913,12 +928,28 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   BlockHash prevHash;
 
   // Determine the DS PoW winners.
-  unsigned int numOfProposedDSMembers = ComputeDSBlockParameters(
-      sortedDSPoWSolns, sortedPoWSolns, powDSWinners, dsWinnerPoWs,
-      dsDifficulty, difficulty, blockNum, prevHash);
+  unsigned int numOfProposedDSMembers =
+      ComputeDSBlockParameters(sortedDSPoWSolns, powDSWinners, dsWinnerPoWs,
+                               dsDifficulty, difficulty, blockNum, prevHash);
 
   // Determine the losers from the performance.
-  DetermineByzantineNodes(numOfProposedDSMembers, removeDSNodePubkeys);
+  unsigned int numByzantine =
+      DetermineByzantineNodes(numOfProposedDSMembers, removeDSNodePubkeys);
+
+  // Sort and trim the PoW solutions.
+  auto sortedPoWSolns = SortPoWSoln(allPoWs, true, numByzantine);
+
+  // Remove the DS solutions from the PoW solutions.
+  unsigned int counter = 0;
+  for (const auto& submitter : sortedDSPoWSolns) {
+    if (counter >= numOfProposedDSMembers) {
+      break;
+    }
+    sortedPoWSolns.erase(
+        remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
+        sortedPoWSolns.end());
+    counter++;
+  }
 
   // Inject expired DS members into the shard POW.
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers,

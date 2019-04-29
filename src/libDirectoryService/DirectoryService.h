@@ -271,7 +271,6 @@ class DirectoryService : public Executable {
                                                unsigned int my_shards_hi);
 
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
-                                        VectorOfPoWSoln& sortedPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
                                         MapOfPubKeyPoW& dsWinnerPoWs,
                                         uint8_t& dsDifficulty,
@@ -623,7 +622,8 @@ class DirectoryService : public Executable {
 
   // Sort the PoW submissions
   VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
-                              bool trimBeyondCommSize = false);
+                              bool trimBeyondCommSize = false,
+                              unsigned int byzantineRemoved = 0);
   int64_t GetAllPoWSize() const;
 
   bool SendPoWPacketSubmissionToOtherDSComm();
