@@ -369,8 +369,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
 
     Json::Value ret;
 
-    const PubKey& senderPubKey = tx.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
     if (!ValidateTxn(tx, fromAddr, sender)) {
