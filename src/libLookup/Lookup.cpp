@@ -1153,8 +1153,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   }
 
   uint64_t lowestLimitNum =
-      (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() - 1) *
-      NUM_FINAL_BLOCK_PER_POW;
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() + 1;
   if (lowBlockNum < lowestLimitNum) {
     LOG_GENERAL(WARNING,
                 "Requested number of txBlocks are beyond the current DS epoch "
