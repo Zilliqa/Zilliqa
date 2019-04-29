@@ -18,7 +18,16 @@ target_link_libraries(Test_LookupNodeForTxBlock PUBLIC Crypto AccountData Messag
 add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
 
 
-#add_executable(Test_txn_send Test_txn_send.cpp)
-#target_include_directories(Test_txn_send PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-#target_link_libraries(Test_txn_send PUBLIC Node Mediator TestUtils)
-#add_test(NAME Test_txn_send COMMAND Test_txn_send)
+
+add_executable(Test_txn_send Test_txn_send.cpp)
+target_include_directories(Test_txn_send PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_txn_send PUBLIC Node Mediator TestUtils)
+add_test(NAME Test_txn_send COMMAND Test_txn_send)
+
+
+
+add_custom_command(TARGET Test_txn_send POST_BUILD
+        COMMAND sed -i '/<LOOKUP_NODE_MODE>/c\        <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>' constants.xml)
+
+add_custom_command(TARGET Test_txn_send POST_BUILD
+        COMMAND echo "<nodes></nodes>" > config.xml VERBATIM)
