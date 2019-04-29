@@ -16,3 +16,9 @@ add_executable(Test_LookupNodeForTxBlock Test_LookupNodeForTxBlock.cpp)
 target_include_directories(Test_LookupNodeForTxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_LookupNodeForTxBlock PUBLIC Crypto AccountData Message Network)
 add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
+
+
+#add_executable(Test_txn_send Test_txn_send.cpp)
+#target_include_directories(Test_txn_send PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+#target_link_libraries(Test_txn_send PUBLIC Node Mediator TestUtils)
+#add_test(NAME Test_txn_send COMMAND Test_txn_send)

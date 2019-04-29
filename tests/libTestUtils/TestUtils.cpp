@@ -72,6 +72,19 @@ vector<bool> GenerateRandomBooleanVector(size_t n) {
   return vec;
 }
 
+Transaction GenerateRandomTransaction(const unsigned int version,
+                                      const uint64_t& nonce) {
+  const auto randomToPubkey = GenerateRandomPubKey();
+  const auto randomToAddr = Account::GetAddressFromPublicKey(randomToPubkey);
+  const auto randomKeyPair = GenerateRandomKeyPair();
+  const auto randomAmount = DistUint128();
+  const auto randomGasPrice = DistUint128();
+  const auto randomGasLimit = DistUint64();
+  Transaction tx(version, nonce, randomToAddr, randomKeyPair, randomAmount,
+                 randomGasPrice, randomGasLimit);
+  return tx;
+}
+
 Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
   uint128_t ip_address = DistUint32();
   uint32_t listen_port_host = DistUint32();
