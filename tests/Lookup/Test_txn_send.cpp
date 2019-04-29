@@ -74,8 +74,7 @@ BOOST_AUTO_TEST_CASE(rectify_perf) {
       for (uint k = 0; k <= j; k++) {
         const auto txns = lk.GetTxnFromShardMap(k);
         for (const auto& tx : txns) {
-          const auto& fromAddr = tx.GetSenderAddr();
-          auto index = Transaction::GetShardIndex(fromAddr, j);
+          auto index = tx.GetShardIndex(j);
           BOOST_CHECK_MESSAGE(k == index, "The index in map "
                                               << k << " and actual index "
                                               << index << " does not match");
