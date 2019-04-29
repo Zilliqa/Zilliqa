@@ -391,9 +391,9 @@ BOOST_AUTO_TEST_CASE(serialization) {
   BOOST_CHECK_EQUAL(false, as.Deserialize(dst, 0));
   BOOST_CHECK_EQUAL(true, as.SerializeDelta());
   as.GetSerializedDelta(dst);
-  BOOST_CHECK_EQUAL(false, as.DeserializeDelta(dst, 0, true));
-  BOOST_CHECK_EQUAL(false, as.DeserializeDelta(dst, 0, false));
-  BOOST_CHECK_EQUAL(false, as.DeserializeDeltaTemp(dst, 0));
+  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, true));
+  BOOST_CHECK_EQUAL(true, as.DeserializeDelta(dst, 0, false));
+  BOOST_CHECK_EQUAL(true, as.DeserializeDeltaTemp(dst, 0));
 
   // Increase coverage
   as.AddAccountDuringDeserialization(Address(), Account(), Account(), false,

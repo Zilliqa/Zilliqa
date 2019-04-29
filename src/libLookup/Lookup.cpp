@@ -1115,13 +1115,13 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
     return false;
   }
 
-  vector<TxBlock> txBlocks;
-  RetrieveTxBlocks(txBlocks, lowBlockNum, highBlockNum);
-
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "ProcessGetTxBlockFromSeed requested by " << from << " for blocks "
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
+
+  vector<TxBlock> txBlocks;
+  RetrieveTxBlocks(txBlocks, lowBlockNum, highBlockNum);
 
   bytes txBlockMessage = {MessageType::LOOKUP,
                           LookupInstructionType::SETTXBLOCKFROMSEED};
@@ -1135,7 +1135,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
-
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
 }
 
@@ -1148,21 +1149,18 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
 
   if (lowBlockNum == 0) {
-    // give all the blocks till now in blockchain
     lowBlockNum = 1;
-  } else {
-    uint64_t lowestLimitNum = (m_mediator.m_dsBlockChain.GetBlockCount() >
-                               INCRDB_DSNUMS_WITH_STATEDELTAS)
-                                  ? (m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetBlockNum() -
-                                     INCRDB_DSNUMS_WITH_STATEDELTAS) *
-                                        NUM_FINAL_BLOCK_PER_POW
-                                  : 0;
-    if (lowBlockNum <= lowestLimitNum) {
-      // Limit the number of txn blocks upto last N ds epochs
-      lowBlockNum = lowestLimitNum;
-    }
+  }
+
+  uint64_t lowestLimitNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (lowBlockNum < lowestLimitNum) {
+    LOG_GENERAL(WARNING,
+                "Requested number of txBlocks are beyond the current DS epoch "
+                "(lowBlockNum :"
+                    << lowBlockNum << ", lowestLimitNum : " << lowestLimitNum
+                    << ")");
+    lowBlockNum = lowestLimitNum;
   }
 
   if (highBlockNum == 0) {
@@ -1846,7 +1844,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
   if (lowBlockNum > highBlockNum) {
     LOG_GENERAL(
         WARNING,
-        "The lowBlockNum is higher the highblocknum, maybe DS epoch ongoing");
+        "The lowBlockNum is higher than highblocknum, maybe DS epoch ongoing");
     cv_setTxBlockFromSeed.notify_all();
     return false;
   }
@@ -1905,7 +1903,7 @@ bool Lookup::GetDSInfo() {
   LOG_MARKER();
   m_dsInfoWaitingNotifying = true;
 
-  GetDSInfoFromLookupNodes();
+  GetDSInfoFromSeedNodes();
 
   {
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -2293,7 +2291,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
   } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     m_dsInfoWaitingNotifying = true;
 
-    GetDSInfoFromLookupNodes();
+    GetDSInfoFromSeedNodes();
 
     {
       unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -3362,7 +3360,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
+  if (!Lookup::VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
