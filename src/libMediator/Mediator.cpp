@@ -157,12 +157,6 @@ bool Mediator::GetIsVacuousEpoch(const uint64_t& epochNum) {
   return ((epochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW) == 0;
 }
 
-uint32_t Mediator::GetShardNum() const {
-  lock_guard<mutex> g(m_ds->m_mutexShards);
-
-  return m_ds->m_shards.size();
-}
-
 uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
   if (COMM_SIZE > 0) {
     return COMM_SIZE;

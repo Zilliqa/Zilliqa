@@ -466,7 +466,7 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode;
 
   // Sharding committee members
-  std::mutex m_mutexShards;
+  std::mutex mutable m_mutexShards;
   DequeOfShard m_shards;
   std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
 
@@ -522,6 +522,8 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
 
+  // GetShards
+  uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast;
 

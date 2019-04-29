@@ -3623,7 +3623,7 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
   return true;
 }
 
-void Lookup::SenderTxnBatchThread(const uint32_t oldShardSize) {
+void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SenderTxnBatchThread not expected to be called from "
@@ -3638,17 +3638,17 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldShardSize) {
     return;
   }
 
-  auto main_func = [this, oldShardSize]() mutable -> void {
+  auto main_func = [this, oldNumShards]() mutable -> void {
     m_startedTxnBatchThread = true;
     uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
-        numShards = m_mediator.GetShardNum();
+        numShards = m_mediator.m_ds->GetNumShards();
         if (numShards == 0) {
           this_thread::sleep_for(chrono::milliseconds(1000));
           continue;
         }
-        SendTxnPacketToNodes(oldShardSize, numShards);
+        SendTxnPacketToNodes(oldNumShards, numShards);
       }
       break;
     }
@@ -3657,8 +3657,8 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldShardSize) {
   DetachedFunction(1, main_func);
 }
 
-void Lookup::RectifyTxnShardMap(const uint32_t oldShardSize,
-                                const uint32_t newShardSize) {
+void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
+                                const uint32_t newNumShards) {
   LOG_MARKER();
 
   auto t_start = std::chrono::high_resolution_clock::now();
@@ -3668,22 +3668,21 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldShardSize,
   lock_guard<mutex> g(m_txnShardMapMutex);
 
   LOG_GENERAL(INFO, "Shard dropped or gained, shuffling txn shard map");
-  LOG_GENERAL(INFO, "New Shard Size: " << newShardSize
-                                       << "Old Shard Size: " << oldShardSize);
+  LOG_GENERAL(INFO, "New Shard Size: " << newNumShards
+                                       << "  Old Shard Size: " << oldNumShards);
   for (const auto& shard : m_txnShardMap) {
-    if (shard.first == oldShardSize) {
+    if (shard.first == oldNumShards) {
       // ds txns
       continue;
     }
     for (const auto& tx : shard.second) {
-      const PubKey& senderPubKey = tx.GetSenderPubKey();
-      Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+      const auto& fromAddr = tx.GetSenderAddr();
       unsigned int correct_shard =
-          Transaction::GetShardIndex(fromAddr, newShardSize);
-      tempTxnShardMap[correct_shard].push_back(tx);
+          Transaction::GetShardIndex(fromAddr, newNumShards);
+      tempTxnShardMap[correct_shard].emplace_back(tx);
     }
   }
-  tempTxnShardMap[newShardSize] = move(m_txnShardMap[oldShardSize]);
+  tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);
 
   m_txnShardMap.clear();
 
@@ -3697,8 +3696,8 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldShardSize,
   LOG_GENERAL(INFO, "Elapsed time for exchange " << elaspedTimeMs);
 }
 
-void Lookup::SendTxnPacketToNodes(const uint32_t oldShardSize,
-                                  const uint32_t newShardSize) {
+void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
+                                  const uint32_t newNumShards) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -3708,7 +3707,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldShardSize,
     return;
   }
 
-  const uint32_t& numShards = newShardSize;
+  const uint32_t numShards = newNumShards;
 
   map<uint32_t, vector<Transaction>> mp;
 
@@ -3717,9 +3716,9 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldShardSize,
     // return;
   }
 
-  if (oldShardSize != newShardSize) {
-    auto rectifyFunc = [this, oldShardSize, newShardSize]() mutable -> void {
-      RectifyTxnShardMap(oldShardSize, newShardSize);
+  if (oldNumShards != newNumShards) {
+    auto rectifyFunc = [this, oldNumShards, newNumShards]() mutable -> void {
+      RectifyTxnShardMap(oldNumShards, newNumShards);
     };
     DetachedFunction(1, rectifyFunc);
   }
@@ -3878,7 +3877,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
   LOG_GENERAL(INFO, "Recvd from " << from);
 
   if (!ARCHIVAL_LOOKUP) {
-    uint32_t shard_size = m_mediator.GetShardNum();
+    uint32_t shard_size = m_mediator.m_ds->GetNumShards();
 
     if (shard_size == 0) {
       LOG_GENERAL(WARNING, "Shard size 0");

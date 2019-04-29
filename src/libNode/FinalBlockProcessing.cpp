@@ -802,7 +802,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
     // Now only forwarded txn are left, so only call in lookup
 
-    uint32_t numShards = m_mediator.GetShardNum();
+    uint32_t numShards = m_mediator.m_ds->GetNumShards();
 
     CommitMBnForwardedTransactionBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&

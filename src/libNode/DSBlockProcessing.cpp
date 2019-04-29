@@ -331,7 +331,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
-  unsigned int oldShardSize = m_mediator.GetShardNum();
+  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
 
   lock_guard<mutex> g(m_mutexDSBlock);
 
@@ -645,7 +645,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread(oldShardSize);
+      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
 
     FallbackTimerLaunch();
