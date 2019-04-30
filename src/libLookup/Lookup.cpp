@@ -3289,6 +3289,10 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
     return false;
   }
 
+  lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
+
+  LOG_GENERAL(INFO, "Index Num: " << index_num);
+
   bytes msg = {MessageType::LOOKUP,
                LookupInstructionType::SETDIRBLOCKSFROMSEED};
 
@@ -3302,6 +3306,11 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
     if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
       dirBlocks.emplace_back(
           m_mediator.m_dsBlockChain.GetBlock(get<BlockLinkIndex::DSINDEX>(b)));
+      LOG_GENERAL(INFO, "ds block num: "
+                            << m_mediator.m_dsBlockChain
+                                   .GetBlock(get<BlockLinkIndex::DSINDEX>(b))
+                                   .GetHeader()
+                                   .GetBlockNum());
     } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::VC) {
       VCBlockSharedPtr vcblockptr;
       if (!BlockStorage::GetBlockStorage().GetVCBlock(
@@ -3387,6 +3396,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     LOG_GENERAL(INFO, "Already have dir blocks");
     return true;
   }
+
+  LOG_GENERAL(INFO, "Index Num: " << index_num);
 
   DequeOfNode newDScomm;
 
