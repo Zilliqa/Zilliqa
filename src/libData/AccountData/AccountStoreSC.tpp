@@ -866,13 +866,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
 
-  if (_json["message"] == Json::nullValue &&
-      _json["states"] == Json::arrayValue &&
-      _json["events"] == Json::arrayValue) {
+  if (_json["message"].type() == Json::nullValue &&
+      _json["states"].type() == Json::arrayValue &&
+      _json["events"].type() == Json::arrayValue) {
     // LOG_GENERAL(INFO, "Get desired json output from the interpreter for
     // create contract");
     return true;
   }
+
   LOG_GENERAL(WARNING,
               "Didn't get desired json output from the interpreter for "
               "create contract");
