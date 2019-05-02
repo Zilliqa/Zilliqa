@@ -62,13 +62,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Address m_curSenderAddr;
 
   /// the transfer amount while executing each txn
-  boost::multiprecision::uint128_t m_curAmount;
+  uint128_t m_curAmount;
 
   /// the gas limit while executing each txn
   uint64_t m_curGasLimit;
 
   /// the gas price while executing each txn
-  boost::multiprecision::uint128_t m_curGasPrice;
+  uint128_t m_curGasPrice;
 
   /// the gas price while executing each txn will be used in calculating the
   /// shard allocation of sender/recipient during chain call
@@ -152,7 +152,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
   bool TransferBalanceAtomic(const Address& from, const Address& to,
-                             const boost::multiprecision::uint128_t& delta);
+                             const uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
   void CommitTransferAtomic();

@@ -17,10 +17,7 @@
 
 #ifndef __TESTUTILS_H__
 #define __TESTUTILS_H__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
+
 #include <limits>
 #include <random>
 #include <tuple>
@@ -52,8 +49,8 @@ uint8_t DistUint8();
 uint16_t DistUint16();
 uint32_t DistUint32();
 uint64_t DistUint64();
-boost::multiprecision::uint128_t DistUint128();
-boost::multiprecision::uint256_t DistUint256();
+uint128_t DistUint128();
+uint256_t DistUint256();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
@@ -70,6 +67,9 @@ TxBlockHeader createTxBlockHeader(const uint64_t&);
 CoSignatures GenerateRandomCoSignatures();
 Signature GetSignature(const bytes&, const PairOfKey&);
 Signature GenerateRandomSignature();
+
+Transaction GenerateRandomTransaction(const unsigned int version,
+                                      const uint64_t& nonce);
 
 DequeOfNode GenerateRandomDSCommittee(uint32_t);
 

@@ -60,15 +60,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const boost::multiprecision::uint128_t& amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmount();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
   // Get the amount of deposit for running this txn
-  boost::multiprecision::uint128_t gasDeposit;
-  if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-          gasRemained, transaction.GetGasPrice(), gasDeposit)) {
+  uint128_t gasDeposit;
+  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                gasDeposit)) {
     return false;
   }
 
@@ -871,13 +871,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
 
-  if (_json["message"] == Json::nullValue &&
-      _json["states"] == Json::arrayValue &&
-      _json["events"] == Json::arrayValue) {
+  if (_json["message"].type() == Json::nullValue &&
+      _json["states"].type() == Json::arrayValue &&
+      _json["events"].type() == Json::arrayValue) {
     // LOG_GENERAL(INFO, "Get desired json output from the interpreter for
     // create contract");
     return true;
   }
+
   LOG_GENERAL(WARNING,
               "Didn't get desired json output from the interpreter for "
               "create contract");
@@ -1089,7 +1090,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
 
     try {
-      m_curAmount = boost::lexical_cast<boost::multiprecision::uint128_t>(
+      m_curAmount = boost::lexical_cast<uint128_t>(
           _json["message"]["_amount"].asString());
     } catch (...) {
       LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
@@ -1269,9 +1270,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(
-    const Address& from, const Address& to,
-    const boost::multiprecision::uint128_t& delta) {
+bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
+                                                const Address& to,
+                                                const uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }

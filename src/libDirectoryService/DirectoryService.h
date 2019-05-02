@@ -19,17 +19,12 @@
 #define __DIRECTORYSERVICE_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <condition_variable>
 #include <deque>
 #include <list>
 #include <map>
 #include <set>
 #include <shared_mutex>
-#include <vector>
 
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -51,7 +46,7 @@ struct PoWSolution {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
   uint32_t lookupId;
-  boost::multiprecision::uint128_t gasPrice;
+  uint128_t gasPrice;
 
   PoWSolution()
       : nonce(0),
@@ -63,7 +58,7 @@ struct PoWSolution {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
               const std::array<unsigned char, 32>& m, uint32_t l,
-              const boost::multiprecision::uint128_t& gp)
+              const uint128_t& gp)
       : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
     return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
@@ -281,11 +276,11 @@ class DirectoryService : public Executable {
                           unsigned int numOfProposedDSMembers);
 
   // Gas Pricer
-  boost::multiprecision::uint128_t GetNewGasPrice();
-  boost::multiprecision::uint128_t GetHistoricalMeanGasPrice();
-  boost::multiprecision::uint128_t GetDecreasedGasPrice();
-  boost::multiprecision::uint128_t GetIncreasedGasPrice();
-  bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
+  uint128_t GetNewGasPrice();
+  uint128_t GetHistoricalMeanGasPrice();
+  uint128_t GetDecreasedGasPrice();
+  uint128_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const uint128_t& gasPrice);
 
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
@@ -334,8 +329,7 @@ class DirectoryService : public Executable {
       const std::vector<bytes>& stateDeltas);
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
-                                  boost::multiprecision::uint128_t& allRewards,
-                                  uint32_t& numTxs);
+                                  uint128_t& allRewards, uint32_t& numTxs);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const bytes& stateDelta,
@@ -472,7 +466,7 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode;
 
   // Sharding committee members
-  std::mutex m_mutexShards;
+  std::mutex mutable m_mutexShards;
   DequeOfShard m_shards;
   std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
 
@@ -507,7 +501,7 @@ class DirectoryService : public Executable {
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   std::unordered_map<uint64_t, std::unordered_map<BlockHash, bytes>>
       m_microBlockStateDeltas;
-  boost::multiprecision::uint128_t m_totalTxnFees;
+  uint128_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 
@@ -528,6 +522,8 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
 
+  // GetShards
+  uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast;
 

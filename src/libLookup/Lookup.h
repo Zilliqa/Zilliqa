@@ -200,7 +200,7 @@ class Lookup : public Executable {
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
   // Try resolving ip from the given peer's DNS
-  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
+  uint128_t TryGettingResolvedIP(const Peer& peer) const;
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
@@ -215,6 +215,8 @@ class Lookup : public Executable {
   void SendMessageToSeedNodes(const bytes& message) const;
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
+
+  void RectifyTxnShardMap(const uint32_t, const uint32_t);
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetDSInfoFromSeedNodes();
@@ -272,10 +274,9 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread();
+  void SenderTxnBatchThread(const uint32_t);
 
-  void SendTxnPacketToNodes(uint32_t);
-
+  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);

@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   AccountStore::GetInstance().CommitTempRevertible();
 
-  boost::multiprecision::uint128_t totalReward = 0;
+  uint128_t totalReward = 0;
 
   auto calcReward = [&totalReward](const auto& shard) {
     for (const auto& shardMember : shard) {

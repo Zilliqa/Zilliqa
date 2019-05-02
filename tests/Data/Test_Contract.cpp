@@ -1488,4 +1488,44 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(testCreateContractJsonOutput) {
+  std::string scillaOutput =
+      "{ \
+    \"scilla_major_version\": \"0\", \
+    \"gas_remaining\": \"7290\", \
+    \"_accepted\": \"false\", \
+    \"message\": null, \
+    \"states\": [ \
+      { \"vname\": \"_balance\", \"type\": \"Uint128\", \"value\": \"0\" }, \
+      { \"vname\": \"touches\", \"type\": \"Map (String) (Bool)\", \"value\": [] } \
+    ], \
+    \"events\": [] \
+  }";
+
+  try {
+    Json::Value jsonValue;
+    std::string errors;
+    Json::CharReaderBuilder builder;
+    auto reader = std::unique_ptr<Json::CharReader>(builder.newCharReader());
+    if (!reader->parse(scillaOutput.c_str(),
+                       scillaOutput.c_str() + scillaOutput.size(), &jsonValue,
+                       &errors)) {
+      LOG_GENERAL(WARNING,
+                  "Failed to parse return result to json: " << scillaOutput);
+      LOG_GENERAL(WARNING, "Error: " << errors);
+      return;
+    }
+
+    bool passed = jsonValue["message"].type() == Json::nullValue &&
+                  jsonValue["states"].type() == Json::arrayValue &&
+                  jsonValue["events"].type() == Json::arrayValue;
+    BOOST_REQUIRE(passed);
+
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Failed to parse tag information, exception: " << e.what());
+    return;
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

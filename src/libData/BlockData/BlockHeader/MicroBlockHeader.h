@@ -19,10 +19,6 @@
 #define __MICROBLOCKHEADER_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
@@ -35,7 +31,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   uint32_t m_shardId;
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
-  boost::multiprecision::uint128_t m_rewards;
+  uint128_t m_rewards;
   uint64_t m_epochNum;  // Epoch Num
   MicroBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
@@ -52,8 +48,7 @@ class MicroBlockHeader : public BlockHeaderBase {
 
   /// Constructor with predefined member values.
   MicroBlockHeader(const uint32_t shardId, const uint64_t& gasLimit,
-                   const uint64_t& gasUsed,
-                   const boost::multiprecision::uint128_t& rewards,
+                   const uint64_t& gasUsed, const uint128_t& rewards,
                    const uint64_t& epochNum, const MicroBlockHashSet& hashset,
                    const uint32_t numTxs, const PubKey& minerPubKey,
                    const uint64_t& dsBlockNum, const uint32_t version = 0,
@@ -71,7 +66,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   const uint32_t& GetShardId() const;
   const uint64_t& GetGasLimit() const;
   const uint64_t& GetGasUsed() const;
-  const boost::multiprecision::uint128_t& GetRewards() const;
+  const uint128_t& GetRewards() const;
   const uint64_t& GetEpochNum() const;
   const uint32_t& GetNumTxs() const;
   const PubKey& GetMinerPubKey() const;

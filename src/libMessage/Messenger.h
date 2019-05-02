@@ -250,8 +250,7 @@ class Messenger {
       const uint8_t difficultyLevel, const Peer& submitterPeer,
       const PairOfKey& submitterKey, const uint64_t nonce,
       const std::string& resultingHash, const std::string& mixHash,
-      const uint32_t& lookupId,
-      const boost::multiprecision::uint128_t& gasPrice);
+      const uint32_t& lookupId, const uint128_t& gasPrice);
 
   static bool GetDSPoWSubmission(const bytes& src, const unsigned int offset,
                                  uint64_t& blockNumber,
@@ -259,8 +258,7 @@ class Messenger {
                                  PubKey& submitterPubKey, uint64_t& nonce,
                                  std::string& resultingHash,
                                  std::string& mixHash, Signature& signature,
-                                 uint32_t& lookupId,
-                                 boost::multiprecision::uint128_t& gasPrice);
+                                 uint32_t& lookupId, uint128_t& gasPrice);
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,

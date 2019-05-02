@@ -41,8 +41,7 @@ DSPowSolution::DSPowSolution(
     const Peer& submitterPeerInput, const PubKey& submitterKeyInput,
     const uint64_t& nonceInput, const std::string& resultingHashInput,
     const std::string& mixHashInput, const uint32_t& lookupIdInput,
-    const boost::multiprecision::uint128_t& gasPriceInput,
-    const Signature& signatureInput)
+    const uint128_t& gasPriceInput, const Signature& signatureInput)
     : m_blockNumber(blockNumberInput),
       m_difficultyLevel(difficultyLevelInput),
       m_submitterPeer(submitterPeerInput),
@@ -83,9 +82,7 @@ const std::string& DSPowSolution::GetMixHash() const { return m_mixHash; }
 const uint32_t& DSPowSolution::GetLookupId() const { return m_lookupId; }
 
 /// Returns gas price
-const boost::multiprecision::uint128_t& DSPowSolution::GetGasPrice() const {
-  return m_gasPrice;
-}
+const uint128_t& DSPowSolution::GetGasPrice() const { return m_gasPrice; }
 
 /// Returns Signature
 const Signature& DSPowSolution::GetSignature() const { return m_signature; }

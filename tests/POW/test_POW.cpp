@@ -32,10 +32,6 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/filesystem.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 #include <fstream>
 #include <iostream>
@@ -271,7 +267,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -314,7 +310,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -357,7 +353,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -400,7 +396,7 @@ BOOST_AUTO_TEST_CASE(mining_low_diffculty_time_out) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -423,7 +419,7 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -461,7 +457,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -520,7 +516,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 

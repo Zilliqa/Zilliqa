@@ -27,8 +27,7 @@
 
 struct TxnPool {
   struct PubKeyNonceHash {
-    std::size_t operator()(
-        const std::pair<PubKey, boost::multiprecision::uint128_t>& p) const {
+    std::size_t operator()(const std::pair<PubKey, uint128_t>& p) const {
       std::size_t seed = 0;
       boost::hash_combine(seed, std::string(p.first));
       boost::hash_combine(seed, p.second.convert_to<std::string>());
@@ -38,8 +37,7 @@ struct TxnPool {
   };
 
   std::unordered_map<TxnHash, Transaction> HashIndex;
-  std::map<boost::multiprecision::uint128_t, std::map<TxnHash, Transaction>,
-           std::greater<boost::multiprecision::uint128_t>>
+  std::map<uint128_t, std::map<TxnHash, Transaction>, std::greater<uint128_t>>
       GasIndex;
   std::unordered_map<std::pair<PubKey, uint64_t>, Transaction, PubKeyNonceHash>
       NonceIndex;

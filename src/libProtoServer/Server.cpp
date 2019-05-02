@@ -16,10 +16,6 @@
  */
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <iostream>
 
 #include "Server.h"
@@ -80,7 +76,7 @@ Server::~Server() {
 // Auxillary functions.
 ////////////////////////////////////////////////////////////////////////
 
-boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -489,10 +485,10 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      boost::multiprecision::uint128_t balance = account->GetBalance();
+      uint128_t balance = account->GetBalance();
       ret.set_balance(balance.str());
 
-      boost::multiprecision::uint128_t nonce = account->GetNonce();
+      uint128_t nonce = account->GetNonce();
       ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
@@ -975,8 +971,7 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
 
   unsigned int offset = PAGE_SIZE * (page - 1);
   if (page <= NUM_PAGES_CACHE) {  // can use cache
-    boost::multiprecision::uint256_t cacheSize(
-        m_DSBlockCache.second.capacity());
+    uint256_t cacheSize(m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
       cacheSize = m_DSBlockCache.second.size();
     }
@@ -1068,8 +1063,7 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
 
   unsigned int offset = PAGE_SIZE * (page - 1);
   if (page <= NUM_PAGES_CACHE) {  // can use cache
-    boost::multiprecision::uint256_t cacheSize(
-        m_TxBlockCache.second.capacity());
+    uint256_t cacheSize(m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {
       cacheSize = m_TxBlockCache.second.size();

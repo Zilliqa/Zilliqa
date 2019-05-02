@@ -153,7 +153,7 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
   std::string resultingHash;
   std::string mixHash;
   uint32_t lookupId;
-  boost::multiprecision::uint128_t gasPrice;
+  uint128_t gasPrice;
   Signature signature;
   if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
                                      difficultyLevel, submitterPeer,

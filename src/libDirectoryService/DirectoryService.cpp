@@ -81,7 +81,7 @@ void DirectoryService::StartSynchronization(bool clean) {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_synchronizer.FetchLatestTxBlocks(
+      m_synchronizer.FetchLatestTxBlockSeed(
           m_mediator.m_lookup,
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
@@ -138,6 +138,12 @@ bool DirectoryService::CheckState(Action action) {
   }
 
   return true;
+}
+
+uint32_t DirectoryService::GetNumShards() const {
+  lock_guard<mutex> g(m_mutexShards);
+
+  return m_shards.size();
 }
 
 bool DirectoryService::ProcessSetPrimary(const bytes& message,

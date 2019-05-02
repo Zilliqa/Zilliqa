@@ -16,10 +16,6 @@
  */
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -334,6 +330,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     unsigned int cur_offset,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
+
+  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
+
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -646,7 +645,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
 
     FallbackTimerLaunch();
