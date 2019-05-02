@@ -31,7 +31,8 @@ bool GenTxns(uint txnSize, map<uint32_t, vector<Transaction>>& mp,
              uint numShards) {
   for (uint i = 0; i < txnSize; i++) {
     const auto tx = TestUtils::GenerateRandomTransaction(1, 1);
-    auto index = tx.GetShardIndex(numShards);
+    const auto& fromAddr = tx.GetSenderAddr();
+    auto index = Transaction::GetShardIndex(fromAddr, numShards);
     mp[index].emplace_back(tx);
   }
 
