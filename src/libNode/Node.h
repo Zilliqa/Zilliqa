@@ -466,6 +466,8 @@ class Node : public Executable {
   bool StartRetrieveHistory(const SyncType syncType,
                             bool rejoiningAfterRecover = false);
 
+  bool CheckIntegrity();
+
   bool ValidateDB();
 
   // Erase m_committedTransactions for given epoch number

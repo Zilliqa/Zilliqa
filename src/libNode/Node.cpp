@@ -307,10 +307,8 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::ValidateDB() {
+bool Node::CheckIntegrity() {
   DequeOfNode dsComm;
-  const string lookupIp = "127.0.0.1";
-  const unsigned int port = SEED_PORT;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
@@ -384,8 +382,7 @@ bool Node::ValidateDB() {
       dirBlocks.emplace_back(*fallbackwshardingstruct);
     }
   }
-
-  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
+  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
     LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
     return false;
   }
@@ -429,6 +426,18 @@ bool Node::ValidateDB() {
       }
     }
   }
+  return true;
+}
+
+bool Node::ValidateDB() {
+  const string lookupIp = "127.0.0.1";
+  const unsigned int port = SEED_PORT;
+
+  if (!CheckIntegrity()) {
+    LOG_GENERAL(WARNING, "DB validation failed");
+    return false;
+  }
+
   LOG_GENERAL(INFO, "ValidateDB Success");
 
   BlockStorage::GetBlockStorage().ReleaseDB();
