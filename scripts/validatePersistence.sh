@@ -18,10 +18,11 @@
 zilliqa_path="/usr/local"
 folder_name="validateDB"
 
+rm -rf ${folder_name}
 
-if [ ! -f "./constants.xml" ] || [ ! -f "./dsnodes.xml"] || [ ! -f "./persistence"]; then
-	echo "The workind directory must have constants.xml, dsnodes.xml and persistence folder"
-	return 1;
+if [ ! -f "./constants.xml" ] || [ ! -f "./dsnodes.xml" ]  || [ ! -d "./persistence" ]; then
+        echo "The working directory must have constants.xml, dsnodes.xml and persistence folder"
+        exit 1;
 fi
 
 mkdir $folder_name
@@ -30,15 +31,23 @@ cp ../constants.xml .
 cp ../dsnodes.xml .
 cp -r ../persistence .
 
-echo -n "Enter the full path of your zilliqa source code directory: default = ""${zilliqa_path}" && read path_read && [ -n "$path_read" ] && zilliqa_path=$path_read
+echo "Enter the full path of your zilliqa source code directory: default = ${zilliqa_path}" && read path_read && [ -n "$path_read" ] && zilliqa_path=$path_read
 
 if [ -z "$zilliqa_path" ] || ([ ! -x $zilliqa_path/build/bin/validateDB ] && [ ! -x $zilliqa_path/bin/validateDB ]); then
     echo "Cannot find zilliqa binary on the path you specified"
     exit 1
 fi
 
+output=""
 if [ -x $zilliqa_path/build/bin/validateDB ]; then
-    $zilliqa_path/build/bin/validateDB
+    output=$($zilliqa_path/build/bin/validateDB)
 elif [ -x $zilliqa_path/bin/validateDB ]; then
-    $zilliqa_path/bin/validateDB
+    output=$($zilliqa_path/bin/validateDB)
 fi
+
+if [ "$output" != "Validation Success" ] ; then
+        echo "${output} . Check ${folder_name}/common-00001-log.txt"
+else
+        echo "The persistence is complete"
+fi
+              
