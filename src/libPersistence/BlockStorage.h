@@ -23,12 +23,11 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "ContractStorage.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+
+class FallbackBlockWShardingStructure;
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;

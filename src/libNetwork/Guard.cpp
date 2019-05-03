@@ -27,6 +27,7 @@
 
 #include "Blacklist.h"
 #include "Peer.h"
+#include "common/Constants.h"
 #include "common/Messages.h"
 #include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"

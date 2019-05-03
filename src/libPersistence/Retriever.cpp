@@ -22,9 +22,13 @@
 #include <exception>
 #include <vector>
 
+#include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libDirectoryService/DirectoryService.h"
+#include "libMediator/Mediator.h"
 #include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"

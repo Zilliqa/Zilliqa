@@ -17,6 +17,7 @@
 
 #include "ContractStorage.h"
 
+#include "common/Constants.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"

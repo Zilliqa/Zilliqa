@@ -19,7 +19,6 @@
 #define DB_H
 
 #include <leveldb/db.h>
-#include <libUtils/Logger.h>
 #include <string>
 
 /// Utility class for providing database-type storage.

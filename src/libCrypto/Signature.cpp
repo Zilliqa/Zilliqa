@@ -20,6 +20,7 @@
 #include <openssl/err.h>
 
 #include "Schnorr.h"
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

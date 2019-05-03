@@ -17,6 +17,7 @@
 
 #include <arpa/inet.h>
 #include <string>
+#include "common/Constants.h"
 #include "libNetwork/Guard.h"
 #include "libUtils/Logger.h"
 

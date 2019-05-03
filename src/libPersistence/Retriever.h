@@ -22,9 +22,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Address.h"
-#include "libMediator/Mediator.h"
+class Mediator;
 
 class Retriever {
  public:

@@ -27,7 +27,6 @@
 #include <string>
 #include <vector>
 
-#include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libUtils/DataConversion.h"
 

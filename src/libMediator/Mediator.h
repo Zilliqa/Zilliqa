@@ -20,7 +20,6 @@
 
 #include <deque>
 
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libNetwork/Peer.h"

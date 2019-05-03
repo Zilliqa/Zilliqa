@@ -20,10 +20,10 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 
-#include "Peer.h"
 #include "libCrypto/Schnorr.h"
-#include "libMediator/Mediator.h"
+#include "libNetwork/ShardStruct.h"
 
 class Guard {
   Guard();

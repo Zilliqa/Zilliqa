@@ -23,6 +23,7 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
 /// Stores information on the header part of the fallback block.

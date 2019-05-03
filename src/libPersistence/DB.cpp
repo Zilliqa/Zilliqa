@@ -16,6 +16,7 @@
  */
 #include <string>
 
+#include <libUtils/Logger.h>
 #include "DB.h"
 
 using namespace std;

@@ -20,8 +20,10 @@
 
 #include <tuple>
 
-#include "Peer.h"
-#include "libCrypto/Schnorr.h"
+#include "common/BaseType.h"
+
+class PubKey;
+class Peer;
 
 enum ShardData {
   SHARD_NODE_PUBKEY,

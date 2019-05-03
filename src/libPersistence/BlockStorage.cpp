@@ -31,6 +31,7 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 

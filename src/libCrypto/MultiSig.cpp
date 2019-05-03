@@ -17,6 +17,7 @@
 
 #include "MultiSig.h"
 #include "Sha2.h"
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
