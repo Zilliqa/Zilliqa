@@ -109,9 +109,6 @@ void Lookup::InitSync() {
       SetAboveLayer();  // since may have called CleanVariable earlier
     }
 
-    // Set myself offline
-    GetMyLookupOffline();
-
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
@@ -2315,10 +2312,8 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     }
 
     if (!m_currDSExpired) {
-      if (FinishNewJoinAsLookup()) {
-        SetSyncType(SyncType::NO_SYNC);
-        m_isFirstLoop = true;
-      }
+      SetSyncType(SyncType::NO_SYNC);
+      m_isFirstLoop = true;
     }
     m_currDSExpired = false;
   }
