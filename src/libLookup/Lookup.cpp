@@ -2046,10 +2046,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               "New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        if (FinishNewJoinAsLookup()) {
-          SetSyncType(SyncType::NO_SYNC);
-          m_isFirstLoop = true;
-        }
+        SetSyncType(SyncType::NO_SYNC);
+        m_isFirstLoop = true;
       }
       m_currDSExpired = false;
     }
