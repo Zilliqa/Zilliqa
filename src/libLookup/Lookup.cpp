@@ -3160,17 +3160,6 @@ bool Lookup::FinishRejoinAsLookup() {
   return GetMyLookupOnline();
 }
 
-bool Lookup::FinishNewJoinAsLookup() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::FinishNewJoinAsLookup not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  return GetMyLookupOnline();
-}
-
 bool Lookup::CleanVariables() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
