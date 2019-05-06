@@ -298,6 +298,7 @@ bool AccountStore::RepopulateStateTrie() {
     if (!BlockStorage::GetBlockStorage().PutTempState(
             *(this->m_addressToAccount))) {
       LOG_GENERAL(WARNING, "PutTempState failed");
+      return false;
     } else {
       this->m_addressToAccount->clear();
       batched_once = true;
@@ -321,15 +322,16 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
 
   while (iter == nullptr || iter->Valid()) {
     vector<StateSharedPtr> states;
-    BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states);
+    if (!BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states)) {
+      LOG_GENERAL(WARNING, "GetTempStateInBatch failed");
+      return false;
+    }
     for (const auto& state : states) {
       UpdateStateTrie(state->first, state->second);
     }
   }
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
-
-  return true;
+  return BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
 }
 
 void AccountStore::DiscardUnsavedUpdates() {
@@ -365,6 +367,7 @@ bool AccountStore::RetrieveFromDisk() {
     if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
       BlockStorage::GetBlockStorage().PutStateRoot(rootBytes);
     } else {
+      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
       return false;
     }
   }
