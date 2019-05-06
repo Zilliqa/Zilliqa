@@ -175,10 +175,13 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
 
-void AccountStore::MoveRootToDisk(const h256& root) {
+bool AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
-  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes()))
+  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes())) {
     LOG_GENERAL(INFO, "FAIL: Put state root failed");
+    return false;
+  }
+  return true;
 }
 
 bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
@@ -232,7 +235,10 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
     }
     m_state.db()->commit();
     m_prevRoot = m_state.root();
-    MoveRootToDisk(m_prevRoot);
+    if (!MoveRootToDisk(m_prevRoot)) {
+      LOG_GENERAL(WARNING, "MoveRootToDisk failed");
+      return false;
+    }
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
                              << boost::diagnostic_information(e));
