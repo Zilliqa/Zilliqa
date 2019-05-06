@@ -232,6 +232,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   try {
     if (repopulate && !RepopulateStateTrie()) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
+      return false;
     }
     m_state.db()->commit();
     m_prevRoot = m_state.root();
@@ -264,6 +265,7 @@ bool AccountStore::RepopulateStateTrie() {
       if (!BlockStorage::GetBlockStorage().PutTempState(
               *this->m_addressToAccount)) {
         LOG_GENERAL(WARNING, "PutTempState failed");
+      return false;
       } else {
         // this->m_addressToAccount->clear();
         counter = 0;
