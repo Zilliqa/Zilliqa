@@ -3658,9 +3658,7 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
       continue;
     }
     for (const auto& tx : shard.second) {
-      const auto& fromAddr = tx.GetSenderAddr();
-      unsigned int correct_shard =
-          Transaction::GetShardIndex(fromAddr, newNumShards);
+      unsigned int correct_shard = tx.GetShardIndex(newNumShards);
       tempTxnShardMap[correct_shard].emplace_back(tx);
     }
   }
@@ -3867,9 +3865,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     }
 
     for (const auto& txn : txnsShard) {
-      const PubKey& senderPubKey = txn.GetSenderPubKey();
-      const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-      unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
+      unsigned int shard = txn.GetShardIndex(shard_size);
       AddToTxnShardMap(txn, shard);
     }
     for (const auto& txn : txnsDS) {

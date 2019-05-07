@@ -189,6 +189,12 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
   return x % numShards;
 }
 
+unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
+  const auto& fromAddr = GetSenderAddr();
+
+  return GetShardIndex(fromAddr, numShards);
+}
+
 bool Transaction::operator==(const Transaction& tran) const {
   return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
 }
