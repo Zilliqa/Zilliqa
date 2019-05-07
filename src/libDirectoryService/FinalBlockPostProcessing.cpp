@@ -188,12 +188,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                                         REPOPULATE_STATE_PER_N_DS ==
                                     REPOPULATE_STATE_IN_DS))) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-        // return;
+        return;
       } else {
         if (!BlockStorage::GetBlockStorage().PutMetadata(
                 MetaType::DSINCOMPLETED, {'0'})) {
           LOG_GENERAL(WARNING,
-                      "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
           return;
         }
         if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(

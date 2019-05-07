@@ -70,7 +70,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
 
   if (!BlockStorage::GetBlockStorage().PutDSBlock(
           dsblock.GetHeader().GetBlockNum(), serializedDSBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed");
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
     return;
   }
   m_mediator.m_ds->m_latestActiveDSBlockNum = dsblock.GetHeader().GetBlockNum();

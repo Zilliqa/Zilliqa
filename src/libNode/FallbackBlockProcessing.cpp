@@ -295,7 +295,8 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
       }
       if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                        {'0'})) {
-        LOG_GENERAL(WARNING, "BlockStorage::PutMetadata failed");
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
         return;
       }
       LOG_STATE("[FLBLK][" << setw(15) << left

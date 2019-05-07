@@ -2008,7 +2008,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     if (!BlockStorage::GetBlockStorage().PutTxBlock(
             txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
-      LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed");
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
   }
@@ -4057,7 +4057,8 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   if (code == 1) {
     if (!BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH +
                                                               "/" + path)) {
-      LOG_GENERAL(WARNING, "BlockStorage::InitiateHistoricalDB failed");
+      LOG_GENERAL(WARNING,
+                  "BlockStorage::InitiateHistoricalDB failed, path: " << path);
       return false;
     }
 

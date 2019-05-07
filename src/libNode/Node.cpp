@@ -671,7 +671,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   if (!BlockStorage::GetBlockStorage().GetShardStructure(
           m_mediator.m_ds->m_shards)) {
     LOG_GENERAL(WARNING, "BlockStorage::GetShardStructure failed");
-    return false;
   }
 
   if (!ipMapping.empty()) {

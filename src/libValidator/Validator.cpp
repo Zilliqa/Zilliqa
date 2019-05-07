@@ -300,7 +300,7 @@ bool Validator::CheckDirBlocks(
       prevHash = dsblock.GetBlockHash();
       if (!BlockStorage::GetBlockStorage().PutDSBlock(
               dsblock.GetHeader().GetBlockNum(), serializedDSBlock)) {
-        LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed");
+        LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
         return false;
       }
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
@@ -347,7 +347,8 @@ bool Validator::CheckDirBlocks(
       vcblock.Serialize(vcblockserialized, 0);
       if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                       vcblockserialized)) {
-        LOG_GENERAL(WARNING, "BlockStorage::PutVCBlock failed");
+        LOG_GENERAL(WARNING, "BlockStorage::PutVCBlock failed " << vcblock);
+        return false;
       }
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
@@ -413,7 +414,8 @@ bool Validator::CheckDirBlocks(
       fallbackwshardingstructure.Serialize(fallbackblockser, 0);
       if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
               fallbackblock.GetBlockHash(), fallbackblockser)) {
-        LOG_GENERAL(WARNING, "BlockStorage::PutFallbackBlock failed");
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutFallbackBlock failed " << fallbackblock);
         return false;
       }
       prevHash = fallbackblock.GetBlockHash();

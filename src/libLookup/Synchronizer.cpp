@@ -60,14 +60,18 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
   // Store DS Block to disk
   bytes serializedDSBlock;
   dsBlock.Serialize(serializedDSBlock, 0);
-  return BlockStorage::GetBlockStorage().PutDSBlock(
-      dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+  if (!BlockStorage::GetBlockStorage().PutDSBlock(
+          dsBlock.GetHeader().GetBlockNum(), serializedDSBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsBlock);
+    return false;
+  }
+
+  return true;
 }
 
 bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
   DSBlock dsBlock = ConstructGenesisDSBlock();
-  AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
-  return true;
+  return AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
 }
 
 TxBlock Synchronizer::ConstructGenesisTxBlock() {
@@ -88,8 +92,12 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
   // Store Tx Block to disk
   bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
-  return BlockStorage::GetBlockStorage().PutTxBlock(
-      txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(
+          txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
+    return false;
+  }
+  return true;
 }
 
 bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain) {
@@ -112,9 +120,7 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
     return true;
   }
 
-  lookup->GetDSInfoFromLookupNodes();
-  // lookup->GetDSInfoFromSeedNodes();
-  return true;
+  return lookup->GetDSInfoFromLookupNodes();
 }
 
 bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
@@ -126,8 +132,7 @@ bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
     return true;
   }
 
-  lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
-  return true;
+  return lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
 }
 
 bool Synchronizer::FetchLatestDSBlocksSeed(Lookup* lookup,
@@ -139,8 +144,7 @@ bool Synchronizer::FetchLatestDSBlocksSeed(Lookup* lookup,
     return true;
   }
 
-  lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
-  return true;
+  return lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
 }
 
 bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
@@ -152,8 +156,7 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
     return true;
   }
 
-  lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
-  return true;
+  return lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
 }
 
 bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
@@ -165,8 +168,7 @@ bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
     return true;
   }
 
-  lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
-  return true;
+  return lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
 }
 
 bool Synchronizer::AttemptPoW(Lookup* lookup) {
@@ -194,6 +196,5 @@ bool Synchronizer::FetchOfflineLookups(Lookup* lookup) {
     return true;
   }
 
-  lookup->GetOfflineLookupNodes();
-  return true;
+  return lookup->GetOfflineLookupNodes();
 }

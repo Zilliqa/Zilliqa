@@ -122,7 +122,8 @@ void Node::ProcessFallbackConsensusWhenDone() {
   if (fbblockwshards.Serialize(dst, 0)) {
     if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
             m_pendingFallbackBlock->GetBlockHash(), dst)) {
-      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+      LOG_GENERAL(WARNING, "Unable to store FallbackBlock "
+                               << m_pendingFallbackBlock->GetBlockHash());
       return;
     }
   } else {
@@ -200,7 +201,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
       if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                        {'0'})) {
         LOG_GENERAL(WARNING,
-                    "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+                    "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
         return;
       }
       LOG_STATE("[FLBLK][" << setw(15) << left

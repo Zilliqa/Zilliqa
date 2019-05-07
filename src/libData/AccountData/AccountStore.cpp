@@ -178,7 +178,7 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
 bool AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
   if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes())) {
-    LOG_GENERAL(INFO, "FAIL: Put state root failed");
+    LOG_GENERAL(INFO, "FAIL: Put state root failed " << root.hex());
     return false;
   }
   return true;
@@ -237,7 +237,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
     m_state.db()->commit();
     m_prevRoot = m_state.root();
     if (!MoveRootToDisk(m_prevRoot)) {
-      LOG_GENERAL(WARNING, "MoveRootToDisk failed");
+      LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_prevRoot.hex());
       return false;
     }
   } catch (const boost::exception& e) {
@@ -331,7 +331,11 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
     }
   }
 
-  return BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TEMP_STATE) failed");
+    return false;
+  }
+  return true;
 }
 
 void AccountStore::DiscardUnsavedUpdates() {
@@ -365,7 +369,12 @@ bool AccountStore::RetrieveFromDisk() {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
     if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-      BlockStorage::GetBlockStorage().PutStateRoot(rootBytes);
+      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutStateRoot failed "
+                        << DataConversion::CharArrayToString(rootBytes));
+        return false;
+      }
     } else {
       LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
       return false;

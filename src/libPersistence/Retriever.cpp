@@ -355,7 +355,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         if (!BlockStorage::GetBlockStorage().PutMetadata(
                 MetaType::DSINCOMPLETED, {'0'})) {
           LOG_GENERAL(WARNING,
-                      "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
           return false;
         }
       }

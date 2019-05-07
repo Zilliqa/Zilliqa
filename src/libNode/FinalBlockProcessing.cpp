@@ -69,21 +69,11 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   txBlock.Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed");
+    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
     return false;
   }
 
   m_mediator.IncreaseEpochNum();
-
-  string prevHashStr;
-  if (!DataConversion::charArrToHexStr(m_mediator.m_txBlockChain.GetLastBlock()
-                                           .GetHeader()
-                                           .GetPrevHash()
-                                           .asArray(),
-                                       prevHashStr)) {
-    LOG_GENERAL(WARNING, "prevHash cannot be converted to hexStr");
-    return false;
-  }
 
   LOG_STATE(
       "[FINBK]["
@@ -754,14 +744,16 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       } else {
         if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
                 m_mediator.m_currentEpochNum)) {
-          LOG_GENERAL(WARNING,
-                      "BlockStorage::PutLatestEpochStatesUpdated failed");
+          LOG_GENERAL(WARNING, "BlockStorage::PutLatestEpochStatesUpdated "
+                                   << m_mediator.m_currentEpochNum
+                                   << " failed");
           return;
         }
         if (!LOOKUP_NODE_MODE) {
           if (!BlockStorage::GetBlockStorage().PutMetadata(
                   MetaType::DSINCOMPLETED, {'0'})) {
-            LOG_GENERAL(WARNING, "BlockStorage::PutMetadata failed");
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
             return;
           }
         } else {
@@ -771,8 +763,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                   m_mediator.m_txBlockChain.GetLastBlock()
                       .GetHeader()
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
+            if (!BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'})) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::PutMetadata DSINCOMPLETED '0' failed");
+            }
           }
         }
         LOG_STATE("[FLBLK][" << setw(15) << left
@@ -902,7 +897,8 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     twr.Serialize(serializedTxBody, 0);
     if (!BlockStorage::GetBlockStorage().PutTxBody(
             twr.GetTransaction().GetTranID(), serializedTxBody)) {
-      LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed");
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
+                               << twr.GetTransaction().GetTranID());
       return;
     }
   }
@@ -1075,7 +1071,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           if (!BlockStorage::GetBlockStorage().PutMetadata(
                   MetaType::DSINCOMPLETED, {'0'})) {
             LOG_GENERAL(WARNING,
-                        "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
             return false;
           }
         }

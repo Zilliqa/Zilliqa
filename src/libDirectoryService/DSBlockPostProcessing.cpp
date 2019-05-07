@@ -76,23 +76,31 @@ bool DirectoryService::StoreDSBlockToStorage() {
   }
   if (!BlockStorage::GetBlockStorage().PutDSBlock(
           m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed");
+    LOG_GENERAL(WARNING,
+                "BlockStorage::PutDSBlock failed " << *m_pendingDSBlock);
     return false;
   }
   m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
   if (!BlockStorage::GetBlockStorage().PutMetadata(
           LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(
                                       to_string(m_latestActiveDSBlockNum)))) {
-    LOG_GENERAL(WARNING, "BlockStorage::PutMetadata failed");
+    LOG_GENERAL(WARNING,
+                "BlockStorage::PutMetadata (LATESTACTIVEDSBLOCKNUM) failed "
+                    << m_latestActiveDSBlockNum);
     return false;
   }
 
   // Store to blocklink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-  return m_mediator.m_blocklinkchain.AddBlockLink(
-      latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
-      m_pendingDSBlock->GetBlockHash());
+  if (!m_mediator.m_blocklinkchain.AddBlockLink(
+          latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
+          m_pendingDSBlock->GetBlockHash())) {
+    LOG_GENERAL(WARNING, "AddBlockLink failed " << *m_pendingDSBlock);
+    return false;
+  }
+
+  return true;
 }
 
 bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
@@ -108,8 +116,9 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
   if (!Messenger::SetNodeVCDSBlocksMessage(
           dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
           m_VCBlockVector, SHARDINGSTRUCTURE_VERSION, m_shards)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetNodeVCDSBlocksMessage failed.");
+    LOG_EPOCH(
+        WARNING, m_mediator.m_currentEpochNum,
+        "Messenger::SetNodeVCDSBlocksMessage failed " << *m_pendingDSBlock);
     return false;
   }
 
@@ -167,8 +176,9 @@ void DirectoryService::SendDSBlockToShardNodes(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
             *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
             m_shards)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::SetNodeVCDSBlocksMessage failed.");
+      LOG_EPOCH(
+          WARNING, m_mediator.m_currentEpochNum,
+          "Messenger::SetNodeVCDSBlocksMessage failed. " << *m_pendingDSBlock);
       continue;
     }
 
