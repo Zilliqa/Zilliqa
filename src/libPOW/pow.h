@@ -63,7 +63,7 @@ class POW {
   static ethash_hash256 StringToBlockhash(std::string const& _s);
   static std::string BlockhashToHexString(const ethash_hash256& _hash);
   static bool CheckDifficulty(const ethash_hash256& result,
-                             const ethash_hash256& boundary);
+                              const ethash_hash256& boundary);
   static size_t CountLeadingZeros(const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
