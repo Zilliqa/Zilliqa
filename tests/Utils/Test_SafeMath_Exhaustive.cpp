@@ -18,7 +18,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-#include <boost/phoenix/phoenix.hpp>
 #include <functional>
 
 #define BOOST_TEST_MODULE safemath_exhaustive
@@ -26,7 +25,6 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-namespace mp = boost::multiprecision;
 
 using typeToTest = uint8_t;
 using typeToVerify = uint64_t;
@@ -131,7 +129,8 @@ BOOST_AUTO_TEST_CASE(test_int8_div) {
 BOOST_AUTO_TEST_CASE(test_uint8_pow) {
   INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(
-      SafeMath<typeToTest>::power_core, powerTest<typeToVerify>, OperatorType::EXP);
+      SafeMath<typeToTest>::power_core, powerTest<typeToVerify>,
+      OperatorType::EXP);
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_pow) {
