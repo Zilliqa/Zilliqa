@@ -153,6 +153,31 @@ class Transaction : public SerializableDataBlock {
   static unsigned int GetShardIndex(const Address& fromAddr,
                                     unsigned int numShards);
 
+  enum ContractType {
+    NON_CONTRACT = 0,
+    CONTRACT_CREATION,
+    CONTRACT_CALL,
+    ERROR
+  };
+
+  static ContractType GetTransactionType(const Transaction& tx) {
+    if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return CONTRACT_CALL;
+    }
+
+    if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+      return CONTRACT_CREATION;
+    }
+
+    if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return NON_CONTRACT;
+    }
+
+    return ERROR;
+  }
+
   /// Equality comparison operator.
   bool operator==(const Transaction& tran) const;
 

@@ -47,23 +47,6 @@ Server::~Server(){
     // destructor
 };
 
-Server::ContractType Server::GetTransactionType(const Transaction& tx) const {
-  if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress) {
-    return CONTRACT_CALL;
-  }
-
-  if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
-    return CONTRACT_CREATION;
-  }
-
-  if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
-      tx.GetCode().empty()) {
-    return NON_CONTRACT;
-  }
-
-  return ERROR;
-}
-
 string Server::GetCurrentMiniEpoch() {
   LOG_MARKER();
 

@@ -380,14 +380,14 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
     const unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
-    switch (GetTransactionType(tx)) {
-      case NON_CONTRACT:
+    switch (Transaction::GetTransactionType(tx)) {
+      case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
-      case CONTRACT_CREATION:
+      case Transaction::ContractType::CONTRACT_CREATION:
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
@@ -398,7 +398,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
         break;
-      case CONTRACT_CALL: {
+      case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
@@ -436,7 +436,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
           ret["Info"] = "Contract Txn, Sent To Ds";
         }
       } break;
-      case ERROR:
+      case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "Code is empty and To addr is null");
         break;
