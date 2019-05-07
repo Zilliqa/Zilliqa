@@ -130,7 +130,7 @@ ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
   return ret;
 }
 
-bool POW::CheckDificulty(const ethash_hash256& result,
+bool POW::CheckDifficulty(const ethash_hash256& result,
                          const ethash_hash256& boundary) {
   return ethash::is_less_or_equal(result, boundary);
 }
