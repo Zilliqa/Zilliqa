@@ -1069,7 +1069,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
 
   Address recipient;
-  Account* account = new Account();
+  Account* account = nullptr;
 
   if (!ret) {
     // Non-null messages must have few mandatory fields.
@@ -1100,7 +1100,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       return false;
     }
 
-    delete account;
     account = m_accountStoreAtomic->GetAccount(recipient);
 
     if (account == nullptr) {
@@ -1188,10 +1187,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   input_message["_tag"] = _json["message"]["_tag"];
   input_message["params"] = _json["message"]["params"];
 
-  if (!ExportCallContractFiles(*account, input_message)) {
-    LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
-    receipt.AddError(PREPARATION_FAILED);
-    return false;
+  if (account != nullptr) {
+    if (!ExportCallContractFiles(*account, input_message)) {
+      LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+      receipt.AddError(PREPARATION_FAILED);
+      return false;
+    }
   }
 
   std::string runnerPrint;
