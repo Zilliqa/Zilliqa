@@ -59,6 +59,7 @@ void test_transaction(const map<uint32_t, vector<Transaction>>& mp,
         const auto& toShard =
             Transaction::GetShardIndex(tx.GetToAddr(), newShardNum);
         if (toShard != fromShard) {
+          LOG_GENERAL(INFO, "Sent to ds");
           index = newShardNum;
         }
       }
@@ -77,7 +78,9 @@ BOOST_AUTO_TEST_CASE(rectify_txns_perf) {
   INIT_STDOUT_LOGGER();
 
   const auto txnSize{100};
-  pair<uint, uint> rangeOfShards{2, 3};
+  pair<uint, uint> rangeOfShards{2, 5};
+  const auto txn_types = {Transaction::NON_CONTRACT, Transaction::CONTRACT_CALL,
+                          Transaction::CONTRACT_CREATION};
 
   PairOfKey key;
   Peer peer;
@@ -87,11 +90,12 @@ BOOST_AUTO_TEST_CASE(rectify_txns_perf) {
   md.RegisterColleagues(nullptr, &nd, &lk, nullptr);
 
   map<uint32_t, vector<Transaction>> txnShardmap;
-  for (auto const& type :
-       {Transaction::NON_CONTRACT, Transaction::CONTRACT_CALL,
-        Transaction::CONTRACT_CALL, Transaction::CONTRACT_CREATION}) {
-    for (unsigned int i = 0; i <= rangeOfShards.first; i++) {
-      for (unsigned int j = 0; j <= rangeOfShards.second; j++) {
+
+  for (auto const& type : txn_types) {
+    LOG_GENERAL(INFO, "Type: " << type);
+    for (unsigned int i = rangeOfShards.first; i <= rangeOfShards.second; i++) {
+      for (unsigned int j = rangeOfShards.first; j <= rangeOfShards.second;
+           j++) {
         GenTxns(txnSize, txnShardmap, i, type);
         test_transaction(txnShardmap, i, j, lk);
       }
