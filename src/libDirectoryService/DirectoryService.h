@@ -297,7 +297,7 @@ class DirectoryService : public Executable {
   bool RunConsensusOnDSBlockWhenDSBackup();
 
   // internal calls from ProcessDSBlockConsensus
-  void StoreDSBlockToStorage();  // To further refactor
+  bool StoreDSBlockToStorage();  // To further refactor
   bool ComposeDSBlockMessageForSender(bytes& dsblock_message);
   void SendDSBlockToLookupNodesAndNewDSMembers(const bytes& dsblock_message);
   void SendDSBlockToShardNodes(const bytes& dsblock_message,

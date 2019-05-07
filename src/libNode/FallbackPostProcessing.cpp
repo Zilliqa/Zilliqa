@@ -123,6 +123,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
             m_pendingFallbackBlock->GetBlockHash(), dst)) {
       LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+      return;
     }
   } else {
     LOG_GENERAL(WARNING, "Failed to Serialize");
@@ -196,8 +197,12 @@ void Node::ProcessFallbackConsensusWhenDone() {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       }
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
+      if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                       {'0'})) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+        return;
+      }
       LOG_STATE("[FLBLK][" << setw(15) << left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
                            << "]["

@@ -54,7 +54,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::StoreFinalBlock(const TxBlock& txBlock) {
+bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
 
   AddBlock(txBlock);
@@ -67,8 +67,11 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   // Store Tx Block to disk
   bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
-                                             serializedTxBlock);
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(
+          txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed");
+    return false;
+  }
 
   m_mediator.IncreaseEpochNum();
 
@@ -79,6 +82,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
                                            .asArray(),
                                        prevHashStr)) {
     LOG_GENERAL(WARNING, "prevHash cannot be converted to hexStr");
+    return false;
   }
 
   LOG_STATE(
@@ -87,6 +91,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] RECV");
+
+  return true;
 }
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(
@@ -689,8 +695,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     }
   }
 
-  BlockStorage::GetBlockStorage().PutStateDelta(
-      txBlock.GetHeader().GetBlockNum(), stateDelta);
+  if (!BlockStorage::GetBlockStorage().PutStateDelta(
+          txBlock.GetHeader().GetBlockNum(), stateDelta)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutStateDelta failed");
+    return false;
+  }
 
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
@@ -713,7 +722,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   }
 
   if (!isVacuousEpoch) {
-    StoreFinalBlock(txBlock);
+    if (!StoreFinalBlock(txBlock)) {
+      LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
+      return false;
+    }
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
@@ -725,7 +737,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
-    StoreFinalBlock(txBlock);
+    if (!StoreFinalBlock(txBlock)) {
+      LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
+      return false;
+    }
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               LOOKUP_NODE_MODE && ENABLE_REPOPULATE &&
@@ -737,11 +752,18 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {
-        BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
-            m_mediator.m_currentEpochNum);
+        if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
+                m_mediator.m_currentEpochNum)) {
+          LOG_GENERAL(WARNING,
+                      "BlockStorage::PutLatestEpochStatesUpdated failed");
+          return;
+        }
         if (!LOOKUP_NODE_MODE) {
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                      {'0'});
+          if (!BlockStorage::GetBlockStorage().PutMetadata(
+                  MetaType::DSINCOMPLETED, {'0'})) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutMetadata failed");
+            return;
+          }
         } else {
           // change if all microblock received from shards
           lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
@@ -878,8 +900,11 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     // Store TxBody to disk
     bytes serializedTxBody;
     twr.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(twr.GetTransaction().GetTranID(),
-                                              serializedTxBody);
+    if (!BlockStorage::GetBlockStorage().PutTxBody(
+            twr.GetTransaction().GetTranID(), serializedTxBody)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed");
+      return;
+    }
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
@@ -1047,10 +1072,18 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           return false;
         }
         if (epochNum == m_mediator.m_currentEpochNum) {
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                      {'0'});
+          if (!BlockStorage::GetBlockStorage().PutMetadata(
+                  MetaType::DSINCOMPLETED, {'0'})) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+            return false;
+          }
         }
-        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+        if (!BlockStorage::GetBlockStorage().ResetDB(
+                BlockStorage::TX_BODY_TMP)) {
+          LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TX_BODY_TMP) failed");
+          return false;
+        }
       }
     }
   }

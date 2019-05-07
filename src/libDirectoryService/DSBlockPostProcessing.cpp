@@ -42,12 +42,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::StoreDSBlockToStorage() {
+bool DirectoryService::StoreDSBlockToStorage() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StoreDSBlockToStorage not expected to "
                 "be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -65,22 +65,32 @@ void DirectoryService::StoreDSBlockToStorage() {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "We failed to add pendingdsblock to dsblockchain.");
     // throw exception();
+    return false;
   }
 
   // Store DS Block to disk
   bytes serializedDSBlock;
-  m_pendingDSBlock->Serialize(serializedDSBlock, 0);
-  BlockStorage::GetBlockStorage().PutDSBlock(
-      m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
+  if (!m_pendingDSBlock->Serialize(serializedDSBlock, 0)) {
+    LOG_GENERAL(WARNING, "DSBlock::Serialize failed");
+    return false;
+  }
+  if (!BlockStorage::GetBlockStorage().PutDSBlock(
+          m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed");
+    return false;
+  }
   m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
-  BlockStorage::GetBlockStorage().PutMetadata(
-      LATESTACTIVEDSBLOCKNUM,
-      DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
+  if (!BlockStorage::GetBlockStorage().PutMetadata(
+          LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(
+                                      to_string(m_latestActiveDSBlockNum)))) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutMetadata failed");
+    return false;
+  }
 
   // Store to blocklink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-  m_mediator.m_blocklinkchain.AddBlockLink(
+  return m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
       m_pendingDSBlock->GetBlockHash());
 }
@@ -526,9 +536,15 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   }
 
   // Add the DS block to the chain
-  StoreDSBlockToStorage();
+  if (!StoreDSBlockToStorage()) {
+    LOG_GENERAL(WARNING, "StoreDSBlockToStorage failed");
+    return;
+  }
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (STATE_DELTA) failed");
+    return;
+  }
 
   m_mediator.m_node->m_proposedGasPrice =
       max(m_mediator.m_node->m_proposedGasPrice,
@@ -549,8 +565,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   }
 
   m_mediator.m_node->m_myshardId = m_shards.size();
-  BlockStorage::GetBlockStorage().PutShardStructure(
-      m_shards, m_mediator.m_node->m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_shards, m_mediator.m_node->m_myshardId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
+    return;
+  }
 
   {
     // USe mutex during the composition and sending of vcds block message
@@ -619,8 +638,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
   }
 
-  BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
-                                                 GetConsensusLeaderID());
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return;
+  }
 
   StartFirstTxEpoch();
 }

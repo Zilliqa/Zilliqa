@@ -210,7 +210,7 @@ class Node : public Executable {
                                           bool& isEveryMicroBlockAvailable);
 
   // void StoreMicroBlocks();
-  void StoreFinalBlock(const TxBlock& txBlock);
+  bool StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
   void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();

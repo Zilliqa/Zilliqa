@@ -2006,8 +2006,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     // Store Tx Block to disk
     bytes serializedTxBlock;
     txBlock.Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(
-        txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+    if (!BlockStorage::GetBlockStorage().PutTxBlock(
+            txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed");
+      return;
+    }
   }
 
   m_mediator.m_currentEpochNum =
@@ -2165,16 +2168,25 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
       }
-      BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta);
+      if (!BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutStateDelta failed");
+        return false;
+      }
       m_prevStateRootHashTemp = AccountStore::GetInstance().GetStateRootHash();
     }
     if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
       if (ENABLE_REPOPULATE && ((txBlkNum + 1) % (NUM_FINAL_BLOCK_PER_POW *
                                                   REPOPULATE_STATE_PER_N_DS) ==
                                 REPOPULATE_STATE_IN_DS)) {
-        AccountStore::GetInstance().MoveUpdatesToDisk(true);
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk(true)) {
+          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(true) failed");
+          return false;
+        }
       } else if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
-        AccountStore::GetInstance().MoveUpdatesToDisk(false);
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk(false)) {
+          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(false) failed");
+          return false;
+        }
       }
     }
     txBlkNum++;
@@ -3116,8 +3128,14 @@ void Lookup::RejoinAsNewLookup() {
               "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        BlockStorage::GetBlockStorage().RefreshAll();
-        AccountStore::GetInstance().RefreshDB();
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+          return;
+        }
         if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
           break;
         };
@@ -4037,8 +4055,11 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   }
 
   if (code == 1) {
-    BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH + "/" +
-                                                         path);
+    if (!BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH +
+                                                              "/" + path)) {
+      LOG_GENERAL(WARNING, "BlockStorage::InitiateHistoricalDB failed");
+      return false;
+    }
 
     m_historicalDB = true;
   } else {

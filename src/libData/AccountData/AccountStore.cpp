@@ -60,10 +60,10 @@ void AccountStore::InitSoft() {
   InitTemp();
 }
 
-void AccountStore::RefreshDB() {
+bool AccountStore::RefreshDB() {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexDB);
-  m_db.RefreshDB();
+  return m_db.RefreshDB();
 }
 
 void AccountStore::InitTemp() {
@@ -265,7 +265,7 @@ bool AccountStore::RepopulateStateTrie() {
       if (!BlockStorage::GetBlockStorage().PutTempState(
               *this->m_addressToAccount)) {
         LOG_GENERAL(WARNING, "PutTempState failed");
-      return false;
+        return false;
       } else {
         // this->m_addressToAccount->clear();
         counter = 0;

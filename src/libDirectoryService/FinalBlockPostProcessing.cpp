@@ -190,10 +190,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return;
       } else {
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
-        BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
-            m_mediator.m_currentEpochNum);
+        if (!BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::DSINCOMPLETED, {'0'})) {
+          LOG_GENERAL(WARNING,
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) failed");
+          return;
+        }
+        if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
+                m_mediator.m_currentEpochNum)) {
+          LOG_GENERAL(WARNING, "BlockStorage::PutLatestEpochStatesUpdated "
+                                   << m_mediator.m_currentEpochNum
+                                   << " failed");
+          return;
+        }
         LOG_STATE("[FLBLK][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["

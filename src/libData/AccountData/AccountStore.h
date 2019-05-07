@@ -120,7 +120,7 @@ class AccountStore
   void InitSoft();
 
   /// Reset the reference to underlying leveldb
-  void RefreshDB();
+  bool RefreshDB();
 
   bool UpdateStateTrieFromTempStateDB();
 

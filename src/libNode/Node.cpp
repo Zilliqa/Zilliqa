@@ -431,7 +431,10 @@ bool Node::ValidateDB() {
   }
   LOG_GENERAL(INFO, "ValidateDB Success");
 
-  BlockStorage::GetBlockStorage().ReleaseDB();
+  if (!BlockStorage::GetBlockStorage().ReleaseDB()) {
+    LOG_GENERAL(WARNING, "BlockStorage::ReleaseDB failed");
+    return false;
+  }
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 
@@ -665,7 +668,11 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+  if (!BlockStorage::GetBlockStorage().GetShardStructure(
+          m_mediator.m_ds->m_shards)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetShardStructure failed");
+    return false;
+  }
 
   if (!ipMapping.empty()) {
     for (auto& shard : m_mediator.m_ds->m_shards) {
@@ -1654,8 +1661,14 @@ void Node::RejoinAsNormal() {
               "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        BlockStorage::GetBlockStorage().RefreshAll();
-        AccountStore::GetInstance().RefreshDB();
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+          return;
+        }
         if (this->Install(SyncType::NORMAL_SYNC, true, true)) {
           break;
         };

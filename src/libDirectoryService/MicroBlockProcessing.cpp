@@ -312,6 +312,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
                                                      body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+    return false;
   }
 
   if (!m_mediator.GetIsVacuousEpoch()) {
@@ -657,6 +658,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       if (!BlockStorage::GetBlockStorage().PutMicroBlock(
               microBlocks[i].GetBlockHash(), body)) {
         LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+        return false;
       }
 
       microBlocksAtEpoch.emplace(microBlocks.at(i));

@@ -60,10 +60,8 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
   // Store DS Block to disk
   bytes serializedDSBlock;
   dsBlock.Serialize(serializedDSBlock, 0);
-  BlockStorage::GetBlockStorage().PutDSBlock(dsBlock.GetHeader().GetBlockNum(),
-                                             serializedDSBlock);
-
-  return true;
+  return BlockStorage::GetBlockStorage().PutDSBlock(
+      dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
 }
 
 bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
@@ -90,26 +88,20 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
   // Store Tx Block to disk
   bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
-                                             serializedTxBlock);
-
-  return true;
+  return BlockStorage::GetBlockStorage().PutTxBlock(
+      txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
 }
 
 bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain) {
   TxBlock txBlock = ConstructGenesisTxBlock();
-  AddGenesisTxBlockToBlockChain(txBlockChain, txBlock);
-
-  return true;
+  return AddGenesisTxBlockToBlockChain(txBlockChain, txBlock);
 }
 
 bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                            TxBlockChain& txBlockChain) {
   LOG_MARKER();
-  InitializeGenesisDSBlock(dsBlockChain);
-  InitializeGenesisTxBlock(txBlockChain);
-
-  return true;
+  return InitializeGenesisDSBlock(dsBlockChain) &&
+         InitializeGenesisTxBlock(txBlockChain);
 }
 
 bool Synchronizer::FetchDSInfo(Lookup* lookup) {
