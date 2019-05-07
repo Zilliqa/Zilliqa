@@ -131,13 +131,13 @@ BOOST_AUTO_TEST_CASE(test_int8_div) {
 BOOST_AUTO_TEST_CASE(test_uint8_pow) {
   INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(
-      SafeMath<typeToTest>::power, powerTest<typeToVerify>, OperatorType::EXP);
+      SafeMath<typeToTest>::power_core, powerTest<typeToVerify>, OperatorType::EXP);
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_pow) {
   INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
-      SafeMath<typeToTestSigned>::power, powerTest<typeToVerifySigned>,
+      SafeMath<typeToTestSigned>::power_core, powerTest<typeToVerifySigned>,
       OperatorType::EXP);
 }
 
