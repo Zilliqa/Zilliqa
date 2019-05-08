@@ -105,10 +105,6 @@ class Lookup : public Executable {
   /// network
   bool FinishRejoinAsLookup();
 
-  /// Post processing after the new Lookup node successfully synchronized with
-  /// the network
-  bool FinishNewJoinAsLookup();
-
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 

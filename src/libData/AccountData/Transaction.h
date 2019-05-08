@@ -146,12 +146,39 @@ class Transaction : public SerializableDataBlock {
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
 
+  unsigned int GetShardIndex(unsigned int numShards) const;
+
   /// Set the signature
   void SetSignature(const Signature& signature);
 
   /// Identifies the shard number that should process the transaction.
   static unsigned int GetShardIndex(const Address& fromAddr,
                                     unsigned int numShards);
+
+  enum ContractType {
+    NON_CONTRACT = 0,
+    CONTRACT_CREATION,
+    CONTRACT_CALL,
+    ERROR
+  };
+
+  static ContractType GetTransactionType(const Transaction& tx) {
+    if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return CONTRACT_CALL;
+    }
+
+    if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+      return CONTRACT_CREATION;
+    }
+
+    if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return NON_CONTRACT;
+    }
+
+    return ERROR;
+  }
 
   /// Equality comparison operator.
   bool operator==(const Transaction& tran) const;

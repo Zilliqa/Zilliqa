@@ -53,7 +53,7 @@ RUN apt-get update \
     && pip install setuptools \
     && pip install request requests clint futures
 
-ARG ZILLIQA_VERSION=v4.6.0
+ARG ZILLIQA_VERSION=v4.6.1
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

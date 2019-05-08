@@ -107,8 +107,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   }
 
   // Check if from account is sharded here
-  const PubKey& senderPubKey = tx.GetSenderPubKey();
-  Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+
+  const Address fromAddr = tx.GetSenderAddr();
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
@@ -132,7 +132,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
       // return false;
     }
 
-    if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress) {
+    if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
       unsigned int correct_shard_to =
           Transaction::GetShardIndex(tx.GetToAddr(), numShards);
       if (correct_shard_to != correct_shard_from) {

@@ -109,9 +109,6 @@ void Lookup::InitSync() {
       SetAboveLayer();  // since may have called CleanVariable earlier
     }
 
-    // Set myself offline
-    GetMyLookupOffline();
-
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
@@ -2049,10 +2046,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               "New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        if (FinishNewJoinAsLookup()) {
-          SetSyncType(SyncType::NO_SYNC);
-          m_isFirstLoop = true;
-        }
+        SetSyncType(SyncType::NO_SYNC);
+        m_isFirstLoop = true;
       }
       m_currDSExpired = false;
     }
@@ -2315,10 +2310,8 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     }
 
     if (!m_currDSExpired) {
-      if (FinishNewJoinAsLookup()) {
-        SetSyncType(SyncType::NO_SYNC);
-        m_isFirstLoop = true;
-      }
+      SetSyncType(SyncType::NO_SYNC);
+      m_isFirstLoop = true;
     }
     m_currDSExpired = false;
   }
@@ -3167,17 +3160,6 @@ bool Lookup::FinishRejoinAsLookup() {
   return GetMyLookupOnline();
 }
 
-bool Lookup::FinishNewJoinAsLookup() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::FinishNewJoinAsLookup not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  return GetMyLookupOnline();
-}
-
 bool Lookup::CleanVariables() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -3676,9 +3658,7 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
       continue;
     }
     for (const auto& tx : shard.second) {
-      const auto& fromAddr = tx.GetSenderAddr();
-      unsigned int correct_shard =
-          Transaction::GetShardIndex(fromAddr, newNumShards);
+      unsigned int correct_shard = tx.GetShardIndex(newNumShards);
       tempTxnShardMap[correct_shard].emplace_back(tx);
     }
   }
@@ -3885,9 +3865,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     }
 
     for (const auto& txn : txnsShard) {
-      const PubKey& senderPubKey = txn.GetSenderPubKey();
-      const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-      unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
+      unsigned int shard = txn.GetShardIndex(shard_size);
       AddToTxnShardMap(txn, shard);
     }
     for (const auto& txn : txnsDS) {

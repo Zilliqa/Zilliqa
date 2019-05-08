@@ -65,13 +65,6 @@ class Server {
     RPC_METHOD_DEPRECATED = -32,  //!< RPC method is deprecated
   };
 
-  enum ContractType {
-    NON_CONTRACT = 0,
-    CONTRACT_CREATION,
-    CONTRACT_CALL,
-    ERROR
-  };
-
   inline virtual void GetCurrentMiniEpochI(const Json::Value& request,
                                            Json::Value& response) {
     (void)request;
@@ -106,7 +99,6 @@ class Server {
   virtual std::string GetNodeType();
   virtual uint8_t GetPrevDSDifficulty();
   virtual uint8_t GetPrevDifficulty();
-  ContractType GetTransactionType(const Transaction& tx) const;
 };
 
 #endif  //__SERVER_H__

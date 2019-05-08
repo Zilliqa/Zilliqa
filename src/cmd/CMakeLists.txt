@@ -69,3 +69,10 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto)
 target_link_libraries(getpub PUBLIC Crypto)
+
+add_executable(validateDB validateDB.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:validateDB> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(validateDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(validateDB PUBLIC  Node Mediator Validator)
