@@ -119,11 +119,11 @@ bool SafeMath<T>::power_core(const T& base, const T& exponent, T& result) {
 template <class T>
 T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
   T ret{};
-    if (!SafeMath::power_core(base, exponent, ret)) {
-      LOG_GENERAL(isCritical ? FATAL : WARNING,
-                  "SafeMath::power failed ret: " << ret << " base " << base);
-      return ret;
-    }
+  if (!SafeMath::power_core(base, exponent, ret)) {
+    LOG_GENERAL(isCritical ? FATAL : WARNING,
+                "SafeMath::power failed ret: " << ret << " base " << base);
+    return ret;
+  }
   return ret;
 }
 
