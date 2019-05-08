@@ -42,7 +42,6 @@ namespace po = boost::program_options;
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
-#define ERROR_UNHANDLED_EXCEPTION -2
 
 const vector<string> programName = {"zilliqa"};
 const string restart_zilliqa =
