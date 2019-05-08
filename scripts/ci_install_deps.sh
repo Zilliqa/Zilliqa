@@ -96,8 +96,14 @@ apt-get install -y \
     lcov \
     curl \
     libxml2-utils \
-    python-pip \
-    git
+    git \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
+  && python get-pip.py
+
+rm -rf get-pip.py
 
 pip install pyyaml
 pip install boto3 --user
