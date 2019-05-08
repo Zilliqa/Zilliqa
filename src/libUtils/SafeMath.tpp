@@ -122,6 +122,9 @@ T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
   if (!SafeMath::power_core(base, exponent, ret)) {
     LOG_GENERAL(isCritical ? FATAL : WARNING,
                 "SafeMath::power failed ret: " << ret << " base " << base);
+    if (isCritical) {
+      throw std::runtime_error("[Critical] SafeMath::power failed");
+    }
     return ret;
   }
   return ret;
