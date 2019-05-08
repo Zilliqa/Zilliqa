@@ -273,7 +273,7 @@ void StartNewProcess(const string pubKey, const string privKey, const string ip,
       }
       sleep(1);
     }
-
+    string syncType;
     if (cseed) {
       // 1. Download Incremental DB Persistence
       // 2. Restart zilliqa with syncType 6
@@ -282,24 +282,18 @@ void StartNewProcess(const string pubKey, const string privKey, const string ip,
              << endl;
         this_thread::sleep_for(chrono::seconds(10));
       }
-      string syncType = "6";
-      log << "\" "
-          << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
-                     " " + port + " " + syncType + " " + path + " 2>&1")
-          << " \"" << endl;
-      exit(0);
+      syncType = "6";
     } else {
       /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
       /// to Zilliqa process being killed. Thus, we can use the variable
       /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      string syncType =
-          bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
-      log << "\" "
-          << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
-                     " " + port + " " + syncType + " " + path + " 2>&1")
-          << " \"" << endl;
-      exit(0);
+      syncType = bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
     }
+    log << "\" "
+        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
+                   " " + port + " " + syncType + " " + path + " 2>&1")
+        << " \"" << endl;
+    exit(0);
   }
 }
 
