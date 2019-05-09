@@ -34,9 +34,9 @@
 class DSBlockHeader : public BlockHeaderBase {
   uint8_t m_dsDifficulty{};  // Number of PoW leading zeros
   uint8_t m_difficulty{};    // Number of PoW leading zeros
-  PubKey m_leaderPubKey;   // The one who proposed this DS block
-  uint64_t m_blockNum{};   // Block index, starting from 0 in the genesis block
-  uint64_t m_epochNum{};   // Tx Epoch Num when the DS block was generated
+  PubKey m_leaderPubKey;     // The one who proposed this DS block
+  uint64_t m_blockNum{};  // Block index, starting from 0 in the genesis block
+  uint64_t m_epochNum{};  // Tx Epoch Num when the DS block was generated
   uint128_t m_gasPrice;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;

@@ -47,8 +47,7 @@ class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version{};
   uint128_t m_balance;
-  uint64_t
-      m_nonce{};
+  uint64_t m_nonce{};
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
 

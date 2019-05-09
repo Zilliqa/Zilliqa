@@ -41,7 +41,7 @@
 typedef struct EthashMiningResult {
   std::string result;
   std::string mix_hash;
-  uint64_t winning_nonce{} ;
+  uint64_t winning_nonce{};
   bool success{};
 } ethash_mining_result_t;
 

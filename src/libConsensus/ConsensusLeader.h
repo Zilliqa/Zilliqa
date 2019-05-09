@@ -94,7 +94,7 @@ class ConsensusLeader : public ConsensusCommon {
     std::vector<bool> responseMap;
     std::vector<Response> responseData;
     Signature collectiveSig;
-    State state;  // Subset consensus state
+    State state{};  // Subset consensus state
   };
   std::vector<ConsensusSubset> m_consensusSubsets;
   unsigned int m_numSubsetsRunning;

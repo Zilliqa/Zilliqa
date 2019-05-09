@@ -30,7 +30,7 @@ struct DSBlockHashSet {
   ShardingHash m_shardingHash;  // Hash of sharding structure
   std::array<unsigned char, RESERVED_FIELD_SIZE>
       m_reservedField{};  // Reserved storage for extra
-                                               // hashes
+                          // hashes
 
   bool operator==(const DSBlockHashSet& hashSet) const {
     return std::tie(m_shardingHash) == std::tie(hashSet.m_shardingHash);
