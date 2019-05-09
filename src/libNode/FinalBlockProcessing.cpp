@@ -714,6 +714,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   if (!isVacuousEpoch) {
     StoreFinalBlock(txBlock);
+    if (!LOOKUP_NODE_MODE) {
+      BlockStorage::GetBlockStorage().PutMetadata(
+          MetaType::EPOCHFIN, DataConversion::StringToCharArray(
+                                  to_string(m_mediator.m_currentEpochNum)));
+    }
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
@@ -737,11 +742,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {
-        BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
-            m_mediator.m_currentEpochNum);
         if (!LOOKUP_NODE_MODE) {
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                      {'0'});
+          BlockStorage::GetBlockStorage().PutMetadata(
+              MetaType::EPOCHFIN, DataConversion::StringToCharArray(
+                                      to_string(m_mediator.m_currentEpochNum)));
         } else {
           // change if all microblock received from shards
           lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
@@ -749,8 +753,9 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                   m_mediator.m_txBlockChain.GetLastBlock()
                       .GetHeader()
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
+            BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::EPOCHFIN, DataConversion::StringToCharArray(to_string(
+                                        m_mediator.m_currentEpochNum)));
           }
         }
         LOG_STATE("[FLBLK][" << setw(15) << left
@@ -1034,23 +1039,45 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
           entry.m_microBlock.GetHeader().GetEpochNum());
 
-      if (LOOKUP_NODE_MODE && m_isVacuousEpochBuffer &&
-          entry.m_microBlock.GetHeader().GetEpochNum() ==
+      // bytes latestEpochFinBytes;
+      // uint64_t latestEpochFin = 0;
+      // if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
+      // latestEpochFinBytes)) {
+      //   try {
+      //     latestEpochFin =
+      //     std::stoull(DataConversion::CharArrayToString(latestEpochFinBytes));
+      //   } catch (...) {
+      //     LOG_GENERAL(WARNING, "EPOCHFIN cannot be parsed as uint64_t " <<
+      //     DataConversion::CharArrayToString(latestEpochFinBytes)); return
+      //     false;
+      //   }
+      // } else {
+      //   if (m_mediator.m_currentEpochNum != 2) {
+      //     LOG_GENERAL(WARNING, "Cannot get EPOCHFIN from DB");
+      //     return false;
+      //   }
+      // }
+
+      if (entry.m_microBlock.GetHeader().GetEpochNum() ==
+          m_mediator.m_currentEpochNum) {
+        if (m_isVacuousEpochBuffer) {
+          // Check is states updated
+          if (AccountStore::GetInstance().GetPrevRootHash() ==
               m_mediator.m_txBlockChain.GetLastBlock()
                   .GetHeader()
-                  .GetBlockNum()) {
-        // change if states was moved to disk
-        uint64_t epochNum;
-        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
-                epochNum)) {
-          LOG_GENERAL(WARNING, "GetLatestEpochStatesUpdated failed");
-          return false;
+                  .GetStateRootHash()) {
+            BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::EPOCHFIN,
+                DataConversion::StringToCharArray(
+                    to_string(entry.m_microBlock.GetHeader().GetEpochNum())));
+            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+          }
+        } else {
+          BlockStorage::GetBlockStorage().PutMetadata(
+              MetaType::EPOCHFIN,
+              DataConversion::StringToCharArray(
+                  to_string(entry.m_microBlock.GetHeader().GetEpochNum())));
         }
-        if (epochNum == m_mediator.m_currentEpochNum) {
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                      {'0'});
-        }
-        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
       }
     }
   }

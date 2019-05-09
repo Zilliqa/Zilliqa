@@ -231,8 +231,8 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
     }
     m_state.db()->commit();
+    MoveRootToDisk(m_state.root());
     m_prevRoot = m_state.root();
-    MoveRootToDisk(m_prevRoot);
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
                              << boost::diagnostic_information(e));

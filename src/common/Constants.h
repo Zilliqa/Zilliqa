@@ -78,6 +78,7 @@ enum MetaType : unsigned char {
   LATESTACTIVEDSBLOCKNUM,
   WAKEUPFORUPGRADE,
   LATEST_EPOCH_STATES_UPDATED,
+  EPOCHFIN,
 };
 
 // Sync Type

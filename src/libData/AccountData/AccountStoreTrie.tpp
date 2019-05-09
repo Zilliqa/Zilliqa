@@ -22,6 +22,7 @@
 template <class DB, class MAP>
 AccountStoreTrie<DB, MAP>::AccountStoreTrie()
     : m_db(std::is_same<DB, dev::OverlayDB>::value ? "state" : "") {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
 }
 
@@ -33,6 +34,7 @@ void AccountStoreTrie<DB, MAP>::Init() {
 
 template <class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::InitTrie() {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state.init();
   m_prevRoot = m_state.root();
 }
@@ -40,6 +42,7 @@ void AccountStoreTrie<DB, MAP>::InitTrie() {
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
                                           unsigned int offset) const {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
   if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
           dst, offset, m_state, this->m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
@@ -59,7 +62,11 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
     return account;
   }
 
-  std::string rawAccountBase = m_state.at(address);
+  std::string rawAccountBase;
+  {
+    std::lock_guard<std::mutex> g(m_mutexTrie);
+    rawAccountBase = m_state.at(address);
+  }
   if (rawAccountBase.empty()) {
     return nullptr;
   }
@@ -90,6 +97,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
     return false;
   }
 
+  std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state.insert(address, rawBytes);
 
   return true;
@@ -98,6 +106,8 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::RemoveFromTrie(const Address& address) {
   // LOG_MARKER();
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
   m_state.remove(address);
 
   return true;
@@ -107,7 +117,18 @@ template <class DB, class MAP>
 dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const {
   LOG_MARKER();
 
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
   return m_state.root();
+}
+
+template <class DB, class MAP>
+dev::h256 AccountStoreTrie<DB, MAP>::GetPrevRootHash() const {
+  LOG_MARKER();
+
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
+  return m_prevRoot;
 }
 
 template <class DB, class MAP>

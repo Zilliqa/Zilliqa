@@ -31,6 +31,7 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
 
   // mutex for AccountStore DB related operations
   std::mutex m_mutexDB;
+  mutable std::mutex m_mutexTrie;
 
   AccountStoreTrie();
 
@@ -47,6 +48,7 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   Account* GetAccount(const Address& address) override;
 
   dev::h256 GetStateRootHash() const;
+  dev::h256 GetPrevRootHash() const;
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
