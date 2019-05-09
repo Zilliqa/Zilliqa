@@ -90,7 +90,7 @@ class AccountStore
   ~AccountStore();
 
   /// Store the trie root to leveldb
-  void MoveRootToDisk(const dev::h256& root);
+  bool MoveRootToDisk(const dev::h256& root);
 
  public:
   /// Returns the singleton AccountStore instance.
@@ -120,7 +120,7 @@ class AccountStore
   void InitSoft();
 
   /// Reset the reference to underlying leveldb
-  void RefreshDB();
+  bool RefreshDB();
 
   bool UpdateStateTrieFromTempStateDB();
 

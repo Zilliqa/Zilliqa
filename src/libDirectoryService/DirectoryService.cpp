@@ -492,8 +492,14 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
               "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        BlockStorage::GetBlockStorage().RefreshAll();
-        AccountStore::GetInstance().RefreshDB();
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+          return;
+        }
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }

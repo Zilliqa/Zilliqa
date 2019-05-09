@@ -60,10 +60,10 @@ void AccountStore::InitSoft() {
   InitTemp();
 }
 
-void AccountStore::RefreshDB() {
+bool AccountStore::RefreshDB() {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexDB);
-  m_db.RefreshDB();
+  return m_db.RefreshDB();
 }
 
 void AccountStore::InitTemp() {
@@ -175,10 +175,13 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
 
-void AccountStore::MoveRootToDisk(const h256& root) {
+bool AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
-  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes()))
-    LOG_GENERAL(INFO, "FAIL: Put state root failed");
+  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes())) {
+    LOG_GENERAL(INFO, "FAIL: Put state root failed " << root.hex());
+    return false;
+  }
+  return true;
 }
 
 bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
@@ -229,9 +232,14 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   try {
     if (repopulate && !RepopulateStateTrie()) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
+      return false;
     }
+    lock_guard<mutex> g(m_mutexTrie);
     m_state.db()->commit();
-    MoveRootToDisk(m_state.root());
+    if (!MoveRootToDisk(m_state.root())) {
+      LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_state.root().hex());
+      return false;
+    }
     m_prevRoot = m_state.root();
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
@@ -258,6 +266,7 @@ bool AccountStore::RepopulateStateTrie() {
       if (!BlockStorage::GetBlockStorage().PutTempState(
               *this->m_addressToAccount)) {
         LOG_GENERAL(WARNING, "PutTempState failed");
+        return false;
       } else {
         // this->m_addressToAccount->clear();
         counter = 0;
@@ -290,6 +299,7 @@ bool AccountStore::RepopulateStateTrie() {
     if (!BlockStorage::GetBlockStorage().PutTempState(
             *(this->m_addressToAccount))) {
       LOG_GENERAL(WARNING, "PutTempState failed");
+      return false;
     } else {
       this->m_addressToAccount->clear();
       batched_once = true;
@@ -313,14 +323,19 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
 
   while (iter == nullptr || iter->Valid()) {
     vector<StateSharedPtr> states;
-    BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states);
+    if (!BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states)) {
+      LOG_GENERAL(WARNING, "GetTempStateInBatch failed");
+      return false;
+    }
     for (const auto& state : states) {
       UpdateStateTrie(state->first, state->second);
     }
   }
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE);
-
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TEMP_STATE) failed");
+    return false;
+  }
   return true;
 }
 
@@ -355,8 +370,14 @@ bool AccountStore::RetrieveFromDisk() {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
     if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-      BlockStorage::GetBlockStorage().PutStateRoot(rootBytes);
+      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutStateRoot failed "
+                        << DataConversion::CharArrayToString(rootBytes));
+        return false;
+      }
     } else {
+      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
       return false;
     }
   }
