@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DATACONVERSION_H__
-#define __DATACONVERSION_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_DATACONVERSION_H_
+#define ZILLIQA_SRC_LIBUTILS_DATACONVERSION_H_
 
 #include <array>
 #include <boost/algorithm/hex.hpp>
@@ -126,4 +126,4 @@ class DataConversion {
   }
 };
 
-#endif  // __DATACONVERSION_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_DATACONVERSION_H_

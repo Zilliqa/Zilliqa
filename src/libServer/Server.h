@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SERVER_H__
-#define __SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_SERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_SERVER_H_
 
 #include <mutex>
 #include <random>
@@ -100,4 +100,4 @@ class Server {
   virtual uint8_t GetPrevDifficulty();
 };
 
-#endif  //__SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_SERVER_H_

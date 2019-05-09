@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MEMPOOL_ENUM_H__
-#define __MEMPOOL_ENUM_H__
+#ifndef ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
+#define ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
 
 enum PoolTxnStatus : uint8_t {
   NOT_PRESENT = 0,
@@ -25,4 +25,4 @@ enum PoolTxnStatus : uint8_t {
   ERROR
 };
 
-#endif  //__MEMPOOL_ENUM_H__
+#endif  // ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_

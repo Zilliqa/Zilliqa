@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DIRECTORYSERVICE_H__
-#define __DIRECTORYSERVICE_H__
+#ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
+#define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
 
 #include <array>
 #include <condition_variable>
@@ -648,4 +648,4 @@ class DirectoryService : public Executable {
   void RemoveDSMicroBlock();
 };
 
-#endif  // __DIRECTORYSERVICE_H__
+#endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_

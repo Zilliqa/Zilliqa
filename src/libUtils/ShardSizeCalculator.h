@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SHARD_SIZE_CALCULATOR_H__
-#define __SHARD_SIZE_CALCULATOR_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SHARDSIZECALCULATOR_H_
+#define ZILLIQA_SRC_LIBUTILS_SHARDSIZECALCULATOR_H_
 
 #include <boost/algorithm/hex.hpp>
 #include <vector>
@@ -40,4 +40,4 @@ class ShardSizeCalculator {
                                        const uint32_t numNodesForSharding);
 };
 
-#endif  // __SHARD_SIZE_CALCULATOR_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SHARDSIZECALCULATOR_H_

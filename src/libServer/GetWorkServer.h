@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __GETWORK_SERVER_H__
-#define __GETWORK_SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_GETWORKSERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_GETWORKSERVER_H_
 
 #include <chrono>
 
@@ -160,4 +160,4 @@ class GetWorkServer : public AbstractStubServer {
                           const std::string &worker);
 };
 
-#endif  // __GETWORK_SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_GETWORKSERVER_H_

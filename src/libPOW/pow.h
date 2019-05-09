@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __POW_H__
-#define __POW_H__
+#ifndef ZILLIQA_SRC_LIBPOW_POW_H_
+#define ZILLIQA_SRC_LIBPOW_POW_H_
 
 #include <stdint.h>
 #include <array>
@@ -161,4 +161,4 @@ class POW {
   void InitOpenCL();
   void InitCUDA();
 };
-#endif  // __POW_H__
+#endif  // ZILLIQA_SRC_LIBPOW_POW_H_

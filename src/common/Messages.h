@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MESSAGES_H__
-#define __MESSAGES_H__
+#ifndef ZILLIQA_SRC_COMMON_MESSAGES_H_
+#define ZILLIQA_SRC_COMMON_MESSAGES_H_
 
 enum MessageOffset : unsigned int { TYPE = 0, INST = 1, BODY = 2 };
 
@@ -101,4 +101,4 @@ enum TxSharingMode : unsigned char {
   SEND_AND_FORWARD = 0x04
 };
 
-#endif  // __MESSAGES_H__
+#endif  // ZILLIQA_SRC_COMMON_MESSAGES_H_

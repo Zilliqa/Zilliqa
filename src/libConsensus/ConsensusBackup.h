@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONSENSUSBACKUP_H__
-#define __CONSENSUSBACKUP_H__
+#ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_
+#define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_
 
 #include <condition_variable>
 #include <deque>
@@ -116,4 +116,4 @@ class ConsensusBackup : public ConsensusCommon {
   std::string GetActionString(Action action) const;
 };
 
-#endif  // __CONSENSUSBACKUP_H__
+#endif  // ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_

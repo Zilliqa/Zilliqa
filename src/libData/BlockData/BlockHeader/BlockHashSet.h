@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKHASHSET_H__
-#define __BLOCKHASHSET_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
 
 #include "common/BaseType.h"
 #include "libData/AccountData/AccountStore.h"
@@ -308,4 +308,4 @@ inline std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-#endif  // __BLOCKHASHSET_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_

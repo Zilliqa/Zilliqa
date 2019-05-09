@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DSPowSolution_H__
-#define __DSPowSolution_H__
+#ifndef ZILLIQA_SRC_LIBDATA_MININGDATA_DSPOWSOLUTION_H_
+#define ZILLIQA_SRC_LIBDATA_MININGDATA_DSPOWSOLUTION_H_
 
 #include <array>
 
@@ -97,4 +97,4 @@ class DSPowSolution {
   DSPowSolution& operator=(const DSPowSolution& src);
 };
 
-#endif  // __DSPowSolution_H__
+#endif  // ZILLIQA_SRC_LIBDATA_MININGDATA_DSPOWSOLUTION_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOOKUP_H__
-#define __LOOKUP_H__
+#ifndef ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
+#define ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
 
 #include <atomic>
 #include <chrono>
@@ -403,4 +403,4 @@ class Lookup : public Executable {
   std::condition_variable cv_dsInfoUpdate;
 };
 
-#endif  // __LOOKUP_H__
+#endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CIRCULARARRAY_H__
-#define __CIRCULARARRAY_H__
+#ifndef ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_
+#define ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_
 
 #include "common/BaseType.h"
 #include "libUtils/Logger.h"
@@ -98,4 +98,4 @@ class CircularArray {
   size_t capacity() { return m_capacity; }
 };
 
-#endif  // __CIRCULARARRAY_H__
+#endif  // ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_

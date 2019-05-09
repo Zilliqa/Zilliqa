@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SAFEMATH_H__
-#define __SAFEMATH_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SAFEMATH_H_
+#define ZILLIQA_SRC_LIBUTILS_SAFEMATH_H_
 
 template <class T>
 class SafeMath {
@@ -43,4 +43,4 @@ class SafeMath {
 
 #include "SafeMath.tpp"
 
-#endif  //__SAFEMATH_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SAFEMATH_H_

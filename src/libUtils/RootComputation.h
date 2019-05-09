@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ROOTCOMPUTATION_H__
-#define __ROOTCOMPUTATION_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_
+#define ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_
 
 #include <list>
 #include <unordered_map>
@@ -44,4 +44,4 @@ TxnHash ComputeRoot(
 
 TxnHash ComputeRoot(const std::vector<TransactionWithReceipt>& transactions);
 
-#endif  // __ROOTCOMPUTATION_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_

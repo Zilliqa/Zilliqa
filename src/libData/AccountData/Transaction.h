@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TRANSACTION_H__
-#define __TRANSACTION_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
 
 #include <array>
 
@@ -193,4 +193,4 @@ class Transaction : public SerializableDataBlock {
   Transaction& operator=(const Transaction& src);
 };
 
-#endif  // __TRANSACTION_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
