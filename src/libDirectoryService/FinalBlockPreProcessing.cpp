@@ -54,56 +54,51 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
   unsigned int i = 1;
 
-  vector<BlockHash> microblockHashes;
+  lock_guard<mutex> g(m_mutexMicroBlocks);
 
-  {
-    lock_guard<mutex> g(m_mutexMicroBlocks);
+  auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
 
-    auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
+  for (auto& microBlock : microBlocks) {
+    LOG_STATE("[STATS][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << i << "    ]["
+                         << microBlock.GetHeader().GetNumTxs() << "] PROPOSED");
 
-    for (auto& microBlock : microBlocks) {
-      LOG_STATE("[STATS][" << std::setw(15) << std::left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "][" << i << "    ]["
-                           << microBlock.GetHeader().GetNumTxs()
-                           << "] PROPOSED");
+    i++;
 
-      i++;
+    LOG_GENERAL(INFO, "Pushback microblock shard ID: "
+                          << microBlock.GetHeader().GetShardId() << endl
+                          << "hash: " << microBlock.GetHeader().GetHashes());
 
-      LOG_GENERAL(INFO, "Pushback microblock shard ID: "
-                            << microBlock.GetHeader().GetShardId() << endl
-                            << "hash: " << microBlock.GetHeader().GetHashes());
+    uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
+    uint128_t tmpRewards = allRewards;
 
-      uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
-      uint128_t tmpRewards = allRewards;
-
-      bool flag = true;
-      if (!SafeMath<uint64_t>::add(
-              allGasLimit, microBlock.GetHeader().GetGasLimit(), allGasLimit)) {
-        flag = false;
-      }
-      if (flag &&
-          !SafeMath<uint64_t>::add(
-              allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
-        flag = false;
-      }
-      if (flag &&
-          !SafeMath<uint128_t>::add(
-              allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
-        flag = false;
-      }
-      if (!flag) {
-        allGasLimit = tmpGasLimit;
-        allGasUsed = tmpGasUsed;
-        allRewards = tmpRewards;
-      }
-
-      numTxs += microBlock.GetHeader().GetNumTxs();
-
-      mbInfos.push_back({microBlock.GetBlockHash(),
-                         microBlock.GetHeader().GetTxRootHash(),
-                         microBlock.GetHeader().GetShardId()});
+    bool flag = true;
+    if (!SafeMath<uint64_t>::add(
+            allGasLimit, microBlock.GetHeader().GetGasLimit(), allGasLimit)) {
+      flag = false;
     }
+    if (flag &&
+        !SafeMath<uint64_t>::add(
+            allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
+      flag = false;
+    }
+    if (flag &&
+        !SafeMath<uint128_t>::add(
+            allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
+      flag = false;
+    }
+    if (!flag) {
+      allGasLimit = tmpGasLimit;
+      allGasUsed = tmpGasUsed;
+      allRewards = tmpRewards;
+    }
+
+    numTxs += microBlock.GetHeader().GetNumTxs();
+
+    mbInfos.push_back({microBlock.GetBlockHash(),
+                       microBlock.GetHeader().GetTxRootHash(),
+                       microBlock.GetHeader().GetShardId()});
   }
 }
 
@@ -118,13 +113,11 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   std::vector<MicroBlockInfo> mbInfos;
-  std::vector<uint32_t> shardIds;
   uint32_t version = TXBLOCK_VERSION;
   uint64_t allGasLimit = 0;
   uint64_t allGasUsed = 0;
   uint128_t allRewards = 0;
   uint32_t numTxs = 0;
-  std::vector<bool> isMicroBlockEmpty;
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   ExtractDataFromMicroblocks(mbInfos, allGasLimit, allGasUsed, allRewards,
