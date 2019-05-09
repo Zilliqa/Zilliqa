@@ -59,7 +59,7 @@ TransactionWithReceipt constructDummyTxBody(int instanceNum) {
   //                    Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {}, {});
   return TransactionWithReceipt(
       Transaction(0, instanceNum, addr, Schnorr::GetInstance().GenKeyPair(), 0,
-                  1, 2, {}, {}),
+                  1, 2, {}, {}, false),
       TransactionReceipt());
 }
 

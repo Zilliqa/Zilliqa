@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test1) {
                   PRECISION_MIN_VALUE, 22, {}, {});
   Transaction tx2 = Transaction(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr,
                                 sender.second, 55, PRECISION_MIN_VALUE, 22, {},
-                                {}, sig);  // Coverage increase
+                                {}, false, sig);  // Coverage increase
 
   BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
                       "Address from public key converted not properly.");

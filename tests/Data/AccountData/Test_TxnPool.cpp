@@ -47,7 +47,7 @@ Transaction createTransaction(const uint128_t& gasPrice, const TxnHash& tranID,
       tranID, TestUtils::DistUint32(), nonce, Address().random(), senderPubKey,
       TestUtils::DistUint128(), gasPrice, TestUtils::DistUint64(),
       TestUtils::GenerateRandomCharVector(TestUtils::DistUint8()),
-      TestUtils::GenerateRandomCharVector(TestUtils::DistUint8()),
+      TestUtils::GenerateRandomCharVector(TestUtils::DistUint8()), false,
       TestUtils::GenerateRandomSignature());
 }
 
