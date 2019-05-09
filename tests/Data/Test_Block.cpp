@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   const std::vector<Transaction> tranData2 = block2.GetTranData();
 
   uint32_t type2_large = type2;
-  LOG_GENERAL(INFO, "Block 2 type: " << type2_large);
+  LOG_GENERAL(INFO, "Block 2 type: " << type2_large));
   BOOST_CHECK_MESSAGE(type2 == 1,
                       "expected: " << 1 << " actual: " << type2 << "\n");
 
