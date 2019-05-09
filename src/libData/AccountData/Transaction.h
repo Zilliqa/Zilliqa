@@ -36,7 +36,7 @@ struct TransactionCoreInfo {
                       const uint128_t& amountInput,
                       const uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput, const bytes& codeInput,
-                      const bytes& dataInput)
+                      const bytes& dataInput, bool priority = false)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -45,7 +45,8 @@ struct TransactionCoreInfo {
         gasPrice(gasPriceInput),
         gasLimit(gasLimitInput),
         code(codeInput),
-        data(dataInput) {}
+        data(dataInput),
+        priority(priority) {}
 
   uint32_t version;
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
@@ -56,6 +57,7 @@ struct TransactionCoreInfo {
   uint64_t gasLimit;
   bytes code;
   bytes data;
+  bool priority;
 };
 
 /// Stores information on a single transaction.
@@ -76,21 +78,22 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const PairOfKey& senderKeyPair,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code = {},
-              const bytes& data = {});
+              const bytes& data = {}, bool priority = false);
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
               const uint64_t& nonce, const Address& toAddr,
               const PubKey& senderPubKey, const uint128_t& amount,
               const uint128_t& gasPrice, const uint64_t& gasLimit,
-              const bytes& code, const bytes& data, const Signature& signature);
+              const bytes& code, const bytes& data, bool priority,
+              const Signature& signature);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code, const bytes& data,
-              const Signature& signature);
+              bool priority, const Signature& signature);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo coreInfo,
@@ -142,6 +145,8 @@ class Transaction : public SerializableDataBlock {
 
   /// Returns the data.
   const bytes& GetData() const;
+
+  bool GetPriority() const;
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;

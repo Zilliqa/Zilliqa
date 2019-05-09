@@ -167,12 +167,14 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   }
 
   bytes code, data;
-
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());
 
+  bool priority;
+  priority = _json["priority"].asBool();
+
   Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
-                  code, data, Signature(sign, 0));
+                  code, data, priority, Signature(sign, 0));
   LOG_GENERAL(INFO, "Tx converted");
 
   return tx1;
@@ -195,6 +197,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isMember("version");
   ret = ret && _json.isMember("code");
   ret = ret && _json.isMember("data");
+  ret = ret && _json.isMember("priority");
 
   if (ret) {
     if (!_json["nonce"].isIntegral()) {

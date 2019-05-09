@@ -1006,6 +1006,7 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
   if (!txnCoreInfo.data.empty()) {
     protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
   }
+  protoTxnCoreInfo.set_priority(txnCoreInfo.priority);
 }
 
 bool ProtobufToTransactionCoreInfo(
@@ -1038,6 +1039,9 @@ bool ProtobufToTransactionCoreInfo(
     txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
     copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
          txnCoreInfo.data.begin());
+  }
+  if (protoTxnCoreInfo.has_priority()) {
+    txnCoreInfo.priority = protoTxnCoreInfo.priority();
   }
   return true;
 }
@@ -1102,10 +1106,7 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  transaction = Transaction(
-      tranID, txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
-      txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
-      txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
+  transaction = Transaction(tranID, txnCoreInfo, signature);
 
   return true;
 }

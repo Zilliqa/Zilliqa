@@ -49,9 +49,9 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PairOfKey& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data)
+                         const bytes& data, bool priority)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
-                 gasLimit, code, data) {
+                 gasLimit, code, data, priority) {
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
@@ -76,20 +76,21 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const uint64_t& nonce, const Address& toAddr,
                          const PubKey& senderPubKey, const uint128_t& amount,
                          const uint128_t& gasPrice, const uint64_t& gasLimit,
-                         const bytes& code, const bytes& data,
+                         const bytes& code, const bytes& data, bool priority,
                          const Signature& signature)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, priority),
       m_signature(signature) {}
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data, const Signature& signature)
+                         const bytes& data, bool priority,
+                         const Signature& signature)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
-                 gasLimit, code, data),
+                 gasLimit, code, data, priority),
       m_signature(signature) {
   bytes txnData;
   SerializeCoreFields(txnData, 0);
@@ -165,6 +166,8 @@ const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
 const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 
 const bytes& Transaction::GetData() const { return m_coreInfo.data; }
+
+bool Transaction::GetPriority() const { return m_coreInfo.priority; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 

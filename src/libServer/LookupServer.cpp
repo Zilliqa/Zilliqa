@@ -415,10 +415,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
 
         unsigned int to_shard =
             Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-        bool sendToDs = false;
-        if (_json.isMember("priority")) {
-          sendToDs = _json["priority"].asBool();
-        }
+        bool sendToDs = tx.GetPriority();
         if ((to_shard == shard) && !sendToDs) {
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
