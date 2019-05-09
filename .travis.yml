@@ -48,6 +48,7 @@ addons:
     - lcov
     - libxml2-utils
     - python-pip
+    - gawk
 
 script:
   - ./scripts/ci_build.sh;
