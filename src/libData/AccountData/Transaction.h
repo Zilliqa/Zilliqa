@@ -93,7 +93,7 @@ class Transaction : public SerializableDataBlock {
               const Signature& signature);
 
   /// Constructor with core information.
-  Transaction(const TxnHash& tranID, const TransactionCoreInfo coreInfo,
+  Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,
               const Signature& signature);
 
   /// Constructor for loading transaction information from a byte stream.
