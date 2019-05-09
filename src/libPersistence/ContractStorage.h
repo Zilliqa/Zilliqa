@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
 
 #include <json/json.h>
 #include <leveldb/db.h>
@@ -157,4 +157,4 @@ class ContractStorage : public Singleton<ContractStorage> {
 
 }  // namespace Contract
 
-#endif  // CONTRACTSTORAGE_H
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_

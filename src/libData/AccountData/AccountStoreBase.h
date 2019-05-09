@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCOUNTSTOREBASE_H__
-#define __ACCOUNTSTOREBASE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 
 #include "Account.h"
 #include "Address.h"
@@ -79,4 +79,4 @@ class AccountStoreBase : public SerializableDataBlock {
 
 #include "AccountStoreBase.tpp"
 
-#endif  // __ACCOUNTSTOREBASE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ZILLIQA_H__
-#define __ZILLIQA_H__
+#ifndef ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
+#define ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 
 #include <vector>
 
@@ -67,4 +67,4 @@ class Zilliqa {
                                        unsigned char instruction);
 };
 
-#endif  // __ZILLIQA_H__
+#endif  // ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_

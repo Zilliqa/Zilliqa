@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __STATUS_SERVER_H__
-#define __STATUS_SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
 
 #include "Server.h"
 
@@ -60,4 +60,4 @@ class StatusServer : public Server,
   Json::Value GetDSCommittee();
 };
 
-#endif  //__STATUS_SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_

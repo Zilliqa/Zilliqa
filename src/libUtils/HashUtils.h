@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __HASH_UTILS__
-#define __HASH_UTILS__
+#ifndef ZILLIQA_SRC_LIBUTILS_HASHUTILS_H_
+#define ZILLIQA_SRC_LIBUTILS_HASHUTILS_H_
 
 #include <string>
 #include <vector>
@@ -69,4 +69,4 @@ class HashUtils {
   }
 };
 
-#endif  //__HASH_UTILS__
+#endif  // ZILLIQA_SRC_LIBUTILS_HASHUTILS_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SINGLETON_H__
-#define __SINGLETON_H__
+#ifndef ZILLIQA_SRC_COMMON_SINGLETON_H_
+#define ZILLIQA_SRC_COMMON_SINGLETON_H_
 
 template <typename T>
 class Singleton {
@@ -41,4 +41,4 @@ class Singleton {
   }
 };
 
-#endif  // __SINGLETON_H__
+#endif  // ZILLIQA_SRC_COMMON_SINGLETON_H_

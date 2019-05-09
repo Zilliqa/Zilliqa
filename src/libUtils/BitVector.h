@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BITVECTOR_H__
-#define __BITVECTOR_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_BITVECTOR_H_
+#define ZILLIQA_SRC_LIBUTILS_BITVECTOR_H_
 
 #include "common/BaseType.h"
 
@@ -31,4 +31,4 @@ class BitVector {
                                    const std::vector<bool>& value);
 };
 
-#endif  // __BITVECTOR_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_BITVECTOR_H_

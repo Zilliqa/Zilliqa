@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SWINFO_H__
-#define __SWINFO_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SWINFO_H_
+#define ZILLIQA_SRC_LIBUTILS_SWINFO_H_
 
 #include <stdint.h>
 #include <iostream>
@@ -125,4 +125,4 @@ inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {
   return os;
 }
 
-#endif  // __SWINFO_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SWINFO_H_

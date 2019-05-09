@@ -18,8 +18,8 @@
 #include "FallbackBlock.h"
 #include "libNetwork/ShardStruct.h"
 
-#ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
-#define __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCKWSHARDINGSTRUCTURE_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCKWSHARDINGSTRUCTURE_H_
 
 struct FallbackBlockWShardingStructure : public SerializableDataBlock {
   FallbackBlock m_fallbackblock;
@@ -35,4 +35,4 @@ struct FallbackBlockWShardingStructure : public SerializableDataBlock {
   bool Deserialize(const bytes& src, unsigned int offset);
 };
 
-#endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCKWSHARDINGSTRUCTURE_H_

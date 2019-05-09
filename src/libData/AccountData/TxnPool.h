@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TXNPOOL_H__
-#define __TXNPOOL_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNPOOL_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNPOOL_H_
 
 #include <functional>
 #include <map>
@@ -154,4 +154,4 @@ inline std::ostream& operator<<(std::ostream& os, const TxnPool& t) {
   return os;
 }
 
-#endif  // __TXNPOOL_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNPOOL_H_

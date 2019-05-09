@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCOUNTSTORESC_H__
-#define __ACCOUNTSTORESC_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
 
 #include <json/json.h>
 #include <atomic>
@@ -177,4 +177,4 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 #include "AccountStoreAtomic.tpp"
 #include "AccountStoreSC.tpp"
 
-#endif  // __ACCOUNTSTORESC_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

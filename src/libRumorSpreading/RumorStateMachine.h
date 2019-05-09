@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __RUMORSTATEMACHINE_H__
-#define __RUMORSTATEMACHINE_H__
+#ifndef ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSTATEMACHINE_H_
+#define ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSTATEMACHINE_H_
 
 #include <array>
 #include <functional>
@@ -103,4 +103,4 @@ class RumorStateMachine {
 
 }  // namespace RRS
 
-#endif  //__RUMORSTATEMACHINE_H__
+#endif  // ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSTATEMACHINE_H_

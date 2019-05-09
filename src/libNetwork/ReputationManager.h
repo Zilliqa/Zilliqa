@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __REPUTATION_MANAGER_H__
-#define __REPUTATION_MANAGER_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_REPUTATIONMANAGER_H_
+#define ZILLIQA_SRC_LIBNETWORK_REPUTATIONMANAGER_H_
 
 #include "Peer.h"
 #include "common/Constants.h"
@@ -81,4 +81,4 @@ class ReputationManager {
   void AwardNode(const uint128_t& IPAddress);
 };
 
-#endif  // __REPUTATION_MANAGER_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_REPUTATIONMANAGER_H_

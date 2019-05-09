@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONSTANTS_H__
-#define __CONSTANTS_H__
+#ifndef ZILLIQA_SRC_COMMON_CONSTANTS_H_
+#define ZILLIQA_SRC_COMMON_CONSTANTS_H_
 
 #include "depends/common/FixedHash.h"
 
@@ -376,4 +376,4 @@ extern const std::vector<std::string> GENESIS_KEYS;
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
 extern const unsigned int SEED_PORT;
-#endif  // __CONSTANTS_H__
+#endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

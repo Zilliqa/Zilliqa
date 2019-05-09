@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __VALIDATOR_H__
-#define __VALIDATOR_H__
+#ifndef ZILLIQA_SRC_LIBVALIDATOR_VALIDATOR_H_
+#define ZILLIQA_SRC_LIBVALIDATOR_VALIDATOR_H_
 
 #include <boost/variant.hpp>
 #include <string>
@@ -81,4 +81,4 @@ class Validator : public ValidatorBase {
   Mediator& m_mediator;
 };
 
-#endif  // __VALIDATOR_H__
+#endif  // ZILLIQA_SRC_LIBVALIDATOR_VALIDATOR_H_
