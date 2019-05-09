@@ -17,6 +17,7 @@
 
 #include "BlockLinkChain.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/BlockStorage.h"
 
 BlockLink BlockLinkChain::GetFromPersistentStorage(const uint64_t& index) {
   BlockLinkSharedPtr blnkshared;
