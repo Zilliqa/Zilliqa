@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <iostream>
+#include "common/Constants.h"
 using namespace std;
 using namespace g3;
 
@@ -84,7 +85,7 @@ void Logger::newLog() {
   if (m_bRefactor) {
     logworker = LogWorker::createLogWorker();
     auto sinkHandle = logworker->addSink(
-        std::make_unique<FileSink>(m_fileName.c_str(), "./", ""),
+        std::make_unique<FileSink>(m_fileName.c_str(), LOG_PATH, ""),
         &FileSink::fileWrite);
     sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
         .wait();
