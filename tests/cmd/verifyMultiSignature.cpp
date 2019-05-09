@@ -117,12 +117,12 @@ class SHA2 {
   }
 };
 
-void StringToBytes(const std::string in, bytes& out) {
+void StringToBytes(const std::string& in, bytes& out) {
   out.clear();
   boost::algorithm::unhex(in.begin(), in.end(), back_inserter(out));
 }
 
-Signature_l DeserializeSignature(const std::string sig_s) {
+Signature_l DeserializeSignature(const std::string& sig_s) {
   Signature_l sig;
   bytes sig_b;
   StringToBytes(sig_s, sig_b);
