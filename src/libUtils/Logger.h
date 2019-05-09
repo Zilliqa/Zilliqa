@@ -59,7 +59,7 @@ class Logger {
   std::string m_fileName;
   std::ofstream m_logFile;
   unsigned int m_seqNum;
-  bool m_bRefactor;
+  bool m_bRefactor{};
 
  public:
   /// Limits the number of bytes of a payload to display.

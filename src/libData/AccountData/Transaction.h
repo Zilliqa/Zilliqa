@@ -46,13 +46,16 @@ struct TransactionCoreInfo {
         gasLimit(gasLimitInput),
         code(codeInput),
         data(dataInput) {}
-  uint32_t version;
-  uint64_t nonce;  // counter: the number of tx from m_fromAddr
+
+
+  uint32_t
+      version{} ;
+  uint64_t nonce{};// counter: the number of tx from m_fromAddr
   Address toAddr;
   PubKey senderPubKey;
   uint128_t amount;
   uint128_t gasPrice;
-  uint64_t gasLimit;
+  uint64_t gasLimit{};
   bytes code;
   bytes data;
 };

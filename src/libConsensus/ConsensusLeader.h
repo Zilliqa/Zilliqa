@@ -57,7 +57,7 @@ class ConsensusLeader : public ConsensusCommon {
   unsigned int m_numOfSubsets;
   // Received commits
   std::mutex m_mutex;
-  std::atomic<unsigned int> m_commitCounter;
+  std::atomic<unsigned int> m_commitCounter{0};
 
   std::mutex m_mutexAnnounceSubsetConsensus;
   std::condition_variable cv_scheduleSubsetConsensus;
@@ -86,7 +86,7 @@ class ConsensusLeader : public ConsensusCommon {
     std::vector<CommitPoint> commitPointMap;  // Ordered list of commits of
                                               // fixed size = committee size
     std::vector<CommitPoint> commitPoints;
-    unsigned int responseCounter;
+    unsigned int responseCounter{};
     Challenge challenge;  // Challenge / Finalchallenge value generated
     std::vector<Response> responseDataMap;  // Ordered list of responses of
                                             // fixed size = committee size

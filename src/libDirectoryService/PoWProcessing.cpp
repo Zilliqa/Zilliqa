@@ -359,7 +359,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-      array<uint8_t, 32> resultingHashArr, mixHashArr;
+      array<uint8_t, 32> resultingHashArr{}, mixHashArr{};
       DataConversion::HexStrToStdArray(resultingHash, resultingHashArr);
       DataConversion::HexStrToStdArray(mixHash, mixHashArr);
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice);

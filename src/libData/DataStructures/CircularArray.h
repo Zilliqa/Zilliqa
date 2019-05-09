@@ -33,7 +33,8 @@ class CircularArray {
   uint64_t m_size;
 
   /// return the index of the latest block inserted
-  uint64_t m_index;
+  uint64_t
+      m_index{};
 
  public:
   /// Default constructor.

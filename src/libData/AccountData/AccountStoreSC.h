@@ -55,6 +55,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the blocknum while executing each txn
   uint64_t m_curBlockNum{0};
 
+
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
 
@@ -66,6 +67,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// the gas limit while executing each txn
   uint64_t m_curGasLimit{0};
+
 
   /// the gas price while executing each txn
   uint128_t m_curGasPrice{GAS_PRICE_MIN_VALUE};

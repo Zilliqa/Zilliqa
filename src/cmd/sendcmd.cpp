@@ -60,7 +60,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <hex string message>" << endl;
   } else {
-    struct in_addr ip_addr;
+    struct in_addr ip_addr {};
     inet_pton(AF_INET, "127.0.0.1", &ip_addr);
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 

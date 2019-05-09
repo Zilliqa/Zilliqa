@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_SUITE(ipfilter_test)
 BOOST_AUTO_TEST_CASE(test1) {
   INIT_STDOUT_LOGGER();
 
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
 
   inet_pton(AF_INET, "0.0.0.0", &serv_addr.sin_addr);
 

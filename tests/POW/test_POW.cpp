@@ -193,8 +193,8 @@ BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000) {
 }
 
 BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
-  ethash_hash256 hash;
-  ethash_hash256 target;
+  ethash_hash256 hash{};
+  ethash_hash256 target{};
   memcpy(hash.bytes, "11111111111111111111111111111111", 32);
   memcpy(target.bytes, "22222222222222222222222222222222", 32);
   BOOST_REQUIRE_MESSAGE(

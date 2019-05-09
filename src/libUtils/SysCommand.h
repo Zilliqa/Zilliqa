@@ -110,7 +110,7 @@ class SysCommand {
   static bool ExecuteCmdWithOutput(std::string cmd, std::string& output) {
     LOG_MARKER();
 
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer{};
 
     signal(SIGCHLD, SIG_IGN);
 
@@ -136,7 +136,7 @@ class SysCommand {
                                       int& pid) {
     LOG_MARKER();
 
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer{};
 
     signal(SIGCHLD, SIG_IGN);
 

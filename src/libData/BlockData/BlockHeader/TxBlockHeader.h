@@ -28,15 +28,15 @@
 
 /// Stores information on the header part of the Tx block.
 class TxBlockHeader : public BlockHeaderBase {
-  uint64_t m_gasLimit;
-  uint64_t m_gasUsed;
+  uint64_t m_gasLimit{};
+  uint64_t m_gasUsed{};
   uint128_t m_rewards;
-  uint64_t m_blockNum;  // Block index, starting from 0 in the genesis block
+  uint64_t m_blockNum{};  // Block index, starting from 0 in the genesis block
   TxBlockHashSet m_hashset;
-  uint32_t m_numTxs;     // Total number of txs included in the block
+  uint32_t m_numTxs{};   // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
-      m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
+      m_dsBlockNum{};  // DS Block index at the time this Tx Block was proposed
 
  public:
   /// Default constructor.

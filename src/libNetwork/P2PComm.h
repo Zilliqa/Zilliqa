@@ -48,7 +48,7 @@ class SendJob {
 
  public:
   Peer m_selfPeer;
-  unsigned char m_startbyte;
+  unsigned char m_startbyte{};
   bytes m_message;
   bytes m_hash;
 

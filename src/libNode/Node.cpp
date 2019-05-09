@@ -475,7 +475,7 @@ bool Node::ValidateDB() {
     return false;
   }
 
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
@@ -808,7 +808,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml(IP_MAPPING_FILE_NAME, pt);
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
 
   for (const ptree::value_type& v : pt.get_child("mapping")) {
     if (v.first == "peer") {

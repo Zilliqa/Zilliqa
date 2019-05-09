@@ -172,7 +172,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
     const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
-    array<unsigned char, BLOCK_HASH_SIZE> sortHash;
+    array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
   }
@@ -234,7 +234,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     sha2.Update(serializedPubK);
     bytes PubKeyHash;
     PubKeyHash = sha2.Finalize();
-    array<unsigned char, 32> PubKeyHashArr;
+    array<unsigned char, 32> PubKeyHashArr{};
 
     // Injecting into sorted PoWs
     copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
@@ -436,7 +436,7 @@ bool DirectoryService::VerifyPoWOrdering(
             return item.second == toFind;
           });
 
-      std::array<unsigned char, 32> result;
+      std::array<unsigned char, 32> result{};
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());

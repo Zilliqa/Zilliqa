@@ -31,7 +31,7 @@
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;
   TxnHash m_txnRootHash;
-  uint32_t m_shardId;
+  uint32_t m_shardId{};
 
   bool operator==(const MicroBlockInfo& mbInfo) const {
     return std::tie(m_microBlockHash, m_txnRootHash, m_shardId) ==

@@ -107,7 +107,7 @@ class ConsensusCommon {
   };
 
   /// State of the active consensus session.
-  std::atomic<State> m_state;
+  std::atomic<State> m_state{};
 
   /// State of the active consensus session.
   ConsensusErrorCode m_consensusErrorCode;

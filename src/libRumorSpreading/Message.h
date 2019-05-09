@@ -45,8 +45,8 @@ class Message {
  private:
   // MEMBERS
   Type m_type;
-  int m_rumorId;
-  int m_rounds;
+  int m_rumorId{};
+  int m_rounds{};
 
  public:
   // CONSTRUCTORS

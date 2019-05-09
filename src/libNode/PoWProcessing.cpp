@@ -459,8 +459,8 @@ bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
   uint8_t difficulty = POW_DIFFICULTY;
   uint8_t dsDifficulty = DS_POW_DIFFICULTY;
 
-  array<unsigned char, 32> rand1;
-  array<unsigned char, 32> rand2;
+  array<unsigned char, 32> rand1{};
+  array<unsigned char, 32> rand2{};
 
   if (!ReadVariablesFromStartPoWMessage(
           message, offset, block_num, dsDifficulty, difficulty, rand1, rand2)) {

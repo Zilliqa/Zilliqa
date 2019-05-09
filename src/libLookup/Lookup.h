@@ -87,10 +87,10 @@ class Lookup : public Executable {
   std::vector<Peer> m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
 
-  std::atomic<bool> m_startedTxnBatchThread;
+  std::atomic<bool> m_startedTxnBatchThread{};
 
   // Start PoW variables
-  std::atomic<bool> m_receivedRaiseStartPoW;
+  std::atomic<bool> m_receivedRaiseStartPoW{};
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
@@ -98,7 +98,7 @@ class Lookup : public Executable {
   StateHash m_prevStateRootHashTemp;
 
   /// To indicate which type of synchronization is using
-  std::atomic<SyncType> m_syncType;  // = SyncType::NO_SYNC;
+  std::atomic<SyncType> m_syncType{};  // = SyncType::NO_SYNC;
 
   void SetAboveLayer();
 

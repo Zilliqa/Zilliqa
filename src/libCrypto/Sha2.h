@@ -33,7 +33,7 @@ class HashType {
 template <unsigned int SIZE>
 class SHA2 {
   static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
-  SHA256_CTX m_context;
+  SHA256_CTX m_context{};
   bytes output;
 
  public:

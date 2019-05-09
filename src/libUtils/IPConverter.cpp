@@ -59,7 +59,7 @@ bool GetIPPortFromSocket(string socket, string& ip, int& port) {
 
 const std::string ToStrFromNumericalIP(const uint128_t& ip) {
   char str[INET_ADDRSTRLEN];
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
   serv_addr.sin_addr.s_addr = ip.convert_to<unsigned long>();
   inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
   return std::string(str);

@@ -950,8 +950,8 @@ void AnnouncementShardingStructureToProtobuf(
 bool ProtobufToShardingStructureAnnouncement(
     const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
     DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
-  std::array<unsigned char, 32> result;
-  std::array<unsigned char, 32> mixhash;
+  std::array<unsigned char, 32> result{};
+  std::array<unsigned char, 32> mixhash{};
   uint128_t gasPrice;
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
@@ -4026,8 +4026,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
   dsWinnerPoWs.clear();
   for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
     PubKey key;
-    std::array<unsigned char, 32> result;
-    std::array<unsigned char, 32> mixhash;
+    std::array<unsigned char, 32> result{};
+    std::array<unsigned char, 32> mixhash{};
     uint128_t gasPrice;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSWinnerPoW.pubkey(), key);

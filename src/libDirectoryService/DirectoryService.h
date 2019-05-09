@@ -164,7 +164,7 @@ class DirectoryService : public Executable {
   std::condition_variable cv_MissingMicroBlock;
 
   // View Change
-  std::atomic<uint16_t> m_candidateLeaderIndex;
+  std::atomic<uint16_t> m_candidateLeaderIndex{};
   VectorOfNode m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
@@ -192,9 +192,9 @@ class DirectoryService : public Executable {
   std::condition_variable cv_processConsensusMessage;
   std::mutex m_mutexProcessConsensusMessage;
 
-  std::atomic<uint16_t> m_consensusLeaderID;
+  std::atomic<uint16_t> m_consensusLeaderID{};
   /// The ID number of this Zilliqa instance for use with consensus operations.
-  std::atomic<uint16_t> m_consensusMyID;
+  std::atomic<uint16_t> m_consensusMyID{};
 
   std::mutex m_mutexRunConsensusOnFinalBlock;
 
@@ -463,7 +463,7 @@ class DirectoryService : public Executable {
 
   /// The current role of this Zilliqa instance within the directory service
   /// committee.
-  std::atomic<Mode> m_mode;
+  std::atomic<Mode> m_mode{};
 
   // Sharding committee members
   std::mutex mutable m_mutexShards;
@@ -474,13 +474,13 @@ class DirectoryService : public Executable {
   std::map<PubKey, uint16_t> m_mapNodeReputation;
 
   /// The current internal state of this DirectoryService instance.
-  std::atomic<DirState> m_state;
+  std::atomic<DirState> m_state{};
 
   /// The state (before view change) of this DirectoryService instance.
-  std::atomic<DirState> m_viewChangestate;
+  std::atomic<DirState> m_viewChangestate{};
 
   /// The counter of viewchange happened during current epoch
-  std::atomic<uint32_t> m_viewChangeCounter;
+  std::atomic<uint32_t> m_viewChangeCounter{};
 
   /// The epoch number when DS tries doing Rejoin
   uint64_t m_latestActiveDSBlockNum = 0;
@@ -490,11 +490,11 @@ class DirectoryService : public Executable {
   bytes m_stateDeltaFromShards;
 
   /// Whether ds started microblock consensus
-  std::atomic<bool> m_stopRecvNewMBSubmission;
+  std::atomic<bool> m_stopRecvNewMBSubmission{};
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
-  std::atomic<bool> m_startedRunFinalblockConsensus;
+  std::atomic<bool> m_startedRunFinalblockConsensus{};
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
@@ -525,7 +525,7 @@ class DirectoryService : public Executable {
   // GetShards
   uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard
-  std::atomic<bool> m_forceMulticast;
+  std::atomic<bool> m_forceMulticast{};
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
