@@ -55,7 +55,7 @@ bool ContractStorage::DeleteContractCode(const dev::h160& address) {
 
 Index GetIndex(const dev::h160& address, const string& key,
                unsigned int counter) {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(address.asBytes());
   sha2.Update(DataConversion::StringToCharArray(key));
   if (counter != 0) {
@@ -461,7 +461,7 @@ dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address,
 
   // iterate the raw protobuf string and hash
   vector<bytes> rawStates = GetContractStatesData(address, temp);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   for (const auto& rawState : rawStates) {
     sha2.Update(rawState);
   }

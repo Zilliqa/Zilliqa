@@ -104,7 +104,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   lock_guard<mutex> g(m_mutexGasPrice);
 
-  ethash_mining_result winning_result;
+  EthashMiningResult winning_result;
 
   uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
   auto headerHash = POW::GenHeaderHash(
@@ -236,7 +236,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       powTimeWindow -= shardPoWTime;
 
       if (powTimeWindow > 1) {
-        ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
+        EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
             block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
             FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
 

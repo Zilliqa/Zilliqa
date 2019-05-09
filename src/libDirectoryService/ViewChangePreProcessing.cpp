@@ -470,7 +470,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
   // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
   // of ds committee
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
 
   uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
   BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);

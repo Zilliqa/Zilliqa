@@ -42,7 +42,7 @@ using bytes = std::vector<uint8_t>;
 #define SIGNATURE_RESPONSE_SIZE 32
 static const uint8_t THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE = 0x11;
 
-struct Signature_l {
+struct SignatureL {
   std::shared_ptr<BIGNUM> m_r;
   std::shared_ptr<BIGNUM> m_s;
 };
@@ -122,8 +122,9 @@ void StringToBytes(const std::string& in, bytes& out) {
   boost::algorithm::unhex(in.begin(), in.end(), back_inserter(out));
 }
 
-Signature_l DeserializeSignature(const std::string& sig_s) {
-  Signature_l sig;
+
+SignatureL DeserializeSignature(const std::string sig_s) {
+  SignatureL sig;
   bytes sig_b;
   StringToBytes(sig_s, sig_b);
 
@@ -191,7 +192,7 @@ std::shared_ptr<EC_POINT> AggregatePubKeys(
   return aggregatedPubkey;
 }
 
-bool verifySig(const bytes& message, const Signature_l& toverify,
+bool verifySig(const bytes& message, const SignatureL& toverify,
                const EC_POINT* pubkey, const Curve& curve) {
   // Main verification procedure
 
@@ -373,7 +374,7 @@ int main(int argc, char** argv) {
   try {
     std::shared_ptr<EC_POINT> aggregated_pk = AggregatePubKeys(pubKeys, curve);
 
-    Signature_l sig = DeserializeSignature(signature);
+    SignatureL sig = DeserializeSignature(signature);
 
     if (verifySig(msg, sig, aggregated_pk.get(), curve))
       return 0;

@@ -62,7 +62,7 @@ std::mutex P2PComm::m_mutexPeerConnectionCount;
 std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
 
 /// Comparison operator for ordering the list of message hashes.
-struct hash_compare {
+struct HashCompare {
   bool operator()(const bytes& l, const bytes& r) {
     return equal(l.begin(), l.end(), r.begin(), r.end());
   }
@@ -457,7 +457,7 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
         (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      SHA2<HashType::HASH_VARIANT_256> sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
       bytes this_msg_hash = sha256.Finalize();
@@ -924,7 +924,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
     return;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);
 
   // Make job
@@ -954,7 +954,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
     return;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);
 
   // Make job

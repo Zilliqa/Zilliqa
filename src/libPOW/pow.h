@@ -38,7 +38,7 @@
 #include "libUtils/Logger.h"
 
 /// Stores the result of PoW mining.
-typedef struct ethash_mining_result {
+typedef struct EthashMiningResult {
   std::string result;
   std::string mix_hash;
   uint64_t winning_nonce;

@@ -222,7 +222,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
     return;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bytes serializedPubK;
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)

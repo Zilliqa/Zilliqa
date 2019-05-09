@@ -70,7 +70,7 @@ void Mediator::UpdateDSBlockRand(bool isGenesis) {
     copy(rand1.begin(), rand1.end(), m_dsBlockRand.begin());
   } else {
     DSBlock lastBlock = m_dsBlockChain.GetLastBlock();
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     bytes vec;
     lastBlock.GetHeader().Serialize(vec, 0);
     sha2.Update(vec);
@@ -90,7 +90,7 @@ void Mediator::UpdateTxBlockRand(bool isGenesis) {
     copy(rand2.begin(), rand2.end(), m_txBlockRand.begin());
   } else {
     TxBlock lastBlock = m_txBlockChain.GetLastBlock();
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     bytes vec;
     lastBlock.GetHeader().Serialize(vec, 0);
     sha2.Update(vec);

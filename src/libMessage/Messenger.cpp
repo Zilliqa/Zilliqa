@@ -1083,7 +1083,7 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& hash = sha2.Finalize();
 
@@ -2209,7 +2209,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2235,7 +2235,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2263,7 +2263,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2672,7 +2672,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
     return true;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 

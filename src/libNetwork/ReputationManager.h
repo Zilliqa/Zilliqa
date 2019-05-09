@@ -31,7 +31,7 @@ class ReputationManager {
   // Ref:
   // https://stackoverflow.com/questions/32082786/why-i-cannot-use-neither-stdunordered-map-nor-boostunordered-map-with-boost
   template <typename T>
-  struct hash_str {
+  struct HashStr {
     size_t operator()(const T& t) const {
       return std::hash<std::string>()(t.str());
     }
@@ -71,7 +71,7 @@ class ReputationManager {
   std::mutex m_mutexReputations;
 
  private:
-  std::unordered_map<uint128_t, int32_t, hash_str<uint128_t>> m_Reputations;
+  std::unordered_map<uint128_t, int32_t, HashStr<uint128_t>> m_Reputations;
 
   void AddNodeIfNotKnownInternal(const uint128_t& IPAddress);
   void SetReputation(const uint128_t& IPAddress, const int32_t ReputationScore);

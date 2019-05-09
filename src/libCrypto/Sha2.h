@@ -23,7 +23,7 @@
 #include "libUtils/Logger.h"
 
 /// List of supported hash variants.
-class HASH_TYPE {
+class HashType {
  public:
   static const unsigned int HASH_VARIANT_256 = 256;
   static const unsigned int HASH_VARIANT_512 = 512;
@@ -39,7 +39,7 @@ class SHA2 {
  public:
   /// Constructor.
   SHA2() : output(HASH_OUTPUT_SIZE) {
-    if (SIZE != HASH_TYPE::HASH_VARIANT_256) {
+    if (SIZE != HashType::HASH_VARIANT_256) {
       LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
     }

@@ -42,12 +42,12 @@ typedef void (*handler_func)(const char*, const char*, vector<string>,
 typedef void (*handler_func_remote)(const char*, const char*, vector<string>,
                                     const uint128_t, const uint32_t);
 
-struct message_handler {
+struct MessageHandler {
   const char* ins;
   handler_func func;
 };
 
-struct message_handler_2 {
+struct MessageHandler2 {
   const char* ins;
   handler_func_remote func;
 };
@@ -103,9 +103,9 @@ int main(int argc, const char* argv[]) {
     handler_func cmd_f = NULL;
     handler_func_remote cmd_f_remote = NULL;
     vector<string> cmd_v;
-    const message_handler message_handlers[] = {{"cmd", &process_cmd}};
+    const MessageHandler message_handlers[] = {{"cmd", &process_cmd}};
 
-    const message_handler_2 message_handlers_2[] = {
+    const MessageHandler2 message_handlers_2[] = {
         {"remotecmd", &process_remote_cmd}};
 
     for (auto message_handler : message_handlers) {
