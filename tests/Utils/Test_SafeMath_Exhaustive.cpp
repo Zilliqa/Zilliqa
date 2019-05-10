@@ -140,4 +140,4 @@ BOOST_AUTO_TEST_CASE(test_int8_pow) {
       OperatorType::EXP);
 }
 
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_SUITE_END()
