@@ -49,7 +49,7 @@ for subdir, dirs, files in os.walk("./src"):
 							line = "#ifndef "+guard_body.upper()+"\n"
 						if line.find('#define') != -1 and line.rstrip().endswith('_'):
 							line = "#define "+guard_body.upper()+'\n'
-						if line.find("#endif  //") != -1:
+						if line.find("#endif  //") != -1 and line.rstrip().endswith('_'):
 							line = "#endif  // "+guard_body.upper()+'\n'
 						f.write(line)
 
