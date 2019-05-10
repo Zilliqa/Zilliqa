@@ -259,6 +259,10 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                                       << strerror(valopt));
             connectStat = false;
           }
+          else
+          {
+            LOG_GENERAL(DEBUG, "Socket selected for write successfully");
+          }
         } else {
           LOG_GENERAL(WARNING, "Timeout connecting!");
           connectStat = false;
