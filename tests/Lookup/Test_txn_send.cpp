@@ -28,9 +28,10 @@
 using namespace std;
 
 bool GenTxns(uint txnSize, map<uint32_t, vector<Transaction>>& mp,
-             uint numShards) {
+             uint numShards, const Transaction::ContractType& type) {
+  mp.clear();
   for (uint i = 0; i < txnSize; i++) {
-    const auto tx = TestUtils::GenerateRandomTransaction(1, 1);
+    const auto tx = TestUtils::GenerateRandomTransaction(1, 1, type);
     const auto& fromAddr = tx.GetSenderAddr();
     auto index = Transaction::GetShardIndex(fromAddr, numShards);
     mp[index].emplace_back(tx);
@@ -39,48 +40,64 @@ bool GenTxns(uint txnSize, map<uint32_t, vector<Transaction>>& mp,
   return true;
 }
 
+void test_transaction(const map<uint32_t, vector<Transaction>>& mp,
+                      const unsigned int oldNumShard,
+                      const unsigned newShardNum, Lookup& lk) {
+  for (const auto& shard : mp) {
+    for (const auto& tx : shard.second) {
+      lk.AddToTxnShardMap(tx, shard.first);
+    }
+  }
+  lk.RectifyTxnShardMap(oldNumShard, newShardNum);
+
+  for (uint k = 0; k <= newShardNum; k++) {
+    const auto txns = lk.GetTxnFromShardMap(k);
+    for (const auto& tx : txns) {
+      const auto& fromShard = tx.GetShardIndex(newShardNum);
+      auto index = fromShard;
+      if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
+        const auto& toShard =
+            Transaction::GetShardIndex(tx.GetToAddr(), newShardNum);
+        if (toShard != fromShard) {
+          LOG_GENERAL(INFO, "Sent to ds");
+          index = newShardNum;
+        }
+      }
+
+      BOOST_CHECK_MESSAGE(k == index, "The index in map "
+                                          << k << " and actual index " << index
+                                          << " does not match");
+    }
+    lk.DeleteTxnShardMap(k);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE(test_txn)
 
-BOOST_AUTO_TEST_CASE(rectify_perf) {
+BOOST_AUTO_TEST_CASE(rectify_txns_perf) {
   INIT_STDOUT_LOGGER();
+
+  const auto txnSize{100};
+  pair<uint, uint> rangeOfShards{2, 5};
+  const auto txn_types = {Transaction::NON_CONTRACT, Transaction::CONTRACT_CALL,
+                          Transaction::CONTRACT_CREATION};
 
   PairOfKey key;
   Peer peer;
   Mediator md(key, peer);
   Node nd(md, SyncType::NO_SYNC, false);
   Lookup lk(md, SyncType::NO_SYNC);
-
   md.RegisterColleagues(nullptr, &nd, &lk, nullptr);
 
-  const auto txnSize = 100;
+  map<uint32_t, vector<Transaction>> txnShardmap;
 
-  map<uint32_t, vector<Transaction>> mp;
-
-  pair<uint, uint> rangeOfShards = make_pair(2, 3);
-
-  for (uint i = rangeOfShards.first; i <= rangeOfShards.second; i++) {
-    for (uint j = rangeOfShards.first; j <= rangeOfShards.second; j++) {
-      mp.clear();
-      if (!GenTxns(txnSize, mp, i)) {
-        LOG_GENERAL(WARNING, "Failed to fetch txns");
-        return;
-      }
-      for (const auto& shard : mp) {
-        for (const auto& tx : shard.second) {
-          lk.AddToTxnShardMap(tx, shard.first);
-        }
-      }
-      lk.RectifyTxnShardMap(i, j);
-
-      for (uint k = 0; k <= j; k++) {
-        const auto txns = lk.GetTxnFromShardMap(k);
-        for (const auto& tx : txns) {
-          auto index = tx.GetShardIndex(j);
-          BOOST_CHECK_MESSAGE(k == index, "The index in map "
-                                              << k << " and actual index "
-                                              << index << " does not match");
-        }
-        lk.DeleteTxnShardMap(k);
+  for (auto const& type : txn_types) {
+    LOG_GENERAL(INFO, "Type: " << type);
+    for (unsigned int i = rangeOfShards.first; i <= rangeOfShards.second; i++) {
+      for (unsigned int j = rangeOfShards.first; j <= rangeOfShards.second;
+           j++) {
+        GenTxns(txnSize, txnShardmap, i, type);
+        test_transaction(txnShardmap, i, j, lk);
       }
     }
   }

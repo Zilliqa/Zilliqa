@@ -69,7 +69,8 @@ Signature GetSignature(const bytes&, const PairOfKey&);
 Signature GenerateRandomSignature();
 
 Transaction GenerateRandomTransaction(const unsigned int version,
-                                      const uint64_t& nonce);
+                                      const uint64_t& nonce,
+                                      const Transaction::ContractType& type);
 
 DequeOfNode GenerateRandomDSCommittee(uint32_t);
 
