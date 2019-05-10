@@ -25,7 +25,7 @@ class SafeMath {
   static bool sub(const T& a, const T& b, T& result);
   static bool mul(const T& a, const T& b, T& result);
   static bool div(const T& a, const T& b, T& result);
-  static bool power(const T& base, const T& exponent, T& result);
+  static bool power_core(const T& base, const T& exponent, T& result);
   static T power(const T& base, const T& exponent, bool isCritical = false);
 
  private:

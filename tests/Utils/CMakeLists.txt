@@ -84,3 +84,8 @@ add_executable(Test_DataConversion Test_DataConversion.cpp)
 target_include_directories(Test_DataConversion PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries (Test_DataConversion PUBLIC Utils)
 add_test(NAME Test_DataConversion COMMAND Test_DataConversion)
+
+add_executable(Test_SafeMath_Exhaustive Test_SafeMath_Exhaustive.cpp)
+target_include_directories(Test_SafeMath_Exhaustive PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_SafeMath_Exhaustive PUBLIC Utils)
+add_test(NAME Test_SafeMath_Exhaustive COMMAND Test_SafeMath_Exhaustive)
