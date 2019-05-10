@@ -187,8 +187,6 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
 
   try {
     long arg;
-    // fd_set myset;
-    // struct timeval timeout;
     int valopt;
     socklen_t lon;
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -227,24 +225,30 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
                           sizeof(serv_addr))) < 0) {
       if (errno != EINPROGRESS) {
-        LOG_GENERAL(WARNING, "Error connecting!");
+        LOG_GENERAL(WARNING, "Error connecting (status "
+                                 << status << "): error -> " << errno << " - "
+                                 << strerror(errno));
         connectStat = false;
       } else {
-        /*timeout.tv_sec = CONNECTION_TIMEOUT_IN_SECONDS;
-        timeout.tv_usec = 0;
-        FD_ZERO(&myset);
-        FD_SET(cli_sock, &myset);
-        status = select(cli_sock + 1, NULL, &myset, NULL, &timeout);*/
-
         struct pollfd pfd_write;
         pfd_write.fd = cli_sock;
         pfd_write.events = POLLERR | POLLOUT;
         pfd_write.revents = 0;
 
+        /**** poll ****
+        1. On success, Returns a positive number is returned; this is the number
+        of structures which have nonzero revents fields (in other words, those
+        descriptors with events or errors reported).
+        2. A value of 0 indicates that the call timed out and no file
+        descriptors were ready.
+        3. On error, status -1 is returned, and errno is set appropriately.
+        */
         status = poll(&pfd_write, 1, CONNECTION_TIMEOUT_IN_SECONDS * 1000);
 
-        if (status < 0 && errno != EINTR) {
-          LOG_GENERAL(WARNING, "Error connecting!");
+        if (status < 0) {
+          LOG_GENERAL(WARNING, "Error connecting (status "
+                                   << status << "): error -> " << errno << " - "
+                                   << strerror(errno));
           connectStat = false;
         } else if (status > 0) {
           // Socket selected for write
@@ -255,16 +259,17 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
             connectStat = false;
           }  // Check the value returned...
           else if (valopt) {
-            LOG_GENERAL(WARNING, "Error connecting: " << valopt << " - "
-                                                      << strerror(valopt));
+            LOG_GENERAL(WARNING, "Error connecting (status "
+                                     << status << "): error -> " << valopt
+                                     << " - " << strerror(valopt));
             connectStat = false;
-          }
-          else
-          {
+          } else {
             LOG_GENERAL(DEBUG, "Socket selected for write successfully");
           }
         } else {
-          LOG_GENERAL(WARNING, "Timeout connecting!");
+          LOG_GENERAL(WARNING, "Timeout connecting (status "
+                                   << status << "): error -> " << errno << " - "
+                                   << strerror(errno));
           connectStat = false;
         }
       }
