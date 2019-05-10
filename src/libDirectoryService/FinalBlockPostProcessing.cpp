@@ -190,10 +190,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       } else {
-        if (!BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::EPOCHFIN, DataConversion::StringToCharArray(to_string(
-                                        m_mediator.m_currentEpochNum)))) {
-          LOG_GENERAL(WARNING, "BlockStorage::PutMetadata (EPOCHFIN) failed "
+        if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                m_mediator.m_currentEpochNum)) {
+          LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
                                    << m_mediator.m_currentEpochNum);
           return;
         }
@@ -214,6 +213,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                  CoinbaseReward::FINALBLOCK_REWARD,
                  m_mediator.m_currentEpochNum);
     m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
+
+    if (!BlockStorage::GetBlockStorage().PutEpochFin(
+            m_mediator.m_currentEpochNum)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                               << m_mediator.m_currentEpochNum);
+      return;
+    }
   }
 
   m_mediator.UpdateDSBlockRand();

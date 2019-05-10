@@ -718,9 +718,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       return false;
     }
     if (!LOOKUP_NODE_MODE) {
-      BlockStorage::GetBlockStorage().PutMetadata(
-          MetaType::EPOCHFIN, DataConversion::StringToCharArray(
-                                  to_string(m_mediator.m_currentEpochNum)));
+      if (!BlockStorage::GetBlockStorage().PutEpochFin(
+              m_mediator.m_currentEpochNum)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                 << m_mediator.m_currentEpochNum);
+        return false;
+      }
     }
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
@@ -749,11 +752,9 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         // return false;
       } else {
         if (!LOOKUP_NODE_MODE) {
-          if (!BlockStorage::GetBlockStorage().PutMetadata(
-                  MetaType::EPOCHFIN,
-                  DataConversion::StringToCharArray(
-                      to_string(m_mediator.m_currentEpochNum)))) {
-            LOG_GENERAL(WARNING, "BlockStorage::PutMetadata (EPOCHFIN) failed "
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  m_mediator.m_currentEpochNum)) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
                                      << m_mediator.m_currentEpochNum);
             return;
           }
@@ -764,13 +765,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                   m_mediator.m_txBlockChain.GetLastBlock()
                       .GetHeader()
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
-            if (!BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::EPOCHFIN,
-                    DataConversion::StringToCharArray(
-                        to_string(m_mediator.m_currentEpochNum)))) {
-              LOG_GENERAL(WARNING,
-                          "BlockStorage::PutMetadata (EPOCHFIN) failed "
-                              << m_mediator.m_currentEpochNum);
+            if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                    m_mediator.m_currentEpochNum)) {
+              LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                       << m_mediator.m_currentEpochNum);
               return;
             }
           }
@@ -1060,25 +1058,6 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
           entry.m_microBlock.GetHeader().GetEpochNum());
 
-      // bytes latestEpochFinBytes;
-      // uint64_t latestEpochFin = 0;
-      // if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
-      // latestEpochFinBytes)) {
-      //   try {
-      //     latestEpochFin =
-      //     std::stoull(DataConversion::CharArrayToString(latestEpochFinBytes));
-      //   } catch (...) {
-      //     LOG_GENERAL(WARNING, "EPOCHFIN cannot be parsed as uint64_t " <<
-      //     DataConversion::CharArrayToString(latestEpochFinBytes)); return
-      //     false;
-      //   }
-      // } else {
-      //   if (m_mediator.m_currentEpochNum != 2) {
-      //     LOG_GENERAL(WARNING, "Cannot get EPOCHFIN from DB");
-      //     return false;
-      //   }
-      // }
-
       if (entry.m_microBlock.GetHeader().GetEpochNum() ==
           m_mediator.m_currentEpochNum) {
         if (m_isVacuousEpochBuffer) {
@@ -1087,17 +1066,27 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
               m_mediator.m_txBlockChain.GetLastBlock()
                   .GetHeader()
                   .GetStateRootHash()) {
-            BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::EPOCHFIN,
-                DataConversion::StringToCharArray(
-                    to_string(entry.m_microBlock.GetHeader().GetEpochNum())));
-            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+            if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                    entry.m_microBlock.GetHeader().GetEpochNum())) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::PutEpochFin failed "
+                              << entry.m_microBlock.GetHeader().GetEpochNum());
+              return false;
+            }
+            if (!BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP)) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::ResetDB (TX_BODY_TMP) failed");
+            }
           }
         } else {
-          BlockStorage::GetBlockStorage().PutMetadata(
-              MetaType::EPOCHFIN,
-              DataConversion::StringToCharArray(
-                  to_string(entry.m_microBlock.GetHeader().GetEpochNum())));
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  entry.m_microBlock.GetHeader().GetEpochNum())) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::PutEpochFin failed "
+                            << entry.m_microBlock.GetHeader().GetEpochNum());
+            return false;
+          }
         }
       }
     }

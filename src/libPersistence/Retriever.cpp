@@ -236,19 +236,9 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   /// Check whether the termination of last running happens before the last
   /// DSEpoch properly ended.
-  bytes epochFinBytes;
-  if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
-                                                   epochFinBytes)) {
-    LOG_GENERAL(WARNING, "BlockStorage::GetMetadata (EPOCHFIN) failed");
-    return false;
-  }
   uint64_t epochFinNum = 0;
-  try {
-    epochFinNum = std::stoull(DataConversion::CharArrayToString(epochFinBytes));
-  } catch (...) {
-    LOG_GENERAL(WARNING,
-                "EPOCHFIN cannot be parsed as uint64_t "
-                    << DataConversion::CharArrayToString(epochFinBytes));
+  if (!BlockStorage::GetBlockStorage().GetEpochFin(epochFinNum)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetEpochFin failed");
     return false;
   }
 

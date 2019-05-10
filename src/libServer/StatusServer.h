@@ -42,10 +42,10 @@ class StatusServer : public Server,
                                                     Json::Value& response) {
     response = this->RemoveFromBlacklistExclusion(request[0u].asString());
   }
-  inline virtual void GetLatestEpochStatesUpdatedI(const Json::Value& request,
-                                                   Json::Value& response) {
+  inline virtual void GetEpochFinI(const Json::Value& request,
+                                   Json::Value& response) {
     (void)request;
-    response = this->GetLatestEpochStatesUpdated();
+    response = this->GetEpochFin();
   }
   inline virtual void GetDSCommitteeI(const Json::Value& request,
                                       Json::Value& response) {
@@ -56,7 +56,7 @@ class StatusServer : public Server,
   bool AddToBlacklistExclusion(const std::string& ipAddr);
   bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
   std::string GetNodeState();
-  std::string GetLatestEpochStatesUpdated();
+  std::string GetEpochFin();
   Json::Value GetDSCommittee();
 };
 

@@ -65,10 +65,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
-  this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
-                                            jsonrpc::PARAMS_BY_POSITION,
-                                            jsonrpc::JSON_STRING, NULL),
-                         &StatusServer::GetLatestEpochStatesUpdatedI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetEpochFin", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetEpochFinI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
@@ -79,10 +79,10 @@ StatusServer::StatusServer(Mediator& mediator,
       &Server::GetPrevDifficultyI);
 }
 
-string StatusServer::GetLatestEpochStatesUpdated() {
+string StatusServer::GetEpochFin() {
   LOG_MARKER();
   uint64_t epochNum;
-  if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(epochNum)) {
+  if (!BlockStorage::GetBlockStorage().GetEpochFin(epochNum)) {
     return "";
   }
   return to_string(epochNum);

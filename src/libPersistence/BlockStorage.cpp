@@ -634,12 +634,16 @@ bool BlockStorage::PutStateRoot(const bytes& data) {
   return (ret == 0);
 }
 
-bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
+bool BlockStorage::PutEpochFin(const uint64_t& epochNum) {
   LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
-  int ret =
-      m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
-  return (ret == 0);
+  // unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
+  // int ret =
+  //     m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED,
+  //     to_string(epochNum));
+  // return (ret == 0);
+  return BlockStorage::GetBlockStorage().PutMetadata(
+      MetaType::EPOCHFIN,
+      DataConversion::StringToCharArray(to_string(epochNum)));
 }
 
 bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
@@ -680,26 +684,25 @@ bool BlockStorage::GetStateRoot(bytes& data) {
   return true;
 }
 
-bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
+bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
   LOG_MARKER();
 
-  string epochNumStr;
-  {
-    shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
-    epochNumStr = m_stateRootDB->Lookup(LATEST_EPOCH_STATES_UPDATED);
-  }
-
-  if (epochNumStr.empty()) {
-    LOG_GENERAL(INFO, "No Latest Epoch State Updated get");
+  bytes epochFinBytes;
+  if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
+                                                  epochFinBytes)) {
+    try {
+      epochNum = std::stoull(DataConversion::CharArrayToString(epochFinBytes));
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "EPOCHFIN cannot be parsed as uint64_t "
+                      << DataConversion::CharArrayToString(epochFinBytes));
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING, "Cannot get EPOCHFIN from DB");
     return false;
   }
 
-  try {
-    epochNum = stoull(epochNumStr);
-  } catch (...) {
-    LOG_GENERAL(WARNING, "epochNumStr is not numeric");
-    return false;
-  }
   return true;
 }
 
