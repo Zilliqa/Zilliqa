@@ -236,7 +236,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
         pfd_write.revents = 0;
 
         /**** poll ****
-        1. On success, Returns a positive number is returned; this is the number
+        1. On success, Returns a positive number; this is the number
         of structures which have nonzero revents fields (in other words, those
         descriptors with events or errors reported).
         2. A value of 0 indicates that the call timed out and no file
