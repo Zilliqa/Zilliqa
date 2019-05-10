@@ -237,9 +237,24 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
   /// Check whether the termination of last running happens before the last
   /// DSEpoch properly ended.
   uint64_t epochFinNum = 0;
+  bool toDelete = false;
   if (!BlockStorage::GetBlockStorage().GetEpochFin(epochFinNum)) {
     LOG_GENERAL(WARNING, "BlockStorage::GetEpochFin failed");
-    return false;
+    // return false;
+    bytes isDSIncompleted;
+    if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                     isDSIncompleted)) {
+      LOG_GENERAL(WARNING, "No GetMetadata or failed");
+      return false;
+    }
+    if (isDSIncompleted[0] == '1') {
+      /// Removing incompleted DS for upgrading protocol
+      /// Keeping incompleted DS for node recovery
+      if (trimIncompletedBlocks) {
+        LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
+        toDelete = true;
+      }
+    }
   }
 
   if (!BlockStorage::GetBlockStorage().ResetDB(
@@ -259,8 +274,6 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
     lastDsIndex--;
   }
 
-  bool deleted = false;
-
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
        blocklinkItr++) {
@@ -277,11 +290,21 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       }
 
       if (std::get<BlockLinkIndex::DSINDEX>(blocklink) == lastDsIndex &&
-          trimIncompletedBlocks &&
-          dsblock->GetHeader().GetEpochNum() >= epochFinNum) {
-        LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
-        deleted = true;
-        break;
+          trimIncompletedBlocks) {
+        if (toDelete) {
+          LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  dsblock->GetHeader().GetEpochNum())) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                     << dsblock->GetHeader().GetEpochNum());
+            return false;
+          }
+          break;
+        } else if (dsblock->GetHeader().GetEpochNum() >= epochFinNum) {
+          LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
+          toDelete = true;
+          break;
+        }
       }
 
       m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
@@ -334,7 +357,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
   }
 
-  if (!deleted) {
+  if (!toDelete) {
     return true;
   }
 
