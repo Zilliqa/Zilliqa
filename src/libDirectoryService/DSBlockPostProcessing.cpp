@@ -42,12 +42,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::StoreDSBlockToStorage() {
+bool DirectoryService::StoreDSBlockToStorage() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StoreDSBlockToStorage not expected to "
                 "be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -65,24 +65,42 @@ void DirectoryService::StoreDSBlockToStorage() {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "We failed to add pendingdsblock to dsblockchain.");
     // throw exception();
+    return false;
   }
 
   // Store DS Block to disk
   bytes serializedDSBlock;
-  m_pendingDSBlock->Serialize(serializedDSBlock, 0);
-  BlockStorage::GetBlockStorage().PutDSBlock(
-      m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
+  if (!m_pendingDSBlock->Serialize(serializedDSBlock, 0)) {
+    LOG_GENERAL(WARNING, "DSBlock::Serialize failed");
+    return false;
+  }
+  if (!BlockStorage::GetBlockStorage().PutDSBlock(
+          m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock)) {
+    LOG_GENERAL(WARNING,
+                "BlockStorage::PutDSBlock failed " << *m_pendingDSBlock);
+    return false;
+  }
   m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
-  BlockStorage::GetBlockStorage().PutMetadata(
-      LATESTACTIVEDSBLOCKNUM,
-      DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
+  if (!BlockStorage::GetBlockStorage().PutMetadata(
+          LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(
+                                      to_string(m_latestActiveDSBlockNum)))) {
+    LOG_GENERAL(WARNING,
+                "BlockStorage::PutMetadata (LATESTACTIVEDSBLOCKNUM) failed "
+                    << m_latestActiveDSBlockNum);
+    return false;
+  }
 
   // Store to blocklink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-  m_mediator.m_blocklinkchain.AddBlockLink(
-      latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
-      m_pendingDSBlock->GetBlockHash());
+  if (!m_mediator.m_blocklinkchain.AddBlockLink(
+          latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
+          m_pendingDSBlock->GetBlockHash())) {
+    LOG_GENERAL(WARNING, "AddBlockLink failed " << *m_pendingDSBlock);
+    return false;
+  }
+
+  return true;
 }
 
 bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
@@ -98,8 +116,9 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
   if (!Messenger::SetNodeVCDSBlocksMessage(
           dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
           m_VCBlockVector, SHARDINGSTRUCTURE_VERSION, m_shards)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetNodeVCDSBlocksMessage failed.");
+    LOG_EPOCH(
+        WARNING, m_mediator.m_currentEpochNum,
+        "Messenger::SetNodeVCDSBlocksMessage failed " << *m_pendingDSBlock);
     return false;
   }
 
@@ -157,8 +176,9 @@ void DirectoryService::SendDSBlockToShardNodes(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
             *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
             m_shards)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::SetNodeVCDSBlocksMessage failed.");
+      LOG_EPOCH(
+          WARNING, m_mediator.m_currentEpochNum,
+          "Messenger::SetNodeVCDSBlocksMessage failed. " << *m_pendingDSBlock);
       continue;
     }
 
@@ -249,8 +269,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   } else {
     if (!GUARD_MODE) {
       m_consensusMyID += numOfIncomingDs;
-      m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
+      SetConsensusLeaderID(lastBlockHash % (m_mediator.m_DSCommittee->size()));
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     } else {
       // DS guards' indexes do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
@@ -260,12 +280,12 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
         LOG_GENERAL(INFO, "m_consensusMyID     = " << m_consensusMyID);
       }
       // Only DS guard can be ds leader
-      m_consensusLeaderID =
-          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-      LOG_GENERAL(INFO, "m_consensusLeaderID = " << m_consensusLeaderID);
+      SetConsensusLeaderID(lastBlockHash %
+                           Guard::GetInstance().GetNumOfDSGuard());
+      LOG_GENERAL(INFO, "m_consensusLeaderID = " << GetConsensusLeaderID());
     }
 
-    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
+    if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==
         m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am now DS leader for the next round");
@@ -342,7 +362,14 @@ void DirectoryService::StartFirstTxEpoch() {
     m_allPoWs.clear();
   }
 
-  Blacklist::GetInstance().Clear();
+  // blacklist pop for ds nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
+  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
@@ -377,7 +404,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
+    m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
 
     if (m_mediator.m_node->GetConsensusMyID() ==
         m_mediator.m_node->GetConsensusLeaderID()) {
@@ -475,8 +502,7 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 }
 
-void DirectoryService::ProcessDSBlockConsensusWhenDone(
-    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset) {
+void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessDSBlockConsensusWhenDone not "
@@ -520,15 +546,23 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   }
 
   // Add the DS block to the chain
-  StoreDSBlockToStorage();
+  if (!StoreDSBlockToStorage()) {
+    LOG_GENERAL(WARNING, "StoreDSBlockToStorage failed");
+    return;
+  }
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (STATE_DELTA) failed");
+    return;
+  }
 
   m_mediator.m_node->m_proposedGasPrice =
       max(m_mediator.m_node->m_proposedGasPrice,
           m_pendingDSBlock->GetHeader().GetGasPrice());
 
   m_mediator.UpdateDSBlockRand();
+
+  m_forceMulticast = false;
 
   // Now we can update the sharding structure and transaction sharing
   // assignments
@@ -541,8 +575,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   }
 
   m_mediator.m_node->m_myshardId = m_shards.size();
-  BlockStorage::GetBlockStorage().PutShardStructure(
-      m_shards, m_mediator.m_node->m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_shards, m_mediator.m_node->m_myshardId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
+    return;
+  }
 
   {
     // USe mutex during the composition and sending of vcds block message
@@ -578,7 +615,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeDSBlockMessageForSender,
+        m_consensusMyID, composeDSBlockMessageForSender, false,
         sendDSBlockToLookupNodesAndNewDSMembers, sendDSBlockToShardNodes);
   }
 
@@ -593,15 +630,16 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   UpdateDSCommiteeComposition();
   UpdateMyDSModeAndConsensusId();
 
-  if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
+  if (m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first ==
       m_mediator.m_selfKey.second) {
-    LOG_GENERAL(INFO, "New leader is at index " << m_consensusLeaderID << " "
+    LOG_GENERAL(INFO, "New leader is at index " << GetConsensusLeaderID() << " "
                                                 << m_mediator.m_selfPeer);
   } else {
     LOG_GENERAL(
-        INFO, "New leader is at index "
-                  << m_consensusLeaderID << " "
-                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+        INFO,
+        "New leader is at index "
+            << GetConsensusLeaderID() << " "
+            << m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).second);
   }
 
   LOG_GENERAL(INFO, "DS committee");
@@ -610,8 +648,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << member.second);
   }
 
-  BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
-                                                 m_consensusLeaderID);
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return;
+  }
 
   StartFirstTxEpoch();
 }
@@ -634,11 +675,14 @@ bool DirectoryService::ProcessDSBlockConsensus(
   // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
 
   uint32_t unused_consensus_id = 0;
+  bytes unused_reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, unused_consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(message, offset,
+                                            unused_consensus_id, senderPubKey,
+                                            unused_reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -712,6 +756,12 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
   lock_guard<mutex> g(m_mutexConsensus);
 
+  if (!CheckState(PROCESS_DSBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_DSBLOCKCONSENSUS state");
+    return false;
+  }
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }
@@ -721,7 +771,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
   if (state == ConsensusCommon::State::DONE) {
     m_viewChangeCounter = 0;
     cv_viewChangeDSBlock.notify_all();
-    ProcessDSBlockConsensusWhenDone(message, offset);
+    ProcessDSBlockConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "No consensus reached. Wait for view change");

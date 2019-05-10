@@ -15,4 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pkill ZilliqaDaemon_AWS
-ZilliqaDaemon_AWS
+if [ -n "$1" ] && [ "$1" = "cseed" ]
+then
+    ZilliqaDaemon_AWS --cseed
+else
+    ZilliqaDaemon_AWS
+fi

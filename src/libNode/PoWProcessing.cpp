@@ -20,11 +20,6 @@
 #include <functional>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -115,16 +110,20 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   auto headerHash = POW::GenHeaderHash(
       rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
       m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
+
+  auto startTime = std::chrono::high_resolution_clock::now();
+  int powTimeWindow = POW_WINDOW_IN_SECONDS;
+
   // Only in guard mode that shard guard can submit diffferent PoW
   if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
                         m_mediator.m_selfKey.second)) {
     winning_result = POW::GetInstance().PoWMine(
         block_num, shardGuardDiff, m_mediator.m_selfKey, headerHash,
-        FULL_DATASET_MINE, std::time(0));
+        FULL_DATASET_MINE, std::time(0), powTimeWindow);
   } else {
-    winning_result =
-        POW::GetInstance().PoWMine(block_num, difficulty, m_mediator.m_selfKey,
-                                   headerHash, FULL_DATASET_MINE, std::time(0));
+    winning_result = POW::GetInstance().PoWMine(
+        block_num, difficulty, m_mediator.m_selfKey, headerHash,
+        FULL_DATASET_MINE, std::time(0), powTimeWindow);
   }
 
   if (winning_result.success) {
@@ -230,23 +229,33 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       }
 
       LOG_GENERAL(INFO, "Mining again for DS diff");
+      auto currentTime = std::chrono::high_resolution_clock::now();
+      auto shardPoWTime = std::chrono::duration_cast<std::chrono::seconds>(
+                              currentTime - startTime)
+                              .count();
+      powTimeWindow -= shardPoWTime;
 
-      ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
-          block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
-          FULL_DATASET_MINE, winning_result.winning_nonce);
+      if (powTimeWindow > 1) {
+        ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
+            block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
+            FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
 
-      if (ds_pow_winning_result.success) {
-        LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
+        if (ds_pow_winning_result.success) {
+          LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
 
-        // Submission of PoW for ds commitee
-        if (!SendPoWResultToDSComm(
-                block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
-                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
-                lookupId, m_proposedGasPrice)) {
-          return false;
+          // Submission of PoW for ds commitee
+          if (!SendPoWResultToDSComm(
+                  block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
+                  ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+                  lookupId, m_proposedGasPrice)) {
+            return false;
+          }
+        } else {
+          LOG_GENERAL(INFO, "Failed to find soln for DS diff");
         }
       } else {
-        LOG_GENERAL(INFO, "Failed to find soln for DS diff");
+        LOG_GENERAL(INFO,
+                    "Time window for DS diff is too short, skip DS diff mine");
       }
     }
   } else {
@@ -469,6 +478,9 @@ bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
     rand2 = m_mediator.m_txBlockRand;
   }
 
+  // Add ds guard to exclude list for new node
+  Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+      *m_mediator.m_DSCommittee);
   // Start mining
   StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 

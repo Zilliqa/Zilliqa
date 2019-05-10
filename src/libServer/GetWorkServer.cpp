@@ -17,8 +17,8 @@
 
 #include <chrono>
 
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include "depends/libethash/include/ethash/ethash.hpp"
+#include "depends/safeserver/safehttpserver.h"
 
 #include "GetWorkServer.h"
 #include "common/Constants.h"
@@ -36,7 +36,7 @@ static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
 
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
-  static HttpServer httpserver(GETWORK_SERVER_PORT);
+  static SafeHttpServer httpserver(GETWORK_SERVER_PORT);
   static GetWorkServer powserver(httpserver);
   return powserver;
 }
@@ -113,26 +113,18 @@ int GetWorkServer::GetSecondsToNextPoW() {
 }
 
 // GetResult returns the Pow Result
-// if wait_ms < 0: wait until first accept result
-// if wait_ms = 0: return current result immediately
-// if wait_ms > 0: wait until timeout, return the last result
-ethash_mining_result_t GetWorkServer::GetResult(const int& wait_ms) {
-  if (wait_ms >= 0) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
-    return m_curResult;
-  }
-
-  // wait_ms < 0
-  // wait until the first accept result
-  if (!m_isMining || m_curResult.success) {
-    return m_curResult;
+ethash_mining_result_t GetWorkServer::GetResult(int waitTime) {
+  {
+    lock_guard<mutex> g(m_mutexResult);
+    if (!m_isMining || m_curResult.success) {
+      return m_curResult;
+    }
   }
 
   std::unique_lock<std::mutex> lk(m_mutexResult);
-
-  if (m_cvGotResult.wait_for(lk, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
+  if (m_cvGotResult.wait_for(lk, chrono::seconds(waitTime)) ==
       std::cv_status::timeout) {
-    LOG_GENERAL(WARNING, "GetResult Timeout...");
+    LOG_GENERAL(WARNING, "GetResult Timeout, time window " << waitTime);
   }
 
   return m_curResult;

@@ -62,13 +62,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Address m_curSenderAddr;
 
   /// the transfer amount while executing each txn
-  boost::multiprecision::uint128_t m_curAmount;
+  uint128_t m_curAmount;
 
   /// the gas limit while executing each txn
   uint64_t m_curGasLimit;
 
   /// the gas price while executing each txn
-  boost::multiprecision::uint128_t m_curGasPrice;
+  uint128_t m_curGasPrice;
 
   /// the gas price while executing each txn will be used in calculating the
   /// shard allocation of sender/recipient during chain call
@@ -109,7 +109,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
-                         TransactionReceipt& receipt, bool first = true);
+                         TransactionReceipt& receipt, bool temp,
+                         bool first = true);
   /// convert the interpreter output into parsable json object for calling
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint,
@@ -117,7 +118,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for calling and update states
   bool ParseCallContractJsonOutput(const Json::Value& _json,
                                    uint64_t& gasRemained,
-                                   TransactionReceipt& receipt, bool first);
+                                   TransactionReceipt& receipt, bool first,
+                                   bool temp);
 
   /// Utility functions
   /// get the json format file for the current blocknum
@@ -150,12 +152,12 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
   bool TransferBalanceAtomic(const Address& from, const Address& to,
-                             const boost::multiprecision::uint128_t& delta);
+                             const uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
-  void CommitTransferBalanceAtomic();
+  void CommitTransferAtomic();
   /// discard the existing transfers in m_accountStoreAtomic
-  void DiscardTransferBalanceAtomic();
+  void DiscardTransferAtomic();
 
  protected:
   AccountStoreSC();
@@ -167,7 +169,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
-                      TransactionReceipt& receipt);
+                      TransactionReceipt& receipt, bool temp = false);
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
 };

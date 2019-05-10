@@ -209,52 +209,42 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
 
   LOG_GENERAL(INFO, "Test boost_uint128_t start...");
 
-  boost::multiprecision::uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+  uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
       num2("0x0000000000000000000000000000000B"), addRes, subRes1, subRes2,
       subRes3;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::add(
-                                  num1, num2, addRes),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::add(num1, num2, addRes),
                       "Test add failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                  addRes, num1, subRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                  addRes, num2, subRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::sub(addRes, num2, subRes2),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                   0, num2, subRes3),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
 
-  num1 = boost::multiprecision::uint128_t("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x00000000000000000000000000000001");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::add(
-                                   num1, num2, addRes),
+  num1 = uint128_t("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x00000000000000000000000000000001");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::add(num1, num2, addRes),
                       "Test add overflow failed!");
 
-  num1 = boost::multiprecision::uint128_t("0x00000000000000000FFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x000000000000000000000BBBBBBBBBBB");
-  boost::multiprecision::uint128_t mulRes, divRes1, divRes2;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::mul(
-                                  num1, num2, mulRes),
+  num1 = uint128_t("0x00000000000000000FFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x000000000000000000000BBBBBBBBBBB");
+  uint128_t mulRes, divRes1, divRes2;
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::mul(num1, num2, mulRes),
                       "Test mul failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::div(
-                                  mulRes, num1, divRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::div(mulRes, num1, divRes1),
                       "Test div failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::div(
-                                  mulRes, num2, divRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint128_t>::div(mulRes, num2, divRes2),
                       "Test div failed!");
   BOOST_CHECK_MESSAGE(num1 == divRes2, "Test mul/div failed!");
   BOOST_CHECK_MESSAGE(num2 == divRes1, "Test mul/div failed!");
 
-  num1 = boost::multiprecision::uint128_t("0x000000000FFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint128_t("0x0000000000CCCCCCCCCCCCCCCCCCCCCC");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::mul(
-                                   num1, num2, mulRes),
+  num1 = uint128_t("0x000000000FFFFFFFFFFFFFFFFFFFFFFF");
+  num2 = uint128_t("0x0000000000CCCCCCCCCCCCCCCCCCCCCC");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::mul(num1, num2, mulRes),
                       "Test mul overflow failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::div(
-                                   num2, 0, divRes1),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint128_t>::div(num2, 0, divRes1),
                       "Test div error-handling failed!");
 
   LOG_GENERAL(INFO, "Test boost_uint128_t done!");
@@ -265,61 +255,51 @@ BOOST_AUTO_TEST_CASE(test_boost_uint256_t) {
 
   LOG_GENERAL(INFO, "Test boost_uint256_t start...");
 
-  boost::multiprecision::uint256_t num1(
+  uint256_t num1(
       "0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
       num2(
           "0x000000000000000000000000000000000000000000000000000000000000000"
           "B"),
       addRes, subRes1, subRes2, subRes3;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::add(
-                                  num1, num2, addRes),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::add(num1, num2, addRes),
                       "Test add failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::sub(
-                                  addRes, num1, subRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::sub(
-                                  addRes, num2, subRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::sub(addRes, num2, subRes2),
                       "Test sub failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint256_t>::sub(
-                                   0, num2, subRes3),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint256_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
 
-  num1 = boost::multiprecision::uint256_t(
+  num1 = uint256_t(
       "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint256_t(
+  num2 = uint256_t(
       "0x0000000000000000000000000000000000000000000000000000000000000001");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint256_t>::add(
-                                   num1, num2, addRes),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint256_t>::add(num1, num2, addRes),
                       "Test add overflow failed!");
 
-  num1 = boost::multiprecision::uint256_t(
+  num1 = uint256_t(
       "0x000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint256_t(
+  num2 = uint256_t(
       "0x00000000000000000000000000000000000000BBBBBBBBBBBBBBBBBBBBBBBBBB");
-  boost::multiprecision::uint256_t mulRes, divRes1, divRes2;
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::mul(
-                                  num1, num2, mulRes),
+  uint256_t mulRes, divRes1, divRes2;
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::mul(num1, num2, mulRes),
                       "Test mul failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::div(
-                                  mulRes, num1, divRes1),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::div(mulRes, num1, divRes1),
                       "Test div failed!");
-  BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::div(
-                                  mulRes, num2, divRes2),
+  BOOST_CHECK_MESSAGE(true == SafeMath<uint256_t>::div(mulRes, num2, divRes2),
                       "Test div failed!");
   BOOST_CHECK_MESSAGE(num1 == divRes2, "Test mul/div failed!");
   BOOST_CHECK_MESSAGE(num2 == divRes1, "Test mul/div failed!");
 
-  num1 = boost::multiprecision::uint256_t(
+  num1 = uint256_t(
       "0x000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-  num2 = boost::multiprecision::uint256_t(
+  num2 = uint256_t(
       "0x0000000000CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint256_t>::mul(
-                                   num1, num2, mulRes),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint256_t>::mul(num1, num2, mulRes),
                       "Test mul overflow failed!");
-  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint256_t>::div(
-                                   num2, 0, divRes1),
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint256_t>::div(num2, 0, divRes1),
                       "Test div error-handling failed!");
 
   LOG_GENERAL(INFO, "Test boost_uint256_t done!");
@@ -542,6 +522,23 @@ BOOST_AUTO_TEST_CASE(test_int8_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  int8_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false ==
+          SafeMath<int8_t>::sub(0, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false ==
+          SafeMath<int8_t>::sub(1, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true ==
+          SafeMath<int8_t>::sub(-1, std::numeric_limits<int8_t>::min(), subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int8_t>::max() == subRes);
+
   LOG_GENERAL(INFO, "Test int8_t done!");
 }
 
@@ -600,6 +597,23 @@ BOOST_AUTO_TEST_CASE(test_int16_t) {
   num2 = 2;
   BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  int16_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int16_t>::sub(0, std::numeric_limits<int16_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int16_t>::sub(1, std::numeric_limits<int16_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int16_t>::sub(-1, std::numeric_limits<int16_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int16_t>::max() == subRes);
 
   LOG_GENERAL(INFO, "Test int16_t done!");
 }
@@ -660,6 +674,23 @@ BOOST_AUTO_TEST_CASE(test_int32_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  int32_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int32_t>::sub(0, std::numeric_limits<int32_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int32_t>::sub(1, std::numeric_limits<int32_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int32_t>::sub(-1, std::numeric_limits<int32_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int32_t>::max() == subRes);
+
   LOG_GENERAL(INFO, "Test int32_t done!");
 }
 
@@ -718,6 +749,23 @@ BOOST_AUTO_TEST_CASE(test_int64_t) {
   num2 = 2;
   BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::mul(num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  int64_t subRes;
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int64_t>::sub(0, std::numeric_limits<int64_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<int64_t>::sub(1, std::numeric_limits<int64_t>::min(),
+                                      subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<int64_t>::sub(-1, std::numeric_limits<int64_t>::min(),
+                                     subRes),
+      "Test signed sub failed!");
+  BOOST_REQUIRE(std::numeric_limits<int64_t>::max() == subRes);
 
   LOG_GENERAL(INFO, "Test int64_t done!");
 }
@@ -792,6 +840,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  boost::multiprecision::int128_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int128_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int128_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int128_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int128_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int128_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
+
   LOG_GENERAL(INFO, "Test boost_int128_t done!");
 }
 
@@ -864,6 +929,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::mul(
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  boost::multiprecision::int256_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int256_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int256_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int256_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int256_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int256_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
 
   LOG_GENERAL(INFO, "Test boost_int256_t done!");
 }
@@ -938,6 +1020,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
 
+  boost::multiprecision::int512_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int512_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int512_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int512_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int512_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int512_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
+
   LOG_GENERAL(INFO, "Test boost_int512_t done!");
 }
 
@@ -1011,6 +1110,24 @@ BOOST_AUTO_TEST_CASE(test_boost_int1024_t) {
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::mul(
                                    num1, num2, mulRes6),
                       "Test mul underflow failed!");
+
+  boost::multiprecision::int1024_t subRes;
+  BOOST_CHECK_MESSAGE(
+      true == SafeMath<boost::multiprecision::int1024_t>::sub(
+                  0,
+                  std::numeric_limits<boost::multiprecision::int1024_t>::min(),
+                  subRes),
+      "Test signed sub overflow failed!");
+
+  BOOST_REQUIRE(std::numeric_limits<boost::multiprecision::int1024_t>::max() ==
+                subRes);
+
+  BOOST_CHECK_MESSAGE(
+      false == SafeMath<boost::multiprecision::int1024_t>::sub(
+                   1,
+                   std::numeric_limits<boost::multiprecision::int1024_t>::min(),
+                   subRes),
+      "Test signed sub overflow failed!");
 
   LOG_GENERAL(INFO, "Test boost_int1024_t done!");
 }

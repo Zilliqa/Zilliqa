@@ -21,11 +21,6 @@
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <vector>
 
 #include "Address.h"
 #include "common/Constants.h"
@@ -51,7 +46,7 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version;
-  boost::multiprecision::uint128_t m_balance;
+  uint128_t m_balance;
   uint64_t m_nonce;
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
@@ -59,8 +54,8 @@ class AccountBase : public SerializableDataBlock {
  public:
   AccountBase() {}
 
-  AccountBase(const boost::multiprecision::uint128_t& balance,
-              const uint64_t& nonce, const uint32_t& version);
+  AccountBase(const uint128_t& balance, const uint64_t& nonce,
+              const uint32_t& version);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -73,17 +68,17 @@ class AccountBase : public SerializableDataBlock {
   const uint32_t& GetVersion() const;
 
   /// Increases account balance by the specified delta amount.
-  bool IncreaseBalance(const boost::multiprecision::uint128_t& delta);
+  bool IncreaseBalance(const uint128_t& delta);
 
   /// Decreases account balance by the specified delta amount.
-  bool DecreaseBalance(const boost::multiprecision::uint128_t& delta);
+  bool DecreaseBalance(const uint128_t& delta);
 
   bool ChangeBalance(const boost::multiprecision::int256_t& delta);
 
-  void SetBalance(const boost::multiprecision::uint128_t& balance);
+  void SetBalance(const uint128_t& balance);
 
   /// Returns the account balance.
-  const boost::multiprecision::uint128_t& GetBalance() const;
+  const uint128_t& GetBalance() const;
 
   void SetNonce(const uint64_t& nonce);
 
@@ -136,12 +131,13 @@ class Account : public AccountBase {
   Account(const bytes& src, unsigned int offset);
 
   /// Constructor for a account.
-  Account(const boost::multiprecision::uint128_t& balance,
-          const uint64_t& nonce, const uint32_t& version = ACCOUNT_VERSION);
+  Account(const uint128_t& balance, const uint64_t& nonce,
+          const uint32_t& version = ACCOUNT_VERSION);
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
-                    const Address& addr, const uint64_t& blockNum, bool temp);
+                    const Address& addr, const uint64_t& blockNum,
+                    bool temp = false);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -169,18 +165,19 @@ class Account : public AccountBase {
                   bool temp, bool revertible = false);
 
   /// Only called during UpdateAccountsTemp
-  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries,
+                  bool temp = false);
 
   std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
 
-  Json::Value GetInitJson() const;
+  Json::Value GetInitJson(bool temp = false) const;
 
-  Json::Value GetStateJson(bool temp) const;
+  Json::Value GetStateJson(bool temp = false) const;
 
-  std::vector<dev::h256> GetStorageKeyHashes(bool temp) const;
+  std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
 
   bool GetStorageJson(
-      std::pair<Json::Value, Json::Value>& roots, bool temp,
+      std::pair<Json::Value, Json::Value>& roots, bool temp = false,
       uint32_t& scilla_version = scilla_version_place_holder) const;
 
   /// Computes an account address from a specified PubKey.

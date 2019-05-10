@@ -28,6 +28,11 @@ AccountStoreTrie<DB, MAP>::AccountStoreTrie()
 template <class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::Init() {
   AccountStoreSC<MAP>::Init();
+  InitTrie();
+}
+
+template <class DB, class MAP>
+void AccountStoreTrie<DB, MAP>::InitTrie() {
   m_state.init();
   m_prevRoot = m_state.root();
 }
@@ -35,7 +40,8 @@ void AccountStoreTrie<DB, MAP>::Init() {
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
                                           unsigned int offset) const {
-  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(dst, offset, m_state)) {
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
+          dst, offset, m_state, this->m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }

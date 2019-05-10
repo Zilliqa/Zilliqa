@@ -30,23 +30,38 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::StoreFinalBlockToDisk() {
+bool DirectoryService::StoreFinalBlockToDisk() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StoreFinalBlockToDisk not expected to "
                 "be called from LookUp node.");
-    return;
+    return true;
+  }
+
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Storing DS MicroBlock" << endl
+                                      << *(m_mediator.m_node->m_microblock));
+    bytes body;
+    m_mediator.m_node->m_microblock->Serialize(body, 0);
+    if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
+      LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+      return false;
+    }
   }
 
   // Add finalblock to txblockchain
@@ -64,14 +79,22 @@ void DirectoryService::StoreFinalBlockToDisk() {
 
   bytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(
-      m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(
+          m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock)) {
+    LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+    return false;
+  }
 
   bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-  BlockStorage::GetBlockStorage().PutStateDelta(
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-      stateDelta);
+  if (!BlockStorage::GetBlockStorage().PutStateDelta(
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          stateDelta)) {
+    LOG_GENERAL(WARNING, "Failed to put statedelta in persistence");
+    return false;
+  }
+
+  return true;
 }
 
 bool DirectoryService::ComposeFinalBlockMessageForSender(
@@ -143,7 +166,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   // StoreMicroBlocksToDisk();
-  StoreFinalBlockToDisk();
 
   auto resumeBlackList = []() mutable -> void {
     this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
@@ -152,12 +174,46 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   DetachedFunction(1, resumeBlackList);
 
+  if (!StoreFinalBlockToDisk()) {
+    LOG_GENERAL(WARNING, "StoreFinalBlockToDisk failed!");
+    return;
+  }
+
   if (isVacuousEpoch) {
-    if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
-      return;
-    }
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+    auto writeStateToDisk = [this]() -> void {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              ENABLE_REPOPULATE && (m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetBlockNum() %
+                                        REPOPULATE_STATE_PER_N_DS ==
+                                    REPOPULATE_STATE_IN_DS))) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+        return;
+      } else {
+        if (!BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::DSINCOMPLETED, {'0'})) {
+          LOG_GENERAL(WARNING,
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+          return;
+        }
+        if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
+                m_mediator.m_currentEpochNum)) {
+          LOG_GENERAL(WARNING, "BlockStorage::PutLatestEpochStatesUpdated "
+                                   << m_mediator.m_currentEpochNum
+                                   << " failed");
+          return;
+        }
+        LOG_STATE("[FLBLK][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetBlockNum() +
+                                    1
+                             << "] FINISH WRITE STATE TO DISK");
+      }
+    };
+    DetachedFunction(1, writeStateToDisk);
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
@@ -181,11 +237,17 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
   }
 
+  DequeOfShard t_shards;
+  if (m_forceMulticast && GUARD_MODE) {
+    ReloadGuardedShards(t_shards);
+  }
+
   DataSender::GetInstance().SendDataToOthers(
-      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
+      *m_finalBlock, *m_mediator.m_DSCommittee,
+      t_shards.empty() ? m_shards : t_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeFinalBlockMessageForSender);
+      composeFinalBlockMessageForSender, m_forceMulticast.load());
 
   LOG_STATE(
       "[FLBLK]["
@@ -194,24 +256,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
-    if (m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-        TxnHash()) {
-      m_mediator.m_node->CallActOnFinalblock();
-    }
-  }
-
-  if (isVacuousEpoch) {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-    }
-
-    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      UpgradeManager::GetInstance().InstallScilla();
-    }
+  if (m_mediator.m_node->m_microblock != nullptr &&
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+          TxnHash()) {
+    m_mediator.m_node->CallActOnFinalblock();
   }
 
   AccountStore::GetInstance().InitTemp();
@@ -221,6 +269,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
 
+  if (isVacuousEpoch) {
+    SetState(POW_SUBMISSION);
+  } else {
+    SetState(MICROBLOCK_SUBMISSION);
+  }
+
   auto func = [this, isVacuousEpoch]() mutable -> void {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "START OF a new EPOCH");
     if (isVacuousEpoch) {
@@ -229,7 +283,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       StartNewDSEpochConsensus();
     } else {
       m_mediator.m_node->UpdateStateForNextConsensusRound();
-      SetState(MICROBLOCK_SUBMISSION);
       m_stopRecvNewMBSubmission = false;
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
@@ -290,11 +343,13 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   }
 
   uint32_t consensus_id = 0;
+  bytes reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(
+          message, offset, consensus_id, senderPubKey, reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -322,15 +377,15 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
       return false;
     }
 
-    AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                   senderPubKey);
+    AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                   from, senderPubKey);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
 
     if (consensus_id == m_mediator.m_consensusID &&
         senderPubKey ==
-            m_mediator.m_DSCommittee->at(m_consensusLeaderID).first) {
+            m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).first) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
       if (!m_stopRecvNewMBSubmission) {
@@ -350,10 +405,10 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
                 "Buffer final block with larger consensus ID ("
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
-      AddToFinalBlockConsensusBuffer(consensus_id, message, offset, from,
-                                     senderPubKey);
+      AddToFinalBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                     from, senderPubKey);
     } else {
-      return ProcessFinalBlockConsensusCore(message, offset, from);
+      return ProcessFinalBlockConsensusCore(reserialized_message, offset, from);
     }
   }
 
@@ -454,6 +509,12 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   }
 
   lock_guard<mutex> g(m_mutexConsensus);
+
+  if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_FINALBLOCKCONSENSUS state");
+    return false;
+  }
 
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;

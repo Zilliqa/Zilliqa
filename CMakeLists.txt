@@ -22,23 +22,23 @@ link_directories(${LIBEVENT_LIBRARY_DIRS})
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
     link_directories(${MINIUPNPC_LIBRARY_DIRS})
-
     find_package(jsoncpp REQUIRED)
-    find_package(libjson-rpc-cpp REQUIRED COMPONENTS jsonrpccommon jsonrpcserver)
+    set(JSON_PREFIX,"json")
     set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
-    set(JSONRPCCPP_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcserver")
-    set(JSONRPCCPP_CLIENT_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcclient")
 else()
     pkg_check_modules(JSONCPP REQUIRED jsoncpp)
     include_directories(${JSONCPP_INCLUDE_DIRS})
     link_directories(${JSONCPP_LIBRARY_DIRS})
     set(JSONCPP_LINK_TARGETS "jsoncpp")
-    set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
-    set(JSONRPCCPP_CLIENT_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-client")
+    set(JSON_PREFIX "jsoncpp")
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
+if(NOT TARGET jsonrpc-project)
+    include(InstallJsonrpccpp)
+endif()
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
@@ -254,7 +254,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory getrewardhistory
+set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory getrewardhistory validateDB
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT

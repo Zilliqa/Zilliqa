@@ -19,10 +19,6 @@
 #define __BLOCKHEADERBASE_H__
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "common/Constants.h"
 #include "common/Serializable.h"

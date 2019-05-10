@@ -40,7 +40,7 @@ void TestRemoteMineCase_1() {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = generateRandomArray();
   std::array<unsigned char, 32> rand2 = generateRandomArray();
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   PrivKey privKey(
       DataConversion::StringToCharArray(
           "80AA3FB5F4A60E87F1387E758CAA9EB34FCE7BAC62E1BDE4FEFE92FEA5281223"),
@@ -57,10 +57,10 @@ void TestRemoteMineCase_1() {
   uint8_t difficultyToUse = POW_DIFFICULTY;
   uint64_t blockToUse = 1000;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  auto boundary = POW::DifficultyLevelInInt(difficultyToUse);
+  auto boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
-  ethash_mining_result_t winning_result =
-      POWClient.RemoteMine(keyPair, blockToUse, headerHash, boundary);
+  ethash_mining_result_t winning_result = POWClient.RemoteMine(
+      keyPair, blockToUse, headerHash, boundary, POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -68,10 +68,10 @@ void TestRemoteMineCase_1() {
             << " result " << verifyLight << std::endl;
 
   difficultyToUse = DS_POW_DIFFICULTY;
-  boundary = POW::DifficultyLevelInInt(difficultyToUse);
+  boundary = POW::DifficultyLevelInIntDevided(difficultyToUse);
 
-  winning_result =
-      POWClient.RemoteMine(keyPair, blockToUse, headerHash, boundary);
+  winning_result = POWClient.RemoteMine(keyPair, blockToUse, headerHash,
+                                        boundary, POW_WINDOW_IN_SECONDS);
   verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);

@@ -23,6 +23,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "ContractStorage.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libCrypto/Schnorr.h"
@@ -39,6 +40,7 @@ typedef std::shared_ptr<FallbackBlockWShardingStructure> FallbackBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
+typedef std::shared_ptr<std::pair<Address, Account>> StateSharedPtr;
 
 struct DiagnosticDataNodes {
   DequeOfShard shards;
@@ -46,28 +48,20 @@ struct DiagnosticDataNodes {
 };
 
 struct DiagnosticDataCoinbase {
-  boost::multiprecision::uint128_t
-      nodeCount;  // Total num of nodes in the network for entire DS epoch
-  boost::multiprecision::uint128_t
-      sigCount;  // Total num of signatories for the mined blocks across all Tx
-                 // epochs
+  uint128_t nodeCount;  // Total num of nodes in the network for entire DS epoch
+  uint128_t sigCount;   // Total num of signatories for the mined blocks across
+                        // all Tx epochs
   uint32_t lookupCount;  // Num of lookup nodes
-  boost::multiprecision::uint128_t
+  uint128_t
       totalReward;  // Total reward based on COINBASE_REWARD_PER_DS and txn fees
-  boost::multiprecision::uint128_t
-      baseReward;  // Base reward based on BASE_REWARD_IN_PERCENT
-  boost::multiprecision::uint128_t
-      baseRewardEach;  // Base reward over nodeCount
-  boost::multiprecision::uint128_t
-      lookupReward;  // LOOKUP_REWARD_IN_PERCENT percent of remaining reward
-                     // after baseReward
-  boost::multiprecision::uint128_t
-      rewardEachLookup;  // lookupReward over lookupCount
-  boost::multiprecision::uint128_t
-      nodeReward;  // Remaining reward after lookupReward
-  boost::multiprecision::uint128_t rewardEach;  // nodeReward over sigCount
-  boost::multiprecision::uint128_t
-      balanceLeft;              // Remaining reward after nodeReward
+  uint128_t baseReward;         // Base reward based on BASE_REWARD_IN_PERCENT
+  uint128_t baseRewardEach;     // Base reward over nodeCount
+  uint128_t lookupReward;       // LOOKUP_REWARD_IN_PERCENT percent of remaining
+                                // reward after baseReward
+  uint128_t rewardEachLookup;   // lookupReward over lookupCount
+  uint128_t nodeReward;         // Remaining reward after lookupReward
+  uint128_t rewardEach;         // nodeReward over sigCount
+  uint128_t balanceLeft;        // Remaining reward after nodeReward
   PubKey luckyDrawWinnerKey;    // Recipient of balanceLeft (pubkey)
   Address luckyDrawWinnerAddr;  // Recipient of balanceLeft (address)
 
@@ -97,11 +91,13 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
+  std::shared_ptr<LevelDB> m_tempStateDB;
   // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
   // unit test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
   std::shared_ptr<LevelDB> m_diagnosticDBNodes;
   std::shared_ptr<LevelDB> m_diagnosticDBCoinbase;
+  std::shared_ptr<LevelDB> m_stateRootDB;
   /// used for historical data
   std::shared_ptr<LevelDB> m_txnHistoricalDB;
   std::shared_ptr<LevelDB> m_MBHistoricalDB;
@@ -117,10 +113,12 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
+        m_tempStateDB(std::make_shared<LevelDB>("tempState")),
         m_diagnosticDBNodes(
             std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
         m_diagnosticDBCoinbase(
             std::make_shared<LevelDB>("diagnosticCoinb", path, diagnostic)),
+        m_stateRootDB(std::make_shared<LevelDB>("stateRoot")),
         m_diagnosticDBNodesCounter(0),
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
@@ -146,8 +144,10 @@ class BlockStorage : public Singleton<BlockStorage> {
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
+    TEMP_STATE,
     DIAGNOSTIC_NODES,
-    DIAGNOSTIC_COINBASE
+    DIAGNOSTIC_COINBASE,
+    STATE_ROOT
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -243,8 +243,20 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Save Last Transactions Trie Root Hash
   bool PutMetadata(MetaType type, const bytes& data);
 
+  /// Save state root
+  bool PutStateRoot(const bytes& data);
+
+  /// Save latest epoch when states were moved to disk
+  bool PutLatestEpochStatesUpdated(const uint64_t& epochNum);
+
   /// Retrieve Last Transactions Trie Root Hash
   bool GetMetadata(MetaType type, bytes& data);
+
+  // Retrieve the state root
+  bool GetStateRoot(bytes& data);
+
+  /// Save latest epoch when states were moved to disk
+  bool GetLatestEpochStatesUpdated(uint64_t& epochNum);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,
@@ -265,6 +277,13 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
+
+  /// Write state to tempState in batch
+  bool PutTempState(const std::unordered_map<Address, Account>& states);
+
+  /// Get state from tempState in batch
+  bool GetTempStateInBatch(leveldb::Iterator*& iter,
+                           std::vector<StateSharedPtr>& states);
 
   /// Save data for diagnostic / monitoring purposes (nodes in network)
   bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
@@ -308,25 +327,36 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
+  /// Refresh a DB
+  bool RefreshDB(DBTYPE type);
+
   std::vector<std::string> GetDBName(DBTYPE type);
 
   /// Clean all DB
   bool ResetAll();
 
+  /// Refresh all DB
+  bool RefreshAll();
+
  private:
-  std::mutex m_mutexMetadata;
-  std::mutex m_mutexDsBlockchain;
-  std::mutex m_mutexTxBlockchain;
-  std::mutex m_mutexMicroBlock;
-  std::mutex m_mutexDsCommittee;
-  std::mutex m_mutexVCBlock;
-  std::mutex m_mutexFallbackBlock;
-  std::mutex m_mutexBlockLink;
-  std::mutex m_mutexShardStructure;
-  std::mutex m_mutexStateDelta;
-  std::mutex m_mutexTxBody;
-  std::mutex m_mutexTxBodyTmp;
   std::mutex m_mutexDiagnostic;
+
+  mutable std::shared_timed_mutex m_mutexMetadata;
+  mutable std::shared_timed_mutex m_mutexDsBlockchain;
+  mutable std::shared_timed_mutex m_mutexTxBlockchain;
+  mutable std::shared_timed_mutex m_mutexMicroBlock;
+  mutable std::shared_timed_mutex m_mutexDsCommittee;
+  mutable std::shared_timed_mutex m_mutexVCBlock;
+  mutable std::shared_timed_mutex m_mutexFallbackBlock;
+  mutable std::shared_timed_mutex m_mutexBlockLink;
+  mutable std::shared_timed_mutex m_mutexShardStructure;
+  mutable std::shared_timed_mutex m_mutexStateDelta;
+  mutable std::shared_timed_mutex m_mutexTempState;
+  mutable std::shared_timed_mutex m_mutexTxBody;
+  mutable std::shared_timed_mutex m_mutexTxBodyTmp;
+  mutable std::shared_timed_mutex m_mutexStateRoot;
+  mutable std::shared_timed_mutex m_mutexTxnHistorical;
+  mutable std::shared_timed_mutex m_mutexMBHistorical;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;

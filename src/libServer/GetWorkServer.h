@@ -20,8 +20,8 @@
 
 #include <chrono>
 
-#include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/abstractserverconnector.h>
+#include "jsonrpccpp/server.h"
+#include "jsonrpccpp/server/abstractserverconnector.h"
 
 #include "common/Constants.h"
 #include "libPOW/pow.h"
@@ -144,10 +144,7 @@ class GetWorkServer : public AbstractStubServer {
                                       const std::string &boundary);
 
   // Protocol for GetResult
-  // if wait_ms < 0: wait until the first accept result
-  // if wait_ms = 0: return current result immediately
-  // if wait_ms > 0: wait until timeout, return the last result
-  ethash_mining_result_t GetResult(const int &wait_ms = -1);
+  ethash_mining_result_t GetResult(int waitTime);
 
   bool UpdateCurrentResult(const ethash_mining_result_t &newResult);
 

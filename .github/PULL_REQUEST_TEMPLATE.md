@@ -3,6 +3,11 @@
 <!-- What is the context of your pull request? -->
 <!-- What are the related issues and pull requests? -->
 
+## Backward Compatibility
+<!-- For breaking changes, code must be protected by UPGRADE_TARGET -->
+- [ ] This is not a breaking change
+- [ ] This is a breaking change
+
 ## Review Suggestion
 <!-- How should the reviewers get started on reviewing your pull request-->
 <!-- How can the reviewers verify the pull request is working as expected -->

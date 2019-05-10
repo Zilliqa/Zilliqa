@@ -18,19 +18,17 @@
 #ifndef __BLACKLIST_H__
 #define __BLACKLIST_H__
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <atomic>
 #include <mutex>
 #include <set>
 #include <unordered_map>
 
+#include "common/BaseType.h"
+
 namespace std {
 template <>
-struct hash<boost::multiprecision::uint128_t> {
-  std::size_t operator()(const boost::multiprecision::uint128_t& key) const {
+struct hash<uint128_t> {
+  std::size_t operator()(const uint128_t& key) const {
     return std::hash<std::string>()(key.convert_to<std::string>());
   }
 };
@@ -45,30 +43,39 @@ class Blacklist {
   void operator=(Blacklist const&) = delete;
 
   std::mutex m_mutexBlacklistIP;
-  std::unordered_map<boost::multiprecision::uint128_t, bool> m_blacklistIP;
-  std::set<boost::multiprecision::uint128_t> m_excludedIP;
+  std::unordered_map<uint128_t, bool> m_blacklistIP;
+  std::set<uint128_t> m_excludedIP;
   std::atomic<bool> m_enabled;
 
  public:
   static Blacklist& GetInstance();
 
   /// P2PComm may use this function
-  bool Exist(const boost::multiprecision::uint128_t& ip);
+  bool Exist(const uint128_t& ip);
 
   /// P2PComm may use this function to blacklist certain non responding nodes
-  void Add(const boost::multiprecision::uint128_t& ip);
+  void Add(const uint128_t& ip);
 
   /// P2PComm may use this function to remove a node form blacklist
-  void Remove(const boost::multiprecision::uint128_t& ip);
+  void Remove(const uint128_t& ip);
 
   /// Node can clear the blacklist
   void Clear();
+
+  /// Remove n nodes from blacklist
+  void Pop(unsigned int num_to_pop);
+
+  /// Remove n nodes from blacklist
+  unsigned int SizeOfBlacklist();
 
   /// Enable / disable blacklist
   void Enable(const bool enable);
 
   /// Node to be excluded from blacklisting
-  void Exclude(const boost::multiprecision::uint128_t& ip);
+  bool Exclude(const uint128_t& ip);
+
+  /// Remove node from exclusion list for blacklisting
+  bool RemoveExclude(const uint128_t& ip);
 };
 
 #endif  // __BLACKLIST_H__

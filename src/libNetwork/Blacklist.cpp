@@ -31,7 +31,7 @@ Blacklist& Blacklist::GetInstance() {
 }
 
 /// P2PComm may use this function
-bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exist(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }
@@ -42,7 +42,7 @@ bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
+void Blacklist::Add(const uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
@@ -56,7 +56,7 @@ void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
+void Blacklist::Remove(const uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
@@ -72,6 +72,32 @@ void Blacklist::Clear() {
   LOG_GENERAL(INFO, "Blacklist cleared");
 }
 
+void Blacklist::Pop(unsigned int num_to_pop) {
+  if (!m_enabled) {
+    return;
+  }
+
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  LOG_GENERAL(INFO, "Num of nodes in blacklist: " << m_blacklistIP.size());
+
+  unsigned int counter = 0;
+  for (auto it = m_blacklistIP.begin(); it != m_blacklistIP.end();) {
+    if (counter < num_to_pop) {
+      it = m_blacklistIP.erase(it);
+      counter++;
+    } else {
+      break;
+    }
+  }
+
+  LOG_GENERAL(INFO, "Removed " << counter << " nodes from blacklist");
+}
+
+unsigned int Blacklist::SizeOfBlacklist() {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  return m_blacklistIP.size();
+}
+
 void Blacklist::Enable(const bool enable) {
   if (!enable) {
     Clear();
@@ -80,10 +106,18 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
-void Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exclude(const uint128_t& ip) {
   if (!m_enabled) {
-    return;
+    return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_excludedIP.emplace(ip);
+  return m_excludedIP.emplace(ip).second;
+}
+
+bool Blacklist::RemoveExclude(const uint128_t& ip) {
+  if (!m_enabled) {
+    return false;
+  }
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  return (m_excludedIP.erase(ip) > 0);
 }

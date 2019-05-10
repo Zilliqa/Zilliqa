@@ -46,6 +46,11 @@
 class Mediator;
 class Synchronizer;
 
+// The "first" element in the pair is a map of shard to its transactions
+// The "second" element in the pair counts the total number of transactions in
+// the whole map
+using TxnShardMap = std::map<uint32_t, std::vector<Transaction>>;
+
 // Enum used to tell send type to seed node
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
 
@@ -61,6 +66,11 @@ class Lookup : public Executable {
   std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
+
+  // m_lookupNodes can change during operation if some lookups go offline.
+  // m_lookupNodesStatic is the fixed copy of m_lookupNodes after loading from
+  // constants.xml.
+  VectorOfNode m_lookupNodesStatic;
 
   // To ensure that the confirm of DS node rejoin won't be later than
   // It receiving a new DS block
@@ -79,25 +89,21 @@ class Lookup : public Executable {
   std::atomic<bool> m_startedTxnBatchThread;
 
   // Start PoW variables
-  bool m_receivedRaiseStartPoW = false;
+  std::atomic<bool> m_receivedRaiseStartPoW;
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
+  // Store the StateRootHash of latest txBlock before States are repopulated.
+  StateHash m_prevStateRootHashTemp;
+
   /// To indicate which type of synchronization is using
-  SyncType m_syncType = SyncType::NO_SYNC;
+  std::atomic<SyncType> m_syncType;  // = SyncType::NO_SYNC;
 
   void SetAboveLayer();
 
-  /// Post processing after the DS node successfully synchronized with the
+  /// Post processing after the lookup node successfully synchronized with the
   /// network
   bool FinishRejoinAsLookup();
-
-  /// Post processing after the new Lookup node successfully synchronized with
-  /// the network
-  bool FinishNewJoinAsLookup();
-
-  // Reset certain variables to the initial state
-  bool CleanVariables();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -114,6 +120,15 @@ class Lookup : public Executable {
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
+  std::mutex m_mutexShardStruct;
+  std::condition_variable cv_shardStruct;
+
+  TxnShardMap m_txnShardMap;
+
+  // Get StateDeltas from seed
+  std::mutex m_mutexSetStateDeltasFromSeed;
+  std::condition_variable cv_setStateDeltasFromSeed;
+
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 
@@ -123,11 +138,15 @@ class Lookup : public Executable {
   bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
+  bytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
+                                     uint64_t highBlockNum);
 
   bytes ComposeGetLookupOfflineMessage();
   bytes ComposeGetLookupOnlineMessage();
 
   bytes ComposeGetOfflineLookupNodes();
+
+  void ComposeAndSendGetShardingStructureFromSeed();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);
@@ -136,7 +155,7 @@ class Lookup : public Executable {
 
  public:
   /// Constructor.
-  Lookup(Mediator& mediator);
+  Lookup(Mediator& mediator, SyncType syncType);
 
   /// Destructor.
   ~Lookup();
@@ -148,16 +167,23 @@ class Lookup : public Executable {
   // Hardcoded for now -- to be called by constructor
   void SetLookupNodes();
 
+  void SetLookupNodes(const VectorOfNode&);
+
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
   VectorOfNode GetLookupNodes() const;
 
+  // Getter for m_lookupNodesStatic
+  VectorOfNode GetLookupNodesStatic() const;
+
   // Getter for m_seedNodes
   VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
-  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
+
+  const std::vector<Transaction>& GetTxnFromShardMap(
+      uint32_t index);  // Use m_txnShardMapMutex with this function
 
   bool IsLookupNode(const PubKey& pubKey) const;
 
@@ -170,7 +196,7 @@ class Lookup : public Executable {
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
   // Try resolving ip from the given peer's DNS
-  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
+  uint128_t TryGettingResolvedIP(const Peer& peer) const;
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
@@ -186,8 +212,9 @@ class Lookup : public Executable {
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
 
+  void RectifyTxnShardMap(const uint32_t, const uint32_t);
+
   // TODO: move the Get and ProcessSet functions to Synchronizer
-  std::vector<Peer> GetAboveLayer();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
@@ -195,6 +222,8 @@ class Lookup : public Executable {
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
+  bool GetStateDeltasFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+
   bool GetStateFromSeedNodes();
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
@@ -222,10 +251,14 @@ class Lookup : public Executable {
   bool GetMyLookupOffline();
 
   // Set my lookup ip online in other lookup nodes
-  bool GetMyLookupOnline();
+  bool GetMyLookupOnline(bool fromRecovery = false);
 
   // Rejoin the network as a lookup node in case of failure happens in protocol
   void RejoinAsLookup();
+
+  // Rejoin the network as a newlookup node in case of failure happens in
+  // protocol
+  void RejoinAsNewLookup();
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
@@ -237,10 +270,9 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread();
+  void SenderTxnBatchThread(const uint32_t);
 
-  void SendTxnPacketToNodes(uint32_t);
-
+  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
@@ -250,6 +282,8 @@ class Lookup : public Executable {
                                  const Peer& from);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
+  bool ProcessGetStateDeltasFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
   // UNUSED
@@ -285,8 +319,12 @@ class Lookup : public Executable {
   bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
                                  const Peer& from);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
+  void PrepareForStartPow();
+  bool GetDSInfo();
   bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
+  bool ProcessSetStateDeltasFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from);
   bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
 
@@ -330,8 +368,11 @@ class Lookup : public Executable {
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
-  inline SyncType GetSyncType() const { return m_syncType; }
+  inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;

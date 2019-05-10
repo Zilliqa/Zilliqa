@@ -265,6 +265,27 @@ bool ConsensusLeader::StartConsensusSubsets() {
   return true;
 }
 
+void ConsensusLeader::LogResponsesStats(unsigned int subsetID) {
+  if (m_DS && GUARD_MODE) {
+    LOG_MARKER();
+    ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+    unsigned int dsguardCount = 0, nondsguardCount = 0;
+    for (unsigned int i = 0; i < subset.responseMap.size(); i++) {
+      if (subset.responseMap[i]) {
+        if (i < Guard::GetInstance().GetNumOfDSGuard()) {
+          dsguardCount++;
+        } else {
+          nondsguardCount++;
+        }
+      }
+    }
+    LOG_GENERAL(
+        INFO, "[SubsetID: " << subsetID
+                            << "] Responses received: Guards = " << dsguardCount
+                            << ", Non-guards = " << nondsguardCount);
+  }
+}
+
 void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
   LOG_MARKER();
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
@@ -274,6 +295,9 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
     // Reset all other subsets to INITIAL so they reject any further messages
     // from their backups
     for (unsigned int i = 0; i < m_consensusSubsets.size(); i++) {
+      // Log the responses stats if its ds consensus and DS_GUARD mode
+      LogResponsesStats(i);
+
       if (i == subsetID) {
         continue;
       }
@@ -298,7 +322,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
 bool ConsensusLeader::ProcessMessageCommitCore(
     const bytes& commit, unsigned int offset, Action action,
     [[gnu::unused]] ConsensusMessageType returnmsgtype,
-    [[gnu::unused]] State nextstate) {
+    [[gnu::unused]] State nextstate, const Peer& from) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutex);
@@ -322,6 +346,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, backupID,
           commitPoint, commitPointHash, m_committee)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed");
+    return false;
+  }
+
+  // Check the IP belongs to the backup with that backupID (check for valid
+  // backupID range is already done in Messenger)
+  if (m_committee.at(backupID).second.m_ipAddress != from.m_ipAddress) {
+    LOG_CHECK_FAIL("Backup IP", from.GetPrintableIPAddress(),
+                   m_committee.at(backupID).second.GetPrintableIPAddress());
     return false;
   }
 
@@ -397,9 +429,10 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 }
 
 bool ConsensusLeader::ProcessMessageCommit(const bytes& commit,
-                                           unsigned int offset) {
+                                           unsigned int offset,
+                                           const Peer& from) {
   return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE,
-                                  CHALLENGE_DONE);
+                                  CHALLENGE_DONE, from);
 }
 
 bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
@@ -517,7 +550,7 @@ bool ConsensusLeader::GenerateChallengeMessage(bytes& challenge,
 
 bool ConsensusLeader::ProcessMessageResponseCore(
     const bytes& response, unsigned int offset, Action action,
-    ConsensusMessageType returnmsgtype, State nextstate) {
+    ConsensusMessageType returnmsgtype, State nextstate, const Peer& from) {
   LOG_MARKER();
   // Initial checks
   // ==============
@@ -536,6 +569,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                                        m_blockNumber, m_blockHash, backupID,
                                        subsetInfo, m_committee)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed");
+    return false;
+  }
+
+  // Check the IP belongs to the backup with that backupID (check for valid
+  // backupID range is already done in Messenger)
+  if (m_committee.at(backupID).second.m_ipAddress != from.m_ipAddress) {
+    LOG_CHECK_FAIL("Backup IP", from.GetPrintableIPAddress(),
+                   m_committee.at(backupID).second.GetPrintableIPAddress());
     return false;
   }
 
@@ -721,9 +762,10 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 }
 
 bool ConsensusLeader::ProcessMessageResponse(const bytes& response,
-                                             unsigned int offset) {
+                                             unsigned int offset,
+                                             const Peer& from) {
   return ProcessMessageResponseCore(response, offset, PROCESS_RESPONSE,
-                                    COLLECTIVESIG, COLLECTIVESIG_DONE);
+                                    COLLECTIVESIG, COLLECTIVESIG_DONE, from);
 }
 
 bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
@@ -776,15 +818,18 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
 }
 
 bool ConsensusLeader::ProcessMessageFinalCommit(const bytes& finalcommit,
-                                                unsigned int offset) {
+                                                unsigned int offset,
+                                                const Peer& from) {
   return ProcessMessageCommitCore(finalcommit, offset, PROCESS_FINALCOMMIT,
-                                  FINALCHALLENGE, FINALCHALLENGE_DONE);
+                                  FINALCHALLENGE, FINALCHALLENGE_DONE, from);
 }
 
 bool ConsensusLeader::ProcessMessageFinalResponse(const bytes& finalresponse,
-                                                  unsigned int offset) {
-  return ProcessMessageResponseCore(
-      finalresponse, offset, PROCESS_FINALRESPONSE, FINALCOLLECTIVESIG, DONE);
+                                                  unsigned int offset,
+                                                  const Peer& from) {
+  return ProcessMessageResponseCore(finalresponse, offset,
+                                    PROCESS_FINALRESPONSE, FINALCOLLECTIVESIG,
+                                    DONE, from);
 }
 
 ConsensusLeader::ConsensusLeader(
@@ -935,19 +980,19 @@ bool ConsensusLeader::ProcessMessage(const bytes& message, unsigned int offset,
 
   switch (message.at(offset)) {
     case ConsensusMessageType::COMMIT:
-      result = ProcessMessageCommit(message, offset + 1);
+      result = ProcessMessageCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::COMMITFAILURE:
       result = ProcessMessageCommitFailure(message, offset + 1, from);
       break;
     case ConsensusMessageType::RESPONSE:
-      result = ProcessMessageResponse(message, offset + 1);
+      result = ProcessMessageResponse(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALCOMMIT:
-      result = ProcessMessageFinalCommit(message, offset + 1);
+      result = ProcessMessageFinalCommit(message, offset + 1, from);
       break;
     case ConsensusMessageType::FINALRESPONSE:
-      result = ProcessMessageFinalResponse(message, offset + 1);
+      result = ProcessMessageFinalResponse(message, offset + 1, from);
       break;
     default:
       LOG_GENERAL(WARNING,
@@ -965,6 +1010,8 @@ void ConsensusLeader::Audit() {
   for (unsigned int subsetID = 0; subsetID < m_consensusSubsets.size();
        subsetID++) {
     ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
+
+    LogResponsesStats(subsetID);
 
     if ((subset.state == CHALLENGE_DONE) ||
         (subset.state == FINALCHALLENGE_DONE)) {
@@ -985,7 +1032,8 @@ void ConsensusLeader::Audit() {
            peerIndex++) {
         if (subset.commitMap.at(peerIndex) &&
             !subset.responseMap.at(peerIndex)) {
-          LOG_GENERAL(INFO, m_committee.at(peerIndex).second);
+          LOG_GENERAL(INFO, "[" << PAD(peerIndex, 3, ' ') << "] "
+                                << m_committee.at(peerIndex).second);
         }
       }
     }

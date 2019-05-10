@@ -21,6 +21,13 @@
 #include <stdint.h>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
+
 using bytes = std::vector<uint8_t>;
+using uint128_t = boost::multiprecision::uint128_t;
+using uint256_t = boost::multiprecision::uint256_t;
 
 #endif  // __BASETYPE_H__

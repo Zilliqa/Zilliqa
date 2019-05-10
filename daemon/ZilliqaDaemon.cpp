@@ -207,28 +207,30 @@ int getRestartValue(pid_t pid, const string& prgname) {
 void initialize(unordered_map<string, vector<pid_t>>& pids,
                 unordered_map<pid_t, bool>& died, ofstream& log) {
   bool isProcesstoTrack = false;
-  for (auto v : programName) {
-    vector<pid_t> tmp = getProcIdByName(v, log);
-    if (tmp.size() > 0) {
-      isProcesstoTrack = true;
-      pids[v] = tmp;
-      log << "Process " << v << " exists in " << pids[v].size() << " instances"
-          << endl;
-      log << "Pids: ";
-      for (auto i : pids[v]) {
-        log << i << " ";
-        died[i] = false;
+  while (!isProcesstoTrack) {
+    for (auto v : programName) {
+      vector<pid_t> tmp = getProcIdByName(v, log);
+      if (tmp.size() > 0) {
+        isProcesstoTrack = true;
+        pids[v] = tmp;
+        log << "Process " << v << " exists in " << pids[v].size()
+            << " instances" << endl;
+        log << "Pids: ";
+        for (auto i : pids[v]) {
+          log << i << " ";
+          died[i] = false;
+        }
+        log << endl;
+      } else {
+        log << "Process " << v << " does not exist" << endl;
+        // What to do??
       }
-      log << endl;
-    } else {
-      log << "Process " << v << " does not exist" << endl;
-      // What to do??
     }
-  }
-  if (!isProcesstoTrack) {
-    log << "No Process to Track\n"
-        << " Exiting ..." << endl;
-    exit(EXIT_SUCCESS);
+    if (!isProcesstoTrack) {
+      log << "No Process to Track so far\n"
+          << " Check again in 5 second ..." << endl;
+      sleep(5);
+    }
   }
 }
 

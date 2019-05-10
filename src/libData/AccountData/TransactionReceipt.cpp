@@ -37,17 +37,18 @@ bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 bool TransactionReceipt::Deserialize(const bytes& src, unsigned int offset) {
-  try {
-    if (!Messenger::GetTransactionReceipt(src, offset, *this)) {
-      LOG_GENERAL(WARNING, "Messenger::GetTransactionReceipt failed.");
-      return false;
-    }
+  if (!Messenger::GetTransactionReceipt(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionReceipt failed.");
+    return false;
+  }
 
-    if (!JSONUtils::GetInstance().convertStrtoJson(m_tranReceiptStr,
-                                                   m_tranReceiptObj)) {
-      LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
-      return false;
-    }
+  if (!JSONUtils::GetInstance().convertStrtoJson(m_tranReceiptStr,
+                                                 m_tranReceiptObj)) {
+    LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
+    return false;
+  }
+
+  try {
     update();
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Error with TransactionReceipt::Deserialize."
@@ -86,18 +87,12 @@ void TransactionReceipt::SetEpochNum(const uint64_t& epochNum) {
 }
 
 void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
-  try {
-    if (!JSONUtils::GetInstance().convertStrtoJson(tranReceiptStr,
-                                                   m_tranReceiptObj)) {
-      LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
-      return;
-    }
-    m_tranReceiptStr = tranReceiptStr;
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with TransactionReceipt::SetString." << ' ' << e.what());
+  if (!JSONUtils::GetInstance().convertStrtoJson(tranReceiptStr,
+                                                 m_tranReceiptObj)) {
+    LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
     return;
   }
+  m_tranReceiptStr = tranReceiptStr;
 }
 
 void TransactionReceipt::AddEntry(const LogEntry& entry) {

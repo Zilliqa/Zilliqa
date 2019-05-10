@@ -19,12 +19,6 @@
 #define __TRANSACTION_H__
 
 #include <array>
-#include <vector>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "Address.h"
 #include "common/Constants.h"
@@ -39,8 +33,8 @@ struct TransactionCoreInfo {
   TransactionCoreInfo(const uint32_t& versionInput, const uint64_t& nonceInput,
                       const Address& toAddrInput,
                       const PubKey& senderPubKeyInput,
-                      const boost::multiprecision::uint128_t& amountInput,
-                      const boost::multiprecision::uint128_t& gasPriceInput,
+                      const uint128_t& amountInput,
+                      const uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput, const bytes& codeInput,
                       const bytes& dataInput)
       : version(versionInput),
@@ -57,8 +51,8 @@ struct TransactionCoreInfo {
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
   Address toAddr;
   PubKey senderPubKey;
-  boost::multiprecision::uint128_t amount;
-  boost::multiprecision::uint128_t gasPrice;
+  uint128_t amount;
+  uint128_t gasPrice;
   uint64_t gasLimit;
   bytes code;
   bytes data;
@@ -80,25 +74,21 @@ class Transaction : public SerializableDataBlock {
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PairOfKey& senderKeyPair,
-              const boost::multiprecision::uint128_t& amount,
-              const boost::multiprecision::uint128_t& gasPrice,
+              const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code = {},
               const bytes& data = {});
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
               const uint64_t& nonce, const Address& toAddr,
-              const PubKey& senderPubKey,
-              const boost::multiprecision::uint128_t& amount,
-              const boost::multiprecision::uint128_t& gasPrice,
-              const uint64_t& gasLimit, const bytes& code, const bytes& data,
-              const Signature& signature);
+              const PubKey& senderPubKey, const uint128_t& amount,
+              const uint128_t& gasPrice, const uint64_t& gasLimit,
+              const bytes& code, const bytes& data, const Signature& signature);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
-              const boost::multiprecision::uint128_t& amount,
-              const boost::multiprecision::uint128_t& gasPrice,
+              const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code, const bytes& data,
               const Signature& signature);
 
@@ -139,10 +129,10 @@ class Transaction : public SerializableDataBlock {
   Address GetSenderAddr() const;
 
   /// Returns the transaction amount.
-  const boost::multiprecision::uint128_t& GetAmount() const;
+  const uint128_t& GetAmount() const;
 
   /// Returns the gas price.
-  const boost::multiprecision::uint128_t& GetGasPrice() const;
+  const uint128_t& GetGasPrice() const;
 
   /// Returns the gas limit.
   const uint64_t& GetGasLimit() const;
@@ -156,12 +146,39 @@ class Transaction : public SerializableDataBlock {
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
 
+  unsigned int GetShardIndex(unsigned int numShards) const;
+
   /// Set the signature
   void SetSignature(const Signature& signature);
 
   /// Identifies the shard number that should process the transaction.
   static unsigned int GetShardIndex(const Address& fromAddr,
                                     unsigned int numShards);
+
+  enum ContractType {
+    NON_CONTRACT = 0,
+    CONTRACT_CREATION,
+    CONTRACT_CALL,
+    ERROR
+  };
+
+  static ContractType GetTransactionType(const Transaction& tx) {
+    if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return CONTRACT_CALL;
+    }
+
+    if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+      return CONTRACT_CREATION;
+    }
+
+    if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+        tx.GetCode().empty()) {
+      return NON_CONTRACT;
+    }
+
+    return ERROR;
+  }
 
   /// Equality comparison operator.
   bool operator==(const Transaction& tran) const;

@@ -60,6 +60,12 @@ void AccountStore::InitSoft() {
   InitTemp();
 }
 
+bool AccountStore::RefreshDB() {
+  LOG_MARKER();
+  lock_guard<mutex> g(m_mutexDB);
+  return m_db.RefreshDB();
+}
+
 void AccountStore::InitTemp() {
   LOG_MARKER();
 
@@ -89,7 +95,6 @@ AccountStore& AccountStore::GetInstance() {
 
 bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
-
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
   return AccountStoreTrie<
       dev::OverlayDB, std::unordered_map<Address, Account>>::Serialize(src,
@@ -114,9 +119,9 @@ bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
 bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 
-  lock(m_mutexDelta, m_mutexPrimary);
-  lock_guard<mutex> g(m_mutexDelta, adopt_lock);
-  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, adopt_lock);
+  unique_lock<mutex> g(m_mutexDelta, defer_lock);
+  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, defer_lock);
+  lock(g, g2);
 
   m_stateDeltaSerialized.clear();
 
@@ -143,9 +148,9 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   LOG_MARKER();
 
   if (revertible) {
-    lock(m_mutexPrimary, m_mutexRevertibles);
-    unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-    lock_guard<mutex> g2(m_mutexRevertibles, adopt_lock);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+    unique_lock<mutex> g2(m_mutexRevertibles, defer_lock);
+    lock(g, g2);
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
@@ -170,18 +175,21 @@ bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
 
-void AccountStore::MoveRootToDisk(const h256& root) {
+bool AccountStore::MoveRootToDisk(const h256& root) {
   // convert h256 to bytes
-  if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
-    LOG_GENERAL(INFO, "FAIL: Put metadata failed");
+  if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes())) {
+    LOG_GENERAL(INFO, "FAIL: Put state root failed " << root.hex());
+    return false;
+  }
+  return true;
 }
 
-bool AccountStore::MoveUpdatesToDisk() {
+bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   LOG_MARKER();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   unordered_map<string, string> code_batch;
 
@@ -222,9 +230,16 @@ bool AccountStore::MoveUpdatesToDisk() {
   }
 
   try {
+    if (repopulate && !RepopulateStateTrie()) {
+      LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
+      return false;
+    }
     m_state.db()->commit();
     m_prevRoot = m_state.root();
-    MoveRootToDisk(m_prevRoot);
+    if (!MoveRootToDisk(m_prevRoot)) {
+      LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_prevRoot.hex());
+      return false;
+    }
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
                              << boost::diagnostic_information(e));
@@ -236,12 +251,99 @@ bool AccountStore::MoveUpdatesToDisk() {
   return true;
 }
 
+bool AccountStore::RepopulateStateTrie() {
+  LOG_MARKER();
+
+  unsigned int counter = 0;
+  bool batched_once = false;
+
+  for (const auto& i : m_state) {
+    counter++;
+
+    if (counter >= ACCOUNT_IO_BATCH_SIZE) {
+      // Write into db
+      if (!BlockStorage::GetBlockStorage().PutTempState(
+              *this->m_addressToAccount)) {
+        LOG_GENERAL(WARNING, "PutTempState failed");
+        return false;
+      } else {
+        // this->m_addressToAccount->clear();
+        counter = 0;
+        batched_once = true;
+      }
+    }
+
+    Address address(i.first);
+
+    if (!batched_once) {
+      if (this->m_addressToAccount->find(address) !=
+          this->m_addressToAccount->end()) {
+        continue;
+      }
+    }
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      continue;
+    }
+    if (account.isContract()) {
+      account.SetAddress(address);
+    }
+
+    this->m_addressToAccount->insert({address, account});
+  }
+
+  if (!this->m_addressToAccount->empty()) {
+    if (!BlockStorage::GetBlockStorage().PutTempState(
+            *(this->m_addressToAccount))) {
+      LOG_GENERAL(WARNING, "PutTempState failed");
+      return false;
+    } else {
+      this->m_addressToAccount->clear();
+      batched_once = true;
+    }
+  }
+
+  m_db.ResetDB();
+  InitTrie();
+
+  if (batched_once) {
+    return UpdateStateTrieFromTempStateDB();
+  } else {
+    return UpdateStateTrieAll();
+  }
+}
+
+bool AccountStore::UpdateStateTrieFromTempStateDB() {
+  LOG_MARKER();
+
+  leveldb::Iterator* iter = nullptr;
+
+  while (iter == nullptr || iter->Valid()) {
+    vector<StateSharedPtr> states;
+    if (!BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states)) {
+      LOG_GENERAL(WARNING, "GetTempStateInBatch failed");
+      return false;
+    }
+    for (const auto& state : states) {
+      UpdateStateTrie(state->first, state->second);
+    }
+  }
+
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TEMP_STATE) failed");
+    return false;
+  }
+  return true;
+}
+
 void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   try {
     m_state.db()->rollback();
@@ -258,17 +360,30 @@ bool AccountStore::RetrieveFromDisk() {
 
   InitSoft();
 
-  lock(m_mutexPrimary, m_mutexDB);
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
 
   bytes rootBytes;
-  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
-    return false;
+  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
+    // To support backward compatibilty - lookup with new binary trying to
+    // recover from old database
+    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutStateRoot failed "
+                        << DataConversion::CharArrayToString(rootBytes));
+        return false;
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
+      return false;
+    }
   }
 
   try {
     h256 root(rootBytes);
+    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
     m_state.setRoot(root);
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
@@ -278,6 +393,10 @@ bool AccountStore::RetrieveFromDisk() {
   return true;
 }
 
+Account* AccountStore::GetAccountTemp(const Address& address) {
+  return m_accountStoreTemp->GetAccount(address);
+}
+
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
@@ -285,10 +404,12 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       TransactionReceipt& receipt) {
   // LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDelta);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDelta, defer_lock);
+  lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt);
+                                            transaction, receipt, true);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -305,8 +426,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   // Should the nonce increase ??
 }
 
-boost::multiprecision::uint128_t AccountStore::GetNonceTemp(
-    const Address& address) {
+uint128_t AccountStore::GetNonceTemp(const Address& address) {
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=

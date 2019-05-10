@@ -107,8 +107,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   }
 
   // Check if from account is sharded here
-  const PubKey& senderPubKey = tx.GetSenderPubKey();
-  Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+
+  const Address fromAddr = tx.GetSenderAddr();
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
@@ -132,7 +132,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
       // return false;
     }
 
-    if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress) {
+    if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
       unsigned int correct_shard_to =
           Transaction::GetShardIndex(tx.GetToAddr(), numShards);
       if (correct_shard_to != correct_shard_from) {
@@ -143,6 +143,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
         return false;
       }
     }
+  }
+
+  if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Code size " << tx.GetCode().size()
+                           << " larger than maximum code size allowed "
+                           << MAX_CODE_SIZE_IN_BYTES);
+    return false;
   }
 
   if (tx.GetGasPrice() <
@@ -290,11 +298,17 @@ bool Validator::CheckDirBlocks(
       bytes serializedDSBlock;
       dsblock.Serialize(serializedDSBlock, 0);
       prevHash = dsblock.GetBlockHash();
-      BlockStorage::GetBlockStorage().PutDSBlock(
-          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+      if (!BlockStorage::GetBlockStorage().PutDSBlock(
+              dsblock.GetHeader().GetBlockNum(), serializedDSBlock)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
+        return false;
+      }
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
-      BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+      if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+        LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
+        return false;
+      }
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
@@ -331,8 +345,11 @@ bool Validator::CheckDirBlocks(
                                                vcblock.GetBlockHash());
       bytes vcblockserialized;
       vcblock.Serialize(vcblockserialized, 0);
-      BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
-                                                 vcblockserialized);
+      if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
+                                                      vcblockserialized)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutVCBlock failed " << vcblock);
+        return false;
+      }
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
     } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
@@ -395,8 +412,12 @@ bool Validator::CheckDirBlocks(
                                                fallbackblock.GetBlockHash());
       bytes fallbackblockser;
       fallbackwshardingstructure.Serialize(fallbackblockser, 0);
-      BlockStorage::GetBlockStorage().PutFallbackBlock(
-          fallbackblock.GetBlockHash(), fallbackblockser);
+      if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+              fallbackblock.GetBlockHash(), fallbackblockser)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutFallbackBlock failed " << fallbackblock);
+        return false;
+      }
       prevHash = fallbackblock.GetBlockHash();
       totalIndex++;
     } else {

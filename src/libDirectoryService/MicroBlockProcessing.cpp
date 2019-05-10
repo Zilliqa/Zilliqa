@@ -151,6 +151,10 @@ bool DirectoryService::ProcessStateDelta(
 
   if (stateDelta.empty()) {
     LOG_GENERAL(INFO, "State Delta is empty");
+    if (microBlockStateDeltaHash != StateHash()) {
+      LOG_GENERAL(WARNING, "State Delta and StateDeltaHash inconsistent");
+      return false;
+    }
     return true;
   } else {
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
@@ -308,6 +312,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
                                                      body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+    return false;
   }
 
   if (!m_mediator.GetIsVacuousEpoch()) {
@@ -653,6 +658,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       if (!BlockStorage::GetBlockStorage().PutMicroBlock(
               microBlocks[i].GetBlockHash(), body)) {
         LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+        return false;
       }
 
       microBlocksAtEpoch.emplace(microBlocks.at(i));

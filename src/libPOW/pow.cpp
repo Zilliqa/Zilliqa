@@ -37,6 +37,8 @@
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
 
+using namespace boost::multiprecision;
+
 POW::POW() {
   m_currentBlockNum = 0;
   m_epochContextLight =
@@ -128,9 +130,22 @@ ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
   return ret;
 }
 
-bool POW::CheckDificulty(const ethash_hash256& result,
-                         const ethash_hash256& boundary) {
+bool POW::CheckDifficulty(const ethash_hash256& result,
+                          const ethash_hash256& boundary) {
   return ethash::is_less_or_equal(result, boundary);
+}
+
+size_t POW::CountLeadingZeros(const ethash_hash256& boundary) {
+  size_t count = 0;
+
+  for (unsigned char b : boundary.bytes) {
+    if (b != 0x00) {
+      count += DataConversion::clz(b);
+      break;
+    }
+    count += 8;
+  }
+  return count;
 }
 
 ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
@@ -147,6 +162,67 @@ ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
                                  0x0F, 0x07, 0x03, 0x01};
   b[firstNbytesToSet] = masks[nBytesBitsToSet];
   return StringToBlockhash(BytesToHexString(b, UINT256_SIZE));
+}
+
+ethash_hash256 POW::DifficultyLevelInIntDevided(uint8_t difficulty) {
+  if (difficulty < POW_BOUNDARY_N_DIVIDED_START) {
+    return DifficultyLevelInInt(difficulty);
+  }
+
+  // calc new difficulty level
+  uint8_t n_level =
+      (difficulty - POW_BOUNDARY_N_DIVIDED_START) / POW_BOUNDARY_N_DIVIDED;
+  uint8_t m_sub_level =
+      (difficulty - POW_BOUNDARY_N_DIVIDED_START) % POW_BOUNDARY_N_DIVIDED;
+  uint8_t difficulty_level = POW_BOUNDARY_N_DIVIDED_START + n_level;
+
+  // Python implement
+  // cur_boundary = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // step = (cur_boundary >> 1) // N_DIVIDED
+  // new_boundary = cur_boundary - step * m_sub_level
+
+  uint256_t cur_boundary(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t step = (cur_boundary >> 1) / POW_BOUNDARY_N_DIVIDED;
+  uint256_t new_boundary = cur_boundary - step * m_sub_level;
+
+  return StringToBlockhash(
+      DataConversion::IntegerToHexString<uint256_t, UINT256_SIZE>(
+          new_boundary));
+}
+
+uint8_t POW::DevidedBoundaryToDifficulty(ethash_hash256 boundary) {
+  uint8_t difficulty_level = POW::CountLeadingZeros(boundary);
+
+  if (difficulty_level < POW_BOUNDARY_N_DIVIDED_START) {
+    return difficulty_level;
+  }
+
+  // Python implement
+  // i_cur_level = bytes_to_int(calc_zero_bytes(difficulty_level))
+  // i_cur_boundary = bytes_to_int(boundary)
+  // step = (i_cur_level >> 1) // N_DIVIDED
+  // m = (i_cur_level - i_cur_boundary) // step
+  // n = (difficulty_level - 32)
+  // new_difficulty = 32 + n * N_DIVIDED + m
+
+  uint256_t i_cur_level(
+      "0x" + POW::BlockhashToHexString(DifficultyLevelInInt(difficulty_level)));
+  uint256_t i_cur_boundary("0x" +
+                           BytesToHexString(boundary.bytes, UINT256_SIZE));
+
+  uint256_t step = (i_cur_level >> 1) / POW_BOUNDARY_N_DIVIDED;
+
+  uint256_t n_level = difficulty_level - POW_BOUNDARY_N_DIVIDED_START;
+
+  uint256_t m_sub_level = (i_cur_level - i_cur_boundary) / step;
+  assert(m_sub_level < (unsigned)POW_BOUNDARY_N_DIVIDED);
+
+  uint256_t difficulty =
+      POW_BOUNDARY_N_DIVIDED_START + n_level * POW_BOUNDARY_N_DIVIDED;
+  difficulty += m_sub_level;
+
+  return (uint8_t)difficulty;
 }
 
 bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
@@ -183,25 +259,25 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
 
 ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
                                         ethash_hash256 const& headerHash,
-                                        uint8_t difficulty) {
+                                        uint8_t difficulty, int timeWindow) {
   LOG_MARKER();
   int ethash_epoch = ethash::get_epoch_number(blockNum);
   std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
-  std::string boundary = BlockhashToHexString(DifficultyLevelInInt(difficulty));
+  std::string boundary =
+      BlockhashToHexString(DifficultyLevelInIntDevided(difficulty));
   std::string headerStr = BlockhashToHexString(headerHash);
 
   PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
 
   GetWorkServer::GetInstance().StartMining(work);
-  // -1: wait for the 1st accept result
-  auto result = GetWorkServer::GetInstance().GetResult(-1);
+  auto result = GetWorkServer::GetInstance().GetResult(timeWindow);
   GetWorkServer::GetInstance().StopMining();
   return result;
 }
 
 ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
                                       ethash_hash256 const& boundary,
-                                      uint64_t startNonce) {
+                                      uint64_t startNonce, int timeWindow) {
   uint64_t nonce = startNonce;
   auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -216,13 +292,14 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
     nonce++;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       m_shouldMine = false;
       break;
     }
@@ -234,7 +311,7 @@ ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
 
 ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
                                      ethash_hash256 const& boundary,
-                                     uint64_t startNonce) {
+                                     uint64_t startNonce, int timeWindow) {
   uint64_t nonce = startNonce;
   auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -249,13 +326,14 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
     nonce++;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       m_shouldMine = false;
       break;
     }
@@ -267,8 +345,8 @@ ethash_mining_result_t POW::MineFull(ethash_hash256 const& headerHash,
 
 ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
                                         ethash_hash256 const& headerHash,
-                                        uint8_t difficulty,
-                                        uint64_t startNonce) {
+                                        uint8_t difficulty, uint64_t startNonce,
+                                        int timeWindow) {
   std::vector<std::unique_ptr<std::thread>> vecThread;
   uint64_t nonce = startNonce;
   m_minerIndex = 0;
@@ -277,8 +355,9 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     miningResult = ethash_mining_result_t{"", "", 0, false};
   }
   for (size_t i = 0; i < m_miners.size(); ++i) {
-    vecThread.push_back(std::make_unique<std::thread>(
-        [&] { MineFullGPUThread(blockNum, headerHash, difficulty, nonce); }));
+    vecThread.push_back(std::make_unique<std::thread>([&] {
+      MineFullGPUThread(blockNum, headerHash, difficulty, nonce, timeWindow);
+    }));
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -301,21 +380,22 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
 ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
                                        uint64_t blockNum,
                                        ethash_hash256 const& headerHash,
-                                       ethash_hash256 const& boundary) {
+                                       ethash_hash256 const& boundary,
+                                       int timeWindow) {
   LOG_MARKER();
 
   m_shouldMine = true;
 
   ethash_mining_result_t miningResult{"", "", 0, false};
-  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary)) {
+  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary, timeWindow)) {
     LOG_GENERAL(WARNING, "Failed to send work package to mining proxy.");
     return miningResult;
   }
 
   uint64_t nonce = 0;
   ethash_hash256 mixHash;
-  bool checkResult =
-      CheckMiningResult(pairOfKey, headerHash, boundary, nonce, mixHash);
+  bool checkResult = CheckMiningResult(pairOfKey, headerHash, boundary, nonce,
+                                       mixHash, timeWindow);
   if (!checkResult) {
     LOG_GENERAL(WARNING, "Failed to check pow result from mining proxy.");
     return miningResult;
@@ -342,7 +422,7 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
 
 bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                           ethash_hash256 const& headerHash,
-                          ethash_hash256 const& boundary) {
+                          ethash_hash256 const& boundary, int timeWindow) {
   LOG_MARKER();
 
   bytes tmp;
@@ -372,11 +452,10 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   auto strPoWTime =
       DataConversion::IntegerToHexString<uint32_t, sizeof(uint32_t)>(
-          POW_WINDOW_IN_SECONDS);
+          timeWindow);
   jsonValue[4] = "0x" + strPoWTime;
   auto powTimeBytes =
-      DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(
-          POW_WINDOW_IN_SECONDS);
+      DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(timeWindow);
   tmp.insert(tmp.end(), powTimeBytes.begin(), powTimeBytes.end());
 
   if (tmp.size() != (PUB_KEY_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) +
@@ -419,7 +498,7 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
 bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256 const& headerHash,
                             ethash_hash256 const& boundary, uint64_t& nonce,
-                            ethash_hash256& mixHash) {
+                            ethash_hash256& mixHash, int timeWindow) {
   Json::Value jsonValue;
 
   bytes tmp;
@@ -459,13 +538,14 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
 
   while (m_shouldMine) {
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Waiting mining proxy return PoW result timeout, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
       return false;
     }
 
@@ -579,7 +659,8 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
 }
 
 void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
-                            uint8_t difficulty, uint64_t nonce) {
+                            uint8_t difficulty, uint64_t nonce,
+                            int timeWindow) {
   LOG_MARKER();
   auto index = m_minerIndex.load(std::memory_order_relaxed);
   ++m_minerIndex;
@@ -608,7 +689,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
       return;
     }
     auto hashResult = LightHash(blockNum, headerHash, solution.nonce);
-    auto boundary = DifficultyLevelInInt(difficulty);
+    auto boundary = DifficultyLevelInIntDevided(difficulty);
     if (ethash::is_less_or_equal(hashResult.final_hash, boundary)) {
       m_vecMiningResult[index] =
           ethash_mining_result_t{BlockhashToHexString(hashResult.final_hash),
@@ -619,16 +700,19 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
     wp.startNonce = solution.nonce;
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    auto timePassedInSeconds = static_cast<uint32_t>(
-        std::chrono::duration<double>(currentTime - startTime).count());
-    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+    auto timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime)
+                                   .count();
+    if (timePassedInSeconds > timeWindow) {
       LOG_GENERAL(WARNING,
                   "Time out while mining pow result, time "
                   "passed in seconds "
-                      << timePassedInSeconds);
+                      << timePassedInSeconds << ", time window " << timeWindow);
+      m_shouldMine = false;
       break;
     }
   }
+
   m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
   m_cvMiningResult.notify_one();
   return;
@@ -636,9 +720,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 
 bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                          const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const boost::multiprecision::uint128_t& ipAddr,
-                         const PubKey& pubKey, uint32_t lookupId,
-                         const boost::multiprecision::uint128_t& gasPrice) {
+                         const uint128_t& ipAddr, const PubKey& pubKey,
+                         uint32_t lookupId, const uint128_t& gasPrice) {
   bytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
@@ -649,16 +732,14 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
   }
 
   bytes ipAddrVec;
-  Serializable::SetNumber<boost::multiprecision::uint128_t>(
-      ipAddrVec, 0, ipAddr, UINT128_SIZE);
+  Serializable::SetNumber<uint128_t>(ipAddrVec, 0, ipAddr, UINT128_SIZE);
   vec.insert(std::end(vec), std::begin(ipAddrVec), std::end(ipAddrVec));
 
   pubKey.Serialize(vec, vec.size());
 
   Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId,
                                     sizeof(uint32_t));
-  Serializable::SetNumber<boost::multiprecision::uint128_t>(
-      vec, vec.size(), gasPrice, UINT128_SIZE);
+  Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
   SHA2<256> sha2;
   sha2.Update(vec);
@@ -669,8 +750,8 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-    uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice) {
+    const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+    const uint128_t& gasPrice) {
   bytes sha2_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
@@ -685,29 +766,31 @@ ethash_hash256 POW::GenHeaderHash(
 ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
                                     const PairOfKey& pairOfKey,
                                     const ethash_hash256& headerHash,
-                                    bool fullDataset, uint64_t startNonce) {
+                                    bool fullDataset, uint64_t startNonce,
+                                    int timeWindow) {
   LOG_MARKER();
   // mutex required to prevent a new mining to begin before previous mining
   // operation has ended(ie. m_shouldMine=false has been processed) and
   // result.success has been returned)
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
   EthashConfigureClient(blockNum, fullDataset);
-  auto boundary = DifficultyLevelInInt(difficulty);
+  auto boundary = DifficultyLevelInIntDevided(difficulty);
 
   ethash_mining_result_t result;
 
   m_shouldMine = true;
 
   if (REMOTE_MINE) {
-    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary);
+    result = RemoteMine(pairOfKey, blockNum, headerHash, boundary, timeWindow);
   } else if (GETWORK_SERVER_MINE) {
-    result = MineGetWork(blockNum, headerHash, difficulty);
+    result = MineGetWork(blockNum, headerHash, difficulty, timeWindow);
   } else if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
-    result = MineFullGPU(blockNum, headerHash, difficulty, startNonce);
+    result =
+        MineFullGPU(blockNum, headerHash, difficulty, startNonce, timeWindow);
   } else if (fullDataset) {
-    result = MineFull(headerHash, boundary, startNonce);
+    result = MineFull(headerHash, boundary, startNonce, timeWindow);
   } else {
-    result = MineLight(headerHash, boundary, startNonce);
+    result = MineLight(headerHash, boundary, startNonce, timeWindow);
   }
   return result;
 }
@@ -718,7 +801,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::string& winning_mixhash) {
   LOG_MARKER();
   EthashConfigureClient(blockNum);
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   auto winnning_result = StringToBlockhash(winning_result);
   auto winningMixhash = StringToBlockhash(winning_mixhash);
 
@@ -740,13 +823,13 @@ ethash::result POW::LightHash(uint64_t blockNum,
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   return ethash::is_less_or_equal(result, boundary);
 }
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                               uint8_t difficulty) {
-  const auto boundary = DifficultyLevelInInt(difficulty);
+  const auto boundary = DifficultyLevelInIntDevided(difficulty);
   ethash_hash256 hashResult = StringToBlockhash(result);
   return ethash::is_less_or_equal(hashResult, boundary);
 }

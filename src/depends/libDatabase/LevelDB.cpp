@@ -32,6 +32,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
 {
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
+    this->m_db = NULL;
 
     if(!(boost::filesystem::exists("./"+path)))
     {
@@ -147,6 +148,20 @@ string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum) const
         return "";
     }
 
+    return value;
+}
+
+string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum, bool &found) const
+{
+    string value;
+    leveldb::Status s = m_db->Get(leveldb::ReadOptions(), blockNum.convert_to<string>(), &value);
+
+    if (!s.ok())
+    {
+        found = false;
+        return "";
+    }
+    found = true;
     return value;
 }
 
@@ -400,6 +415,28 @@ bool LevelDB::ResetDB()
     {
         return ResetDBForNormalNode();
     }
+}
+
+bool LevelDB::RefreshDB()
+{
+    m_db.reset();
+
+    leveldb::Options options;
+    options.max_open_files = 256;
+    options.create_if_missing = true;
+
+    leveldb::DB* db;
+
+    leveldb::Status status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+    if(!status.ok())
+    {
+        // throw exception();
+        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+        return false;
+    }
+
+    m_db.reset(db);
+    return true;
 }
 
 int LevelDB::DeleteDBForNormalNode()

@@ -24,11 +24,6 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 #include "Account.h"
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
@@ -95,7 +90,7 @@ class AccountStore
   ~AccountStore();
 
   /// Store the trie root to leveldb
-  void MoveRootToDisk(const dev::h256& root);
+  bool MoveRootToDisk(const dev::h256& root);
 
  public:
   /// Returns the singleton AccountStore instance.
@@ -124,13 +119,22 @@ class AccountStore
   /// empty states data in memory
   void InitSoft();
 
+  /// Reset the reference to underlying leveldb
+  bool RefreshDB();
+
+  bool UpdateStateTrieFromTempStateDB();
+
+  bool RepopulateStateTrie();
+
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk();
+  bool MoveUpdatesToDisk(bool repopulate = false);
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
   void DiscardUnsavedUpdates();
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
+
+  Account* GetAccountTemp(const Address& address);
 
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
@@ -144,17 +148,16 @@ class AccountStore
   }
 
   /// increase balance for account in AccountStoreTemp
-  bool IncreaseBalanceTemp(const Address& address,
-                           const boost::multiprecision::uint128_t& delta) {
+  bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
     return m_accountStoreTemp->IncreaseBalance(address, delta);
   }
 
   /// get the nonce of an account in AccountStoreTemp
-  boost::multiprecision::uint128_t GetNonceTemp(const Address& address);
+  uint128_t GetNonceTemp(const Address& address);
 
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
-                          const boost::multiprecision::uint128_t& amount);
+                          const uint128_t& amount);
 
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,

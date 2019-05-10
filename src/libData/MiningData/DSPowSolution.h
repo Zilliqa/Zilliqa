@@ -19,12 +19,6 @@
 #define __DSPowSolution_H__
 
 #include <array>
-#include <vector>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "common/Constants.h"
 #include "libCrypto/Schnorr.h"
@@ -40,7 +34,7 @@ class DSPowSolution {
   std::string m_resultingHash;
   std::string m_mixHash;
   uint32_t m_lookupId;
-  boost::multiprecision::uint128_t m_gasPrice;
+  uint128_t m_gasPrice;
   Signature m_signature;
 
  public:
@@ -57,7 +51,7 @@ class DSPowSolution {
                 const uint64_t& nonceInput,
                 const std::string& resultingHashInput,
                 const std::string& mixHashInput, const uint32_t& lookupIdInput,
-                const boost::multiprecision::uint128_t& gasPriceInput,
+                const uint128_t& gasPriceInput,
                 const Signature& signatureInput);
 
   /// Constructor for loading DSPowSolution information from a byte stream.
@@ -88,7 +82,7 @@ class DSPowSolution {
   const uint32_t& GetLookupId() const;
 
   /// Returns gas price
-  const boost::multiprecision::uint128_t& GetGasPrice() const;
+  const uint128_t& GetGasPrice() const;
 
   /// Return signature
   const Signature& GetSignature() const;

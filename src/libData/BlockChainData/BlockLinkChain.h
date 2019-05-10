@@ -20,7 +20,6 @@
 
 #include "libData/BlockData/Block.h"
 #include "libData/DataStructures/CircularArray.h"
-#include "libPersistence/BlockStorage.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;

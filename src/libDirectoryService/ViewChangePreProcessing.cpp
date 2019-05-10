@@ -288,17 +288,18 @@ void DirectoryService::RunConsensusOnViewChange() {
       LOG_GENERAL(WARNING,
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
                   "whole network.");
+      CleanUpViewChange(true);
       RejoinAsDS();
       return;
     }
   }
 
-  Blacklist::GetInstance().Clear();
+  // Blacklist::GetInstance().Clear();
 
   uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
   if (m_viewChangeCounter == 1) {
-    faultyLeaderIndex = m_consensusLeaderID;
+    faultyLeaderIndex = GetConsensusLeaderID();
   } else {
     faultyLeaderIndex = m_candidateLeaderIndex;
   }
@@ -514,7 +515,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
   }
 
-  while (candidateLeaderIndex == m_consensusLeaderID) {
+  while (candidateLeaderIndex == GetConsensusLeaderID()) {
     LOG_GENERAL(INFO,
                 "Computed candidate leader is current faulty ds leader. Index: "
                     << candidateLeaderIndex);

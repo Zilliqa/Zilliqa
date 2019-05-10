@@ -16,6 +16,7 @@
  */
 
 #include "IPConverter.h"
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -56,8 +57,7 @@ bool GetIPPortFromSocket(string socket, string& ip, int& port) {
   return false;
 }
 
-const std::string ToStrFromNumericalIP(
-    const boost::multiprecision::uint128_t& ip) {
+const std::string ToStrFromNumericalIP(const uint128_t& ip) {
   char str[INET_ADDRSTRLEN];
   struct sockaddr_in serv_addr;
   serv_addr.sin_addr.s_addr = ip.convert_to<unsigned long>();
@@ -85,8 +85,7 @@ void LogInternalErr(const string& ip) {
        << std::endl;
 }
 
-bool ToNumericalIPFromStr(const std::string& ipStr,
-                          boost::multiprecision::uint128_t& ipInt) {
+bool ToNumericalIPFromStr(const std::string& ipStr, uint128_t& ipInt) {
   boost::asio::ip::address Addr;
   try {
     Addr = boost::asio::ip::address::from_string(ipStr);
@@ -108,7 +107,7 @@ bool ToNumericalIPFromStr(const std::string& ipStr,
 }
 
 bool ResolveDNS(const std::string& url, const uint32_t& port,
-                boost::multiprecision::uint128_t& ipInt) {
+                uint128_t& ipInt) {
   try {
     boost::asio::io_service my_io_service;
     boost::asio::ip::tcp::resolver resolver(my_io_service);

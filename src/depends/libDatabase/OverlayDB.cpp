@@ -37,6 +37,11 @@ namespace dev
 		m_levelDB.ResetDB();
 	}
 
+	bool OverlayDB::RefreshDB()
+	{
+		return m_levelDB.RefreshDB();
+	}
+
 	void OverlayDB::commit()
 	{
 	// #if DEV_GUARDED_DB

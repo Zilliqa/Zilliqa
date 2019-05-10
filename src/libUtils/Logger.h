@@ -18,10 +18,6 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <fstream>
 #include <iomanip>

@@ -16,10 +16,6 @@
  */
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -50,7 +46,6 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -73,12 +68,21 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   bytes serializedDSBlock;
   dsblock.Serialize(serializedDSBlock, 0);
 
-  BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
-                                             serializedDSBlock);
+  if (!BlockStorage::GetBlockStorage().PutDSBlock(
+          dsblock.GetHeader().GetBlockNum(), serializedDSBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
+    return;
+  }
   m_mediator.m_ds->m_latestActiveDSBlockNum = dsblock.GetHeader().GetBlockNum();
-  BlockStorage::GetBlockStorage().PutMetadata(
-      LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(
-                                  m_mediator.m_ds->m_latestActiveDSBlockNum)));
+  if (!BlockStorage::GetBlockStorage().PutMetadata(
+          LATESTACTIVEDSBLOCKNUM,
+          DataConversion::StringToCharArray(
+              to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)))) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutMetadata(LATESTACTIVEDSBLOCKNUM) "
+                             << m_mediator.m_ds->m_latestActiveDSBlockNum
+                             << " failed");
+    return;
+  }
 
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
@@ -249,7 +253,14 @@ void Node::StartFirstTxEpoch() {
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
-  Blacklist::GetInstance().Clear();
+  // blacklist pop for shard nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
+  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -263,7 +274,8 @@ void Node::StartFirstTxEpoch() {
     m_consensusLeaderID =
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
   } else {
-    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+    m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
+        lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
   }
 
   // Check if I am the leader or backup of the shard
@@ -327,6 +339,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     unsigned int cur_offset,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
+
+  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
+
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -421,6 +436,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           dsblock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
                 "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
+    if (dsblock.GetHeader().GetBlockNum() >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1) {
+      if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+        m_mediator.m_lookup->RejoinAsNewLookup();
+      }
+    }
     return false;
   }
 
@@ -478,26 +500,21 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   m_mediator.m_ds->m_shards = move(t_shards);
 
   m_myshardId = shardId;
-  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
-                                                    m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_mediator.m_ds->m_shards, m_myshardId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
+    return false;
+  }
 
   LogReceivedDSBlockDetails(dsblock);
-
-  auto func = [this, dsblock]() mutable -> void {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo()) {
-      if (UpgradeManager::GetInstance().DownloadSW()) {
-        m_mediator.m_curSWInfo =
-            *UpgradeManager::GetInstance().GetLatestSWInfo();
-      }
-    }
-  };
-  DetachedFunction(1, func);
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
+    return false;
+  }
 
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
@@ -521,8 +538,28 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee,
                               m_mediator.m_dsBlockChain.GetLastBlock());
 
+  uint16_t lastBlockHash = 0;
+  if (m_mediator.m_currentEpochNum > 1) {
+    lastBlockHash =
+        DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetHashForRandom()
+                                            .asBytes());
+  }
+
+  if (!GUARD_MODE) {
+    m_mediator.m_ds->SetConsensusLeaderID(lastBlockHash %
+                                          m_mediator.m_DSCommittee->size());
+  } else {
+    m_mediator.m_ds->SetConsensusLeaderID(
+        lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
+  }
+
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "lastBlockHash " << lastBlockHash << ", new DS leader Id "
+                             << m_mediator.m_ds->GetConsensusLeaderID());
+
   if (!LOOKUP_NODE_MODE) {
-    uint32_t ds_size = m_mediator.m_DSCommittee->size();
     POW::GetInstance().StopMining();
     m_stillMiningPrimary = false;
 
@@ -552,26 +589,6 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       }
       newDSMemberIndex--;
     }
-
-    uint16_t lastBlockHash = 0;
-    if (m_mediator.m_currentEpochNum > 1) {
-      lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetHashForRandom()
-              .asBytes());
-    }
-
-    if (!GUARD_MODE) {
-      m_mediator.m_ds->SetConsensusLeaderID(lastBlockHash % ds_size);
-    } else {
-      m_mediator.m_ds->SetConsensusLeaderID(
-          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
-    }
-
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "lastBlockHash " << lastBlockHash << ", new DS leader Id "
-                               << m_mediator.m_ds->GetConsensusLeaderID());
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
@@ -618,7 +635,17 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       }
 
       if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-        SendDSBlockToOtherShardNodes(message);
+        // Avoid using the original message for broadcasting in case it contains
+        // excess data beyond the VCDSBlock
+        bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+
+        if (!Messenger::SetNodeVCDSBlocksMessage(
+                message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
+                shardingStructureVersion, m_mediator.m_ds->m_shards)) {
+          LOG_GENERAL(WARNING, "Messenger::SetNodeVCDSBlocksMessage failed");
+        } else {
+          SendDSBlockToOtherShardNodes(message2);
+        }
       }
 
       // Finally, start as a shard node
@@ -629,18 +656,22 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
+    // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
 
     FallbackTimerLaunch();
     FallbackTimerPulse();
   }
 
-  BlockStorage::GetBlockStorage().PutDSCommittee(
-      m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID());
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(
+          m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return false;
+  }
 
   if (LOOKUP_NODE_MODE) {
     bool canPutNewEntry = true;

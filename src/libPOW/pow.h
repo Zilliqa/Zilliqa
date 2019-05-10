@@ -20,16 +20,15 @@
 
 #include <stdint.h>
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <jsonrpccpp/client.h>
-#include <jsonrpccpp/client/connectors/httpclient.h>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#include "jsonrpccpp/client.h"
+#include "jsonrpccpp/client/connectors/httpclient.h"
+#pragma GCC diagnostic pop
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
@@ -63,8 +62,9 @@ class POW {
  public:
   static ethash_hash256 StringToBlockhash(std::string const& _s);
   static std::string BlockhashToHexString(const ethash_hash256& _hash);
-  static bool CheckDificulty(const ethash_hash256& result,
-                             const ethash_hash256& boundary);
+  static bool CheckDifficulty(const ethash_hash256& result,
+                              const ethash_hash256& boundary);
+  static size_t CountLeadingZeros(const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
   static POW& GetInstance();
@@ -75,14 +75,15 @@ class POW {
   static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
                                  const PairOfKey& pairOfKey,
                                  const ethash_hash256& headerHash,
-                                 bool fullDataset, uint64_t startNonce);
+                                 bool fullDataset, uint64_t startNonce,
+                                 int timeWindow);
 
   /// Terminates proof-of-work mining.
   void StopMining();
@@ -95,9 +96,11 @@ class POW {
   static bytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
+  static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
+  static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
   ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& headerHash,
                            uint64_t nonce);
   bool CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
@@ -110,15 +113,16 @@ class POW {
   ethash_mining_result_t RemoteMine(const PairOfKey& pairOfKey,
                                     uint64_t blockNum,
                                     ethash_hash256 const& headerHash,
-                                    ethash_hash256 const& boundary);
+                                    ethash_hash256 const& boundary,
+                                    int timeWindow);
 
   bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                        ethash_hash256 const& headerHash,
-                       ethash_hash256 const& boundary);
+                       ethash_hash256 const& boundary, int timeWindow);
   bool CheckMiningResult(const PairOfKey& pairOfKey,
                          ethash_hash256 const& headerHash,
                          ethash_hash256 const& boundary, uint64_t& nonce,
-                         ethash_hash256& mixHash);
+                         ethash_hash256& mixHash, int timeWindow);
   bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
                         uint64_t nonce, const ethash_hash256& headerHash,
                         const ethash_hash256& mixHash,
@@ -141,18 +145,19 @@ class POW {
 
   ethash_mining_result_t MineLight(ethash_hash256 const& headerHash,
                                    ethash_hash256 const& boundary,
-                                   uint64_t startNonce);
+                                   uint64_t startNonce, int timeWindow);
   ethash_mining_result_t MineFull(ethash_hash256 const& headerHash,
                                   ethash_hash256 const& boundary,
-                                  uint64_t startNonce);
+                                  uint64_t startNonce, int timeWindow);
   ethash_mining_result_t MineGetWork(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
-                                     uint8_t difficulty);
+                                     uint8_t difficulty, int timeWindow);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
-                                     uint8_t difficulty, uint64_t startNonce);
+                                     uint8_t difficulty, uint64_t startNonce,
+                                     int timeWindow);
   void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
-                         uint8_t difficulty, uint64_t nonce);
+                         uint8_t difficulty, uint64_t nonce, int timeWindow);
   void InitOpenCL();
   void InitCUDA();
 };

@@ -224,7 +224,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
-  if (message.size() > 0) {
+  if (message.size() > 0 && message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
     RawBytes hash = HashUtils::BytesToHash(message);
     std::string output;
     if (!DataConversion::Uint8VecToHexStr(hash, output)) {
@@ -279,6 +279,10 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
     } else {
       LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
     }
+  } else {
+    LOG_GENERAL(WARNING, "Ignore msg. Msg Size :"
+                             << message.size() << ", Expected Range: 1 - "
+                             << MAX_GOSSIP_MSG_SIZE_IN_BYTES);
   }
 
   return false;

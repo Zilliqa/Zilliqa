@@ -61,6 +61,9 @@ public:
     /// Returns the value at the specified key.
     std::string Lookup(const boost::multiprecision::uint256_t & blockNum) const;
 
+    /// Returns the value at the specified key and also mark if key was found or not
+    std::string Lookup(const boost::multiprecision::uint256_t & blockNum, bool &found) const;
+
     /// Returns the value at the specified key.
     std::string Lookup(const dev::h256 & key) const;
 
@@ -120,6 +123,9 @@ public:
 
     /// Reset the entire database.
     bool ResetDB();
+
+    /// Refresh the entire database.
+    bool RefreshDB();
 
 private:
     bool ResetDBForNormalNode();

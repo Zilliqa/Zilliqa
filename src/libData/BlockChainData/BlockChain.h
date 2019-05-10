@@ -19,12 +19,6 @@
 #define __BLOCKCHAIN_H__
 
 #include <mutex>
-#include <vector>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"
@@ -41,12 +35,11 @@ class BlockChain {
   /// Constructor.
   BlockChain() { Reset(); }
 
+  ~BlockChain() {}
+
   virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
 
  public:
-  /// Destructor.
-  ~BlockChain() {}
-
   /// Reset
   void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 

@@ -32,10 +32,6 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/filesystem.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 #include <fstream>
 #include <iostream>
@@ -202,19 +198,19 @@ BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
   memcpy(hash.bytes, "11111111111111111111111111111111", 32);
   memcpy(target.bytes, "22222222222222222222222222222222", 32);
   BOOST_REQUIRE_MESSAGE(
-      POW::CheckDificulty(hash, target),
+      POW::CheckDifficulty(hash, target),
       "\nexpected \"" << std::string((char*)&hash, 32).c_str()
                       << "\" to have the same or less difficulty than \""
                       << std::string((char*)&target, 32).c_str() << "\"\n");
-  BOOST_REQUIRE_MESSAGE(POW::CheckDificulty(hash, hash), "");
+  BOOST_REQUIRE_MESSAGE(POW::CheckDifficulty(hash, hash), "");
   // "\nexpected \"" << hash << "\" to have the same or less difficulty than \""
   // << hash << "\"\n");
   memcpy(target.bytes, "11111111111111111111111111111112", 32);
-  BOOST_REQUIRE_MESSAGE(POW::CheckDificulty(hash, target), "");
+  BOOST_REQUIRE_MESSAGE(POW::CheckDifficulty(hash, target), "");
   // "\nexpected \"" << hash << "\" to have the same or less difficulty than \""
   // << target << "\"\n");
   memcpy(target.bytes, "11111111111111111111111111111110", 32);
-  BOOST_REQUIRE_MESSAGE(!POW::CheckDificulty(hash, target), "");
+  BOOST_REQUIRE_MESSAGE(!POW::CheckDifficulty(hash, target), "");
   // "\nexpected \"" << hash << "\" to have more difficulty than \"" << target
   // << "\"\n");
 }
@@ -234,7 +230,7 @@ BOOST_AUTO_TEST_CASE(test_block22_verification) {
       "00000b184f1fdd88bfd94c86c39e65db0c36144d5e43f745f722196e730cb614");
   ethash_hash256 difficulty = {.bytes = {0x2, 0x5, 0x40}};
   // difficulty.bytes = ethash_h256_static_init(0x2, 0x5, 0x40);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(test_block30001_verification) {
@@ -249,7 +245,7 @@ BOOST_AUTO_TEST_CASE(test_block30001_verification) {
       ethash::hash(*epochContextLight, seedhash, 0x318df1c8adef7e5eU);
   ethash_hash256 difficulty = {.bytes = {0x17, 0x62, 0xff}};
   // difficulty.bytes = ethash_h256_static_init(0x17, 0x62, 0xff);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(test_block60000_verification) {
@@ -264,23 +260,24 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification) {
       ethash::hash(*epochContextLight, seedhash, 0x50377003e5d830caU);
   ethash_hash256 difficulty = {.bytes = {0x25, 0xa6, 0x1e}};
   // difficulty.bytes = ethash_h256_static_init(0x25, 0xa6, 0x1e);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(mining_and_verification) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 10;
+  uint8_t difficultyToUse = 5;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, false,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -313,16 +310,17 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 10;
+  uint8_t difficultyToUse = 3;
   uint64_t blockToUse = 34567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, false,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -343,7 +341,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
-  difficultyToUse = 10;
+  difficultyToUse = 3;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_nonce,
@@ -355,7 +353,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -363,8 +361,9 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -393,11 +392,34 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
+BOOST_AUTO_TEST_CASE(mining_low_diffculty_time_out) {
+  POW& POWClient = POW::GetInstance();
+  std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+  std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+  uint128_t ipAddr = 2307193356;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
+
+  // Light client mine and verify
+  uint8_t difficultyToUse = 15;
+  uint64_t blockToUse = 0;
+  int powTimeInSeconds = 1;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
+                        std::time(0), powTimeInSeconds);
+  BOOST_REQUIRE(!winning_result.success);
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(!verifyLight);
+}
+
 BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -405,8 +427,9 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
   uint8_t difficultyToUse = 50;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   BOOST_REQUIRE(!winning_result.success);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
@@ -434,7 +457,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -442,8 +465,9 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -492,7 +516,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  boost::multiprecision::uint128_t ipAddr = 2307193356;
+  uint128_t ipAddr = 2307193356;
   auto keyPair = Schnorr::GetInstance().GenKeyPair();
   auto pubKey = keyPair.second;
 
@@ -500,8 +524,9 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
+  ethash_mining_result_t winning_result =
+      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
+                        std::time(0), POW_WINDOW_IN_SECONDS);
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -536,38 +561,28 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network) {
   int64_t powSubmissions = 25;
   int64_t expectedNodes = 20;
   uint32_t adjustThreshold = 5;
-  int64_t currentEpochNum = 200;
-  int64_t numBlocksPerYear = 10000;
 
   int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 4);
 
-  currentEpochNum = 10000;
-  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
-      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
-  BOOST_REQUIRE(newDifficulty == 5);
-
   currentDifficulty = 6;
-  currentEpochNum = 10001;
   powSubmissions =
       15;  // Node number is droping and number of pow submissions is less than
            // expected node, so expect difficulty will drop.
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 5);
 
   currentDifficulty = 14;
-  currentEpochNum = 100000;
   expectedNodes = 200;
   powSubmissions = 201;
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
-  BOOST_REQUIRE(newDifficulty == 15);
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 14);
 }
 
 BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network) {
@@ -576,53 +591,47 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network) {
   int64_t powSubmissions = 5100;
   int64_t expectedNodes = 5000;
   uint32_t adjustThreshold = 99;
-  int64_t currentEpochNum = 200;
-  int64_t numBlocksPerYear = 1971000;
 
   int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 4);
 
   currentDifficulty = 4;
-  currentEpochNum = 1971001;
   expectedNodes = 10001;  // The current nodes exceed expected node
   powSubmissions =
       10002;  // Pow submission still increase, need to increase difficulty
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 4);
 
   currentDifficulty = 10;
-  currentEpochNum = 1971005;
   expectedNodes = 8000;
   powSubmissions =
       7900;  // Node number is droping and number of pow submissions is less
              // than expected node, so expect difficulty will drop.
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 9);
 
   currentDifficulty = 5;
-  currentEpochNum = 1971009;
   expectedNodes = 8000;
   powSubmissions = 8000;
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty ==
                 5);  // nothing changes, expect keep the same difficulty
 
   currentDifficulty = 14;
   expectedNodes = 10002;
   powSubmissions = 10005;
-  currentEpochNum = 19710000;
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
-  BOOST_REQUIRE(newDifficulty == 15);
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 14);
 }
 
 BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small) {
@@ -631,12 +640,10 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small) {
   int64_t powSubmissions = 11;
   int64_t expectedNodes = 10;
   uint32_t adjustThreshold = 5;
-  int64_t currentEpochNum = 80;
-  int64_t numBlocksPerYear = 1971000;
 
   int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 9);
 }
 
@@ -646,40 +653,271 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   int64_t powSubmissions = 110;
   int64_t expectedNodes = 100;
   uint32_t adjustThreshold = 9;
-  int64_t currentEpochNum = 200;
-  int64_t numBlocksPerYear = 1971000;
 
   int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 6);
 
   currentDifficulty = 6;
-  currentEpochNum = 1971000;
   powSubmissions = 120;
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
-  BOOST_REQUIRE(newDifficulty == 9);
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 8);
 
   currentDifficulty = 8;
-  currentEpochNum = 1971001;
   expectedNodes = 103;  // Current node number exceed expected number.
   powSubmissions =
       99;  // The PoW submissions drop not much, so keep difficulty.
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
+      adjustThreshold);
   BOOST_REQUIRE(newDifficulty == 8);
 
   currentDifficulty = 14;
   expectedNodes = 102;
   powSubmissions = 102;
-  currentEpochNum = 19710000;
   newDifficulty = DirectoryService::CalculateNewDifficultyCore(
       currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
-      adjustThreshold, currentEpochNum, numBlocksPerYear);
-  BOOST_REQUIRE(newDifficulty == 15);
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 14);
+}
+
+BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large) {
+  uint8_t currentDifficulty = 5;
+  uint8_t minDifficulty = 5;
+  int64_t powSubmissions = 110;
+  int64_t expectedNodes = 100;
+  uint32_t adjustThreshold = 9;
+
+  int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 6);
+
+  // test difficulty increase
+  currentDifficulty = 11;
+  expectedNodes = 1800;
+  powSubmissions = 1900;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 12);
+
+  currentDifficulty = 26;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 28);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 1898;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 1899;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 32);
+
+  currentDifficulty = 31;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 33);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 2500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 39);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 3000;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 40);
+
+  currentDifficulty = 51;
+  expectedNodes = 1800;
+  powSubmissions = 2400;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 57);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1898;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 64);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1899;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 65);
+
+  currentDifficulty = 64;
+  expectedNodes = 1800;
+  powSubmissions = 1998;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 66);
+
+  currentDifficulty = 79;
+  expectedNodes = 1800;
+  powSubmissions = 3000;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 87);
+
+  currentDifficulty = 184;
+  expectedNodes = 1800;
+  powSubmissions = 2100;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 187);
+
+  // test difficulty decrease
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1400;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 30);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1702;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 32);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1701;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 32;
+  expectedNodes = 1800;
+  powSubmissions = 1700;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 31);
+
+  currentDifficulty = 33;
+  expectedNodes = 1800;
+  powSubmissions = 500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 30);
+
+  currentDifficulty = 99;
+  expectedNodes = 1800;
+  powSubmissions = 500;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 91);
+
+  currentDifficulty = 75;
+  expectedNodes = 1800;
+  powSubmissions = 1200;
+  adjustThreshold = 99;
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 69);
+}
+
+BOOST_AUTO_TEST_CASE(test_highest_difficulty) {
+  std::cout << "Start test highest difficulty" << std::endl;
+  uint8_t currentDifficulty = 255;
+  uint8_t minDifficulty = 5;
+  int64_t powSubmissions = 110;
+  int64_t expectedNodes = 100;
+  uint32_t adjustThreshold = 9;
+
+  auto newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 255);
+
+  currentDifficulty = 253;
+  powSubmissions = 200;
+
+  newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+      currentDifficulty, minDifficulty, powSubmissions, expectedNodes,
+      adjustThreshold);
+  BOOST_REQUIRE(newDifficulty == 255);
+}
+
+BOOST_AUTO_TEST_CASE(devided_boundary) {
+  std::cout << "Start test devided_boundary" << std::endl;
+
+  for (size_t diff = 1; diff < 256; diff++) {
+    auto boundary = POW::DifficultyLevelInIntDevided(diff);
+    std::string str_boundary = POW::BlockhashToHexString(boundary);
+
+    std::cout << "Devided D->B: " << int(diff) << "->" << str_boundary
+              << std::endl;
+
+    auto difficulty = POW::DevidedBoundaryToDifficulty(boundary);
+
+    std::cout << "Devided B->D: " << str_boundary << "->" << int(difficulty)
+              << std::endl;
+
+    BOOST_REQUIRE(difficulty == diff);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

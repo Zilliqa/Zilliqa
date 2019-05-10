@@ -20,10 +20,6 @@
 #include <functional>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -272,6 +268,10 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    UpdateBalanceForPreGeneratedAccounts();
+  }
+
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
@@ -428,15 +428,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   cv_TxnProcFinished.notify_all();
   // Put txns in map back into pool
-  for (const auto& kv : t_addrNonceTxnMap) {
-    for (const auto& nonceTxn : kv.second) {
-      t_createdTxns.insert(nonceTxn.second);
-    }
-  }
-
-  for (const auto& t : gasLimitExceededTxnBuffer) {
-    t_createdTxns.insert(t);
-  }
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
@@ -504,6 +496,10 @@ void Node::UpdateProcessedTransactions() {
 
 void Node::ProcessTransactionWhenShardBackup() {
   LOG_MARKER();
+
+  if (ENABLE_ACCOUNTS_POPULATING) {
+    UpdateBalanceForPreGeneratedAccounts();
+  }
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -645,16 +641,57 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   cv_TxnProcFinished.notify_all();
 
+  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+}
+
+void Node::ReinstateMemPool(
+    const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
+    const vector<Transaction>& gasLimitExceededTxnBuffer) {
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
   // Put remaining txns back in pool
-  for (const auto& kv : t_addrNonceTxnMap) {
+  for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
+      m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
+                                PoolTxnStatus::PRESENT_NONCE_HIGH);
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
+    m_unconfirmedTxns.emplace(t.GetTranID(),
+                              PoolTxnStatus::PRESENT_GAS_EXCEEDED);
   }
+}
+
+PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex, defer_lock);
+  // Try to lock for 100 ms
+  if (!g.try_lock_for(chrono::milliseconds(100))) {
+    return PoolTxnStatus::ERROR;
+  }
+  const auto res = m_unconfirmedTxns.find(txhash);
+  if (res == m_unconfirmedTxns.end()) {
+    return PoolTxnStatus::NOT_PRESENT;
+  }
+  return res->second;
+}
+
+void Node::UpdateBalanceForPreGeneratedAccounts() {
+  LOG_MARKER();
+  int counter = 0;
+  for (unsigned int i = 0; i < m_populatedAddresses.size(); i++) {
+    if ((i % (m_mediator.m_ds->m_shards.size() + 1) == m_myshardId) &&
+        (i % NUM_FINAL_BLOCK_PER_POW ==
+         (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW))) {
+      AccountStore::GetInstance().IncreaseBalanceTemp(
+          m_populatedAddresses.at(i), 1);
+      counter++;
+    }
+  }
+  LOG_GENERAL(INFO, "Number of pre-generated accounts get balance changed: "
+                        << counter);
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
@@ -776,7 +813,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   }
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      !m_mediator.GetIsVacuousEpoch()) {
+      !m_mediator.GetIsVacuousEpoch() &&
+      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+            TXN_SHARD_TARGET_DIFFICULTY &&
+        m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
+       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           TXN_DS_TARGET_NUM)) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     ProcessTransactionWhenShardBackup();
   }

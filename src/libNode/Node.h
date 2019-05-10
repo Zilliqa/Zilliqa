@@ -28,6 +28,7 @@
 
 #include "common/Constants.h"
 #include "common/Executable.h"
+#include "common/MempoolEnum.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -84,6 +85,9 @@ class Node : public Executable {
   // Sharding information
   std::atomic<uint32_t> m_numShards;
 
+  // pre-generated addresses
+  std::vector<Address> m_populatedAddresses;
+
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
   std::condition_variable cv_processConsensusMessage;
@@ -118,6 +122,10 @@ class Node : public Executable {
   std::atomic<bool> m_txn_distribute_window_open;
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
+
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
+
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
@@ -128,7 +136,7 @@ class Node : public Executable {
   std::vector<TxnHash> m_TxnOrder;
 
   uint64_t m_gasUsedTotal = 0;
-  boost::multiprecision::uint128_t m_txnFees = 0;
+  uint128_t m_txnFees = 0;
 
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
@@ -201,9 +209,8 @@ class Node : public Executable {
   bool IsMicroBlockTxRootHashInFinalBlock(const MBnForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
 
-  bool StoreState();
   // void StoreMicroBlocks();
-  void StoreFinalBlock(const TxBlock& txBlock);
+  bool StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
   void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();
@@ -212,6 +219,10 @@ class Node : public Executable {
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
+
+  void ReinstateMemPool(
+      const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
+      const std::vector<Transaction>& gasLimitExceededTxnBuffer);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -363,7 +374,7 @@ class Node : public Executable {
   };
 
   // Proposed gas price
-  boost::multiprecision::uint128_t m_proposedGasPrice;
+  uint128_t m_proposedGasPrice;
   std::mutex m_mutexGasPrice;
 
   // This process is newly invoked by shell from late node join script
@@ -425,7 +436,8 @@ class Node : public Executable {
   ~Node();
 
   /// Install the Node
-  bool Install(const SyncType syncType, const bool toRetrieveHistory = true);
+  bool Install(const SyncType syncType, const bool toRetrieveHistory = true,
+               bool rejoiningAfterRecover = false);
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -447,8 +459,14 @@ class Node : public Executable {
 
   Mediator& GetMediator() { return m_mediator; }
 
+  /// Download peristence from incremental db
+  bool DownloadPersistenceFromS3();
+
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(const SyncType syncType, bool& wakeupForUpgrade);
+  bool StartRetrieveHistory(const SyncType syncType,
+                            bool rejoiningAfterRecover = false);
+
+  bool CheckIntegrity();
 
   bool ValidateDB();
 
@@ -473,6 +491,12 @@ class Node : public Executable {
   void CommitMBnForwardedTransactionBuffer();
 
   void CleanCreatedTransaction();
+
+  void AddBalanceToGenesisAccount();
+
+  void PopulateAccounts();
+
+  void UpdateBalanceForPreGeneratedAccounts();
 
   void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
@@ -509,7 +533,7 @@ class Node : public Executable {
                              const std::string& powResultHash,
                              const std::string& powMixhash,
                              const uint32_t& lookupId,
-                             const boost::multiprecision::uint128_t& gasPrice);
+                             const uint128_t& gasPrice);
 
   /// Used by oldest DS node to configure shard ID as a new shard node
   void SetMyshardId(uint32_t shardId);
@@ -563,6 +587,15 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
+  PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
+
+  uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
+                                               uint32_t sizeOfShard,
+                                               const DequeOfNode& shardMembers);
+  uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
+                                         uint32_t sizeOfShard,
+                                         const Shard& shardMembers);
+
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
                           const DequeOfNode& dsCommittee, PairOfNode& dsLeader);
@@ -571,9 +604,11 @@ class Node : public Executable {
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
+  std::string GetStateString() const;
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
-  std::string GetStateString() const;
+
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   /// Fallback Consensus Related

@@ -20,10 +20,6 @@
 #include <functional>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -91,11 +87,13 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
   }
 
   uint32_t consensus_id = 0;
+  bytes reserialized_message;
   PubKey senderPubKey;
 
-  if (!m_consensusObject->GetConsensusID(message, offset, consensus_id,
-                                         senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
+  if (!m_consensusObject->PreProcessMessage(
+          message, offset, consensus_id, senderPubKey, reserialized_message)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "PreProcessMessage failed");
     return false;
   }
 
@@ -105,8 +103,8 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
   }
 
   if (m_state != MICROBLOCK_CONSENSUS) {
-    AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
-                                   senderPubKey);
+    AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                   from, senderPubKey);
 
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process micro block arrived early, saved to buffer");
@@ -122,10 +120,10 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
 
-      AddToMicroBlockConsensusBuffer(consensus_id, message, offset, from,
-                                     senderPubKey);
+      AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
+                                     from, senderPubKey);
     } else {
-      return ProcessMicroBlockConsensusCore(message, offset, from);
+      return ProcessMicroBlockConsensusCore(reserialized_message, offset, from);
     }
   }
 
@@ -228,6 +226,12 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
 
   lock_guard<mutex> g(m_mutexConsensus);
 
+  if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in MICROBLOCK_CONSENSUS state");
+    return false;
+  }
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }
@@ -275,7 +279,7 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
           *m_microblock, *m_myShardMembers, ds_shards, t_blocks,
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-          m_consensusMyID, composeMicroBlockMessageForSender, nullptr);
+          m_consensusMyID, composeMicroBlockMessageForSender, false, nullptr);
     }
 
     LOG_STATE(

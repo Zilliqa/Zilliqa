@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/common/exception.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <chrono>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
+#include "depends/safeserver/safehttpserver.h"
+#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -129,15 +129,13 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   delete message;
 }
 
-Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
+Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                  bool toRetrieveHistory)
     : m_mediator(key, peer),
       m_ds(m_mediator),
-      m_lookup(m_mediator),
+      m_lookup(m_mediator, syncType),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_msgQueue(MSGQUEUE_SIZE),
-      m_httpserver(SERVER_PORT),
-      m_server(m_mediator, m_httpserver)
+      m_msgQueue(MSGQUEUE_SIZE)
 
 {
   LOG_MARKER();
@@ -158,6 +156,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
+
   m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
@@ -170,8 +169,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
 
   if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
-  } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
-    m_server.StartCollectorThread();
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
@@ -194,22 +191,47 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
   }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
-    if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
-      if (LOOKUP_NODE_MODE) {
+    LogSelfNodeInfo(key, peer);
+    while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
+      if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
         syncType = SyncType::LOOKUP_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+        break;
+      } else if (toRetrieveHistory && (SyncType::NEW_LOOKUP_SYNC == syncType ||
+                                       SyncType::NEW_SYNC == syncType)) {
+        if (SyncType::NEW_LOOKUP_SYNC == syncType) {
+          m_lookup.CleanVariables();
+        } else {
+          m_n.CleanVariables();
+        }
+        while (!m_n.DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        }
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+        }
       } else {
-        syncType = SyncType::NORMAL_SYNC;
-
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        bool isDsNode = false;
         for (const auto& ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
-            syncType = SyncType::DS_SYNC;
+            isDsNode = true;
+            m_ds.RejoinAsDS(false);
             break;
           }
         }
+        if (!isDsNode) {
+          m_n.RejoinAsNormal();
+        }
+        break;
       }
     }
-
-    LogSelfNodeInfo(key, peer);
 
     switch (syncType) {
       case SyncType::NO_SYNC:
@@ -217,49 +239,55 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
         break;
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
-        if (!toRetrieveHistory) {
-          m_mediator.m_lookup->SetSyncType(SyncType::NEW_SYNC);
+        if (toRetrieveHistory) {
           m_n.m_runFromLate = true;
           m_n.StartSynchronization();
         } else {
           LOG_GENERAL(WARNING,
-                      "Error: Sync for new node shouldn't retrieve history");
+                      "Error: Sync for new node should retrieve history as "
+                      "much as possible!");
         }
         break;
       case SyncType::NEW_LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a new lookup node");
-        if (!toRetrieveHistory) {
-          m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+        if (toRetrieveHistory) {
           m_lookup.InitSync();
         } else {
           LOG_GENERAL(FATAL,
-                      "Error: Sync for new lookup shouldn't retrieve history");
+                      "Error: Sync for new lookup should retrieve history as "
+                      "much as possible");
         }
         break;
       case SyncType::NORMAL_SYNC:
         LOG_GENERAL(INFO, "Sync as a normal node");
-        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
         break;
       case SyncType::DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds node");
-        m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_ds.StartSynchronization();
         break;
       case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
-        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_lookup.StartSynchronization();
         break;
       case SyncType::RECOVERY_ALL_SYNC:
         LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        // When doing recovery, make sure to let other lookups know I'm back
+        // online
+        if (LOOKUP_NODE_MODE) {
+          if (!m_mediator.m_lookup->GetMyLookupOnline(true)) {
+            LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
+          }
+        }
         break;
       case SyncType::GUARD_DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds guard node");
-        m_mediator.m_lookup->SetSyncType(SyncType::GUARD_DS_SYNC);
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
-        m_ds.StartSynchronization();
+        // downloads and sync from the persistence of incremental db and
+        // and rejoins the network as ds guard member
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
         LOG_GENERAL(INFO, "Intitialize DB verification");
@@ -293,11 +321,40 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, unsigned int syncType,
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");
-      if (m_server.StartListening()) {
-        LOG_GENERAL(INFO, "API Server started successfully");
-        m_lookup.SetServerTrue();
+      m_lookup.SetServerTrue();
+    }
+
+    if (LOOKUP_NODE_MODE) {
+      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
+      m_lookupServer =
+          make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
+
+      if (m_lookupServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_lookupServer NULL");
       } else {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started successfully");
+          if (ARCHIVAL_LOOKUP) {
+            m_lookupServer->StartCollectorThread();
+          }
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
+      }
+    }
+    if (ENABLE_STATUS_RPC) {
+      m_statusServerConnector =
+          make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+      m_statusServer =
+          make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
+      if (m_statusServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_statusServer NULL");
+      } else {
+        if (m_statusServer->StartListening()) {
+          LOG_GENERAL(INFO, "Status Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "Status Server couldn't start");
+        }
       }
     }
   };

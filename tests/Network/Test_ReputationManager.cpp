@@ -24,17 +24,13 @@
 #define BOOST_TEST_DYN_LINK
 #include <arpa/inet.h>
 #include <limits.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(reputationManager)
 
-boost::multiprecision::uint128_t node1, node2;
+uint128_t node1, node2;
 
 void setup() {
   // INIT_STDOUT_LOGGER();

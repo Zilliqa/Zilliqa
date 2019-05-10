@@ -92,7 +92,6 @@ class Mediator {
 
   /// Record current software information which already downloaded to this node
   SWInfo m_curSWInfo;
-  std::mutex m_mutexCurSWInfo;
 
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
