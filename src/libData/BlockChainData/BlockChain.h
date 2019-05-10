@@ -35,12 +35,11 @@ class BlockChain {
   /// Constructor.
   BlockChain() { Reset(); }
 
+  ~BlockChain() {}
+
   virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
 
  public:
-  /// Destructor.
-  ~BlockChain() {}
-
   /// Reset
   void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 
