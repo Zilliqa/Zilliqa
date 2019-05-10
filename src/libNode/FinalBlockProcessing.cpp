@@ -712,17 +712,15 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   }
 
   if (!isVacuousEpoch) {
-<<<<<<< HEAD
     StoreFinalBlock(txBlock);
+    if (!StoreFinalBlock(txBlock)) {
+      LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
+      return false;
+    }
     if (!LOOKUP_NODE_MODE) {
       BlockStorage::GetBlockStorage().PutMetadata(
           MetaType::EPOCHFIN, DataConversion::StringToCharArray(
                                   to_string(m_mediator.m_currentEpochNum)));
-=======
-    if (!StoreFinalBlock(txBlock)) {
-      LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
-      return false;
->>>>>>> 474fd5c636e8cee3bc9bf2ca57da2ba86b452703
     }
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
@@ -750,27 +748,15 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {
-<<<<<<< HEAD
-        if (!LOOKUP_NODE_MODE) {
-          BlockStorage::GetBlockStorage().PutMetadata(
-              MetaType::EPOCHFIN, DataConversion::StringToCharArray(
-                                      to_string(m_mediator.m_currentEpochNum)));
-=======
-        if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
-                m_mediator.m_currentEpochNum)) {
-          LOG_GENERAL(WARNING, "BlockStorage::PutLatestEpochStatesUpdated "
-                                   << m_mediator.m_currentEpochNum
-                                   << " failed");
-          return;
-        }
         if (!LOOKUP_NODE_MODE) {
           if (!BlockStorage::GetBlockStorage().PutMetadata(
-                  MetaType::DSINCOMPLETED, {'0'})) {
-            LOG_GENERAL(WARNING,
-                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+                  MetaType::EPOCHFIN,
+                  DataConversion::StringToCharArray(
+                      to_string(m_mediator.m_currentEpochNum)))) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutMetadata (EPOCHFIN) failed "
+                                     << m_mediator.m_currentEpochNum);
             return;
           }
->>>>>>> 474fd5c636e8cee3bc9bf2ca57da2ba86b452703
         } else {
           // change if all microblock received from shards
           lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
@@ -778,17 +764,15 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                   m_mediator.m_txBlockChain.GetLastBlock()
                       .GetHeader()
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
-<<<<<<< HEAD
-            BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::EPOCHFIN, DataConversion::StringToCharArray(to_string(
-                                        m_mediator.m_currentEpochNum)));
-=======
             if (!BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::DSINCOMPLETED, {'0'})) {
+                    MetaType::EPOCHFIN,
+                    DataConversion::StringToCharArray(
+                        to_string(m_mediator.m_currentEpochNum)))) {
               LOG_GENERAL(WARNING,
-                          "BlockStorage::PutMetadata DSINCOMPLETED '0' failed");
+                          "BlockStorage::PutMetadata (EPOCHFIN) failed "
+                              << m_mediator.m_currentEpochNum);
+              return;
             }
->>>>>>> 474fd5c636e8cee3bc9bf2ca57da2ba86b452703
           }
         }
         LOG_STATE("[FLBLK][" << setw(15) << left
@@ -1101,7 +1085,8 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           // Check is states updated
           if (AccountStore::GetInstance().GetPrevRootHash() ==
               m_mediator.m_txBlockChain.GetLastBlock()
-                  .GetHeader().GetStateRootHash()) {
+                  .GetHeader()
+                  .GetStateRootHash()) {
             BlockStorage::GetBlockStorage().PutMetadata(
                 MetaType::EPOCHFIN,
                 DataConversion::StringToCharArray(

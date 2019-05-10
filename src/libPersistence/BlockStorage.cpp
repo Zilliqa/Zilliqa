@@ -58,17 +58,7 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
 }
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
-  bool ret = false;
-  if (PutBlock(blockNum, body, BlockType::DS)) {
-    if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})) {
-      ret = true;
-    } else {
-      if (!DeleteDSBlock(blockNum)) {
-        LOG_GENERAL(INFO, "FAIL: Delete DSBlock" << blockNum << "Failed");
-      }
-    }
-  }
-  return ret;
+  return PutBlock(blockNum, body, BlockType::DS);
 }
 
 bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {

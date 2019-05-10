@@ -293,10 +293,11 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       }
-      if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                       {'0'})) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+      if (!BlockStorage::GetBlockStorage().PutMetadata(
+              MetaType::EPOCHFIN, DataConversion::StringToCharArray(to_string(
+                                      m_mediator.m_currentEpochNum)))) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutMetadata (EPOCHFIN) failed "
+                                 << m_mediator.m_currentEpochNum);
         return;
       }
       LOG_STATE("[FLBLK][" << setw(15) << left
