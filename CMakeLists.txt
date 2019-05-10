@@ -214,6 +214,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 
 add_compile_options(-Wall)
 add_compile_options(-Werror)
+add_compile_options(-pedantic)
 add_compile_options(-Wextra)
 
 if (THREAD_SANITIZER AND ADDRESS_SANITIZER)

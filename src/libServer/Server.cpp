@@ -43,9 +43,9 @@
 using namespace jsonrpc;
 using namespace std;
 
-Server::~Server(){
-    // destructor
-};
+Server::~Server() {
+  // destructor
+}
 
 string Server::GetCurrentMiniEpoch() {
   LOG_MARKER();

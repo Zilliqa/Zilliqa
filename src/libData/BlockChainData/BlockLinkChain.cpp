@@ -33,7 +33,7 @@ BlockLink BlockLinkChain::GetFromPersistentStorage(const uint64_t& index) {
 
 void BlockLinkChain::Reset() { m_blockLinkChain.resize(BLOCKCHAIN_SIZE); }
 
-BlockLinkChain::BlockLinkChain() { Reset(); };
+BlockLinkChain::BlockLinkChain() { Reset(); }
 
 BlockLink BlockLinkChain::GetBlockLink(const uint64_t& index) {
   std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);

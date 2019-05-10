@@ -39,7 +39,7 @@ inline const TxnHash& GetHash(
 inline const TxnHash& GetHash(const TransactionWithReceipt& item) {
   return item.GetTransaction().GetTranID();
 }
-};  // namespace
+}  // namespace
 
 template <typename... Container>
 TxnHash ConcatTranAndHash(const Container&... conts) {
