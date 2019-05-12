@@ -256,11 +256,10 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   Peer submitterPeer = sol.GetSubmitterPeer();
   PubKey submitterPubKey = sol.GetSubmitterKey();
   uint64_t nonce = sol.GetNonce();
-  string resultingHash = sol.GetResultingHash();
-  string mixHash = sol.GetMixHash();
-  Signature signature = sol.GetSignature();
+  const string& resultingHash = sol.GetResultingHash();
+  const string& mixHash = sol.GetMixHash();
   uint32_t lookupId = sol.GetLookupId();
-  uint128_t gasPrice = sol.GetGasPrice();
+  const uint128_t& gasPrice = sol.GetGasPrice();
 
   // Check block number
   if (!CheckWhetherDSBlockIsFresh(blockNumber)) {
@@ -456,7 +455,8 @@ void DirectoryService::ResetPoWSubmissionCounter() {
   m_AllPoWCounter.clear();
 }
 
-void DirectoryService::AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln) {
+void DirectoryService::AddDSPoWs(const PubKey& Pubk,
+                                 const PoWSolution& DSPOWSoln) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
@@ -471,7 +471,8 @@ void DirectoryService::ClearDSPoWSolns() {
   m_allDSPoWs.clear();
 }
 
-std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk) {
+std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(
+    const PubKey& Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end()) {
     return m_allDSPoWs[Pubk].result;
@@ -481,7 +482,7 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk) {
   }
 }
 
-bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk) {
+bool DirectoryService::IsNodeSubmittedDSPoWSoln(const PubKey& Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   return m_allDSPoWs.find(Pubk) != m_allDSPoWs.end();
 }

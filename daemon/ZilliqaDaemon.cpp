@@ -56,7 +56,7 @@ enum SyncType : unsigned int {
 
 const string logName = "epochinfo-00001-log.txt";
 
-string ReadLastLine(string filePath, [[gnu::unused]] ofstream& log) {
+string ReadLastLine(const string& filePath, [[gnu::unused]] ofstream& log) {
   ifstream logFile;
 
   logFile.open(filePath + "/" + logName);
@@ -103,7 +103,7 @@ void setIsDs(const pid_t& pid, ofstream& log) {
   }
 }
 
-vector<pid_t> getProcIdByName(string procName, ofstream& log) {
+vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
   vector<pid_t> result;
   result.clear();
 
@@ -178,7 +178,7 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
 
   return result;
 }
-string execute(string cmd) {
+string execute(const string& cmd) {
   array<char, 128> buffer{};
   string result;
   shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
@@ -208,7 +208,7 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
                 unordered_map<pid_t, bool>& died, ofstream& log) {
   bool isProcesstoTrack = false;
   while (!isProcesstoTrack) {
-    for (auto v : programName) {
+    for (const auto& v : programName) {
       vector<pid_t> tmp = getProcIdByName(v, log);
       if (tmp.size() > 0) {
         isProcesstoTrack = true;
@@ -236,7 +236,7 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
 
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
                     unordered_map<pid_t, bool>& died, ofstream& log) {
-  for (string name : programName) {
+  for (const string& name : programName) {
     for (pid_t pid : pids[name]) {
       setIsDs(pid, log);
       int w = kill(pid, 0);

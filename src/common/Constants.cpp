@@ -47,13 +47,13 @@ double ReadConstantDouble(const string& propertyName,
   return pt.get<double>(path + propertyName);
 }
 
-string ReadConstantString(string propertyName,
+string ReadConstantString(const string& propertyName,
                           const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
   return pt.get<string>(path + propertyName);
 }
 
-const vector<string> ReadAccountsFromConstantsFile(string propName) {
+const vector<string> ReadAccountsFromConstantsFile(const string& propName) {
   auto pt = PTree::GetInstance();
   vector<string> result;
   for (auto& acc : pt.get_child("node.accounts")) {

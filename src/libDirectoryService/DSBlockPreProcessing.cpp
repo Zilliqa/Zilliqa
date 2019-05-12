@@ -829,6 +829,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   ComputeSharding(sortedPoWSolns);
 
   vector<Peer> proposedDSMembersInfo;
+  proposedDSMembersInfo.reserve(sortedDSPoWSolns.size());
   for (const auto& proposedMember : sortedDSPoWSolns) {
     proposedDSMembersInfo.emplace_back(m_allPoWConns[proposedMember.second]);
   }

@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   bytes message2;
   BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));
 
-  uint128_t acc2Balance = acc2.GetBalance();
+  const uint128_t& acc2Balance = acc2.GetBalance();
 
   BOOST_CHECK_MESSAGE(
       CURRENT_BALANCE == acc2Balance,

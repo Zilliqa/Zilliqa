@@ -16,6 +16,8 @@
  */
 
 #include "Scheduler.h"
+
+#include <utility>
 #include "ReverseLock.h"
 
 using namespace std;
@@ -71,8 +73,8 @@ void Scheduler::ScheduleAt(std::function<void(void)> f,
 
 void Scheduler::ScheduleAfter(std::function<void(void)> f,
                               int64_t deltaMilliSeconds) {
-  ScheduleAt(
-      f, chrono::system_clock::now() + chrono::milliseconds(deltaMilliSeconds));
+  ScheduleAt(std::move(f), chrono::system_clock::now() +
+                               chrono::milliseconds(deltaMilliSeconds));
 }
 
 static void SchedulePeriodicallyHelper(Scheduler* s,

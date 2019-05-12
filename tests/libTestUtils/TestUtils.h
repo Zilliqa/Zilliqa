@@ -53,7 +53,7 @@ uint128_t DistUint128();
 uint256_t DistUint256();
 
 PubKey GenerateRandomPubKey();
-PubKey GenerateRandomPubKey(PrivKey);
+PubKey GenerateRandomPubKey(const PrivKey&);
 PairOfKey GenerateRandomKeyPair();
 Peer GenerateRandomPeer();
 Peer GenerateRandomPeer(uint8_t, bool);

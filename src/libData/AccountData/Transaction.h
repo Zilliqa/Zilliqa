@@ -185,6 +185,12 @@ class Transaction : public SerializableDataBlock {
 
   /// Greater-than comparison operator.
   bool operator>(const Transaction& tran) const;
+<<<<<<< 48792298ada072bc2a831b6885a1aad8de06911c
+=======
+
+  /// Assignment operator.
+  // Transaction& operator=(const Transaction& src);
+>>>>>>> enable bugprone and performance
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_

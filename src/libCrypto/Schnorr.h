@@ -58,7 +58,7 @@ struct BIGNUMSerialize {
 
   /// Serializes a BIGNUM into specified byte stream.
   static void SetNumber(bytes& dst, unsigned int offset, unsigned int size,
-                        std::shared_ptr<BIGNUM> value);
+                        const std::shared_ptr<BIGNUM>& value);
 };
 
 /// EC-Schnorr utility for serializing ECPOINT data type.
@@ -72,7 +72,7 @@ struct ECPOINTSerialize {
 
   /// Serializes an ECPOINT into specified byte stream.
   static void SetNumber(bytes& dst, unsigned int offset, unsigned int size,
-                        std::shared_ptr<EC_POINT> value);
+                        const std::shared_ptr<EC_POINT>& value);
 };
 
 /// Stores information on an EC-Schnorr private key.

@@ -604,7 +604,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
     Json::Value ret;
     if (account != nullptr) {
-      uint128_t balance = account->GetBalance();
+      const uint128_t& balance = account->GetBalance();
       uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();

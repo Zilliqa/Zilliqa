@@ -482,12 +482,12 @@ void AccountStore::RevertCommitTemp() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   // Revert changed
-  for (auto const entry : m_addressToAccountRevChanged) {
+  for (auto const& entry : m_addressToAccountRevChanged) {
     // LOG_GENERAL(INFO, "Revert changed address: " << entry.first);
     (*m_addressToAccount)[entry.first] = entry.second;
     UpdateStateTrie(entry.first, entry.second);
   }
-  for (auto const entry : m_addressToAccountRevCreated) {
+  for (auto const& entry : m_addressToAccountRevCreated) {
     // LOG_GENERAL(INFO, "Remove created address: " << entry.first);
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);

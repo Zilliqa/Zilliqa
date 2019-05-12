@@ -63,6 +63,6 @@ void BlockBase::SetCoSignatures(const ConsensusCommon& src) {
   m_cosigs.m_B2 = src.GetB2();
 }
 
-void BlockBase::SetCoSignatures(CoSignatures& cosigs) {
-  m_cosigs = move(cosigs);
-}
+void BlockBase::SetCoSignatures(CoSignatures& cosigs) { m_cosigs = cosigs; }
+
+void BlockBase::SetCoSignatures(CoSignatures&& cosigs) { m_cosigs = move(cosigs); }

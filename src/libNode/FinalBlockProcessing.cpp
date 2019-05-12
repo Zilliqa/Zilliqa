@@ -940,7 +940,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
   auto it = m_unavailableMicroBlocks.find(blocknum);
 
-  for (auto it : m_unavailableMicroBlocks) {
+  for (const auto& it : m_unavailableMicroBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Unavailable"
               " microblock bodies in finalblock "

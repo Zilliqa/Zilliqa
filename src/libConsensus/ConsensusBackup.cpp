@@ -16,6 +16,8 @@
  */
 
 #include "ConsensusBackup.h"
+
+#include <utility>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
@@ -407,7 +409,7 @@ ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
                       committee, class_byte, ins_byte),
       m_leaderID(leader_id),
-      m_msgContentValidator(msg_validator) {
+      m_msgContentValidator(std::move(msg_validator)) {
   LOG_MARKER();
   m_state = INITIAL;
 

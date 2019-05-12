@@ -99,12 +99,13 @@ class Logger {
   void LogState(const char* msg);
 
   /// Outputs the specified message and function name to the main log.
-  void LogGeneral(LEVELS level, const char* msg, const unsigned int linenum,
-                  const char* filename, const char* function);
+  void LogGeneral(const LEVELS& level, const char* msg,
+                  const unsigned int linenum, const char* filename,
+                  const char* function);
 
   /// Outputs the specified message, function name, and block number to the main
   /// log.
-  void LogEpoch(LEVELS level, const char* msg, const char* epoch,
+  void LogEpoch(const LEVELS& level, const char* msg, const char* epoch,
                 const unsigned int linenum, const char* filename,
                 const char* function);
 
@@ -118,7 +119,7 @@ class Logger {
                     const char* filename, const char* function,
                     const char* epoch);
 
-  void LogPayload(LEVELS level, const char* msg, const bytes& payload,
+  void LogPayload(const LEVELS& level, const char* msg, const bytes& payload,
                   size_t max_bytes_to_display, const unsigned int linenum,
                   const char* filename, const char* function);
 
@@ -126,13 +127,13 @@ class Logger {
   ///     INFO: display all message
   ///     WARNING: display warning and fatal message
   ///     FATAL: display fatal message only
-  void DisplayLevelAbove(LEVELS level = INFO);
+  void DisplayLevelAbove(const LEVELS& level = INFO);
 
   /// Enable the log level
-  void EnableLevel(LEVELS level);
+  void EnableLevel(const LEVELS& level);
 
   /// Disable the log level
-  void DisableLevel(LEVELS level);
+  void DisableLevel(const LEVELS& level);
 
   /// See if we need to use g3log or not
   bool IsG3Log() { return (m_logToFile && m_bRefactor); };

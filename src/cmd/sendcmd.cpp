@@ -40,7 +40,7 @@ typedef void (*handler_func)(const char*, const char*, vector<string>,
                              const uint32_t);
 
 typedef void (*handler_func_remote)(const char*, const char*, vector<string>,
-                                    const uint128_t, const uint32_t);
+                                    const& uint128_t, const uint32_t);
 
 struct MessageHandler {
   const char* ins;
@@ -72,7 +72,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
 }
 
 void process_remote_cmd(const char* progname, const char* cmdname,
-                        vector<string> args, const uint128_t remote_ip,
+                        vector<string> args, const uint128_t& remote_ip,
                         const uint32_t listen_port) {
   const int num_args_required = 1;
   int numargs = args.size();

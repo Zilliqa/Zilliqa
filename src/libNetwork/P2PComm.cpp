@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <memory>
+#include <utility>
 
 #include "Blacklist.h"
 #include "P2PComm.h"
@@ -347,8 +348,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   return true;
 }
 
-void SendJob::SendMessageCore(const Peer& peer, const bytes message,
-                              unsigned char startbyte, const bytes hash) {
+void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
+                              unsigned char startbyte, const bytes& hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
     // comment this since we already check this in SendMessageSocketCore() and
@@ -821,7 +822,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
   };
   DetachedFunction(1, funcCheckSendQueue);
 
-  m_dispatcher = dispatcher;
+  m_dispatcher = std::move(dispatcher);
 
   struct sockaddr_in serv_addr {};
   memset(&serv_addr, 0, sizeof(struct sockaddr_in));

@@ -296,7 +296,7 @@ void Node::ProcessTransactionWhenShardLeader() {
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = std::move(it->second.begin()->second);
+        t = move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
@@ -526,7 +526,7 @@ void Node::ProcessTransactionWhenShardBackup() {
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = std::move(it->second.begin()->second);
+        t = move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {

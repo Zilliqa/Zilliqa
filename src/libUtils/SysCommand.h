@@ -29,6 +29,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <utility>
 
 #include "Logger.h"
 
@@ -40,7 +41,8 @@ static int pid_place_holder;
 
 class SysCommand {
  public:
-  static FILE* popen_with_pid(std::string command, std::string type, int& pid) {
+  static FILE* popen_with_pid(const std::string& command,
+                              const std::string& type, int& pid) {
     pid_t child_pid;
     int fd[2];
     if (pipe(fd) != 0) {
@@ -102,7 +104,7 @@ class SysCommand {
     return stat;
   }
 
-  static bool ExecuteCmdWithoutOutput(std::string cmd) {
+  static bool ExecuteCmdWithoutOutput(const std::string& cmd) {
     std::string str;
     return ExecuteCmdWithOutput(cmd, str);
   }

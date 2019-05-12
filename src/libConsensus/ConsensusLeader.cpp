@@ -16,6 +16,8 @@
  */
 
 #include "ConsensusLeader.h"
+
+#include <utility>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
@@ -855,8 +857,8 @@ ConsensusLeader::ConsensusLeader(
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
 
-  m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
-  m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
+  m_nodeCommitFailureHandlerFunc = std::move(nodeCommitFailureHandlerFunc);
+  m_shardCommitFailureHandlerFunc = std::move(shardCommitFailureHandlerFunc);
 
   m_commitSecret.reset(new CommitSecret());
   m_commitPoint.reset(new CommitPoint(*m_commitSecret));
@@ -889,7 +891,8 @@ ConsensusLeader::ConsensusLeader(
 ConsensusLeader::~ConsensusLeader() {}
 
 bool ConsensusLeader::StartConsensus(
-    AnnouncementGeneratorFunc announcementGeneratorFunc, bool useGossipProto) {
+    const AnnouncementGeneratorFunc& announcementGeneratorFunc,
+    bool useGossipProto) {
   LOG_MARKER();
 
   // Initial checks

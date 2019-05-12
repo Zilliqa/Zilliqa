@@ -485,7 +485,7 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      uint128_t balance = account->GetBalance();
+      const uint128_t& balance = account->GetBalance();
       ret.set_balance(balance.str());
 
       uint128_t nonce = account->GetNonce();

@@ -43,8 +43,8 @@ inline pid_t getCurrentPid() {
   return 0;
 #endif
 }
-
 } // namespace
+
 
 const streampos Logger::MAX_FILE_SIZE =
     1024 * 1024 * 100;  // 100MB per log file
@@ -125,7 +125,7 @@ void Logger::LogState(const char* msg) {
   }
 }
 
-void Logger::LogGeneral(LEVELS level, const char* msg,
+void Logger::LogGeneral(const LEVELS& level, const char* msg,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
   if (IsG3Log()) {
@@ -169,7 +169,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg,
   }
 }
 
-void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
+void Logger::LogEpoch([[gnu::unused]] const LEVELS& level, const char* msg,
                       const char* epoch, const unsigned int linenum,
                       const char* filename, const char* function) {
   lock_guard<mutex> guard(m);
@@ -202,7 +202,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
   }
 }
 
-void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
+void Logger::LogPayload([[gnu::unused]] const LEVELS& level, const char* msg,
                         const bytes& payload, size_t max_bytes_to_display,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
@@ -298,15 +298,17 @@ void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
   }
 }
 
-void Logger::DisplayLevelAbove(LEVELS level) {
+void Logger::DisplayLevelAbove(const LEVELS& level) {
   if (level != INFO && level != WARNING && level != FATAL) return;
 
   g3::log_levels::setHighest(level);
 }
 
-void Logger::EnableLevel(LEVELS level) { g3::log_levels::enable(level); }
+void Logger::EnableLevel(const LEVELS& level) { g3::log_levels::enable(level); }
 
-void Logger::DisableLevel(LEVELS level) { g3::log_levels::disable(level); }
+void Logger::DisableLevel(const LEVELS& level) {
+  g3::log_levels::disable(level);
+}
 
 pid_t Logger::GetPid() { return getCurrentPid(); }
 

@@ -43,7 +43,7 @@ void processShards(
        ++shardItr, ++shardIndex) {
     for (size_t peerIndex = 0; peerIndex < shardItr->size(); ++peerIndex) {
       // get the peer and convert to ip.
-      Peer peer = std::get<1>((*shardItr)[peerIndex]);
+      const Peer& peer = std::get<1>((*shardItr)[peerIndex]);
       std::string ip = peer.GetPrintableIPAddress();
 
       if (results.find(ip) == results.end()) {
@@ -65,7 +65,7 @@ void processDSCommittee(
   for (auto peerItr = dsCommittee.begin(); peerItr != dsCommittee.end();
        ++peerItr, ++dsCommitteeIndex) {
     // get the peer and convert to ip.
-    Peer peer = std::get<1>(*peerItr);
+    const Peer& peer = std::get<1>(*peerItr);
     std::string ip = peer.GetPrintableIPAddress();
 
     if (results.find(ip) == results.end()) {

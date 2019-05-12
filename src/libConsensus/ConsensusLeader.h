@@ -154,8 +154,9 @@ class ConsensusLeader : public ConsensusCommon {
 
   /// Triggers the start of consensus on a particular message (e.g., DS block).
 
-  bool StartConsensus(AnnouncementGeneratorFunc announcementGeneratorFunc,
-                      bool useGossipProto = false);
+  bool StartConsensus(
+      const AnnouncementGeneratorFunc& announcementGeneratorFunc,
+      bool useGossipProto = false);
 
   /// Function to process any consensus message received.
   bool ProcessMessage(const bytes& message, unsigned int offset,

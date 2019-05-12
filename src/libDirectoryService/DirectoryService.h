@@ -635,11 +635,11 @@ class DirectoryService : public Executable {
   std::string GetActionString(Action action) const;
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 
-  void AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln);
+  void AddDSPoWs(const PubKey& Pubk, const PoWSolution& DSPOWSoln);
   MapOfPubKeyPoW GetAllDSPoWs();
   void ClearDSPoWSolns();
-  std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
-  bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
+  std::array<unsigned char, 32> GetDSPoWSoln(const PubKey& Pubk);
+  bool IsNodeSubmittedDSPoWSoln(const PubKey& Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary();

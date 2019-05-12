@@ -105,6 +105,7 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
   auto txns = GenWithDummyValue(sender, receiver, n);
 
   std::vector<TxnHash> local_txnHashes;
+  local_txnHashes.reserve(txns.size());
   for (const auto& t : txns) {
     local_txnHashes.emplace_back(t.GetTranID());
   }
