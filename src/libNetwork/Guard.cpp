@@ -248,8 +248,8 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
 void Guard::ValidateRunTimeEnvironment() {
   LOG_MARKER();
 
-  unsigned int nodeReplacementLimit =
-      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
+  unsigned int nodeReplacementLimit = static_cast<unsigned int>(
+      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION));
 
   if (NUM_DS_ELECTION > nodeReplacementLimit) {
     LOG_GENERAL(FATAL,

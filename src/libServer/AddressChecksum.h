@@ -65,7 +65,7 @@ class AddressChecksum {
         ret += lower_case_address.at(i);
       } else {
         if ((v & (temp_1 << 255 - 6 * i))) {
-          ret += toupper(lower_case_address.at(i));
+          ret += std::to_string(toupper(lower_case_address.at(i)));
         } else {
           ret += lower_case_address.at(i);
         }

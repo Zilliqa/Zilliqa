@@ -43,7 +43,8 @@ inline pid_t getCurrentPid() {
   return 0;
 #endif
 }
-}  // namespace
+
+} // namespace
 
 const streampos Logger::MAX_FILE_SIZE =
     1024 * 1024 * 100;  // 100MB per log file

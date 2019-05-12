@@ -497,7 +497,7 @@ uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation) {
   if (0 == reputation) {
     return 0;
   }
-  return log2(reputation);
+  return static_cast<uint8_t>(log2(reputation));
 }
 
 void DirectoryService::ClearReputationOfNodeWithoutPoW() {
