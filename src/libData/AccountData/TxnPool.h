@@ -103,7 +103,7 @@ struct TxnPool {
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
     if (searchNonce != NonceIndex.end()) {
       if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
-        t = searchNonce->second;
+        t = std::move(searchNonce->second);
 
         // erase tx nonce map
         NonceIndex.erase(searchNonce);
@@ -127,7 +127,7 @@ struct TxnPool {
     auto firstHash = firstGas->second.begin();
 
     if (firstHash != firstGas->second.end()) {
-      t = firstHash->second;
+      t = std::move(firstHash->second);
 
       // erase tx gas map
       firstGas->second.erase(firstHash);

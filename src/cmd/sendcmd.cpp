@@ -40,7 +40,7 @@ typedef void (*handler_func)(const char*, const char*, vector<string>,
                              const uint32_t);
 
 typedef void (*handler_func_remote)(const char*, const char*, vector<string>,
-                                    const& uint128_t, const uint32_t);
+                                    const uint128_t&, const uint32_t);
 
 struct MessageHandler {
   const char* ins;
