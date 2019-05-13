@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCOUNTSTORE_H__
-#define __ACCOUNTSTORE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
 
 #include <json/json.h>
 #include <map>
@@ -197,4 +197,4 @@ class AccountStore
   void InitRevertibles();
 };
 
-#endif  // __ACCOUNTSTORE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

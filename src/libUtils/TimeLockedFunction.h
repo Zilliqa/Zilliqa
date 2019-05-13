@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TIMELOCKEDFUNCTION_H__
-#define __TIMELOCKEDFUNCTION_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_TIMELOCKEDFUNCTION_H_
+#define ZILLIQA_SRC_LIBUTILS_TIMELOCKEDFUNCTION_H_
 
 #include <chrono>
 #include <functional>
@@ -95,4 +95,4 @@ class TimeLockedFunction {
   }
 };
 
-#endif  // __TIMELOCKEDFUNCTION_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_TIMELOCKEDFUNCTION_H_

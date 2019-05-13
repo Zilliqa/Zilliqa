@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __JSONUTILS_H__
-#define __JSONUTILS_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_JSONUTILS_H_
+#define ZILLIQA_SRC_LIBUTILS_JSONUTILS_H_
 
 #include <json/json.h>
 #include <memory>
@@ -83,4 +83,4 @@ class JSONUtils {
   }
 };
 
-#endif  // __JSONUTILS_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_JSONUTILS_H_

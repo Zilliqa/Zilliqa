@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGERACCOUNTSTOREBASE_H__
-#define __MESSENGERACCOUNTSTOREBASE_H__
+#ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTOREBASE_H_
+#define ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTOREBASE_H_
 
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
@@ -40,4 +40,4 @@ class MessengerAccountStoreBase {
                               MAP& addressToAccount);
 };
 
-#endif  // __MESSENGERACCOUNTSTOREBASE_H__
+#endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTOREBASE_H_

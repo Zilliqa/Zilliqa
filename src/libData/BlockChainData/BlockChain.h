@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKCHAIN_H__
-#define __BLOCKCHAIN_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_
 
 #include <mutex>
 
@@ -160,4 +160,4 @@ class FallbackBlockChain : public BlockChain<FallbackBlock> {
   }
 };
 
-#endif  // __BLOCKCHAIN_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_

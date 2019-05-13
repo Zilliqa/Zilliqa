@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __RUMORSPREADINGINTERFACE_H__
-#define __RUMORSPREADINGINTERFACE_H__
+#ifndef ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSPREADINGINTERFACE_H_
+#define ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSPREADINGINTERFACE_H_
 
 #include <functional>
 #include <memory>
@@ -75,4 +75,4 @@ class RumorSpreadingInterface {
 
 }  // namespace RRS
 
-#endif  //__RUMORSPREADINGINTERFACE_H__
+#endif  // ZILLIQA_SRC_LIBRUMORSPREADING_RUMORSPREADINGINTERFACE_H_

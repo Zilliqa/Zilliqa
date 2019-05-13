@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef BLOCKSTORAGE_H
-#define BLOCKSTORAGE_H
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_
 
 #include <list>
 #include <mutex>
@@ -362,4 +362,4 @@ class BlockStorage : public Singleton<BlockStorage> {
   unsigned int m_diagnosticDBCoinbaseCounter;
 };
 
-#endif  // BLOCKSTORAGE_H
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_

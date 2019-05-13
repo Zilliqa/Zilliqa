@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __FALLBACKBLOCK_H__
-#define __FALLBACKBLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCK_H_
 
 #include "BlockBase.h"
 #include "common/Constants.h"
@@ -70,4 +70,4 @@ inline std::ostream& operator<<(std::ostream& os, const FallbackBlock& t) {
   return os;
 }
 
-#endif  // __FALLBACKBLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCK_H_

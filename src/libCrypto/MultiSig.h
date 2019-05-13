@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MULTISIG_H__
-#define __MULTISIG_H__
+#ifndef ZILLIQA_SRC_LIBCRYPTO_MULTISIG_H_
+#define ZILLIQA_SRC_LIBCRYPTO_MULTISIG_H_
 
 #include <memory>
 #include <vector>
@@ -309,4 +309,4 @@ class MultiSig {
                         const Signature& signature, const PubKey& pubKey);
 };
 
-#endif  // __MULTISIG_H__
+#endif  // ZILLIQA_SRC_LIBCRYPTO_MULTISIG_H_

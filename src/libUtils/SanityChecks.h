@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SANITYCHECKS_H__
-#define __SANITYCHECKS_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SANITYCHECKS_H_
+#define ZILLIQA_SRC_LIBUTILS_SANITYCHECKS_H_
 
 #include <cstring>
 
@@ -27,4 +27,4 @@ bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int factor = 0,
                                 std::string errMsg = "");
 
-#endif  // __SANITYCHECKS_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SANITYCHECKS_H_

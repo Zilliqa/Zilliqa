@@ -44,6 +44,7 @@ addons:
     - clang-format-5.0
     - clang-tidy-5.0
     - curl
+    - gawk
     - git
     - lcov
     - libxml2-utils

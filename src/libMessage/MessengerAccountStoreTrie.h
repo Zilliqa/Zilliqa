@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGERACCOUNTSTORETRIE_H__
-#define __MESSENGERACCOUNTSTORETRIE_H__
+#ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_
+#define ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_
 
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
@@ -38,4 +38,4 @@ class MessengerAccountStoreTrie {
       const std::shared_ptr<MAP>& addressToAccount);
 };
 
-#endif  // __MESSENGERACCOUNTSTORETRIE_H__
+#endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_

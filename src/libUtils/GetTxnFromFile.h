@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#ifndef __GetTxnFromFile_H__
-#define __GetTxnFromFile_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_GETTXNFROMFILE_H_
+#define ZILLIQA_SRC_LIBUTILS_GETTXNFROMFILE_H_
 
 #include "Logger.h"
 #include "libData/AccountData/Transaction.h"
@@ -158,4 +158,4 @@ class GetTxnFromFile {
   }
 };
 
-#endif
+#endif  // ZILLIQA_SRC_LIBUTILS_GETTXNFROMFILE_H_

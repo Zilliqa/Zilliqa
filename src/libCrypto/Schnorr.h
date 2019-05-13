@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SCHNORR_H__
-#define __SCHNORR_H__
+#ifndef ZILLIQA_SRC_LIBCRYPTO_SCHNORR_H_
+#define ZILLIQA_SRC_LIBCRYPTO_SCHNORR_H_
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -300,4 +300,4 @@ class Schnorr {
   void PrintPoint(const EC_POINT* point);
 };
 
-#endif  // __SCHNORR_H__
+#endif  // ZILLIQA_SRC_LIBCRYPTO_SCHNORR_H_

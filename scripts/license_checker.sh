@@ -46,7 +46,8 @@ scope=$(find . -type f \( \
             -o -name "*.sh" \) \
             ! -name "run-clang-*.py" \
             ! -path "./build/*" \
-            ! -path "./src/depends/*")
+            ! -path "./src/depends/*" \
+            ! -path "./scripts/depends/*")
 
 lc_license=$(wc -l $banner_file | egrep "[0-9]+" -o | head -n1)
 

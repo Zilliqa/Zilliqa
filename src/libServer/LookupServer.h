@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOOKUP_SERVER_H__
-#define __LOOKUP_SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
 #include "Server.h"
 
@@ -226,4 +226,4 @@ class LookupServer : public Server,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
 };
 
-#endif  //__LOOKUP_SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

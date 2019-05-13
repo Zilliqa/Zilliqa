@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __FALLBACKBLOCKHEADER_H__
-#define __FALLBACKBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_FALLBACKBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_FALLBACKBLOCKHEADER_H_
 
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
@@ -116,4 +116,4 @@ inline std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-#endif  // __FALLBACKBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_FALLBACKBLOCKHEADER_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SYNCHRONIZER_H__
-#define __SYNCHRONIZER_H__
+#ifndef ZILLIQA_SRC_LIBLOOKUP_SYNCHRONIZER_H_
+#define ZILLIQA_SRC_LIBLOOKUP_SYNCHRONIZER_H_
 
 #include "libData/BlockChainData/BlockChain.h"
 #include "libLookup/Lookup.h"
@@ -48,4 +48,4 @@ class Synchronizer {
   bool FetchLatestTxBlockSeed(Lookup* lookup, uint64_t currentBlockChainSize);
 };
 
-#endif  // __SYNCHRONIZER_H__
+#endif  // ZILLIQA_SRC_LIBLOOKUP_SYNCHRONIZER_H_

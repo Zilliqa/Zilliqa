@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONSENSUSLEADER_H__
-#define __CONSENSUSLEADER_H__
+#ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
+#define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
 
 #include <deque>
 #include <functional>
@@ -174,4 +174,4 @@ class ConsensusLeader : public ConsensusCommon {
   std::string GetActionString(Action action) const;
 };
 
-#endif  // __CONSENSUSLEADER_H__
+#endif  // ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_

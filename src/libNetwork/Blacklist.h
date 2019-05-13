@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLACKLIST_H__
-#define __BLACKLIST_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_BLACKLIST_H_
+#define ZILLIQA_SRC_LIBNETWORK_BLACKLIST_H_
 
 #include <atomic>
 #include <mutex>
@@ -78,4 +78,4 @@ class Blacklist {
   bool RemoveExclude(const uint128_t& ip);
 };
 
-#endif  // __BLACKLIST_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_BLACKLIST_H_

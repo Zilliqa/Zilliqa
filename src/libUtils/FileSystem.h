@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __FILESYSTEM_H__
-#define __FILESYSTEM_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
+#define ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
 
 #include <boost/filesystem.hpp>
 
@@ -25,4 +25,4 @@ namespace bfs = boost::filesystem;
 // Copy source directory to destination directory
 void recursive_copy_dir(const bfs::path& src, const bfs::path& dst);
 
-#endif  // __FILESYSTEM_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
