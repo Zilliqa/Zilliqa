@@ -68,9 +68,6 @@ class Transaction : public SerializableDataBlock {
   /// Default constructor.
   Transaction();
 
-  /// Copy constructor.
-  Transaction(const Transaction& src);
-
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PairOfKey& senderKeyPair,
@@ -188,9 +185,6 @@ class Transaction : public SerializableDataBlock {
 
   /// Greater-than comparison operator.
   bool operator>(const Transaction& tran) const;
-
-  /// Assignment operator.
-  Transaction& operator=(const Transaction& src);
 };
 
 #endif  // __TRANSACTION_H__
