@@ -271,16 +271,14 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         }
 
         try {
+          const string params = PubKey[pid] + " " + PrivKey[pid] + " " +
+                                Port[pid] + " " + to_string(v) + " " +
+                                Path[pid] + " " + name + " 2>&1";
           log << "Trying to restart .." << endl;
-          log << "Params: "
-              << PubKey[pid] + " " + PrivKey[pid] + " " + Port[pid] + " " +
-                     to_string(v) + " " + Path[pid] + " " + name + " 2>&1"
-              << endl;
+          log << "Params: " << params << endl;
           log << "Output from shell...(if any)" << endl << endl;
           log << "\" "
-              << execute(restart_zilliqa + " " + PubKey[pid] + " " +
-                         PrivKey[pid] + " " + Port[pid] + " " + to_string(v) +
-                         " " + Path[pid] + " " + name + " 2>&1")
+              << execute(string(restart_zilliqa).append(" ").append(params))
               << " \"" << endl;
           log << endl;
         } catch (runtime_error& e) {
