@@ -40,7 +40,7 @@ class LookupServer : public Server,
 
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
-  ~LookupServer();
+  ~LookupServer() = default;
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
                                     Json::Value& response) {
