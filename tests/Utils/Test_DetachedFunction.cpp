@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_SUITE(utils)
 
 mutex m;
 
-void test2(shared_ptr<vector<string>> s) {
+void test2(const shared_ptr<vector<string>>& s) {
   LOG_MARKER();
 
   lock_guard<mutex> guard(m);

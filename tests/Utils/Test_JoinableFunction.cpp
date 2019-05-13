@@ -36,7 +36,7 @@ void test1() {
   this_thread::sleep_for(chrono::seconds(3));
 }
 
-void test2(shared_ptr<vector<string>> s) {
+void test2(const shared_ptr<vector<string>>& s) {
   LOG_MARKER();
 
   lock_guard<mutex> guard(m);
