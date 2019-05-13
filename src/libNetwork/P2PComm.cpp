@@ -268,9 +268,9 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                         "Socket selected for write successfully for " << peer);
           }
         } else {
-          LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
-                                          << errno << " - " << strerror(errno)
-                                          << ")");
+          LOG_GENERAL(WARNING, "TIMEOUTCONN " << peer << "(" << status << " - "
+                                              << errno << " - "
+                                              << strerror(errno) << ")");
           connectStat = false;
         }
       }
