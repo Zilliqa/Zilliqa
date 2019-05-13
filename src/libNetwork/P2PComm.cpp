@@ -225,9 +225,9 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
                           sizeof(serv_addr))) < 0) {
       if (errno != EINPROGRESS) {
-        LOG_GENERAL(WARNING, "Error connecting (status "
-                                 << status << "): error -> " << errno << " - "
-                                 << strerror(errno));
+        LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                        << errno << " - " << strerror(errno)
+                                        << ")");
         connectStat = false;
       } else {
         struct pollfd pfd_write;
@@ -246,30 +246,31 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
         status = poll(&pfd_write, 1, CONNECTION_TIMEOUT_IN_SECONDS * 1000);
 
         if (status < 0) {
-          LOG_GENERAL(WARNING, "Error connecting (status "
-                                   << status << "): error -> " << errno << " - "
-                                   << strerror(errno));
+          LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                          << errno << " - " << strerror(errno)
+                                          << ")");
           connectStat = false;
         } else if (status > 0) {
           // Socket selected for write
           lon = sizeof(int);
           if (getsockopt(cli_sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt),
                          &lon) < 0) {
-            LOG_GENERAL(WARNING, "Error getsockopt!");
+            LOG_GENERAL(WARNING, "ERRGETSOCKOPT " << peer);
             connectStat = false;
           }  // Check the value returned...
           else if (valopt) {
-            LOG_GENERAL(WARNING, "Error connecting (status "
-                                     << status << "): error -> " << valopt
-                                     << " - " << strerror(valopt));
+            LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                            << valopt << " - "
+                                            << strerror(valopt) << ")");
             connectStat = false;
           } else {
-            LOG_GENERAL(DEBUG, "Socket selected for write successfully");
+            LOG_GENERAL(DEBUG,
+                        "Socket selected for write successfully for " << peer);
           }
         } else {
-          LOG_GENERAL(WARNING, "Timeout connecting (status "
-                                   << status << "): error -> " << errno << " - "
-                                   << strerror(errno));
+          LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                          << errno << " - " << strerror(errno)
+                                          << ")");
           connectStat = false;
         }
       }
