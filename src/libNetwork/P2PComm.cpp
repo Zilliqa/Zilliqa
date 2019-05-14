@@ -477,12 +477,12 @@ void P2PComm::CloseAndFreeBufferEvent(struct bufferevent* bufev) {
   socklen_t addr_size = sizeof(struct sockaddr_in);
   getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
   uint128_t ipAddr = cli_addr.sin_addr.s_addr;
-
-  std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-  if (m_peerConnectionCount[ipAddr] > 0) {
-    m_peerConnectionCount[ipAddr]--;
+  {
+    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+    if (m_peerConnectionCount[ipAddr] > 0) {
+      m_peerConnectionCount[ipAddr]--;
+    }
   }
-
   bufferevent_free(bufev);
 }
 
