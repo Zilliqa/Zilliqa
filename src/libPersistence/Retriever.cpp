@@ -367,6 +367,13 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
       if (!BlockStorage::GetBlockStorage().DeleteDSBlock(
               std::get<BlockLinkIndex::DSINDEX>(blocklink))) {
         LOG_GENERAL(WARNING, "BlockStorage::DeleteDSBlock failed");
+      } else {
+        if (!BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::DSINCOMPLETED, {'0'})) {
+          LOG_GENERAL(WARNING,
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+          return false;
+        }
       }
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::VC) {

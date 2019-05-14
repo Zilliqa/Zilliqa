@@ -293,6 +293,12 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       }
+      if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                       {'0'})) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+        return;
+      }
       LOG_STATE("[FLBLK][" << setw(15) << left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
                            << "]["

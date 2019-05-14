@@ -65,6 +65,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
+  this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
+                                            jsonrpc::PARAMS_BY_POSITION,
+                                            jsonrpc::JSON_STRING, NULL),
+                         &StatusServer::GetLatestEpochStatesUpdatedI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetEpochFin", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -77,6 +81,15 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDifficultyI);
+}
+
+string StatusServer::GetLatestEpochStatesUpdated() {
+  LOG_MARKER();
+  uint64_t epochNum;
+  if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(epochNum)) {
+    return "";
+  }
+  return to_string(epochNum);
 }
 
 string StatusServer::GetEpochFin() {

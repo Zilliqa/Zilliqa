@@ -74,10 +74,10 @@ const unsigned int MAINNET_CHAIN_ID = 1;
 // Metadata type
 enum MetaType : unsigned char {
   STATEROOT = 0x00,
-  DSINCOMPLETED,  // [deprecated]
+  DSINCOMPLETED,  // [deprecated soon]
   LATESTACTIVEDSBLOCKNUM,
   WAKEUPFORUPGRADE,
-  LATEST_EPOCH_STATES_UPDATED,  // [deprecated]
+  LATEST_EPOCH_STATES_UPDATED,  // [deprecated soon]
   EPOCHFIN,
 };
 

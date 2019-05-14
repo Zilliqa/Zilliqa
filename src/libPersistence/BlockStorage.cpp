@@ -58,7 +58,18 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
 }
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
-  return PutBlock(blockNum, body, BlockType::DS);
+  // return PutBlock(blockNum, body, BlockType::DS);
+  bool ret = false;
+  if (PutBlock(blockNum, body, BlockType::DS)) {
+    if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})) {
+      ret = true;
+    } else {
+      if (!DeleteDSBlock(blockNum)) {
+        LOG_GENERAL(INFO, "FAIL: Delete DSBlock" << blockNum << "Failed");
+      }
+    }
+  }
+  return ret;
 }
 
 bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
@@ -634,6 +645,14 @@ bool BlockStorage::PutStateRoot(const bytes& data) {
   return (ret == 0);
 }
 
+bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
+  LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
+  int ret =
+      m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
+  return (ret == 0);
+}
+
 bool BlockStorage::PutEpochFin(const uint64_t& epochNum) {
   LOG_MARKER();
   return BlockStorage::GetBlockStorage().PutMetadata(
@@ -676,6 +695,29 @@ bool BlockStorage::GetStateRoot(bytes& data) {
 
   data = bytes(stateRoot.begin(), stateRoot.end());
 
+  return true;
+}
+
+bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
+  LOG_MARKER();
+
+  string epochNumStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
+    epochNumStr = m_stateRootDB->Lookup(LATEST_EPOCH_STATES_UPDATED);
+  }
+
+  if (epochNumStr.empty()) {
+    LOG_GENERAL(INFO, "No Latest Epoch State Updated get");
+    return false;
+  }
+
+  try {
+    epochNum = stoull(epochNumStr);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "epochNumStr is not numeric");
+    return false;
+  }
   return true;
 }
 
