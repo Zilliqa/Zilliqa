@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOOKUP_H__
-#define __LOOKUP_H__
+#ifndef ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
+#define ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
 
 #include <atomic>
 #include <chrono>
@@ -104,10 +104,6 @@ class Lookup : public Executable {
   /// Post processing after the lookup node successfully synchronized with the
   /// network
   bool FinishRejoinAsLookup();
-
-  /// Post processing after the new Lookup node successfully synchronized with
-  /// the network
-  bool FinishNewJoinAsLookup();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -216,6 +212,8 @@ class Lookup : public Executable {
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
 
+  void RectifyTxnShardMap(const uint32_t, const uint32_t);
+
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
@@ -272,10 +270,9 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread();
+  void SenderTxnBatchThread(const uint32_t);
 
-  void SendTxnPacketToNodes(uint32_t);
-
+  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
@@ -406,4 +403,4 @@ class Lookup : public Executable {
   std::condition_variable cv_dsInfoUpdate;
 };
 
-#endif  // __LOOKUP_H__
+#endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

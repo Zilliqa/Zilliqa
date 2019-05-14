@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CONCURRENT_THREADPOOL_H
-#define CONCURRENT_THREADPOOL_H
+#ifndef ZILLIQA_SRC_LIBUTILS_THREADPOOL_H_
+#define ZILLIQA_SRC_LIBUTILS_THREADPOOL_H_
 
 #include <condition_variable>
 #include <functional>
@@ -189,4 +189,4 @@ class ThreadPool {
 };
 
 #undef CONTIGUOUS_JOBS_MEMORY
-#endif  // CONCURRENT_THREADPOOL_H
+#endif  // ZILLIQA_SRC_LIBUTILS_THREADPOOL_H_

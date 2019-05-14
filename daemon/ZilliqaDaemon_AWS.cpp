@@ -25,16 +25,23 @@
 #include <unistd.h>
 #include <algorithm>
 #include <array>
+#include <boost/program_options.hpp>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
 using namespace std;
+namespace po = boost::program_options;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
 
 const vector<string> programName = {"zilliqa"};
 const string restart_zilliqa =
@@ -46,6 +53,7 @@ const string PUBKEY_OPT = "--pubk";
 const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
+const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
@@ -240,8 +248,15 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
+bool DownloadPersistenceFromS3() {
+  string output;
+  output = execute(start_downloadScript);
+  return (output.find("Done!") != std::string::npos);
+}
+
 void StartNewProcess(const string pubKey, const string privKey, const string ip,
-                     const string port, const string path, ofstream& log) {
+                     const string port, const string path, bool cseed,
+                     ofstream& log) {
   log << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
@@ -257,12 +272,22 @@ void StartNewProcess(const string pubKey, const string privKey, const string ip,
       }
       sleep(1);
     }
-
-    /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior to
-    /// Zilliqa process being killed. Thus, we can use the variable 'bSuspend'
-    /// to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-    string syncType =
-        bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
+    string syncType;
+    if (cseed) {
+      // 1. Download Incremental DB Persistence
+      // 2. Restart zilliqa with syncType 6
+      while (!DownloadPersistenceFromS3()) {
+        cout << "Downloading persistence from S3 has failed. Will try again!"
+             << endl;
+        this_thread::sleep_for(chrono::seconds(10));
+      }
+      syncType = "6";
+    } else {
+      /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
+      /// to Zilliqa process being killed. Thus, we can use the variable
+      /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
+      syncType = bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
+    }
     log << "\" "
         << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
                    " " + port + " " + syncType + " " + path + " 2>&1")
@@ -272,7 +297,8 @@ void StartNewProcess(const string pubKey, const string privKey, const string ip,
 }
 
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
-                    unordered_map<pid_t, bool>& died, ofstream& log) {
+                    unordered_map<pid_t, bool>& died, bool cseed,
+                    ofstream& log) {
   const string name = programName[0];
 
   if (pids[name].empty()) {
@@ -314,7 +340,7 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
       }
 
       StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid], Path[pid],
-                      log);
+                      cseed, log);
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
@@ -325,8 +351,35 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
+  po::options_description desc("Options");
+  desc.add_options()("help,h", "Print help messages")(
+      "cseed,s", "Runs for community seed node");
   pid_t pid_parent, sid;
+  po::variables_map vm;
+  bool cseed = false;
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+
+    if (vm.count("help")) {
+      cout << desc << endl;
+      return SUCCESS;
+    }
+    po::notify(vm);
+
+    if (vm.count("cseed")) {
+      cout << "Running Daemon for community seed node" << endl;
+      cseed = true;
+    }
+  } catch (boost::program_options::required_option& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    std::cout << desc;
+    return ERROR_IN_COMMAND_LINE;
+  } catch (boost::program_options::error& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    return ERROR_IN_COMMAND_LINE;
+  }
+
   ofstream log;
   log.open("daemon-log.txt", fstream::out | fstream::trunc);
 
@@ -366,7 +419,7 @@ int main() {
   initialize(pids, died, log);
 
   while (1) {
-    MonitorProcess(pids, died, log);
+    MonitorProcess(pids, died, cseed, log);
     sleep(5);
   }
 

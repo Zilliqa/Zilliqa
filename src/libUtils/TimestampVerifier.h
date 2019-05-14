@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TIMESTAMPVERIFIER_H__
-#define __TIMESTAMPVERIFIER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_
+#define ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_
 
 #include "Logger.h"
 #include "TimeUtils.h"
@@ -55,4 +55,4 @@ static bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
   return true;
 }
 
-#endif  // __TIMESTAMPVERIFIER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_

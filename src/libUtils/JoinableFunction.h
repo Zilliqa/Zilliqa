@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __JOINABLEFUNCTION_H__
-#define __JOINABLEFUNCTION_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_JOINABLEFUNCTION_H_
+#define ZILLIQA_SRC_LIBUTILS_JOINABLEFUNCTION_H_
 
 #include <chrono>
 #include <functional>
@@ -59,4 +59,4 @@ class JoinableFunction {
   }
 };
 
-#endif  // __JOINABLEFUNCTION_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_JOINABLEFUNCTION_H_

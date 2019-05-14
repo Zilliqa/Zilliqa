@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __EXECUTABLE_H__
-#define __EXECUTABLE_H__
+#ifndef ZILLIQA_SRC_COMMON_EXECUTABLE_H_
+#define ZILLIQA_SRC_COMMON_EXECUTABLE_H_
 
 #include <vector>
 #include "libNetwork/Peer.h"
@@ -32,4 +32,4 @@ class Executable {
   virtual ~Executable() {}
 };
 
-#endif  // __EXECUTABLE_H__
+#endif  // ZILLIQA_SRC_COMMON_EXECUTABLE_H_

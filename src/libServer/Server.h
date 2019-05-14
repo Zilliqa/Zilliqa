@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SERVER_H__
-#define __SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_SERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_SERVER_H_
 
 #include <mutex>
 #include <random>
@@ -30,11 +30,10 @@ class Mediator;
 class Server {
  protected:
   Mediator& m_mediator;
-
- public:
   Server(Mediator& mediator) : m_mediator(mediator) {}
   ~Server();
 
+ public:
   enum RPCErrorCode {
     //! Standard JSON-RPC 2.0 errors
     // RPC_INVALID_REQUEST is internally mapped to HTTP_BAD_REQUEST (400).
@@ -63,13 +62,6 @@ class Server {
         -26,  //!< Transaction or block was rejected by network rules
     RPC_IN_WARMUP = -28,          //!< Client still warming up
     RPC_METHOD_DEPRECATED = -32,  //!< RPC method is deprecated
-  };
-
-  enum ContractType {
-    NON_CONTRACT = 0,
-    CONTRACT_CREATION,
-    CONTRACT_CALL,
-    ERROR
   };
 
   inline virtual void GetCurrentMiniEpochI(const Json::Value& request,
@@ -106,7 +98,6 @@ class Server {
   virtual std::string GetNodeType();
   virtual uint8_t GetPrevDSDifficulty();
   virtual uint8_t GetPrevDifficulty();
-  ContractType GetTransactionType(const Transaction& tx) const;
 };
 
-#endif  //__SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_SERVER_H_

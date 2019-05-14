@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKBASE_H__
-#define __BLOCKBASE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
 #include <array>
 #include "common/BaseType.h"
@@ -97,4 +97,4 @@ inline std::ostream& operator<<(std::ostream& os, const BlockBase& t) {
   return os;
 }
 
-#endif  // __BLOCKBASE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_

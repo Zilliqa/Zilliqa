@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SERIALIZABLE_H__
-#define __SERIALIZABLE_H__
+#ifndef ZILLIQA_SRC_COMMON_SERIALIZABLE_H_
+#define ZILLIQA_SRC_COMMON_SERIALIZABLE_H_
 
 #include "BaseType.h"
 
@@ -122,4 +122,4 @@ class SerializableDataBlock {
   }
 };
 
-#endif  // __SERIALIZABLE_H__
+#endif  // ZILLIQA_SRC_COMMON_SERIALIZABLE_H_

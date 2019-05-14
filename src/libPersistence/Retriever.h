@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __RETRIEVER_H__
-#define __RETRIEVER_H__
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_RETRIEVER_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_RETRIEVER_H_
 
 #include <list>
 #include <map>
@@ -41,4 +41,4 @@ class Retriever {
   Mediator& m_mediator;
 };
 
-#endif  // __RETRIEVER_H__
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_RETRIEVER_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __UPGRADEMANAGER_H__
-#define __UPGRADEMANAGER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_
+#define ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_
 
 #include <curl/curl.h>
 #include <cstring>
@@ -47,4 +47,4 @@ class UpgradeManager {
   bool LoadInitialDS(std::vector<PubKey>& initialDSCommittee);
 };
 
-#endif  // __UPGRADEMANAGER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_

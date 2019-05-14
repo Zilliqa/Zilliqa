@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __GUARD_H__
-#define __GUARD_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_GUARD_H_
+#define ZILLIQA_SRC_LIBNETWORK_GUARD_H_
 
 #include <mutex>
 #include <unordered_map>
@@ -73,4 +73,4 @@ class Guard {
   void Init();
 };
 
-#endif  // __GUARD_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_GUARD_H_

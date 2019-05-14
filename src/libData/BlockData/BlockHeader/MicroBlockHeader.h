@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MICROBLOCKHEADER_H__
-#define __MICROBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
 
 #include <array>
 
@@ -100,4 +100,4 @@ inline std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
   return os;
 }
 
-#endif  // __MICROBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_

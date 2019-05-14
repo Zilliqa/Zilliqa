@@ -89,7 +89,7 @@ bool SafeMath<T>::div(const T& a, const T& b, T& result) {
 }
 
 template <class T>
-bool SafeMath<T>::power(const T& base, const T& exponent, T& result) {
+bool SafeMath<T>::power_core(const T& base, const T& exponent, T& result) {
   if (exponent == 0) {
     result = 1;
     return true;
@@ -118,26 +118,15 @@ bool SafeMath<T>::power(const T& base, const T& exponent, T& result) {
 // Now only used for declare constant variable in Constants.cpp
 template <class T>
 T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
-  if (exponent == 0) {
-    return 1;
-  }
-
-  if (exponent < 0) {
-    LOG_GENERAL(WARNING, "Doesn't support pow with negative index");
-    return 0;
-  }
-
-  T ret = base, count = exponent - 1;
-
-  while (count > 0) {
-    if (!SafeMath::mul(ret, base, ret)) {
-      LOG_GENERAL(isCritical ? FATAL : WARNING,
-                  "SafeMath::pow failed ret: " << ret << " base " << base);
-      return ret;
+  T ret{};
+  if (!SafeMath::power_core(base, exponent, ret)) {
+    LOG_GENERAL(isCritical ? FATAL : WARNING,
+                "SafeMath::power failed ret: " << ret << " base " << base);
+    if (isCritical) {
+      throw std::runtime_error("[Critical] SafeMath::power failed");
     }
-    --count;
+    return ret;
   }
-
   return ret;
 }
 

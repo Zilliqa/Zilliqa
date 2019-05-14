@@ -75,4 +75,4 @@ BOOST_AUTO_TEST_CASE(testAddress) {
         "Result = " << result << " resultVector[]" << resultVector.at(i));
   }
 }
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_SUITE_END()

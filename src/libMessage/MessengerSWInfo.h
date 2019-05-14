@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGERSWINFO_H__
-#define __MESSENGERSWINFO_H__
+#ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGERSWINFO_H_
+#define ZILLIQA_SRC_LIBMESSAGE_MESSENGERSWINFO_H_
 
 #include "common/BaseType.h"
 
@@ -34,4 +34,4 @@ class MessengerSWInfo {
                         const SWInfo& swInfo);
 };
 
-#endif  // __MESSENGERSWINFO_H__
+#endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERSWINFO_H_

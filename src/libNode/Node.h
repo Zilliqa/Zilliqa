@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __NODE_H__
-#define __NODE_H__
+#ifndef ZILLIQA_SRC_LIBNODE_NODE_H_
+#define ZILLIQA_SRC_LIBNODE_NODE_H_
 
 #include <condition_variable>
 #include <deque>
@@ -210,7 +210,7 @@ class Node : public Executable {
                                           bool& isEveryMicroBlockAvailable);
 
   // void StoreMicroBlocks();
-  void StoreFinalBlock(const TxBlock& txBlock);
+  bool StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
   void ScheduleMicroBlockConsensus();
   void BeginNextConsensusRound();
@@ -466,6 +466,8 @@ class Node : public Executable {
   bool StartRetrieveHistory(const SyncType syncType,
                             bool rejoiningAfterRecover = false);
 
+  bool CheckIntegrity();
+
   bool ValidateDB();
 
   // Erase m_committedTransactions for given epoch number
@@ -615,4 +617,4 @@ class Node : public Executable {
   bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
 };
 
-#endif  // __NODE_H__
+#endif  // ZILLIQA_SRC_LIBNODE_NODE_H_

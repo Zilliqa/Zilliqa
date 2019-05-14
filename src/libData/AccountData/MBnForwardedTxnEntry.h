@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MBNFORWARDEDTXNENTRY_H__
-#define __MBNFORWARDEDTXNENTRY_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_MBNFORWARDEDTXNENTRY_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_MBNFORWARDEDTXNENTRY_H_
 
 #include "AccountStore.h"
 #include "Transaction.h"
@@ -43,4 +43,4 @@ inline std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-#endif  // __MBNFORWARDEDTXNENTRY_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_MBNFORWARDEDTXNENTRY_H_

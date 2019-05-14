@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TRANSACTIONRECEIPT_H__
-#define __TRANSACTIONRECEIPT_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
 
 #include <json/json.h>
 
@@ -136,4 +136,4 @@ class TransactionWithReceipt : public SerializableDataBlock {
   }
 };
 
-#endif  // __TRANSACTIONRECEIPT_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_

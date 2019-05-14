@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_H_
 
 #include "Block/DSBlock.h"
 #include "Block/FallbackBlock.h"
@@ -32,4 +32,4 @@
 
 enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2, FB = 3 };
 
-#endif  // __BLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_H_

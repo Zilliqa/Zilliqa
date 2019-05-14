@@ -81,7 +81,7 @@ void DirectoryService::StartSynchronization(bool clean) {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_synchronizer.FetchLatestTxBlocks(
+      m_synchronizer.FetchLatestTxBlockSeed(
           m_mediator.m_lookup,
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
@@ -138,6 +138,12 @@ bool DirectoryService::CheckState(Action action) {
   }
 
   return true;
+}
+
+uint32_t DirectoryService::GetNumShards() const {
+  lock_guard<mutex> g(m_mutexShards);
+
+  return m_shards.size();
 }
 
 bool DirectoryService::ProcessSetPrimary(const bytes& message,
@@ -486,8 +492,14 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
               "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        BlockStorage::GetBlockStorage().RefreshAll();
-        AccountStore::GetInstance().RefreshDB();
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+          return;
+        }
         if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
           break;
         }

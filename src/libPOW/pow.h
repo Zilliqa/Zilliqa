@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __POW_H__
-#define __POW_H__
+#ifndef ZILLIQA_SRC_LIBPOW_POW_H_
+#define ZILLIQA_SRC_LIBPOW_POW_H_
 
 #include <stdint.h>
 #include <array>
@@ -62,8 +62,8 @@ class POW {
  public:
   static ethash_hash256 StringToBlockhash(std::string const& _s);
   static std::string BlockhashToHexString(const ethash_hash256& _hash);
-  static bool CheckDificulty(const ethash_hash256& result,
-                             const ethash_hash256& boundary);
+  static bool CheckDifficulty(const ethash_hash256& result,
+                              const ethash_hash256& boundary);
   static size_t CountLeadingZeros(const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
@@ -161,4 +161,4 @@ class POW {
   void InitOpenCL();
   void InitCUDA();
 };
-#endif  // __POW_H__
+#endif  // ZILLIQA_SRC_LIBPOW_POW_H_

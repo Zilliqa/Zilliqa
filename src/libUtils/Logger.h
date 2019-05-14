@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H__
-#define __LOGGER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
+#define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
 #include <chrono>
 #include <fstream>
@@ -275,4 +275,4 @@ class ScopeMarker {
   LOG_GENERAL(WARNING, " Received = " << received);   \
   LOG_GENERAL(WARNING, " Expected = " << expected);
 
-#endif  // __LOGGER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_LOGGER_H_

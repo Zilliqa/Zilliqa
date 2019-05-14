@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DIRECTORYSERVICE_H__
-#define __DIRECTORYSERVICE_H__
+#ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
+#define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
 
 #include <array>
 #include <condition_variable>
@@ -310,7 +310,7 @@ class DirectoryService : public Executable {
   bool RunConsensusOnDSBlockWhenDSBackup();
 
   // internal calls from ProcessDSBlockConsensus
-  void StoreDSBlockToStorage();  // To further refactor
+  bool StoreDSBlockToStorage();  // To further refactor
   bool ComposeDSBlockMessageForSender(bytes& dsblock_message);
   void SendDSBlockToLookupNodesAndNewDSMembers(const bytes& dsblock_message);
   void SendDSBlockToShardNodes(const bytes& dsblock_message,
@@ -479,7 +479,7 @@ class DirectoryService : public Executable {
   std::atomic<Mode> m_mode;
 
   // Sharding committee members
-  std::mutex m_mutexShards;
+  std::mutex mutable m_mutexShards;
   DequeOfShard m_shards;
   std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
 
@@ -535,6 +535,8 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
 
+  // GetShards
+  uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast;
 
@@ -674,4 +676,4 @@ class DirectoryService : public Executable {
   void RemoveDSMicroBlock();
 };
 
-#endif  // __DIRECTORYSERVICE_H__
+#endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_

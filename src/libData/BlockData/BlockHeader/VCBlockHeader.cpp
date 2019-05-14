@@ -94,7 +94,7 @@ uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
 const VectorOfNode& VCBlockHeader::GetFaultyLeaders() const {
   return m_FaultyLeaders;
-};
+}
 
 bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
   return BlockHeaderBase::operator==(header) &&

@@ -198,19 +198,19 @@ BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
   memcpy(hash.bytes, "11111111111111111111111111111111", 32);
   memcpy(target.bytes, "22222222222222222222222222222222", 32);
   BOOST_REQUIRE_MESSAGE(
-      POW::CheckDificulty(hash, target),
+      POW::CheckDifficulty(hash, target),
       "\nexpected \"" << std::string((char*)&hash, 32).c_str()
                       << "\" to have the same or less difficulty than \""
                       << std::string((char*)&target, 32).c_str() << "\"\n");
-  BOOST_REQUIRE_MESSAGE(POW::CheckDificulty(hash, hash), "");
+  BOOST_REQUIRE_MESSAGE(POW::CheckDifficulty(hash, hash), "");
   // "\nexpected \"" << hash << "\" to have the same or less difficulty than \""
   // << hash << "\"\n");
   memcpy(target.bytes, "11111111111111111111111111111112", 32);
-  BOOST_REQUIRE_MESSAGE(POW::CheckDificulty(hash, target), "");
+  BOOST_REQUIRE_MESSAGE(POW::CheckDifficulty(hash, target), "");
   // "\nexpected \"" << hash << "\" to have the same or less difficulty than \""
   // << target << "\"\n");
   memcpy(target.bytes, "11111111111111111111111111111110", 32);
-  BOOST_REQUIRE_MESSAGE(!POW::CheckDificulty(hash, target), "");
+  BOOST_REQUIRE_MESSAGE(!POW::CheckDifficulty(hash, target), "");
   // "\nexpected \"" << hash << "\" to have more difficulty than \"" << target
   // << "\"\n");
 }
@@ -228,9 +228,10 @@ BOOST_AUTO_TEST_CASE(test_block22_verification) {
   BOOST_REQUIRE_EQUAL(
       POW::BlockhashToHexString(ret.final_hash),
       "00000b184f1fdd88bfd94c86c39e65db0c36144d5e43f745f722196e730cb614");
-  ethash_hash256 difficulty = {.bytes = {0x2, 0x5, 0x40}};
-  // difficulty.bytes = ethash_h256_static_init(0x2, 0x5, 0x40);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x2, 0x5, 0x40};
+  move(initList.begin(), initList.end(), difficulty.bytes);
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(test_block30001_verification) {
@@ -243,9 +244,10 @@ BOOST_AUTO_TEST_CASE(test_block30001_verification) {
   BOOST_ASSERT(epochContextLight);
   ethash::result ret =
       ethash::hash(*epochContextLight, seedhash, 0x318df1c8adef7e5eU);
-  ethash_hash256 difficulty = {.bytes = {0x17, 0x62, 0xff}};
-  // difficulty.bytes = ethash_h256_static_init(0x17, 0x62, 0xff);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x17, 0x62, 0xff};
+  move(initList.begin(), initList.end(), difficulty.bytes);
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(test_block60000_verification) {
@@ -258,9 +260,10 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification) {
   BOOST_ASSERT(epochContextLight);
   ethash::result ret =
       ethash::hash(*epochContextLight, seedhash, 0x50377003e5d830caU);
-  ethash_hash256 difficulty = {.bytes = {0x25, 0xa6, 0x1e}};
-  // difficulty.bytes = ethash_h256_static_init(0x25, 0xa6, 0x1e);
-  BOOST_REQUIRE(POW::CheckDificulty(ret.final_hash, difficulty));
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x25, 0xa6, 0x1e};
+  move(initList.begin(), initList.end(), difficulty.bytes);
+  BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(mining_and_verification) {

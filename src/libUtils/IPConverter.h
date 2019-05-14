@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __IP_CONVERTER_H__
-#define __IP_CONVERTER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_IPCONVERTER_H_
+#define ZILLIQA_SRC_LIBUTILS_IPCONVERTER_H_
 
 #include "common/BaseType.h"
 
@@ -80,4 +80,4 @@ bool ToNumericalIPFromStr(const std::string&, uint128_t&);
 bool ResolveDNS(const std::string& url, const uint32_t& port, uint128_t& ipInt);
 }  // namespace IPConverter
 
-#endif  // __IP_CONVERTER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_IPCONVERTER_H_
