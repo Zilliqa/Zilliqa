@@ -303,7 +303,7 @@ bool Validator::CheckDirBlocks(
         LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
         return false;
       }
-      m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
       if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
         LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
