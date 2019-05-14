@@ -218,6 +218,7 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>false</ENABLE_SC>
+        <SC_DS_TARGET_NUM>1</SC_DS_TARGET_NUM>
         <SCILLA_ROOT/>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>

@@ -421,6 +421,8 @@ const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
                      "true"};
+const unsigned int SC_DS_TARGET_NUM{
+    ReadConstantNumeric("SC_DS_TARGET_NUM", "node.smart_contract.")};
 const string SCILLA_ROOT{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
 const string SCILLA_CHECKER{

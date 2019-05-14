@@ -383,7 +383,9 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
-        if (!ENABLE_SC) {
+        if (!ENABLE_SC || (m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum() < SC_DS_TARGET_NUM)) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
         if (ARCHIVAL_LOOKUP) {
@@ -394,7 +396,9 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
             Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
-        if (!ENABLE_SC) {
+        if (!ENABLE_SC || (m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum() < SC_DS_TARGET_NUM)) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
         const Account* account =

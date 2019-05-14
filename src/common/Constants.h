@@ -320,6 +320,7 @@ extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 
 // Smart contract constants
 extern const bool ENABLE_SC;
+extern const unsigned int SC_DS_TARGET_NUM;
 extern const std::string SCILLA_ROOT;
 extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
