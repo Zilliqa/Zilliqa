@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DSCOMPOSITION_H__
-#define __DSCOMPOSITION_H__
+#ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
+#define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
 
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
@@ -29,4 +29,4 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
                                       DequeOfNode& dsComm,
                                       const DSBlock& dsblock);
 
-#endif  // __DSCOMPOSITION_H__
+#endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
