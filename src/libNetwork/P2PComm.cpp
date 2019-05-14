@@ -675,16 +675,6 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   LOG_GENERAL(DEBUG, "Incoming message from " << from);
-  {
-    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
-      LOG_GENERAL(WARNING, "Connection ignored from " << from);
-      evutil_closesocket(cli_sock);
-      return;
-    }
-    m_peerConnectionCount[from.GetIpAddress()]++;
-  }
-
   if (Blacklist::GetInstance().Exist(from.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << from
@@ -694,6 +684,16 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     evutil_closesocket(cli_sock);
 
     return;
+  }
+
+  {
+    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
+      LOG_GENERAL(WARNING, "Connection ignored from " << from);
+      evutil_closesocket(cli_sock);
+      return;
+    }
+    m_peerConnectionCount[from.GetIpAddress()]++;
   }
 
   // Set up buffer event for this new connection
