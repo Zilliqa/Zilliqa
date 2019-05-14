@@ -409,7 +409,7 @@ void SendJobPeers<T>::DoSend() {
   }
 
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
-       curr < indexes.end(); curr++) {
+       curr < indexes.end(); ++curr) {
     const Peer& peer = m_peers.at(*curr);
 
     /// TBD: Update the container dynamically when blacklist is updated

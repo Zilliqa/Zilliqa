@@ -273,7 +273,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
-       blocklinkItr++) {
+       ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
 
     if (toDelete) {
@@ -347,7 +347,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
     return true;
   }
 
-  for (; blocklinkItr != blocklinks.end(); blocklinkItr++) {
+  for (; blocklinkItr != blocklinks.end(); ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
     if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
       if (BlockStorage::GetBlockStorage().DeleteDSBlock(

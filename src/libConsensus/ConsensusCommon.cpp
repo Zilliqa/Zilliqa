@@ -120,7 +120,7 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool>& peer_map) {
 
   vector<PubKey> keys;
   DequeOfNode::const_iterator j = m_committee.begin();
-  for (unsigned int i = 0; i < peer_map.size(); i++, j++) {
+  for (unsigned int i = 0; i < peer_map.size(); ++i, ++j) {
     if (peer_map.at(i)) {
       keys.emplace_back(j->first);
     }
