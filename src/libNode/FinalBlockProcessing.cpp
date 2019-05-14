@@ -712,7 +712,6 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   }
 
   if (!isVacuousEpoch) {
-    StoreFinalBlock(txBlock);
     if (!StoreFinalBlock(txBlock)) {
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
