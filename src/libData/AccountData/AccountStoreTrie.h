@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCOUNTSTORETRIE_H__
-#define __ACCOUNTSTORETRIE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
 #include "depends/libDatabase/MemoryDB.h"
@@ -56,4 +56,4 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
 
 #include "AccountStoreTrie.tpp"
 
-#endif  // __ACCOUNTSTORETRIE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_

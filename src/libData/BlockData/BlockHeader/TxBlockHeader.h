@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TXBLOCKHEADER_H__
-#define __TXBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
 
 #include <array>
 
@@ -124,4 +124,4 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
   return os;
 }
 
-#endif  // __TXBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DB_H
-#define DB_H
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_DB_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_DB_H_
 
 #include <leveldb/db.h>
 #include <libUtils/Logger.h>
@@ -50,4 +50,4 @@ class DB {
   int DeleteDB();
 };
 
-#endif  // DB_H
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_DB_H_

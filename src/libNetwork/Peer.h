@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __PEER_H__
-#define __PEER_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_PEER_H_
+#define ZILLIQA_SRC_LIBNETWORK_PEER_H_
 
 #include <cstdint>
 #include <functional>
@@ -94,4 +94,4 @@ struct hash<Peer> {
   }
 };
 }  // namespace std
-#endif  // __PEER_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_PEER_H_

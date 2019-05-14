@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __RUMORHOLDER_H__
-#define __RUMORHOLDER_H__
+#ifndef ZILLIQA_SRC_LIBRUMORSPREADING_RUMORHOLDER_H_
+#define ZILLIQA_SRC_LIBRUMORSPREADING_RUMORHOLDER_H_
 
 #include <functional>
 #include <map>
@@ -124,4 +124,4 @@ class RumorHolder : public RumorSpreadingInterface {
 
 }  // namespace RRS
 
-#endif  //__RUMORHOLDER_H__
+#endif  // ZILLIQA_SRC_LIBRUMORSPREADING_RUMORHOLDER_H_

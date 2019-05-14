@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DSBLOCKHEADER_H__
-#define __DSBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_
 
 #include <array>
 #include <map>
@@ -134,4 +134,4 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
   return os;
 }
 
-#endif  // __DSBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_

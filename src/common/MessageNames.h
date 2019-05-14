@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MESSAGE_NAMES_H__
-#define __MESSAGE_NAMES_H__
+#ifndef ZILLIQA_SRC_COMMON_MESSAGENAMES_H_
+#define ZILLIQA_SRC_COMMON_MESSAGENAMES_H_
 
 #include <string>
 
@@ -115,4 +115,4 @@ static_assert(
 static const std::string MessageSizeKeyword = "Size of message ";
 static const std::string MessgeTimeKeyword = "Time to process message ";
 
-#endif  // __MESSAGE_NAMES_H__
+#endif  // ZILLIQA_SRC_COMMON_MESSAGENAMES_H_

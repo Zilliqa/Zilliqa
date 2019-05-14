@@ -213,7 +213,7 @@ const uint128_t GAS_PRICE_MIN_VALUE{
 const unsigned int GAS_PRICE_PRECISION{
     ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
 const uint128_t PRECISION_MIN_VALUE{
-    SafeMath<uint128_t>::power(10, GAS_PRICE_PRECISION)};
+    SafeMath<uint128_t>::power(10, GAS_PRICE_PRECISION, true)};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadConstantNumeric("GAS_PRICE_DROP_RATIO", "node.gas.")};
 const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{

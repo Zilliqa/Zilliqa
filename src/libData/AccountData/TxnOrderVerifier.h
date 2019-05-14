@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TXNORDERVERIFIER_H__
-#define __TXNORDERVERIFIER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNORDERVERIFIER_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNORDERVERIFIER_H_
 
 #include <unordered_map>
 #include <vector>
@@ -98,4 +98,4 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
   return false;
 }
 
-#endif  // __TXNORDERVERIFIER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TXNORDERVERIFIER_H_

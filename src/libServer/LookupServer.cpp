@@ -219,11 +219,7 @@ LookupServer::LookupServer(Mediator& mediator,
   m_TxBlockCountSumPair.second = 0;
   random_device rd;
   m_eng = mt19937(rd());
-};
-
-LookupServer::~LookupServer(){
-    // destructor
-};
+}
 
 string LookupServer::GetNetworkId() {
   if (!LOOKUP_NODE_MODE) {

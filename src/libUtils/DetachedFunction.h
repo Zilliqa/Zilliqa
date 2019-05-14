@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DETACHEDFUNCTION_H__
-#define __DETACHEDFUNCTION_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_DETACHEDFUNCTION_H_
+#define ZILLIQA_SRC_LIBUTILS_DETACHEDFUNCTION_H_
 
 #include <functional>
 #include <thread>
@@ -56,4 +56,4 @@ class DetachedFunction {
   }
 };
 
-#endif  // __DETACHEDFUNCTION_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_DETACHEDFUNCTION_H_

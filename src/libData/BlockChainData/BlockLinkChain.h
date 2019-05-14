@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKLINKCHAIN_H__
-#define __BLOCKLINKCHAIN_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
 
 #include "libData/BlockData/Block.h"
 #include "libData/DataStructures/CircularArray.h"
@@ -55,4 +55,4 @@ class BlockLinkChain {
   const BlockLink& GetLatestBlockLink();
 };
 
-#endif  //__BLOCKLINKCHAIN_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_

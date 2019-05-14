@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKHEADERBASE_H__
-#define __BLOCKHEADERBASE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
 
 #include <array>
 
@@ -81,4 +81,4 @@ inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
   return os;
 }
 
-#endif  // __BLOCKHEADERBASE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_

@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGER_H__
-#define __MESSENGER_H__
+#ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
+#define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
@@ -873,4 +873,4 @@ class Messenger {
                                       PubKey& archivalPubKey, uint32_t& code,
                                       std::string& path);
 };
-#endif  // __MESSENGER_H__
+#endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_

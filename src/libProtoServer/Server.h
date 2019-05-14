@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef ZILLIQA_SRC_LIBPROTOSERVER_SERVER_H_
+#define ZILLIQA_SRC_LIBPROTOSERVER_SERVER_H_
+
 #include <mutex>
 
 #include "common/BaseType.h"
@@ -130,3 +133,5 @@ class Server {
 
   ZilliqaMessage::StringResponse GetNumTxnsDSEpoch();
 };
+
+#endif  // ZILLIQA_SRC_LIBPROTOSERVER_SERVER_H_

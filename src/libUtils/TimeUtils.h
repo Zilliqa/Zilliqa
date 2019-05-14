@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TIMEUTILS_H__
-#define __TIMEUTILS_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_
+#define ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_
 
 #include <chrono>
 #include <string>
@@ -32,4 +32,4 @@ std::string microsec_timestamp_to_readable(const uint64_t& timestamp);
 
 bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
                            const uint64_t& hiBound);
-#endif  // __TIMEUTILS_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_

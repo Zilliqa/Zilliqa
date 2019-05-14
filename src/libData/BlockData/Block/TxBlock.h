@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TXBLOCK_H__
-#define __TXBLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
 
 #include <array>
 
@@ -112,4 +112,4 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlock& t) {
   return os;
 }
 
-#endif  // __TXBLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_

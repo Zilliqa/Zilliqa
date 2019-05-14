@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SERVER_H__
-#define __SERVER_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_SERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_SERVER_H_
 
 #include <mutex>
 #include <random>
@@ -30,11 +30,10 @@ class Mediator;
 class Server {
  protected:
   Mediator& m_mediator;
-
- public:
   Server(Mediator& mediator) : m_mediator(mediator) {}
   ~Server();
 
+ public:
   enum RPCErrorCode {
     //! Standard JSON-RPC 2.0 errors
     // RPC_INVALID_REQUEST is internally mapped to HTTP_BAD_REQUEST (400).
@@ -101,4 +100,4 @@ class Server {
   virtual uint8_t GetPrevDifficulty();
 };
 
-#endif  //__SERVER_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_SERVER_H_

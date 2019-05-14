@@ -23,8 +23,8 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
-#ifndef _GENERATE_DSA_NONCE_H_
-#define _GENERATE_DSA_NONCE_H_
+#ifndef ZILLIQA_SRC_LIBCRYPTO_GENERATE_DSA_NONCE_H_
+#define ZILLIQA_SRC_LIBCRYPTO_GENERATE_DSA_NONCE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,4 +36,4 @@ int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range, const BIGNUM *priv,
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif  // ZILLIQA_SRC_LIBCRYPTO_GENERATE_DSA_NONCE_H_

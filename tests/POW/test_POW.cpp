@@ -228,8 +228,9 @@ BOOST_AUTO_TEST_CASE(test_block22_verification) {
   BOOST_REQUIRE_EQUAL(
       POW::BlockhashToHexString(ret.final_hash),
       "00000b184f1fdd88bfd94c86c39e65db0c36144d5e43f745f722196e730cb614");
-  ethash_hash256 difficulty = {.bytes = {0x2, 0x5, 0x40}};
-  // difficulty.bytes = ethash_h256_static_init(0x2, 0x5, 0x40);
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x2, 0x5, 0x40};
+  move(initList.begin(), initList.end(), difficulty.bytes);
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
@@ -243,8 +244,9 @@ BOOST_AUTO_TEST_CASE(test_block30001_verification) {
   BOOST_ASSERT(epochContextLight);
   ethash::result ret =
       ethash::hash(*epochContextLight, seedhash, 0x318df1c8adef7e5eU);
-  ethash_hash256 difficulty = {.bytes = {0x17, 0x62, 0xff}};
-  // difficulty.bytes = ethash_h256_static_init(0x17, 0x62, 0xff);
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x17, 0x62, 0xff};
+  move(initList.begin(), initList.end(), difficulty.bytes);
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
@@ -258,8 +260,9 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification) {
   BOOST_ASSERT(epochContextLight);
   ethash::result ret =
       ethash::hash(*epochContextLight, seedhash, 0x50377003e5d830caU);
-  ethash_hash256 difficulty = {.bytes = {0x25, 0xa6, 0x1e}};
-  // difficulty.bytes = ethash_h256_static_init(0x25, 0xa6, 0x1e);
+  ethash_hash256 difficulty{};
+  const auto&& initList = {0x25, 0xa6, 0x1e};
+  move(initList.begin(), initList.end(), difficulty.bytes);
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 

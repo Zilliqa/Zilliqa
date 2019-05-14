@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __RUMORMANAGER_H__
-#define __RUMORMANAGER_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_RUMORMANAGER_H_
+#define ZILLIQA_SRC_LIBNETWORK_RUMORMANAGER_H_
 
 #include <boost/bimap.hpp>
 #include <condition_variable>
@@ -126,4 +126,4 @@ class RumorManager {
   const RumorIdRumorBimap& rumors() const;
 };
 
-#endif  //__RUMORMANAGER_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_RUMORMANAGER_H_

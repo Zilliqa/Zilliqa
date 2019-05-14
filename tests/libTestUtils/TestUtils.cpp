@@ -73,15 +73,23 @@ vector<bool> GenerateRandomBooleanVector(size_t n) {
 }
 
 Transaction GenerateRandomTransaction(const unsigned int version,
-                                      const uint64_t& nonce) {
+                                      const uint64_t& nonce,
+                                      const Transaction::ContractType& type) {
   const auto randomToPubkey = GenerateRandomPubKey();
   const auto randomToAddr = Account::GetAddressFromPublicKey(randomToPubkey);
   const auto randomKeyPair = GenerateRandomKeyPair();
   const auto randomAmount = DistUint128();
   const auto randomGasPrice = DistUint128();
   const auto randomGasLimit = DistUint64();
+  bytes data{};
+  bytes code{};
+  if (type == Transaction::CONTRACT_CALL) {
+    data = GenerateRandomCharVector(DistUint8());
+  } else if (type == Transaction::CONTRACT_CREATION) {
+    code = GenerateRandomCharVector(DistUint8());
+  }
   Transaction tx(version, nonce, randomToAddr, randomKeyPair, randomAmount,
-                 randomGasPrice, randomGasLimit);
+                 randomGasPrice, randomGasLimit, code, data);
   return tx;
 }
 

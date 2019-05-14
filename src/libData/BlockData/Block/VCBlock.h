@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __VCBLOCK_H__
-#define __VCBLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
 
 #include "BlockBase.h"
 #include "common/Constants.h"
@@ -69,4 +69,4 @@ inline std::ostream& operator<<(std::ostream& os, const VCBlock& t) {
   return os;
 }
 
-#endif  // __VCBLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
