@@ -54,6 +54,10 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size) {
   this->m_logToFile = log_to_file;
   this->m_maxFileSize = max_file_size;
 
+  if (!boost::filesystem::exists(LOG_PATH)) {
+    boost::filesystem::create_directory(LOG_PATH);
+  }
+
   if (log_to_file) {
     m_fileNamePrefix = prefix ? prefix : "common";
     m_seqNum = 0;
@@ -82,10 +86,6 @@ void Logger::newLog() {
   snprintf(buf, sizeof(buf), (m_bRefactor ? "-%05d-log" : "-%05d-log.txt"),
            m_seqNum);
   m_fileName = m_fileNamePrefix + buf;
-
-  if (!boost::filesystem::exists(LOG_PATH)) {
-    boost::filesystem::create_directory(LOG_PATH);
-  }
 
   if (m_bRefactor) {
     logworker = LogWorker::createLogWorker();
