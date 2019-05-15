@@ -934,7 +934,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   // Determine the losers from the performance.
   unsigned int numByzantine = 0;
-  if (m_mediator.m_currentEpochNum >= ENABLE_NEW_FEATURE_DS_NUM) {
+  if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+      ENABLE_NEW_FEATURE_DS_NUM) {
     numByzantine =
         DetermineByzantineNodes(numOfProposedDSMembers, removeDSNodePubkeys);
   }
@@ -1222,7 +1223,8 @@ bool DirectoryService::DSBlockValidator(
   const uint32_t REMOVED_FIELD_DSBLOCK_VERSION = 2;
   if (m_pendingDSBlock->GetHeader().GetVersion() >=
           REMOVED_FIELD_DSBLOCK_VERSION &&
-      m_mediator.m_currentEpochNum >= ENABLE_NEW_FEATURE_DS_NUM) {
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+          ENABLE_NEW_FEATURE_DS_NUM) {
     // Verify the injected Byzantine nodes to be removed in the winners list.
     if (!VerifyRemovedByzantineNodes()) {
       LOG_GENERAL(WARNING,
