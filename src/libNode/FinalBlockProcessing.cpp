@@ -1076,7 +1076,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           entry.m_microBlock.GetHeader().GetEpochNum());
 
       if (entry.m_microBlock.GetHeader().GetEpochNum() ==
-          m_mediator.m_currentEpochNum) {
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
         if (m_isVacuousEpochBuffer) {
           // Check is states updated
           uint64_t epochNum;
@@ -1098,7 +1098,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
               return false;
             }
             if (!BlockStorage::GetBlockStorage().PutEpochFin(
-                    entry.m_microBlock.GetHeader().GetEpochNum())) {
+                    m_mediator.m_currentEpochNum)) {
               LOG_GENERAL(WARNING,
                           "BlockStorage::PutEpochFin failed "
                               << entry.m_microBlock.GetHeader().GetEpochNum());
@@ -1125,7 +1125,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           }
         } else {
           if (!BlockStorage::GetBlockStorage().PutEpochFin(
-                  entry.m_microBlock.GetHeader().GetEpochNum())) {
+                  m_mediator.m_currentEpochNum)) {
             LOG_GENERAL(WARNING,
                         "BlockStorage::PutEpochFin failed "
                             << entry.m_microBlock.GetHeader().GetEpochNum());
