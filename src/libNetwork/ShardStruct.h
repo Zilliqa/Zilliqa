@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SHARD_STRUCT__
-#define __SHARD_STRUCT__
+#ifndef ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
+#define ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
 
 #include <tuple>
 
@@ -42,4 +42,4 @@ enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG };
 using NodeMsg = std::tuple<PubKey, Peer, bytes>;
 using VectorOfNodeMsg = std::vector<NodeMsg>;
 
-#endif /*__SHARD_STRUCT__*/
+#endif  // ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_

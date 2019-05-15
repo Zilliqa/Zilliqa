@@ -31,13 +31,12 @@ ReputationManager& ReputationManager::GetInstance() {
   return RM;
 }
 
-bool ReputationManager::IsNodeBanned(
-    const boost::multiprecision::uint128_t& IPAddress) {
+bool ReputationManager::IsNodeBanned(const uint128_t& IPAddress) {
   return (GetReputation(IPAddress) <= REPTHRESHOLD);
 }
 
-void ReputationManager::PunishNode(
-    const boost::multiprecision::uint128_t& IPAddress, int32_t Penalty) {
+void ReputationManager::PunishNode(const uint128_t& IPAddress,
+                                   int32_t Penalty) {
   UpdateReputation(IPAddress, Penalty);
   if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress)) {
     LOG_GENERAL(INFO, "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
@@ -47,27 +46,24 @@ void ReputationManager::PunishNode(
 }
 
 void ReputationManager::AwardAllNodes() {
-  std::vector<boost::multiprecision::uint128_t> AllKnownIPs = GetAllKnownIP();
+  std::vector<uint128_t> AllKnownIPs = GetAllKnownIP();
   for (const auto& ip : AllKnownIPs) {
     AwardNode(ip);
   }
 }
 
-void ReputationManager::AddNodeIfNotKnown(
-    const boost::multiprecision::uint128_t& IPAddress) {
+void ReputationManager::AddNodeIfNotKnown(const uint128_t& IPAddress) {
   std::lock_guard<std::mutex> lock(m_mutexReputations);
   AddNodeIfNotKnownInternal(IPAddress);
 }
 
-void ReputationManager::AddNodeIfNotKnownInternal(
-    const boost::multiprecision::uint128_t& IPAddress) {
+void ReputationManager::AddNodeIfNotKnownInternal(const uint128_t& IPAddress) {
   if (m_Reputations.find(IPAddress) == m_Reputations.end()) {
     m_Reputations.emplace(IPAddress, ScoreType::GOOD);
   }
 }
 
-int32_t ReputationManager::GetReputation(
-    const boost::multiprecision::uint128_t& IPAddress) {
+int32_t ReputationManager::GetReputation(const uint128_t& IPAddress) {
   std::lock_guard<std::mutex> lock(m_mutexReputations);
   AddNodeIfNotKnownInternal(IPAddress);
   return m_Reputations[IPAddress];
@@ -79,9 +75,8 @@ void ReputationManager::Clear() {
   m_Reputations.clear();
 }
 
-void ReputationManager::SetReputation(
-    const boost::multiprecision::uint128_t& IPAddress,
-    const int32_t ReputationScore) {
+void ReputationManager::SetReputation(const uint128_t& IPAddress,
+                                      const int32_t ReputationScore) {
   std::lock_guard<std::mutex> lock(m_mutexReputations);
   AddNodeIfNotKnownInternal(IPAddress);
 
@@ -98,9 +93,8 @@ void ReputationManager::SetReputation(
   m_Reputations[IPAddress] = ReputationScore;
 }
 
-void ReputationManager::UpdateReputation(
-    const boost::multiprecision::uint128_t& IPAddress,
-    const int32_t ReputationScoreDelta) {
+void ReputationManager::UpdateReputation(const uint128_t& IPAddress,
+                                         const int32_t ReputationScoreDelta) {
   int32_t NewRep = GetReputation(IPAddress);
 
   // Update result with score delta
@@ -119,19 +113,17 @@ void ReputationManager::UpdateReputation(
   SetReputation(IPAddress, NewRep);
 }
 
-std::vector<boost::multiprecision::uint128_t>
-ReputationManager::GetAllKnownIP() {
+std::vector<uint128_t> ReputationManager::GetAllKnownIP() {
   std::lock_guard<std::mutex> lock(m_mutexReputations);
 
-  std::vector<boost::multiprecision::uint128_t> AllKnownIPs;
+  std::vector<uint128_t> AllKnownIPs;
   for (const auto& node : m_Reputations) {
     AllKnownIPs.emplace_back(node.first);
   }
   return AllKnownIPs;
 }
 
-void ReputationManager::AwardNode(
-    const boost::multiprecision::uint128_t& IPAddress) {
+void ReputationManager::AwardNode(const uint128_t& IPAddress) {
   UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
   if (Blacklist::GetInstance().Exist(IPAddress) && !IsNodeBanned(IPAddress)) {

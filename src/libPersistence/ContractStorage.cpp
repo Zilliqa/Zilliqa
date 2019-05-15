@@ -133,8 +133,6 @@ bool ContractStorage::PutContractState(
       entry_indexes = GetContractStateIndexes(address, temp);
     }
 
-    unordered_map<string, string> batch;
-
     for (const auto& entry : entries) {
       // Append the new index to the existing indexes
       if (find(entry_indexes.begin(), entry_indexes.end(), entry.first) ==

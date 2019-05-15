@@ -69,7 +69,7 @@ SWInfo::SWInfo(const SWInfo& src)
       m_scillaUpgradeDS(src.m_scillaUpgradeDS),
       m_scillaCommit(src.m_scillaCommit) {}
 
-SWInfo::~SWInfo(){};
+SWInfo::~SWInfo() {}
 
 /// Implements the Serialize function inherited from Serializable.
 unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {

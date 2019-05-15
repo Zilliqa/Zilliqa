@@ -112,7 +112,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 }
 
 Transaction::Transaction(const TxnHash& tranID,
-                         const TransactionCoreInfo coreInfo,
+                         const TransactionCoreInfo& coreInfo,
                          const Signature& signature)
     : m_tranID(tranID), m_coreInfo(coreInfo), m_signature(signature) {}
 
@@ -187,6 +187,12 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
   }
 
   return x % numShards;
+}
+
+unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
+  const auto& fromAddr = GetSenderAddr();
+
+  return GetShardIndex(fromAddr, numShards);
 }
 
 bool Transaction::operator==(const Transaction& tran) const {

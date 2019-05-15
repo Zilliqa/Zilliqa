@@ -16,10 +16,6 @@
  */
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -280,6 +276,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
       if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
               fallbackblock.GetBlockHash(), dst)) {
         LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+        return false;
       }
     }
 
@@ -296,8 +293,12 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       }
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
+      if (!BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                       {'0'})) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+        return;
+      }
       LOG_STATE("[FLBLK][" << setw(15) << left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
                            << "]["

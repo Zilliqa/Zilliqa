@@ -16,6 +16,10 @@
  */
 
 /// [TODO] Currently unused
+
+#ifndef ZILLIQA_SRC_LIBUTILS_REVERSELOCK_H_
+#define ZILLIQA_SRC_LIBUTILS_REVERSELOCK_H_
+
 template <class T>
 class ReverseLock {
  public:
@@ -33,3 +37,5 @@ class ReverseLock {
  private:
   T& mutex_;
 };
+
+#endif  // ZILLIQA_SRC_LIBUTILS_REVERSELOCK_H_

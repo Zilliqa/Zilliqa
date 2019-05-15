@@ -85,34 +85,33 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
   const std::array<unsigned char, BLOCK_SIG_SIZE>& signature2 =
       block2.GetSignature();
 
-    LOG_GENERAL(INFO, "Block 2 difficulty: " << to_string(diff2);
-    BOOST_CHECK_MESSAGE(diff2 == 20,
-                        "expected: " << 20 << " actual: " << diff2 << "\n");
+  LOG_GENERAL(INFO, "Block 2 difficulty: " << to_string(diff2));
+  BOOST_CHECK_MESSAGE(diff2 == 20,
+                      "expected: " << 20 << " actual: " << diff2 << "\n");
 
-    BOOST_CHECK_MESSAGE(prevHash2.at(31) == 32,
-                        "expected: " << 32 << " actual: " << prevHash2.at(31)
-                                     << "\n");
+  BOOST_CHECK_MESSAGE(
+      prevHash2.at(31) == 32,
+      "expected: " << 32 << " actual: " << prevHash2.at(31) << "\n");
 
-    LOG_GENERAL(INFO, "Block 2 nonce: " << nonce2);
-    BOOST_CHECK_MESSAGE(nonce2 == 12345,
-                        "expected: " << 12345 << " actual: " << nonce2 << "\n");
+  LOG_GENERAL(INFO, "Block 2 nonce: " << nonce2);
+  BOOST_CHECK_MESSAGE(nonce2 == 12345,
+                      "expected: " << 12345 << " actual: " << nonce2 << "\n");
 
-    BOOST_CHECK_MESSAGE(pubKey2.at(32) == 36,
-                        "expected: " << 36 << " actual: " << pubKey2.at(32)
-                                     << "\n");
+  BOOST_CHECK_MESSAGE(
+      pubKey2.at(32) == 36,
+      "expected: " << 36 << " actual: " << pubKey2.at(32) << "\n");
 
-    LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
-    BOOST_CHECK_MESSAGE(blockNum2 == 10,
-                        "expected: " << 10 << " actual: " << blockNum2 << "\n");
+  LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
+  BOOST_CHECK_MESSAGE(blockNum2 == 10,
+                      "expected: " << 10 << " actual: " << blockNum2 << "\n");
 
-    LOG_GENERAL(INFO, "Block 2 timestamp: " << timestamp2);
-    BOOST_CHECK_MESSAGE(timestamp2 == 789,
-                        "expected: " << 789 << " actual: " << timestamp2
-                                     << "\n");
+  LOG_GENERAL(INFO, "Block 2 timestamp: " << timestamp2);
+  BOOST_CHECK_MESSAGE(timestamp2 == 789,
+                      "expected: " << 789 << " actual: " << timestamp2 << "\n");
 
-    BOOST_CHECK_MESSAGE(signature2.at(63) == 71,
-                        "expected: " << 71 << " actual: " << signature2.at(63)
-                                     << "\n");
+  BOOST_CHECK_MESSAGE(
+      signature2.at(63) == 71,
+      "expected: " << 71 << " actual: " << signature2.at(63) << "\n");
 }
 
 Transaction CreateDummyTx1() {

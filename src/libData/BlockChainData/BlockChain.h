@@ -15,16 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKCHAIN_H__
-#define __BLOCKCHAIN_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_
 
 #include <mutex>
-#include <vector>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"
@@ -41,12 +35,11 @@ class BlockChain {
   /// Constructor.
   BlockChain() { Reset(); }
 
+  ~BlockChain() {}
+
   virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
 
  public:
-  /// Destructor.
-  ~BlockChain() {}
-
   /// Reset
   void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 
@@ -167,4 +160,4 @@ class FallbackBlockChain : public BlockChain<FallbackBlock> {
   }
 };
 
-#endif  // __BLOCKCHAIN_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_

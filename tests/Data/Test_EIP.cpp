@@ -27,11 +27,6 @@
 #include <boost/test/unit_test.hpp>
 #include "libUtils/HashUtils.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -80,4 +75,4 @@ BOOST_AUTO_TEST_CASE(testAddress) {
         "Result = " << result << " resultVector[]" << resultVector.at(i));
   }
 }
-BOOST_AUTO_TEST_SUITE_END();
+BOOST_AUTO_TEST_SUITE_END()

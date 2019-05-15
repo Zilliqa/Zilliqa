@@ -15,14 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TXBLOCKHEADER_H__
-#define __TXBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
@@ -34,7 +30,7 @@
 class TxBlockHeader : public BlockHeaderBase {
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
-  boost::multiprecision::uint128_t m_rewards;
+  uint128_t m_rewards;
   uint64_t m_blockNum;  // Block index, starting from 0 in the genesis block
   TxBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
@@ -51,10 +47,10 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Constructor with specified Tx block header parameters.
   TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
-                const boost::multiprecision::uint128_t& rewards,
-                const uint64_t& blockNum, const TxBlockHashSet& blockHashSet,
-                const uint32_t numTxs, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const uint32_t version = 0,
+                const uint128_t& rewards, const uint64_t& blockNum,
+                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
+                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                const uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -73,7 +69,7 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Returns the rewards generated in this block. If normal epoch, then is the
   /// sum of txnFees from all microblock, if vacuous epoch, is the total rewards
   /// generated during coinbase
-  const boost::multiprecision::uint128_t& GetRewards() const;
+  const uint128_t& GetRewards() const;
 
   /// Returns the number of ancestor blocks.
   const uint64_t& GetBlockNum() const;
@@ -128,4 +124,4 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
   return os;
 }
 
-#endif  // __TXBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_

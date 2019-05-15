@@ -15,15 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CIRCULARARRAY_H__
-#define __CIRCULARARRAY_H__
+#ifndef ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_
+#define ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <vector>
-
+#include "common/BaseType.h"
 #include "libUtils/Logger.h"
 
 /// Utility class - circular array data queue.
@@ -103,4 +98,4 @@ class CircularArray {
   size_t capacity() { return m_capacity; }
 };
 
-#endif  // __CIRCULARARRAY_H__
+#endif  // ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_CIRCULARARRAY_H_

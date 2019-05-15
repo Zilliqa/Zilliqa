@@ -15,22 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __PEER_H__
-#define __PEER_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_PEER_H_
+#define ZILLIQA_SRC_LIBNETWORK_PEER_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <cstdint>
 #include <functional>
 
+#include "common/BaseType.h"
 #include "common/Serializable.h"
 
 /// Stores IP information on a single Zilliqa peer.
 struct Peer : public Serializable {
   /// Peer IP address (net-encoded)
-  boost::multiprecision::uint128_t m_ipAddress;  // net-encoded
+  uint128_t m_ipAddress;  // net-encoded
 
   /// Peer listen port (host-encoded)
   uint32_t m_listenPortHost;  // host-encoded
@@ -42,8 +39,7 @@ struct Peer : public Serializable {
   Peer();
 
   /// Constructor with specified IP info.
-  Peer(const boost::multiprecision::uint128_t& ip_address,
-       uint32_t listen_port_host);
+  Peer(const uint128_t& ip_address, uint32_t listen_port_host);
 
   /// Constructor for loading peer information from a byte stream.
   Peer(const bytes& src, unsigned int offset);
@@ -76,7 +72,7 @@ struct Peer : public Serializable {
   void SetHostname(const std::string& hostname);
 
   /// Getters.
-  const boost::multiprecision::uint128_t& GetIpAddress() const;
+  const uint128_t& GetIpAddress() const;
   const uint32_t& GetListenPortHost() const;
   const std::string GetHostname() const;
 };
@@ -98,4 +94,4 @@ struct hash<Peer> {
   }
 };
 }  // namespace std
-#endif  // __PEER_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_PEER_H_

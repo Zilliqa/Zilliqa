@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __P2PCOMM_H__
-#define __P2PCOMM_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
+#define ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
 
 #include <event2/util.h>
 #include <boost/lockfree/queue.hpp>
@@ -196,4 +196,4 @@ class P2PComm {
                      const PubKey& pubKey);
 };
 
-#endif  // __P2PCOMM_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_

@@ -15,16 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __GUARD_H__
-#define __GUARD_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_GUARD_H_
+#define ZILLIQA_SRC_LIBNETWORK_GUARD_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <mutex>
 #include <unordered_map>
-#include <vector>
 
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
@@ -48,9 +43,7 @@ class Guard {
 
   // IPFilter
   std::mutex m_mutexIPExclusion;
-  std::vector<std::pair<boost::multiprecision::uint128_t,
-                        boost::multiprecision::uint128_t>>
-      m_IPExclusionRange;
+  std::vector<std::pair<uint128_t, uint128_t>> m_IPExclusionRange;
 
   void ValidateRunTimeEnvironment();
 
@@ -71,14 +64,13 @@ class Guard {
   void AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm);
 
   // To check if IP is a valid v4 IP and not belongs to exclusion list
-  bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
+  bool IsValidIP(const uint128_t& ip_addr);
 
   // To add limits to the exclusion list
-  void AddToExclusionList(const boost::multiprecision::uint128_t& ft,
-                          const boost::multiprecision::uint128_t& sd);
+  void AddToExclusionList(const uint128_t& ft, const uint128_t& sd);
   void AddToExclusionList(const std::string& ft, const std::string& sd);
   // Intialize
   void Init();
 };
 
-#endif  // __GUARD_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_GUARD_H_

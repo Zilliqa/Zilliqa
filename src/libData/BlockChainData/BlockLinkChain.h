@@ -15,12 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BLOCKLINKCHAIN_H__
-#define __BLOCKLINKCHAIN_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
 
 #include "libData/BlockData/Block.h"
 #include "libData/DataStructures/CircularArray.h"
-#include "libPersistence/BlockStorage.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
@@ -56,4 +55,4 @@ class BlockLinkChain {
   const BlockLink& GetLatestBlockLink();
 };
 
-#endif  //__BLOCKLINKCHAIN_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_

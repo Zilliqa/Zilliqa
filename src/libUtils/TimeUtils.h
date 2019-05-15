@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TIMEUTILS_H__
-#define __TIMEUTILS_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_
+#define ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
+#include <string>
 
 std::chrono::system_clock::time_point r_timer_start();
 double r_timer_end(std::chrono::system_clock::time_point start_time);
@@ -35,4 +32,4 @@ std::string microsec_timestamp_to_readable(const uint64_t& timestamp);
 
 bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
                            const uint64_t& hiBound);
-#endif  // __TIMEUTILS_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_

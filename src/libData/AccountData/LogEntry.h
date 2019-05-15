@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGENTRY_H__
-#define __LOGENTRY_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_LOGENTRY_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_LOGENTRY_H_
 
 #include <json/json.h>
 #include "Address.h"
@@ -32,4 +32,4 @@ class LogEntry {
   const Json::Value& GetJsonObject() const { return m_eventObj; }
 };
 
-#endif  // __LOGENTRY_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_LOGENTRY_H_

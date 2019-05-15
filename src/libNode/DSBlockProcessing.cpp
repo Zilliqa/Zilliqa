@@ -16,10 +16,6 @@
  */
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -72,12 +68,21 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   bytes serializedDSBlock;
   dsblock.Serialize(serializedDSBlock, 0);
 
-  BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
-                                             serializedDSBlock);
+  if (!BlockStorage::GetBlockStorage().PutDSBlock(
+          dsblock.GetHeader().GetBlockNum(), serializedDSBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
+    return;
+  }
   m_mediator.m_ds->m_latestActiveDSBlockNum = dsblock.GetHeader().GetBlockNum();
-  BlockStorage::GetBlockStorage().PutMetadata(
-      LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(
-                                  m_mediator.m_ds->m_latestActiveDSBlockNum)));
+  if (!BlockStorage::GetBlockStorage().PutMetadata(
+          LATESTACTIVEDSBLOCKNUM,
+          DataConversion::StringToCharArray(
+              to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)))) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutMetadata(LATESTACTIVEDSBLOCKNUM) "
+                             << m_mediator.m_ds->m_latestActiveDSBlockNum
+                             << " failed");
+    return;
+  }
 
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
@@ -334,6 +339,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     unsigned int cur_offset,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
+
+  unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();
+
   lock_guard<mutex> g(m_mutexDSBlock);
 
   if (!LOOKUP_NODE_MODE) {
@@ -492,15 +500,21 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   m_mediator.m_ds->m_shards = move(t_shards);
 
   m_myshardId = shardId;
-  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
-                                                    m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_mediator.m_ds->m_shards, m_myshardId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
+    return false;
+  }
 
   LogReceivedDSBlockDetails(dsblock);
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
+    return false;
+  }
 
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
@@ -646,15 +660,18 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
 
     FallbackTimerLaunch();
     FallbackTimerPulse();
   }
 
-  BlockStorage::GetBlockStorage().PutDSCommittee(
-      m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID());
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(
+          m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return false;
+  }
 
   if (LOOKUP_NODE_MODE) {
     bool canPutNewEntry = true;

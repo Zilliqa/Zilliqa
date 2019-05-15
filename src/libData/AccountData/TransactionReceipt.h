@@ -15,16 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __TRANSACTIONRECEIPT_H__
-#define __TRANSACTIONRECEIPT_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
 
 #include <json/json.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
+
 #include <unordered_map>
-#include <vector>
 
 #include "LogEntry.h"
 #include "Transaction.h"
@@ -140,4 +136,4 @@ class TransactionWithReceipt : public SerializableDataBlock {
   }
 };
 
-#endif  // __TRANSACTIONRECEIPT_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_

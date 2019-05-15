@@ -26,11 +26,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -332,10 +327,8 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::ValidateDB() {
+bool Node::CheckIntegrity() {
   DequeOfNode dsComm;
-  const string lookupIp = "127.0.0.1";
-  const unsigned int port = SEED_PORT;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
@@ -409,8 +402,7 @@ bool Node::ValidateDB() {
       dirBlocks.emplace_back(*fallbackwshardingstruct);
     }
   }
-
-  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
+  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
     LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
     return false;
   }
@@ -454,9 +446,24 @@ bool Node::ValidateDB() {
       }
     }
   }
+  return true;
+}
+
+bool Node::ValidateDB() {
+  const string lookupIp = "127.0.0.1";
+  const unsigned int port = SEED_PORT;
+
+  if (!CheckIntegrity()) {
+    LOG_GENERAL(WARNING, "DB validation failed");
+    return false;
+  }
+
   LOG_GENERAL(INFO, "ValidateDB Success");
 
-  BlockStorage::GetBlockStorage().ReleaseDB();
+  if (!BlockStorage::GetBlockStorage().ReleaseDB()) {
+    LOG_GENERAL(WARNING, "BlockStorage::ReleaseDB failed");
+    return false;
+  }
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 
@@ -690,7 +697,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+  if (!BlockStorage::GetBlockStorage().GetShardStructure(
+          m_mediator.m_ds->m_shards)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetShardStructure failed");
+  }
 
   if (!ipMapping.empty()) {
     for (auto& shard : m_mediator.m_ds->m_shards) {
@@ -1153,6 +1163,14 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING,
                 "Node::ProcessSubmitMissingTxn not expected to be called "
                 "from LookUp node.");
+    return true;
+  }
+
+  if (offset >= message.size()) {
+    LOG_GENERAL(WARNING, "Invalid txn message, message size: "
+                             << message.size()
+                             << ", txn data offset: " << offset);
+    // TODO: Punish the node send invalid message
     return true;
   }
 
@@ -1671,8 +1689,14 @@ void Node::RejoinAsNormal() {
               "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        BlockStorage::GetBlockStorage().RefreshAll();
-        AccountStore::GetInstance().RefreshDB();
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+          return;
+        }
         if (this->Install(SyncType::NORMAL_SYNC, true, true)) {
           break;
         };

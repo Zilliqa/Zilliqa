@@ -41,7 +41,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     string url = node.second.GetHostname();
     auto resolved_ip = node.second.GetIpAddress();  // existing one
     if (!url.empty()) {
-      boost::multiprecision::uint128_t tmpIp;
+      uint128_t tmpIp;
       if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
                                   tmpIp)) {
         resolved_ip = tmpIp;  // resolved one

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MESSAGE_H__
-#define __MESSAGE_H__
+#ifndef ZILLIQA_SRC_LIBRUMORSPREADING_MESSAGE_H_
+#define ZILLIQA_SRC_LIBRUMORSPREADING_MESSAGE_H_
 
 #include <map>
 #include <memory>
@@ -71,4 +71,4 @@ class Message {
 
 }  // namespace RRS
 
-#endif  //__MESSAGE_H__
+#endif  // ZILLIQA_SRC_LIBRUMORSPREADING_MESSAGE_H_

@@ -130,8 +130,8 @@ ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
   return ret;
 }
 
-bool POW::CheckDificulty(const ethash_hash256& result,
-                         const ethash_hash256& boundary) {
+bool POW::CheckDifficulty(const ethash_hash256& result,
+                          const ethash_hash256& boundary) {
   return ethash::is_less_or_equal(result, boundary);
 }
 
@@ -720,9 +720,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 
 bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                          const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const boost::multiprecision::uint128_t& ipAddr,
-                         const PubKey& pubKey, uint32_t lookupId,
-                         const boost::multiprecision::uint128_t& gasPrice) {
+                         const uint128_t& ipAddr, const PubKey& pubKey,
+                         uint32_t lookupId, const uint128_t& gasPrice) {
   bytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
@@ -733,16 +732,14 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
   }
 
   bytes ipAddrVec;
-  Serializable::SetNumber<boost::multiprecision::uint128_t>(
-      ipAddrVec, 0, ipAddr, UINT128_SIZE);
+  Serializable::SetNumber<uint128_t>(ipAddrVec, 0, ipAddr, UINT128_SIZE);
   vec.insert(std::end(vec), std::begin(ipAddrVec), std::end(ipAddrVec));
 
   pubKey.Serialize(vec, vec.size());
 
   Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId,
                                     sizeof(uint32_t));
-  Serializable::SetNumber<boost::multiprecision::uint128_t>(
-      vec, vec.size(), gasPrice, UINT128_SIZE);
+  Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
   SHA2<256> sha2;
   sha2.Update(vec);
@@ -753,8 +750,8 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-    uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice) {
+    const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+    const uint128_t& gasPrice) {
   bytes sha2_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 

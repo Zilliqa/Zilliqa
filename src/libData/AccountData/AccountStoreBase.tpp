@@ -59,7 +59,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
-  const boost::multiprecision::uint128_t& amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmount();
 
   Account* fromAccount = this->GetAccount(fromAddr);
   if (fromAccount == nullptr) {
@@ -76,9 +76,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  boost::multiprecision::uint128_t gasDeposit = 0;
-  if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-          transaction.GetGasLimit(), transaction.GetGasPrice(), gasDeposit)) {
+  uint128_t gasDeposit = 0;
+  if (!SafeMath<uint128_t>::mul(transaction.GetGasLimit(),
+                                transaction.GetGasPrice(), gasDeposit)) {
     LOG_GENERAL(
         WARNING,
         "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
@@ -109,7 +109,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  boost::multiprecision::uint128_t gasRefund;
+  uint128_t gasRefund;
   if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
                           transaction.GetGasPrice(), gasRefund)) {
     return false;
@@ -131,19 +131,17 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::CalculateGasRefund(
-    const boost::multiprecision::uint128_t& gasDeposit, const uint64_t& gasUnit,
-    const boost::multiprecision::uint128_t& gasPrice,
-    boost::multiprecision::uint128_t& gasRefund) {
-  boost::multiprecision::uint128_t gasFee;
-  if (!SafeMath<boost::multiprecision::uint128_t>::mul(gasUnit, gasPrice,
-                                                       gasFee)) {
+bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
+                                               const uint64_t& gasUnit,
+                                               const uint128_t& gasPrice,
+                                               uint128_t& gasRefund) {
+  uint128_t gasFee;
+  if (!SafeMath<uint128_t>::mul(gasUnit, gasPrice, gasFee)) {
     LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
     return false;
   }
 
-  if (!SafeMath<boost::multiprecision::uint128_t>::sub(gasDeposit, gasFee,
-                                                       gasRefund)) {
+  if (!SafeMath<uint128_t>::sub(gasDeposit, gasFee, gasRefund)) {
     LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
     return false;
   }
@@ -198,8 +196,8 @@ size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::IncreaseBalance(
-    const Address& address, const boost::multiprecision::uint128_t& delta) {
+bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
+                                            const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -221,8 +219,8 @@ bool AccountStoreBase<MAP>::IncreaseBalance(
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::DecreaseBalance(
-    const Address& address, const boost::multiprecision::uint128_t& delta) {
+bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
+                                            const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -240,9 +238,9 @@ bool AccountStoreBase<MAP>::DecreaseBalance(
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::TransferBalance(
-    const Address& from, const Address& to,
-    const boost::multiprecision::uint128_t& delta) {
+bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
+                                            const Address& to,
+                                            const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {
@@ -259,8 +257,7 @@ bool AccountStoreBase<MAP>::TransferBalance(
 }
 
 template <class MAP>
-boost::multiprecision::uint128_t AccountStoreBase<MAP>::GetBalance(
-    const Address& address) {
+uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
   // LOG_MARKER();
 
   const Account* account = GetAccount(address);

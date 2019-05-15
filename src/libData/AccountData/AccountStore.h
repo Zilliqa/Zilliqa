@@ -15,19 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCOUNTSTORE_H__
-#define __ACCOUNTSTORE_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
 
 #include <json/json.h>
 #include <map>
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "Account.h"
 #include "AccountStoreSC.h"
@@ -95,7 +90,7 @@ class AccountStore
   ~AccountStore();
 
   /// Store the trie root to leveldb
-  void MoveRootToDisk(const dev::h256& root);
+  bool MoveRootToDisk(const dev::h256& root);
 
  public:
   /// Returns the singleton AccountStore instance.
@@ -125,7 +120,7 @@ class AccountStore
   void InitSoft();
 
   /// Reset the reference to underlying leveldb
-  void RefreshDB();
+  bool RefreshDB();
 
   bool UpdateStateTrieFromTempStateDB();
 
@@ -153,17 +148,16 @@ class AccountStore
   }
 
   /// increase balance for account in AccountStoreTemp
-  bool IncreaseBalanceTemp(const Address& address,
-                           const boost::multiprecision::uint128_t& delta) {
+  bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
     return m_accountStoreTemp->IncreaseBalance(address, delta);
   }
 
   /// get the nonce of an account in AccountStoreTemp
-  boost::multiprecision::uint128_t GetNonceTemp(const Address& address);
+  uint128_t GetNonceTemp(const Address& address);
 
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
-                          const boost::multiprecision::uint128_t& amount);
+                          const uint128_t& amount);
 
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,
@@ -203,4 +197,4 @@ class AccountStore
   void InitRevertibles();
 };
 
-#endif  // __ACCOUNTSTORE_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

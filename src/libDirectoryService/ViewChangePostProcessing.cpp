@@ -284,6 +284,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (!BlockStorage::GetBlockStorage().PutVCBlock(
           m_pendingVCBlock->GetBlockHash(), dst)) {
     LOG_GENERAL(WARNING, "Unable to put VC Block");
+    return;
   }
 
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;

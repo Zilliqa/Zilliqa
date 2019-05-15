@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __ADDRESS_CHECKSUM_H__
-#define __ADDRESS_CHECKSUM_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_ADDRESSCHECKSUM_H_
+#define ZILLIQA_SRC_LIBSERVER_ADDRESSCHECKSUM_H_
 
 #include <boost/algorithm/string.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
+
 #include "common/Constants.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/HashUtils.h"
@@ -49,7 +49,7 @@ class AddressChecksum {
     }
     bytes hash_s = HashUtils::BytesToHash(tmpaddr);
 
-    boost::multiprecision::uint256_t temp_1 = 1;
+    uint256_t temp_1 = 1;
     std::string ret = "";
 
     std::string hash_str;
@@ -58,7 +58,7 @@ class AddressChecksum {
       return "";
     }
 
-    boost::multiprecision::uint256_t v("0x" + hash_str);
+    uint256_t v("0x" + hash_str);
 
     for (uint i = 0; i < lower_case_address.size(); i++) {
       if (lower_case_address.at(i) >= '0' && lower_case_address.at(i) <= '9') {
@@ -105,4 +105,4 @@ class AddressChecksum {
   }
 };
 
-#endif  //__ADDRESS_CHECKSUM_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_ADDRESSCHECKSUM_H_

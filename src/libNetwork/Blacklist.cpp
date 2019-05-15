@@ -31,7 +31,7 @@ Blacklist& Blacklist::GetInstance() {
 }
 
 /// P2PComm may use this function
-bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exist(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }
@@ -42,7 +42,7 @@ bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
+void Blacklist::Add(const uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
@@ -56,7 +56,7 @@ void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
+void Blacklist::Remove(const uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
@@ -106,7 +106,7 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
-bool Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::Exclude(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }
@@ -114,7 +114,7 @@ bool Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
   return m_excludedIP.emplace(ip).second;
 }
 
-bool Blacklist::RemoveExclude(const boost::multiprecision::uint128_t& ip) {
+bool Blacklist::RemoveExclude(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }

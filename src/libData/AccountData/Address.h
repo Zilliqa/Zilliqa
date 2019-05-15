@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ADDRESS_H__
-#define __ADDRESS_H__
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
 
 #include <array>
 #include <unordered_set>
@@ -32,4 +32,4 @@ using AddressHashSet = std::unordered_set<Address>;
 
 const Address NullAddress;
 
-#endif  // __ADDRESS_H__
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_

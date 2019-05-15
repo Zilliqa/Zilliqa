@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONSTANTS_H__
-#define __CONSTANTS_H__
+#ifndef ZILLIQA_SRC_COMMON_CONSTANTS_H_
+#define ZILLIQA_SRC_COMMON_CONSTANTS_H_
 
 #include "depends/common/FixedHash.h"
 
@@ -204,9 +204,9 @@ extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int GAS_CONGESTION_PERCENT;
 extern const unsigned int UNFILLED_PERCENT_LOW;
 extern const unsigned int UNFILLED_PERCENT_HIGH;
-extern const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE;
+extern const uint128_t GAS_PRICE_MIN_VALUE;
 extern const unsigned int GAS_PRICE_PRECISION;
-extern const boost::multiprecision::uint128_t PRECISION_MIN_VALUE;
+extern const uint128_t PRECISION_MIN_VALUE;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
 extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
 extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
@@ -250,7 +250,8 @@ extern const unsigned int SHARD_LEADER_SELECT_TOL;
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 
 // RPC Constants
-extern const unsigned int RPC_PORT;
+extern const unsigned int LOOKUP_RPC_PORT;
+extern const unsigned int STATUS_RPC_PORT;
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STATUS_RPC;  //
 extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
@@ -346,9 +347,9 @@ extern const unsigned int PREGEN_ACCOUNT_TIMES;
 extern const std::string PREGENED_ACCOUNTS_FILE;
 
 // Transaction constants
-extern const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD;
-extern const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS;
-extern const boost::multiprecision::uint128_t TOTAL_GENESIS_TOKEN;
+extern const uint128_t TOTAL_COINBASE_REWARD;
+extern const uint128_t COINBASE_REWARD_PER_DS;
+extern const uint128_t TOTAL_GENESIS_TOKEN;
 extern const unsigned int BASE_REWARD_IN_PERCENT;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
@@ -377,4 +378,4 @@ extern const std::vector<std::string> GENESIS_KEYS;
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
 extern const unsigned int SEED_PORT;
-#endif  // __CONSTANTS_H__
+#endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

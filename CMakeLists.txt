@@ -214,6 +214,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 
 add_compile_options(-Wall)
 add_compile_options(-Werror)
+add_compile_options(-pedantic)
 add_compile_options(-Wextra)
 
 if (THREAD_SANITIZER AND ADDRESS_SANITIZER)
@@ -254,7 +255,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory getrewardhistory
+set_target_properties(zilliqa sendcmd genkeypair getpub getaddr gentxn signmultisig verifymultisig ZilliqaDaemon_AWS gensigninitialds grepperf getnetworkhistory getrewardhistory validateDB
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT

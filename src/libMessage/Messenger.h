@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __MESSENGER_H__
-#define __MESSENGER_H__
+#ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
+#define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
@@ -250,8 +250,7 @@ class Messenger {
       const uint8_t difficultyLevel, const Peer& submitterPeer,
       const PairOfKey& submitterKey, const uint64_t nonce,
       const std::string& resultingHash, const std::string& mixHash,
-      const uint32_t& lookupId,
-      const boost::multiprecision::uint128_t& gasPrice);
+      const uint32_t& lookupId, const uint128_t& gasPrice);
 
   static bool GetDSPoWSubmission(const bytes& src, const unsigned int offset,
                                  uint64_t& blockNumber,
@@ -259,8 +258,7 @@ class Messenger {
                                  PubKey& submitterPubKey, uint64_t& nonce,
                                  std::string& resultingHash,
                                  std::string& mixHash, Signature& signature,
-                                 uint32_t& lookupId,
-                                 boost::multiprecision::uint128_t& gasPrice);
+                                 uint32_t& lookupId, uint128_t& gasPrice);
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,
@@ -875,4 +873,4 @@ class Messenger {
                                       PubKey& archivalPubKey, uint32_t& code,
                                       std::string& path);
 };
-#endif  // __MESSENGER_H__
+#endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_

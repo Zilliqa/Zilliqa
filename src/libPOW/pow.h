@@ -15,15 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __POW_H__
-#define __POW_H__
+#ifndef ZILLIQA_SRC_LIBPOW_POW_H_
+#define ZILLIQA_SRC_LIBPOW_POW_H_
 
 #include <stdint.h>
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <mutex>
 #include <string>
 #include <thread>
@@ -66,8 +62,8 @@ class POW {
  public:
   static ethash_hash256 StringToBlockhash(std::string const& _s);
   static std::string BlockhashToHexString(const ethash_hash256& _hash);
-  static bool CheckDificulty(const ethash_hash256& result,
-                             const ethash_hash256& boundary);
+  static bool CheckDifficulty(const ethash_hash256& result,
+                              const ethash_hash256& boundary);
   static size_t CountLeadingZeros(const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
@@ -79,8 +75,8 @@ class POW {
   static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
@@ -100,8 +96,8 @@ class POW {
   static bytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
+      const uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
   static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
@@ -165,4 +161,4 @@ class POW {
   void InitOpenCL();
   void InitCUDA();
 };
-#endif  // __POW_H__
+#endif  // ZILLIQA_SRC_LIBPOW_POW_H_

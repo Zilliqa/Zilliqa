@@ -268,7 +268,7 @@ cd -
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     cp ${constantLevel2LookupFile} ${constantLevel2LookupFile}_level2lookup
     [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
-    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     if [ "$releaseZilliqa" = "true" ]; then
         cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
         cmd="${cmd} -C $(dirname ${constantLevel2LookupFile}) $(basename ${constantLevel2LookupFile})_level2lookup"

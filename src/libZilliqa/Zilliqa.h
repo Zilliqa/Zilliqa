@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __ZILLIQA_H__
-#define __ZILLIQA_H__
+#ifndef ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
+#define ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 
 #include <vector>
 
@@ -25,7 +25,8 @@
 #include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
-#include "libServer/Server.h"
+#include "libServer/LookupServer.h"
+#include "libServer/StatusServer.h"
 #include "libUtils/ThreadPool.h"
 
 /// Main Zilliqa class.
@@ -39,8 +40,10 @@ class Zilliqa {
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  std::unique_ptr<Server> m_server;
-  std::unique_ptr<jsonrpc::AbstractServerConnector> m_serverConnector;
+  std::unique_ptr<StatusServer> m_statusServer;
+  std::unique_ptr<LookupServer> m_lookupServer;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
@@ -64,4 +67,4 @@ class Zilliqa {
                                        unsigned char instruction);
 };
 
-#endif  // __ZILLIQA_H__
+#endif  // ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_

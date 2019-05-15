@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DATASENDER_H__
-#define __DATASENDER_H__
+#ifndef ZILLIQA_SRC_LIBNETWORK_DATASENDER_H_
+#define ZILLIQA_SRC_LIBNETWORK_DATASENDER_H_
 
 #include <deque>
 #include <functional>
@@ -75,4 +75,4 @@ class DataSender : Singleton<DataSender> {
       const SendDataToShardFunc& sendDataToShardFunc = nullptr);
 };
 
-#endif  // __DATASENDER_H__
+#endif  // ZILLIQA_SRC_LIBNETWORK_DATASENDER_H_

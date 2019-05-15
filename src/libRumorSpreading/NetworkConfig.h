@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __NETWORKSTATE_H__
-#define __NETWORKSTATE_H__
+#ifndef ZILLIQA_SRC_LIBRUMORSPREADING_NETWORKCONFIG_H_
+#define ZILLIQA_SRC_LIBRUMORSPREADING_NETWORKCONFIG_H_
 
 #include <string>
 #include <unordered_map>
@@ -72,4 +72,4 @@ class NetworkConfig {
 
 }  // namespace RRS
 
-#endif  //__NETWORKSTATE_H__
+#endif  // ZILLIQA_SRC_LIBRUMORSPREADING_NETWORKCONFIG_H_

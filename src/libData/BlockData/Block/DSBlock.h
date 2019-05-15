@@ -15,14 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __DSBLOCK_H__
-#define __DSBLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "BlockBase.h"
 #include "common/Constants.h"
@@ -74,4 +70,4 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlock& t) {
   return os;
 }
 
-#endif  // __DSBLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_

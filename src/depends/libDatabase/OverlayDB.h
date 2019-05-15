@@ -37,7 +37,7 @@ namespace dev
 		~OverlayDB() = default;
 
 		void ResetDB();
-		void RefreshDB();
+		bool RefreshDB();
 
 		void commit();
 		void rollback();

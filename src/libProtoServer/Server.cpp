@@ -16,10 +16,6 @@
  */
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <iostream>
 
 #include "Server.h"
@@ -80,7 +76,7 @@ Server::~Server() {
 // Auxillary functions.
 ////////////////////////////////////////////////////////////////////////
 
-boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -241,6 +237,51 @@ CreateTransactionResponse Server::CreateTransaction(
         ret.set_tranid(tx.GetTranID().hex());
       }
 
+      switch (Transaction::GetTransactionType(tx)) {
+        case Transaction::CONTRACT_CALL: {
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+          if (account == nullptr) {
+            ret.set_error("To Addr is null");
+            return ret;
+          } else if (!account->isContract()) {
+            ret.set_error("Non - contract address called");
+            return ret;
+          }
+
+          unsigned int to_shard =
+              Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+
+          if (to_shard == shard) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            ret.set_info(
+                "Contract Txn, Shards Match of the sender and reciever");
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+            ret.set_info("Contract Txn, Sent To Ds");
+          }
+          ret.set_tranid(tx.GetTranID().hex());
+          break;
+        }
+        case Transaction::CONTRACT_CREATION: {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          ret.set_info("Contract Creation txn, sent to shard");
+          ret.set_tranid(tx.GetTranID().hex());
+          ret.set_contractaddress(
+              Account::GetAddressForContract(fromAddr, sender->GetNonce())
+                  .hex());
+          break;
+        }
+        case Transaction::NON_CONTRACT: {
+          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          ret.set_info("Non-contract txn, sent to shard");
+          ret.set_tranid(tx.GetTranID().hex());
+          break;
+        }
+        default:
+          LOG_GENERAL(WARNING, "Type of transaction is not recognizable");
+      }
     } else {
       LOG_GENERAL(INFO, "No shards yet");
       ret.set_error("Could not create Transaction");
@@ -444,10 +485,10 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      boost::multiprecision::uint128_t balance = account->GetBalance();
+      uint128_t balance = account->GetBalance();
       ret.set_balance(balance.str());
 
-      boost::multiprecision::uint128_t nonce = account->GetNonce();
+      uint128_t nonce = account->GetNonce();
       ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
@@ -930,8 +971,7 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
 
   unsigned int offset = PAGE_SIZE * (page - 1);
   if (page <= NUM_PAGES_CACHE) {  // can use cache
-    boost::multiprecision::uint256_t cacheSize(
-        m_DSBlockCache.second.capacity());
+    uint256_t cacheSize(m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
       cacheSize = m_DSBlockCache.second.size();
     }
@@ -1023,8 +1063,7 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
 
   unsigned int offset = PAGE_SIZE * (page - 1);
   if (page <= NUM_PAGES_CACHE) {  // can use cache
-    boost::multiprecision::uint256_t cacheSize(
-        m_TxBlockCache.second.capacity());
+    uint256_t cacheSize(m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {
       cacheSize = m_TxBlockCache.second.size();

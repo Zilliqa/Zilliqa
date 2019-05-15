@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONSENSUS_H__
-#define __CONSENSUS_H__
+#ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUS_H_
+#define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUS_H_
 
 #include "ConsensusBackup.h"
 #include "ConsensusCommon.h"
 #include "ConsensusLeader.h"
 
-#endif  // __CONSENSUS_H__
+#endif  // ZILLIQA_SRC_LIBCONSENSUS_CONSENSUS_H_

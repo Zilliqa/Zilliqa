@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MEDIATOR_H__
-#define __MEDIATOR_H__
+#ifndef ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
+#define ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
 
 #include <deque>
 
@@ -125,4 +125,4 @@ class Mediator {
   void SetupLogLevel();
 };
 
-#endif  // __MEDIATOR_H__
+#endif  // ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_

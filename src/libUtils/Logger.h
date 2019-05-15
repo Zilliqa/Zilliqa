@@ -15,13 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H__
-#define __LOGGER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
+#define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -279,4 +275,4 @@ class ScopeMarker {
   LOG_GENERAL(WARNING, " Received = " << received);   \
   LOG_GENERAL(WARNING, " Expected = " << expected);
 
-#endif  // __LOGGER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_LOGGER_H_

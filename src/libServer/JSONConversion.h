@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __JSONCONVERSION_H__
-#define __JSONCONVERSION_H__
+#ifndef ZILLIQA_SRC_LIBSERVER_JSONCONVERSION_H_
+#define ZILLIQA_SRC_LIBSERVER_JSONCONVERSION_H_
 
 #include <json/json.h>
 #include <array>
@@ -49,4 +49,4 @@ class JSONConversion {
   static const Json::Value convertDequeOfNode(const DequeOfNode& nodes);
 };
 
-#endif  // __JSONCONVERSION_H__
+#endif  // ZILLIQA_SRC_LIBSERVER_JSONCONVERSION_H_

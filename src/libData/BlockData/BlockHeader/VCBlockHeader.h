@@ -15,15 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __VCBLOCKHEADER_H__
-#define __VCBLOCKHEADER_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include <vector>
+#include "common/BaseType.h"
 
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
@@ -124,4 +120,4 @@ inline std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t) {
   return os;
 }
 
-#endif  // __VCBLOCKHEADER_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla:v0.2.0
+FROM zilliqa/scilla:v0.3.0
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -53,7 +53,7 @@ RUN apt-get update \
     && pip install setuptools \
     && pip install request requests clint futures
 
-ARG ZILLIQA_VERSION=v4.5.1
+ARG ZILLIQA_VERSION=v4.6.1
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

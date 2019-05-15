@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SWINFO_H__
-#define __SWINFO_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SWINFO_H_
+#define ZILLIQA_SRC_LIBUTILS_SWINFO_H_
 
 #include <stdint.h>
 #include <iostream>
 #include "common/Serializable.h"
 
-const std::string VERSION_TAG = "v4.5.1";
+const std::string VERSION_TAG = "v4.6.1";
 const std::string ZILLIQA_BRAND = "Copyright (C) Zilliqa. Version " +
                                   VERSION_TAG + ".  <https://www.zilliqa.com/>";
 
@@ -125,4 +125,4 @@ inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {
   return os;
 }
 
-#endif  // __SWINFO_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SWINFO_H_

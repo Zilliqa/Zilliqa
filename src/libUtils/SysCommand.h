@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
+#define ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
 
 #include <signal.h>
 #include <sys/wait.h>
@@ -180,4 +180,4 @@ class SysCommand {
   }
 };
 
-#endif  // __SYSCOMMAND_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_

@@ -90,7 +90,10 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
 
     // clear all the state deltas from disk.
-    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+    if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
+      LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
+      return false;
+    }
 
     std::string target = "persistence/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
@@ -108,7 +111,11 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
         if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
             0) {  // state-delta from vacous epoch
           // refresh state-delta after copy over
-          BlockStorage::GetBlockStorage().RefreshDB(BlockStorage::STATE_DELTA);
+          if (!BlockStorage::GetBlockStorage().RefreshDB(
+                  BlockStorage::STATE_DELTA)) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+            return false;
+          }
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
           for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
@@ -138,9 +145,17 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
             }
           }
           // commit the state to disk
-          AccountStore::GetInstance().MoveUpdatesToDisk();
+          if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+            LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
+            return false;
+            ;
+          }
           // clear the stateDelta db
-          BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
+          if (!BlockStorage::GetBlockStorage().ResetDB(
+                  BlockStorage::STATE_DELTA)) {
+            LOG_GENERAL(WARNING, "BlockStorage::ResetDB (STATE_DELTA) failed");
+            return false;
+          }
           firstStateDeltaIndex = i + 1;
         }
       } else  // we rely on next statedelta that covers this missing one
@@ -163,7 +178,10 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
-      BlockStorage::GetBlockStorage().DeleteTxBlock(lastBlockNum - i);
+      if (!BlockStorage::GetBlockStorage().DeleteTxBlock(lastBlockNum - i)) {
+        LOG_GENERAL(WARNING, "BlockStorage::DeleteTxBlock " << lastBlockNum - i
+                                                            << " failed");
+      }
       blocks.pop_back();
     }
   } else {
@@ -225,7 +243,11 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
     return false;
   }
 
-  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::BLOCKLINK);
+  if (!BlockStorage::GetBlockStorage().ResetDB(
+          BlockStorage::DBTYPE::BLOCKLINK)) {
+    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (BLOCKLINK) failed");
+    return false;
+  }
 
   bool toDelete = false;
 
@@ -251,7 +273,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
-       blocklinkItr++) {
+       ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
 
     if (toDelete) {
@@ -325,13 +347,17 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
     return true;
   }
 
-  for (; blocklinkItr != blocklinks.end(); blocklinkItr++) {
+  for (; blocklinkItr != blocklinks.end(); ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
     if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
       if (BlockStorage::GetBlockStorage().DeleteDSBlock(
               std::get<BlockLinkIndex::DSINDEX>(blocklink))) {
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
+        if (!BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::DSINCOMPLETED, {'0'})) {
+          LOG_GENERAL(WARNING,
+                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+          return false;
+        }
       }
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::VC) {

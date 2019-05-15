@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#ifndef ZILLIQA_SRC_LIBUTILS_SCHEDULER_H_
+#define ZILLIQA_SRC_LIBUTILS_SCHEDULER_H_
 
 #include <chrono>
 #include <condition_variable>
@@ -56,4 +56,4 @@ class Scheduler {
   mutable std::mutex newTaskMutex;
 };
 
-#endif  // __SCHEDULER_H__
+#endif  // ZILLIQA_SRC_LIBUTILS_SCHEDULER_H_

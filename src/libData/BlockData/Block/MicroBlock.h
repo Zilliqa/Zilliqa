@@ -15,14 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __MICROBLOCK_H__
-#define __MICROBLOCK_H__
+#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_MICROBLOCK_H_
+#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_MICROBLOCK_H_
 
 #include <array>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 #include "BlockBase.h"
 #include "common/Constants.h"
@@ -80,4 +76,4 @@ inline std::ostream& operator<<(std::ostream& os, const MicroBlock& t) {
   return os;
 }
 
-#endif  // __MICROBLOCK_H__
+#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_MICROBLOCK_H_
