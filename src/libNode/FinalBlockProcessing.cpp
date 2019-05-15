@@ -778,6 +778,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                                         .GetBlockNum() +
                                     1
                              << "] FINISH WRITE STATE TO DISK");
+        if (ENABLE_ACCOUNTS_POPULATING &&
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+                PREGEN_ACCOUNT_TIMES) {
+          PopulateAccounts();
+        }
       }
     };
     DetachedFunction(1, writeStateToDisk);

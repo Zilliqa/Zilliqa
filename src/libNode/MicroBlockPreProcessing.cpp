@@ -268,7 +268,7 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
-  if (ENABLE_ACCOUNTS_POPULATING) {
+  if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
   }
 
@@ -497,7 +497,7 @@ void Node::UpdateProcessedTransactions() {
 void Node::ProcessTransactionWhenShardBackup() {
   LOG_MARKER();
 
-  if (ENABLE_ACCOUNTS_POPULATING) {
+  if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
   }
 

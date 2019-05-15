@@ -63,22 +63,45 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
-void Node::PopulateAccounts() {
+void Node::PopulateAccounts(bool temp) {
+  if (!ENABLE_ACCOUNTS_POPULATING) {
+    LOG_GENERAL(INFO, "Accounts Pregen is not enabled");
+    return;
+  }
+
+  LOG_MARKER();
+
   try {
     string line;
     fstream keys_file(PREGENED_ACCOUNTS_FILE, ios::in);
 
-    unsigned int counter = 0;
-
-    while (getline(keys_file, line) && counter < NUM_ACCOUNTS_PREGENERATE) {
+    unsigned int counter = m_accountPopulated;
+    m_accountPopulated = 0;
+    while (getline(keys_file, line) &&
+           m_accountPopulated < (NUM_ACCOUNTS_PREGENERATE *
+                                 (m_mediator.m_dsBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1))) {
+      m_accountPopulated++;
+      if (m_accountPopulated <= counter) {
+        continue;
+      }
       vector<string> key_pair;  // pub/priv
       boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
       Address t_addr = Account::GetAddressFromPublicKey(
           PubKey::GetPubKeyFromString(key_pair[0]));
-      AccountStore::GetInstance().AddAccount(t_addr, {0, 0});
+      if (temp) {
+        AccountStore::GetInstance().AddAccountTemp(t_addr,
+                                                   {TOTAL_GENESIS_TOKEN, 0});
+      } else {
+        AccountStore::GetInstance().AddAccount(t_addr,
+                                               {TOTAL_GENESIS_TOKEN, 0});
+      }
       m_populatedAddresses.emplace_back(t_addr);
-      counter++;
     }
+
+    LOG_GENERAL(INFO, "Prepopulated Accounts: " << m_populatedAddresses.size());
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Problem occured when processing keys on line: "
                              << m_populatedAddresses.size() + 1);
@@ -115,10 +138,7 @@ void Node::AddBalanceToGenesisAccount() {
   // Init account for issuing coinbase rewards
   AccountStore::GetInstance().AddAccount(Address(),
                                          {TOTAL_COINBASE_REWARD, nonce});
-
-  if (ENABLE_ACCOUNTS_POPULATING) {
-    PopulateAccounts();
-  }
+  PopulateAccounts();
 
   AccountStore::GetInstance().UpdateStateTrieAll();
 }

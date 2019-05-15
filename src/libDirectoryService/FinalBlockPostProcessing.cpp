@@ -212,6 +212,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                                     1
                              << "] FINISH WRITE STATE TO DISK");
       }
+      if (ENABLE_ACCOUNTS_POPULATING &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+              PREGEN_ACCOUNT_TIMES) {
+        m_mediator.m_node->PopulateAccounts();
+      }
     };
     DetachedFunction(1, writeStateToDisk);
   } else {
