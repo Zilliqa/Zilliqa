@@ -25,7 +25,9 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <event2/util.h>
+#include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/socket.h>
@@ -184,6 +186,9 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   }
 
   try {
+    long arg;
+    int valopt;
+    socklen_t lon;
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
@@ -204,22 +209,93 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
     serv_addr.sin_port = htons(peer.m_listenPortHost);
 
-    if (connect(cli_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <
-        0) {
-      LOG_GENERAL(WARNING, "Socket connect failed. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address: " << peer);
-      if (P2PComm::IsHostHavingNetworkIssue()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " to blacklist");
-        Blacklist::GetInstance().Add(peer.m_ipAddress);
-      }
-
+    // Set non-blocking
+    if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
+      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      return false;
+    }
+    arg |= O_NONBLOCK;
+    if (fcntl(cli_sock, F_SETFL, arg) < 0) {
+      LOG_GENERAL(WARNING, "couldn't set socket as non-blocking");
       return false;
     }
 
+    int status;
+    bool connectStat = true;
+    if ((status = connect(cli_sock, (struct sockaddr*)&serv_addr,
+                          sizeof(serv_addr))) < 0) {
+      if (errno != EINPROGRESS) {
+        LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                        << errno << " - " << strerror(errno)
+                                        << ")");
+        connectStat = false;
+      } else {
+        struct pollfd pfd_write;
+        pfd_write.fd = cli_sock;
+        pfd_write.events = POLLERR | POLLOUT;
+        pfd_write.revents = 0;
+
+        /**** poll ****
+        1. On success, Returns a positive number; this is the number
+        of structures which have nonzero revents fields (in other words, those
+        descriptors with events or errors reported).
+        2. A value of 0 indicates that the call timed out and no file
+        descriptors were ready.
+        3. On error, status -1 is returned, and errno is set appropriately.
+        */
+        status = poll(&pfd_write, 1, CONNECTION_TIMEOUT_IN_SECONDS * 1000);
+
+        if (status < 0) {
+          LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                          << errno << " - " << strerror(errno)
+                                          << ")");
+          connectStat = false;
+        } else if (status > 0) {
+          // Socket selected for write
+          lon = sizeof(int);
+          if (getsockopt(cli_sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt),
+                         &lon) < 0) {
+            LOG_GENERAL(WARNING, "ERRGETSOCKOPT " << peer);
+            connectStat = false;
+          }  // Check the value returned...
+          else if (valopt) {
+            LOG_GENERAL(WARNING, "ERRCONN " << peer << "(" << status << " - "
+                                            << valopt << " - "
+                                            << strerror(valopt) << ")");
+            connectStat = false;
+          } else {
+            LOG_GENERAL(DEBUG,
+                        "Socket selected for write successfully for " << peer);
+          }
+        } else {
+          LOG_GENERAL(WARNING, "TIMEOUTCONN " << peer << "(" << status << " - "
+                                              << errno << " - "
+                                              << strerror(errno) << ")");
+          connectStat = false;
+        }
+      }
+    }
+
+    if (!connectStat) {  // Rule : if connectStat is false, always blacklist
+                         // them.
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
+      return false;
+    }
+
+    // Set to blocking mode again...
+    if ((arg = fcntl(cli_sock, F_GETFL, NULL)) < 0) {
+      LOG_GENERAL(WARNING, "couldn't get flags on socket");
+      return false;
+    }
+    arg &= (~O_NONBLOCK);
+    if (fcntl(cli_sock, F_SETFL, arg) < 0) {
+      LOG_GENERAL(WARNING, "couldn't set socket as blocking again");
+      return false;
+    }
     // Transmission format:
     // 0x01 ~ 0xFF - version, defined in constant file
     // 0x11 - start byte
@@ -333,7 +409,7 @@ void SendJobPeers<T>::DoSend() {
   }
 
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
-       curr < indexes.end(); curr++) {
+       curr < indexes.end(); ++curr) {
     const Peer& peer = m_peers.at(*curr);
 
     /// TBD: Update the container dynamically when blacklist is updated
@@ -477,12 +553,12 @@ void P2PComm::CloseAndFreeBufferEvent(struct bufferevent* bufev) {
   socklen_t addr_size = sizeof(struct sockaddr_in);
   getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
   uint128_t ipAddr = cli_addr.sin_addr.s_addr;
-
-  std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-  if (m_peerConnectionCount[ipAddr] > 0) {
-    m_peerConnectionCount[ipAddr]--;
+  {
+    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+    if (m_peerConnectionCount[ipAddr] > 0) {
+      m_peerConnectionCount[ipAddr]--;
+    }
   }
-
   bufferevent_free(bufev);
 }
 
@@ -675,16 +751,6 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   LOG_GENERAL(DEBUG, "Incoming message from " << from);
-  {
-    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
-      LOG_GENERAL(WARNING, "Connection ignored from " << from);
-      evutil_closesocket(cli_sock);
-      return;
-    }
-    m_peerConnectionCount[from.GetIpAddress()]++;
-  }
-
   if (Blacklist::GetInstance().Exist(from.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << from
@@ -694,6 +760,16 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     evutil_closesocket(cli_sock);
 
     return;
+  }
+
+  {
+    std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
+    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
+      LOG_GENERAL(WARNING, "Connection ignored from " << from);
+      evutil_closesocket(cli_sock);
+      return;
+    }
+    m_peerConnectionCount[from.GetIpAddress()]++;
   }
 
   // Set up buffer event for this new connection

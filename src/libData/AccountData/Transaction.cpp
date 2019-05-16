@@ -112,7 +112,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 }
 
 Transaction::Transaction(const TxnHash& tranID,
-                         const TransactionCoreInfo coreInfo,
+                         const TransactionCoreInfo& coreInfo,
                          const Signature& signature)
     : m_tranID(tranID), m_coreInfo(coreInfo), m_signature(signature) {}
 

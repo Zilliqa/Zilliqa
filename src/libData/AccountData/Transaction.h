@@ -46,7 +46,6 @@ struct TransactionCoreInfo {
         gasLimit(gasLimitInput),
         code(codeInput),
         data(dataInput) {}
-
   uint32_t version;
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
   Address toAddr;
@@ -93,7 +92,7 @@ class Transaction : public SerializableDataBlock {
               const Signature& signature);
 
   /// Constructor with core information.
-  Transaction(const TxnHash& tranID, const TransactionCoreInfo coreInfo,
+  Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,
               const Signature& signature);
 
   /// Constructor for loading transaction information from a byte stream.

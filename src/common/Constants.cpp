@@ -425,8 +425,12 @@ const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
                      "true"};
-const string SCILLA_ROOT{
+string scilla_root_raw{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
+const string SCILLA_ROOT{
+    scilla_root_raw.back() == '/'
+        ? scilla_root_raw.substr(0, scilla_root_raw.size() - 1)
+        : scilla_root_raw};
 const string SCILLA_CHECKER{
     ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
 const string SCILLA_BINARY{
@@ -470,8 +474,12 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
 const bool ENABLE_ACCOUNTS_POPULATING{
     ReadConstantString("ENABLE_ACCOUNTS_POPULATING", "node.tests.") == "true"};
+const bool UPDATE_PREGENED_ACCOUNTS{
+    ReadConstantString("UPDATE_PREGENED_ACCOUNTS", "node.tests.") == "true"};
 const unsigned int NUM_ACCOUNTS_PREGENERATE{
     ReadConstantNumeric("NUM_ACCOUNTS_PREGENERATE", "node.tests.")};
+const unsigned int PREGEN_ACCOUNT_TIMES{
+    ReadConstantNumeric("PREGEN_ACCOUNT_TIMES", "node.tests.")};
 const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
 

@@ -58,6 +58,7 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
 }
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
+  // return PutBlock(blockNum, body, BlockType::DS);
   bool ret = false;
   if (PutBlock(blockNum, body, BlockType::DS)) {
     if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})) {
@@ -652,6 +653,13 @@ bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
   return (ret == 0);
 }
 
+bool BlockStorage::PutEpochFin(const uint64_t& epochNum) {
+  LOG_MARKER();
+  return BlockStorage::GetBlockStorage().PutMetadata(
+      MetaType::EPOCHFIN,
+      DataConversion::StringToCharArray(to_string(epochNum)));
+}
+
 bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   LOG_MARKER();
 
@@ -710,6 +718,28 @@ bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
     LOG_GENERAL(WARNING, "epochNumStr is not numeric");
     return false;
   }
+  return true;
+}
+
+bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
+  LOG_MARKER();
+
+  bytes epochFinBytes;
+  if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
+                                                  epochFinBytes)) {
+    try {
+      epochNum = std::stoull(DataConversion::CharArrayToString(epochFinBytes));
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "EPOCHFIN cannot be parsed as uint64_t "
+                      << DataConversion::CharArrayToString(epochFinBytes));
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING, "Cannot get EPOCHFIN from DB");
+    return false;
+  }
+
   return true;
 }
 

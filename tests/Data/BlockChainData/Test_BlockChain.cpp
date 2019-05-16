@@ -44,7 +44,7 @@ void appendBlockLinkAndChain_v(BlockLinkChain& blc, vector<BlockLink>& bl_v,
   if (max < min) {
     string throw_s =
         "Invalid range, max " + to_string(max) + " <  min" + to_string(min);
-    throw throw_s.c_str();
+    throw throw_s;
   }
 
   uint8_t lastIndex = bl_v.size();

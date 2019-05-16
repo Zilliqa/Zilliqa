@@ -254,9 +254,9 @@ bool DownloadPersistenceFromS3() {
   return (output.find("Done!") != std::string::npos);
 }
 
-void StartNewProcess(const string pubKey, const string privKey, const string ip,
-                     const string port, const string path, bool cseed,
-                     ofstream& log) {
+void StartNewProcess(const string& pubKey, const string& privKey,
+                     const string& ip, const string& port, const string& path,
+                     bool cseed, ofstream& log) {
   log << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;

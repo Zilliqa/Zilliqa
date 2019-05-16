@@ -236,28 +236,31 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   /// Check whether the termination of last running happens before the last
   /// DSEpoch properly ended.
-  bytes isDSIncompleted;
-  if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
-                                                   isDSIncompleted)) {
-    LOG_GENERAL(WARNING, "No GetMetadata or failed");
-    return false;
+  uint64_t epochFinNum = 0;
+  bool toDelete = false;
+  if (!BlockStorage::GetBlockStorage().GetEpochFin(epochFinNum)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetEpochFin failed");
+    // return false;
+    bytes isDSIncompleted;
+    if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                     isDSIncompleted)) {
+      LOG_GENERAL(WARNING, "No GetMetadata or failed");
+      return false;
+    }
+    if (isDSIncompleted[0] == '1') {
+      /// Removing incompleted DS for upgrading protocol
+      /// Keeping incompleted DS for node recovery
+      if (trimIncompletedBlocks) {
+        LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
+        toDelete = true;
+      }
+    }
   }
 
   if (!BlockStorage::GetBlockStorage().ResetDB(
           BlockStorage::DBTYPE::BLOCKLINK)) {
     LOG_GENERAL(WARNING, "BlockStorage::ResetDB (BLOCKLINK) failed");
     return false;
-  }
-
-  bool toDelete = false;
-
-  if (isDSIncompleted[0] == '1') {
-    /// Removing incompleted DS for upgrading protocol
-    /// Keeping incompleted DS for node recovery
-    if (trimIncompletedBlocks) {
-      LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
-      toDelete = true;
-    }
   }
 
   uint64_t lastDsIndex = std::get<BlockLinkIndex::DSINDEX>(blocklinks.back());
@@ -273,16 +276,8 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
-       blocklinkItr++) {
+       ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
-
-    if (toDelete) {
-      if ((std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) &&
-          (std::get<BlockLinkIndex::DSINDEX>(blocklink) == lastDsIndex)) {
-        LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
-        break;
-      }
-    }
 
     if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
       DSBlockSharedPtr dsblock;
@@ -293,7 +288,26 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
                         << std::get<BlockLinkIndex::DSINDEX>(blocklink));
         return false;
       }
-      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock);
+
+      if (std::get<BlockLinkIndex::DSINDEX>(blocklink) == lastDsIndex &&
+          trimIncompletedBlocks) {
+        if (toDelete) {
+          LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  dsblock->GetHeader().GetEpochNum())) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                     << dsblock->GetHeader().GetEpochNum());
+            return false;
+          }
+          break;
+        } else if (dsblock->GetHeader().GetEpochNum() >= epochFinNum) {
+          LOG_GENERAL(INFO, "Broke at DS Index " << lastDsIndex);
+          toDelete = true;
+          break;
+        }
+      }
+
+      m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
@@ -347,11 +361,13 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
     return true;
   }
 
-  for (; blocklinkItr != blocklinks.end(); blocklinkItr++) {
+  for (; blocklinkItr != blocklinks.end(); ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
     if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
-      if (BlockStorage::GetBlockStorage().DeleteDSBlock(
+      if (!BlockStorage::GetBlockStorage().DeleteDSBlock(
               std::get<BlockLinkIndex::DSINDEX>(blocklink))) {
+        LOG_GENERAL(WARNING, "BlockStorage::DeleteDSBlock failed");
+      } else {
         if (!BlockStorage::GetBlockStorage().PutMetadata(
                 MetaType::DSINCOMPLETED, {'0'})) {
           LOG_GENERAL(WARNING,

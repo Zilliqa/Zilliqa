@@ -203,6 +203,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                                    << " failed");
           return;
         }
+        if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                m_mediator.m_currentEpochNum)) {
+          LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                   << m_mediator.m_currentEpochNum);
+          return;
+        }
         LOG_STATE("[FLBLK][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["
@@ -212,6 +218,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                                     1
                              << "] FINISH WRITE STATE TO DISK");
       }
+      if (ENABLE_ACCOUNTS_POPULATING &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+              PREGEN_ACCOUNT_TIMES) {
+        m_mediator.m_node->PopulateAccounts();
+      }
     };
     DetachedFunction(1, writeStateToDisk);
   } else {
@@ -220,6 +231,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                  CoinbaseReward::FINALBLOCK_REWARD,
                  m_mediator.m_currentEpochNum);
     m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
+
+    if (!BlockStorage::GetBlockStorage().PutEpochFin(
+            m_mediator.m_currentEpochNum)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                               << m_mediator.m_currentEpochNum);
+      return;
+    }
   }
 
   m_mediator.UpdateDSBlockRand();
