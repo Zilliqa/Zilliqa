@@ -33,6 +33,7 @@ constexpr int PERSISTENCE_ERROR = -2;
 bool RollBackDSComm(const BlockLink& lastBlockLink,
                     const DSBlock& latestDSBlock,
                     const DequeOfNode& dsCommittee,
+                    const map<PubKey, Peer>& IPMapping,
                     DequeOfNode& dsCommittee_rolled_back) {
   PairOfNode dsLeader;
 
@@ -49,9 +50,14 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
   for (uint16_t i = 0; i < size; i++) {
     if (dsCommittee_curr->at(i).first == dsCommittee.at(i).first) {
       dsCommittee_rolled_back.at(i).second = dsCommittee_curr->at(i).second;
+    } else if (IPMapping.find(dsCommittee_rolled_back.at(i).first) !=
+               IPMapping.end()) {
+      dsCommittee_rolled_back.at(i).second =
+          IPMapping.at(dsCommittee_rolled_back.at(i).first);
     } else {
-      dsCommittee_rolled_back.at(i).second = Peer(-1, 0);
-      // Put invalid IP and port
+      cout << "Could not find IP for " << dsCommittee_rolled_back.at(i).first
+           << endl;
+      return false;
     }
   }
   return true;
@@ -60,6 +66,7 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
 int main(int argc, char* argv[]) {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
+  map<PubKey, Peer> IPMapping;
 
   if (argc != 2) {
     cout << "Please give argument as the epoch number" << endl;
@@ -190,6 +197,9 @@ int main(int argc, char* argv[]) {
           return PERSISTENCE_ERROR;
         }
         lastDSblock = *dsblock;
+        for (const auto& dswinner : dsblock->GetHeader().GetDSPoWWinners()) {
+          IPMapping.emplace(dswinner.first, dswinner.second);
+        }
         mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
         //[TODO] Add condition for VC
       }
@@ -259,7 +269,8 @@ int main(int argc, char* argv[]) {
   ret.RetrieveTxBlocks(true);
   auto dsCommittee_rolled_back = dsComm;
   if (!RollBackDSComm(mediator.m_blocklinkchain.GetLatestBlockLink(),
-                      lastDSblock, dsComm, dsCommittee_rolled_back)) {
+                      lastDSblock, dsComm, IPMapping,
+                      dsCommittee_rolled_back)) {
     cout << "Could not roll back ds comm" << endl;
     return PERSISTENCE_ERROR;
   }
