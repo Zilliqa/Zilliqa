@@ -221,6 +221,9 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   bool DeleteFallbackBlock(const BlockHash& blockhash);
 
+  bool DeleteStateDelta(const uint64_t& finalBlockNum);
+
+  bool DeleteMicroBlock(const BlockHash& blockHash);
   // /// Adds a transaction body to storage.
   // bool PutTxBody(const std::string & key, const bytes &
   // body);
