@@ -307,7 +307,6 @@ extern const unsigned int TXN_SHARD_TARGET_DIFFICULTY;
 extern const unsigned int TXN_DS_TARGET_DIFFICULTY;
 extern const unsigned int TXN_DS_TARGET_NUM;
 extern const unsigned int PRIORITY_TOLERANCE_IN_PERCENT;
-extern const unsigned int ENABLE_NEW_FEATURE_DS_NUM;
 
 // Recovery and upgrading constants
 extern const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS;
