@@ -76,3 +76,10 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:validateDB> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(validateDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(validateDB PUBLIC  Node Mediator Validator)
+
+add_executable(roll_back roll_back.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:roll_back> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(roll_back PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(roll_back PUBLIC  Node Mediator Validator)
