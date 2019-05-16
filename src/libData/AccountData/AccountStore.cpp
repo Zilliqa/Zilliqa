@@ -234,12 +234,13 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
       return false;
     }
+    lock_guard<mutex> g(m_mutexTrie);
     m_state.db()->commit();
-    m_prevRoot = m_state.root();
-    if (!MoveRootToDisk(m_prevRoot)) {
-      LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_prevRoot.hex());
+    if (!MoveRootToDisk(m_state.root())) {
+      LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_state.root().hex());
       return false;
     }
+    m_prevRoot = m_state.root();
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
                              << boost::diagnostic_information(e));

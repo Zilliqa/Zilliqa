@@ -249,6 +249,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Save latest epoch when states were moved to disk
   bool PutLatestEpochStatesUpdated(const uint64_t& epochNum);
 
+  /// Save the latest epoch being fully completed
+  bool PutEpochFin(const uint64_t& epochNum);
+
   /// Retrieve Last Transactions Trie Root Hash
   bool GetMetadata(MetaType type, bytes& data);
 
@@ -257,6 +260,9 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Save latest epoch when states were moved to disk
   bool GetLatestEpochStatesUpdated(uint64_t& epochNum);
+
+  /// Get the latest epoch being fully completed
+  bool GetEpochFin(uint64_t& epochNum);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,

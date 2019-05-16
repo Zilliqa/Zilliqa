@@ -46,7 +46,6 @@ struct TransactionCoreInfo {
         gasLimit(gasLimitInput),
         code(codeInput),
         data(dataInput) {}
-
   uint32_t version;
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
   Address toAddr;
