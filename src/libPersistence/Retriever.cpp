@@ -307,7 +307,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         }
       }
 
-      m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
