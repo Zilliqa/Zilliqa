@@ -49,9 +49,8 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
   }
   const auto& size = dsCommittee_curr->size();
   for (uint16_t i = 0; i < size; i++) {
-    if(dsLeader.first == dsCommittee.at(i).first)
-    {
-      cout<<"Leader id "<<i<<endl;
+    if (dsLeader.first == dsCommittee.at(i).first) {
+      cout << "Leader id " << i << endl;
       leaderID_curr = i;
     }
     if (dsCommittee_curr->at(i).first == dsCommittee.at(i).first) {
@@ -66,16 +65,15 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
       return false;
     }
   }
-  if(!BlockStorage::GetBlockStorage().PutDSCommittee(make_shared<DequeOfNode>(dsCommittee_rolled_back), leaderID_curr))
-  {
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(
+          make_shared<DequeOfNode>(dsCommittee_rolled_back), leaderID_curr)) {
     return false;
   }
   return true;
 }
 
-
-bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum, const list<TxBlockSharedPtr> & blocks)
-{
+bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
+                                     const list<TxBlockSharedPtr>& blocks) {
   unsigned int extra_txblocks = 0;
   if ((lastBlockNum - extra_txblocks + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
@@ -117,8 +115,8 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum, const list<TxBlockSh
           LOG_GENERAL(FATAL, "Failed to copy over stateDelta for TxBlk:" << i);
         }
 
-        if ((i + 1) % NUM_FINAL_BLOCK_PER_POW ==
-            0 || i == upper_bound_txnblk) {  // state-delta from vacous epoch
+        if ((i + 1) % NUM_FINAL_BLOCK_PER_POW == 0 ||
+            i == upper_bound_txnblk) {  // state-delta from vacous epoch
           // refresh state-delta after copy over
           if (!BlockStorage::GetBlockStorage().RefreshDB(
                   BlockStorage::STATE_DELTA)) {
@@ -141,8 +139,8 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum, const list<TxBlockSh
                     "AccountStore::GetInstance().DeserializeDelta failed");
                 return false;
               }
-    
-          if (AccountStore::GetInstance().GetStateRootHash() !=
+
+              if (AccountStore::GetInstance().GetStateRootHash() !=
                   (*std::next(blocks.begin(), j))
                       ->GetHeader()
                       .GetStateRootHash()) {
@@ -177,7 +175,6 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum, const list<TxBlockSh
   }
 
   return true;
-
 }
 
 int main(int argc, char* argv[]) {
@@ -210,7 +207,7 @@ int main(int argc, char* argv[]) {
                                mediator.m_txBlockChain);
   const auto& dsBlock = mediator.m_dsBlockChain.GetBlock(0);
   // cout << dsBlock.GetHeader().GetBlockNum() << endl;
-  //AccountStore::GetInstance().Init();
+  // AccountStore::GetInstance().Init();
   {
     lock_guard<mutex> lock(mediator.m_mutexInitialDSCommittee);
     if (!UpgradeManager::GetInstance().LoadInitialDS(
@@ -264,8 +261,7 @@ int main(int argc, char* argv[]) {
 
   const auto latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
   const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
-  cout<<"latestTxBlockNum: "<<latestTxBlockNum<<endl;
-
+  cout << "latestTxBlockNum: " << latestTxBlockNum << endl;
 
   if (latestTxBlockNum < epoch) {
     cout << "epoch is not still reached " << endl;
@@ -385,12 +381,9 @@ int main(int argc, char* argv[]) {
   Retriever ret(mediator);
   // To construct base state
   ret.RetrieveStates();
-  if((latestDSIndex == latestDSIndexPruned))
-  {
+  if ((latestDSIndex == latestDSIndexPruned)) {
     ret.RetrieveTxBlocks(false);
-  }
-  else
-  {
+  } else {
     PutStateDeltaInLocalPersistence(latestTxBlockNumPruned, txblocks);
   }
   auto dsCommittee_rolled_back = dsComm;
