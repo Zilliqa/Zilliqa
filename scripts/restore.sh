@@ -15,37 +15,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-path_to_binary="/usr/local/restore"
+path_to_binary="/usr/local/bin/restore"
 epoch_num=$1
 directory_name="restore"
 
 
 function change_download_db()
 {
-	sed -i '/Exclude_txnBodies /c\Exclude_txnBodies = True' ./downloadIncrDB.py
-	sed -i '/Exclude_microBlocks /c\Exclude_microBlocks = True' ./downloadIncrDB.py
+        sed -i '/Exclude_txnBodies =/c\Exclude_txnBodies = False' ./downloadIncrDB.py
+        sed -i '/Exclude_microBlocks =/c\Exclude_microBlocks = False' ./downloadIncrDB.py
 }
-
 
 function clean()
 {
-	rm $directory_name
-	mkdir $directory_name
-	cd $directory_name
+        rm -rf $directory_name
+        mkdir $directory_name
+        cd $directory_name
 }
 
 function copy_essentials()
 {
-	cp ../dsnodes.xml .
-	cp ../constants.xml .
-	cp -r persistence/ .
-	cp ../downloadIncrDB.py .
+        cp ../dsnodes.xml .
+        cp ../constants.xml .
+        cp -r ../persistence .
+        cp ../downloadIncrDB.py .
 }
 
 clean
 copy_essentials
 change_download_db
-
+./downloadIncrDB.py
 #run the restore command
 $path_to_binary $epoch_num
-
