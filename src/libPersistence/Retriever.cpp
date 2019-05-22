@@ -92,12 +92,13 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     // clear all the state deltas from disk.
     BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
 
-    std::string target = "persistence/stateDelta";
+    std::string target = PERSISTENCE_PATH + "/persistence/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
     for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
       // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
       // local persistence/stateDelta
-      std::string source = "StateDeltaFromS3/stateDelta_" + std::to_string(i);
+      std::string source = PERSISTENCE_PATH + "/StateDeltaFromS3/stateDelta_" +
+                           std::to_string(i);
       if (boost::filesystem::exists(source)) {
         try {
           recursive_copy_dir(source, target);
@@ -152,11 +153,12 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   }
 
-  if (boost::filesystem::exists("StateDeltaFromS3")) {
+  if (boost::filesystem::exists(PERSISTENCE_PATH + "/StateDeltaFromS3")) {
     try {
-      boost::filesystem::remove_all("StateDeltaFromS3");
+      boost::filesystem::remove_all(PERSISTENCE_PATH + "/StateDeltaFromS3");
     } catch (std::exception& e) {
-      LOG_GENERAL(WARNING, "Failed to remove StateDeltaFromS3 directory");
+      LOG_GENERAL(WARNING, "Failed to remove " + PERSISTENCE_PATH +
+                               "/StateDeltaFromS3 directory");
     }
   }
 
