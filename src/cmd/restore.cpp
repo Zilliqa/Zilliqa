@@ -67,6 +67,7 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
   }
   if (!BlockStorage::GetBlockStorage().PutDSCommittee(
           make_shared<DequeOfNode>(dsCommittee_rolled_back), leaderID_curr)) {
+    cout << "Failed to put ds committee" << endl;
     return false;
   }
   return true;
