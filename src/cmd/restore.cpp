@@ -206,7 +206,6 @@ int main(int argc, char* argv[]) {
 
   sync.InitializeGenesisBlocks(mediator.m_dsBlockChain,
                                mediator.m_txBlockChain);
-  const auto& dsBlock = mediator.m_dsBlockChain.GetBlock(0);
   // cout << dsBlock.GetHeader().GetBlockNum() << endl;
   // AccountStore::GetInstance().Init();
   {
@@ -230,8 +229,6 @@ int main(int argc, char* argv[]) {
 
     mediator.m_blocklinkchain.SetBuiltDSComm(buildDSComm);
   }
-  mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
-                                         dsBlock.GetBlockHash());
 
   if (GUARD_MODE) {
     Guard::GetInstance().Init();
@@ -274,6 +271,10 @@ int main(int argc, char* argv[]) {
     cout << "Failed to reset BlockLinkDB" << endl;
     return PERSISTENCE_ERROR;
   }
+  const auto& dsBlock = mediator.m_dsBlockChain.GetBlock(0);
+  mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                         dsBlock.GetBlockHash());
+
   TxBlockSharedPtr latestTxBlockPruned;
   if (!BlockStorage::GetBlockStorage().GetTxBlock(epoch, latestTxBlockPruned)) {
     cout << "Could not get epoch tx block " << epoch << endl;
