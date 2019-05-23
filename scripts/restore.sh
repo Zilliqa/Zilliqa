@@ -19,7 +19,6 @@ path_to_binary="/usr/local/bin/restore"
 prev_persistence_path=$1
 new_persistence_path=$2
 epoch_num=$3
-directory_name="restore"
 
 
 function change_download_db()
@@ -30,24 +29,23 @@ function change_download_db()
 
 function clean()
 {
-        rm -rf $directory_name
-        mkdir $directory_name
-        cd $directory_name
+        rm -rf $new_persistence_path
+        mkdir $new_persistence_path
+        cd $new_persistence_path
 }
 
 function copy_essentials()
 {
         cp ../dsnodes.xml .
         cp ../constants.xml .
-        cp -r prev_persistence_path/persistence .
+        cp -r $prev_persistence_path/persistence .
         cp ../downloadIncrDB.py .
 }
 
-
-if [ ! -d prev_persistence_path/persistence ]
-	echo "Could not find persistence folder "
-	exit 1
-
+if [ ! -d $prev_persistence_path/persistence ]; then
+    echo "Could not find persistence folder $prev_persistence_path!"
+    exit 1
+fi
 
 clean
 copy_essentials
@@ -55,4 +53,3 @@ change_download_db
 ./downloadIncrDB.py
 #run the restore command
 $path_to_binary $epoch_num
-cp -r ./persistence new_persistence_path/
