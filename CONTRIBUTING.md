@@ -5,7 +5,7 @@
 
 2. All **Pull Requests** which are not ready to be merged yet but are open for review should be marked with explicit `on hold` or should be a draft.
 
-3. To build your code with clang-style, use `./build.sh style`
-   To build your coude with clang-format, use `./build.sh linter`
+3. - To build your code with clang-format, use `./build.sh style`
+   - To build your coude with clang-style, use `./build.sh linter`
 
 4. Kindly go through to .clang-format and .clang-style to see the format and checks enabled
