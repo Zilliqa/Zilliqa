@@ -5,7 +5,7 @@
 
 2. - **Pull requests** which fix a bug should start with `fix/`
    - **Pull requests** which add a feature to the codebase should start wiht `feature/`
-   - **Pull requests** which are made by outside contributors should also contain there name.
+   - **Pull requests** which are made by outside contributors should also contain their name.
    ```
    Example:
       john/fix/xxx
