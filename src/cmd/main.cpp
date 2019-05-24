@@ -49,6 +49,7 @@ int main(int argc, const char* argv[]) {
     PrivKey privkey;
     PubKey pubkey;
     string address;
+    string logpath("./");
     int port = -1;
     unique_ptr<NAT> nt;
     uint128_t ip;
@@ -70,7 +71,8 @@ int main(int argc, const char* argv[]) {
         "Specifies port to bind to, if not specified in address")(
         "loadconfig,l", "Loads configuration if set (deprecated)")(
         "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
-        "recovery,r", "Runs in recovery mode if set");
+        "recovery,r", "Runs in recovery mode if set")(
+        "logpath,g", po::value<string>(&logpath), "customized log path");
 
     po::variables_map vm;
     try {
@@ -132,9 +134,9 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    INIT_FILE_LOGGER("zilliqa");
-    INIT_STATE_LOGGER("state");
-    INIT_EPOCHINFO_LOGGER("epochinfo");
+    INIT_FILE_LOGGER("zilliqa", logpath.c_str());
+    INIT_STATE_LOGGER("state", logpath.c_str());
+    INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 

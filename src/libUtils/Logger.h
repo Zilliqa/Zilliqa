@@ -49,7 +49,8 @@ class Logger {
   std::streampos m_maxFileSize;
   std::unique_ptr<g3::LogWorker> logworker;
 
-  Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
+  Logger(const char* prefix, bool log_to_file, const char* logpath,
+         std::streampos max_file_size);
   ~Logger();
 
   void checkLog();
@@ -60,6 +61,7 @@ class Logger {
   std::ofstream m_logFile;
   unsigned int m_seqNum;
   bool m_bRefactor{};
+  std::string m_logPath;
 
  public:
   /// Limits the number of bytes of a payload to display.
@@ -83,15 +85,17 @@ class Logger {
 
   /// Returns the singleton instance for the main Logger.
   static Logger& GetLogger(const char* fname_prefix, bool log_to_file,
+                           const char* logpath,
                            std::streampos max_file_size = MAX_FILE_SIZE);
 
   /// Returns the singleton instance for the state/reporting Logger.
   static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
+                                const char* logpath,
                                 std::streampos max_file_size = MAX_FILE_SIZE);
 
   /// Returns the singleton instance for the epoch info Logger.
   static Logger& GetEpochInfoLogger(
-      const char* fname_prefix, bool log_to_file,
+      const char* fname_prefix, bool log_to_file, const char* logpath,
       std::streampos max_file_size = MAX_FILE_SIZE);
 
   /// Outputs the specified message and function name to the state/reporting
@@ -161,25 +165,26 @@ class ScopeMarker {
   ~ScopeMarker();
 };
 
-#define INIT_FILE_LOGGER(fname_prefix) Logger::GetLogger(fname_prefix, true)
-#define INIT_STDOUT_LOGGER() Logger::GetLogger(NULL, false)
-#define INIT_STATE_LOGGER(fname_prefix) \
-  Logger::GetStateLogger(fname_prefix, true)
-#define INIT_EPOCHINFO_LOGGER(fname_prefix) \
-  Logger::GetEpochInfoLogger(fname_prefix, true)
+#define INIT_FILE_LOGGER(fname_prefix, logpath) \
+  Logger::GetLogger(fname_prefix, true, logpath)
+#define INIT_STDOUT_LOGGER() Logger::GetLogger(NULL, false, "./")
+#define INIT_STATE_LOGGER(fname_prefix, logpath) \
+  Logger::GetStateLogger(fname_prefix, true, logpath)
+#define INIT_EPOCHINFO_LOGGER(fname_prefix, logpath) \
+  Logger::GetEpochInfoLogger(fname_prefix, true, logpath)
 #define LOG_MARKER() ScopeMarker marker(__LINE__, __FILE__, __FUNCTION__)
-#define LOG_STATE(msg)                                                \
-  {                                                                   \
-    std::ostringstream oss;                                           \
-    auto cur = std::chrono::system_clock::now();                      \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);      \
-    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
-        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                   \
-    Logger::GetStateLogger(NULL, true).LogState(oss.str().c_str());   \
+#define LOG_STATE(msg)                                                    \
+  {                                                                       \
+    std::ostringstream oss;                                               \
+    auto cur = std::chrono::system_clock::now();                          \
+    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);          \
+    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")     \
+        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                       \
+    Logger::GetStateLogger(NULL, true, "./").LogState(oss.str().c_str()); \
   }
 #define LOG_GENERAL(level, msg)                                                \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
+    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -193,14 +198,14 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true)                                            \
+      Logger::GetLogger(NULL, true, "./")                                      \
           .LogGeneral(level, oss.str().c_str(), __LINE__, __FILE__,            \
                       __FUNCTION__);                                           \
     }                                                                          \
   }
 #define LOG_EPOCH(level, epoch, msg)                                           \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
+    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -215,14 +220,14 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true)                                            \
+      Logger::GetLogger(NULL, true, "./")                                      \
           .LogEpoch(level, std::to_string(epoch).c_str(), oss.str().c_str(),   \
                     __LINE__, __FILE__, __FUNCTION__);                         \
     }                                                                          \
   }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
+    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
       std::unique_ptr<char[]> payload_string;                                  \
       Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
       auto cur = std::chrono::system_clock::now();                             \
@@ -251,22 +256,22 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true)                                            \
+      Logger::GetLogger(NULL, true, "./")                                      \
           .LogPayload(level, oss.str().c_str(), payload, max_bytes_to_display, \
                       __LINE__, __FILE__, __FUNCTION__);                       \
     }                                                                          \
   }
 #define LOG_DISPLAY_LEVEL_ABOVE(level) \
-  { Logger::GetLogger(NULL, true).DisplayLevelAbove(level); }
+  { Logger::GetLogger(NULL, true, "./").DisplayLevelAbove(level); }
 #define LOG_ENABLE_LEVEL(level) \
-  { Logger::GetLogger(NULL, true).EnableLevel(level); }
+  { Logger::GetLogger(NULL, true, "./").EnableLevel(level); }
 #define LOG_DISABLE_LEVEL(level) \
-  { Logger::GetLogger(NULL, true).DisableLevel(level); }
+  { Logger::GetLogger(NULL, true, "./").DisableLevel(level); }
 #define LOG_EPOCHINFO(blockNum, msg)                                       \
   {                                                                        \
     std::ostringstream oss;                                                \
     oss << msg;                                                            \
-    Logger::GetEpochInfoLogger(NULL, true)                                 \
+    Logger::GetEpochInfoLogger(NULL, true, "./")                           \
         .LogEpochInfo(oss.str().c_str(), __LINE__, __FILE__, __FUNCTION__, \
                       std::to_string(blockNum).c_str());                   \
   }
