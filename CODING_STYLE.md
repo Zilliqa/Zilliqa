@@ -1,5 +1,5 @@
 # Zilliqa Coding Style
-
+<!--Source: https://github.com/ethereum/aleth/blob/master/CODING_STYLE.md -->
 ## Code Formatting
 
 Use clang-format tool to format your changes, see [CONTRIBUTING](CONTRIBUTING.md) for details.
@@ -148,10 +148,9 @@ All other entities' first alpha is lower case.
 
 
 ## Logging
-
-Use `INFO` for non-critical, informative logging messages
-Use `WARNING` for potentially dangerous  messages
-Use `FATAL` for logging a message and thereafter terminating the programme
+- Use `INFO` for non-critical, informative logging messages
+- Use `WARNING` for logging potentially dangerous messages
+- Use `FATAL` for logging a message and thereafter terminating the process
 
 
 ## Recommended reading
