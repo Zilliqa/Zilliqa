@@ -1,6 +1,6 @@
 # Zilliqa Coding and Review Guidelines
 
-1. All submitted **Pull Requests** are assumed to be ready for review 
+1. All submitted **Pull Requests** are assumed to be ready for review.  
    If not, they must be marked with explicit  `[in progress]` or have "[WIP]" in title.
 
 2. - **Pull requests** which fix a bug should start with `fix/`
@@ -11,7 +11,8 @@
       john/fix/xxx
     ```
 
-3. All **Pull Requests** which are not ready to be merged yet but are open for review should be marked with explicit `on hold` or should be a draft.
+3. All **Pull Requests** which are not ready to be merged yet but are open for review should be marked with explicit  
+   `on hold` or should be a draft.
 
 4. - To build your code with clang-format, use `./build.sh style`
    - To build your coude with clang-style, use `./build.sh linter`
