@@ -2,13 +2,12 @@
 <!--Source: https://github.com/ethereum/aleth/blob/master/CODING_STYLE.md -->
 ## Code Formatting
 
-Use clang-format tool to format your changes, see [CONTRIBUTING](CONTRIBUTING.md) for details.
+Use clang-format tool to format your changes. See [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 
 ## Namespaces
 
 1. No `using namespace` declarations in header files.
-2. Preprocessor symbols should be prefixed with the namespace in all-caps and an underscore.
 
 ```cpp
        // WRONG:
@@ -20,6 +19,7 @@ Use clang-format tool to format your changes, see [CONTRIBUTING](CONTRIBUTING.md
        #include <cassert>
        std::tuple<float, float> meanAndSigma(std::vector<float> const& _v);
 ```
+2. Preprocessor symbols should be prefixed with the namespace in all-caps and an underscore.
 
 ## Preprocessor
 
@@ -27,7 +27,7 @@ Use clang-format tool to format your changes, see [CONTRIBUTING](CONTRIBUTING.md
    - Copyright.
    - License.
    
-2. Use Zilliqa Standardized Guard for header files which is given by https://google.github.io/styleguide/cppguide.html#The__define_Guard
+2. Use Zilliqa Standardized Guard for header files which is given by https://google.github.io/styleguide/cppguide.html#The__define_Guard.
 ```
   ZILLIQA_<path_to_header_file>_H_
 ```
@@ -39,7 +39,7 @@ Use clang-format tool to format your changes, see [CONTRIBUTING](CONTRIBUTING.md
 
 GOLDEN RULE: Preprocessor: ALL_CAPS; C++: camelCase.
 
-1. Use camelCase for all class/structure names
+1. Use camelCase for all class/structure names.
 2. All preprocessor symbols (macros, macro arguments) in full uppercase with underscore word separation.
 
 

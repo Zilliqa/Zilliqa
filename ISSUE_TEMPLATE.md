@@ -1,4 +1,5 @@
 ### Issue and Steps to Reproduce
+<!-- WARNING : Do not post any sensitive information like your private keys -->
 <!-- Describe your issue and tell us how to reproduce it (include any useful information). -->
 
 #### Expected
@@ -14,7 +15,8 @@
 - [ ] Low
 
 ### Additional Details
-* Versions:  
+* Versions:
+* Operating System:   
 * Installed packages:  
 * Screenshots / Log Files:   
 

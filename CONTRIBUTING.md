@@ -3,8 +3,8 @@
 1. All submitted **Pull Requests** are assumed to be ready for review.  
    If not, they must be marked with explicit  `[in progress]` or have "[WIP]" in title.
 
-2. - **Pull requests** which fix a bug should start with `fix/`
-   - **Pull requests** which add a feature to the codebase should start wiht `feature/`
+2. - **Pull requests** which fix a bug should have branch name starting with `fix/`
+   - **Pull requests** which add a feature to the codebase should have branch name starting with `feature/`
    - **Pull requests** which are made by outside contributors should also contain their name.
    ```
    Example:
@@ -15,6 +15,6 @@
    `on hold` or should be a draft.
 
 4. - To build your code with clang-format, use `./build.sh style`
-   - To build your coude with clang-style, use `./build.sh linter`
+   - To build your code with clang-style, use `./build.sh linter`
 
-5. Kindly go through to .clang-format and .clang-style to see the format and checks enabled
+5. Kindly go through `.clang-format` and `.clang-style` to see the format and checks enabled

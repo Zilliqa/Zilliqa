@@ -50,7 +50,7 @@ If a community member engages in unacceptable behavior, the community organizers
 
 ## 6. Reporting Guidelines
 
-If you are subject to or witness unacceptable behavior, or have any other concerns, please notify any Zilliqa Research members on the Zilliqa [Gitter channel](https://gitter.im/Zilliqa/).
+If you are subject to or witness unacceptable behavior, or have any other concerns, please notify any Zilliqa Research team members on the Zilliqa's [Gitter channel](https://gitter.im/Zilliqa/).
 
 Additionally, Zilliqa Research is available to help community members engage with local law enforcement or to otherwise help those experiencing unacceptable behavior feel safe.
 
