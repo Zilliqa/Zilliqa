@@ -92,13 +92,13 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     // clear all the state deltas from disk.
     BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA);
 
-    std::string target = STORAGE_PATH + "/persistence/stateDelta";
+    std::string target = STORAGE_PATH + PERSISTENCE_PATH + "/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
     for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
       // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
       // local persistence/stateDelta
-      std::string source =
-          STORAGE_PATH + "/StateDeltaFromS3/stateDelta_" + std::to_string(i);
+      std::string source = STORAGE_PATH + STATEDELTAFROMS3_PATH +
+                           "/stateDelta_" + std::to_string(i);
       if (boost::filesystem::exists(source)) {
         try {
           recursive_copy_dir(source, target);

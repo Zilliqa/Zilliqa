@@ -111,6 +111,8 @@ const std::string RAND2_GENESIS =
     "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
+const std::string PERSISTENCE_PATH = "/persistence";
+const std::string STATEDELTAFROMS3_PATH = "/StateDeltaFromS3";
 const std::string TX_BODY_SUBDIR = "txBodies";
 
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
