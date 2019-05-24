@@ -66,8 +66,9 @@ All other entities' first alpha is lower case.
    - Always avoid doubly-stating the type.
    - Use to avoid vast and unimportant type declarations.
    - However, avoid using auto where type is not immediately obvious from the context, and especially not for arithmetic expressions.
-8. Don't pass bools: prefer enumerations instead.
+8. If you need to pass more than one boolean to a function, consider using an enum instead
 9. Prefer enum class to straight enum.
+10. Try to use uniform initialization syntax wherever possible.
 
 ```cpp
        // WRONG:
