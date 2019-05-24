@@ -7,7 +7,11 @@
 
 #### Work Around (If Any)
 
-#### Impact: (Critical/High/Medium/Low)
+#### Impact:
+- [ ] Critical
+- [ ] High
+- [ ] Medium
+- [ ] Low
 
 ### Additional Details
 * Versions:  
