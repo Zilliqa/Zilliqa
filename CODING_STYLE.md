@@ -55,7 +55,7 @@ All other entities' first alpha is lower case.
 
 ## Declarations
 
-1. {Typename} + {qualifiers} + {name}. (**TODO**: Against [NL.26](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#nl26-use-conventional-const-notation))
+1. {Typename} + {qualifiers} + {name}.
 2. Only one per line.
 3. Favour declarations close to use; don't habitually declare at top of scope ala C.
 4. Always pass non-trivial parameters with a const& suffix.
