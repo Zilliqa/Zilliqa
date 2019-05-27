@@ -36,11 +36,6 @@ bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset) const {
 
 Transaction::Transaction() {}
 
-Transaction::Transaction(const Transaction& src)
-    : m_tranID(src.m_tranID),
-      m_coreInfo(src.m_coreInfo),
-      m_signature(src.m_signature) {}
-
 Transaction::Transaction(const bytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
@@ -205,13 +200,4 @@ bool Transaction::operator<(const Transaction& tran) const {
 
 bool Transaction::operator>(const Transaction& tran) const {
   return tran < *this;
-}
-
-Transaction& Transaction::operator=(const Transaction& src) {
-  copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(),
-       m_tranID.asArray().begin());
-  m_signature = src.m_signature;
-  m_coreInfo = src.m_coreInfo;
-
-  return *this;
 }
