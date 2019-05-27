@@ -53,7 +53,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::mutex m_mutexUpdateAccounts;
 
   /// the blocknum while executing each txn
-  uint64_t m_curBlockNum = 0;
+  uint64_t m_curBlockNum{0};
 
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
