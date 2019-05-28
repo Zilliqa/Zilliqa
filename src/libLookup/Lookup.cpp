@@ -46,6 +46,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/LookupServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -2051,6 +2052,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         SetSyncType(SyncType::NO_SYNC);
         m_isFirstLoop = true;
+        m_lookupServer->StartListening();
       }
       m_currDSExpired = false;
     }
@@ -3118,6 +3120,7 @@ void Lookup::RejoinAsNewLookup() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    m_lookupServer->StopListening();
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);

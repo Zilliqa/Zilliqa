@@ -327,11 +327,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     if (LOOKUP_NODE_MODE) {
       m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
       m_lookupServer =
-          make_unique<LookupServer>(m_mediator, *m_lookupServerConnector);
+          make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
       if (m_lookupServer == nullptr) {
         LOG_GENERAL(WARNING, "m_lookupServer NULL");
       } else {
+        m_lookup.SetLookupServer(m_lookupServer);
         if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started successfully");
           if (ARCHIVAL_LOOKUP) {
