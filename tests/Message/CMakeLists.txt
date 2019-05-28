@@ -25,6 +25,7 @@ set(PROTOBUF_IMPORT_DIRS ${PROTOBUF_IMPORT_DIRS} ${PROJECT_SOURCE_DIR}/tests/Mes
 protobuf_generate_cpp(PROTO_SRC PROTO_HEADER ZilliqaTest.proto)
 add_executable(Test_Messenger_Compatibility ${PROTO_HEADER} ${PROTO_SRC} Test_Messenger_Compatibility.cpp)
 target_compile_options(Test_Messenger_Compatibility PRIVATE "-Wno-unused-parameter")
+target_compile_options(Test_Messenger_Compatibility PRIVATE "-Wno-unused-variable")
 target_include_directories (Test_Messenger_Compatibility PUBLIC ${CMAKE_BINARY_DIR}/src ${CMAKE_BINARY_DIR}/tests ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_Messenger_Compatibility PUBLIC Boost::unit_test_framework Utils ${PROTOBUF_LIBRARY})
 add_test(NAME Test_Messenger_Compatibility COMMAND Test_Messenger_Compatibility)
