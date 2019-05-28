@@ -470,7 +470,7 @@ bool Node::ValidateDB() {
 
   if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
                                           m_mediator.m_selfKey, 1,
-                                          STORAGE_PATH + "/")) {
+                                          PERSISTENCE_PATH)) {
     LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
     return false;
   }
