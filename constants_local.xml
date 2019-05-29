@@ -9,6 +9,8 @@
         <CHAIN_ID>2</CHAIN_ID>
         <GENESIS_PUBKEY>02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552</GENESIS_PUBKEY>
         <UPGRADE_TARGET_DS_NUM>1</UPGRADE_TARGET_DS_NUM>
+        <!-- Do not add a trailing "/" in the path-->
+        <STORAGE_PATH>.</STORAGE_PATH>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -260,7 +262,7 @@
         <REPOPULATE_STATE_PER_N_DS>10</REPOPULATE_STATE_PER_N_DS>
     </transactions>
     <verifier>
-        <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
+        <VERIFIER_PATH>./historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
         <SEED_PORT>33133</SEED_PORT>
     </verifier>
