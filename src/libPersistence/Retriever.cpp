@@ -153,12 +153,12 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     }
   }
 
-  if (boost::filesystem::exists(STORAGE_PATH + "/StateDeltaFromS3")) {
+  if (boost::filesystem::exists(STORAGE_PATH + STATEDELTAFROMS3_PATH)) {
     try {
-      boost::filesystem::remove_all(STORAGE_PATH + "/StateDeltaFromS3");
+      boost::filesystem::remove_all(STORAGE_PATH + STATEDELTAFROMS3_PATH);
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Failed to remove " + STORAGE_PATH +
-                               "/StateDeltaFromS3 directory");
+                               STATEDELTAFROMS3_PATH + " directory");
     }
   }
 

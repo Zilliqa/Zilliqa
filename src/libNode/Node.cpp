@@ -133,7 +133,7 @@ bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string output;
   // TBD - find better way to capture the exit status of command
-  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py " + STORAGE_PATH,
+  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py " + STORAGE_PATH + "/",
                                    output);
   return (output.find("Done!") != std::string::npos);
 }
@@ -447,7 +447,7 @@ bool Node::ValidateDB() {
 
   if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
                                           m_mediator.m_selfKey, 1,
-                                          STORAGE_PATH)) {
+                                          PERSISTENCE_PATH)) {
     LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
     return false;
   }
