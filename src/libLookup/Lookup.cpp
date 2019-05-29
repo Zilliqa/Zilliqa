@@ -4033,8 +4033,7 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   }
 
   if (code == 1) {
-    BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH + "/" +
-                                                         path);
+    BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH + path);
 
     m_historicalDB = true;
   } else {

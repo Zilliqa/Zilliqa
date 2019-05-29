@@ -77,6 +77,7 @@ const string GENESIS_PUBKEY{
     ReadConstantString("GENESIS_PUBKEY", "node.general.")};
 const unsigned int UPGRADE_TARGET_DS_NUM{
     ReadConstantNumeric("UPGRADE_TARGET_DS_NUM")};
+const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 
 // Version constants
 const unsigned int MSG_VERSION{
