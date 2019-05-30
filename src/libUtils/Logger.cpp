@@ -55,7 +55,25 @@ Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
   this->m_maxFileSize = max_file_size;
   this->m_logPath = logpath;
 
-  boost::filesystem::create_directory(logpath);
+  try {
+    if (!boost::filesystem::create_directory(this->m_logPath)) {
+      if ((boost::filesystem::status(this->m_logPath).permissions() &
+           boost::filesystem::perms::owner_write) ==
+          boost::filesystem::perms::no_perms) {
+        std::cout << this->m_logPath
+                  << " already existed but no writing permission!" << endl;
+        this->m_logPath = "./";
+        std::cout << "Use default log folder " << this->m_logPath << " instead."
+                  << endl;
+      }
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    std::cout << "Cannot create log folder in " << this->m_logPath
+              << ", error code: " << e.code() << endl;
+    this->m_logPath = "./";
+    std::cout << "Use default log folder " << this->m_logPath << " instead."
+              << endl;
+  }
 
   if (log_to_file) {
     m_fileNamePrefix = prefix ? prefix : "common";
