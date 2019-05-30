@@ -2331,6 +2331,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
+
+      if (m_lookupServer->StartListening()) {
+        LOG_GENERAL(INFO, "API Server started to listen again");
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
+      }
     }
     m_currDSExpired = false;
   }
