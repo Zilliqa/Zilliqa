@@ -124,7 +124,7 @@ fi
 
 # Read information from files
 rm -rf ${constantsDir}; mkdir ${constantsDir}; cd ${constantsDir}; mkdir l; mkdir l2; mkdir n; cd -;
-kubectl cp ${testnet_to_be_upgraded}-normal-0:/run/zilliqa/constants.xml ${constantsDir}/
+kubectl cp ${testnet_to_be_upgraded}-dsguard-0:/run/zilliqa/constants.xml ${constantsDir}/
 kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/
 kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/
 kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/
