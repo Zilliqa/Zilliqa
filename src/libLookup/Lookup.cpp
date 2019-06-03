@@ -46,6 +46,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/LookupServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -2051,6 +2052,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         SetSyncType(SyncType::NO_SYNC);
         m_isFirstLoop = true;
+
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
       m_currDSExpired = false;
     }
@@ -2324,6 +2331,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
+
+      if (m_lookupServer->StartListening()) {
+        LOG_GENERAL(INFO, "API Server started to listen again");
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
+      }
     }
     m_currDSExpired = false;
   }
@@ -3118,6 +3131,9 @@ void Lookup::RejoinAsNewLookup() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    m_lookupServer->StopListening();
+    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);

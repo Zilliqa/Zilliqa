@@ -45,6 +45,7 @@
 
 class Mediator;
 class Synchronizer;
+class LookupServer;
 
 // The "first" element in the pair is a map of shard to its transactions
 // The "second" element in the pair counts the total number of transactions in
@@ -131,6 +132,8 @@ class Lookup : public Executable {
 
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
+
+  std::shared_ptr<LookupServer> m_lookupServer;
 
   bytes ComposeGetDSInfoMessage(bool initialDS = false);
   bytes ComposeGetStateMessage();
@@ -373,6 +376,10 @@ class Lookup : public Executable {
 
   // Reset certain variables to the initial state
   bool CleanVariables();
+
+  void SetLookupServer(std::shared_ptr<LookupServer> lookupServer) {
+    m_lookupServer = lookupServer;
+  }
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;
