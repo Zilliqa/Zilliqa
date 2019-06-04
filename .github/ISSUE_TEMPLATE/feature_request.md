@@ -7,6 +7,7 @@ assignees: ''
 
 ---
 
+<!-- WARNING : Do not post any sensitive information like your private keys -->
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 

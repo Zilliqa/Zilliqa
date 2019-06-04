@@ -58,16 +58,16 @@ All other entities' first alpha is lower case.
 1. {Typename} + {qualifiers} + {name}.
 2. Only one per line.
 3. Favour declarations close to use; don't habitually declare at top of scope ala C.
-4. Always pass non-trivial parameters with a const& suffix.
+4. Always pass non-trivial parameters with a const& prefix.
 5. To return multiple "out" values, prefer returning a tuple or struct.
    See [F.21].
 6. Never use a macro where adequate non-preprocessor C++ can be written.
-7. Make use of auto whenever type is clear or unimportant:
+7. Make use of `auto` whenever type is clear or unimportant:
    - Always avoid doubly-stating the type.
    - Use to avoid vast and unimportant type declarations.
    - However, avoid using auto where type is not immediately obvious from the context, and especially not for arithmetic expressions.
 8. If you need to pass more than one boolean to a function, consider using an enum instead
-9. Prefer enum class to straight enum.
+9. Prefer `enum class` to straight `enum`.
 10. Try to use uniform initialization syntax wherever possible.
 
 ```cpp
@@ -168,5 +168,5 @@ Scott Meyers
 - "Effective Modern C++: 42 Specific Ways to Improve Your Use of C++11 and C++14"
 
 
-[F.21]: https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f21-to-return-multiple-out-values-prefer-returning-a-tuple-or-struct
+[F.21]: https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#Rf-out-multi
 
