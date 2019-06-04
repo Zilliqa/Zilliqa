@@ -1056,6 +1056,10 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
+  if (currBlockNum == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No DS Blocks");
+  }
+
   _json["maxPages"] = maxPages;
 
   lock_guard<mutex> g(m_mutexDSBlockCache);
@@ -1146,6 +1150,10 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
+
+  if (currBlockNum == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No tx blocks");
+  }
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
