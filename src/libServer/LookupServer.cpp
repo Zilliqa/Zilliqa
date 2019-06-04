@@ -1148,7 +1148,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
   Json::Value _json;
 
   if (currBlockNum == INIT_BLOCK_NUMBER) {
-    throw JsonRpcException(RPC_IN_WARMUP, "No tx blocks");
+    throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
   }
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
