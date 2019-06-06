@@ -387,7 +387,20 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
   m_shouldMine = true;
 
   ethash_mining_result_t miningResult{"", "", 0, false};
-  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary, timeWindow)) {
+  const int MAX_RETRY_SEND_TIME = 5;
+  int retryTime = 0;
+  bool sendWorkSuccess = false;
+  do {
+    if (SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary,
+                        timeWindow)) {
+      sendWorkSuccess = true;
+      break;
+    }
+    ++retryTime;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  } while (!sendWorkSuccess && retryTime <= MAX_RETRY_SEND_TIME);
+
+  if (!sendWorkSuccess) {
     LOG_GENERAL(WARNING, "Failed to send work package to mining proxy.");
     return miningResult;
   }
