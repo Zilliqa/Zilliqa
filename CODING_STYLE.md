@@ -46,7 +46,7 @@ GOLDEN RULE: Preprocessor: ALL_CAPS; C++: camelCase.
 All other entities' first alpha is lower case.
 
 
-## Variable prefixes
+## Variable Prefixes
 
 1. Leading `m_` to data members.
 2. Leading `g_` to global (non-const) variables.
@@ -94,7 +94,7 @@ All other entities' first alpha is lower case.
        for (auto i = x.begin(); i != x.end(); ++i) {}
 ```
 
-## Structs & classes
+## Structs & Classes
 
 1. Structs to be used when all members public and no virtual functions.
 2. Classes to be used in all other circumstances.
@@ -137,7 +137,7 @@ All other entities' first alpha is lower case.
 
 
 
-## Type-definitions
+## Type-Definitions
 
 1. Prefer `using` to `typedef`. E.g. `using ints = std::vector<int>` rather than
    `typedef std::vector<int> ints`.
@@ -154,7 +154,7 @@ All other entities' first alpha is lower case.
 - Use `FATAL` for logging a message and thereafter terminating the process
 
 
-## Recommended reading
+## Recommended Reading
 
 Herb Sutter and Bjarne Stroustrup
 - "C++ Core Guidelines" (https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md)
