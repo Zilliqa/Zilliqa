@@ -38,7 +38,7 @@ def send_report(msg, url):
 	req = request.Request(url, data=json_data.encode('ascii'))
 	resp = request.urlopen(req)
 
-def main1(args):
+def test_txn(args):
 	global ERROR_MESSAGE
 	global SEND_ZILS_FORWARD_OR_BACK
 
@@ -111,7 +111,7 @@ def main():
 		ERROR_MESSAGE = ''
 
 		try:
-			main1(args)
+			test_txn(args)
 		except Exception as e:
 			ERROR_MESSAGE = '[' + os.path.basename(__file__) + '] Error: ' + str(e)
 
