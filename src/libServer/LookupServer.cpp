@@ -1059,13 +1059,12 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
   }
   uint64_t currBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  Json::Value _json;
-
-  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
-
   if (currBlockNum == INIT_BLOCK_NUMBER) {
     throw JsonRpcException(RPC_IN_WARMUP, "No DS blocks");
   }
+  Json::Value _json;
+
+  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
   _json["maxPages"] = maxPages;
 
@@ -1156,11 +1155,12 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
   }
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  Json::Value _json;
 
   if (currBlockNum == INIT_BLOCK_NUMBER) {
     throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
   }
+
+  Json::Value _json;
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
