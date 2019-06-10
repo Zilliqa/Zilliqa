@@ -1064,7 +1064,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
   if (currBlockNum == INIT_BLOCK_NUMBER) {
-    throw JsonRpcException(RPC_IN_WARMUP, "No DS Blocks");
+    throw JsonRpcException(RPC_IN_WARMUP, "No DS blocks");
   }
 
   _json["maxPages"] = maxPages;
