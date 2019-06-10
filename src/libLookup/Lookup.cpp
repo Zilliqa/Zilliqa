@@ -118,6 +118,7 @@ void Lookup::InitSync() {
       }
       LOG_GENERAL(INFO,
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
+      LOG_MARKER();
       ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       GetTxBlockFromSeedNodes(txBlockNum, 0);

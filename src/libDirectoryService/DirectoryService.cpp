@@ -79,6 +79,8 @@ void DirectoryService::StartSynchronization(bool clean) {
 
   auto func = [this]() -> void {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
+      LOG_MARKER();
+      LOG_GENERAL(INFO, "sharding structures size: " << m_mediator.m_ds->GetNumShards());
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlockSeed(
