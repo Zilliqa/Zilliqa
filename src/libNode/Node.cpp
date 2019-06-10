@@ -984,9 +984,7 @@ void Node::StartSynchronization() {
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
-      this_thread::sleep_for(chrono::seconds(m_mediator.m_lookup->m_startedPoW
-                                                 ? POW_WINDOW_IN_SECONDS
-                                                 : NEW_NODE_SYNC_INTERVAL));
+      this_thread::sleep_for(chrono::seconds(5));
     }
   };
 
