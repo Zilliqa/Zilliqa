@@ -976,7 +976,7 @@ void Node::StartSynchronization() {
 
     while (true) {
       LOG_GENERAL(INFO, "Get DS committee information and shardstructure");
-      LOG_GENERAL(INFO, "sharding structures" << m_mediator.m_ds.m_shards);
+      LOG_GENERAL(INFO, "sharding structures" << m_mediator.m_ds->m_shards);
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlockSeed(
