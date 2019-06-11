@@ -352,6 +352,8 @@ const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
                        "true"};
 const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
+const unsigned int MAX_RETRY_SEND_POW_TIME{
+    ReadConstantNumeric("MAX_RETRY_SEND_POW_TIME", "node.pow.")};
 const unsigned int CHECK_MINING_RESULT_INTERVAL{
     ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
 const bool GETWORK_SERVER_MINE{
