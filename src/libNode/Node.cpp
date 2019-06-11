@@ -975,7 +975,7 @@ void Node::StartSynchronization() {
     }
     ofstream myfile;
     myfile.open("./Zilliqa_memberships.txt", ios_base::app);
-    uint64_t epochNum = m_mediator.m_currentEpochNum;
+    uint64_t epochNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     int idx;
     while (true) {
       // Make sync
@@ -987,9 +987,9 @@ void Node::StartSynchronization() {
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
-
-      if (m_mediator.m_currentEpochNum > epochNum) {
-        epochNum = m_mediator.m_currentEpochNum;
+      
+      if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() > epochNum) {
+        epochNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
         // Track the network memberships information
         myfile << "==================================================New memberships==================================================" << endl;
