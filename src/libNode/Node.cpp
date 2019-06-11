@@ -978,7 +978,16 @@ void Node::StartSynchronization() {
     uint64_t epochNum = m_mediator.m_currentEpochNum;
     int idx;
     while (true) {
-      myfile << m_mediator.m_currentEpochNum << " " << epochNum << endl;
+      // Make sync
+      m_mediator.m_lookup->GetShardFromLookup();
+      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
+      m_synchronizer.FetchLatestTxBlockSeed(
+          m_mediator.m_lookup,
+          // m_mediator.m_txBlockChain.GetBlockCount());
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+              1);
+
       if (m_mediator.m_currentEpochNum > epochNum) {
         epochNum = m_mediator.m_currentEpochNum;
 
@@ -989,7 +998,7 @@ void Node::StartSynchronization() {
         myfile << "Number of DS committee: " << m_mediator.m_DSCommittee -> size() << endl;
         // Print DS
         myfile << "==================================================DS memberships==================================================" << endl;
-        DequeOfNode::iterator itn = m_mediator.m_DSCommittee -> begine();
+        DequeOfNode::iterator itn = m_mediator.m_DSCommittee -> begin();
         idx = 0;
         while(itn != m_mediator.m_DSCommittee -> end()) {
             Peer peer = get<1>(*itn);
@@ -1028,17 +1037,6 @@ void Node::StartSynchronization() {
         }
       }
 
-      // Make sync
-      m_mediator.m_lookup->GetShardFromLookup();
-      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
-          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_synchronizer.FetchLatestTxBlockSeed(
-          m_mediator.m_lookup,
-          // m_mediator.m_txBlockChain.GetBlockCount());
-          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-              1);
-      myfile << flush;
-      myfile << flush;
       myfile << flush;
       this_thread::sleep_for(chrono::seconds(900));
     }
