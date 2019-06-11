@@ -982,10 +982,9 @@ void Node::StartSynchronization() {
 
       // Track the network memberships information
       myfile << "==================================================New memberships==================================================" << endl;
-      myfile << "Current epoch number: " << m_mediator.m_currentEpochNum << endl;
+      myfile << "Current epoch number: " << epochNum << endl;
       myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
       
-      m_mediator.m_ds->m_shards
       DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
       while (itd != m_mediator.m_ds->m_shards.end()) {
         myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard:" << endl;
@@ -995,7 +994,7 @@ void Node::StartSynchronization() {
           Pubkey pub = get<0>(*itv);
           Peer peer = get<1>(*itv);
           uint16_t reputation = get<2>(*itv);
-          
+
           myfile << idx << ": " << pub << peer << reputation << endl;
 
           itv++;
