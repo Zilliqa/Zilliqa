@@ -974,11 +974,38 @@ void Node::StartSynchronization() {
       return;
     }
     ofstream myfile;
-    myfile.open("./numberOfShard.txt", ios_base::app);
+    myfile.open("./Zilliqa_memberships.txt", ios_base::app);
+    uint64_t epochNum = m_mediator.m_currentEpochNum;
     while (true) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "");
       LOG_GENERAL(INFO, "Get DS committee information and shardstructure");
-      LOG_GENERAL(INFO, "sharding structures size: " << m_mediator.m_ds->GetNumShards());
-      myfile << m_mediator.m_ds->GetNumShards() << endl << flush;
+
+      // Track the network memberships information
+      myfile << "==================================================New memberships==================================================" << endl;
+      myfile << "Current epoch number: " << m_mediator.m_currentEpochNum << endl;
+      myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
+      
+      m_mediator.m_ds->m_shards
+      DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
+      while (itd != m_mediator.m_ds->m_shards.end()) {
+        myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard:" << endl;
+        Shard::iterator itv = (*itd).begin();
+        int idx = 0;
+        while (itv != *itd.end()) {
+          Pubkey pub = get<0>(*itv);
+          Peer peer = get<1>(*itv);
+          uint16_t reputation = get<2>(*itv);
+          
+          myfile << idx << ": " << pub << peer << reputation << endl;
+
+          itv++;
+          idx++;
+        }
+        itd++;
+      }
+
+
+      // Make sync
       m_mediator.m_lookup->GetShardFromLookup();
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
@@ -988,6 +1015,7 @@ void Node::StartSynchronization() {
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
       this_thread::sleep_for(chrono::seconds(5));
+      myfile << flush;
     }
     myfile.close();
   };
