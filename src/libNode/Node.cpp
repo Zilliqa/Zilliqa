@@ -973,12 +973,12 @@ void Node::StartSynchronization() {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
       return;
     }
-    ofstream myfie;
-    myfile.open("./numberOfShard.txt");
+    ofstream myfile;
+    myfile.open("./numberOfShard.txt", ios_base::app);
     while (true) {
       LOG_GENERAL(INFO, "Get DS committee information and shardstructure");
       LOG_GENERAL(INFO, "sharding structures size: " << m_mediator.m_ds->GetNumShards());
-      myfile << m_mediator.m_ds->GetNumShards();
+      myfile << m_mediator.m_ds->GetNumShards() << endl << flush;
       m_mediator.m_lookup->GetShardFromLookup();
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
@@ -989,7 +989,7 @@ void Node::StartSynchronization() {
               1);
       this_thread::sleep_for(chrono::seconds(5));
     }
-    myfile.close()
+    myfile.close();
   };
 
   DetachedFunction(1, func);
