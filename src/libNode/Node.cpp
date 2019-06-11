@@ -976,7 +976,9 @@ void Node::StartSynchronization() {
     ofstream myfile;
     myfile.open("./Zilliqa_memberships.txt", ios_base::app);
     uint64_t epochNum = m_mediator.m_currentEpochNum;
+    int idx;
     while (true) {
+      myfile << m_mediator.m_currentEpochNum << " " << epochNum << endl;
       if (m_mediator.m_currentEpochNum > epochNum) {
         epochNum = m_mediator.m_currentEpochNum;
 
@@ -984,18 +986,20 @@ void Node::StartSynchronization() {
         myfile << "==================================================New memberships==================================================" << endl;
         myfile << "Current epoch number: " << epochNum << endl;
         myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
-        myfile << "Number of DS committee: " << m_mediator.m_DSCommittee.size() << endl;
+        myfile << "Number of DS committee: " << m_mediator.m_DSCommittee -> size() << endl;
         // Print DS
         myfile << "==================================================DS memberships==================================================" << endl;
-        DequeOfNode::iterator itn = m_mediator.m_DSCommittee.begine();
-        while(itn != m_mediator.m_DSCommittee.end()) {
+        DequeOfNode::iterator itn = m_mediator.m_DSCommittee -> begine();
+        idx = 0;
+        while(itn != m_mediator.m_DSCommittee -> end()) {
             Peer peer = get<1>(*itn);
             if(Guard::GetInstance().IsNodeInShardGuardList(get<0>(*itn))) {
               myfile << idx << "[Guard]: pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
             } else {
               myfile << idx << ": pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
             }
-          itn++
+            idx++;
+            itn++;
         }
 
         // Print shard
@@ -1005,7 +1009,7 @@ void Node::StartSynchronization() {
           myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard (" << (*itd).size() << ") :" << endl;
 
           Shard::iterator itv = (*itd).begin();
-          int idx = 0;
+          idx = 0;
           while (itv != (*itd).end()) {
             Peer peer = get<1>(*itv);
             uint16_t reputation = get<2>(*itv);
