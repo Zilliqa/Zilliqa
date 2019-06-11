@@ -977,32 +977,34 @@ void Node::StartSynchronization() {
     myfile.open("./Zilliqa_memberships.txt", ios_base::app);
     uint64_t epochNum = m_mediator.m_currentEpochNum;
     while (true) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "");
-      LOG_GENERAL(INFO, "Get DS committee information and shardstructure");
+      if (m_mediator.m_currentEpochNum > epochNum) {
+        epochNum = m_mediator.m_currentEpochNum;
 
-      // Track the network memberships information
-      myfile << "==================================================New memberships==================================================" << endl;
-      myfile << "Current epoch number: " << epochNum << endl;
-      myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
-      
-      DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
-      while (itd != m_mediator.m_ds->m_shards.end()) {
-        myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard:" << endl;
-        Shard::iterator itv = (*itd).begin();
-        int idx = 0;
-        while (itv != *itd.end()) {
-          Pubkey pub = get<0>(*itv);
-          Peer peer = get<1>(*itv);
-          uint16_t reputation = get<2>(*itv);
+        // Track the network memberships information
+        myfile << "==================================================New memberships==================================================" << endl;
+        myfile << "Current epoch number: " << epochNum << endl;
+        myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
 
-          myfile << idx << ": " << pub << peer << reputation << endl;
+        DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
+        while (itd != m_mediator.m_ds->m_shards.end()) {
+          myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard:" << endl;
 
-          itv++;
-          idx++;
+          Shard::iterator itv = (*itd).begin();
+          int idx = 0;
+          while (itv != (*itd).end()) {
+            PubKey pub = ;
+            Peer peer = get<1>(*itv);
+            uint16_t reputation = get<2>(*itv);
+
+            myfile << idx << ": pubkey(" << get<0>(*itv) << "), ip:port(" << peer << "), reputation(" << reputation << ")" << endl;
+
+            itv++;
+            idx++;
+          }
+
+          itd++;
         }
-        itd++;
       }
-
 
       // Make sync
       m_mediator.m_lookup->GetShardFromLookup();
@@ -1013,7 +1015,7 @@ void Node::StartSynchronization() {
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
-      this_thread::sleep_for(chrono::seconds(5));
+      this_thread::sleep_for(chrono::seconds(900));
       myfile << flush;
     }
     myfile.close();
