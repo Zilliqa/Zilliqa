@@ -9,16 +9,16 @@ Use clang-format tool to format your changes. See [CONTRIBUTING](CONTRIBUTING.md
 
 1. No `using namespace` declarations in header files.
 
-```cpp
-       // WRONG:
-       #include <cassert>
-       using namespace std;
-       tuple<float, float> meanAndSigma(vector<float> const& _v);
+    ```cpp
+           // WRONG:
+           #include <cassert>
+           using namespace std;
+           tuple<float, float> meanAndSigma(vector<float> const& _v);
 
-       // CORRECT:
-       #include <cassert>
-       std::tuple<float, float> meanAndSigma(std::vector<float> const& _v);
-```
+           // CORRECT:
+           #include <cassert>
+           std::tuple<float, float> meanAndSigma(std::vector<float> const& _v);
+    ```
 2. Preprocessor symbols should be prefixed with the namespace in all-caps and an underscore.
 
 ## Preprocessor
@@ -28,9 +28,9 @@ Use clang-format tool to format your changes. See [CONTRIBUTING](CONTRIBUTING.md
    - License.
    
 2. Use Zilliqa Standardized Guard for header files which is given by https://google.github.io/styleguide/cppguide.html#The__define_Guard.
-```
-  ZILLIQA_<path_to_header_file>_H_
-```
+    ```
+      ZILLIQA_<path_to_header_file>_H_
+    ```
 3. Prefer static const variable to value macros.
 4. Prefer inline constexpr functions to function macros.
 
@@ -70,29 +70,29 @@ All other entities' first alpha is lower case.
 9. Prefer `enum class` to straight `enum`.
 10. Try to use uniform initialization syntax wherever possible.
 
-```cpp
-       // WRONG:
-       const double d = 0;
-       int i, j;
-       char *s;
-       float meanAndSigma(std::vector<float> _v, float* _sigma, bool _approximate);
-       Derived* x(dynamic_cast<Derived*>(base));
-       for (map<ComplexTypeOne, ComplexTypeTwo>::iterator i = l.begin(); i != l.end(); ++l) {}
+    ```cpp
+           // WRONG:
+           const double d = 0;
+           int i, j;
+           char *s;
+           float meanAndSigma(std::vector<float> _v, float* _sigma, bool _approximate);
+           Derived* x(dynamic_cast<Derived*>(base));
+           for (map<ComplexTypeOne, ComplexTypeTwo>::iterator i = l.begin(); i != l.end(); ++l) {}
 
-       // CORRECT:
-       enum class Accuracy
-       {
-           Approximate,
-           Exact
-       };
-       double const d = 0;
-       int i;
-       int j;
-       char* s;
-       std::tuple<float, float> meanAndSigma(std::vector<float> const& _v, Accuracy _a);
-       auto x = dynamic_cast<Derived*>(base);
-       for (auto i = x.begin(); i != x.end(); ++i) {}
-```
+           // CORRECT:
+           enum class Accuracy
+           {
+               Approximate,
+               Exact
+           };
+           double const d = 0;
+           int i;
+           int j;
+           char* s;
+           std::tuple<float, float> meanAndSigma(std::vector<float> const& _v, Accuracy _a);
+           auto x = dynamic_cast<Derived*>(base);
+           for (auto i = x.begin(); i != x.end(); ++i) {}
+    ```
 
 ## Structs & Classes
 
