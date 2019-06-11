@@ -1002,7 +1002,7 @@ void Node::StartSynchronization() {
         idx = 0;
         while(itn != m_mediator.m_DSCommittee -> end()) {
             Peer peer = get<1>(*itn);
-            if(Guard::GetInstance().IsNodeInShardGuardList(get<0>(*itn))) {
+            if(Guard::GetInstance().IsNodeInDSGuardList(get<0>(*itn))) {
               myfile << idx << "[Guard]: pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
             } else {
               myfile << idx << ": pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
