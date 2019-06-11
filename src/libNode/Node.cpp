@@ -984,10 +984,12 @@ void Node::StartSynchronization() {
         myfile << "==================================================New memberships==================================================" << endl;
         myfile << "Current epoch number: " << epochNum << endl;
         myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
+        myfile << "==================================================DS memberships==================================================" << endl;
 
+        myfile << "==================================================Shard memberships==================================================" << endl;
         DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
         while (itd != m_mediator.m_ds->m_shards.end()) {
-          myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard:" << endl;
+          myfile << (itd - m_mediator.m_ds->m_shards.begin()) << "th Shard (" << (*itd).size() << ") :" << endl;
 
           Shard::iterator itv = (*itd).begin();
           int idx = 0;
@@ -1018,8 +1020,8 @@ void Node::StartSynchronization() {
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
-      this_thread::sleep_for(chrono::seconds(900));
       myfile << flush;
+      this_thread::sleep_for(chrono::seconds(900));
     }
     myfile.close();
   };
