@@ -992,11 +992,14 @@ void Node::StartSynchronization() {
           Shard::iterator itv = (*itd).begin();
           int idx = 0;
           while (itv != (*itd).end()) {
-            PubKey pub = ;
             Peer peer = get<1>(*itv);
             uint16_t reputation = get<2>(*itv);
 
-            myfile << idx << ": pubkey(" << get<0>(*itv) << "), ip:port(" << peer << "), reputation(" << reputation << ")" << endl;
+            if(Guard::GetInstance().IsNodeInShardGuardList(get<0>(*itv))) {
+              myfile << idx << "[Guard]: pubkey(" << get<0>(*itv) << "), ip:port(" << peer << "), reputation(" << reputation << ")" << endl;
+            } else {
+              myfile << idx << ": pubkey(" << get<0>(*itv) << "), ip:port(" << peer << "), reputation(" << reputation << ")" << endl;
+            }
 
             itv++;
             idx++;
