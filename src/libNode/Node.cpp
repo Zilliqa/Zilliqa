@@ -984,8 +984,21 @@ void Node::StartSynchronization() {
         myfile << "==================================================New memberships==================================================" << endl;
         myfile << "Current epoch number: " << epochNum << endl;
         myfile << "Number of shards: " << m_mediator.m_ds->GetNumShards() << endl;
+        myfile << "Number of DS committee: " << m_mediator.m_DSCommittee.size() << endl;
+        // Print DS
         myfile << "==================================================DS memberships==================================================" << endl;
+        DequeOfNode::iterator itn = m_mediator.m_DSCommittee.begine();
+        while(itn != m_mediator.m_DSCommittee.end()) {
+            Peer peer = get<1>(*itn);
+            if(Guard::GetInstance().IsNodeInShardGuardList(get<0>(*itn))) {
+              myfile << idx << "[Guard]: pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
+            } else {
+              myfile << idx << ": pubkey(" << get<0>(*itn) << "), ip:port(" << peer << ")" << endl;
+            }
+          itn++
+        }
 
+        // Print shard
         myfile << "==================================================Shard memberships==================================================" << endl;
         DequeOfShard::iterator itd = m_mediator.m_ds->m_shards.begin();
         while (itd != m_mediator.m_ds->m_shards.end()) {
@@ -1020,6 +1033,8 @@ void Node::StartSynchronization() {
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
+      myfile << flush;
+      myfile << flush;
       myfile << flush;
       this_thread::sleep_for(chrono::seconds(900));
     }
