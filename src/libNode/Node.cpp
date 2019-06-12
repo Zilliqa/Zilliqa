@@ -975,11 +975,10 @@ void Node::StartSynchronization() {
     }
     ofstream myfile;
     myfile.open("./Zilliqa_memberships.txt", ios_base::app);
-    uint64_t epochNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    uint64_t epochNum = 0;
     int idx;
     while (true) {
       // Make sync
-      m_mediator.m_lookup->GetShardFromLookup();
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlockSeed(
@@ -990,6 +989,10 @@ void Node::StartSynchronization() {
       
       if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() > epochNum) {
         epochNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+	// Get the new sharding structures
+      	m_mediator.m_lookup->GetShardFromLookup();
+      	this_thread::sleep_for(chrono::seconds(10));
 
         // Track the network memberships information
         myfile << "==================================================New memberships==================================================" << endl;
@@ -1038,7 +1041,7 @@ void Node::StartSynchronization() {
       }
 
       myfile << flush;
-      this_thread::sleep_for(chrono::seconds(900));
+      this_thread::sleep_for(chrono::seconds(45));
     }
     myfile.close();
   };
