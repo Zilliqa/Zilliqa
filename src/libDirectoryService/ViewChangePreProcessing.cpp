@@ -128,16 +128,17 @@ bool DirectoryService::ViewChangeValidator(
 
   // Verify candidate leader index
   uint16_t candidateLeaderIndex = CalculateNewLeaderIndex();
-  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
-      m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
-    LOG_GENERAL(
-        WARNING,
-        "FATAL Candidate network info mismatched. Expected: "
-            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
-            << " Obtained: "
-            << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-    return false;
-  }
+  // if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
+  //     m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
+  //   LOG_GENERAL(
+  //       WARNING,
+  //       "FATAL Candidate network info mismatched. Expected: "
+  //           << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
+  //           << " Obtained: "
+  //           <<
+  //           m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
+  //   return false;
+  // }
 
   // Create a temporary local structure of ds committee and change 0.0.0.0 to
   // node's ip
