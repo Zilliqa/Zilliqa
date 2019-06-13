@@ -975,7 +975,7 @@ void Node::StartSynchronization() {
     }
     ofstream myfile;
     myfile.open("./Zilliqa_memberships.txt", ios_base::app);
-    uint64_t epochNum = 0;
+    uint64_t epochNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     int idx;
     while (true) {
       // Make sync
