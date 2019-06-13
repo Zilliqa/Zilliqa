@@ -96,7 +96,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint,
-                           TransactionReceipt& receipt);
+                           TransactionReceipt& receipt,
+                           Account* contractAccount);
   /// convert the interpreter output into parsable json object for deployment
   bool ParseCreateContractOutput(Json::Value& jsonOutput,
                                  const std::string& runnerPrint,
@@ -104,7 +105,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for deployment
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
                                      uint64_t& gasRemained,
-                                     TransactionReceipt& receipt);
+                                     TransactionReceipt& receipt,
+                                     Account* contractAccount);
 
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid

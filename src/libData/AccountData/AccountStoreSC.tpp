@@ -281,7 +281,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
             ret = false;
           }
 
-          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
+                                          toAccount)) {
             ret = false;
           }
           if (!ret) {
@@ -784,12 +785,14 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
                                               const std::string& runnerPrint,
-                                              TransactionReceipt& receipt) {
+                                              TransactionReceipt& receipt,
+                                              Account* contractAccount) {
   Json::Value jsonOutput;
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt);
+  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt,
+                                       contractAccount);
 }
 
 template <class MAP>
@@ -835,7 +838,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt) {
+    TransactionReceipt& receipt, Account* contractAccount) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -874,8 +877,35 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   if (_json["message"].type() == Json::nullValue &&
       _json["states"].type() == Json::arrayValue &&
       _json["events"].type() == Json::arrayValue) {
-    // LOG_GENERAL(INFO, "Get desired json output from the interpreter for
-    // create contract");
+    std::vector<Contract::StateEntry> state_entries;
+    try {
+      for (const auto& s : _json["states"]) {
+        if (!s.isMember("vname") || !s.isMember("type") ||
+            !s.isMember("value")) {
+          LOG_GENERAL(WARNING, "The json output of states is corrupted");
+          receipt.AddError(STATE_CORRUPTED);
+          return false;
+        }
+        std::string vname = s["vname"].asString();
+        std::string type = s["type"].asString();
+        std::string value =
+            s["value"].isString()
+                ? s["value"].asString()
+                : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
+
+        if (vname != "_balance") {
+          state_entries.push_back(std::make_tuple(vname, true, type, value));
+        }
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+      return false;
+    }
+
+    if (!contractAccount->SetStorage(state_entries, true)) {
+      LOG_GENERAL(WARNING, "SetStorage failed");
+      return false;
+    }
     return true;
   }
 
