@@ -75,24 +75,23 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
 
 bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
                                      const list<TxBlockSharedPtr>& blocks) {
-  unsigned int extra_txblocks = 0;
-  if ((lastBlockNum - extra_txblocks + 1) %
+  if ((lastBlockNum + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
       0) {
     // we must have latest state currently. so need not recreate states
-    LOG_GENERAL(INFO, "Current state is up-to-date until txblk :"
-                          << lastBlockNum - extra_txblocks);
+    LOG_GENERAL(INFO,
+                "Current state is up-to-date until txblk :" << lastBlockNum);
   } else {
     // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
     // NUM_FINAL_BLOCK_PER_POW txn blocks
     unsigned int lower_bound_txnblk =
-        ((lastBlockNum - extra_txblocks + 1) >
+        ((lastBlockNum + 1) >
          INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
-            ? (((lastBlockNum - extra_txblocks + 1) /
+            ? (((lastBlockNum + 1) /
                 (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)) *
                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW))
             : 0;
-    unsigned int upper_bound_txnblk = lastBlockNum - extra_txblocks;
+    unsigned int upper_bound_txnblk = lastBlockNum;
 
     LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
