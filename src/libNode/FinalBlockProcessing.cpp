@@ -913,6 +913,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
+    LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
     }

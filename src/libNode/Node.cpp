@@ -1514,7 +1514,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
       checkedTxns.push_back(txn);
     } else {
-      LOG_GENERAL(WARNING, "Txn is not valid.");
+      LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
     }
 
     processed_count++;
@@ -1530,6 +1530,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
+      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
       m_createdTxns.insert(txn);
     }
 
