@@ -128,28 +128,17 @@ bool DirectoryService::ViewChangeValidator(
 
   // Verify candidate leader index
   uint16_t candidateLeaderIndex = CalculateNewLeaderIndex();
-  // if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
-  //     m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
-  //   LOG_GENERAL(
-  //       WARNING,
-  //       "FATAL Candidate network info mismatched. Expected: "
-  //           << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
-  //           << " Obtained: "
-  //           <<
-  //           m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-  //   return false;
-  // }
 
   // Create a temporary local structure of ds committee pubkeys
   // Used range based loop due to clang tidy enforcement
   list<PubKey> localCumulativeFaultyLeadersPubKey;
   for (const auto& node : m_cumulativeFaultyLeaders) {
-    localCumulativeFaultyLeadersPubKey.push_back(node.first);
+    localCumulativeFaultyLeadersPubKey.emplace_back(node.first);
   }
 
   list<PubKey> proposedCumulativeFaultyLeadersPubKey;
   for (const auto& node : m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-    proposedCumulativeFaultyLeadersPubKey.push_back(node.first);
+    proposedCumulativeFaultyLeadersPubKey.emplace_back(node.first);
   }
 
   // Verify faulty leaders
