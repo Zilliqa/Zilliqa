@@ -658,6 +658,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     ResetConsensusId();
     // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
+    P2PComm::GetInstance().ClearPeerConnectionCount();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
