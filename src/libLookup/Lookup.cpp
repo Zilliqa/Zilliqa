@@ -3620,6 +3620,8 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   }
 
   m_txnShardMap[shardId].push_back(tx);
+  LOG_GENERAL(INFO,
+              "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
 
   return true;
 }
