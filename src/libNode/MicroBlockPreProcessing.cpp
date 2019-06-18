@@ -482,14 +482,14 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTxns = std::move(t_createdTxns);
+    m_createdTxns = move(t_createdTxns);
     t_createdTxns.clear();
   }
 
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =
-        std::move(t_processedTransactions);
+        move(t_processedTransactions);
     t_processedTransactions.clear();
   }
 }

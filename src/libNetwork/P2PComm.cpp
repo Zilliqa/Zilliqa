@@ -231,7 +231,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                         << ")");
         connectStat = false;
       } else {
-        struct pollfd pfd_write;
+        struct pollfd pfd_write {};
         pfd_write.fd = cli_sock;
         pfd_write.events = POLLERR | POLLOUT;
         pfd_write.revents = 0;
@@ -822,7 +822,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
   };
   DetachedFunction(1, funcCheckSendQueue);
 
-  m_dispatcher = std::move(dispatcher);
+  m_dispatcher = move(dispatcher);
 
   struct sockaddr_in serv_addr {};
   memset(&serv_addr, 0, sizeof(struct sockaddr_in));

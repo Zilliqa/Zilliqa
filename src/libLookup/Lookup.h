@@ -25,6 +25,7 @@
 #include <map>
 #include <mutex>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "common/Executable.h"
@@ -378,7 +379,7 @@ class Lookup : public Executable {
   bool CleanVariables();
 
   void SetLookupServer(std::shared_ptr<LookupServer> lookupServer) {
-    m_lookupServer = lookupServer;
+    m_lookupServer = std::move(lookupServer);
   }
 
   bool m_fetchedOfflineLookups = false;

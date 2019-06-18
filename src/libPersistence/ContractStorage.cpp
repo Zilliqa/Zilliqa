@@ -172,8 +172,8 @@ void ContractStorage::BufferCurrentState() {
 void ContractStorage::RevertPrevState() {
   LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_stateMainMutex);
-  t_stateIndexMap = std::move(p_stateIndexMap);
-  t_stateDataMap = std::move(p_stateDataMap);
+  t_stateIndexMap = move(p_stateIndexMap);
+  t_stateDataMap = move(p_stateDataMap);
 }
 
 bool ContractStorage::SetContractStateIndexes(const dev::h160& address,

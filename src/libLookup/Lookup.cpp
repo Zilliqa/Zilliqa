@@ -3702,12 +3702,12 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
             Transaction::GetShardIndex(tx.GetToAddr(), newNumShards);
         if (toShard != fromShard) {
           // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(move(tx));
+          m_txnShardMap[oldNumShards].emplace_back(tx);
           continue;
         }
       }
 
-      tempTxnShardMap[fromShard].emplace_back(move(tx));
+      tempTxnShardMap[fromShard].emplace_back(tx);
     }
   }
   tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);

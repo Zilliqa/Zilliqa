@@ -122,8 +122,7 @@ void StringToBytes(const std::string& in, bytes& out) {
   boost::algorithm::unhex(in.begin(), in.end(), back_inserter(out));
 }
 
-SignatureL DeserializeSignature(const std::string sig_s) {
-
+SignatureL DeserializeSignature(const std::string& sig_s) {
   SignatureL sig;
   bytes sig_b;
   StringToBytes(sig_s, sig_b);

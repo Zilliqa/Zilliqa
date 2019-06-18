@@ -248,17 +248,15 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-
 bool DownloadPersistenceFromS3() {
   string output;
   output = execute(start_downloadScript);
   return (output.find("Done!") != std::string::npos);
 }
 
-
 void StartNewProcess(const string& pubKey, const string& privKey,
                      const string& ip, const string& port, const string& path,
-                     ofstream& log) {
+                     const bool& cseed, ofstream& log) {
   log << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;

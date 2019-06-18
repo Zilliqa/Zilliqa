@@ -923,7 +923,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
   auto announcementGeneratorFunc =
-      [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
+      [this, dsWinnerPoWs = move(dsWinnerPoWs)](
           bytes& dst, unsigned int offset, const uint32_t consensusID,
           const uint64_t blockNumber, const bytes& blockHash,
           const uint16_t leaderID, const PairOfKey& leaderKey,

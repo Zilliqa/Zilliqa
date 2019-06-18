@@ -857,8 +857,8 @@ ConsensusLeader::ConsensusLeader(
   m_numForConsensus = ConsensusCommon::NumForConsensus(committee.size());
   m_numForConsensusFailure = committee.size() - m_numForConsensus;
 
-  m_nodeCommitFailureHandlerFunc = std::move(nodeCommitFailureHandlerFunc);
-  m_shardCommitFailureHandlerFunc = std::move(shardCommitFailureHandlerFunc);
+  m_nodeCommitFailureHandlerFunc = move(nodeCommitFailureHandlerFunc);
+  m_shardCommitFailureHandlerFunc = move(shardCommitFailureHandlerFunc);
 
   m_commitSecret.reset(new CommitSecret());
   m_commitPoint.reset(new CommitPoint(*m_commitSecret));

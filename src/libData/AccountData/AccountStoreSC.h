@@ -68,8 +68,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the gas limit while executing each txn
   uint64_t m_curGasLimit{0};
 
-
-
   /// the gas price while executing each txn
   uint128_t m_curGasPrice{GAS_PRICE_MIN_VALUE};
 
