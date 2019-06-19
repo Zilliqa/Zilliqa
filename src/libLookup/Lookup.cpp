@@ -2014,6 +2014,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     }
   }
 
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
+  }
+
   m_mediator.m_currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   // To trigger m_isVacuousEpoch calculation
