@@ -73,8 +73,8 @@ void Scheduler::ScheduleAt(std::function<void(void)> f,
 
 void Scheduler::ScheduleAfter(std::function<void(void)> f,
                               int64_t deltaMilliSeconds) {
-  ScheduleAt(std::move(f), chrono::system_clock::now() +
-                               chrono::milliseconds(deltaMilliSeconds));
+  ScheduleAt(move(f), chrono::system_clock::now() +
+                          chrono::milliseconds(deltaMilliSeconds));
 }
 
 static void SchedulePeriodicallyHelper(Scheduler* s,
