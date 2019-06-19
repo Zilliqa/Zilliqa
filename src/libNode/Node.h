@@ -83,7 +83,7 @@ class Node : public Executable {
   std::mutex m_mutexConsensus;
 
   // Sharding information
-  std::atomic<uint32_t> m_numShards;
+  std::atomic<uint32_t> m_numShards{};
 
   // pre-generated addresses
   std::vector<Address> m_populatedAddresses;
@@ -95,8 +95,8 @@ class Node : public Executable {
   std::mutex m_MutexCVMicroblockConsensus;
   std::mutex m_MutexCVMicroblockConsensusObject;
   std::condition_variable cv_microblockConsensusObject;
-  std::atomic<uint16_t> m_consensusMyID;
-  std::atomic<uint16_t> m_consensusLeaderID;
+  std::atomic<uint16_t> m_consensusMyID{};
+  std::atomic<uint16_t> m_consensusLeaderID{};
 
   std::mutex m_MutexCVFBWaitMB;
   std::condition_variable cv_FBWaitMB;
@@ -120,7 +120,7 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::atomic<bool> m_txn_distribute_window_open;
+  std::atomic<bool> m_txn_distribute_window_open{};
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
@@ -159,16 +159,16 @@ class Node : public Executable {
 
   // Fallback Consensus
   std::mutex m_mutexFallbackTimer;
-  uint32_t m_fallbackTimer;
+  uint32_t m_fallbackTimer{};
   bool m_fallbackTimerLaunched = false;
-  bool m_fallbackStarted;
+  bool m_fallbackStarted{};
   std::mutex m_mutexPendingFallbackBlock;
   std::shared_ptr<FallbackBlock> m_pendingFallbackBlock;
   std::mutex m_MutexCVFallbackBlock;
   std::condition_variable cv_fallbackBlock;
   std::mutex m_MutexCVFallbackConsensusObj;
   std::condition_variable cv_fallbackConsensusObj;
-  bool m_runFallback;
+  bool m_runFallback{};
 
   // Updating of ds guard var
   std::atomic_bool m_requestedForDSGuardNetworkInfoUpdate = {false};
@@ -405,8 +405,8 @@ class Node : public Executable {
       m_unavailableMicroBlocks;
 
   /// Sharding variables
-  std::atomic<uint32_t> m_myshardId;
-  std::atomic<bool> m_isPrimary;
+  std::atomic<uint32_t> m_myshardId{};
+  std::atomic<bool> m_isPrimary{};
   std::shared_ptr<ConsensusCommon> m_consensusObject;
 
   // Finalblock Processing
@@ -416,15 +416,15 @@ class Node : public Executable {
   std::mutex m_mutexDSBlock;
 
   /// The current internal state of this Node instance.
-  std::atomic<NodeState> m_state;
+  std::atomic<NodeState> m_state{};
 
   // a buffer flag used by lookup to store the isVacuousEpoch state before
   // StoreFinalBlock
-  std::atomic<bool> m_isVacuousEpochBuffer;
+  std::atomic<bool> m_isVacuousEpochBuffer{};
 
   // an indicator that whether the non-sync node is still doing mining
   // at standard difficulty
-  std::atomic<bool> m_stillMiningPrimary;
+  std::atomic<bool> m_stillMiningPrimary{};
 
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
@@ -613,7 +613,7 @@ class Node : public Executable {
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
   /// Fallback Consensus Related
-  std::atomic<NodeState> m_fallbackState;
+  std::atomic<NodeState> m_fallbackState{};
   bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
 };
 

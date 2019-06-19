@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(RRS_Initialization) {
   }
   // Copy constructor check
   RRS::RumorHolder dummy_holder(dummy_peerIdSet, 2);
-  RRS::RumorHolder dummy_holder_copy(dummy_holder);
+  const RRS::RumorHolder& dummy_holder_copy(dummy_holder);
   /// Rumor Holder == operator check
   BOOST_CHECK(dummy_holder == dummy_holder_copy);
 

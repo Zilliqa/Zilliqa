@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   bytes message1;
 
   bytes code = dev::h256::random().asBytes();
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(code);
   dev::h256 hash = dev::h256(sha2.Finalize());
   acc1.SetCode(code);
@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   bytes message2;
   BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));
 
-  uint128_t acc2Balance = acc2.GetBalance();
+  const uint128_t& acc2Balance = acc2.GetBalance();
 
   BOOST_CHECK_MESSAGE(
       CURRENT_BALANCE == acc2Balance,

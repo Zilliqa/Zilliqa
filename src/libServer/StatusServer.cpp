@@ -106,7 +106,7 @@ Json::Value StatusServer::GetDSCommittee() {
     throw JsonRpcException(RPC_INTERNAL_ERROR, "DS Committee empty");
   }
 
-  lock_guard<mutex>(m_mediator.m_mutexDSCommittee);
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
   const DequeOfNode& dq = *m_mediator.m_DSCommittee;
 

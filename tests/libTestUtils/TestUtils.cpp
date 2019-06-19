@@ -104,7 +104,7 @@ Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
   return Peer(ip_address, listen_port_host);
 }
 
-PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
+PubKey GenerateRandomPubKey(const PrivKey& privK) { return PubKey(privK); }
 
 PairOfKey GenerateRandomKeyPair() {
   PrivKey privk;

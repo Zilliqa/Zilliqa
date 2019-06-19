@@ -79,7 +79,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     sha2.Reset();
     bytes message;
 

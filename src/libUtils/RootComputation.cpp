@@ -45,7 +45,7 @@ template <typename... Container>
 TxnHash ConcatTranAndHash(const Container&... conts) {
   LOG_MARKER();
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bool hasValue = false;
 
   (void)std::initializer_list<int>{(

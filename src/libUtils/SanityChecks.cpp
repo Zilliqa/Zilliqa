@@ -21,7 +21,7 @@ using namespace std;
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
-                                unsigned int factor, string errMsg) {
+                                unsigned int factor, const string& errMsg) {
   if (minLengthNeeded > messageSize - offset) {
     LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
     return true;

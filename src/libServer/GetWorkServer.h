@@ -93,8 +93,8 @@ struct PoWWorkPackage {
   std::string seed;
   std::string boundary;
 
-  uint64_t blocknum;
-  uint8_t difficulty;
+  uint64_t blocknum{};
+  uint8_t difficulty{};
 };
 
 // Implement AbstractStubServer

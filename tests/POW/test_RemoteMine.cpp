@@ -27,7 +27,7 @@
 #include <vector>
 
 static std::array<uint8_t, 32> generateRandomArray() {
-  std::array<uint8_t, 32> randResult;
+  std::array<uint8_t, 32> randResult{};
   std::srand(
       std::time(nullptr));  // use current time as seed for random generator
   for (int i = 0; i < 32; ++i) {

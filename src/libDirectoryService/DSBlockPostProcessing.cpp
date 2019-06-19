@@ -183,7 +183,7 @@ void DirectoryService::SendDSBlockToShardNodes(
     }
 
     // Send the message
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+    SHA2<HashType::HASH_VARIANT_256> sha256;
     sha256.Update(dsblock_message_to_shard);
     auto this_msg_hash = sha256.Finalize();
 
@@ -567,9 +567,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   // Now we can update the sharding structure and transaction sharing
   // assignments
   if (m_mode == BACKUP_DS) {
-    m_shards = std::move(m_tempShards);
-    m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
-    m_mapNodeReputation = std::move(m_tempMapNodeReputation);
+    m_shards = move(m_tempShards);
+    m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
+    m_mapNodeReputation = move(m_tempMapNodeReputation);
   } else if (m_mode == PRIMARY_DS) {
     ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }

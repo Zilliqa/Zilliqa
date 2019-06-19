@@ -604,7 +604,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
     Json::Value ret;
     if (account != nullptr) {
-      uint128_t balance = account->GetBalance();
+      const uint128_t& balance = account->GetBalance();
       uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
@@ -1071,7 +1071,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     try {
       // add the hash of genesis block
       DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       bytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
@@ -1099,7 +1099,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     // for the latest block
     DSBlockHeader dshead =
         m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     bytes vec;
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
@@ -1168,7 +1168,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     try {
       // add the hash of genesis block
       TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       bytes vec;
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
@@ -1196,7 +1196,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     // for the latest block
     TxBlockHeader txhead =
         m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     bytes vec;
     txhead.Serialize(vec, 0);
     sha2.Update(vec);

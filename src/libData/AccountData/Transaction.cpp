@@ -51,7 +51,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
@@ -90,7 +90,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {

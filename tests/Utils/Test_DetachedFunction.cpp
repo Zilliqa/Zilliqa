@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_SUITE(utils)
 
 mutex m;
 
-void test2(shared_ptr<vector<string>> s) {
+void test2(const shared_ptr<vector<string>>& s) {
   LOG_MARKER();
 
   lock_guard<mutex> guard(m);
@@ -55,9 +55,10 @@ BOOST_AUTO_TEST_CASE(testDetachedFunction) {
 
   LOG_MARKER();
 
-  JoinableFunction(1,
-                   test1);  // check that test1 can terminate even while test2
-                            // threads are still running
+  JoinableFunction joinableFunc(
+      1,
+      test1);  // check that test1 can terminate even while test2
+               // threads are still running
 
   this_thread::sleep_for(
       chrono::seconds(2));  // just a short delay so test2 threads can finish

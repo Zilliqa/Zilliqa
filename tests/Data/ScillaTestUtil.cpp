@@ -39,7 +39,7 @@ bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   return reader->parse(fstr.c_str(), fstr.c_str() + fstr.size(), &j, &errors);
 }
 
-uint64_t ScillaTestUtil::GetFileSize(std::string filename) {
+uint64_t ScillaTestUtil::GetFileSize(const std::string &filename) {
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT is empty.");
     return 0;
@@ -57,8 +57,8 @@ uint64_t ScillaTestUtil::GetFileSize(std::string filename) {
 
 // Get ScillaTest for contract "name" and test numbered "i".
 // "version" is used only if ENABLE_SCILLA_MULTI_VERSION is set.
-bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
-                                   unsigned int i, std::string version) {
+bool ScillaTestUtil::GetScillaTest(ScillaTest &t, const std::string &contrName,
+                                   unsigned int i, const std::string &version) {
   if (SCILLA_ROOT.empty()) {
     return false;
   }

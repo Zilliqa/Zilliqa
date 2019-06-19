@@ -475,7 +475,7 @@ bool Node::ValidateDB() {
     return false;
   }
 
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
@@ -808,7 +808,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml(IP_MAPPING_FILE_NAME, pt);
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
 
   for (const ptree::value_type& v : pt.get_child("mapping")) {
     if (v.first == "peer") {
@@ -1032,7 +1032,7 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1060,7 +1060,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -2083,7 +2083,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
 
   uint32_t nodes_lo, nodes_hi;
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // raw_message hash
   bytes this_msg_hash = sha256.Finalize();
 

@@ -47,7 +47,7 @@ std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
   for (auto& privKeyHexStr : GENESIS_KEYS) {
     bytes out;
     if (DataConversion::HexStrToUint8Vec(privKeyHexStr, out)) {
-      auto privKeyBytes{out};
+      const auto& privKeyBytes{out};
       auto privKey = PrivKey{privKeyBytes, 0};
       auto pubKey = PubKey{privKey};
       auto address = Account::GetAddressFromPublicKey(pubKey);

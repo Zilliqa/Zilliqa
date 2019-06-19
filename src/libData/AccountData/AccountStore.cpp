@@ -454,7 +454,7 @@ StateHash AccountStore::GetStateDeltaHash() {
     return StateHash();
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(m_stateDeltaSerialized);
   return StateHash(sha2.Finalize());
 }
@@ -482,12 +482,12 @@ void AccountStore::RevertCommitTemp() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   // Revert changed
-  for (auto const entry : m_addressToAccountRevChanged) {
+  for (auto const& entry : m_addressToAccountRevChanged) {
     // LOG_GENERAL(INFO, "Revert changed address: " << entry.first);
     (*m_addressToAccount)[entry.first] = entry.second;
     UpdateStateTrie(entry.first, entry.second);
   }
-  for (auto const entry : m_addressToAccountRevCreated) {
+  for (auto const& entry : m_addressToAccountRevCreated) {
     // LOG_GENERAL(INFO, "Remove created address: " << entry.first);
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
