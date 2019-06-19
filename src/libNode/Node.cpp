@@ -1999,7 +1999,10 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
         }
       }
     } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-               ins_byte == NodeInstructionType::FINALBLOCK)  // Is seed node
+               (ins_byte == NodeInstructionType::FINALBLOCK ||
+                ins_byte ==
+                    NodeInstructionType::MBNFORWARDTRANSACTION))  // Is seed
+                                                                  // node
     {
       return false;
     } else  // Is lookup node
