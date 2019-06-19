@@ -1962,7 +1962,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
-
+  bool placeholder = false;
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
@@ -2008,6 +2008,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+      m_mediator.m_node->LoadUnavailableMicroBlockHashes(
+          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder);
+    }
   }
 
   m_mediator.m_currentEpochNum =
