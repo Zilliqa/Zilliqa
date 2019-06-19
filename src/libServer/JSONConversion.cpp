@@ -78,6 +78,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
     return ret;  // empty ret
   }
   ret_body["HeaderSign"] = HeaderSignStr;
+  ret_body["BlockHash"] = txblock.GetBlockHash().hex();
 
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());

@@ -876,6 +876,9 @@ string LookupServer::GetNumTransactions() {
 
   uint64_t currBlock =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  if (currBlock == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
+  }
   if (m_BlockTxPair.first < currBlock) {
     for (uint64_t i = m_BlockTxPair.first + 1; i <= currBlock; i++) {
       m_BlockTxPair.second +=
@@ -894,6 +897,10 @@ size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
 
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (currBlockNum == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
+  }
 
   if (blockNum >= currBlockNum) {
     return 0;
@@ -1048,6 +1055,9 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
   }
   uint64_t currBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  if (currBlockNum == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No DS blocks");
+  }
   Json::Value _json;
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
@@ -1141,6 +1151,11 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
   }
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (currBlockNum == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
+  }
+
   Json::Value _json;
 
   uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
