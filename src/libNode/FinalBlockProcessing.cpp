@@ -115,8 +115,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!((info.m_shardId == m_mediator.m_ds->m_shards.size()) &&
-            (info.m_txnRootHash == TxnHash()))) {
+      if (!(info.m_shardId == microBlockInfos.size() &&
+            info.m_txnRootHash == TxnHash())) {
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
         LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
@@ -127,7 +127,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
       // For debug to be removed
       else {
         LOG_GENERAL(INFO, "shard size : " << m_mediator.m_ds->m_shards.size()
-                                          << "shard-id : " << info.m_shardId);
+                                          << ", shard-id : " << info.m_shardId);
       }
     } else {
       if (info.m_shardId == m_myshardId) {
@@ -1002,6 +1002,10 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
         .push_back(entry);
+    LOG_GENERAL(INFO, "Buffered MB & TXN BODIES #"
+                          << entry.m_microBlock.GetHeader().GetEpochNum()
+                          << " shard "
+                          << entry.m_microBlock.GetHeader().GetShardId());
 
     return true;
   }
