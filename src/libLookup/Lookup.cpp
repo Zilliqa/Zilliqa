@@ -2008,13 +2008,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+        (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, txBlock.GetHeader().GetBlockNum(), placeholder);
     }
   }
 
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+      (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
   }
 
