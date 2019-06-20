@@ -714,6 +714,14 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   if (!isVacuousEpoch) {
     StoreFinalBlock(txBlock);
+    if (!LOOKUP_NODE_MODE) {
+      if (!BlockStorage::GetBlockStorage().PutEpochFin(
+              m_mediator.m_currentEpochNum)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                 << m_mediator.m_currentEpochNum);
+        return false;
+      }
+    }
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
@@ -742,6 +750,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         if (!LOOKUP_NODE_MODE) {
           BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                       {'0'});
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  m_mediator.m_currentEpochNum)) {
+            LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                     << m_mediator.m_currentEpochNum);
+            return;
+          }
         } else {
           // change if all microblock received from shards
           lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
@@ -751,6 +765,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
+            if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                    m_mediator.m_currentEpochNum)) {
+              LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                       << m_mediator.m_currentEpochNum);
+              return;
+            }
           }
         }
         LOG_STATE("[FLBLK][" << setw(15) << left
@@ -1034,27 +1054,66 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
           entry.m_microBlock.GetHeader().GetEpochNum());
 
-      if (LOOKUP_NODE_MODE && m_isVacuousEpochBuffer &&
-          entry.m_microBlock.GetHeader().GetEpochNum() ==
+      if (entry.m_microBlock.GetHeader().GetEpochNum() ==
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+        if (m_isVacuousEpochBuffer) {
+          // Check is states updated
+          uint64_t epochNum;
+          if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
+                  epochNum)) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::GetLatestEpochStateusUpdated failed");
+            return false;
+          }
+          if (AccountStore::GetInstance().GetPrevRootHash() ==
               m_mediator.m_txBlockChain.GetLastBlock()
                   .GetHeader()
-                  .GetBlockNum()) {
-        // change if states was moved to disk
-        uint64_t epochNum;
-        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
-                epochNum)) {
-          LOG_GENERAL(WARNING, "GetLatestEpochStatesUpdated failed");
-          return false;
+                  .GetStateRootHash()) {
+            if (!BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'})) {
+              LOG_GENERAL(
+                  WARNING,
+                  "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+              return false;
+            }
+            if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                    m_mediator.m_currentEpochNum)) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::PutEpochFin failed "
+                              << entry.m_microBlock.GetHeader().GetEpochNum());
+              return false;
+            }
+            if (!BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP)) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::ResetDB (TX_BODY_TMP) failed");
+            }
+          } else if (epochNum == m_mediator.m_currentEpochNum) {
+            if (!BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'})) {
+              LOG_GENERAL(
+                  WARNING,
+                  "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
+              return false;
+            }
+            if (!BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP)) {
+              LOG_GENERAL(WARNING,
+                          "BlockStorage::ResetDB (TX_BODY_TMP) failed");
+            }
+          }
+        } else {
+          if (!BlockStorage::GetBlockStorage().PutEpochFin(
+                  m_mediator.m_currentEpochNum)) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::PutEpochFin failed "
+                            << entry.m_microBlock.GetHeader().GetEpochNum());
+            return false;
+          }
         }
-        if (epochNum == m_mediator.m_currentEpochNum) {
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                      {'0'});
-        }
-        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
       }
     }
   }
-
   return true;
 }
 
