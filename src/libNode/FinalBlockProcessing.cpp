@@ -992,9 +992,11 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
 
-  if ( (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
-      entry.m_microBlock.GetHeader().GetEpochNum()) || /* Buffer for syncing seed node */
-      (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC)) ) {
+  if ((m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+       entry.m_microBlock.GetHeader()
+           .GetEpochNum()) || /* Buffer for syncing seed node */
+      (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+       (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC))) {
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
         .push_back(entry);
