@@ -12,8 +12,8 @@ message ProtoScillaVal {
 }
 
 message ProtoScillaQuery {
-    bytes address =1;
-    string name = 2;
-    uint32 mapdepth = 3;
-    repeated bytes indices = 4;
+    string name = 1;
+    uint32 mapdepth = 2;
+    repeated bytes indices = 3;
+    bool deletemapkey = 4;
 }

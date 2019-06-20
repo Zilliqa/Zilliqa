@@ -24,6 +24,7 @@
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/ContractStorage2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -299,6 +300,22 @@ vector<h256> Account::GetStorageKeyHashes(bool temp) const {
 
   return ContractStorage::GetContractStorage().GetContractStateIndexes(
       m_address, temp);
+}
+
+void Account::GetUpdatedStates(
+    std::map<std::string, bytes>& t_states,
+    std::vector<std::string>& toDeleteIndices) const {
+  ContractStorage2::GetContractStorage().FetchUpdatedStateValuesForAddress(
+      GetAddress(), t_states, toDeleteIndices);
+}
+
+void Account::UpdateStates(const Address& addr,
+                           const std::map<std::string, bytes>& t_states,
+                           const std::vector<std::string>& toDeleteIndices,
+                           bool temp) {
+  ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
+      addr, t_states, toDeleteIndices, m_storageRoot, temp);
+  SetAddress(addr);
 }
 
 Json::Value Account::GetStateJson(bool temp) const {

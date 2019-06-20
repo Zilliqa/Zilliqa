@@ -398,12 +398,21 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   AccountBaseToProtobuf(account, *protoAccountBase);
 
   if (protoAccountBase->has_codehash()) {
+    // set code
     bytes codebytes = account.GetCode();
     protoAccount.set_code(codebytes.data(), codebytes.size());
-    for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
-      ProtoAccount::StorageData* entry = protoAccount.add_storage();
-      entry->set_keyhash(keyHash.data(), keyHash.size);
-      entry->set_data(account.GetRawStorage(keyHash, false));
+
+    // set data
+    map<std::string, bytes> t_states;
+    vector<std::string> deletedIndices;
+    account.GetUpdatedStates(t_states, deletedIndices);
+    for (const auto& state : t_states) {
+      ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
+      entry->set_key(state.first);
+      entry->set_data(state.second.data(), state.second.size());
+    }
+    for (const auto& deleted : deletedIndices) {
+      protoAccount.add_todelete(deleted);
     }
   }
 }
@@ -443,21 +452,17 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       return false;
     }
 
-    dev::h256 tmpHash, tmpStorageRoot = account.GetStorageRoot();
+    dev::h256 tmpStorageRoot = account.GetStorageRoot();
 
-    vector<pair<dev::h256, bytes>> entries;
-    for (const auto& entry : protoAccount.storage()) {
-      if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-        return false;
-      }
+    map<string, bytes> t_states;
+    vector<std::string> toDeleteIndices;
 
-      entries.emplace_back(tmpHash,
-                           DataConversion::StringToCharArray(entry.data()));
+    for (const auto& entry : protoAccount.storage2()) {
+      t_states.emplace(entry.key(),
+                       DataConversion::StringToCharArray(entry.data()));
     }
 
-    if (!account.SetStorage(addr, entries, false)) {
-      return false;
-    }
+    account.UpdateStates(addr, t_states, {}, false);
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
       LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
@@ -509,13 +514,16 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
         newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
-      for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
-        string rlpStr = newAccount.GetRawStorage(keyHash, true);
-        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
-          ProtoAccount::StorageData* entry = protoAccount.add_storage();
-          entry->set_keyhash(keyHash.data(), keyHash.size);
-          entry->set_data(rlpStr);
-        }
+      map<std::string, bytes> t_states;
+      vector<std::string> deletedIndices;
+      newAccount.GetUpdatedStates(t_states, deletedIndices);
+      for (const auto& state : t_states) {
+        ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
+        entry->set_key(state.first);
+        entry->set_data(state.second.data(), state.second.size());
+      }
+      for (const auto& deleted : deletedIndices) {
+        protoAccount.add_todelete(deleted);
       }
     }
   }
@@ -596,21 +604,21 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
       dev::h256 tmpHash;
 
-      vector<pair<dev::h256, bytes>> entries;
-      for (const auto& entry : protoAccount.storage()) {
-        if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-          return false;
-        }
+      map<string, bytes> t_states;
+      vector<std::string> toDeleteIndices;
 
-        entries.emplace_back(tmpHash,
-                             DataConversion::StringToCharArray(entry.data()));
+      for (const auto& entry : protoAccount.storage2()) {
+        t_states.emplace(entry.key(),
+                         DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, temp, revertible)) {
-        return false;
+      for (const auto& entry : protoAccount.todelete()) {
+        toDeleteIndices.emplace_back(entry);
       }
 
-      if (!entries.empty() &&
+      account.UpdateStates(addr, t_states, toDeleteIndices, temp);
+
+      if ((!t_states.empty() || !toDeleteIndices.empty()) &&
           accbase.GetStorageRoot() != account.GetStorageRoot()) {
         LOG_GENERAL(WARNING,
                     "Storage root mismatch. Expected: "

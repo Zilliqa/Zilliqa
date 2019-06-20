@@ -176,6 +176,13 @@ class Account : public AccountBase {
 
   std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
 
+  void GetUpdatedStates(std::map<std::string, bytes>& t_states,
+                        std::vector<std::string>& toDeleteIndices) const;
+
+  void UpdateStates(const Address& addr,
+                    const std::map<std::string, bytes>& t_states,
+                    const std::vector<std::string>& toDeleteIndices, bool temp);
+
   bool GetStorageJson(
       std::pair<Json::Value, Json::Value>& roots, bool temp = false,
       uint32_t& scilla_version = scilla_version_place_holder) const;
