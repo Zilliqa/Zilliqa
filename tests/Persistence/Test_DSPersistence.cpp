@@ -408,7 +408,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB) {
     BOOST_CHECK_MESSAGE(
         BlockStorage::GetBlockStorage().GetAllDSBlocks(ref_blocks),
         "GetAllDSBlocks shouldn't fail");
-    for (auto i : ref_blocks) {
+    for (const auto& i : ref_blocks) {
       out_blocks.emplace_back(*i);
     }
     BOOST_CHECK_MESSAGE(

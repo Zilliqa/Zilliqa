@@ -366,7 +366,7 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 
   bytes vec;
   pubKey.Serialize(vec, 0);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
 
   const bytes& output = sha2.Finalize();
@@ -385,7 +385,7 @@ Address Account::GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce) {
   Address address;
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bytes conBytes;
   copy(sender.asArray().begin(), sender.asArray().end(),
        back_inserter(conBytes));
@@ -413,7 +413,7 @@ bool Account::SetCode(const bytes& code) {
   }
 
   m_codeCache = code;
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(code);
   SetCodeHash(dev::h256(sha2.Finalize()));
   // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);

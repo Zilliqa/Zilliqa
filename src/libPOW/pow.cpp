@@ -117,7 +117,7 @@ int POW::FromHex(char _i) {
 }
 
 ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
-  ethash_hash256 ret;
+  ethash_hash256 ret{};
   bytes b = HexStringToBytes(_s);
   if (b.size() != 32) {
     LOG_GENERAL(WARNING,
@@ -387,13 +387,25 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
   m_shouldMine = true;
 
   ethash_mining_result_t miningResult{"", "", 0, false};
-  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary, timeWindow)) {
+  uint32_t retryTime = 0;
+  bool sendWorkSuccess = false;
+  do {
+    if (SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary,
+                        timeWindow)) {
+      sendWorkSuccess = true;
+      break;
+    }
+    ++retryTime;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  } while (!sendWorkSuccess && retryTime <= MAX_RETRY_SEND_POW_TIME);
+
+  if (!sendWorkSuccess) {
     LOG_GENERAL(WARNING, "Failed to send work package to mining proxy.");
     return miningResult;
   }
 
   uint64_t nonce = 0;
-  ethash_hash256 mixHash;
+  ethash_hash256 mixHash{};
   bool checkResult = CheckMiningResult(pairOfKey, headerHash, boundary, nonce,
                                        mixHash, timeWindow);
   if (!checkResult) {
@@ -401,7 +413,7 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
     return miningResult;
   }
 
-  ethash_hash256 hashResult;
+  ethash_hash256 hashResult{};
   auto verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash,
                                        mixHash, hashResult);
   if (verifyResult) {

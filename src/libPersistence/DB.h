@@ -25,7 +25,7 @@
 /// Utility class for providing database-type storage.
 class DB {
   std::string m_db_name;
-  leveldb::DB* m_db;
+  leveldb::DB* m_db{};
 
  public:
   /// Constructor.

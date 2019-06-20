@@ -133,7 +133,7 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
 void Node::CommitMicroBlockConsensusBuffer() {
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
-  for (const auto i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
+  for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
       ProcessMicroBlockConsensusCore(std::get<NODE_MSG>(i), MessageOffset::BODY,
                                      std::get<NODE_PEER>(i));
@@ -291,9 +291,9 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
         << "] AFTER SENDING MIBLK");
 
     m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
-    m_lastMicroBlockCoSig.second = move(
+    m_lastMicroBlockCoSig.second =
         CoSignatures(m_consensusObject->GetCS1(), m_consensusObject->GetB1(),
-                     m_consensusObject->GetCS2(), m_consensusObject->GetB2()));
+                     m_consensusObject->GetCS2(), m_consensusObject->GetB2());
 
     SetState(WAITING_FINALBLOCK);
 

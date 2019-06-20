@@ -159,7 +159,7 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
     return FAIL_RESULT;
   }
 
-  ethash_hash256 final_result;
+  ethash_hash256 final_result{};
   if (!POW::GetInstance().VerifyRemoteSoln(
           m_curWork.blocknum, POW::StringToBlockhash(boundary), winning_nonce,
           POW::StringToBlockhash(header), POW::StringToBlockhash(mixdigest),

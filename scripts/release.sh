@@ -124,7 +124,7 @@ fi
 
 # Read information from files
 rm -rf ${constantsDir}; mkdir ${constantsDir}; cd ${constantsDir}; mkdir l; mkdir l2; mkdir n; cd -;
-kubectl cp ${testnet_to_be_upgraded}-normal-0:/run/zilliqa/constants.xml ${constantsDir}/
+kubectl cp ${testnet_to_be_upgraded}-dsguard-0:/run/zilliqa/constants.xml ${constantsDir}/
 kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/
 kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/
 kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/
@@ -268,7 +268,7 @@ cd -
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     cp ${constantLevel2LookupFile} ${constantLevel2LookupFile}_level2lookup
     [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
-    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./tests/Zilliqa) daemon_restart.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     if [ "$releaseZilliqa" = "true" ]; then
         cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
         cmd="${cmd} -C $(dirname ${constantLevel2LookupFile}) $(basename ${constantLevel2LookupFile})_level2lookup"

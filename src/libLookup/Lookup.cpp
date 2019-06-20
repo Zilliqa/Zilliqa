@@ -46,6 +46,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/LookupServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -166,7 +167,7 @@ void Lookup::SetLookupNodes() {
   for (const auto& lookupType : lookupTypes) {
     for (const ptree::value_type& v : pt.get_child(lookupType)) {
       if (v.first == "peer") {
-        struct in_addr ip_addr;
+        struct in_addr ip_addr {};
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
@@ -224,7 +225,7 @@ void Lookup::SetAboveLayer() {
   m_seedNodes.clear();
   for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
     if (v.first == "peer") {
-      struct in_addr ip_addr;
+      struct in_addr ip_addr {};
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
@@ -265,7 +266,7 @@ Address GenOneReceiver() {
 Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
                                           PubKey& fromPubKey,
                                           const Address& toAddr,
-                                          uint128_t amount,
+                                          const uint128_t& amount,
                                           uint64_t prevNonce) {
   unsigned int version = 0;
   auto nonce = prevNonce + 1;
@@ -750,7 +751,7 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
       }
       PubKey key(pubkeyBytes, 0);
 
-      struct in_addr ip_addr;
+      struct in_addr ip_addr {};
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
 
@@ -2051,6 +2052,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         SetSyncType(SyncType::NO_SYNC);
         m_isFirstLoop = true;
+
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
       m_currDSExpired = false;
     }
@@ -2324,6 +2331,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
+
+      if (m_lookupServer->StartListening()) {
+        LOG_GENERAL(INFO, "API Server started to listen again");
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
+      }
     }
     m_currDSExpired = false;
   }
@@ -3118,6 +3131,9 @@ void Lookup::RejoinAsNewLookup() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    m_lookupServer->StopListening();
+    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
@@ -3686,12 +3702,12 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
             Transaction::GetShardIndex(tx.GetToAddr(), newNumShards);
         if (toShard != fromShard) {
           // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(move(tx));
+          m_txnShardMap[oldNumShards].emplace_back(tx);
           continue;
         }
       }
 
-      tempTxnShardMap[fromShard].emplace_back(move(tx));
+      tempTxnShardMap[fromShard].emplace_back(tx);
     }
   }
   tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);
@@ -4066,7 +4082,7 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
 
   if (code == 1) {
     if (!BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH +
-                                                              "/" + path)) {
+                                                              path)) {
       LOG_GENERAL(WARNING,
                   "BlockStorage::InitiateHistoricalDB failed, path: " << path);
       return false;

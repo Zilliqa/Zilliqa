@@ -309,7 +309,7 @@ uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
 template <class MAP>
 void AccountStoreBase<MAP>::PrintAccountState() {
   LOG_MARKER();
-  for (auto entry : *m_addressToAccount) {
+  for (const auto& entry : *m_addressToAccount) {
     LOG_GENERAL(INFO, entry.first << " " << entry.second);
   }
 }

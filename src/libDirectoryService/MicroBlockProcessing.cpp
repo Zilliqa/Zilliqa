@@ -160,7 +160,7 @@ bool DirectoryService::ProcessStateDelta(
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(stateDelta);
   StateHash stateDeltaHash(sha2.Finalize());
 

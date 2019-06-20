@@ -112,7 +112,8 @@ const std::string RAND2_GENESIS =
     "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
-const std::string PERSISTENCE_PATH = "persistence";
+const std::string PERSISTENCE_PATH = "/persistence";
+const std::string STATEDELTAFROMS3_PATH = "/StateDeltaFromS3";
 const std::string TX_BODY_SUBDIR = "txBodies";
 
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
@@ -131,6 +132,7 @@ extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const std::string GENESIS_PUBKEY;
 extern const unsigned int UPGRADE_TARGET_DS_NUM;
+extern const std::string STORAGE_PATH;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -285,6 +287,7 @@ extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
 extern const std::string MINING_PROXY_URL;
+extern const unsigned int MAX_RETRY_SEND_POW_TIME;
 extern const unsigned int CHECK_MINING_RESULT_INTERVAL;
 extern const bool GETWORK_SERVER_MINE;
 extern const unsigned int GETWORK_SERVER_PORT;

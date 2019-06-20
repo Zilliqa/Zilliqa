@@ -38,11 +38,11 @@
 #include "libUtils/Logger.h"
 
 /// Stores the result of PoW mining.
-typedef struct ethash_mining_result {
+typedef struct EthashMiningResult {
   std::string result;
   std::string mix_hash;
-  uint64_t winning_nonce;
-  bool success;
+  uint64_t winning_nonce{};
+  bool success{};
 } ethash_mining_result_t;
 
 /// Implements the proof-of-work functionality.
@@ -135,10 +135,10 @@ class POW {
   std::shared_ptr<ethash::epoch_context> m_epochContextLight = nullptr;
   std::shared_ptr<ethash::epoch_context_full> m_epochContextFull = nullptr;
   uint64_t m_currentBlockNum;
-  std::atomic<bool> m_shouldMine;
+  std::atomic<bool> m_shouldMine{};
   std::vector<dev::eth::MinerPtr> m_miners;
   std::vector<ethash_mining_result_t> m_vecMiningResult;
-  std::atomic<int> m_minerIndex;
+  std::atomic<int> m_minerIndex{};
   std::condition_variable m_cvMiningResult;
   std::mutex m_mutexMiningResult;
   std::unique_ptr<jsonrpc::HttpClient> m_httpClient;

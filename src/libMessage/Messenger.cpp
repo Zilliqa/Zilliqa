@@ -958,8 +958,8 @@ void AnnouncementShardingStructureToProtobuf(
 bool ProtobufToShardingStructureAnnouncement(
     const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
     DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
-  std::array<unsigned char, 32> result;
-  std::array<unsigned char, 32> mixhash;
+  std::array<unsigned char, 32> result{};
+  std::array<unsigned char, 32> mixhash{};
   uint128_t gasPrice;
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
@@ -1091,7 +1091,7 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& hash = sha2.Finalize();
 
@@ -2217,7 +2217,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2243,7 +2243,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2271,7 +2271,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2680,7 +2680,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
     return true;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -4034,8 +4034,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
   dsWinnerPoWs.clear();
   for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
     PubKey key;
-    std::array<unsigned char, 32> result;
-    std::array<unsigned char, 32> mixhash;
+    std::array<unsigned char, 32> result{};
+    std::array<unsigned char, 32> mixhash{};
     uint128_t gasPrice;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSWinnerPoW.pubkey(), key);

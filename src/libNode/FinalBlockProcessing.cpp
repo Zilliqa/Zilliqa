@@ -883,7 +883,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(stateDeltaBytes);
   StateHash stateDeltaHash(sha2.Finalize());
 
@@ -913,6 +913,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
+    LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
     }
@@ -939,7 +940,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
   auto it = m_unavailableMicroBlocks.find(blocknum);
 
-  for (auto it : m_unavailableMicroBlocks) {
+  for (const auto& it : m_unavailableMicroBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Unavailable"
               " microblock bodies in finalblock "

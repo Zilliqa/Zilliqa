@@ -36,11 +36,6 @@ bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset) const {
 
 Transaction::Transaction() {}
 
-Transaction::Transaction(const Transaction& src)
-    : m_tranID(src.m_tranID),
-      m_coreInfo(src.m_coreInfo),
-      m_signature(src.m_signature) {}
-
 Transaction::Transaction(const bytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
@@ -56,7 +51,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
@@ -95,7 +90,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
@@ -205,13 +200,4 @@ bool Transaction::operator<(const Transaction& tran) const {
 
 bool Transaction::operator>(const Transaction& tran) const {
   return tran < *this;
-}
-
-Transaction& Transaction::operator=(const Transaction& src) {
-  copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(),
-       m_tranID.asArray().begin());
-  m_signature = src.m_signature;
-  m_coreInfo = src.m_coreInfo;
-
-  return *this;
 }

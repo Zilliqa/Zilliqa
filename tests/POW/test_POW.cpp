@@ -193,8 +193,8 @@ BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000) {
 }
 
 BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
-  ethash_hash256 hash;
-  ethash_hash256 target;
+  ethash_hash256 hash{};
+  ethash_hash256 target{};
   memcpy(hash.bytes, "11111111111111111111111111111111", 32);
   memcpy(target.bytes, "22222222222222222222222222222222", 32);
   BOOST_REQUIRE_MESSAGE(
@@ -393,29 +393,6 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
       blockToUse, difficultyToUse, headerHash, winning_nonce,
       winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
-}
-
-BOOST_AUTO_TEST_CASE(mining_low_diffculty_time_out) {
-  POW& POWClient = POW::GetInstance();
-  std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-  std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-  uint128_t ipAddr = 2307193356;
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
-  auto pubKey = keyPair.second;
-
-  // Light client mine and verify
-  uint8_t difficultyToUse = 15;
-  uint64_t blockToUse = 0;
-  int powTimeInSeconds = 1;
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
-  ethash_mining_result_t winning_result =
-      POWClient.PoWMine(blockToUse, difficultyToUse, keyPair, headerHash, true,
-                        std::time(0), powTimeInSeconds);
-  BOOST_REQUIRE(!winning_result.success);
-  bool verifyLight = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
-      winning_result.result, winning_result.mix_hash);
-  BOOST_REQUIRE(!verifyLight);
 }
 
 BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {

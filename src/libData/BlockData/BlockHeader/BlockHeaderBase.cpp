@@ -32,7 +32,7 @@ BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
       m_prevHash(prevHash) {}
 
 BlockHash BlockHeaderBase::GetMyHash() const {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bytes vec;
   Serialize(vec, 0);
   sha2.Update(vec);

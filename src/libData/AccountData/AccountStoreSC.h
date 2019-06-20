@@ -53,7 +53,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::mutex m_mutexUpdateAccounts;
 
   /// the blocknum while executing each txn
-  uint64_t m_curBlockNum;
+
+  uint64_t m_curBlockNum{0};
 
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
@@ -62,26 +63,26 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Address m_curSenderAddr;
 
   /// the transfer amount while executing each txn
-  uint128_t m_curAmount;
+  uint128_t m_curAmount{0};
 
   /// the gas limit while executing each txn
-  uint64_t m_curGasLimit;
+  uint64_t m_curGasLimit{0};
 
   /// the gas price while executing each txn
-  uint128_t m_curGasPrice;
+  uint128_t m_curGasPrice{GAS_PRICE_MIN_VALUE};
 
   /// the gas price while executing each txn will be used in calculating the
   /// shard allocation of sender/recipient during chain call
-  unsigned int m_curNumShards;
+  unsigned int m_curNumShards{0};
 
   /// whether is processed by ds node while executing each txn
-  bool m_curIsDS;
+  bool m_curIsDS{false};
 
   /// the interpreter path for each hop of invoking
   std::string m_root_w_version;
 
   /// the depth of chain call while executing the current txn
-  unsigned int m_curDepth = 0;
+  unsigned int m_curDepth{0};
 
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;

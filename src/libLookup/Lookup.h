@@ -25,6 +25,7 @@
 #include <map>
 #include <mutex>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "common/Executable.h"
@@ -45,6 +46,7 @@
 
 class Mediator;
 class Synchronizer;
+class LookupServer;
 
 // The "first" element in the pair is a map of shard to its transactions
 // The "second" element in the pair counts the total number of transactions in
@@ -86,10 +88,10 @@ class Lookup : public Executable {
   std::vector<Peer> m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
 
-  std::atomic<bool> m_startedTxnBatchThread;
+  std::atomic<bool> m_startedTxnBatchThread{};
 
   // Start PoW variables
-  std::atomic<bool> m_receivedRaiseStartPoW;
+  std::atomic<bool> m_receivedRaiseStartPoW{};
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
@@ -97,7 +99,7 @@ class Lookup : public Executable {
   StateHash m_prevStateRootHashTemp;
 
   /// To indicate which type of synchronization is using
-  std::atomic<SyncType> m_syncType;  // = SyncType::NO_SYNC;
+  std::atomic<SyncType> m_syncType{};  // = SyncType::NO_SYNC;
 
   void SetAboveLayer();
 
@@ -131,6 +133,8 @@ class Lookup : public Executable {
 
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
+
+  std::shared_ptr<LookupServer> m_lookupServer;
 
   bytes ComposeGetDSInfoMessage(bool initialDS = false);
   bytes ComposeGetStateMessage();
@@ -373,6 +377,10 @@ class Lookup : public Executable {
 
   // Reset certain variables to the initial state
   bool CleanVariables();
+
+  void SetLookupServer(std::shared_ptr<LookupServer> lookupServer) {
+    m_lookupServer = std::move(lookupServer);
+  }
 
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;

@@ -1,10 +1,11 @@
 ---
 # TODO: enable more checks, run 'clang-tidy -list-checks -checks="*"' to see more
-Checks:          '-*,google-global-names-in-headers,modernize-loop-convert,readability-simplify-boolean-expr,readability-inconsistent-declaration-parameter-name'
+Checks:          '-*,google-global-names-in-headers,modernize-loop-convert,readability-simplify-boolean-expr,readability-inconsistent-declaration-parameter-name,readability-identifier-naming,cppcoreguidelines-pro-type-member-init,bugprone-*, -bugprone-macro-parentheses, -bugprone-lambda-function-name, performance-*'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
 FormatStyle:     file
 CheckOptions:
+ - { key: readability-identifier-naming.ClassCase,              value: CamelCase  }
 ...
 
