@@ -193,10 +193,6 @@ class Node : public Executable {
       std::vector<TransactionWithReceipt>& txns_to_send,
       const TxnHash& tx_hash);
 
-  bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                       const uint64_t& blocknum,
-                                       bool& toSendTxnToLookup);
-
   bool ProcessStateDeltaFromFinalBlock(
       const bytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash);
 
@@ -605,6 +601,10 @@ class Node : public Executable {
                                 std::vector<PubKey>& pubKeys);
 
   std::string GetStateString() const;
+
+  bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
+                                       const uint64_t& blocknum,
+                                       bool& toSendTxnToLookup);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
