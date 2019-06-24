@@ -786,7 +786,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if (st_result && ds_result && tx_result) {
     if (m_retriever->ValidateStates()) {
-      if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
+      if (LOOKUP_NODE_MODE && RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+          !m_retriever->CleanExtraTxBodies()) {
+        LOG_GENERAL(WARNING, "CleanExtraTxBodies failed");
+      } else {
         LOG_GENERAL(INFO, "RetrieveHistory Success");
         m_mediator.m_isRetrievedHistory = true;
         res = true;
