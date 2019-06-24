@@ -1291,6 +1291,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
       LOG_GENERAL(
           INFO, "Block Number "
                     << i << " absent. Didn't include it in response message.");
+      continue;              
     }
     stateDeltas.emplace_back(stateDelta);
   }
