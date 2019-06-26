@@ -674,6 +674,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     return false;
   }
 
+  m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
+
   if (LOOKUP_NODE_MODE) {
     bool canPutNewEntry = true;
 

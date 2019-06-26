@@ -654,6 +654,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     return;
   }
 
+  m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
+
   StartFirstTxEpoch();
 }
 

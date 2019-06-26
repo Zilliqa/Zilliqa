@@ -183,7 +183,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
-          RejoinAsNormal();
+          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+          StartSynchronization();
         } else {
           LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
         }
@@ -260,7 +261,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    RejoinAsNormal();
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    StartSynchronization();
     return false;
   }
 
