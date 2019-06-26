@@ -573,7 +573,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
         LOG_GENERAL(WARNING,
                     "Mining proxy return invalid result, ret array size: "
                         << ret.size());
-        return false;
+        continue;
       }
 
       bool workDone = ret[0].asBool();
@@ -593,7 +593,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
           WARNING,
           "Exception captured in jsonrpc api zil_checkWorkStatus, exception: "
               << e.what());
-      return false;
+      continue;
     }
   }
   return false;
