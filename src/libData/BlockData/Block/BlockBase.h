@@ -85,6 +85,7 @@ class BlockBase : public SerializableDataBlock {
   /// Sets the co-sig members.
   void SetCoSignatures(const ConsensusCommon& src);
   void SetCoSignatures(CoSignatures& cosigs);
+  void SetCoSignatures(CoSignatures&& cosigs);
 
   friend std::ostream& operator<<(std::ostream& os, const BlockBase& t);
 };

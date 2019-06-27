@@ -57,7 +57,7 @@ class ConsensusLeader : public ConsensusCommon {
   unsigned int m_numOfSubsets;
   // Received commits
   std::mutex m_mutex;
-  std::atomic<unsigned int> m_commitCounter;
+  std::atomic<unsigned int> m_commitCounter{0};
 
   std::mutex m_mutexAnnounceSubsetConsensus;
   std::condition_variable cv_scheduleSubsetConsensus;
@@ -86,7 +86,7 @@ class ConsensusLeader : public ConsensusCommon {
     std::vector<CommitPoint> commitPointMap;  // Ordered list of commits of
                                               // fixed size = committee size
     std::vector<CommitPoint> commitPoints;
-    unsigned int responseCounter;
+    unsigned int responseCounter{};
     Challenge challenge;  // Challenge / Finalchallenge value generated
     std::vector<Response> responseDataMap;  // Ordered list of responses of
                                             // fixed size = committee size
@@ -94,7 +94,7 @@ class ConsensusLeader : public ConsensusCommon {
     std::vector<bool> responseMap;
     std::vector<Response> responseData;
     Signature collectiveSig;
-    State state;  // Subset consensus state
+    State state{};  // Subset consensus state
   };
   std::vector<ConsensusSubset> m_consensusSubsets;
   unsigned int m_numSubsetsRunning;
@@ -154,8 +154,9 @@ class ConsensusLeader : public ConsensusCommon {
 
   /// Triggers the start of consensus on a particular message (e.g., DS block).
 
-  bool StartConsensus(AnnouncementGeneratorFunc announcementGeneratorFunc,
-                      bool useGossipProto = false);
+  bool StartConsensus(
+      const AnnouncementGeneratorFunc& announcementGeneratorFunc,
+      bool useGossipProto = false);
 
   /// Function to process any consensus message received.
   bool ProcessMessage(const bytes& message, unsigned int offset,

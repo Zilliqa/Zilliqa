@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum) {
   }
   cout << num2 << endl;
 
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, "54.169.197.255", &ip_addr);
 
   uint128_t ipaddr_big = ip_addr.s_addr;
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum) {
   cout << "DESE NORMAL = " << ipaddr_normal_2 << endl;
 
   char big_ip[INET_ADDRSTRLEN];
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
   serv_addr.sin_addr.s_addr = ipaddr_big_2.convert_to<uint32_t>();
   inet_ntop(AF_INET, &(serv_addr.sin_addr), big_ip, INET_ADDRSTRLEN);
   cout << "BIG    = " << string(big_ip) << endl;

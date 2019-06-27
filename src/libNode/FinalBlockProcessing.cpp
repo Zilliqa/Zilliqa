@@ -111,14 +111,14 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                            << info.m_microBlockHash << " [TxnRootHash] "
-                            << info.m_txnRootHash << " shardID "
-                            << info.m_shardId);
-      if (!(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
+      if (!(info.m_shardId == microBlockInfos.size() - 1 &&
             info.m_txnRootHash == TxnHash())) {
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
+        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                              << info.m_microBlockHash << " [TxnRootHash] "
+                              << info.m_txnRootHash << " shardID "
+                              << info.m_shardId);
       }
     } else {
       if (info.m_shardId == m_myshardId) {
@@ -883,7 +883,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(stateDeltaBytes);
   StateHash stateDeltaHash(sha2.Finalize());
 
@@ -913,6 +913,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
+    LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
     }
@@ -939,7 +940,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
   auto it = m_unavailableMicroBlocks.find(blocknum);
 
-  for (auto it : m_unavailableMicroBlocks) {
+  for (const auto& it : m_unavailableMicroBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Unavailable"
               " microblock bodies in finalblock "
@@ -1038,11 +1039,18 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
 
-  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
-      entry.m_microBlock.GetHeader().GetEpochNum()) {
+  if ((m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+       entry.m_microBlock.GetHeader()
+           .GetEpochNum()) || /* Buffer for syncing seed node */
+      (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+       (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC))) {
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
         .push_back(entry);
+    LOG_GENERAL(INFO, "Buffered MB & TXN BODIES #"
+                          << entry.m_microBlock.GetHeader().GetEpochNum()
+                          << " shard "
+                          << entry.m_microBlock.GetHeader().GetShardId());
 
     return true;
   }

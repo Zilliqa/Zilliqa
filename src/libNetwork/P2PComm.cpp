@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <memory>
+#include <utility>
 
 #include "Blacklist.h"
 #include "P2PComm.h"
@@ -62,7 +63,7 @@ std::mutex P2PComm::m_mutexPeerConnectionCount;
 std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
 
 /// Comparison operator for ordering the list of message hashes.
-struct hash_compare {
+struct HashCompare {
   bool operator()(const bytes& l, const bytes& r) {
     return equal(l.begin(), l.end(), r.begin(), r.end());
   }
@@ -204,7 +205,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
       return false;
     }
 
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr {};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
     serv_addr.sin_port = htons(peer.m_listenPortHost);
@@ -230,7 +231,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                         << ")");
         connectStat = false;
       } else {
-        struct pollfd pfd_write;
+        struct pollfd pfd_write {};
         pfd_write.fd = cli_sock;
         pfd_write.events = POLLERR | POLLOUT;
         pfd_write.revents = 0;
@@ -347,8 +348,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   return true;
 }
 
-void SendJob::SendMessageCore(const Peer& peer, const bytes message,
-                              unsigned char startbyte, const bytes hash) {
+void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
+                              unsigned char startbyte, const bytes& hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
     // comment this since we already check this in SendMessageSocketCore() and
@@ -457,7 +458,7 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
         (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      SHA2<HashType::HASH_VARIANT_256> sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
       bytes this_msg_hash = sha256.Finalize();
@@ -549,7 +550,7 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
 
 void P2PComm::CloseAndFreeBufferEvent(struct bufferevent* bufev) {
   int fd = bufferevent_getfd(bufev);
-  struct sockaddr_in cli_addr;
+  struct sockaddr_in cli_addr {};
   socklen_t addr_size = sizeof(struct sockaddr_in);
   getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
   uint128_t ipAddr = cli_addr.sin_addr.s_addr;
@@ -585,7 +586,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
   // Get the IP info
   int fd = bufferevent_getfd(bev);
-  struct sockaddr_in cli_addr;
+  struct sockaddr_in cli_addr {};
   socklen_t addr_size = sizeof(struct sockaddr_in);
   getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
   Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
@@ -728,7 +729,7 @@ void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
   if (len >= MAX_READ_WATERMARK_IN_BYTES) {
     // Get the IP info
     int fd = bufferevent_getfd(bev);
-    struct sockaddr_in cli_addr;
+    struct sockaddr_in cli_addr {};
     socklen_t addr_size = sizeof(struct sockaddr_in);
     getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
     Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
@@ -821,9 +822,9 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
   };
   DetachedFunction(1, funcCheckSendQueue);
 
-  m_dispatcher = dispatcher;
+  m_dispatcher = move(dispatcher);
 
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
   memset(&serv_addr, 0, sizeof(struct sockaddr_in));
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(listen_port_host);
@@ -924,7 +925,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
     return;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);
 
   // Make job
@@ -954,7 +955,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
     return;
   }
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);
 
   // Make job

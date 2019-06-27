@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
   INIT_STDOUT_LOGGER();
 
   SWInfo swInfo(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-  SWInfo swInfoCopy(swInfo);
+  const SWInfo& swInfoCopy(swInfo);
   BOOST_CHECK(!(swInfo > swInfoCopy));
   BOOST_CHECK(!(swInfo < swInfoCopy));
   BOOST_CHECK(!(swInfo != swInfoCopy));

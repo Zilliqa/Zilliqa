@@ -51,7 +51,7 @@ struct DiagnosticDataCoinbase {
   uint128_t nodeCount;  // Total num of nodes in the network for entire DS epoch
   uint128_t sigCount;   // Total num of signatories for the mined blocks across
                         // all Tx epochs
-  uint32_t lookupCount;  // Num of lookup nodes
+  uint32_t lookupCount{};  // Num of lookup nodes
   uint128_t
       totalReward;  // Total reward based on COINBASE_REWARD_PER_DS and txn fees
   uint128_t baseReward;         // Base reward based on BASE_REWARD_IN_PERCENT
@@ -221,6 +221,9 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   bool DeleteFallbackBlock(const BlockHash& blockhash);
 
+  bool DeleteStateDelta(const uint64_t& finalBlockNum);
+
+  bool DeleteMicroBlock(const BlockHash& blockHash);
   // /// Adds a transaction body to storage.
   // bool PutTxBody(const std::string & key, const bytes &
   // body);

@@ -109,7 +109,7 @@ class TransactionWithReceipt : public SerializableDataBlock {
       return TxnHash();
     }
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
     for (const auto& tr : txrs) {
       sha2.Update(DataConversion::StringToCharArray(
           tr.GetTransactionReceipt().GetString()));

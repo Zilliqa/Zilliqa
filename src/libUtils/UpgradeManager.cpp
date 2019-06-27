@@ -59,7 +59,7 @@ const vector<string> ReadDSCommFromFile() {
   return result;
 }
 
-const string ReadDSCommFile(string propName) {
+const string ReadDSCommFile(const string& propName) {
   auto pt = PTree::GetInstance();
   return pt.get<string>(propName);
 }
@@ -155,7 +155,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
   string downloadFilePath;
 
-  for (auto s : downloadFilePaths) {
+  for (const auto& s : downloadFilePaths) {
     if (string::npos != s.rfind(fileTail)) {
       downloadFilePath = s;
       break;
@@ -228,7 +228,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
 
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
-      for (auto ds_string : tempDsComm_string) {
+      for (const auto& ds_string : tempDsComm_string) {
         bytes pubkeyBytes;
         if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           LOG_GENERAL(WARNING,
@@ -271,7 +271,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
     } else {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
-      for (auto ds_string : tempDsComm_string) {
+      for (const auto& ds_string : tempDsComm_string) {
         bytes pubkeyBytes;
         if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           return false;

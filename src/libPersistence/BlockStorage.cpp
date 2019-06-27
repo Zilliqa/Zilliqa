@@ -481,6 +481,21 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
   return (ret == 0);
 }
 
+bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
+  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+  int ret = m_microBlockDB->DeleteKey(blockHash);
+
+  return (ret == 0);
+}
+
+bool BlockStorage::DeleteStateDelta(const uint64_t& finalBlockNum) {
+  unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
+
+  int ret = m_stateDeltaDB->DeleteKey(finalBlockNum);
+
+  return (ret == 0);
+}
+
 // bool BlockStorage::PutTxBody(const string & key, const bytes
 // & body)
 // {

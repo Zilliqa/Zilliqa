@@ -162,7 +162,7 @@ unsigned int Guard::GetNumOfShardGuard() {
 }
 
 bool Guard::IsValidIP(const uint128_t& ip_addr) {
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
   serv_addr.sin_addr.s_addr = ip_addr.convert_to<unsigned long>();
   uint32_t ip_addr_c = ntohl(serv_addr.sin_addr.s_addr);
   if (ip_addr <= 0 || ip_addr >= (uint32_t)-1) {
@@ -194,7 +194,8 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
 }
 
 void Guard::AddToExclusionList(const string& ft, const string& sd) {
-  struct sockaddr_in serv_addr1, serv_addr2;
+  struct sockaddr_in serv_addr1 {
+  }, serv_addr2{};
   try {
     inet_pton(AF_INET, ft.c_str(), &serv_addr1.sin_addr);
     inet_pton(AF_INET, sd.c_str(), &serv_addr2.sin_addr);
@@ -247,8 +248,8 @@ void Guard::AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm) {
 void Guard::ValidateRunTimeEnvironment() {
   LOG_MARKER();
 
-  unsigned int nodeReplacementLimit =
-      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
+  unsigned int nodeReplacementLimit = static_cast<unsigned int>(
+      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION));
 
   if (NUM_DS_ELECTION > nodeReplacementLimit) {
     LOG_GENERAL(FATAL,

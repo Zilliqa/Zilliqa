@@ -25,6 +25,6 @@
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
                                 unsigned int factor = 0,
-                                std::string errMsg = "");
+                                const std::string& errMsg = "");
 
 #endif  // ZILLIQA_SRC_LIBUTILS_SANITYCHECKS_H_

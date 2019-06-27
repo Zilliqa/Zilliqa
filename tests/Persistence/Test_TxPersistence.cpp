@@ -316,7 +316,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
     BOOST_CHECK_MESSAGE(
         BlockStorage::GetBlockStorage().GetAllTxBlocks(ref_blocks),
         "GetAllDSBlocks shouldn't fail");
-    for (auto i : ref_blocks) {
+    for (const auto& i : ref_blocks) {
       LOG_GENERAL(INFO, i->GetHeader().GetDSBlockNum());
       out_blocks.emplace_back(*i);
     }

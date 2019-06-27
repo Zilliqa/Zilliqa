@@ -85,7 +85,7 @@ bool grepFile(const std::string& strFileName) {
                                  posMessageTimeEnd - posMessageNameEnd - 1);
       }
 
-      MessageSizeTime messageSizeTime;
+      MessageSizeTime messageSizeTime{};
       messageSizeTime.size = mapMessageSize[strMessageName];
       messageSizeTime.time = std::stoi(strTime);
 

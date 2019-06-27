@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   bytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
   sha2.Update(vec);
   sha2.Update(vec);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   bytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);

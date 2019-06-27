@@ -128,46 +128,31 @@ bool DirectoryService::ViewChangeValidator(
 
   // Verify candidate leader index
   uint16_t candidateLeaderIndex = CalculateNewLeaderIndex();
-  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
-      m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
-    LOG_GENERAL(
-        WARNING,
-        "FATAL Candidate network info mismatched. Expected: "
-            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
-            << " Obtained: "
-            << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-    return false;
+
+  // Create a temporary local structure of ds committee pubkeys
+  // Used range based loop due to clang tidy enforcement
+  list<PubKey> localCumulativeFaultyLeadersPubKey;
+  for (const auto& node : m_cumulativeFaultyLeaders) {
+    localCumulativeFaultyLeadersPubKey.emplace_back(node.first);
   }
 
-  // Create a temporary local structure of ds committee and change 0.0.0.0 to
-  // node's ip
-  // Used range based loop due to clang tidy  enforcement
-  VectorOfNode cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
-  unsigned int indexToLeader = 0;
-  for (const auto& node : cumlativeFaultyLeaders) {
-    if (node.second == Peer()) {
-      cumlativeFaultyLeaders.at(indexToLeader) =
-          make_pair(cumlativeFaultyLeaders.at(indexToLeader).first,
-                    m_mediator.m_selfPeer);
-      break;
-    }
-    ++indexToLeader;
+  list<PubKey> proposedCumulativeFaultyLeadersPubKey;
+  for (const auto& node : m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+    proposedCumulativeFaultyLeadersPubKey.emplace_back(node.first);
   }
 
   // Verify faulty leaders
-  if (m_pendingVCBlock->GetHeader().GetFaultyLeaders() !=
-      cumlativeFaultyLeaders) {
+  if (localCumulativeFaultyLeadersPubKey !=
+      proposedCumulativeFaultyLeadersPubKey) {
     LOG_GENERAL(WARNING, "View of faulty leader does not match");
     LOG_GENERAL(WARNING, "Local view of faulty leader");
-    for (const auto& localFaultyLeader : cumlativeFaultyLeaders) {
-      LOG_GENERAL(WARNING, "Pubkey: " << localFaultyLeader.first << " "
-                                      << localFaultyLeader.second);
+    for (const auto& localFaultyLeader : localCumulativeFaultyLeadersPubKey) {
+      LOG_GENERAL(WARNING, "Pubkey: " << localFaultyLeader);
     }
     LOG_GENERAL(WARNING, "Proposed view of faulty leader");
     for (const auto& proposedFaultyLeader :
-         m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-      LOG_GENERAL(WARNING, "Pubkey: " << proposedFaultyLeader.first << " "
-                                      << proposedFaultyLeader.second);
+         proposedCumulativeFaultyLeadersPubKey) {
+      LOG_GENERAL(WARNING, "Pubkey: " << proposedFaultyLeader);
     }
     return false;
   }
@@ -485,7 +470,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
   // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
   // of ds committee
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
 
   uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
   BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);

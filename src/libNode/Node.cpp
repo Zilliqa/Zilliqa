@@ -475,7 +475,7 @@ bool Node::ValidateDB() {
     return false;
   }
 
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
@@ -786,7 +786,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if (st_result && ds_result && tx_result) {
     if (m_retriever->ValidateStates()) {
-      if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
+      if (LOOKUP_NODE_MODE && RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+          !m_retriever->CleanExtraTxBodies()) {
+        LOG_GENERAL(WARNING, "CleanExtraTxBodies failed");
+      } else {
         LOG_GENERAL(INFO, "RetrieveHistory Success");
         m_mediator.m_isRetrievedHistory = true;
         res = true;
@@ -808,7 +811,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml(IP_MAPPING_FILE_NAME, pt);
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
 
   for (const ptree::value_type& v : pt.get_child("mapping")) {
     if (v.first == "peer") {
@@ -1032,7 +1035,7 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1060,7 +1063,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1514,7 +1517,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
       checkedTxns.push_back(txn);
     } else {
-      LOG_GENERAL(WARNING, "Txn is not valid.");
+      LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
     }
 
     processed_count++;
@@ -1530,6 +1533,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
+      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
       m_createdTxns.insert(txn);
     }
 
@@ -2032,7 +2036,10 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
         }
       }
     } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-               ins_byte == NodeInstructionType::FINALBLOCK)  // Is seed node
+               (ins_byte == NodeInstructionType::FINALBLOCK ||
+                ins_byte ==
+                    NodeInstructionType::MBNFORWARDTRANSACTION))  // Is seed
+                                                                  // node
     {
       return false;
     } else  // Is lookup node
@@ -2082,7 +2089,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
 
   uint32_t nodes_lo, nodes_hi;
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // raw_message hash
   bytes this_msg_hash = sha256.Finalize();
 

@@ -167,7 +167,7 @@ void Lookup::SetLookupNodes() {
   for (const auto& lookupType : lookupTypes) {
     for (const ptree::value_type& v : pt.get_child(lookupType)) {
       if (v.first == "peer") {
-        struct in_addr ip_addr;
+        struct in_addr ip_addr {};
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
@@ -225,7 +225,7 @@ void Lookup::SetAboveLayer() {
   m_seedNodes.clear();
   for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
     if (v.first == "peer") {
-      struct in_addr ip_addr;
+      struct in_addr ip_addr {};
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
@@ -266,7 +266,7 @@ Address GenOneReceiver() {
 Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
                                           PubKey& fromPubKey,
                                           const Address& toAddr,
-                                          uint128_t amount,
+                                          const uint128_t& amount,
                                           uint64_t prevNonce) {
   unsigned int version = 0;
   auto nonce = prevNonce + 1;
@@ -751,7 +751,7 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
       }
       PubKey key(pubkeyBytes, 0);
 
-      struct in_addr ip_addr;
+      struct in_addr ip_addr {};
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
 
@@ -1291,6 +1291,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
       LOG_GENERAL(
           INFO, "Block Number "
                     << i << " absent. Didn't include it in response message.");
+      continue;
     }
     stateDeltas.emplace_back(stateDelta);
   }
@@ -1963,7 +1964,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
-
+  bool placeholder = false;
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
@@ -2007,11 +2008,22 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     // Store Tx Block to disk
     bytes serializedTxBlock;
     txBlock.Serialize(serializedTxBlock, 0);
+
     if (!BlockStorage::GetBlockStorage().PutTxBlock(
             txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+        (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+      m_mediator.m_node->LoadUnavailableMicroBlockHashes(
+          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder);
+    }
+  }
+
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+      (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+    m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
   }
 
   m_mediator.m_currentEpochNum =
@@ -3620,6 +3632,8 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   }
 
   m_txnShardMap[shardId].push_back(tx);
+  LOG_GENERAL(INFO,
+              "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
 
   return true;
 }
@@ -3700,12 +3714,12 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
             Transaction::GetShardIndex(tx.GetToAddr(), newNumShards);
         if (toShard != fromShard) {
           // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(move(tx));
+          m_txnShardMap[oldNumShards].emplace_back(tx);
           continue;
         }
       }
 
-      tempTxnShardMap[fromShard].emplace_back(move(tx));
+      tempTxnShardMap[fromShard].emplace_back(tx);
     }
   }
   tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);
