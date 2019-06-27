@@ -293,7 +293,7 @@ if __name__ == '__main__':
 	if not os.path.exists(SOURCE+'temp'):
 		os.makedirs(SOURCE+'temp')
 	CleanupDir(SOURCE+'temp')
-		os.chdir(SOURCE)
+	os.chdir(SOURCE)
 
 	main()
 	f.close()
