@@ -716,7 +716,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
     }
-    if (!LOOKUP_NODE_MODE) {
+    // if lookup and loaded microblocks, then skip
+    lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
+    if (!(LOOKUP_NODE_MODE &&
+          m_unavailableMicroBlocks.find(txBlock.GetHeader().GetBlockNum()) !=
+              m_unavailableMicroBlocks.end())) {
       if (!BlockStorage::GetBlockStorage().PutEpochFin(
               m_mediator.m_currentEpochNum)) {
         LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
