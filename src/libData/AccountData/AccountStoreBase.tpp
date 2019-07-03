@@ -157,20 +157,22 @@ bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
 }
 
 template <class MAP>
-void AccountStoreBase<MAP>::AddAccount(const Address& address,
+bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account) {
   // LOG_MARKER();
 
   if (!IsAccountExist(address)) {
     m_addressToAccount->insert(std::make_pair(address, account));
     // UpdateStateTrie(address, account);
+    return true;
   }
+  return false;
 }
 
 template <class MAP>
-void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
+bool AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
                                        const Account& account) {
-  AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
+  return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
 template <class MAP>
@@ -211,8 +213,7 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
   }
 
   else if (account == nullptr) {
-    AddAccount(address, {delta, 0});
-    return true;
+    return AddAccount(address, {delta, 0});
   }
 
   return false;
