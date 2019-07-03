@@ -124,10 +124,10 @@ fi
 
 # Read information from files
 rm -rf ${constantsDir}; mkdir ${constantsDir}; cd ${constantsDir}; mkdir l; mkdir l2; mkdir n; cd -;
-kubectl cp ${testnet_to_be_upgraded}-dsguard-0:/run/zilliqa/constants.xml ${constantsDir}/
-kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/
-kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/
-kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/
+kubectl cp ${testnet_to_be_upgraded}-dsguard-0:/run/zilliqa/constants.xml ${constantsDir}/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/constants.xml
 constantFile="$(realpath ${constantsDir}/constants.xml)"
 constantLookupFile="$(realpath ${constantsDir}/l/constants.xml)"
 constantLevel2LookupFile="$(realpath ${constantsDir}/l2/constants.xml)"
