@@ -207,7 +207,7 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
             }
 
             Path[id] = path;
-            log << currentTimeStamp().c_str() << " id: " << id
+            log << currentTimeStamp().c_str() << "id: " << id
                 << " Path: " << path << endl;
           }
         }
