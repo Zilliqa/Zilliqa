@@ -75,8 +75,12 @@ enum SyncType : unsigned int {
 };
 
 string currentTimeStamp() {
-  auto t = chrono::system_clock::to_time_t(chrono::system_clock::now());
-  return "[" + string(ctime(&t)) + "] : ";
+  auto tm = chrono::system_clock::to_time_t(chrono::system_clock::now());
+  char* t = ctime(&tm);
+  if (t[strlen(t) - 1] == '\n') {
+    t[strlen(t) - 1] = '\0';
+  }
+  return "[" + string(t) + "] : ";
 }
 
 string ReadLastLine(const string& filePath, [[gnu::unused]] ofstream& log) {
