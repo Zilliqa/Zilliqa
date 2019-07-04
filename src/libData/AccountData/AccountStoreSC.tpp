@@ -138,7 +138,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       toAddr =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
-      this->AddAccount(toAddr, {0, 0});
+      if (!this->AddAccount(toAddr, {0, 0})) {
+        LOG_GENERAL(WARNING,
+                    "AddAccount failed for contract address " << toAddr.hex());
+        return false;
+      }
       Account* toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
         LOG_GENERAL(WARNING, "toAccount is null ptr");
