@@ -24,6 +24,7 @@ privKeyFile=""
 pubKeyFile=""
 testnet_to_be_upgraded=""
 cluster_name="" # eg: dev.k8s.z7a.xyz
+release_bucket_name="zilliqa-release-data"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -286,7 +287,7 @@ import boto3
 from boto3.s3.transfer import S3Transfer
 import sys
 
-BUCKET_NAME = 'zilliqa-release-data'
+BUCKET_NAME = '$release_bucket_name'
 
 transfer = boto3.client('s3')
 key = sys.argv[1]
