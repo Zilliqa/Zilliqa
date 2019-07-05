@@ -92,8 +92,6 @@ class Lookup : public Executable {
 
   // Start PoW variables
   std::atomic<bool> m_receivedRaiseStartPoW{};
-  std::mutex m_MutexCVStartPoWSubmission;
-  std::condition_variable cv_startPoWSubmission;
 
   // Store the StateRootHash of latest txBlock before States are repopulated.
   StateHash m_prevStateRootHashTemp;
@@ -409,6 +407,10 @@ class Lookup : public Executable {
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
+
+  // Start PoW variables
+  std::vector<Peer> m_getStartPoWPeerList;
+  std::mutex m_mutexGetStartPoWPeerList;
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

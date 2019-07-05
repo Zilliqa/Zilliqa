@@ -660,6 +660,11 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     Blacklist::GetInstance().Clear();
     P2PComm::GetInstance().ClearPeerConnectionCount();
 
+    // Clear GetStartPow requesting peer list
+    std::unique_lock<std::mutex> cv_lk(
+        m_mediator.m_lookup->m_mutexGetStartPoWPeerList);
+    m_mediator.m_lookup->m_getStartPoWPeerList.clear();
+
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
