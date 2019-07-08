@@ -72,7 +72,9 @@ int main(int argc, const char* argv[]) {
         "loadconfig,l", "Loads configuration if set (deprecated)")(
         "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set")(
-        "logpath,g", po::value<string>(&logpath), "customized log path");
+        "logpath,g", po::value<string>(&logpath),
+        "customized log path, could be relative path (ex. \"./logs/\"), or "
+        "absolute path (ex. \"/usr/local/test/logs/\")");
 
     po::variables_map vm;
     try {
