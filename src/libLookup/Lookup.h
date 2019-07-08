@@ -42,6 +42,7 @@
 #include <condition_variable>
 #include <map>
 #include <mutex>
+#include <set>
 #include <vector>
 
 class Mediator;
@@ -409,8 +410,8 @@ class Lookup : public Executable {
   std::condition_variable cv_dsInfoUpdate;
 
   // Start PoW variables
-  std::vector<Peer> m_getStartPoWPeerList;
-  std::mutex m_mutexGetStartPoWPeerList;
+  std::set<Peer> m_getStartPoWPeerSet;
+  std::mutex m_mutexGetStartPoWPeerSet;
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

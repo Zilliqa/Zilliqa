@@ -2822,10 +2822,13 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerList);
-  P2PComm::GetInstance().SendMessage(m_getStartPoWPeerList,
-                                     setstartpow_message);
-  m_getStartPoWPeerList.clear();
+  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerSet);
+
+  vector<Peer> tempStartPoWPeerList;
+  std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
+            std::back_inserter(tempStartPoWPeerList));
+  P2PComm::GetInstance().SendMessage(tempStartPoWPeerList, setstartpow_message);
+  m_getStartPoWPeerSet.clear();
 
   // Reset m_receivedRaiseStartPoW after PoW duration
   this_thread::sleep_for(
@@ -2870,8 +2873,8 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   }
 
   // Add this requesting peer to our list
-  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerList);
-  m_getStartPoWPeerList.emplace_back(Peer(from.m_ipAddress, portNo));
+  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerSet);
+  m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
 
   return true;
 }
