@@ -49,7 +49,7 @@ int main(int argc, const char* argv[]) {
     PrivKey privkey;
     PubKey pubkey;
     string address;
-    string logpath("./");
+    string logpath(boost::filesystem::absolute("./").string());
     int port = -1;
     unique_ptr<NAT> nt;
     uint128_t ip;

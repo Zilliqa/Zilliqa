@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
+#include <boost/filesystem.hpp>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -167,24 +168,30 @@ class ScopeMarker {
 
 #define INIT_FILE_LOGGER(fname_prefix, logpath) \
   Logger::GetLogger(fname_prefix, true, logpath)
-#define INIT_STDOUT_LOGGER() Logger::GetLogger(NULL, false, "./")
+#define INIT_STDOUT_LOGGER()     \
+  Logger::GetLogger(NULL, false, \
+                    boost::filesystem::absolute("./").string().c_str())
 #define INIT_STATE_LOGGER(fname_prefix, logpath) \
   Logger::GetStateLogger(fname_prefix, true, logpath)
 #define INIT_EPOCHINFO_LOGGER(fname_prefix, logpath) \
   Logger::GetEpochInfoLogger(fname_prefix, true, logpath)
 #define LOG_MARKER() ScopeMarker marker(__LINE__, __FILE__, __FUNCTION__)
-#define LOG_STATE(msg)                                                    \
-  {                                                                       \
-    std::ostringstream oss;                                               \
-    auto cur = std::chrono::system_clock::now();                          \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);          \
-    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")     \
-        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                       \
-    Logger::GetStateLogger(NULL, true, "./").LogState(oss.str().c_str()); \
+#define LOG_STATE(msg)                                                         \
+  {                                                                            \
+    std::ostringstream oss;                                                    \
+    auto cur = std::chrono::system_clock::now();                               \
+    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);               \
+    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")          \
+        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                            \
+    Logger::GetStateLogger(NULL, true,                                         \
+                           boost::filesystem::absolute("./").string().c_str()) \
+        .LogState(oss.str().c_str());                                          \
   }
 #define LOG_GENERAL(level, msg)                                                \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
+    if (Logger::GetLogger(NULL, true,                                          \
+                          boost::filesystem::absolute("./").string().c_str())  \
+            .IsG3Log()) {                                                      \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -198,14 +205,17 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true, "./")                                      \
+      Logger::GetLogger(NULL, true,                                            \
+                        boost::filesystem::absolute("./").string().c_str())    \
           .LogGeneral(level, oss.str().c_str(), __LINE__, __FILE__,            \
                       __FUNCTION__);                                           \
     }                                                                          \
   }
 #define LOG_EPOCH(level, epoch, msg)                                           \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
+    if (Logger::GetLogger(NULL, true,                                          \
+                          boost::filesystem::absolute("./").string().c_str())  \
+            .IsG3Log()) {                                                      \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -220,14 +230,17 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true, "./")                                      \
+      Logger::GetLogger(NULL, true,                                            \
+                        boost::filesystem::absolute("./").string().c_str())    \
           .LogEpoch(level, std::to_string(epoch).c_str(), oss.str().c_str(),   \
                     __LINE__, __FILE__, __FUNCTION__);                         \
     }                                                                          \
   }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
   {                                                                            \
-    if (Logger::GetLogger(NULL, true, "./").IsG3Log()) {                       \
+    if (Logger::GetLogger(NULL, true,                                          \
+                          boost::filesystem::absolute("./").string().c_str())  \
+            .IsG3Log()) {                                                      \
       std::unique_ptr<char[]> payload_string;                                  \
       Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
       auto cur = std::chrono::system_clock::now();                             \
@@ -256,22 +269,36 @@ class ScopeMarker {
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
-      Logger::GetLogger(NULL, true, "./")                                      \
+      Logger::GetLogger(NULL, true,                                            \
+                        boost::filesystem::absolute("./").string().c_str())    \
           .LogPayload(level, oss.str().c_str(), payload, max_bytes_to_display, \
                       __LINE__, __FILE__, __FUNCTION__);                       \
     }                                                                          \
   }
-#define LOG_DISPLAY_LEVEL_ABOVE(level) \
-  { Logger::GetLogger(NULL, true, "./").DisplayLevelAbove(level); }
-#define LOG_ENABLE_LEVEL(level) \
-  { Logger::GetLogger(NULL, true, "./").EnableLevel(level); }
-#define LOG_DISABLE_LEVEL(level) \
-  { Logger::GetLogger(NULL, true, "./").DisableLevel(level); }
+#define LOG_DISPLAY_LEVEL_ABOVE(level)                                    \
+  {                                                                       \
+    Logger::GetLogger(NULL, true,                                         \
+                      boost::filesystem::absolute("./").string().c_str()) \
+        .DisplayLevelAbove(level);                                        \
+  }
+#define LOG_ENABLE_LEVEL(level)                                           \
+  {                                                                       \
+    Logger::GetLogger(NULL, true,                                         \
+                      boost::filesystem::absolute("./").string().c_str()) \
+        .EnableLevel(level);                                              \
+  }
+#define LOG_DISABLE_LEVEL(level)                                          \
+  {                                                                       \
+    Logger::GetLogger(NULL, true,                                         \
+                      boost::filesystem::absolute("./").string().c_str()) \
+        .DisableLevel(level);                                             \
+  }
 #define LOG_EPOCHINFO(blockNum, msg)                                       \
   {                                                                        \
     std::ostringstream oss;                                                \
     oss << msg;                                                            \
-    Logger::GetEpochInfoLogger(NULL, true, "./")                           \
+    Logger::GetEpochInfoLogger(                                            \
+        NULL, true, boost::filesystem::absolute("./").string().c_str())    \
         .LogEpochInfo(oss.str().c_str(), __LINE__, __FILE__, __FUNCTION__, \
                       std::to_string(blockNum).c_str());                   \
   }

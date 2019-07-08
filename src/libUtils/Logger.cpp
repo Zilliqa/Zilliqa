@@ -62,7 +62,7 @@ Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
           boost::filesystem::perms::no_perms) {
         std::cout << this->m_logPath
                   << " already existed but no writing permission!" << endl;
-        this->m_logPath = "./";
+        this->m_logPath = boost::filesystem::absolute("./").string();
         std::cout << "Use default log folder " << this->m_logPath << " instead."
                   << endl;
       }
@@ -70,7 +70,7 @@ Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
   } catch (const boost::filesystem::filesystem_error& e) {
     std::cout << "Cannot create log folder in " << this->m_logPath
               << ", error code: " << e.code() << endl;
-    this->m_logPath = "./";
+    this->m_logPath = boost::filesystem::absolute("./").string();
     std::cout << "Use default log folder " << this->m_logPath << " instead."
               << endl;
   }
@@ -361,12 +361,14 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
 ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
                          const char* function)
     : m_linenum(linenum), m_filename(filename), m_function(function) {
-  Logger& logger = Logger::GetLogger(NULL, true, "./");
+  Logger& logger = Logger::GetLogger(
+      NULL, true, boost::filesystem::absolute("./").string().c_str());
   logger.LogGeneral(INFO, "BEG", linenum, filename, function);
 }
 
 ScopeMarker::~ScopeMarker() {
-  Logger& logger = Logger::GetLogger(NULL, true, "./");
+  Logger& logger = Logger::GetLogger(
+      NULL, true, boost::filesystem::absolute("./").string().c_str());
   logger.LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
                     m_function.c_str());
 }
