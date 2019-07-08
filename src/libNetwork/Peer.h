@@ -78,10 +78,7 @@ struct Peer : public Serializable {
 };
 namespace IPCHECK {
 static inline bool IsPortValid(const uint32_t listenPort) {
-  if (listenPort <= 65535) {
-    return true;
-  }
-  return false;
+  return (listenPort <= 65535);
 }
 }  // namespace IPCHECK
 
