@@ -2860,6 +2860,10 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
     return false;
   }
 
+  if (!IPCHECK::IsPortValid(portNo)) {
+    return false;
+  }
+
   if (blockNumber !=
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
     LOG_EPOCH(
