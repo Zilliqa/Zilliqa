@@ -26,7 +26,7 @@ import json
 
 BUCKET_NAME = 'zilliqa-historical-data'
 SOURCE = './'
-TESTNET_NAME = "PUT_TESTNET_HERE"
+TESTNET_NAME= "PUT_TESTNET_HERE"
 
 def UploadToS3(dsEpochNum):
 	transfer = boto3.client('s3')
