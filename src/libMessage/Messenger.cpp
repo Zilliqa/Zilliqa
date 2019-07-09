@@ -411,9 +411,6 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
       entry->set_key(state.first);
       entry->set_data(state.second.data(), state.second.size());
     }
-    for (const auto& deleted : deletedIndices) {
-      protoAccount.add_todelete(deleted);
-    }
   }
 }
 

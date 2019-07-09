@@ -39,7 +39,6 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
-
   LevelDB m_stateIndexDB;
   LevelDB m_stateDataDB;
 

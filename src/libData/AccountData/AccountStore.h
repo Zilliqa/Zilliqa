@@ -45,6 +45,8 @@ class AccountStore;
 class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   AccountStore& m_parent;
 
+  friend class AccountStore;
+
  public:
   AccountStoreTemp(AccountStore& parent);
 

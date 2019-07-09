@@ -22,7 +22,6 @@
 #include <leveldb/db.h>
 #include <shared_mutex>
 
-#include "ScillaMessage.pb.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -42,7 +41,7 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage2 : public Singleton<ContractStorage2> {
   LevelDB m_codeDB;
-
+  LevelDB m_initDataDB;
   LevelDB m_stateDataDB;
 
   // Used by AccountStore
@@ -53,33 +52,27 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   // Used for revert state due to failure in chain call
   std::map<std::string, bytes> p_stateDataMap;
+  std::set<std::string> p_indexToBeDeleted;
 
   // Used for RevertCommitTemp
   std::unordered_map<std::string, bytes> r_stateDataMap;
+  std::set<std::string> r_indexToBeDeleted;
 
   // Used for delete map index
   std::set<std::string> m_indexToBeDeleted;
 
   mutable std::shared_timed_mutex m_codeMutex;
+  mutable std::shared_timed_mutex m_initDataMutex;
   mutable std::shared_timed_mutex m_stateDataMutex;
-
-  /// Get the raw encoded string of the states of an account
-  // bool GetRawContractStates(const dev::h160& address, std::vector<bytes>
-  // raw_states, TERM term);
-
-  // bool CreateNestedMap(ZilliqaMessage::ProtoScillaVal& value, const
-  // std::vector<string>& indices, const ZilliqaMessage::ProtoScillaVal&
-  // emptyMap);
-
-  // bool WriteNestedMap(ZilliqaMessage::ProtoScillaVal& value, const
-  // std::vector<string>& indices, const bytes& val);
 
   void DeleteIndex(const std::string& prefix);
 
   void UpdateStateData(const std::string& key, const bytes& value);
 
   ContractStorage2()
-      : m_codeDB("contractCode"), m_stateDataDB("contractStateData"){};
+      : m_codeDB("contractCode2"),
+        m_initDataDB("contractInitState2"),
+        m_stateDataDB("contractStateData2"){};
 
   ~ContractStorage2() = default;
 
@@ -104,26 +97,16 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool DeleteContractCode(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
+  bool PutInitData(const dev::h160& address, const bytes& initData);
 
-  // /// Get the raw protobuf string of the state by a index
-  // std::string GetContractStateData(const Index& index, bool temp);
+  bool PutInitDataBatch(
+      const std::unordered_map<std::string, std::string>& batch);
 
-  // /// Put one's contract states in database
-  // bool PutContractState(const dev::h160& address,
-  //                       const std::vector<StateEntry>& states,
-  //                       dev::h256& stateHash, bool temp);
+  const bytes GetInitData(const dev::h160& address);
 
-  // bool PutContractState(const dev::h160& address,
-  //                       const std::vector<std::pair<Index, bytes>>& entries,
-  //                       dev::h256& stateHash, bool temp, bool revertible,
-  //                       const std::vector<Index>& existing_indexes = {},
-  //                       bool provideExisting = false);
+  bool DeleteInitData(const dev::h160& address);
 
-  // /// Get the json formatted data of the states for a contract account
-  // bool GetContractStateJson(const dev::h160& address,
-  //                           std::pair<Json::Value, Json::Value>& roots,
-  //                           uint32_t& scilla_version, bool temp);
-
+  /////////////////////////////////////////////////////////////////////////////
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst,
                        unsigned int d_offset);
@@ -142,7 +125,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   void UpdateStateDatasAndToDeletes(
       const dev::h160& addr, const std::map<std::string, bytes>& t_states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-      bool temp);
+      bool temp, bool revertible);
 
   /// Buffer the current t_map into p_map
   void BufferCurrentState();

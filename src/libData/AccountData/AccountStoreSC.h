@@ -110,8 +110,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
-                         TransactionReceipt& receipt, bool temp,
-                         bool first = true);
+                         TransactionReceipt& receipt);
   /// convert the interpreter output into parsable json object for calling
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint,
@@ -119,8 +118,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for calling and update states
   bool ParseCallContractJsonOutput(const Json::Value& _json,
                                    uint64_t& gasRemained,
-                                   TransactionReceipt& receipt, bool first,
-                                   bool temp);
+                                   TransactionReceipt& receipt);
 
   /// Utility functions
   /// get the json format file for the current blocknum
@@ -128,26 +126,29 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// get the command for invoking the scilla_checker while deploying
   std::string GetContractCheckerCmdStr(const std::string& root_w_version);
   /// get the command for invoking the scilla_runner while deploying
-  std::string GetCreateContractCmdStr(const std::string& root_w_version,
-                                      const uint64_t& available_gas);
+  std::string GetCreateContractCmdStr(
+      const std::string& root_w_version, const uint64_t& available_gas,
+      const boost::multiprecision::uint128_t& balance);
   /// get the command for invoking the scilla_runner while calling
-  std::string GetCallContractCmdStr(const std::string& root_w_version,
-                                    const uint64_t& available_gas);
+  std::string GetCallContractCmdStr(
+      const std::string& root_w_version, const uint64_t& available_gas,
+      const boost::multiprecision::uint128_t& balance);
   /// updating m_root_w_version
   bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
   /// generate input files for interpreter to deploy contract
-  bool ExportCreateContractFiles(const Account& contract);
+  bool ExportCreateContractFiles(const Account& contract,
+                                 const uint32_t& scilla_version);
 
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
-  bool ExportContractFiles(const Account& contract);
+  bool ExportContractFiles(Account& contract);
   /// generate the files for message from txn for interpreter to call contract
-  bool ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(Account& contract,
                                const Transaction& transaction);
   /// generate the files for message from previous contract output for
   /// interpreter to call another contract
-  bool ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(Account& contract,
                                const Json::Value& contractData);
 
   /// Amount Transfer
@@ -163,14 +164,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
  protected:
   AccountStoreSC();
 
+  /// external interface for processing txn
+  bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
+                      const bool& isDS, const Transaction& transaction,
+                      TransactionReceipt& receipt);
+
  public:
   /// Initialize the class
   void Init() override;
 
-  /// external interface for processing txn
-  bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
-                      const bool& isDS, const Transaction& transaction,
-                      TransactionReceipt& receipt, bool temp = false);
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
 };

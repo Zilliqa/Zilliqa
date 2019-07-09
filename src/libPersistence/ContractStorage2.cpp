@@ -55,6 +55,29 @@ bool ContractStorage2::DeleteContractCode(const dev::h160& address) {
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }
 
+// InitData
+// ========================================
+bool ContractStorage2::PutInitData(const dev::h160& address,
+                                   const bytes& initData) {
+  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  return m_initDataDB.Insert(address.hex(), initData) == 0;
+}
+
+bool ContractStorage2::PutInitDataBatch(
+    const unordered_map<string, string>& batch) {
+  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  return m_initDataDB.BatchInsert(batch);
+}
+
+const bytes ContractStorage2::GetInitData(const dev::h160& address) {
+  shared_lock<shared_timed_mutex> g(m_initDataMutex);
+  return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
+}
+
+bool ContractStorage2::DeleteInitData(const dev::h160& address) {
+  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  return m_initDataDB.DeleteKey(address.hex()) == 0;
+}
 // State
 // ========================================
 template <class T>
@@ -382,18 +405,30 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
 void ContractStorage2::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const std::map<std::string, bytes>& t_states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-    bool temp) {
+    bool temp, bool revertible) {
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
     }
-
     for (const auto& index : toDeleteIndices) {
       m_indexToBeDeleted.emplace(index);
     }
   } else {
     for (const auto& state : t_states) {
+      if (revertible) {
+        if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
+          r_stateDataMap[state.first] = m_stateDataMap[state.first];
+        } else {
+          r_stateDataMap[state.first] = {};
+        }
+      }
       m_stateDataMap[state.first] = state.second;
+    }
+    for (const auto& toDelete : toDeleteIndices) {
+      if (revertible) {
+        r_indexToBeDeleted.emplace(toDelete);
+      }
+      m_indexToBeDeleted.emplace(toDelete);
     }
   }
 
@@ -404,12 +439,14 @@ void ContractStorage2::BufferCurrentState() {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> g(m_stateDataMutex);
   p_stateDataMap = t_stateDataMap;
+  p_indexToBeDeleted = m_indexToBeDeleted;
 }
 
 void ContractStorage2::RevertPrevState() {
   LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_stateDataMutex);
   t_stateDataMap = std::move(p_stateDataMap);
+  m_indexToBeDeleted = std::move(p_indexToBeDeleted);
 }
 
 void ContractStorage2::RevertContractStates() {
@@ -423,12 +460,20 @@ void ContractStorage2::RevertContractStates() {
       m_stateDataMap[data.first] = data.second;
     }
   }
+
+  for (const auto& index : r_indexToBeDeleted) {
+    const auto& found = m_indexToBeDeleted.find(index);
+    if (found != m_indexToBeDeleted.end()) {
+      m_indexToBeDeleted.erase(found);
+    }
+  }
 }
 
 void ContractStorage2::InitRevertibles() {
   LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_stateDataMutex);
   r_stateDataMap.clear();
+  r_indexToBeDeleted.clear();
 }
 
 bool ContractStorage2::CommitStateDB() {
@@ -446,28 +491,18 @@ bool ContractStorage2::CommitStateDB() {
   }
   if (!m_stateDataDB.BatchInsert(batch)) {
     LOG_GENERAL(WARNING, "BatchInsert m_stateDataDB failed");
-    // Reset the values in m_stateIndexDB
-    // for (const auto& it : reset_buffer) {
-    //   if (it.second.empty()) {
-    //     if (m_stateIndexDB.DeleteKey(it.first) != 0) {
-    //       LOG_GENERAL(WARNING,
-    //                   "Something terrible happened, unable to clean the key
-    //                   in " "m_stateIndexDB");
-    //     }
-    //   } else {
-    //     if (m_stateIndexDB.Insert(
-    //             it.first, DataConversion::StringToCharArray(it.second)) != 0)
-    //             {
-    //       LOG_GENERAL(WARNING,
-    //                   "Something terrible happened, unable to reset the key
-    //                   in " "m_stateIndexDB");
-    //     }
-    //   }
-    // }
     return false;
+  }
+  // ToDelete
+  for (const auto& index : m_indexToBeDeleted) {
+    if (m_stateDataDB.DeleteKey(index) < 0) {
+      LOG_GENERAL(WARNING, "DeleteKey " << index << " failed");
+      return false;
+    }
   }
 
   m_stateDataMap.clear();
+  m_indexToBeDeleted.clear();
 
   InitTempState();
 
@@ -491,7 +526,7 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
   FetchStateValueForAddress(address, states);
 
   // iterate the raw protobuf string and hash
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   for (const auto& state : states) {
     sha2.Update(state.second);
   }

@@ -117,10 +117,15 @@ inline std::ostream& operator<<(std::ostream& out,
 class Account : public AccountBase {
   // The associated code for this account.
   bytes m_codeCache;
+  bytes m_initDataCache;
   Address m_address;  // used by contract account only
+  uint32_t m_scilla_version = -1;
 
   bool PrepareInitDataJson(const bytes& initData, const Address& addr,
-                           const uint64_t& blockNum, Json::Value& root);
+                           const uint64_t& blockNum, Json::Value& root,
+                           uint32_t& scilla_version);
+
+  bool SetImmutable(const bytes& code, const bytes& initData);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -137,7 +142,7 @@ class Account : public AccountBase {
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum,
-                    bool temp = false);
+                    uint32_t& scilla_version);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -155,10 +160,13 @@ class Account : public AccountBase {
 
   const Address& GetAddress() const;
 
-  /// Set the code
   bool SetCode(const bytes& code);
 
   const bytes GetCode() const;
+
+  bool SetInitData(const bytes& initData);
+
+  const bytes GetInitData() const;
 
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries,
@@ -174,6 +182,8 @@ class Account : public AccountBase {
 
   Json::Value GetStateJson(bool temp = false) const;
 
+  bool GetScillaVersion(uint32_t& scilla_version);
+
   std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
 
   void GetUpdatedStates(std::map<std::string, bytes>& t_states,
@@ -181,7 +191,8 @@ class Account : public AccountBase {
 
   void UpdateStates(const Address& addr,
                     const std::map<std::string, bytes>& t_states,
-                    const std::vector<std::string>& toDeleteIndices, bool temp);
+                    const std::vector<std::string>& toDeleteIndices, bool temp,
+                    bool revertible = false);
 
   bool GetStorageJson(
       std::pair<Json::Value, Json::Value>& roots, bool temp = false,

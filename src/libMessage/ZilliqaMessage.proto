@@ -287,6 +287,7 @@ message ProtoAccount
     }
     repeated StorageData2 storage2  = 5; // Added in: v1.1, Deprecated in: N/A
     repeated string todelete        = 6; // Added in: v1.1, Deprecated in: N/A
+    repeated bytes initdata         = 7; // Added in: v1.1, Deprecated in: N/A
 }
 
 message ProtoStateIndex

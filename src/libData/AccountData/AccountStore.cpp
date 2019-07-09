@@ -410,7 +410,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt, true);
+                                            transaction, receipt);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,

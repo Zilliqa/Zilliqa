@@ -138,7 +138,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum,
-                           bool temp) {
+                           uint32_t& scilla_version) {
   LOG_MARKER();
   if (isContract()) {
     LOG_GENERAL(WARNING, "Already Initialized");
@@ -146,37 +146,16 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   Json::Value initDataJson;
-  if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson)) {
+  if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson,
+                           scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
   }
 
-  std::vector<StateEntry> state_entries;
-
-  for (auto& v : initDataJson) {
-    if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
-      LOG_GENERAL(WARNING,
-                  "This variable in initialization of contract is corrupted");
-      return false;
-    }
-
-    string vname = v["vname"].asString();
-    string type = v["type"].asString();
-
-    string value = JSONUtils::GetInstance().convertJsontoStr(v["value"]);
-
-    state_entries.push_back(std::make_tuple(vname, false, type, value));
-  }
-
-  if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, state_entries, m_storageRoot, temp)) {
-    LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
-    return false;
-  }
-
-  if (!SetCode(code)) {
-    LOG_GENERAL(WARNING, "SetCode failed");
-    return false;
+  if (!SetImmutable(
+          code, DataConversion::StringToCharArray(
+                    JSONUtils::GetInstance().convertJsontoStr(initDataJson)))) {
+    LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
   SetAddress(addr);
@@ -252,7 +231,8 @@ string Account::GetRawStorage(const h256& k_hash, bool temp) const {
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
-                                  const uint64_t& blockNum, Json::Value& root) {
+                                  const uint64_t& blockNum, Json::Value& root,
+                                  uint32_t& scilla_version) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
@@ -260,6 +240,28 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
 
   if (!JSONUtils::GetInstance().convertStrtoJson(
           {initData.begin(), initData.end()}, root)) {
+    return false;
+  }
+
+  bool found_scilla_version = false;
+  for (const auto& entry : root) {
+    if (entry.isMember("vname") && entry.isMember("type") &&
+        entry.isMember("value") && entry["vname"] == "_scilla_version" &&
+        entry["type"] == "Uint32") {
+      try {
+        m_scilla_version = boost::lexical_cast<uint32_t>(entry["value"]);
+        scilla_version = m_scilla_version;
+        found_scilla_version = true;
+      } catch (...) {
+        LOG_GENERAL(WARNING,
+                    "invalid value for _scilal_version " << entry["value"]);
+      }
+      break;
+    }
+  }
+
+  if (!found_scilla_version) {
+    LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
     return false;
   }
 
@@ -312,10 +314,12 @@ void Account::GetUpdatedStates(
 void Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
-                           bool temp) {
+                           bool temp, bool revertible) {
   ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, t_states, toDeleteIndices, m_storageRoot, temp);
-  SetAddress(addr);
+      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
+  if (m_address == Address()) {
+    SetAddress(addr);
+  }
 }
 
 Json::Value Account::GetStateJson(bool temp) const {
@@ -413,10 +417,6 @@ bool Account::SetCode(const bytes& code) {
   }
 
   m_codeCache = code;
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(code);
-  SetCodeHash(dev::h256(sha2.Finalize()));
-  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
   return true;
 }
 
@@ -430,4 +430,83 @@ const bytes Account::GetCode() const {
   } else {
     return m_codeCache;
   }
+}
+
+bool Account::GetScillaVersion(uint32_t& scilla_version) {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING, "Not a contract why call GetScillaVersion");
+    return false;
+  }
+
+  // Be careful is m_scilla_version changed to other data type
+  if (m_scilla_version == (uint32_t)-1) {
+    Json::Value root;
+    bytes initData = GetInitData();
+    if (!JSONUtils::GetInstance().convertStrtoJson(
+            {initData.begin(), initData.end()}, root)) {
+      LOG_GENERAL(WARNING, "Convert InitData to Json failed"
+                               << endl
+                               << DataConversion::CharArrayToString(initData));
+      return false;
+    }
+    bool found_scilla_version = false;
+    for (const auto& entry : root) {
+      if (entry.isMember("vname") && entry.isMember("type") &&
+          entry.isMember("value") && entry["vname"] == "_scilla_version" &&
+          entry["type"] == "Uint32") {
+        try {
+          m_scilla_version = boost::lexical_cast<uint32_t>(entry["value"]);
+          found_scilla_version = true;
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "invalid value for _scilal_version " << entry["value"]);
+        }
+        break;
+      }
+    }
+
+    if (!found_scilla_version) {
+      LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
+      return false;
+    }
+  }
+  scilla_version = m_scilla_version;
+  return true;
+}
+
+bool Account::SetInitData(const bytes& initData) {
+  // LOG_MARKER();
+
+  if (initData.size() == 0) {
+    LOG_GENERAL(WARNING, "InitData for this contract is empty");
+    return false;
+  }
+
+  m_initDataCache = initData;
+  return true;
+}
+
+const bytes Account::GetInitData() const {
+  if (!isContract()) {
+    return {};
+  }
+
+  if (m_initDataCache.empty()) {
+    return ContractStorage::GetContractStorage().GetContractCode(m_address);
+  } else {
+    return m_codeCache;
+  }
+}
+
+bool Account::SetImmutable(const bytes& code, const bytes& initData) {
+  if (!SetCode(code) || !SetInitData(initData)) {
+    return false;
+  }
+
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(code);
+  sha2.Update(initData);
+  SetCodeHash(dev::h256(sha2.Finalize()));
+  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
+  return true;
 }
