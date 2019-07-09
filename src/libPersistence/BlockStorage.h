@@ -256,7 +256,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutEpochFin(const uint64_t& epochNum);
 
   /// Retrieve Last Transactions Trie Root Hash
-  bool GetMetadata(MetaType type, bytes& data);
+  bool GetMetadata(MetaType type, bytes& data, bool muteLog = false);
 
   // Retrieve the state root
   bool GetStateRoot(bytes& data);

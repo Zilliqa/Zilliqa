@@ -675,8 +675,10 @@ bool BlockStorage::PutEpochFin(const uint64_t& epochNum) {
       DataConversion::StringToCharArray(to_string(epochNum)));
 }
 
-bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
-  LOG_MARKER();
+bool BlockStorage::GetMetadata(MetaType type, bytes& data, bool muteLog) {
+  if (!muteLog) {
+    LOG_MARKER();
+  }
 
   string metaString;
   {
@@ -737,11 +739,9 @@ bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
 }
 
 bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
-  LOG_MARKER();
-
   bytes epochFinBytes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
-                                                  epochFinBytes)) {
+                                                  epochFinBytes, true)) {
     try {
       epochNum = std::stoull(DataConversion::CharArrayToString(epochFinBytes));
     } catch (...) {
