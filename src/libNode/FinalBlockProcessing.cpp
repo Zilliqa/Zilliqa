@@ -716,6 +716,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
     }
+    // Contract storage
+    if (!Contract::ContractStorage2::GetContractStorage().CommitStateDB()) {
+      LOG_GENERAL(WARNING, "CommitStateDB failed");
+      return false;
+    }
     if (!LOOKUP_NODE_MODE) {
       if (!BlockStorage::GetBlockStorage().PutEpochFin(
               m_mediator.m_currentEpochNum)) {

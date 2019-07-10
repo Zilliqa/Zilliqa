@@ -539,6 +539,10 @@ void ContractStorage2::Reset() {
     m_codeDB.ResetDB();
   }
   {
+    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    m_initDataDB.ResetDB();
+  }
+  {
     unique_lock<shared_timed_mutex> g(m_stateDataMutex);
     m_stateDataDB.ResetDB();
   }
@@ -549,6 +553,10 @@ bool ContractStorage2::RefreshAll() {
   {
     unique_lock<shared_timed_mutex> g(m_codeMutex);
     ret = m_codeDB.RefreshDB();
+  }
+  if (ret) {
+    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    ret = m_initDataDB.RefreshDB();
   }
   if (ret) {
     unique_lock<shared_timed_mutex> g(m_stateDataMutex);
