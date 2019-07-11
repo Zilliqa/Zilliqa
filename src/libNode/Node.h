@@ -347,6 +347,8 @@ class Node : public Executable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
+  void RemoveIpMapping();
+
   void WakeupAtDSEpoch();
 
   void WakeupAtTxEpoch();
