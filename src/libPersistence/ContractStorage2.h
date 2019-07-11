@@ -153,6 +153,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   /// Refresh all DB
   bool RefreshAll();
+
+  /// TODO: Remove when FetchStateValue and UpdateStateValue are fully implemented
+  bool checkIfAlive();
 };
 
 }  // namespace Contract
