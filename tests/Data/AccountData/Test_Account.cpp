@@ -39,11 +39,12 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   Account acc1(TestUtils::DistUint64(), 0);
 
   bytes code, data;
-  acc1.InitContract(code, data, Address(), 0, true);
+  uint32_t scilla_version;
+  acc1.InitContract(code, data, Address(), 0, scilla_version);
 
   Account acc2(data, 0);
   // Will fail as only account with valid contract need call InitContract
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0, true));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0, scilla_version));
   BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
 
@@ -74,11 +75,12 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   std::string invalidmessage = "[{\"vname\"]";
   bytes data(invalidmessage.begin(), invalidmessage.end());
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
+  uint32_t scilla_version;
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, scilla_version));
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, scilla_version));
 
   BOOST_CHECK_EQUAL(false, code == acc1.GetCode());
   BOOST_CHECK_EQUAL(false, addr1 == acc1.GetAddress());
@@ -86,8 +88,8 @@ BOOST_AUTO_TEST_CASE(testInit) {
   std::string message =
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
-  BOOST_CHECK_EQUAL(true, acc1.InitContract(code, data, addr1, 0, true));
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, true));
+  BOOST_CHECK_EQUAL(true, acc1.InitContract(code, data, addr1, 0, scilla_version));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, addr1, 0, scilla_version));
 
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
   BOOST_CHECK_EQUAL(true, addr1 == acc1.GetAddress());
