@@ -832,7 +832,7 @@ void Node::RemoveIpMapping() {
       LOG_GENERAL(INFO,
                   IP_MAPPING_FILE_NAME << " has been removed successfully.");
     } else {
-      LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot been removed!");
+      LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot be removed!");
     }
   } else {
     LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
