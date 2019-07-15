@@ -111,7 +111,11 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!(info.m_shardId == microBlockInfos.size() - 1 &&
+      // Add all mbhashes to unavailable list if newlookup is syncing. Otherwise
+      // respect the check condition.
+      if ((ARCHIVAL_LOOKUP &&
+           (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC)) ||
+          !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
             info.m_txnRootHash == TxnHash())) {
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
