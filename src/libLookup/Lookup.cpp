@@ -219,6 +219,8 @@ void Lookup::SetLookupNodes() {
 }
 
 void Lookup::SetAboveLayer() {
+  LOG_MARKER();
+
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("constants.xml", pt);
@@ -3231,7 +3233,6 @@ bool Lookup::CleanVariables() {
     return true;
   }
 
-  m_seedNodes.clear();
   m_currDSExpired = false;
   m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
