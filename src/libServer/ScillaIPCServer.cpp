@@ -21,11 +21,10 @@
 
 using namespace jsonrpc;
 using namespace std;
+using namespace Contract;
 
-ScillaIPCServer::ScillaIPCServer(const string &unixdomainsocket_path, const dev::h160 &contract_address) :
-                                 AbstractServer<ScillaIPCServer>(
-                                 UnixDomainSocketServer server(unixdomainsocket_path),
-                                 JSONRPC_SERVER_V2) {
+ScillaIPCServer::ScillaIPCServer(UnixDomainSocketServer &server, const dev::h160 &contract_address) :
+                                 AbstractServer<ScillaIPCServer>(server, JSONRPC_SERVER_V2) {
 
   this->bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_BOOLEAN, 
                                    "query", JSON_STRING, "value", JSON_STRING, NULL), 
@@ -39,29 +38,33 @@ ScillaIPCServer::ScillaIPCServer(const string &unixdomainsocket_path, const dev:
                                   "query", JSON_STRING, "value", JSON_STRING, NULL),
                                   &ScillaIPCServer::testServerRPCI);
 
-  this->contract_address = contract_address;
+  *(this->contract_address) = contract_address;
 
 }
 
-void setContractAddress(const dev::h160 &address) {
-  this->contract_address = address;
+void ScillaIPCServer::setContractAddress(dev::h160 &address) {
+  *(this->contract_address) = address;
 }
 
-dev::h160 getContractAddress() {
-  return this->contract_address;
+dev::h160 ScillaIPCServer::getContractAddress() {
+  return *(this->contract_address);
 }
 
-void ScillaIPCServer::updateStateValue(const string &query, const string &value) {
-  ContractStorage2::UpdateStateValue(this->contract_address, DataConversion::StringToCharArray(query),
-                                     0, DataConversion:: StringToCharArray(value), 0);
-}
 bool ScillaIPCServer::fetchStateValue(const string &query, const string &value) {
-  return ContractStorage2::FetchStateValue(this->contract_address, DataConversion::StringToCharArray(query),
-                                           0, DataConversion:: StringToCharArray(value), 0);
+  const bytes &converted_value = DataConversion::StringToCharArray(value);
+  bytes &non_const_value = *(const_cast<bytes*> (&converted_value));
+  return ContractStorage2::GetContractStorage().FetchStateValue(this->getContractAddress(), 
+                                                                DataConversion::StringToCharArray(query),
+                                                                0, non_const_value, 0);
+}
+bool ScillaIPCServer::updateStateValue(const string &query, const string &value) {
+  return ContractStorage2::GetContractStorage().UpdateStateValue(this->getContractAddress(), 
+                                                                 DataConversion::StringToCharArray(query),
+                                                                 0, DataConversion::StringToCharArray(value), 0);
 }
 
 bool ScillaIPCServer::testServer() {
-  return ContractStorage2::checkIfAlive();
+  return ContractStorage2::GetContractStorage().checkIfAlive();
 }
 
 string ScillaIPCServer::testServerRPC(const string &query, const string &value) {
