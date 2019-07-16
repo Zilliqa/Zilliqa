@@ -68,11 +68,7 @@ In the coming months, we plan to have the following features:
 
 ## Minimum system requirements
 
-To run Zilliqa, we recommend the following as the minimum system requirements:
-
-* x64 _Linux_ operating system such as _Ubuntu_
-* Intel i5 processor or later
-* 2 GB RAM or higher
+To run Zilliqa, we recommend the minimum system requirements specified in our [Mining](https://github.com/Zilliqa/Zilliqa/wiki/Mining#hardware-requirement) page.
 
 ## Build Dependencies
 
