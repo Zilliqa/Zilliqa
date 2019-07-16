@@ -718,6 +718,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         }
       }
     }
+
+    RemoveIpMapping();
   }
 
   bool bInShardStructure = false;
@@ -819,6 +821,21 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
       ipMapping[v.second.get<std::string>("pubkey")] =
           Peer((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
     }
+  }
+}
+
+void Node::RemoveIpMapping() {
+  LOG_MARKER();
+
+  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+      LOG_GENERAL(INFO,
+                  IP_MAPPING_FILE_NAME << " has been removed successfully.");
+    } else {
+      LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot be removed!");
+    }
+  } else {
+    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
   }
 }
 
