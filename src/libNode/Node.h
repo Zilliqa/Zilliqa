@@ -607,7 +607,8 @@ class Node : public Executable {
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                        const uint64_t& blocknum,
-                                       bool& toSendTxnToLookup);
+                                       bool& toSendTxnToLookup,
+                                       bool skipShardIDCheck = false);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

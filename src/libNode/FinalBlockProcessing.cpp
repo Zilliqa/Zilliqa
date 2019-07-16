@@ -102,7 +102,8 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                            const uint64_t& blocknum,
-                                           bool& toSendTxnToLookup) {
+                                           bool& toSendTxnToLookup,
+                                           bool skipShardIDCheck) {
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
@@ -111,7 +112,10 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!(info.m_shardId == microBlockInfos.size() - 1 &&
+      // Add all mbhashes to unavailable list if newlookup/levellookup is
+      // syncing. Otherwise respect the check condition.
+      if (skipShardIDCheck ||
+          !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
             info.m_txnRootHash == TxnHash())) {
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});

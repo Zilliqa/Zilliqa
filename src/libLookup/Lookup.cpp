@@ -2017,7 +2017,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
         (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
-          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder);
+          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder,
+          true /*skip shardid check*/);
     }
   }
 
