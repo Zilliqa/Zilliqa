@@ -35,19 +35,19 @@ ScillaIPCServer::ScillaIPCServer(UnixDomainSocketServer &server, const dev::h160
                                    &ScillaIPCServer::updateStateValueI);
 
   this->bindAndAddMethod(Procedure("testServerRPC", PARAMS_BY_NAME,JSON_STRING,
-                                  "query", JSON_STRING, "value", JSON_STRING, NULL),
-                                  &ScillaIPCServer::testServerRPCI);
+                                   "query", JSON_STRING, "value", JSON_STRING, NULL),
+                                   &ScillaIPCServer::testServerRPCI);
 
-  *(this->contract_address) = contract_address;
+  this->contract_address = contract_address;
 
 }
 
 void ScillaIPCServer::setContractAddress(dev::h160 &address) {
-  *(this->contract_address) = address;
+  this->contract_address = address;
 }
 
 dev::h160 ScillaIPCServer::getContractAddress() {
-  return *(this->contract_address);
+  return this->contract_address;
 }
 
 bool ScillaIPCServer::fetchStateValue(const string &query, const string &value) {

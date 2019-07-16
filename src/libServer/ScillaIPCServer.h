@@ -23,7 +23,7 @@
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   private:
-    dev::h160 *contract_address;
+    dev::h160 contract_address;
   public:
     ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server, const dev::h160 &contract_address);
 
