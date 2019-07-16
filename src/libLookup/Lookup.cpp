@@ -125,17 +125,6 @@ void Lookup::InitSync() {
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
-    // Ask for the sharding structure from lookup
-    ComposeAndSendGetShardingStructureFromSeed();
-    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    if (cv_shardStruct.wait_for(
-            cv_lk,
-            std::chrono::seconds(NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
-      LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
-    } else {
-      ProcessEntireShardingStructure();
-    }
   };
   DetachedFunction(1, func);
 }
@@ -2062,8 +2051,22 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               "New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        SetSyncType(SyncType::NO_SYNC);
         m_isFirstLoop = true;
+
+        // Ask for the sharding structure from lookup
+        ComposeAndSendGetShardingStructureFromSeed();
+        std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+        if (cv_shardStruct.wait_for(
+                cv_lk,
+                std::chrono::seconds(NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS)) ==
+            std::cv_status::timeout) {
+          LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
+        } else {
+          ProcessEntireShardingStructure();
+        }
+
+        // Now, newlookup is sycned in complete sense
+        SetSyncType(SyncType::NO_SYNC);
 
         if (m_lookupServer->StartListening()) {
           LOG_GENERAL(INFO, "API Server started to listen again");
