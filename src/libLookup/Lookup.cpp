@@ -25,6 +25,7 @@
 #include <exception>
 #include <fstream>
 #include <random>
+#include <set>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -580,7 +581,8 @@ bytes Lookup::ComposeGetStateMessage() {
 
 bool Lookup::GetDSInfoFromSeedNodes() {
   LOG_MARKER();
-  SendMessageToRandomSeedNode(ComposeGetDSInfoMessage());
+  SendMessageToRandomSeedNode(ComposeGetDSInfoMessage(),
+                              NUM_OF_SEED_TO_FETCH_INFO);
   return true;
 }
 
@@ -591,6 +593,7 @@ bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
 }
 
 bool Lookup::GetStateFromSeedNodes() {
+  LOG_MARKER();
   SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
 }
@@ -628,7 +631,8 @@ bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
 bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
                                      uint64_t highblocknum) {
   SendMessageToRandomSeedNode(
-      ComposeGetDSBlockMessage(lowBlockNum, highblocknum));
+      ComposeGetDSBlockMessage(lowBlockNum, highblocknum),
+      NUM_OF_SEED_TO_FETCH_INFO);
   return true;
 }
 
@@ -708,16 +712,9 @@ bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
   LOG_MARKER();
 
   SendMessageToRandomSeedNode(
-      ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
+      ComposeGetTxBlockMessage(lowBlockNum, highBlockNum),
+      NUM_OF_SEED_TO_FETCH_INFO);
 
-  return true;
-}
-
-bool Lookup::GetStateDeltaFromSeedNodes(const uint64_t& blockNum)
-
-{
-  LOG_MARKER();
-  SendMessageToRandomSeedNode(ComposeGetStateDeltaMessage(blockNum));
   return true;
 }
 
@@ -727,7 +724,8 @@ bool Lookup::GetStateDeltasFromSeedNodes(uint64_t lowBlockNum,
 {
   LOG_MARKER();
   SendMessageToRandomSeedNode(
-      ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum));
+      ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum),
+      NUM_OF_SEED_TO_FETCH_INFO);
   return true;
 }
 
@@ -916,7 +914,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   return true;
 }
 
-void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
+void Lookup::SendMessageToRandomSeedNode(const bytes& message,
+                                         uint32_t numOfSeedToSend) const {
   LOG_MARKER();
 
   lock_guard<mutex> lock(m_mutexSeedNodes);
@@ -925,15 +924,27 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
     return;
   }
 
-  int index = rand() % m_seedNodes.size();
-  auto resolved_ip = TryGettingResolvedIP(m_seedNodes[index].second);
+  // The maximum number of nodes to send cannot exceed number of nodes
+  numOfSeedToSend = numOfSeedToSend > m_seedNodes.size() ? m_seedNodes.size()
+                                                         : numOfSeedToSend;
+  std::set<int> setOfIndex;
+  while (setOfIndex.size() < numOfSeedToSend) {
+    int index = rand() % m_seedNodes.size();
+    if (setOfIndex.find(index) != setOfIndex.end()) {
+      continue;
+    } else {
+      setOfIndex.insert(index);
+    }
 
-  Blacklist::GetInstance().Exclude(
-      resolved_ip);  // exclude this lookup ip from blacklisting
+    auto resolved_ip = TryGettingResolvedIP(m_seedNodes[index].second);
 
-  Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
-  LOG_GENERAL(INFO, "Sending message to " << tmpPeer);
-  P2PComm::GetInstance().SendMessage(tmpPeer, message);
+    Blacklist::GetInstance().Exclude(
+        resolved_ip);  // exclude this lookup ip from blacklisting
+
+    Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
+    LOG_GENERAL(INFO, "Sending message to " << tmpPeer);
+    P2PComm::GetInstance().SendMessage(tmpPeer, message);
+  }
 }
 
 // TODO: Refactor the code to remove the following assumption
@@ -1956,7 +1967,8 @@ void Lookup::PrepareForStartPow() {
     return;
   }
 
-  m_mediator.m_lookup->SendMessageToRandomSeedNode(getpowsubmission_message);
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(getpowsubmission_message,
+                                                   NUM_OF_SEED_TO_FETCH_INFO);
 }
 
 void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
@@ -2295,7 +2307,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
       }
 
       m_mediator.m_lookup->SendMessageToRandomSeedNode(
-          getpowsubmission_message);
+          getpowsubmission_message, NUM_OF_SEED_TO_FETCH_INFO);
     } else if (m_syncType == SyncType::DS_SYNC ||
                m_syncType == SyncType::GUARD_DS_SYNC) {
       if (!m_currDSExpired &&
@@ -3513,7 +3525,7 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
   if (!toSendSeed) {
     SendMessageToRandomLookupNode(message);
   } else {
-    SendMessageToRandomSeedNode(message);
+    SendMessageToRandomSeedNode(message, NUM_OF_SEED_TO_FETCH_INFO);
   }
 }
 
@@ -3529,7 +3541,7 @@ void Lookup::ComposeAndSendGetShardingStructureFromSeed() {
     return;
   }
 
-  SendMessageToRandomSeedNode(message);
+  SendMessageToRandomSeedNode(message, NUM_OF_SEED_TO_FETCH_INFO);
 }
 
 bool Lookup::Execute(const bytes& message, unsigned int offset,

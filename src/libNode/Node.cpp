@@ -654,8 +654,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
-        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+        auto blockNum =
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        m_mediator.m_lookup->GetStateDeltasFromSeedNodes(blockNum, blockNum);
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
                     "wait...");

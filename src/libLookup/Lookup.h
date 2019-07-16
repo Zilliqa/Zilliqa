@@ -214,7 +214,8 @@ class Lookup : public Executable {
   // Calls P2PComm::SendMessage serially for every Seed peer
   void SendMessageToSeedNodes(const bytes& message) const;
 
-  void SendMessageToRandomSeedNode(const bytes& message) const;
+  void SendMessageToRandomSeedNode(const bytes& message,
+                                   uint32_t numOfSeedToSend = 1) const;
 
   void RectifyTxnShardMap(const uint32_t, const uint32_t);
 
@@ -225,7 +226,6 @@ class Lookup : public Executable {
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
-  bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
   bool GetStateDeltasFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
 
   bool GetStateFromSeedNodes();

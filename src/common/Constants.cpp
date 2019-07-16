@@ -112,6 +112,8 @@ const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
 const unsigned int TXN_STORAGE_LIMIT{
     ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
+const unsigned int NUM_OF_SEED_TO_FETCH_INFO{
+    ReadConstantNumeric("NUM_OF_SEED_TO_FETCH_INFO", "node.seed.")};
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};

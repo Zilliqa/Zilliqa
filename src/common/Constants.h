@@ -152,6 +152,7 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
 extern const unsigned int TXN_STORAGE_LIMIT;
+extern const unsigned int NUM_OF_SEED_TO_FETCH_INFO;
 
 // Consensus constants
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;

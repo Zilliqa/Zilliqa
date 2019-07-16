@@ -712,7 +712,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
 bool DirectoryService::VCFetchLatestDSTxBlockFromSeedNodes() {
   LOG_MARKER();
   m_mediator.m_lookup->SendMessageToRandomSeedNode(
-      ComposeVCGetDSTxBlockMessage());
+      ComposeVCGetDSTxBlockMessage(), NUM_OF_SEED_TO_FETCH_INFO);
   return true;
 }
 
