@@ -377,8 +377,6 @@ class DirectoryService : public Executable {
                            const uint64_t blockNumber, const bytes& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            bytes& messageToCosign);
-  bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
-                                       VCBlockSharedPtr& prevVCBlockptr);
   bool StoreFinalBlockToDisk();
 
   bool OnNodeFinalConsensusError(const bytes& errorMsg, const Peer& from);
@@ -625,6 +623,9 @@ class DirectoryService : public Executable {
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
+
+  bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
+                                       VCBlockSharedPtr& prevVCBlockptr);
 
   std::string GetStateString() const;
 

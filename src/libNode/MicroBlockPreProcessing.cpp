@@ -319,7 +319,32 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
-  while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+  uint64_t microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
+
+  // Adjust gas limit if there were finalblock view change in DS committee
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
+    BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
+    VCBlockSharedPtr prevVCBlockptr;
+    if (m_mediator.m_ds->CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
+      if (m_mediator.m_ds->m_viewChangestate ==
+              DirectoryService::FINALBLOCK_CONSENSUS ||
+          m_mediator.m_ds->m_viewChangestate ==
+              DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
+        for (unsigned int i = 0;
+             i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
+          if (!SafeMath<uint64_t>::div(microblock_gas_limit, 2,
+                                       microblock_gas_limit)) {
+            LOG_GENERAL(WARNING, "microblock_gas_limit " << microblock_gas_limit
+                                                         << " div 2 failed");
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
     }
@@ -335,7 +360,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
@@ -549,7 +574,32 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
-  while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+  uint64_t microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
+
+  // Adjust gas limit if there were finalblock view change in DS committee
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
+    BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
+    VCBlockSharedPtr prevVCBlockptr;
+    if (m_mediator.m_ds->CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
+      if (m_mediator.m_ds->m_viewChangestate ==
+              DirectoryService::FINALBLOCK_CONSENSUS ||
+          m_mediator.m_ds->m_viewChangestate ==
+              DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
+        for (unsigned int i = 0;
+             i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
+          if (!SafeMath<uint64_t>::div(microblock_gas_limit, 2,
+                                       microblock_gas_limit)) {
+            LOG_GENERAL(WARNING, "microblock_gas_limit " << microblock_gas_limit
+                                                         << " div 2 failed");
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
     }
@@ -565,7 +615,7 @@ void Node::ProcessTransactionWhenShardBackup() {
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
