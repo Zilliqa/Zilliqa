@@ -2930,6 +2930,11 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
     return true;
   }
 
+  if (m_startedPoW) {
+    LOG_GENERAL(WARNING, "Already started PoW, ignore message.");
+    return true;
+  }
+
   PubKey lookupPubKey;
 
   if (!Messenger::GetLookupSetStartPoWFromSeed(message, offset, lookupPubKey)) {

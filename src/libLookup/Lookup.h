@@ -403,7 +403,7 @@ class Lookup : public Executable {
   bool InitMining(uint32_t lookupIndex);
 
   /// Helper variables used by new node synchronization
-  bool m_startedPoW = false;
+  std::atomic<bool> m_startedPoW{};
 
   bool AlreadyJoinedNetwork();
 
