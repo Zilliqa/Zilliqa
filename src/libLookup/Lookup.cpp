@@ -2822,13 +2822,13 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerSet);
+  lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
 
   vector<Peer> tempStartPoWPeerList;
   std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
             std::back_inserter(tempStartPoWPeerList));
-  LOG_GENERAL(INFO,
-              "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
   P2PComm::GetInstance().SendMessage(tempStartPoWPeerList, setstartpow_message);
   m_getStartPoWPeerSet.clear();
 
@@ -2880,7 +2880,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   }
 
   // Add this requesting peer to our list
-  std::unique_lock<std::mutex> cv_lk(m_mutexGetStartPoWPeerSet);
+  lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
   m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
 
   return true;
