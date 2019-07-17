@@ -2803,7 +2803,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   if (!(expectedDSLeader.first == dspubkey)) {
-    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
+    LOG_CHECK_FAIL("Expected DS leader", dspubkey, expectedDSLeader.first);
     return false;
   }
 
@@ -2827,6 +2827,8 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   vector<Peer> tempStartPoWPeerList;
   std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
             std::back_inserter(tempStartPoWPeerList));
+  LOG_GENERAL(INFO,
+              "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
   P2PComm::GetInstance().SendMessage(tempStartPoWPeerList, setstartpow_message);
   m_getStartPoWPeerSet.clear();
 
@@ -2861,6 +2863,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   }
 
   if (!IPCHECK::IsPortValid(portNo)) {
+    LOG_GENERAL(WARNING, "Invalid port number " << portNo);
     return false;
   }
 
