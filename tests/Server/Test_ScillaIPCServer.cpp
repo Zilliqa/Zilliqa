@@ -19,7 +19,6 @@
 #include "libUtils/Logger.h"
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
-#include <jsonrpccpp/server/abstractserver.h>
 #include <thread>
 
 #define BOOST_TEST_MODULE scillaipc
@@ -29,44 +28,35 @@
 using namespace std;
 using namespace jsonrpc;
 
-void server_thread(ScillaIPCServer &server) {
-  if (server.StartListening()) {
-    LOG_GENERAL(INFO, "Server thread");
-    getchar();
-    server.StopListening();
-  }
-}
-
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
 BOOST_AUTO_TEST_CASE(test_contract_storage2_call) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s("./scillaipcservertestsocket");
+  UnixDomainSocketServer s("/tmp/scillaipcservertestsocket1");
   ScillaIPCServer server(s, dev::h160());
   LOG_GENERAL(INFO, "Test ScillaIPCServer initialization done!");
-  BOOST_CHECK_MESSAGE(server.testServer() == true,
+  BOOST_CHECK_MESSAGE(server.testServer(),
                       "Server should be able to call ContractStorage2");
   LOG_GENERAL(INFO, "Test ScillaIPCServer calling ContractStorage2 done!");
 }
 
 BOOST_AUTO_TEST_CASE(test_rpc) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s("./scillaipcservertestsocket");
+  UnixDomainSocketServer s("/tmp/scillaipcservertestsocket");
   ScillaIPCServer server(s, dev::h160());
   LOG_GENERAL(INFO, "Test ScillaIPCServer initialization done!");
-  std::thread threadObj(server_thread, std::ref(server));
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  UnixDomainSocketClient client("./scillaipcservertestsocket");
+  server.StartListening();
+  UnixDomainSocketClient client("/tmp/scillaipcservertestsocket");
   Client c(client);
   Json::Value params;
   params["query"] = "testQuery";
   params["value"] = "testValue";
-  BOOST_CHECK_MESSAGE(c.CallMethod("testRPCServer", params) == 
+  LOG_GENERAL(INFO, "About to call server method");
+  BOOST_CHECK_MESSAGE(c.CallMethod("testServerRPC", params) == 
                       "Query = testQuery & Value = testValue",
                       "Server should be able to respond to RPC calls");
+  server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer RPC done!");
-  // Kill all threads (including background)
-  std::terminate();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
