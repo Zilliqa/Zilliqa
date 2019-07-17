@@ -2503,6 +2503,12 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     return false;
   }
 
+  bool startedPoW = false;
+  if (!m_startedPoW.compare_exchange_strong(startedPoW, true)) {
+    LOG_GENERAL(WARNING, "Already started pow.");
+    return false;
+  }
+
   uint64_t curDsBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -2513,7 +2519,7 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   // state root could be changed after repopulating states. so check is moved
   // before repopulating state in CommitTxBlocks. if (CheckStateRoot()) {
   // Attempt PoW
-  m_startedPoW = true;
+
   dsBlockRand = m_mediator.m_dsBlockRand;
   txBlockRand = m_mediator.m_txBlockRand;
 
@@ -2530,10 +2536,6 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
       dsBlockRand, txBlockRand, lookupIndex);
-  //} else {
-  //  LOG_GENERAL(WARNING, "State root check failed");
-  //  return false;
-  //}
 
   uint64_t lastTxBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -2927,11 +2929,6 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetStartPoWFromSeed not expected to be "
                 "called from the LookUp node.");
-    return true;
-  }
-
-  if (m_startedPoW) {
-    LOG_GENERAL(WARNING, "Already started PoW, ignore message.");
     return true;
   }
 
