@@ -557,8 +557,6 @@ bool ContractStorage2::RefreshAll() {
   return ret;
 }
 
-bool ContractStorage2::checkIfAlive() {
-  return true;
-}
+bool ContractStorage2::checkIfAlive() { return true; }
 
 }  // namespace Contract

@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libServer/ScillaIPCServer.h"
-#include "libUtils/Logger.h"
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 #include <thread>
+#include "libServer/ScillaIPCServer.h"
+#include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE(test_rpc) {
   params["query"] = "testQuery";
   params["value"] = "testValue";
   LOG_GENERAL(INFO, "About to call server method");
-  BOOST_CHECK_MESSAGE(c.CallMethod("testServerRPC", params) == 
-                      "Query = testQuery & Value = testValue",
+  BOOST_CHECK_MESSAGE(c.CallMethod("testServerRPC", params) ==
+                          "Query = testQuery & Value = testValue",
                       "Server should be able to respond to RPC calls");
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer RPC done!");

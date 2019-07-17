@@ -22,29 +22,37 @@
 #include "depends/common/FixedHash.h"
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
-  private:
-    dev::h160 contract_address;
-  public:
-    ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server, const dev::h160 &contract_address);
+ private:
+  dev::h160 contract_address;
 
-    inline void fetchStateValueI(const Json::Value &request, Json::Value &response) {
-      response = this->fetchStateValue(request["query"].asString(), request["value"].asString());
-    }
+ public:
+  ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server,
+                  const dev::h160 &contract_address);
 
-    inline void updateStateValueI(const Json::Value &request, Json::Value &response) {
-      response = this->updateStateValue(request["query"].asString(), request["value"].asString());
-    }
-    bool fetchStateValue(const std::string &query, const std::string &value);
-    bool updateStateValue(const std::string &query, const std::string &value);
-    void setContractAddress(dev::h160 &address);
-    dev::h160 getContractAddress();
-    
-    // TODO: Remove once the relevant methods in ContractStorage2 are complete
-    inline void testServerRPCI(const Json::Value &request, Json::Value &response) {
-      response = this->testServerRPC(request["query"].asString(), request["value"].asString());
-    }
-    bool testServer();
-    std::string testServerRPC(const std::string &query, const std::string &value);
+  inline void fetchStateValueI(const Json::Value &request,
+                               Json::Value &response) {
+    response = this->fetchStateValue(request["query"].asString(),
+                                     request["value"].asString());
+  }
+
+  inline void updateStateValueI(const Json::Value &request,
+                                Json::Value &response) {
+    response = this->updateStateValue(request["query"].asString(),
+                                      request["value"].asString());
+  }
+  bool fetchStateValue(const std::string &query, const std::string &value);
+  bool updateStateValue(const std::string &query, const std::string &value);
+  void setContractAddress(dev::h160 &address);
+  dev::h160 getContractAddress();
+
+  // TODO: Remove once the relevant methods in ContractStorage2 are complete
+  inline void testServerRPCI(const Json::Value &request,
+                             Json::Value &response) {
+    response = this->testServerRPC(request["query"].asString(),
+                                   request["value"].asString());
+  }
+  bool testServer();
+  std::string testServerRPC(const std::string &query, const std::string &value);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
