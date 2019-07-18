@@ -26,12 +26,13 @@ import datetime
 from pathlib import Path
 import socket
 
-BUCKET_NAME = 'zilliqa-incremental'
-STATEDELTA_BUCKET_NAME = 'zilliqa-statedelta'
+PERSISTENCE_SNAPSHOT_NAME='incremental'
+STATEDELTA_DIFF_NAME='statedelta'
+BUCKET_NAME='BUCKET_NAME'
 NUM_TXBLOCK = 1
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
-SOURCE = '/run/zilliqa/'
+SOURCE = './'
 TESTNET_NAME= "TEST_NET_NAME"
 SYNC_INTERVAL = 1
 
@@ -47,9 +48,13 @@ class Tee(object):
 		for f in self.files:
 			f.flush()
 
-f = open(SOURCE+'uploadIncrDB-log.txt', 'w')
+f = open('uploadIncrDB-log.txt', 'w')
 original = sys.stdout
 sys.stdout = Tee(sys.stdout, f)
+
+
+def getBucketString(subFolder):
+	return "s3://"+BUCKET_NAME+"/"+subFolder+"/"+TESTNET_NAME
 
 def CreateTempPersistence():
 	bashCommand = "rsync --recursive --delete -a persistence temp"
@@ -58,26 +63,26 @@ def CreateTempPersistence():
 	print("Copied local persistence to temporary")
 
 def CleanS3StateDeltas():
-	bashCommand = "aws s3 rm --recursive s3://"+STATEDELTA_BUCKET_NAME+"/"+TESTNET_NAME
+	bashCommand = "aws s3 rm --recursive "+getBucketString(STATEDELTA_DIFF_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Cleaned S3 bucket"+"s3://"+STATEDELTA_BUCKET_NAME+"/"+TESTNET_NAME)
+	print("Cleaned S3 bucket "+getBucketString(STATEDELTA_DIFF_NAME))
 
 def CleanS3EntirePersistence():
-	bashCommand = "aws s3 rm --recursive s3://"+BUCKET_NAME+"/"+TESTNET_NAME
+	bashCommand = "aws s3 rm --recursive "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Cleaned S3 bucket"+"s3://"+BUCKET_NAME+"/"+TESTNET_NAME)
+	print("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME))
 
 def SetLock():
 	Path(".lock").touch()
-	bashCommand = "aws s3 cp .lock s3://" + BUCKET_NAME+"/"+TESTNET_NAME+"/.lock"
+	bashCommand = "aws s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	print("[" + str(datetime.datetime.now()) + "] SetLock for uploading process")
 
 def ResetLock():
-	bashCommand = "aws s3 rm s3://" + BUCKET_NAME+"/"+TESTNET_NAME+"/.lock"
+	bashCommand = "aws s3 rm "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	print("[" + str(datetime.datetime.now()) + "] Removed lock for uploading process")
@@ -90,22 +95,22 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 
 	# Try syncing S3 with latest persistence only if NUM_DSBLOCK blocks have crossed.
 	if ((blockNum + 1) % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0 or lastBlockNum == 0):
-		bashCommand = "aws s3 sync --delete temp/persistence s3://"+BUCKET_NAME+"/"+TESTNET_NAME+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
+		bashCommand = "aws s3 sync --delete temp/persistence "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
 		if re.match(r'^\s*$', output):
 			print("No entire persistence diff, interesting...")
 		else:
-			print("Remote S3 bucket: "+"s3://"+BUCKET_NAME+"/"+TESTNET_NAME+"/persistence is entirely Synced")
+			print("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is entirely Synced")
 		# clear the state-delta bucket now.
 		if(lastBlockNum != 0):
 			CleanS3StateDeltas()
 
 	elif (result == 0): # if has state delta diff, we still need to sync persistence/stateDelta so that next time for next blocknum we can get statedelta diff correctly
-		bashCommand = "aws s3 sync --delete temp/persistence s3://"+BUCKET_NAME+"/"+TESTNET_NAME+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
+		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
-		print("Remote S3 bucket: "+"s3://"+BUCKET_NAME+"/"+TESTNET_NAME+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
+		print("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
 	else:
 		print("Not supposed to upload state now!")
 
@@ -115,7 +120,7 @@ def path_leaf(path):
 
 def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 	# check if there is diff and buffer the diff_output
-	bashCommand = "aws s3 sync --dryrun --delete temp/persistence/stateDelta s3://"+BUCKET_NAME+"/"+TESTNET_NAME+"/persistence/stateDelta"
+	bashCommand = "aws s3 sync --dryrun --delete temp/persistence/stateDelta "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence/stateDelta"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	diff_output, error = process.communicate()
 	str_diff_output = diff_output.decode("utf-8")
@@ -126,10 +131,10 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		t.type = tarfile.DIRTYPE
 		tf.addfile(t)
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz"+" s3://"+ STATEDELTA_BUCKET_NAME + "/"+TESTNET_NAME+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+"s3://"+STATEDELTA_BUCKET_NAME+"/"+TESTNET_NAME+" is Synced")
+		print("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+ getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		return 1
 
@@ -138,10 +143,10 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
 		tf.add("persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz"+" s3://"+ STATEDELTA_BUCKET_NAME + "/"+TESTNET_NAME+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+"s3://"+STATEDELTA_BUCKET_NAME+"/"+TESTNET_NAME+" is Synced")
+		print("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		return 0
 
@@ -150,16 +155,19 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 	result=[]
 	if(len(splitted) > 0):
 		for x in splitted:
-				result.append(x.split(' ')[2])
+			tok = x.split(' ');
+			# skip deleted files
+			if(len(tok) >= 3 and tok[1] == "upload:"): 
+				result.append(tok[2])
 
 		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
 		for x in result:
 			tf.add(x,arcname="stateDelta_"+str(blockNum)+"/"+ path_leaf(x))
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz"+" s3://"+ STATEDELTA_BUCKET_NAME + "/"+TESTNET_NAME+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+"s3://"+STATEDELTA_BUCKET_NAME+"/"+TESTNET_NAME+" is Synced")
+		print("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		return 0 #success
 	return 1
@@ -294,6 +302,6 @@ if __name__ == '__main__':
 		os.makedirs(SOURCE+'temp')
 	CleanupDir(SOURCE+'temp')
 	os.chdir(SOURCE)
-
+	
 	main()
 	f.close()

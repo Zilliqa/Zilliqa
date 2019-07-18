@@ -26,8 +26,9 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Lock
 
-PERSISTENCE_SNAPSHOT_URL='http://zilliqa-incremental.s3.amazonaws.com'
-STATEDELTA_DIFF_URL='http://zilliqa-statedelta.s3.amazonaws.com'
+PERSISTENCE_SNAPSHOT_NAME='incremental'
+STATEDELTA_DIFF_NAME='statedelta'
+BUCKET_NAME='BUCKET_NAME'
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
 TESTNET_NAME= 'TEST_NET_NAME'
@@ -40,8 +41,11 @@ BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 STORAGE_PATH = BASE_PATH
 mutex = Lock()
 
+def getURL():
+	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+
 def UploadLock():
-	response = requests.get(PERSISTENCE_SNAPSHOT_URL+"/"+TESTNET_NAME+"/.lock")
+	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
 	if response.status_code == 200:
 		return True
 	return False
@@ -49,22 +53,25 @@ def UploadLock():
 def GetEntirePersistenceFromS3():
 	CleanupDir(STORAGE_PATH + "/persistence")
 	CreateAndChangeDir(STORAGE_PATH)
-	if GetAllObjectsFromS3(PERSISTENCE_SNAPSHOT_URL) == 1 :
+	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
 
 
 def GetStateDeltaFromS3():
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
-	GetAllObjectsFromS3(STATEDELTA_DIFF_URL)
+	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
-def GetAllObjectsFromS3(url):
+def GetAllObjectsFromS3(url, folderName=""):
 	MARKER = ''
 	list_of_keyurls = []
+	prefix = ""
+	if folderName:
+		prefix = folderName+"/"+TESTNET_NAME
 	# Try get the entire persistence keys.
 	# S3 limitation to get only max 1000 keys. so work around using marker.
 	while True:
-		response = requests.get(url, params={"prefix":TESTNET_NAME, "max-keys":1000, "marker": MARKER})
+		response = requests.get(url, params={"prefix":prefix, "max-keys":1000, "marker": MARKER})
 		tree = ET.fromstring(response.text)
 		startInd = 5
 		if(tree[startInd:] == []):
@@ -174,7 +181,5 @@ if __name__ == "__main__":
 
 		if len(sys.argv) == 3 and sys.argv[2] == "false":
 			Exclude_txnBodies = False
-			Exclude_microBlocks = False	
-				
-
+			Exclude_microBlocks = False
 	run()

@@ -25,7 +25,8 @@ import xml.etree.cElementTree as xtree
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
-AWS_PERSISTENCE_LOCATION= "s3://zilliqa-persistence"
+BUCKET_NAME='BUCKET_NAME'
+AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
 
 def recvall(sock):
     BUFF_SIZE = 4096 # 4 KiB
@@ -87,8 +88,8 @@ def backUp(curr_blockNum):
                 fullpath = os.path.join(root, file)
                 tar.add(fullpath)
 
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + "/" + TESTNET_NAME + ".tar.gz");
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + "/" + TESTNET_NAME + "-" + str(curr_blockNum) + ".tar.gz");
+    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz");
+    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz");
     return None
 
 def main():
