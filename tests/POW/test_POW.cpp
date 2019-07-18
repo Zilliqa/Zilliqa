@@ -91,8 +91,7 @@ bytes hexStringToBytes(std::string const& _s) {
 }
 
 BOOST_AUTO_TEST_CASE(test_stringToBlockhash) {
-  INIT_FILE_LOGGER("zilliqa");
-
+  INIT_FILE_LOGGER("zilliqa", "./");
   string original =
       "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34";
   ethash_hash256 testhash = POW::StringToBlockhash(original);

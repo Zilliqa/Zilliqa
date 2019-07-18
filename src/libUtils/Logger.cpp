@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <boost/filesystem.hpp>
 #include <cstring>
 #include <iostream>
 using namespace std;
@@ -48,9 +49,31 @@ inline pid_t getCurrentPid() {
 const streampos Logger::MAX_FILE_SIZE =
     1024 * 1024 * 100;  // 100MB per log file
 
-Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size) {
+Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
+               streampos max_file_size) {
   this->m_logToFile = log_to_file;
   this->m_maxFileSize = max_file_size;
+  this->m_logPath = logpath;
+
+  try {
+    if (!boost::filesystem::create_directory(this->m_logPath)) {
+      if ((boost::filesystem::status(this->m_logPath).permissions() &
+           boost::filesystem::perms::owner_write) ==
+          boost::filesystem::perms::no_perms) {
+        std::cout << this->m_logPath
+                  << " already existed but no writing permission!" << endl;
+        this->m_logPath = boost::filesystem::absolute("./").string();
+        std::cout << "Use default log folder " << this->m_logPath << " instead."
+                  << endl;
+      }
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    std::cout << "Cannot create log folder in " << this->m_logPath
+              << ", error code: " << e.code() << endl;
+    this->m_logPath = boost::filesystem::absolute("./").string();
+    std::cout << "Use default log folder " << this->m_logPath << " instead."
+              << endl;
+  }
 
   if (log_to_file) {
     m_fileNamePrefix = prefix ? prefix : "common";
@@ -84,32 +107,33 @@ void Logger::newLog() {
   if (m_bRefactor) {
     logworker = LogWorker::createLogWorker();
     auto sinkHandle = logworker->addSink(
-        std::make_unique<FileSink>(m_fileName.c_str(), "./", ""),
+        std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
         &FileSink::fileWrite);
     sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
         .wait();
     sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
     initializeLogging(logworker.get());
   } else {
-    m_logFile.open(m_fileName.c_str(), ios_base::app);
+    m_logFile.open(m_logPath + m_fileName, ios_base::app);
   }
 }
 
 Logger& Logger::GetLogger(const char* fname_prefix, bool log_to_file,
-                          streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, max_file_size);
+                          const char* logpath, streampos max_file_size) {
+  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
   return logger;
 }
 
 Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
-                               streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, max_file_size);
+                               const char* logpath, streampos max_file_size) {
+  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
   return logger;
 }
 
 Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
+                                   const char* logpath,
                                    streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, max_file_size);
+  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
   return logger;
 }
 
@@ -337,12 +361,14 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
 ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
                          const char* function)
     : m_linenum(linenum), m_filename(filename), m_function(function) {
-  Logger& logger = Logger::GetLogger(NULL, true);
+  Logger& logger = Logger::GetLogger(
+      NULL, true, boost::filesystem::absolute("./").string().c_str());
   logger.LogGeneral(INFO, "BEG", linenum, filename, function);
 }
 
 ScopeMarker::~ScopeMarker() {
-  Logger& logger = Logger::GetLogger(NULL, true);
+  Logger& logger = Logger::GetLogger(
+      NULL, true, boost::filesystem::absolute("./").string().c_str());
   logger.LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
                     m_function.c_str());
 }
