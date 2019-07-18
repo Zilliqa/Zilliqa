@@ -2822,15 +2822,18 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
+  {
+    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
 
-  vector<Peer> tempStartPoWPeerList;
-  std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
-            std::back_inserter(tempStartPoWPeerList));
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
-  P2PComm::GetInstance().SendMessage(tempStartPoWPeerList, setstartpow_message);
-  m_getStartPoWPeerSet.clear();
+    vector<Peer> tempStartPoWPeerList;
+    std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
+              std::back_inserter(tempStartPoWPeerList));
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
+    P2PComm::GetInstance().SendMessage(tempStartPoWPeerList,
+                                       setstartpow_message);
+    m_getStartPoWPeerSet.clear();
+  }
 
   // Reset m_receivedRaiseStartPoW after PoW duration
   this_thread::sleep_for(
