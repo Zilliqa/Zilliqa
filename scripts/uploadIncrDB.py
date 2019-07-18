@@ -25,6 +25,8 @@ import json
 import datetime
 from pathlib import Path
 import socket
+import argparse
+from urllib import request, parse
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -119,6 +121,7 @@ def path_leaf(path):
     return tail or os.path.basename(head)
 
 def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
+	global start
 	# check if there is diff and buffer the diff_output
 	bashCommand = "aws s3 sync --dryrun --delete temp/persistence/stateDelta "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence/stateDelta"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
@@ -136,6 +139,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		output, error = process.communicate()
 		print("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+ getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
+		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 1
 
 	if(blockNum % NUM_FINAL_BLOCK_PER_POW == 0 or (lastBlockNum == 0)):
@@ -148,6 +152,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		output, error = process.communicate()
 		print("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
+		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 0
 
 	str_diff_output = str_diff_output.strip()
@@ -169,6 +174,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		output, error = process.communicate()
 		print("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
+		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 0 #success
 	return 1
 
@@ -230,11 +236,57 @@ def GetCurrentTxBlockNum():
 	else:
 		blockNum = -1
 	return blockNum
+def send_report(msg, url):
+        post = {'text': '```' + msg + '```'}
+        json_data = json.dumps(post)
+        req = request.Request(url, data=json_data.encode('ascii'))
+        resp = request.urlopen(req)
+
+def SendAlertIfInactive(blockNum):
+	global start
+	global webhook
+	global tt, dd
+	
+	inactiveSeconds = 5 * tt
+	
+	if blockNum == -1:
+		errmsg = "Alert - Failed to receive TxBlk info from lookup, please investigate! "
+		print ("[" + str(datetime.datetime.now()) + "] " + errmsg)
+		if  webhook != '':
+			send_report(errmsg, webhook)
+	elif (blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0:
+		inactiveSeconds = dd + inactiveSeconds
+
+	end = (int)(time.time())
+	if (end - start) > inactiveSeconds:
+		if SendAlertIfInactive.lastBlockNum  == blockNum:
+			SendAlertIfInactive.counter += 1
+		else:
+			SendAlertIfInactive.counter = 1
+			#slack alert
+		try:
+			errmsg = "Alert -No activity on upload to S3 since txBlk:" + str(blockNum) + " for more than " + str((inactiveSeconds*SendAlertIfInactive.counter/60))+ " mins!\n \
+Please ignore this alert if viewchange has happened. Otherwise, please investigate! "
+			print ("[" + str(datetime.datetime.now()) + "] " + errmsg)
+			if webhook != '':
+				send_report(errmsg, webhook)
+		except Exception as e:
+			print(e)
+			pass
+		start = (int)(time.time())
+	elif SendAlertIfInactive.lastBlockNum  != blockNum:
+		SendAlertIfInactive.counter = 0
+	SendAlertIfInactive.lastBlockNum = blockNum
+
+#initialize function's static variable
+SendAlertIfInactive.counter = 0
+SendAlertIfInactive.lastBlockNum = 0
 
 def shallStart():
 	result =  False, -1
 	curr_blockNum = GetCurrentTxBlockNum()
 	if (curr_blockNum == -1):
+		SendAlertIfInactive(blockNum)
 		return False, -1
 
 	# next expected txBlock to start this script
@@ -247,15 +299,25 @@ def shallStart():
 	else:
 		next_blockNum = curr_blockNum + 1
 
-	# wait for next txBlock tobe mined
+	# wait for next txBlock to be mined
+	last_blockNum = curr_blockNum
 	while True:
 		time.sleep(1)
 		blockNum = GetCurrentTxBlockNum()
-		if ((blockNum == -1) or (blockNum > next_blockNum)):
-			return False, -1
+		if (blockNum == -1):
+			# No txblock is received. check for inactvity
+			SendAlertIfInactive(blockNum)
+			return False, blockNum
+		elif (blockNum > next_blockNum):
+			start = (int)(time.time())
+			return False, blockNum
 		elif (blockNum == next_blockNum):
 			return True, blockNum
-
+		elif (blockNum > last_blockNum):
+			start = (int)(time.time())
+			last_blockNum = blockNum
+		else: # No next txblock received.check for inactivity
+			SendAlertIfInactive(blockNum)
 
 def main():
 	isVacaous = False
@@ -266,16 +328,21 @@ def main():
 	CleanS3StateDeltas()
 	shallStartFlag = False
 	blockNum = -1
+	global start
+	start = (int)(time.time()) # script started. set `start` time being inactive
 	while True:
 		try:
 			if shallStartFlag == False:
 				shallStartFlag, blockNum = shallStart()
 				if shallStartFlag == False:
+					SendAlertIfInactive(blockNum) #Not started uploading to S3 for long
 					time.sleep(1)
 					continue
+				start = (int)(time.time()) # reset inactive start time since shall start is signaled
 			else:
 				blockNum = GetCurrentTxBlockNum()
 				if (blockNum == -1):
+					SendAlertIfInactive(blockNum)
 					time.sleep(1)
 					continue
 
@@ -289,6 +356,8 @@ def main():
 					SyncLocalToS3Persistence(blockNum,lastBlockNum)
 					lastBlockNum = blockNum
 					ResetLock()
+			
+			SendAlertIfInactive(blockNum) # Not uploaded state-delta for long
 			time.sleep(SYNC_INTERVAL)
 		except Exception as e:
 			print(e)
@@ -297,11 +366,25 @@ def main():
 
 if __name__ == '__main__':
 	print("Starting upload to S3 process...")
+
+	parser = argparse.ArgumentParser(description='upload incremental script')
+	parser.add_argument('-w','--webhook', help='Slack webhook URL', required=False, default='')
+	parser.add_argument('-t','--txblktime', help='Avg txBlockTime to get mined', required=False, default=60)
+	parser.add_argument('-d','--dsblktime', help='Avg dsBlockTime to get mined', required=False, default=600)
+	args = vars(parser.parse_args())
+
+	global webhook
+	global tt, dd
+	tt = int(args['txblktime'])
+	dd = int(args['dsblktime'])
+	webhook = args['webhook']
+
 	# create temp folder
 	if not os.path.exists(SOURCE+'temp'):
 		os.makedirs(SOURCE+'temp')
 	CleanupDir(SOURCE+'temp')
 	os.chdir(SOURCE)
-	
+
 	main()
 	f.close()
+
