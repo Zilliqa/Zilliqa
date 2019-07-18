@@ -266,7 +266,7 @@ def SendAlertIfInactive(blockNum):
 			#slack alert
 		try:
 			errmsg = "Alert -No activity on upload to S3 since txBlk:" + str(blockNum) + " for more than " + str((inactiveSeconds*SendAlertIfInactive.counter/60))+ " mins!\n \
-Please ignore this alert if viewchange has happened. Otherwise, please investigate! "
+Please investigate unless viewchange happened!"
 			print ("[" + str(datetime.datetime.now()) + "] " + errmsg)
 			if webhook != '':
 				send_report(errmsg, webhook)
