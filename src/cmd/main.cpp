@@ -73,8 +73,8 @@ int main(int argc, const char* argv[]) {
         "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set")(
         "logpath,g", po::value<string>(&logpath),
-        "customized log path, could be relative path (ex. \"./logs/\"), or "
-        "absolute path (ex. \"/usr/local/test/logs/\")");
+        "customized log path, could be relative path (e.g., \"./logs/\"), or "
+        "absolute path (e.g., \"/usr/local/test/logs/\")");
 
     po::variables_map vm;
     try {
