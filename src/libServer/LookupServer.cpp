@@ -347,18 +347,22 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
       (tx.GetGasLimit() < CONTRACT_INVOKE_GAS)) {
     throw JsonRpcException(
         RPC_INVALID_PARAMETER,
-        "Gas limit lower than required for invoking contract");
+        "Gas limit lower than required for invoking contract, Minimum: " +
+            to_string(CONTRACT_INVOKE_GAS));
   }
 
   if (type == Transaction::ContractType::CONTRACT_CREATION &&
       (tx.GetGasLimit() < CONTRACT_CREATE_GAS)) {
     throw JsonRpcException(
         RPC_INVALID_PARAMETER,
-        "Gas limit lower than required for creating contract");
+        "Gas limit lower than required for creating contract, Minimum: " +
+            to_string(CONTRACT_CREATE_GAS));
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, "Nonce too low");
+    throw JsonRpcException(
+        RPC_INVALID_PARAMETER,
+        "Nonce too low, Current Nonce: " + to_string(sender->GetNonce()));
   }
 
   if (num_shards == 0) {
