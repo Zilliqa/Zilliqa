@@ -462,12 +462,15 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
     }
   }
 
+  map<TxnHash, uint8_t> pendingTxns;  //[STATUS-ToDo]
+
   // Transaction body sharing
   mb_txns_message = {MessageType::NODE,
                      NodeInstructionType::MBNFORWARDTRANSACTION};
 
   if (!Messenger::SetNodeMBnForwardTransaction(
-          mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send)) {
+          mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send,
+          pendingTxns)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeMBnForwardTransaction failed.");
     return false;

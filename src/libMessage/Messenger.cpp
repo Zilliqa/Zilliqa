@@ -4603,7 +4603,8 @@ bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
 
 bool Messenger::SetNodeMBnForwardTransaction(
     bytes& dst, const unsigned int offset, const MicroBlock& microBlock,
-    const vector<TransactionWithReceipt>& txns) {
+    const vector<TransactionWithReceipt>& txns,
+    const map<TxnHash, uint8_t>& hashCodeMap) {
   LOG_MARKER();
 
   NodeMBnForwardTransaction result;
@@ -4625,6 +4626,13 @@ bool Messenger::SetNodeMBnForwardTransaction(
   LOG_GENERAL(INFO, "EpochNum: " << microBlock.GetHeader().GetEpochNum()
                                  << " MBHash: " << microBlock.GetBlockHash()
                                  << " Txns: " << txnsCount);
+
+  for (const auto& hashCodePair : hashCodeMap) {
+    auto protoHashCodePair = result.add_hashcodepair();
+    protoHashCodePair->set_txnhash(hashCodePair.first.data(),
+                                   hashCodePair.first.size);
+    protoHashCodePair->set_code(hashCodePair.second);
+  }
 
   return SerializeToArray(result, dst, offset);
 }
@@ -4657,6 +4665,15 @@ bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
     PROTOBUFBYTEARRAYTOSERIALIZABLE(txn, txr);
     entry.m_transactions.emplace_back(txr);
     txnsCount++;
+  }
+
+  for (const auto& codeHashPair : result.hashcodepair()) {
+    TxnHash txhash;
+    unsigned int size = min((unsigned int)codeHashPair.txnhash().size(),
+                            (unsigned int)txhash.size);
+    copy(codeHashPair.txnhash().begin(), codeHashPair.txnhash().begin() + size,
+         txhash.asArray().begin());
+    entry.m_pendingTransactions.emplace(txhash, codeHashPair.code());
   }
 
   LOG_GENERAL(INFO, entry << endl << " Txns: " << txnsCount);
