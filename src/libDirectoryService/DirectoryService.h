@@ -525,6 +525,9 @@ class DirectoryService : public Executable {
   /// Force multicast when sending block to shard
   std::atomic<bool> m_forceMulticast{};
 
+  /// microblock_gas_limit to be adjusted due to vc
+  uint64_t m_microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
+
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
   DirectoryService(Mediator& mediator);

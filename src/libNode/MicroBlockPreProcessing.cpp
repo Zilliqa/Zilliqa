@@ -51,7 +51,7 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-bool Node::ComposeMicroBlock() {
+bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlock not expected to be called from "
@@ -64,7 +64,7 @@ bool Node::ComposeMicroBlock() {
   // TxBlockHeader
   const uint32_t version = MICROBLOCK_VERSION;
   const uint32_t shardId = m_myshardId;
-  const uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
+  const uint64_t gasLimit = microblock_gas_limit;
   const uint64_t gasUsed = m_gasUsedTotal;
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
@@ -265,7 +265,8 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
   }
 }
 
-void Node::ProcessTransactionWhenShardLeader() {
+void Node::ProcessTransactionWhenShardLeader(
+    const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
@@ -318,31 +319,6 @@ void Node::ProcessTransactionWhenShardLeader() {
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-
-  uint64_t microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
-
-  // Adjust gas limit if there were finalblock view change in DS committee
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
-    BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
-    VCBlockSharedPtr prevVCBlockptr;
-    if (m_mediator.m_ds->CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
-      if (m_mediator.m_ds->m_viewChangestate ==
-              DirectoryService::FINALBLOCK_CONSENSUS ||
-          m_mediator.m_ds->m_viewChangestate ==
-              DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
-        for (unsigned int i = 0;
-             i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
-          if (!SafeMath<uint64_t>::div(microblock_gas_limit, 2,
-                                       microblock_gas_limit)) {
-            LOG_GENERAL(WARNING, "microblock_gas_limit " << microblock_gas_limit
-                                                         << " div 2 failed");
-            break;
-          }
-        }
-      }
-    }
-  }
 
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
@@ -519,7 +495,8 @@ void Node::UpdateProcessedTransactions() {
   }
 }
 
-void Node::ProcessTransactionWhenShardBackup() {
+void Node::ProcessTransactionWhenShardBackup(
+    const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
@@ -573,31 +550,6 @@ void Node::ProcessTransactionWhenShardBackup() {
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
-
-  uint64_t microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
-
-  // Adjust gas limit if there were finalblock view change in DS committee
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
-    BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
-    VCBlockSharedPtr prevVCBlockptr;
-    if (m_mediator.m_ds->CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
-      if (m_mediator.m_ds->m_viewChangestate ==
-              DirectoryService::FINALBLOCK_CONSENSUS ||
-          m_mediator.m_ds->m_viewChangestate ==
-              DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
-        for (unsigned int i = 0;
-             i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
-          if (!SafeMath<uint64_t>::div(microblock_gas_limit, 2,
-                                       microblock_gas_limit)) {
-            LOG_GENERAL(WARNING, "microblock_gas_limit " << microblock_gas_limit
-                                                         << " div 2 failed");
-            break;
-          }
-        }
-      }
-    }
-  }
 
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
@@ -1114,12 +1066,21 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
   return LEGITIMACYRESULT::SUCCESS;
 }
 
-bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
+bool Node::CheckMicroBlockHashes(bytes& errorMsg,
+                                 const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockHashes not expected to be called "
                 "from LookUp node");
     return true;
+  }
+
+  if (microblock_gas_limit != m_microblock->GetHeader().GetGasLimit()) {
+    LOG_GENERAL(WARNING, "Gas limit check failed. expected: "
+                             << microblock_gas_limit << " actual: "
+                             << m_microblock->GetHeader().GetGasLimit());
+    m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASLIMIT);
+    return false;
   }
 
   // Check transaction hashes (number of hashes must be = Tx count field)
@@ -1271,7 +1232,8 @@ bool Node::CheckMicroBlockTranReceiptHash() {
   return true;
 }
 
-bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
+bool Node::CheckMicroBlockValidity(bytes& errorMsg,
+                                   const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockValidity not expected to "
@@ -1282,7 +1244,8 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
   LOG_MARKER();
 
   return CheckMicroBlockVersion() && CheckMicroBlockshardId() &&
-         CheckMicroBlockTimestamp() && CheckMicroBlockHashes(errorMsg) &&
+         CheckMicroBlockTimestamp() &&
+         CheckMicroBlockHashes(errorMsg, microblock_gas_limit) &&
          CheckMicroBlockTxnRootHash() && CheckMicroBlockStateDeltaHash() &&
          CheckMicroBlockTranReceiptHash();
 
