@@ -230,12 +230,14 @@ def generate_payload(params, methodName, id = 1):
 
 def GetCurrentTxBlockNum():
 	loaded_json = get_response([], 'GetEpochFin', '127.0.0.1', 4301)
+	blockNum = -1
+	if loaded_json == None:
+		return blockNum
 	val = loaded_json["result"]
 	if (val != None and val != ''):
 		blockNum = int(val) - 1 # -1 because we need TxBlockNum (not epochnum)
-	else:
-		blockNum = -1
 	return blockNum
+
 def send_report(msg, url):
         post = {'text': '```' + msg + '```'}
         json_data = json.dumps(post)
@@ -286,7 +288,7 @@ def shallStart():
 	result =  False, -1
 	curr_blockNum = GetCurrentTxBlockNum()
 	if (curr_blockNum == -1):
-		SendAlertIfInactive(blockNum)
+		SendAlertIfInactive(curr_blockNum)
 		return False, -1
 
 	# next expected txBlock to start this script
