@@ -341,6 +341,25 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "The sender of the txn has no balance");
   }
+  const auto type = Transaction::GetTransactionType(tx);
+
+  if (type == Transaction::ContractType::CONTRACT_CALL &&
+      (tx.GetGasLimit() < CONTRACT_INVOKE_GAS)) {
+    throw JsonRpcException(
+        RPC_INVALID_PARAMETER,
+        "Gas limit lower than required for invoking contract");
+  }
+
+  if (type == Transaction::ContractType::CONTRACT_CREATION &&
+      (tx.GetGasLimit() < CONTRACT_CREATE_GAS)) {
+    throw JsonRpcException(
+        RPC_INVALID_PARAMETER,
+        "Gas limit lower than required for creating contract");
+  }
+
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Nonce too low");
+  }
 
   if (num_shards == 0) {
     throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
