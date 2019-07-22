@@ -732,7 +732,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 
 bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                          const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const uint128_t& ipAddr, const PubKey& pubKey,
+                         const Peer& peer, const PubKey& pubKey,
                          uint32_t lookupId, const uint128_t& gasPrice) {
   bytes vec;
   for (const auto& s1 : rand1) {
@@ -743,10 +743,7 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
     vec.push_back(s1);
   }
 
-  bytes ipAddrVec;
-  Serializable::SetNumber<uint128_t>(ipAddrVec, 0, ipAddr, UINT128_SIZE);
-  vec.insert(std::end(vec), std::begin(ipAddrVec), std::end(ipAddrVec));
-
+  peer.Serialize(vec, vec.size());
   pubKey.Serialize(vec, vec.size());
 
   Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId,
@@ -761,11 +758,10 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 
 ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
-    const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
-    const uint128_t& gasPrice) {
+    const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
+    const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice) {
   bytes sha2_result =
-      ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
+      ConcatAndhash(rand1, rand2, peer, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
   std::string output;
