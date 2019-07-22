@@ -145,7 +145,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 	if(blockNum % NUM_FINAL_BLOCK_PER_POW == 0 or (lastBlockNum == 0)):
 		# we dont need to upload diff here. Instead complete stateDelta
 		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
-		tf.add("persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
+		tf.add("temp/persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
 		tf.close()
 		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
