@@ -367,6 +367,7 @@ extern const unsigned int ACCOUNT_IO_BATCH_SIZE;
 extern const bool ENABLE_REPOPULATE;
 extern const unsigned int REPOPULATE_STATE_PER_N_DS;
 extern const unsigned int REPOPULATE_STATE_IN_DS;
+extern const unsigned int NUM_STORE_TX_BODIES;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
