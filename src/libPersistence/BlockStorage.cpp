@@ -113,6 +113,15 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
   return (ret == 0);
 }
 
+bool BlockStorage::PutTxBodyTmp(const dev::h256& key, const bytes& body) {
+  int ret;
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+    ret = m_txBodyTmpDB->Insert(key, body);
+  }
+  return (ret == 0);
+}
+
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const bytes& body) {
   unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
@@ -1483,11 +1492,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
-           ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT);
+           ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
+           ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) &
+           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
+           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
@@ -1505,11 +1514,12 @@ bool BlockStorage::ResetAll() {
 bool BlockStorage::RefreshAll() {
   if (!LOOKUP_NODE_MODE) {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-           RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
-           RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
-           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+           RefreshDB(TX_BODY) & RefreshDB(MICROBLOCK) &
+           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
+           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
+           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {

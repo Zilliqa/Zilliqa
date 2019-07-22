@@ -107,6 +107,7 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
         m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
+        m_txBodyTmpDB(std::make_shared<LevelDB>("txBodiesTmp")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
@@ -123,7 +124,6 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
-      m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
     }
   };
   ~BlockStorage() = default;
@@ -173,6 +173,8 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Adds a transaction body to storage.
   bool PutTxBody(const dev::h256& key, const bytes& body);
+
+  bool PutTxBodyTmp(const dev::h256& key, const bytes& body);
 
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);

@@ -485,9 +485,20 @@ void Node::UpdateProcessedTransactions() {
     m_createdTxns = move(t_createdTxns);
     t_createdTxns.clear();
   }
+  int NUM_STORE_TX_BODIES = 0;
+  if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES == 0) {
+    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
+  }
 
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
+
+    for (const auto& hashTxnPair : t_processedTransactions) {
+      bytes serializedTxn;
+      hashTxnPair.second.Serialize(serializedTxn, 0);
+      BlockStorage::GetBlockStorage().PutTxBodyTmp(hashTxnPair.first,
+                                                   serializedTxn);
+    }
     m_processedTransactions[m_mediator.m_currentEpochNum] =
         move(t_processedTransactions);
     t_processedTransactions.clear();
