@@ -465,7 +465,7 @@ class Node : public Executable {
   bool StartRetrieveHistory(const SyncType syncType,
                             bool rejoiningAfterRecover = false);
 
-  bool CheckIntegrity();
+  bool CheckIntegrity(bool continueOnError = false);
 
   bool ValidateDB();
 
