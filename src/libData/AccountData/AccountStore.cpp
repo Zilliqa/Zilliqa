@@ -310,10 +310,7 @@ bool AccountStore::RepopulateStateTrie() {
     }
   }
 
-  {
-    lock_guard<mutex> g(m_mutexDB);
-    m_db.ResetDB();
-  }
+  m_db.ResetDB();
   InitTrie();
 
   if (batched_once) {
