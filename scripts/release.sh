@@ -291,8 +291,9 @@ BUCKET_NAME = '$release_bucket_name'
 
 transfer = boto3.client('s3')
 key = sys.argv[1]
+prefix_key="release/"+key
 print(key)
-transfer.upload_file(key, BUCKET_NAME, key,ExtraArgs={'ACL':'public-read'})
+transfer.upload_file(key, BUCKET_NAME, prefix_key,ExtraArgs={'ACL':'public-read'})
 print("Uploaded")
 
 EOF
