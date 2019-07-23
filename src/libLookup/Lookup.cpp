@@ -3233,6 +3233,10 @@ bool Lookup::CleanVariables() {
     return true;
   }
 
+#if 1  // clark
+  m_seedNodes.clear();
+#endif
+
   m_currDSExpired = false;
   m_startedTxnBatchThread = false;
   m_isFirstLoop = true;

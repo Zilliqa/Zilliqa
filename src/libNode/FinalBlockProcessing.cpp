@@ -615,9 +615,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
         RejoinAsNormal();
       } else if (ARCHIVAL_LOOKUP) {
         m_mediator.m_lookup->RejoinAsNewLookup();
+#if 1  // clark
       } else {
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_mediator.m_lookup->StartSynchronization();
+#endif
       }
     }
     return false;
