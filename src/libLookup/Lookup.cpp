@@ -2872,19 +2872,31 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
 
   if (blockNumber !=
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-    LOG_EPOCH(
-        WARNING, m_mediator.m_currentEpochNum,
-        "DS block " << blockNumber
-                    << " in GetStartPoWFromSeed not equal to current DS block "
-                    << m_mediator.m_dsBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum());
+    LOG_CHECK_FAIL(
+        "GetStartPoWFromSeed current DS block", blockNumber,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
     return false;
   }
 
-  // Add this requesting peer to our list
-  lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
-  m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
+  // If already in PoW state, just respond immediately
+  // Otherwise, add this requesting peer to the list
+  if (m_receivedRaiseStartPoW.load()) {
+    bytes setstartpow_message = {MessageType::LOOKUP,
+                                 LookupInstructionType::SETSTARTPOWFROMSEED};
+    if (!Messenger::SetLookupSetStartPoWFromSeed(
+            setstartpow_message, MessageOffset::BODY,
+            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Messenger::SetLookupSetStartPoWFromSeed failed.");
+      return false;
+    }
+
+    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+                                       setstartpow_message);
+  } else {
+    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
+    m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
+  }
 
   return true;
 }
