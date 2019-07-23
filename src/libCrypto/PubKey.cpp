@@ -193,3 +193,5 @@ bool PubKey::operator==(const PubKey& r) const {
   return comparePreChecks(r, lhs_bnvalue, rhs_bnvalue) &&
          BN_cmp(lhs_bnvalue.get(), rhs_bnvalue.get()) == 0;
 }
+
+bool PubKey::operator!=(const PubKey& r) const { return !(*this == r); }
