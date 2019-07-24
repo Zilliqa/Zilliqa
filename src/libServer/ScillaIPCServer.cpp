@@ -28,7 +28,7 @@ ScillaIPCServer::ScillaIPCServer(UnixDomainSocketServer &server,
     : AbstractServer<ScillaIPCServer>(server, JSONRPC_SERVER_V2) {
   this->bindAndAddMethod(
       Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_BOOLEAN, "query",
-                JSON_STRING, "value", JSON_STRING, NULL),
+                JSON_STRING, NULL),
       &ScillaIPCServer::fetchStateValueI);
 
   this->bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, "query",
@@ -37,7 +37,7 @@ ScillaIPCServer::ScillaIPCServer(UnixDomainSocketServer &server,
 
   this->bindAndAddMethod(
       Procedure("testServerRPC", PARAMS_BY_NAME, JSON_STRING, "query",
-                JSON_STRING, "value", JSON_STRING, NULL),
+                JSON_STRING, NULL),
       &ScillaIPCServer::testServerRPCI);
 
   this->contract_address = contract_address;
@@ -51,14 +51,18 @@ dev::h160 ScillaIPCServer::getContractAddress() {
   return this->contract_address;
 }
 
-bool ScillaIPCServer::fetchStateValue(const string &query,
-                                      const string &value) {
-  const bytes &converted_value = DataConversion::StringToCharArray(value);
-  bytes &non_const_value = *(const_cast<bytes *>(&converted_value));
-  return ContractStorage2::GetContractStorage().FetchStateValue(
+string ScillaIPCServer::fetchStateValue(const string &query) {
+  bytes destination;
+  bool result = ContractStorage2::GetContractStorage().FetchStateValue(
       this->getContractAddress(), DataConversion::StringToCharArray(query), 0,
-      non_const_value, 0);
+      destination, 0);
+  if (result) {
+    return DataConversion::CharArrayToString(destination);
+  } else {
+    return DEFAULT_ERROR_MESSAGE;
+  }
 }
+
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage2::GetContractStorage().UpdateStateValue(
@@ -70,7 +74,6 @@ bool ScillaIPCServer::testServer() {
   return ContractStorage2::GetContractStorage().checkIfAlive();
 }
 
-string ScillaIPCServer::testServerRPC(const string &query,
-                                      const string &value) {
-  return ("Query = " + query + " & Value = " + value);
+string ScillaIPCServer::testServerRPC(const string &query) {
+  return "Query = " + query;
 }

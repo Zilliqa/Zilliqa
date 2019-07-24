@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 
 BOOST_AUTO_TEST_CASE(test_contract_storage2_call) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s("/tmp/scillaipcservertestsocket1");
+  UnixDomainSocketServer s("/tmp/scillaipcservertestsocket");
   ScillaIPCServer server(s, dev::h160());
   LOG_GENERAL(INFO, "Test ScillaIPCServer initialization done!");
   BOOST_CHECK_MESSAGE(server.testServer(),
@@ -50,11 +50,11 @@ BOOST_AUTO_TEST_CASE(test_rpc) {
   Client c(client);
   Json::Value params;
   params["query"] = "testQuery";
-  params["value"] = "testValue";
   LOG_GENERAL(INFO, "About to call server method");
   BOOST_CHECK_MESSAGE(c.CallMethod("testServerRPC", params) ==
-                          "Query = testQuery & Value = testValue",
+                          "Query = testQuery",
                       "Server should be able to respond to RPC calls");
+  getchar();
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer RPC done!");
 }

@@ -24,15 +24,14 @@
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  private:
   dev::h160 contract_address;
-
+  string DEFAULT_ERROR_MESSAGE = "ERROR";
  public:
   ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server,
                   const dev::h160 &contract_address);
 
   inline void fetchStateValueI(const Json::Value &request,
                                Json::Value &response) {
-    response = this->fetchStateValue(request["query"].asString(),
-                                     request["value"].asString());
+    response = this->fetchStateValue(request["query"].asString());
   }
 
   inline void updateStateValueI(const Json::Value &request,
@@ -40,7 +39,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
     response = this->updateStateValue(request["query"].asString(),
                                       request["value"].asString());
   }
-  bool fetchStateValue(const std::string &query, const std::string &value);
+  bool fetchStateValue(const std::string &query);
   bool updateStateValue(const std::string &query, const std::string &value);
   void setContractAddress(dev::h160 &address);
   dev::h160 getContractAddress();
@@ -48,11 +47,10 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   // TODO: Remove once the relevant methods in ContractStorage2 are complete
   inline void testServerRPCI(const Json::Value &request,
                              Json::Value &response) {
-    response = this->testServerRPC(request["query"].asString(),
-                                   request["value"].asString());
+    response = this->testServerRPC(request["query"].asString());
   }
   bool testServer();
-  std::string testServerRPC(const std::string &query, const std::string &value);
+  std::string testServerRPC(const std::string &query);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
