@@ -1101,6 +1101,8 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
 void DirectoryService::CalculateCurrentDSMBGasLimit() {
   LOG_MARKER();
   // Adjust gas limit if there were finalblock view change in DS committee
+  // The gas limit revised with be the default microblock gas limit times
+  // 1/2 by current vc_count
   uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
   BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
   VCBlockSharedPtr prevVCBlockptr;
