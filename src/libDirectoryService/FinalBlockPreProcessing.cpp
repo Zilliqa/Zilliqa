@@ -206,8 +206,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
             "I am the leader DS node. Creating final block");
 
   if (m_mediator.ToProcessTransaction()) {
-    m_mediator.m_node->ProcessTransactionWhenShardLeader(
-        m_microBlockGasLimit);
+    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;
@@ -1033,8 +1032,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   }
 #endif  // VC_TEST_VC_PRECHECK_2
   if (m_mediator.ToProcessTransaction()) {
-    m_mediator.m_node->ProcessTransactionWhenShardBackup(
-        m_microBlockGasLimit);
+    m_mediator.m_node->ProcessTransactionWhenShardBackup(m_microBlockGasLimit);
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1115,9 +1113,8 @@ void DirectoryService::CalculateCurrentDSMBGasLimit() {
            i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
         if (!SafeMath<uint64_t>::div(m_microBlockGasLimit, 2,
                                      m_microBlockGasLimit)) {
-          LOG_GENERAL(WARNING, "m_microBlockGasLimit "
-                                   << m_microBlockGasLimit
-                                   << " div 2 failed");
+          LOG_GENERAL(WARNING, "m_microBlockGasLimit " << m_microBlockGasLimit
+                                                       << " div 2 failed");
           break;
         }
       }

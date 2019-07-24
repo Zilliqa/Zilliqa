@@ -294,8 +294,8 @@ class Node : public Executable {
   bool CheckMicroBlockVersion();
   bool CheckMicroBlockshardId();
   bool CheckMicroBlockTimestamp();
-  bool CheckMicroBlockHashes(bytes& errorMsg,
-                             const uint64_t& microblock_gas_limit);
+  bool CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit);
+  bool CheckMicroBlockHashes(bytes& errorMsg);
   bool CheckMicroBlockTxnRootHash();
   bool CheckMicroBlockStateDeltaHash();
   bool CheckMicroBlockTranReceiptHash();

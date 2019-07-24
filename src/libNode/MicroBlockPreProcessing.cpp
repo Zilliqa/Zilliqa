@@ -1059,8 +1059,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
   return LEGITIMACYRESULT::SUCCESS;
 }
 
-bool Node::CheckMicroBlockHashes(bytes& errorMsg,
-                                 const uint64_t& microblock_gas_limit) {
+bool Node::CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockHashes not expected to be called "
@@ -1074,6 +1073,17 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg,
                              << m_microblock->GetHeader().GetGasLimit());
     m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASLIMIT);
     return false;
+  }
+
+  return true;
+}
+
+bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CheckMicroBlockHashes not expected to be called "
+                "from LookUp node");
+    return true;
   }
 
   // Check transaction hashes (number of hashes must be = Tx count field)
@@ -1238,9 +1248,9 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg,
 
   return CheckMicroBlockVersion() && CheckMicroBlockshardId() &&
          CheckMicroBlockTimestamp() &&
-         CheckMicroBlockHashes(errorMsg, microblock_gas_limit) &&
-         CheckMicroBlockTxnRootHash() && CheckMicroBlockStateDeltaHash() &&
-         CheckMicroBlockTranReceiptHash();
+         CheckMicroBlockGasLimit(microblock_gas_limit) &&
+         CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
+         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)
