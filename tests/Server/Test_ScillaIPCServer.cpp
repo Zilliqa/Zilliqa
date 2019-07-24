@@ -51,10 +51,9 @@ BOOST_AUTO_TEST_CASE(test_rpc) {
   Json::Value params;
   params["query"] = "testQuery";
   LOG_GENERAL(INFO, "About to call server method");
-  BOOST_CHECK_MESSAGE(c.CallMethod("testServerRPC", params) ==
-                          "Query = testQuery",
-                      "Server should be able to respond to RPC calls");
-  getchar();
+  BOOST_CHECK_MESSAGE(
+      c.CallMethod("testServerRPC", params) == "Query = testQuery",
+      "Server should be able to respond to RPC calls");
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer RPC done!");
 }

@@ -24,7 +24,8 @@
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  private:
   dev::h160 contract_address;
-  string DEFAULT_ERROR_MESSAGE = "ERROR";
+  std::string DEFAULT_ERROR_MESSAGE = "ERROR";
+
  public:
   ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server,
                   const dev::h160 &contract_address);
@@ -39,7 +40,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
     response = this->updateStateValue(request["query"].asString(),
                                       request["value"].asString());
   }
-  bool fetchStateValue(const std::string &query);
+  std::string fetchStateValue(const std::string &query);
   bool updateStateValue(const std::string &query, const std::string &value);
   void setContractAddress(dev::h160 &address);
   dev::h160 getContractAddress();

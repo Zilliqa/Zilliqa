@@ -26,19 +26,17 @@ using namespace Contract;
 ScillaIPCServer::ScillaIPCServer(UnixDomainSocketServer &server,
                                  const dev::h160 &contract_address)
     : AbstractServer<ScillaIPCServer>(server, JSONRPC_SERVER_V2) {
-  this->bindAndAddMethod(
-      Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_BOOLEAN, "query",
-                JSON_STRING, NULL),
-      &ScillaIPCServer::fetchStateValueI);
+  this->bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME,
+                                   JSON_BOOLEAN, "query", JSON_STRING, NULL),
+                         &ScillaIPCServer::fetchStateValueI);
 
   this->bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, "query",
                                    JSON_STRING, "value", JSON_STRING, NULL),
                          &ScillaIPCServer::updateStateValueI);
 
-  this->bindAndAddMethod(
-      Procedure("testServerRPC", PARAMS_BY_NAME, JSON_STRING, "query",
-                JSON_STRING, NULL),
-      &ScillaIPCServer::testServerRPCI);
+  this->bindAndAddMethod(Procedure("testServerRPC", PARAMS_BY_NAME, JSON_STRING,
+                                   "query", JSON_STRING, NULL),
+                         &ScillaIPCServer::testServerRPCI);
 
   this->contract_address = contract_address;
 }
@@ -59,7 +57,7 @@ string ScillaIPCServer::fetchStateValue(const string &query) {
   if (result) {
     return DataConversion::CharArrayToString(destination);
   } else {
-    return DEFAULT_ERROR_MESSAGE;
+    return ScillaIPCServer::DEFAULT_ERROR_MESSAGE;
   }
 }
 
