@@ -207,7 +207,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardLeader(
-        m_microblock_gas_limit);
+        m_microBlockGasLimit);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;
@@ -215,7 +215,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   }
   AccountStore::GetInstance().CommitTempRevertible();
 
-  if (!m_mediator.m_node->ComposeMicroBlock(m_microblock_gas_limit)) {
+  if (!m_mediator.m_node->ComposeMicroBlock(m_microBlockGasLimit)) {
     LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
     m_mediator.m_node->m_microblock = nullptr;
   } else {
@@ -909,7 +909,7 @@ bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
   }
 
   if (ret && !m_mediator.m_node->CheckMicroBlockValidity(
-                 errorMsg, m_microblock_gas_limit)) {
+                 errorMsg, m_microBlockGasLimit)) {
     LOG_GENERAL(WARNING, "Microblock validation failed");
     ret = false;
   }
@@ -1034,7 +1034,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 #endif  // VC_TEST_VC_PRECHECK_2
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardBackup(
-        m_microblock_gas_limit);
+        m_microBlockGasLimit);
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1113,17 +1113,17 @@ void DirectoryService::CalculateCurrentDSMBGasLimit() {
             DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
       for (unsigned int i = 0;
            i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
-        if (!SafeMath<uint64_t>::div(m_microblock_gas_limit, 2,
-                                     m_microblock_gas_limit)) {
-          LOG_GENERAL(WARNING, "m_microblock_gas_limit "
-                                   << m_microblock_gas_limit
+        if (!SafeMath<uint64_t>::div(m_microBlockGasLimit, 2,
+                                     m_microBlockGasLimit)) {
+          LOG_GENERAL(WARNING, "m_microBlockGasLimit "
+                                   << m_microBlockGasLimit
                                    << " div 2 failed");
           break;
         }
       }
       LOG_GENERAL(INFO,
-                  "m_microblock_gas_limit: "
-                      << m_microblock_gas_limit << " MICROBLOCK_GAS_LIMIT: "
+                  "m_microBlockGasLimit: "
+                      << m_microBlockGasLimit << " MICROBLOCK_GAS_LIMIT: "
                       << MICROBLOCK_GAS_LIMIT << " vccounter: "
                       << prevVCBlockptr->GetHeader().GetViewChangeCounter());
     }
@@ -1173,7 +1173,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     LOG_GENERAL(INFO, "RunConsensusOnFinalBlock ");
     PrepareRunConsensusOnFinalBlockNormal();
 
-    m_microblock_gas_limit = MICROBLOCK_GAS_LIMIT;
+    m_microBlockGasLimit = MICROBLOCK_GAS_LIMIT;
     // checking whether process transaction
     if (m_mediator.ToProcessTransaction()) {
       CalculateCurrentDSMBGasLimit();
