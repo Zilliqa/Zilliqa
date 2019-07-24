@@ -420,6 +420,7 @@ class DirectoryService : public Executable {
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
+  void CalculateCurrentDSMBGasLimit();
 
   void ReloadGuardedShards(DequeOfShard& shards);
 

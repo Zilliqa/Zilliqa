@@ -718,14 +718,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   m_txn_distribute_window_open = false;
 
-  if (!m_mediator.GetIsVacuousEpoch() &&
-      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-            TXN_SHARD_TARGET_DIFFICULTY &&
-        m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
-       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-           TXN_DS_TARGET_NUM)) {
+  if (m_mediator.ToProcessTransaction()) {
     ProcessTransactionWhenShardLeader();
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
