@@ -345,24 +345,25 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
       (tx.GetGasLimit() < CONTRACT_INVOKE_GAS)) {
-    throw JsonRpcException(
-        RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) + ") lower than minimum for invoking contract (" +
-            to_string(CONTRACT_INVOKE_GAS) + ")");
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                               ") lower than minimum for invoking contract (" +
+                               to_string(CONTRACT_INVOKE_GAS) + ")");
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-      (tx.GetGasLimit() < CONTRACT_CREATE_GAS)) {
-    throw JsonRpcException(
-        RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) + ") lower than minimum for creating contract (" +
-            to_string(CONTRACT_CREATE_GAS) + ")");
+           (tx.GetGasLimit() < CONTRACT_CREATE_GAS)) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                               ") lower than minimum for creating contract (" +
+                               to_string(CONTRACT_CREATE_GAS) + ")");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(
-        RPC_INVALID_PARAMETER,
-        "Nonce (" + to_string(tx.GetNonce()) + ") lower than current (" + to_string(sender->GetNonce()) + ")");
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
   }
 
   if (num_shards == 0) {
