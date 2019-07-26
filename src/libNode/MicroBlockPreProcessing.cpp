@@ -1062,15 +1062,14 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
 bool Node::CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Node::CheckMicroBlockHashes not expected to be called "
+                "Node::CheckMicroBlockGasLimit not expected to be called "
                 "from LookUp node");
     return true;
   }
 
   if (microblock_gas_limit != m_microblock->GetHeader().GetGasLimit()) {
-    LOG_GENERAL(WARNING, "Gas limit check failed. expected: "
-                             << microblock_gas_limit << " actual: "
-                             << m_microblock->GetHeader().GetGasLimit());
+    LOG_CHECK_FAIL("Gas limit", m_microblock->GetHeader().GetGasLimit(),
+                   microblock_gas_limit);
     m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASLIMIT);
     return false;
   }
