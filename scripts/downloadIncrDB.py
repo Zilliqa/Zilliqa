@@ -25,6 +25,7 @@ import time
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Lock
+import hashlib
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -98,25 +99,47 @@ def GetAllObjectsFromS3(url, folderName=""):
 	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
 	return 0
 
+def md5(fname):
+		hash_md5 = hashlib.md5()
+		with open(fname, "rb") as f:
+			for chunk in iter(lambda: f.read(4096), b""):
+				hash_md5.update(chunk)
+		return hash_md5.hexdigest()
+
 def GetPersistenceKey(key_url):
-	response = requests.get(key_url, stream=True)
-	filename = key_url.replace(key_url[:key_url.index(TESTNET_NAME+"/")+len(TESTNET_NAME+"/")],"").strip()
+	retry_counter = 0
+	while True:
+		response = requests.get(key_url, stream=True)
+		filename = key_url.replace(key_url[:key_url.index(TESTNET_NAME+"/")+len(TESTNET_NAME+"/")],"").strip()
 
-	dirname = os.path.dirname(filename).strip()
-	if dirname != "":
-		mutex.acquire()
-		if not os.path.exists(dirname):
-			os.makedirs(dirname)
-		mutex.release()
+		dirname = os.path.dirname(filename).strip()
+		if dirname != "":
+			mutex.acquire()
+			if not os.path.exists(dirname):
+				os.makedirs(dirname)
+			mutex.release()
 
-	with open(filename,'wb') as f:
-		total_length = response.headers.get('content-length')
-		total_length = int(total_length)
-		for chunk in progress.bar(response.iter_content(chunk_size=CHUNK_SIZE), expected_size=(total_length/CHUNK_SIZE) + 1):
-			if chunk:
-				f.write(chunk)
-				f.flush()
-		print("[" + str(datetime.datetime.now()) + "]"+" Downloaded " + filename + " successfully")
+		with open(filename,'wb') as f:
+			total_length = response.headers.get('content-length')
+			total_length = int(total_length)
+			md5_hash = response.headers.get('ETag').strip('"') 
+			for chunk in progress.bar(response.iter_content(chunk_size=CHUNK_SIZE), expected_size=(total_length/CHUNK_SIZE) + 1):
+				if chunk:
+					f.write(chunk)
+					f.flush()
+			print("[" + str(datetime.datetime.now()) + "]"+" Downloaded " + filename + " successfully")
+		calc_md5_hash = md5(filename)
+		if calc_md5_hash != md5_hash:
+			print("md5 checksum mismatch. Expected: " + md5_hash + ", Actual: " + calc_md5_hash)
+			os.remove(filename)
+			retry_counter += 1
+			if retry_counter > 3:
+				print("Giving up after " + str(retry_counter) + " retries for file: " + filename + " ! Please check with support team.")
+				time.sleep(5)
+				os._exit(1)
+			print("[Retry: " + str(retry_counter) + "] Downloading again " + filename)
+		else:
+			break
 
 def CleanupDir(folderName):
 	if os.path.exists(folderName):
