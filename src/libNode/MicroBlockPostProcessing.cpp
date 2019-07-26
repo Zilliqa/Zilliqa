@@ -35,7 +35,6 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"

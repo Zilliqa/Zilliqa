@@ -407,6 +407,8 @@ class Lookup : public Executable {
 
   bool AlreadyJoinedNetwork();
 
+  void RemoveSeedNodeFromBlackList();
+
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
 };

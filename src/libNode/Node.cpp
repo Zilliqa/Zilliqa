@@ -573,6 +573,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   // Add ds guard nodes to blacklist exclusion list
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
+  m_mediator.m_lookup->RemoveSeedNodeFromBlackList();
 
   if (SyncType::RECOVERY_ALL_SYNC == syncType) {
     Blacklist::GetInstance().Enable(false);

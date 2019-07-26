@@ -368,6 +368,7 @@ void DirectoryService::StartFirstTxEpoch() {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
+  m_mediator.m_lookup->RemoveSeedNodeFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
