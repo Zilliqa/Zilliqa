@@ -495,3 +495,80 @@ void AccountStore::RevertCommitTemp() {
 
   ContractStorage::GetContractStorage().RevertContractStates();
 }
+
+bool AccountStore::MigrateContractStates() {
+  LOG_MARKER();
+
+  std::function<bool(const string&, const Json::Value&, map<string, bytes>&)> mapHandler = 
+  [&](const string& key, const Json::Value& j_value, map<string, bytes>& t_states) -> bool {
+    for (const auto& map_entry : j_value) {
+      if (j_value.empty()) {
+        // make an empty protobuf scilla map value object
+        return true;
+      }
+
+      if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
+        LOG_GENERAL(WARNING, "Invalid map entry: " << map_entry.asString());
+        return false;
+      } else {
+        string new_key(key);
+        new_key += "." + map_entry["key"].asString();
+        if (map_entry["val"].type() != Json::arrayValue) {
+          t_states.emplace(new_key, DataConversion::StringToCharArray(map_entry["val"].asString()));
+        } else {
+          return mapHandler(new_key, map_entry["val"], t_states);
+        }
+        return true;
+      }
+    }
+    return true;
+  };
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return false;
+    }
+    if (account.isContract()) {
+      account.SetAddress(address);
+    } else {
+      continue;
+    }
+
+    map<string, bytes> t_states;
+
+    for (const auto& index : account.GetStorageKeyHashes()) {
+      string raw_val = account.GetRawStorage(index, false);
+      Json::Value json_val;
+      if (!JSONUtils::GetInstance().convertStrtoJson(raw_val, json_val)) {
+        LOG_GENERAL(WARNING, "Convert string to Json failed for: " << endl << raw_val);
+      }
+
+      string key = i.first.hex();
+
+      // check if complementary field exists
+      if (!(json_val.isMember("vname") && json_val.isMember("type") && json_val.isMember("value"))) {
+        LOG_GENERAL(WARNING, "Entry doesn't meet valid format: " << endl << raw_val);
+        return false;
+      } else {
+        key += "." + json_val["vname"].asString();
+        if(json_val["value"].type() != Json::arrayValue) {
+          // compose index and store value into new db
+          t_states.emplace(key, DataConversion::StringToCharArray(json_val["value"].asString()));
+        } else {
+          if (!mapHandler(key, json_val["value"], t_states)) {
+            LOG_GENERAL(WARNING, "failed to parse map value for: " << json_val["value"].asString());
+            return false;
+          }
+        }
+      }
+    }
+
+    account.UpdateStates(address, t_states, {}, false);
+  }
+
+  return true;
+}
