@@ -219,8 +219,6 @@ void Lookup::SetLookupNodes() {
 }
 
 void Lookup::SetAboveLayer() {
-  LOG_MARKER();
-
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("constants.xml", pt);
@@ -728,8 +726,18 @@ bool Lookup::GetStateDeltasFromSeedNodes(uint64_t lowBlockNum,
 
 {
   LOG_MARKER();
+#if 1  // clark
+  if (m_syncType == SyncType::LOOKUP_SYNC) {
+    SendMessageToRandomLookupNode(
+        ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum));
+  } else {
+    SendMessageToRandomSeedNode(
+        ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum));
+  }
+#else
   SendMessageToRandomSeedNode(
       ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum));
+#endif
   return true;
 }
 
@@ -2058,6 +2066,17 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
+#if 1  // clark
+    } else if (m_syncType == SyncType::LOOKUP_SYNC) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Lookup node - Join back to network now.");
+
+      if (!m_currDSExpired) {
+        if (FinishRejoinAsLookup()) {
+          SetSyncType(SyncType::NO_SYNC);
+        }
+      }
+#endif
     } else if (m_syncType == SyncType::NEW_SYNC ||
                m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
@@ -2972,9 +2991,9 @@ void Lookup::StartSynchronization() {
   }
 
   LOG_MARKER();
-
+#if 0  // clark
   this->CleanVariables();
-
+#endif
   auto func = [this]() -> void {
     GetMyLookupOffline();
     GetDSInfoFromLookupNodes();
@@ -3195,6 +3214,54 @@ void Lookup::RejoinAsNewLookup() {
 }
 
 void Lookup::RejoinAsLookup() {
+#if 1  // clark
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::RejoinAsLookup not expected to be called from "
+                "other than the Lookup node.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    m_lookupServer->StopListening();
+    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+
+    auto func = [this]() mutable -> void {
+      while (true) {
+        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 has failed. Will try again!");
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        }
+
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
+        }
+
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+          return;
+        }
+
+        if (m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true, true)) {
+          break;
+        }
+
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
+
+      StartSynchronization();
+    };
+
+    DetachedFunction(1, func);
+  }
+#else
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::RejoinAsLookup not expected to be called from "
@@ -3212,6 +3279,7 @@ void Lookup::RejoinAsLookup() {
     };
     DetachedFunction(1, func);
   }
+#endif
 }
 
 bool Lookup::FinishRejoinAsLookup() {
@@ -3233,10 +3301,7 @@ bool Lookup::CleanVariables() {
     return true;
   }
 
-#if 1  // clark
   m_seedNodes.clear();
-#endif
-
   m_currDSExpired = false;
   m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
