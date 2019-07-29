@@ -435,8 +435,8 @@ bool Node::CheckIntegrity(bool continueOnError) {
       }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
-        auto tranHashes = mbptr->GetTranHashes();
         if (LOOKUP_NODE_MODE) {
+          auto tranHashes = mbptr->GetTranHashes();
           for (const auto& tranHash : tranHashes) {
             TxBodySharedPtr tx;
             if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
