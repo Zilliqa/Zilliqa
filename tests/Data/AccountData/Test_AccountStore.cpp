@@ -430,7 +430,7 @@ BOOST_AUTO_TEST_CASE(commit) {
   AccountStore::GetInstance().RevertCommitTemp();
 }
 
-void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
+void RunCFContract(Address& contrAddr1, Address& contrAddr2,
                    dev::h256& codeHash1, dev::h256& codeHash2,
                    dev::h256& contrStateHash1, dev::h256& contrStateHash2,
                    bytes& contrCode1, bytes& contrCode2, Json::Value& initJson1,
@@ -443,13 +443,8 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
   PubKey donorPubKey = donor.second;
   Address ownerAddr = Account::GetAddressFromPublicKey(ownerPubKey);
   Address donorAddr = Account::GetAddressFromPublicKey(donorPubKey);
-  if (temp) {
-    AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
-    AccountStore::GetInstance().AddAccountTemp(donorAddr, {2000000, nonce});
-  } else {
-    AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
-    AccountStore::GetInstance().AddAccount(donorAddr, {2000000, nonce});
-  }
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(donorAddr, {2000000, nonce});
 
   contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
 
@@ -476,11 +471,7 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t1.code, data);
   TransactionReceipt tr1;
-  if (temp) {
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
-  } else {
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
-  }
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
   nonce++;
 
   // Execute message_1, the Donate transaction.
@@ -490,23 +481,15 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
   Transaction tx1_1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
                     amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
   TransactionReceipt tr1_1;
-  if (temp) {
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1_1, tr1_1);
-  } else {
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1_1, tr1_1);
-  }
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1_1, tr1_1);
   nonce++;
   Account* account1;
-  if (temp) {
-    account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
-  } else {
-    account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
-  }
+  account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
   codeHash1 = account1->GetCodeHash();
   contrStateHash1 = account1->GetStorageRoot();
   contrCode1 = account1->GetCode();
-  initJson1 = account1->GetInitJson(temp);
-  stateJson1 = account1->GetStateJson(temp);
+  initJson1 = account1->GetInitJson(true);
+  stateJson1 = account1->GetStateJson(true);
   contrBalance = account1->GetBalance();
 
   // Transaction to deploy contract and without invocation
@@ -514,25 +497,17 @@ void RunCFContract(bool temp, Address& contrAddr1, Address& contrAddr2,
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t1.code, data);
   TransactionReceipt tr2;
-  if (temp) {
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2);
-  } else {
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx2, tr2);
-  }
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2);
   nonce++;
   Account* account2;
-  if (temp) {
-    account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
-  } else {
-    account2 = AccountStore::GetInstance().GetAccount(contrAddr2);
-  }
+  account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
   codeHash2 = account2->GetCodeHash();
   contrStateHash2 = account2->GetStorageRoot();
   contrCode2 = account2->GetCode();
-  initJson2 = account2->GetInitJson(temp);
+  initJson2 = account2->GetInitJson(true);
 }
 
-void CheckRFContract(bool temp, const Address& contrAddr1,
+void CheckRFContract(const Address& contrAddr1,
                      const Address& contrAddr2, const dev::h256& codeHash1,
                      const dev::h256& codeHash2,
                      const dev::h256& contrStateHash1,
@@ -543,38 +518,30 @@ void CheckRFContract(bool temp, const Address& contrAddr1,
                      const uint128_t& contrBalance) {
   // Check the contract with invocation
   Account* account1;
-  if (temp) {
-    account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
-  } else {
-    account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
-  }
+  account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
   BOOST_CHECK_MESSAGE(codeHash1 == account1->GetCodeHash(),
                       "CodeHash1 doesn't match");
   BOOST_CHECK_MESSAGE(contrStateHash1 == account1->GetStorageRoot(),
                       "ContrStateHash1 doesn't match");
   BOOST_CHECK_MESSAGE(contrCode1 == account1->GetCode(),
                       "ContrCode1 doesn't match");
-  BOOST_CHECK_MESSAGE(initJson1 == account1->GetInitJson(temp),
+  BOOST_CHECK_MESSAGE(initJson1 == account1->GetInitJson(true),
                       "InitJson1 doesn't match");
-  BOOST_CHECK_MESSAGE(stateJson1 == account1->GetStateJson(temp),
+  BOOST_CHECK_MESSAGE(stateJson1 == account1->GetStateJson(true),
                       "StateJson1 doesn't match");
   BOOST_CHECK_MESSAGE(contrBalance == account1->GetBalance(),
                       "ContrBalance doesn't match");
 
   // Check the contract without invocation
   Account* account2;
-  if (temp) {
-    account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
-  } else {
-    account2 = AccountStore::GetInstance().GetAccount(contrAddr2);
-  }
+  account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
   BOOST_CHECK_MESSAGE(codeHash2 == account2->GetCodeHash(),
                       "CodeHash2 doesn't match");
   BOOST_CHECK_MESSAGE(contrStateHash2 == account2->GetStorageRoot(),
                       "ContrStateHash2 doesn't match");
   BOOST_CHECK_MESSAGE(contrCode2 == account2->GetCode(),
                       "ContrCode2 doesn't match");
-  BOOST_CHECK_MESSAGE(initJson2 == account2->GetInitJson(temp),
+  BOOST_CHECK_MESSAGE(initJson2 == account2->GetInitJson(true),
                       "InitJson2 doesn't match");
 }
 
@@ -598,7 +565,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                   contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                   initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -627,7 +594,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
                       "State root didn't match after deserialize");
 
   if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                     initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -653,7 +620,7 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                   contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                   initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -685,7 +652,7 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
       "address1 in AccountStore has no balance after deserializing delta");
 
   if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                     initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -711,7 +678,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(true, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                   contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                   initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -727,7 +694,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
                       "StateRootHash didn't change after CommitTempRevertible");
 
   if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                     initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -811,7 +778,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                   contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                   initJson1, stateJson1, initJson2, contrBalance);
   }
@@ -836,7 +803,7 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
                       "StateRootHash after RetrieveFromDisk is different");
 
   if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(false, contrAddr1, contrAddr2, codeHash1, codeHash2,
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
                     initJson1, stateJson1, initJson2, contrBalance);
   }

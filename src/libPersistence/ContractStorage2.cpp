@@ -93,8 +93,10 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 
 bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
-                                       unsigned int d_offset) {
+                                       unsigned int d_offset, bool& found) {
   LOG_MARKER();
+
+  found = false;
 
   if (s_offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
@@ -160,7 +162,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   it->Seek({key});
   if (it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
+    return true;
   } else {
+    // found entries
+    found = true;
     for (; it->key().ToString().compare(0, key.size(), key) == 0 && it->Valid();
          it->Next()) {
       auto exist = entries.find(it->key().ToString());
@@ -539,6 +544,10 @@ void ContractStorage2::Reset() {
     m_codeDB.ResetDB();
   }
   {
+    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    m_initDataDB.ResetDB();
+  }
+  {
     unique_lock<shared_timed_mutex> g(m_stateDataMutex);
     m_stateDataDB.ResetDB();
   }
@@ -549,6 +558,10 @@ bool ContractStorage2::RefreshAll() {
   {
     unique_lock<shared_timed_mutex> g(m_codeMutex);
     ret = m_codeDB.RefreshDB();
+  }
+  if (ret) {
+    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    ret = m_initDataDB.RefreshDB();
   }
   if (ret) {
     unique_lock<shared_timed_mutex> g(m_stateDataMutex);

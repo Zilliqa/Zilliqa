@@ -38,6 +38,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/JsonUtils.h"
 
 #include "ScillaTestUtil.h"
 
@@ -91,9 +92,9 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   donor1Addr = Account::GetAddressFromPublicKey(donor1.second);
   donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
-  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
-  AccountStore::GetInstance().AddAccount(donor1Addr, {2000000, nonce});
-  AccountStore::GetInstance().AddAccount(donor2Addr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(donor1Addr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(donor2Addr, {2000000, nonce});
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
@@ -123,8 +124,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t1.code, data);
   TransactionReceipt tr0;
-  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
-  Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
+  Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account != nullptr,
                       "Error with creation of contract account");
@@ -139,19 +140,19 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
   TransactionReceipt tr1;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1)) {
     nonce++;
   }
 
-  uint128_t contrBal = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t contrBal = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call1] Owner balance: "
-                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
   LOG_GENERAL(INFO, "[Call1] Donor1 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call1] Donor2 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
   LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
   BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount,
@@ -175,19 +176,19 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
                   amount2, PRECISION_MIN_VALUE, 5000, {}, dataDonate2);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum2, 1, true, tx2, tr2)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2)) {
     nonce++;
   }
 
-  uint128_t contrBal2 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t contrBal2 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal2 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call2] Owner balance: "
-                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
   LOG_GENERAL(INFO, "[Call2] Donor1 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call2] Donor2 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
   LOG_GENERAL(INFO, "[Call2] Contract balance (blockchain): " << oBal2);
   BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2,
@@ -200,18 +201,18 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3)) {
     nonce++;
   }
-  uint128_t contrBal3 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t contrBal3 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal3 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call3] Owner balance: "
-                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
   LOG_GENERAL(INFO, "[Call3] Donor1 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call3] Donor2 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
   LOG_GENERAL(INFO, "[Call3] Contract balance (blockchain): " << oBal3);
   BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
@@ -234,19 +235,19 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
                   amount4, PRECISION_MIN_VALUE, 5000, {}, data4);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum4, 1, true, tx4, tr4)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum4, 1, true, tx4, tr4)) {
     nonce++;
   }
 
-  uint128_t contrBal4 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t contrBal4 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal4 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call4] Owner balance: "
-                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
   LOG_GENERAL(INFO, "[Call4] Donor1 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call4] Donor2 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call4] Contract balance (blockchain): " << oBal4);
   BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4,
@@ -269,19 +270,19 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount5, PRECISION_MIN_VALUE, 5000, {}, data5);
   TransactionReceipt tr5;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum5, 1, true, tx5, tr5)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum5, 1, true, tx5, tr5)) {
     nonce++;
   }
 
-  uint128_t contrBal5 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t contrBal5 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal5 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call5] Owner balance: "
-                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
   LOG_GENERAL(INFO, "[Call5] Donor1 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call5] Donor2 balance: "
-                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
   LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call5] Contract balance (blockchain): " << oBal4);
   BOOST_CHECK_MESSAGE(contrBal5 == oBal5 && contrBal5 == contrBal4 - amount,
@@ -308,7 +309,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
 
   pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
   pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -336,8 +337,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t0ping.code, dataPing);
   TransactionReceipt tr0;
-  AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx0, tr0);
-  Account* accountPing = AccountStore::GetInstance().GetAccount(pingAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx0, tr0);
+  Account* accountPing = AccountStore::GetInstance().GetAccountTemp(pingAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPing != nullptr,
                       "Error with creation of ping account");
@@ -361,8 +362,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, t0pong.code, dataPong);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx1, tr1);
-  Account* accountPong = AccountStore::GetInstance().GetAccount(pongAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx1, tr1);
+  Account* accountPong = AccountStore::GetInstance().GetAccountTemp(pongAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPong != nullptr,
                       "Error with creation of pong account");
@@ -385,7 +386,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx2, tr2)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx2, tr2)) {
     nonce++;
   }
 
@@ -400,7 +401,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx3, tr3)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx3, tr3)) {
     nonce++;
   }
 
@@ -419,7 +420,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx4, tr4)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx4, tr4)) {
     nonce++;
   }
 
@@ -465,7 +466,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
 
   aAddr = Account::GetAddressForContract(ownerAddr, nonce);
   bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -494,8 +495,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, tContrA.code, dataA);
   TransactionReceipt tr0;
-  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
-  Account* accountA = AccountStore::GetInstance().GetAccount(aAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
+  Account* accountA = AccountStore::GetInstance().GetAccountTemp(aAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
   nonce++;
@@ -516,8 +517,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, tContrB.code, dataB);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
-  Account* accountB = AccountStore::GetInstance().GetAccount(bAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
+  Account* accountB = AccountStore::GetInstance().GetAccountTemp(bAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
   nonce++;
@@ -538,8 +539,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 5000, tContrC.code, dataC);
   TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx2, tr2);
-  Account* accountC = AccountStore::GetInstance().GetAccount(cAddr);
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2);
+  Account* accountC = AccountStore::GetInstance().GetAccountTemp(cAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
   nonce++;
@@ -563,19 +564,19 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
     Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundA;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundA, trFundA);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA, trFundA);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundB;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundB, trFundB);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundB, trFundB);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundC;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txFundC, trFundC);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundC, trFundC);
     nonce++;
   }
 
@@ -593,13 +594,13 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3)) {
     nonce++;
   }
 
-  uint128_t aBal = AccountStore::GetInstance().GetBalance(aAddr);
-  uint128_t bBal = AccountStore::GetInstance().GetBalance(bAddr);
-  uint128_t cBal = AccountStore::GetInstance().GetBalance(cAddr);
+  uint128_t aBal = AccountStore::GetInstance().GetAccountTemp(aAddr)->GetBalance();
+  uint128_t bBal = AccountStore::GetInstance().GetAccountTemp(bAddr)->GetBalance();
+  uint128_t cBal = AccountStore::GetInstance().GetAccountTemp(cAddr)->GetBalance();
 
   LOG_GENERAL(INFO, "Call chain balances obtained: A: "
                         << aBal << ". B: " << bBal << ". C: " << cBal);
@@ -612,6 +613,22 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   /* ------------------------------------------------------------------- */
 }
 
+bool mapHandler(const std::string& index, const Json::Value& s, std::map<std::string, bytes> state_entries) {
+  if (!s.isMember("key") || s.isMember("val")) {
+    return false;
+  }
+  std::string t_index = index + "." + s["key"].asString();
+  if (s["val"] == Json::arrayValue) {
+    for (const auto& v : s["val"]) {
+      mapHandler(t_index, v, state_entries);
+    }
+  } else {
+    state_entries.emplace(t_index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["val"])));
+  }
+  return true;  
+}
+
+// Comment due to deprecated function used
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
@@ -633,7 +650,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
   }
 
   AccountStore::GetInstance().Init();
-  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
 
   for (unsigned int i = 0; i < numDeployments; i++) {
     Address contractAddr = Account::GetAddressForContract(ownerAddr, nonce);
@@ -664,11 +681,11 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
                     500000, t2.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     nonce++;
 
-    Account* account = AccountStore::GetInstance().GetAccount(contractAddr);
+    Account* account = AccountStore::GetInstance().GetAccountTemp(contractAddr);
 
     // We should now have a new account.
     BOOST_CHECK_MESSAGE(account != nullptr,
@@ -703,25 +720,25 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
       }
     }
 
-    std::vector<Contract::StateEntry> state_entries;
+    std::map<std::string, bytes> state_entries;
     // save the state
     for (auto& s : t2.state) {
-      // skip _balance
+      std::string index = contractAddr.hex();
       if (s["vname"].asString() == "_balance") {
         continue;
       }
 
-      std::string vname = s["vname"].asString();
-      std::string type = s["type"].asString();
-      std::string value =
-          s["value"].isString()
-              ? s["value"].asString()
-              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-      state_entries.push_back(std::make_tuple(vname, true, type, value));
+      index = index + "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], state_entries)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
     }
-
-    account->SetStorage(state_entries);
+    account->UpdateStates(contractAddr, state_entries, {}, true);
 
     bytes dataTransfer;
     uint64_t amount =
@@ -732,7 +749,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
     auto timeElapsedCall = r_timer_end(startTimeCall);
     nonce++;
 
@@ -764,7 +781,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
     ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-    AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
+    AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
 
     contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
     LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr.hex());
@@ -796,9 +813,9 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
                     500000, t2.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-    Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+    Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
     // We should now have a new account.
     BOOST_CHECK_MESSAGE(account != nullptr,
@@ -839,25 +856,25 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       }
     }
 
-    std::vector<Contract::StateEntry> state_entries;
+    std::map<std::string, bytes> state_entries;
     // save the state
     for (auto& s : t2.state) {
-      // skip _balance
+      std::string index = contrAddr.hex();
       if (s["vname"].asString() == "_balance") {
         continue;
       }
 
-      std::string vname = s["vname"].asString();
-      std::string type = s["type"].asString();
-      std::string value =
-          s["value"].isString()
-              ? s["value"].asString()
-              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-      state_entries.push_back(std::make_tuple(vname, true, type, value));
+      index = index + "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], state_entries)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
     }
-
-    account->SetStorage(state_entries);
+    account->UpdateStates(contrAddr, state_entries, {}, true);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -869,7 +886,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     LOG_GENERAL(
@@ -922,10 +939,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, ownerNonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, ownerNonce});
 
   senderAddr = Account::GetAddressFromPublicKey(sender.second);
-  AccountStore::GetInstance().AddAccount(senderAddr, {bal, senderNonce});
+  AccountStore::GetInstance().AddAccountTemp(senderAddr, {bal, senderNonce});
 
   for (auto hodlers : numHodlers) {
     contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
@@ -957,9 +974,9 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
                     500000, t10.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-    Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+    Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
     // We should now have a new account.
     BOOST_CHECK_MESSAGE(account != nullptr,
@@ -1037,25 +1054,25 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       }
     }
 
-    std::vector<Contract::StateEntry> state_entries;
+    std::map<std::string, bytes> state_entries;
     // save the state
     for (auto& s : t10.state) {
-      // skip _balance
+      std::string index = contrAddr.hex();
       if (s["vname"].asString() == "_balance") {
         continue;
       }
 
-      std::string vname = s["vname"].asString();
-      std::string type = s["type"].asString();
-      std::string value =
-          s["value"].isString()
-              ? s["value"].asString()
-              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-      state_entries.push_back(std::make_tuple(vname, true, type, value));
+      index = index + "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], state_entries)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
     }
-
-    account->SetStorage(state_entries);
+    account->UpdateStates(contrAddr, state_entries, {}, true);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -1086,7 +1103,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     LOG_GENERAL(
@@ -1131,11 +1148,11 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   ownerToken1Addr = Account::GetAddressFromPublicKey(ownerToken1.second);
   ownerToken2Addr = Account::GetAddressFromPublicKey(ownerToken2.second);
   ownerDexAddr = Account::GetAddressFromPublicKey(ownerDex.second);
-  AccountStore::GetInstance().AddAccount(ownerToken1.second,
+  AccountStore::GetInstance().AddAccountTemp(ownerToken1Addr,
                                          {bal, ownerToken1Nonce});
-  AccountStore::GetInstance().AddAccount(ownerToken2.second,
+  AccountStore::GetInstance().AddAccountTemp(ownerToken2Addr,
                                          {bal, ownerToken2Nonce});
-  AccountStore::GetInstance().AddAccount(ownerDex.second, {bal, ownerDexNonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerDexAddr, {bal, ownerDexNonce});
 
   for (auto hodlers : numHodlers) {
     LOG_GENERAL(INFO, "\n\n===START TEST ITERATION===\n\n");
@@ -1167,9 +1184,9 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                PRECISION_MIN_VALUE, 500000,
                                fungibleTokenT5.code, deployTokenData);
     TransactionReceipt trDeplyoToken1;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txDeployToken1,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txDeployToken1,
                                                trDeplyoToken1);
-    Account* token1Account = AccountStore::GetInstance().GetAccount(token1Addr);
+    Account* token1Account = AccountStore::GetInstance().GetAccountTemp(token1Addr);
     ownerToken1Nonce++;
     BOOST_CHECK_MESSAGE(token1Account != nullptr,
                         "Error with creation of token 1 account");
@@ -1181,9 +1198,9 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                PRECISION_MIN_VALUE, 500000,
                                fungibleTokenT5.code, deployTokenData);
     TransactionReceipt trDeployToken2;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txDeployToken2,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txDeployToken2,
                                                trDeployToken2);
-    Account* token2Account = AccountStore::GetInstance().GetAccount(token2Addr);
+    Account* token2Account = AccountStore::GetInstance().GetAccountTemp(token2Addr);
     ownerToken2Nonce++;
     BOOST_CHECK_MESSAGE(token2Account != nullptr,
                         "Error with creation of token 2 account");
@@ -1224,26 +1241,44 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       }
     }
 
+    std::map<std::string, bytes> token_state_entries_1;
+    std::map<std::string, bytes> token_state_entries_2;
     // save the state
-    std::vector<Contract::StateEntry> token_state_entries;
     for (auto& s : fungibleTokenT5.state) {
-      // skip _balance
+      std::string index = token1Addr.hex();
       if (s["vname"].asString() == "_balance") {
         continue;
       }
 
-      std::string vname = s["vname"].asString();
-      std::string type = s["type"].asString();
-      std::string value =
-          s["value"].isString()
-              ? s["value"].asString()
-              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-      token_state_entries.push_back(std::make_tuple(vname, true, type, value));
+      index = index + "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], token_state_entries_1)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        token_state_entries_1.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
     }
+    // save the state
+    for (auto& s : fungibleTokenT5.state) {
+      std::string index = token2Addr.hex();
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
 
-    token1Account->SetStorage(token_state_entries);
-    token2Account->SetStorage(token_state_entries);
+      index = index + "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], token_state_entries_2)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        token_state_entries_2.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
+    }
+    token1Account->UpdateStates(token1Addr, token_state_entries_1, {}, true);
+    token2Account->UpdateStates(token2Addr, token_state_entries_2, {}, true);
 
     // Deploy DEX
     // Deploy the DEX contract with the 0th test case, but use custom messages
@@ -1275,10 +1310,10 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                             deployDexData);
     TransactionReceipt trDeployDex;
     auto startTimeDeployment = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(dexBnum, 1, true, txDeployDex,
+    AccountStore::GetInstance().UpdateAccountsTemp(dexBnum, 1, true, txDeployDex,
                                                trDeployDex);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-    Account* dexAccount = AccountStore::GetInstance().GetAccount(dexAddr);
+    Account* dexAccount = AccountStore::GetInstance().GetAccountTemp(dexAddr);
     BOOST_CHECK_MESSAGE(dexAccount != nullptr,
                         "Error with creation of dex account");
     LOG_GENERAL(INFO, "\n\n=== Deployed DEX ===\n\n");
@@ -1342,16 +1377,14 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       orderBook[i] = order;
     }
 
-    // Update the state directly.
-    dex_state_entries.push_back(
-        std::make_tuple("orderbook", true,
-                        "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
-                        "(Pair (ByStr20) (Uint128)))",
-                        JSONUtils::GetInstance().convertJsontoStr(orderBook)));
-    dex_state_entries.push_back(std::make_tuple(
-        "orderInfo", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
-        JSONUtils::GetInstance().convertJsontoStr(orderInfo)));
-    dexAccount->SetStorage(dex_state_entries);
+    std::map<std::string, bytes> state_entries;
+    std::string index = dexAddr.hex();
+    std::string orderbook_index = index + "." + "orderbook";
+    mapHandler(orderbook_index, orderBook, state_entries);
+    std::string orderinfo_index = index + "." + "orderInfo";
+    mapHandler(orderinfo_index, orderInfo, state_entries);
+
+    dexAccount->UpdateStates(dexAddr, state_entries, {}, true);
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;
@@ -1365,7 +1398,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataApproveBytes);
     TransactionReceipt trApproveToken1;
 
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txApproveToken1,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txApproveToken1,
                                                trApproveToken1);
     ownerToken1Nonce++;
 
@@ -1375,7 +1408,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataApproveBytes);
     TransactionReceipt trApproveToken2;
 
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txApproveToken2,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txApproveToken2,
                                                trApproveToken2);
     ownerToken2Nonce++;
 
@@ -1392,7 +1425,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataUpdateAddressBytes);
     TransactionReceipt trUpdateAddress;
 
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txUpdateAddress,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txUpdateAddress,
                                                trUpdateAddress);
     ownerDexNonce++;
 
@@ -1434,7 +1467,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
 
     LOG_GENERAL(INFO, "\n\n=== EXECUTING makeOrder ===\n\n");
     auto startMakeOrder = r_timer_start();
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txMakeOrder,
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txMakeOrder,
                                                trMakeOrder);
     auto timeMakeOrder = r_timer_end(startMakeOrder);
     ownerToken1Nonce++;
