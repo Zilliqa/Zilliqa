@@ -344,7 +344,8 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   const auto type = Transaction::GetTransactionType(tx);
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
-      (tx.GetGasLimit() < CONTRACT_INVOKE_GAS)) {
+      (tx.GetGasLimit() <
+       max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
     throw JsonRpcException(RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for invoking contract (" +
@@ -352,7 +353,9 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-           (tx.GetGasLimit() < CONTRACT_CREATE_GAS)) {
+           (tx.GetGasLimit() <
+            max(CONTRACT_CREATE_GAS,
+                (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
     throw JsonRpcException(RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for creating contract (" +
