@@ -30,6 +30,7 @@ using namespace jsonrpc;
 
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
+/*
 BOOST_AUTO_TEST_CASE(test_contract_storage2_call) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s("/tmp/scillaipcservertestsocket");
@@ -56,6 +57,6 @@ BOOST_AUTO_TEST_CASE(test_rpc) {
       "Server should be able to respond to RPC calls");
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer RPC done!");
-}
+} */
 
 BOOST_AUTO_TEST_SUITE_END()

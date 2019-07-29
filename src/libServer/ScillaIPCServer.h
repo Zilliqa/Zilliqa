@@ -18,40 +18,28 @@
 #define ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
 
 #include <jsonrpccpp/server.h>
+#include <jsonrpccpp/server/abstractserver.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
+
 #include "depends/common/FixedHash.h"
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
- private:
-  dev::h160 contract_address;
-  std::string DEFAULT_ERROR_MESSAGE = "ERROR";
-
  public:
-  ScillaIPCServer(jsonrpc::UnixDomainSocketServer &server,
-                  const dev::h160 &contract_address);
+  ScillaIPCServer(const dev::h160& contrAddr,
+                  jsonrpc::UnixDomainSocketServer& conn,
+                  jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2);
 
-  inline void fetchStateValueI(const Json::Value &request,
-                               Json::Value &response) {
-    response = this->fetchStateValue(request["query"].asString());
-  }
+  inline virtual void fetchStateValueI(const Json::Value& request,
+                                       Json::Value& response);
+  inline virtual void updateStateValueI(const Json::Value& request,
+                                        Json::Value& response);
+  virtual bool fetchStateValue(const std::string& query, std::string& value,
+                               bool& found) = 0;
+  virtual bool updateStateValue(const std::string& query,
+                                const std::string& value) = 0;
 
-  inline void updateStateValueI(const Json::Value &request,
-                                Json::Value &response) {
-    response = this->updateStateValue(request["query"].asString(),
-                                      request["value"].asString());
-  }
-  std::string fetchStateValue(const std::string &query);
-  bool updateStateValue(const std::string &query, const std::string &value);
-  void setContractAddress(dev::h160 &address);
-  dev::h160 getContractAddress();
-
-  // TODO: Remove once the relevant methods in ContractStorage2 are complete
-  inline void testServerRPCI(const Json::Value &request,
-                             Json::Value &response) {
-    response = this->testServerRPC(request["query"].asString());
-  }
-  bool testServer();
-  std::string testServerRPC(const std::string &query);
+ private:
+  const dev::h160& m_contrAddr;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
