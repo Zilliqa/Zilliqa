@@ -93,10 +93,11 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 
 bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
-                                       unsigned int d_offset, bool& found) {
+                                       unsigned int d_offset,
+                                       bool& foundMapKey) {
   LOG_MARKER();
 
-  found = false;
+  foundMapKey = true;
 
   if (s_offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
@@ -130,7 +131,35 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   if ((unsigned int)query.indices().size() == query.mapdepth()) {
     // result will not be a map and can be just fetched into the store
-    bytes bval;  //= GetValue(key); [TODO]
+    bytes bval;
+    bool found = false;
+    const auto& t_found = t_stateDataMap.find(key);
+    if (t_found != t_stateDataMap.end()) {
+      bval = t_found->second;
+      found = true;
+    }
+    if (!found) {
+      const auto& m_found = m_stateDataMap.find(key);
+      if (m_found != m_stateDataMap.end()) {
+        bval = m_found->second;
+        found = true;
+      }
+    }
+    if (!found) {
+      if (m_stateDataDB.Exists(key)) {
+        bval = DataConversion::StringToCharArray(m_stateDataDB.Lookup(key));
+      } else {
+        if (query.mapdepth() == 0) {
+          // for non-map value, should be existing in db otherwise error
+          return false;
+        } else {
+          // for in-map value, it's okay if cannot find
+          foundMapKey = false;
+          return true;
+        }
+      }
+    }
+
     value.set_bval(bval.data(), bval.size());
     return SerializeToArray(value, dst, 0);
   }
@@ -162,10 +191,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   it->Seek({key});
   if (it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
+    foundMapKey = false;
     return true;
   } else {
     // found entries
-    found = true;
     for (; it->key().ToString().compare(0, key.size(), key) == 0 && it->Valid();
          it->Next()) {
       auto exist = entries.find(it->key().ToString());
