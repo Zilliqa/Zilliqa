@@ -516,8 +516,8 @@ const unsigned int REPOPULATE_STATE_PER_N_DS{
 const unsigned int REPOPULATE_STATE_IN_DS{std::min(
     ReadConstantNumeric("REPOPULATE_STATE_IN_DS", "node.transactions."),
     REPOPULATE_STATE_PER_N_DS - 1)};
-const unsigned int NUM_STORE_TX_BODIES{
-    ReadConstantNumeric("NUM_STORE_TX_BODIES", "node.transactions.")};
+const unsigned int NUM_STORE_TX_BODIES_INTERVAL{
+    ReadConstantNumeric("NUM_STORE_TX_BODIES_INTERVAL", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
