@@ -27,9 +27,9 @@ using namespace Contract;
 using namespace jsonrpc;
 
 ScillaIPCServer::ScillaIPCServer(const dev::h160 &contrAddr,
-                                 UnixDomainSocketServer &conn,
-                                 serverVersion_t type)
-    : AbstractServer<ScillaIPCServer>(conn, type), m_contrAddr(contrAddr) {
+                                 UnixDomainSocketServer &conn)
+    : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2),
+      m_contrAddr(contrAddr) {
   // These JSON signatures match that of the actual functions below.
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),

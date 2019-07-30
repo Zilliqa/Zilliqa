@@ -26,8 +26,7 @@
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
   ScillaIPCServer(const dev::h160& contrAddr,
-                  jsonrpc::UnixDomainSocketServer& conn,
-                  jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2);
+                  jsonrpc::UnixDomainSocketServer& conn);
 
   inline virtual void fetchStateValueI(const Json::Value& request,
                                        Json::Value& response);
