@@ -39,6 +39,10 @@ ScillaIPCServer::ScillaIPCServer(const dev::h160 &contrAddr,
                    &ScillaIPCServer::updateStateValueI);
 }
 
+void ScillaIPCServer::setContractAddress(const dev::h160 &address) {
+  m_contrAddr = address;
+}
+
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
                                        Json::Value &response) {
   std::string value;

@@ -37,9 +37,10 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                bool& found) = 0;
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value) = 0;
+  void setContractAddress(const dev::h160& address);
 
  private:
-  const dev::h160& m_contrAddr;
+  dev::h160 m_contrAddr;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
