@@ -15,5 +15,5 @@ message ProtoScillaQuery {
     string name = 1;
     uint32 mapdepth = 2;
     repeated bytes indices = 3;
-    bool deletemapkey = 4;
+    bool ignoreval = 4;
 }

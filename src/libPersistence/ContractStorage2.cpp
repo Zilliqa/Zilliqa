@@ -147,6 +147,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
     if (!found) {
       if (m_stateDataDB.Exists(key)) {
+        if (query.ignoreval()) {
+          return true;
+        }
         bval = DataConversion::StringToCharArray(m_stateDataDB.Lookup(key));
       } else {
         if (query.mapdepth() == 0) {
@@ -194,6 +197,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     foundMapKey = false;
     return true;
   } else {
+    if (query.ignoreval()) {
+      return true;
+    }
     // found entries
     for (; it->key().ToString().compare(0, key.size(), key) == 0 && it->Valid();
          it->Next()) {
@@ -384,7 +390,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
     LOG_GENERAL(WARNING, "indices is deeper than map depth");
     return false;
-  } else if (query.deletemapkey()) {
+  } else if (query.ignoreval()) {
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
