@@ -2425,7 +2425,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          address.asArray().begin());
     if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
-                               << entry.address());
+                               << address.hex());
       return false;
     }
 
@@ -2463,7 +2463,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          address.asArray().begin());
     if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
-                               << entry.address());
+                               << address.hex());
       return false;
     }
 
@@ -2586,7 +2586,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                 temp, revertible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
-                      << entry.address());
+                      << address.hex());
       return false;
     }
 
@@ -2643,7 +2643,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                 temp)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
-                      << entry.address());
+                      << address.hex());
       return false;
     }
 

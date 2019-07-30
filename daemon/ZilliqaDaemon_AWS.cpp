@@ -28,6 +28,7 @@
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <cstdio>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -52,6 +53,7 @@ const string PRIVKEY_OPT = "--privk";
 const string PUBKEY_OPT = "--pubk";
 const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
+const string LOGPATH_OPT = "--logpath";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
 
@@ -59,6 +61,7 @@ unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
 unordered_map<int, string> IP;
 unordered_map<int, string> Port;
+unordered_map<int, string> LogPath;
 unordered_map<int, string> Path;
 
 enum SyncType : unsigned int {
@@ -72,6 +75,15 @@ enum SyncType : unsigned int {
   GUARD_DS_SYNC,
   DB_VERIF
 };
+
+string currentTimeStamp() {
+  auto tm = chrono::system_clock::to_time_t(chrono::system_clock::now());
+  char* t = ctime(&tm);
+  if (t[strlen(t) - 1] == '\n') {
+    t[strlen(t) - 1] = '\0';
+  }
+  return "[" + string(t) + "] : ";
+}
 
 string ReadLastLine(const string& filePath, [[gnu::unused]] ofstream& log) {
   ifstream logFile;
@@ -146,7 +158,8 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
             size_t space_pos = fullLine.find('\0');
 
             if (string::npos == space_pos) {
-              log << "Failed to parse abnormal command: " << fullLine << endl;
+              log << currentTimeStamp().c_str()
+                  << "Failed to parse abnormal command: " << fullLine << endl;
               closedir(dp);
               return result;
             }
@@ -193,10 +206,20 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
                 fullLine = fullLine.substr(space_pos + 1);
                 continue;
               }
+
+              if (token == LOGPATH_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                LogPath[id] = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
             }
 
             Path[id] = path;
-            log << " id: " << id << " Path: " << path << endl;
+            log << currentTimeStamp().c_str() << "id: " << id
+                << " Path: " << path << endl;
           }
         }
       }
@@ -227,8 +250,8 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
       if (tmp.size() > 0) {
         isProcesstoTrack = true;
         pids[v] = tmp;
-        log << "Process " << v << " exists in " << pids[v].size()
-            << " instances" << endl;
+        log << currentTimeStamp().c_str() << "Process " << v << " exists in "
+            << pids[v].size() << " instances" << endl;
         log << "Pids: ";
         for (auto i : pids[v]) {
           log << i << " ";
@@ -236,28 +259,32 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
         }
         log << endl;
       } else {
-        log << "Process " << v << " does not exist" << endl;
+        log << currentTimeStamp().c_str() << "Process " << v
+            << " does not exist" << endl;
         // What to do??
       }
     }
     if (!isProcesstoTrack) {
-      log << "No Process to Track so far\n"
+      log << currentTimeStamp().c_str() << "No Process to Track so far\n"
           << " Check again in 5 second ..." << endl;
       sleep(5);
     }
   }
 }
 
-bool DownloadPersistenceFromS3() {
+bool DownloadPersistenceFromS3(ofstream& log) {
   string output;
+  log << currentTimeStamp().c_str() << "downloading persistence from S3"
+      << endl;
   output = execute(start_downloadScript);
   return (output.find("Done!") != std::string::npos);
 }
 
 void StartNewProcess(const string& pubKey, const string& privKey,
-                     const string& ip, const string& port, const string& path,
-                     const bool& cseed, ofstream& log) {
-  log << "Create new Zilliqa process..." << endl;
+                     const string& ip, const string& port,
+                     const string& logPath, const string& path, bool cseed,
+                     ofstream& log) {
+  log << currentTimeStamp().c_str() << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
 
@@ -265,7 +292,8 @@ void StartNewProcess(const string& pubKey, const string& privKey,
     bool bSuspend = false;
     while (ifstream(SUSPEND_LAUNCH).good()) {
       if (!bSuspend) {
-        log << "Temporarily suspend launch new zilliqa process, please wait "
+        log << currentTimeStamp().c_str()
+            << "Temporarily suspend launch new zilliqa process, please wait "
                "until \""
             << SUSPEND_LAUNCH << "\" file disappeared." << endl;
         bSuspend = true;
@@ -276,9 +304,10 @@ void StartNewProcess(const string& pubKey, const string& privKey,
     if (cseed) {
       // 1. Download Incremental DB Persistence
       // 2. Restart zilliqa with syncType 6
-      while (!DownloadPersistenceFromS3()) {
-        cout << "Downloading persistence from S3 has failed. Will try again!"
-             << endl;
+      while (!DownloadPersistenceFromS3(log)) {
+        log << currentTimeStamp().c_str()
+            << "Downloading persistence from S3 has failed. Will try again!"
+            << endl;
         this_thread::sleep_for(chrono::seconds(10));
       }
       syncType = "6";
@@ -290,7 +319,8 @@ void StartNewProcess(const string& pubKey, const string& privKey,
     }
     log << "\" "
         << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
-                   " " + port + " " + syncType + " " + path + " 2>&1")
+                   " " + port + " " + syncType + " " + logPath + " " + path +
+                   " 2>&1")
         << " \"" << endl;
     exit(0);
   }
@@ -302,14 +332,15 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   const string name = programName[0];
 
   if (pids[name].empty()) {
-    log << "Looking for new " << name << " process..." << endl;
+    log << currentTimeStamp().c_str() << "Looking for new " << name
+        << " process..." << endl;
     vector<pid_t> tmp = getProcIdByName(name, log);
 
     for (const pid_t& i : tmp) {
       died[i] = false;
       pids[name].push_back(i);
-      log << "Started monitoring new process " << name << " with PiD: " << i
-          << endl;
+      log << currentTimeStamp().c_str() << "Started monitoring new process "
+          << name << " with PiD: " << i << endl;
     }
 
     return;
@@ -320,32 +351,34 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
 
     if (w < 0) {
       if (errno == EPERM) {
-        log << "Daemon does not have permission "
+        log << currentTimeStamp().c_str() << "Daemon does not have permission "
             << "Name: " << name << " Id: " << pid << endl;
       } else if (errno == ESRCH) {
-        log << "Process died "
+        log << currentTimeStamp().c_str() << "Process died "
             << "Name: " << name << " Id: " << pid << endl;
         died[pid] = true;
       } else {
-        log << "Kill failed due to " << errno << " Name: " << name
-            << "Id: " << pid << endl;
+        log << currentTimeStamp().c_str() << "Kill failed due to " << errno
+            << " Name: " << name << "Id: " << pid << endl;
       }
     }
 
     if (died[pid]) {
       auto it = find(pids[name].begin(), pids[name].end(), pid);
       if (it != pids[name].end()) {
-        log << "Not monitoring " << pid << " of " << name << endl;
+        log << currentTimeStamp().c_str() << "Not monitoring " << pid << " of "
+            << name << endl;
         pids[name].erase(it);
       }
 
-      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid], Path[pid],
-                      cseed, log);
+      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid],
+                      LogPath[pid], Path[pid], cseed, log);
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
       IP.erase(pid);
       Port.erase(pid);
+      LogPath.erase(pid);
       Path.erase(pid);
     }
   }

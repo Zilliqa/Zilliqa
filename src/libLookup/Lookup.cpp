@@ -1291,6 +1291,7 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
       LOG_GENERAL(
           INFO, "Block Number "
                     << i << " absent. Didn't include it in response message.");
+      continue;
     }
     stateDeltas.emplace_back(stateDelta);
   }
@@ -1963,7 +1964,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
-
+  bool placeholder = false;
   if (m_syncType != SyncType::RECOVERY_ALL_SYNC) {
     unsigned int retry = 1;
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
@@ -2007,11 +2008,23 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     // Store Tx Block to disk
     bytes serializedTxBlock;
     txBlock.Serialize(serializedTxBlock, 0);
+
     if (!BlockStorage::GetBlockStorage().PutTxBlock(
             txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+        (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+      m_mediator.m_node->LoadUnavailableMicroBlockHashes(
+          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder,
+          true /*skip shardid check*/);
+    }
+  }
+
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+      (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+    m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
   }
 
   m_mediator.m_currentEpochNum =
@@ -2790,8 +2803,8 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!(expectedDSLeader.first == dspubkey)) {
-    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
+  if (expectedDSLeader.first != dspubkey) {
+    LOG_CHECK_FAIL("DS leader key", dspubkey, expectedDSLeader.first);
     return false;
   }
 

@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
 #define ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
 
+#include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <array>
@@ -121,7 +122,8 @@ class SysCommand {
     std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
                                                   pclose);
     if (!proc) {
-      LOG_GENERAL(WARNING, "popen() failed!");
+      LOG_GENERAL(WARNING, "popen() failed for command: " << cmd << ", Error: "
+                                                          << strerror(errno));
       return false;
     }
 
@@ -151,7 +153,8 @@ class SysCommand {
     LOG_GENERAL(INFO, "ExecuteCmdWithOutputPID pid: " << pid);
 
     if (!proc) {
-      LOG_GENERAL(WARNING, "popen() failed!");
+      LOG_GENERAL(WARNING, "popen() failed for command: " << cmd << ", Error: "
+                                                          << strerror(errno));
       return false;
     }
 

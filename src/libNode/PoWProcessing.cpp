@@ -107,9 +107,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   EthashMiningResult winning_result;
 
   uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
-  auto headerHash = POW::GenHeaderHash(
-      rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
+                                       m_mediator.m_selfKey.second, lookupId,
+                                       m_proposedGasPrice);
 
   auto startTime = std::chrono::high_resolution_clock::now();
   int powTimeWindow = POW_WINDOW_IN_SECONDS;
@@ -183,7 +183,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
-          RejoinAsNormal();
+          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+          StartSynchronization();
         } else {
           LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
         }
@@ -260,7 +261,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    RejoinAsNormal();
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    StartSynchronization();
     return false;
   }
 

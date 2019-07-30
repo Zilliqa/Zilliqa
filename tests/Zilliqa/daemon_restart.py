@@ -29,8 +29,10 @@ IP_SITE = 'ifconfig.me'
 PROJ_DIR = '/run/zilliqa'
 
 def main():
-	if len(sys.argv) == 6:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '')
+	if len(sys.argv) == 7:
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', sys.argv[6])
+	elif len(sys.argv) == 6:
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', './')
 	else:
 		print "Not enough args"
 
@@ -52,7 +54,7 @@ def isPortOpen(port):
 	sock.close()
 	return True
 
-def run_restart(pubKey, privKey, ip, port, typ, path):
+def run_restart(pubKey, privKey, ip, port, typ, path, logPath):
 	keypairs = []
 	keypairs.append(privKey + " " + pubKey)
 
@@ -62,7 +64,7 @@ def run_restart(pubKey, privKey, ip, port, typ, path):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + ip + ' --port ' + str(port) + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + ip + ' --port ' + str(port) + ' --synctype ' + typ + ' --logpath ' + logPath + ' --recovery >> ./error_log_zilliqa 2>&1')
 
 if __name__ == "__main__":
 	main()

@@ -238,3 +238,13 @@ void Mediator::SetupLogLevel() {
     }
   }
 }
+
+bool Mediator::ToProcessTransaction() {
+  return !GetIsVacuousEpoch() &&
+         ((m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
+               TXN_SHARD_TARGET_DIFFICULTY &&
+           m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty() >=
+               TXN_DS_TARGET_DIFFICULTY) ||
+          m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+              TXN_DS_TARGET_NUM);
+}
