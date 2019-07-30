@@ -113,12 +113,12 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  string key = addr.hex() + "." + query.name();
+  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
 
   ProtoScillaVal value;
 
   for (const auto& index : query.indices()) {
-    key += "." + index;
+    key += SCILLA_INDEX_SEPARATOR + index;
   }
 
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -338,13 +338,13 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     return false;
   }
 
-  string key = addr.hex() + "." + query.name();
+  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
 
   // bytes keyReady;
   // copy(keyBase.begin(), keyBase.end(), keyReady.begin());
 
   for (const auto& index : query.indices()) {
-    key += "." + index;
+    key += SCILLA_INDEX_SEPARATOR + index;
   }
 
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -384,7 +384,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
       }
       for (const auto& entry : value.mval().m()) {
         string index(keyAcc);
-        index += "." + entry.first;
+        index += SCILLA_INDEX_SEPARATOR + entry.first;
         if (entry.second.has_mval()) {
           // We haven't reached the deepeast nesting
           return mapHandler(index, entry.second);

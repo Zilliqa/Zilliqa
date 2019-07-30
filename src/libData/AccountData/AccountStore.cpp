@@ -519,7 +519,7 @@ bool AccountStore::MigrateContractStates() {
           return false;
         } else {
           string new_key(key);
-          new_key += "." + map_entry["key"].asString();
+          new_key += SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
           if (map_entry["val"].type() != Json::arrayValue) {
             t_states.emplace(new_key, DataConversion::StringToCharArray(
                                           map_entry["val"].asString()));
@@ -566,7 +566,7 @@ bool AccountStore::MigrateContractStates() {
                                                                  << raw_val);
         return false;
       } else {
-        key += "." + json_val["vname"].asString();
+        key += SCILLA_INDEX_SEPARATOR + json_val["vname"].asString();
         if (json_val["value"].type() != Json::arrayValue) {
           // compose index and store value into new db
           t_states.emplace(key, DataConversion::StringToCharArray(

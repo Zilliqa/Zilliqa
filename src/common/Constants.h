@@ -337,6 +337,7 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
+extern const std::string SCILLA_INDEX_SEPARATOR;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
