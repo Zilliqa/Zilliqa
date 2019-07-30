@@ -486,7 +486,8 @@ void Node::UpdateProcessedTransactions() {
     t_createdTxns.clear();
   }
   if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
-    BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
+    BlockStorage::GetBlockStorage().ResetDB(
+        BlockStorage::DBTYPE::PROCESSED_TEMP);
   }
 
   {

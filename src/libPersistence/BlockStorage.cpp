@@ -116,8 +116,8 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
 bool BlockStorage::PutTxBodyTmp(const dev::h256& key, const bytes& body) {
   int ret;
   {
-    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-    ret = m_txBodyTmpDB->Insert(key, body);
+    unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
+    ret = m_processedTxnTmpDB->Insert(key, body);
   }
   return (ret == 0);
 }
@@ -1295,6 +1295,11 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_stateRootDB->ResetDB();
       break;
     }
+    case PROCESSED_TEMP: {
+      unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
+      ret = m_stateRootDB->ResetDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
@@ -1392,6 +1397,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_tempStateDB->RefreshDB();
       break;
     }
+    case PROCESSED_TEMP: {
+      unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
+      ret = m_tempStateDB->RefreshDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Refresh DB " << type << " failed");
@@ -1482,6 +1492,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_stateRootDB->GetDBName());
       break;
     }
+    case PROCESSED_TEMP: {
+      shared_lock<shared_timed_mutex> g(m_mutexProcessTx);
+      ret.push_back(m_stateRootDB->GetDBName());
+      break;
+    }
   }
 
   return ret;
@@ -1496,7 +1511,8 @@ bool BlockStorage::ResetAll() {
            ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) &
            ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
            ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT);
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
@@ -1505,7 +1521,7 @@ bool BlockStorage::ResetAll() {
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT);
+           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
   }
 }
 
@@ -1529,7 +1545,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
            RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
            RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT) &
+           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   }
 }
