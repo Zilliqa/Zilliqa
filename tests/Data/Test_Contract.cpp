@@ -773,7 +773,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
@@ -911,7 +911,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
@@ -1111,7 +1111,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
@@ -1304,7 +1304,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], token_state_entries_1)) {
           LOG_GENERAL(WARNING, "state format is invalid");
@@ -1323,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], token_state_entries_2)) {
           LOG_GENERAL(WARNING, "state format is invalid");

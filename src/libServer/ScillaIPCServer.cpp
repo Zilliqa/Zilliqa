@@ -24,23 +24,19 @@
 
 using namespace std;
 using namespace Contract;
+using namespace jsonrpc;
 
 ScillaIPCServer::ScillaIPCServer(const dev::h160 &contrAddr,
-                                 jsonrpc::UnixDomainSocketServer &conn,
-                                 jsonrpc::serverVersion_t type)
-    : jsonrpc::AbstractServer<ScillaIPCServer>(conn, type),
-      m_contrAddr(contrAddr) {
-  // These signatures matche that of the actual functions below.
-  bindAndAddMethod(
-      jsonrpc::Procedure("fetchStateValue", jsonrpc::PARAMS_BY_NAME,
-                         jsonrpc::JSON_OBJECT, "query", jsonrpc::JSON_STRING,
-                         NULL),
-      &ScillaIPCServer::fetchStateValueI);
-  bindAndAddMethod(
-      jsonrpc::Procedure("updateStateValue", jsonrpc::PARAMS_BY_NAME,
-                         jsonrpc::JSON_STRING, "query", jsonrpc::JSON_STRING,
-                         "value", jsonrpc::JSON_STRING, NULL),
-      &ScillaIPCServer::updateStateValueI);
+                                 UnixDomainSocketServer &conn,
+                                 serverVersion_t type)
+    : AbstractServer<ScillaIPCServer>(conn, type), m_contrAddr(contrAddr) {
+  // These JSON signatures match that of the actual functions below.
+  bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
+                             "query", JSON_STRING, NULL),
+                   &ScillaIPCServer::fetchStateValueI);
+  bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
+                             "query", JSON_STRING, "value", JSON_STRING, NULL),
+                   &ScillaIPCServer::updateStateValueI);
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -48,7 +44,7 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
   std::string value;
   bool found;
   if (!fetchStateValue(request["query"].asString(), value, found)) {
-    throw jsonrpc::JsonRpcException("Fetching state value failed");
+    throw JsonRpcException("Fetching state value failed");
   }
 
   // Prepare the result and finish.
@@ -61,16 +57,15 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
                                         Json::Value &response) {
   if (!updateStateValue(request["query"].asString(),
                         request["value"].asString())) {
-    throw jsonrpc::JsonRpcException("Updating state value failed");
+    throw JsonRpcException("Updating state value failed");
   }
 
   // Dummy response because a return value is needed for JSON-RPC.
   response = "";
 }
 
-bool ScillaIPCServer::ScillaIPCServer::fetchStateValue(const string &query,
-                                                       string &value,
-                                                       bool &found) {
+bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
+                                      bool &found) {
   bytes destination;
 
   if (!ContractStorage2::GetContractStorage().FetchStateValue(
@@ -84,8 +79,8 @@ bool ScillaIPCServer::ScillaIPCServer::fetchStateValue(const string &query,
   return true;
 }
 
-bool ScillaIPCServer::ScillaIPCServer::updateStateValue(const string &query,
-                                                        const string &value) {
+bool ScillaIPCServer::updateStateValue(const string &query,
+                                       const string &value) {
   return ContractStorage2::GetContractStorage().UpdateStateValue(
       m_contrAddr, DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
