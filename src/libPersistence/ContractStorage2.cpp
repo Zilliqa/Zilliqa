@@ -93,11 +93,10 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 
 bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
-                                       unsigned int d_offset,
-                                       bool& foundMapKey) {
+                                       unsigned int d_offset, bool& foundVal) {
   LOG_MARKER();
 
-  foundMapKey = true;
+  foundVal = true;
 
   if (s_offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
@@ -157,7 +156,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
           return false;
         } else {
           // for in-map value, it's okay if cannot find
-          foundMapKey = false;
+          foundVal = false;
           return true;
         }
       }
@@ -194,7 +193,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   it->Seek({key});
   if (it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
-    foundMapKey = false;
+    foundVal = false;
     return true;
   } else {
     if (query.ignoreval()) {

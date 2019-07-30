@@ -108,7 +108,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   /////////////////////////////////////////////////////////////////////////////
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
-                       bool& found);
+                       bool& foundVal);
 
   void FetchStateValueForAddress(const dev::h160& address,
                                  std::map<std::string, bytes>& states);
