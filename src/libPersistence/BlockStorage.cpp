@@ -1534,6 +1534,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
            RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
            RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+           RefreshDB(PROCESSED_TEMP) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
