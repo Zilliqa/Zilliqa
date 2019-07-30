@@ -22,6 +22,7 @@
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#include "libPersistence/ScillaMessage.pb.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -499,26 +500,34 @@ void AccountStore::RevertCommitTemp() {
 bool AccountStore::MigrateContractStates() {
   LOG_MARKER();
 
-  std::function<bool(const string&, const Json::Value&, map<string, bytes>&)> mapHandler = 
-  [&](const string& key, const Json::Value& j_value, map<string, bytes>& t_states) -> bool {
-    for (const auto& map_entry : j_value) {
-      if (j_value.empty()) {
-        // make an empty protobuf scilla map value object
-        return true;
-      }
-
-      if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
-        LOG_GENERAL(WARNING, "Invalid map entry: " << map_entry.asString());
+  std::function<bool(const string&, const Json::Value&, map<string, bytes>&)>
+      mapHandler = [&](const string& key, const Json::Value& j_value,
+                       map<string, bytes>& t_states) -> bool {
+    if (j_value.empty()) {
+      // make an empty protobuf scilla map value object
+      ProtoScillaVal::Map t_scillamap;
+      bytes dst;
+      if (!t_scillamap.SerializeToArray(dst.data(), t_scillamap.ByteSize())) {
         return false;
-      } else {
-        string new_key(key);
-        new_key += "." + map_entry["key"].asString();
-        if (map_entry["val"].type() != Json::arrayValue) {
-          t_states.emplace(new_key, DataConversion::StringToCharArray(map_entry["val"].asString()));
+      }
+      t_states.emplace(key, dst);
+      return true;
+    } else {
+      for (const auto& map_entry : j_value) {
+        if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
+          LOG_GENERAL(WARNING, "Invalid map entry: " << map_entry.asString());
+          return false;
         } else {
-          return mapHandler(new_key, map_entry["val"], t_states);
+          string new_key(key);
+          new_key += "." + map_entry["key"].asString();
+          if (map_entry["val"].type() != Json::arrayValue) {
+            t_states.emplace(new_key, DataConversion::StringToCharArray(
+                                          map_entry["val"].asString()));
+          } else {
+            return mapHandler(new_key, map_entry["val"], t_states);
+          }
+          return true;
         }
-        return true;
       }
     }
     return true;
@@ -544,23 +553,28 @@ bool AccountStore::MigrateContractStates() {
       string raw_val = account.GetRawStorage(index, false);
       Json::Value json_val;
       if (!JSONUtils::GetInstance().convertStrtoJson(raw_val, json_val)) {
-        LOG_GENERAL(WARNING, "Convert string to Json failed for: " << endl << raw_val);
+        LOG_GENERAL(WARNING, "Convert string to Json failed for: " << endl
+                                                                   << raw_val);
       }
 
       string key = i.first.hex();
 
       // check if complementary field exists
-      if (!(json_val.isMember("vname") && json_val.isMember("type") && json_val.isMember("value"))) {
-        LOG_GENERAL(WARNING, "Entry doesn't meet valid format: " << endl << raw_val);
+      if (!(json_val.isMember("vname") && json_val.isMember("type") &&
+            json_val.isMember("value"))) {
+        LOG_GENERAL(WARNING, "Entry doesn't meet valid format: " << endl
+                                                                 << raw_val);
         return false;
       } else {
         key += "." + json_val["vname"].asString();
-        if(json_val["value"].type() != Json::arrayValue) {
+        if (json_val["value"].type() != Json::arrayValue) {
           // compose index and store value into new db
-          t_states.emplace(key, DataConversion::StringToCharArray(json_val["value"].asString()));
+          t_states.emplace(key, DataConversion::StringToCharArray(
+                                    json_val["value"].asString()));
         } else {
           if (!mapHandler(key, json_val["value"], t_states)) {
-            LOG_GENERAL(WARNING, "failed to parse map value for: " << json_val["value"].asString());
+            LOG_GENERAL(WARNING, "failed to parse map value for: "
+                                     << json_val["value"].asString());
             return false;
           }
         }

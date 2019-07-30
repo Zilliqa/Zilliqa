@@ -446,7 +446,7 @@ bool Retriever::ValidateStates() {
 }
 
 bool Retriever::MigrateContractStates() {
-  return AccountStore::GetInstance().
+  return AccountStore::GetInstance().MigrateContractStates();
 }
 
 void Retriever::CleanAll() {
