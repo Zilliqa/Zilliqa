@@ -507,9 +507,8 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   initJson2 = account2->GetInitJson(true);
 }
 
-void CheckRFContract(const Address& contrAddr1,
-                     const Address& contrAddr2, const dev::h256& codeHash1,
-                     const dev::h256& codeHash2,
+void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
+                     const dev::h256& codeHash1, const dev::h256& codeHash2,
                      const dev::h256& contrStateHash1,
                      const dev::h256& contrStateHash2, const bytes& contrCode1,
                      const bytes& contrCode2, const Json::Value& initJson1,
@@ -565,9 +564,9 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-                  contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                  initJson1, stateJson1, initJson2, contrBalance);
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initJson1,
+                  stateJson1, initJson2, contrBalance);
   }
 
   AccountStore::GetInstance().UpdateStateTrieAll();
@@ -620,9 +619,9 @@ BOOST_AUTO_TEST_CASE(stateDelta) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-                  contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                  initJson1, stateJson1, initJson2, contrBalance);
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initJson1,
+                  stateJson1, initJson2, contrBalance);
   }
 
   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -678,9 +677,9 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-                  contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                  initJson1, stateJson1, initJson2, contrBalance);
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initJson1,
+                  stateJson1, initJson2, contrBalance);
   }
 
   AccountStore::GetInstance().SerializeDelta();
@@ -778,9 +777,9 @@ BOOST_AUTO_TEST_CASE(DiskOperation) {
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-                  contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                  initJson1, stateJson1, initJson2, contrBalance);
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initJson1,
+                  stateJson1, initJson2, contrBalance);
   }
 
   AccountStore::GetInstance().UpdateStateTrieAll();

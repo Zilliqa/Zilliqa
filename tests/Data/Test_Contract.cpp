@@ -36,9 +36,9 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/JsonUtils.h"
 
 #include "ScillaTestUtil.h"
 
@@ -144,15 +144,21 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
     nonce++;
   }
 
-  uint128_t contrBal = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal = ScillaTestUtil::GetBalanceFromOutput();
 
-  LOG_GENERAL(INFO, "[Call1] Owner balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call1] Donor1 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call1] Donor2 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
+  LOG_GENERAL(INFO, "[Call1] Owner balance: " << AccountStore::GetInstance()
+                                                     .GetAccountTemp(ownerAddr)
+                                                     ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call1] Donor1 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor1Addr)
+                                                ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call1] Donor2 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor2Addr)
+                                                ->GetBalance());
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
   LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
   BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount,
@@ -176,19 +182,26 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
                   amount2, PRECISION_MIN_VALUE, 5000, {}, dataDonate2);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2,
+                                                     tr2)) {
     nonce++;
   }
 
-  uint128_t contrBal2 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal2 =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal2 = ScillaTestUtil::GetBalanceFromOutput();
 
-  LOG_GENERAL(INFO, "[Call2] Owner balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call2] Donor1 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call2] Donor2 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
+  LOG_GENERAL(INFO, "[Call2] Owner balance: " << AccountStore::GetInstance()
+                                                     .GetAccountTemp(ownerAddr)
+                                                     ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call2] Donor1 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor1Addr)
+                                                ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call2] Donor2 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor2Addr)
+                                                ->GetBalance());
   LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
   LOG_GENERAL(INFO, "[Call2] Contract balance (blockchain): " << oBal2);
   BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2,
@@ -204,15 +217,21 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3)) {
     nonce++;
   }
-  uint128_t contrBal3 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal3 =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal3 = ScillaTestUtil::GetBalanceFromOutput();
 
-  LOG_GENERAL(INFO, "[Call3] Owner balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call3] Donor1 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call3] Donor2 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
+  LOG_GENERAL(INFO, "[Call3] Owner balance: " << AccountStore::GetInstance()
+                                                     .GetAccountTemp(ownerAddr)
+                                                     ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call3] Donor1 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor1Addr)
+                                                ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call3] Donor2 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor2Addr)
+                                                ->GetBalance());
   LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
   LOG_GENERAL(INFO, "[Call3] Contract balance (blockchain): " << oBal3);
   BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
@@ -235,19 +254,26 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
                   amount4, PRECISION_MIN_VALUE, 5000, {}, data4);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum4, 1, true, tx4, tr4)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum4, 1, true, tx4,
+                                                     tr4)) {
     nonce++;
   }
 
-  uint128_t contrBal4 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal4 =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal4 = ScillaTestUtil::GetBalanceFromOutput();
 
-  LOG_GENERAL(INFO, "[Call4] Owner balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call4] Donor1 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call4] Donor2 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
+  LOG_GENERAL(INFO, "[Call4] Owner balance: " << AccountStore::GetInstance()
+                                                     .GetAccountTemp(ownerAddr)
+                                                     ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call4] Donor1 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor1Addr)
+                                                ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call4] Donor2 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor2Addr)
+                                                ->GetBalance());
   LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call4] Contract balance (blockchain): " << oBal4);
   BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4,
@@ -270,19 +296,26 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount5, PRECISION_MIN_VALUE, 5000, {}, data5);
   TransactionReceipt tr5;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum5, 1, true, tx5, tr5)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum5, 1, true, tx5,
+                                                     tr5)) {
     nonce++;
   }
 
-  uint128_t contrBal5 = AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal5 =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
   uint128_t oBal5 = ScillaTestUtil::GetBalanceFromOutput();
 
-  LOG_GENERAL(INFO, "[Call5] Owner balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(ownerAddr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call5] Donor1 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor1Addr)->GetBalance());
-  LOG_GENERAL(INFO, "[Call5] Donor2 balance: "
-                        << AccountStore::GetInstance().GetAccountTemp(donor2Addr)->GetBalance());
+  LOG_GENERAL(INFO, "[Call5] Owner balance: " << AccountStore::GetInstance()
+                                                     .GetAccountTemp(ownerAddr)
+                                                     ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call5] Donor1 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor1Addr)
+                                                ->GetBalance());
+  LOG_GENERAL(INFO,
+              "[Call5] Donor2 balance: " << AccountStore::GetInstance()
+                                                .GetAccountTemp(donor2Addr)
+                                                ->GetBalance());
   LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call5] Contract balance (blockchain): " << oBal4);
   BOOST_CHECK_MESSAGE(contrBal5 == oBal5 && contrBal5 == contrBal4 - amount,
@@ -386,7 +419,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx2, tr2)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx2,
+                                                     tr2)) {
     nonce++;
   }
 
@@ -401,7 +435,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx3, tr3)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx3,
+                                                     tr3)) {
     nonce++;
   }
 
@@ -420,7 +455,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx4, tr4)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx4,
+                                                     tr4)) {
     nonce++;
   }
 
@@ -564,19 +600,22 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
     Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundA;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA, trFundA);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA,
+                                                   trFundA);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundB;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundB, trFundB);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundB,
+                                                   trFundB);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
                         100, PRECISION_MIN_VALUE, 5000, {}, m_data);
     TransactionReceipt trFundC;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundC, trFundC);
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundC,
+                                                   trFundC);
     nonce++;
   }
 
@@ -598,9 +637,12 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
     nonce++;
   }
 
-  uint128_t aBal = AccountStore::GetInstance().GetAccountTemp(aAddr)->GetBalance();
-  uint128_t bBal = AccountStore::GetInstance().GetAccountTemp(bAddr)->GetBalance();
-  uint128_t cBal = AccountStore::GetInstance().GetAccountTemp(cAddr)->GetBalance();
+  uint128_t aBal =
+      AccountStore::GetInstance().GetAccountTemp(aAddr)->GetBalance();
+  uint128_t bBal =
+      AccountStore::GetInstance().GetAccountTemp(bAddr)->GetBalance();
+  uint128_t cBal =
+      AccountStore::GetInstance().GetAccountTemp(cAddr)->GetBalance();
 
   LOG_GENERAL(INFO, "Call chain balances obtained: A: "
                         << aBal << ". B: " << bBal << ". C: " << cBal);
@@ -613,7 +655,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   /* ------------------------------------------------------------------- */
 }
 
-bool mapHandler(const std::string& index, const Json::Value& s, std::map<std::string, bytes> state_entries) {
+bool mapHandler(const std::string& index, const Json::Value& s,
+                std::map<std::string, bytes> state_entries) {
   if (!s.isMember("key") || s.isMember("val")) {
     return false;
   }
@@ -623,9 +666,11 @@ bool mapHandler(const std::string& index, const Json::Value& s, std::map<std::st
       mapHandler(t_index, v, state_entries);
     }
   } else {
-    state_entries.emplace(t_index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["val"])));
+    state_entries.emplace(
+        t_index, DataConversion::StringToCharArray(
+                     JSONUtils::GetInstance().convertJsontoStr(s["val"])));
   }
-  return true;  
+  return true;
 }
 
 // Comment due to deprecated function used
@@ -728,14 +773,16 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
           break;
         }
       } else {
-        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+        state_entries.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
       }
     }
     account->UpdateStates(contractAddr, state_entries, {}, true);
@@ -864,14 +911,16 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
           break;
         }
       } else {
-        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+        state_entries.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
       }
     }
     account->UpdateStates(contrAddr, state_entries, {}, true);
@@ -1062,14 +1111,16 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], state_entries)) {
           LOG_GENERAL(WARNING, "state format is invalid");
           break;
         }
       } else {
-        state_entries.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+        state_entries.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
       }
     }
     account->UpdateStates(contrAddr, state_entries, {}, true);
@@ -1149,10 +1200,11 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   ownerToken2Addr = Account::GetAddressFromPublicKey(ownerToken2.second);
   ownerDexAddr = Account::GetAddressFromPublicKey(ownerDex.second);
   AccountStore::GetInstance().AddAccountTemp(ownerToken1Addr,
-                                         {bal, ownerToken1Nonce});
+                                             {bal, ownerToken1Nonce});
   AccountStore::GetInstance().AddAccountTemp(ownerToken2Addr,
-                                         {bal, ownerToken2Nonce});
-  AccountStore::GetInstance().AddAccountTemp(ownerDexAddr, {bal, ownerDexNonce});
+                                             {bal, ownerToken2Nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerDexAddr,
+                                             {bal, ownerDexNonce});
 
   for (auto hodlers : numHodlers) {
     LOG_GENERAL(INFO, "\n\n===START TEST ITERATION===\n\n");
@@ -1184,9 +1236,10 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                PRECISION_MIN_VALUE, 500000,
                                fungibleTokenT5.code, deployTokenData);
     TransactionReceipt trDeplyoToken1;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txDeployToken1,
-                                               trDeplyoToken1);
-    Account* token1Account = AccountStore::GetInstance().GetAccountTemp(token1Addr);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txDeployToken1, trDeplyoToken1);
+    Account* token1Account =
+        AccountStore::GetInstance().GetAccountTemp(token1Addr);
     ownerToken1Nonce++;
     BOOST_CHECK_MESSAGE(token1Account != nullptr,
                         "Error with creation of token 1 account");
@@ -1198,9 +1251,10 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                PRECISION_MIN_VALUE, 500000,
                                fungibleTokenT5.code, deployTokenData);
     TransactionReceipt trDeployToken2;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txDeployToken2,
-                                               trDeployToken2);
-    Account* token2Account = AccountStore::GetInstance().GetAccountTemp(token2Addr);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txDeployToken2, trDeployToken2);
+    Account* token2Account =
+        AccountStore::GetInstance().GetAccountTemp(token2Addr);
     ownerToken2Nonce++;
     BOOST_CHECK_MESSAGE(token2Account != nullptr,
                         "Error with creation of token 2 account");
@@ -1250,14 +1304,16 @@ BOOST_AUTO_TEST_CASE(testDEX) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], token_state_entries_1)) {
           LOG_GENERAL(WARNING, "state format is invalid");
           break;
         }
       } else {
-        token_state_entries_1.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+        token_state_entries_1.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
       }
     }
     // save the state
@@ -1267,14 +1323,16 @@ BOOST_AUTO_TEST_CASE(testDEX) {
         continue;
       }
 
-      index = index + "." + s["vname"].asString();
+      index += "." + s["vname"].asString();
       if (s["value"] == Json::arrayValue) {
         if (!mapHandler(index, s["value"], token_state_entries_2)) {
           LOG_GENERAL(WARNING, "state format is invalid");
           break;
         }
       } else {
-        token_state_entries_2.emplace(index, DataConversion::StringToCharArray(JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+        token_state_entries_2.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
       }
     }
     token1Account->UpdateStates(token1Addr, token_state_entries_1, {}, true);
@@ -1310,8 +1368,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                             deployDexData);
     TransactionReceipt trDeployDex;
     auto startTimeDeployment = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(dexBnum, 1, true, txDeployDex,
-                                               trDeployDex);
+    AccountStore::GetInstance().UpdateAccountsTemp(dexBnum, 1, true,
+                                                   txDeployDex, trDeployDex);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* dexAccount = AccountStore::GetInstance().GetAccountTemp(dexAddr);
     BOOST_CHECK_MESSAGE(dexAccount != nullptr,
@@ -1398,8 +1456,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataApproveBytes);
     TransactionReceipt trApproveToken1;
 
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txApproveToken1,
-                                               trApproveToken1);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txApproveToken1, trApproveToken1);
     ownerToken1Nonce++;
 
     // Execute Approve on Token B in favour of DEX
@@ -1408,8 +1466,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataApproveBytes);
     TransactionReceipt trApproveToken2;
 
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txApproveToken2,
-                                               trApproveToken2);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txApproveToken2, trApproveToken2);
     ownerToken2Nonce++;
 
     // Execute updateAddress as dexOwner
@@ -1425,8 +1483,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                 dataUpdateAddressBytes);
     TransactionReceipt trUpdateAddress;
 
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txUpdateAddress,
-                                               trUpdateAddress);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txUpdateAddress, trUpdateAddress);
     ownerDexNonce++;
 
     // Execute makeOrder as ownerToken1
@@ -1468,7 +1526,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     LOG_GENERAL(INFO, "\n\n=== EXECUTING makeOrder ===\n\n");
     auto startMakeOrder = r_timer_start();
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txMakeOrder,
-                                               trMakeOrder);
+                                                   trMakeOrder);
     auto timeMakeOrder = r_timer_end(startMakeOrder);
     ownerToken1Nonce++;
 

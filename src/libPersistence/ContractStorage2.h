@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
 #define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
 
-#include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
