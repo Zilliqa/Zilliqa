@@ -106,8 +106,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
-  bool FetchStateValue(const dev::h160& addr, const bytes& src,
-                       unsigned int s_offset, bytes& dst, unsigned int d_offset,
+  bool FetchStateValue(const dev::h160& addr, const bytes& q,
+                       unsigned int q_offset, bytes& v, unsigned int v_offset,
                        bool& found);
 
   void FetchStateValueForAddress(const dev::h160& address,
