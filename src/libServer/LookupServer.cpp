@@ -341,6 +341,33 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "The sender of the txn has no balance");
   }
+  const auto type = Transaction::GetTransactionType(tx);
+
+  if (type == Transaction::ContractType::CONTRACT_CALL &&
+      (tx.GetGasLimit() <
+       max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                               ") lower than minimum for invoking contract (" +
+                               to_string(CONTRACT_INVOKE_GAS) + ")");
+  }
+
+  else if (type == Transaction::ContractType::CONTRACT_CREATION &&
+           (tx.GetGasLimit() <
+            max(CONTRACT_CREATE_GAS,
+                (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                               ") lower than minimum for creating contract (" +
+                               to_string(CONTRACT_CREATE_GAS) + ")");
+  }
+
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
+  }
 
   if (num_shards == 0) {
     throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
