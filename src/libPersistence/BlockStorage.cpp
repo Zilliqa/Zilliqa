@@ -1507,12 +1507,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
-           ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) &
-           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
-           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
-           ResetDB(PROCESSED_TEMP);
+           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
+           ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
+           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
+           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
@@ -1530,12 +1529,11 @@ bool BlockStorage::ResetAll() {
 bool BlockStorage::RefreshAll() {
   if (!LOOKUP_NODE_MODE) {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-           RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
-           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
-           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT) &
+           RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
+           RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
+           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
+           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
