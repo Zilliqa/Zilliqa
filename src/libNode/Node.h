@@ -294,6 +294,7 @@ class Node : public Executable {
   bool CheckMicroBlockVersion();
   bool CheckMicroBlockshardId();
   bool CheckMicroBlockTimestamp();
+  bool CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit);
   bool CheckMicroBlockHashes(bytes& errorMsg);
   bool CheckMicroBlockTxnRootHash();
   bool CheckMicroBlockStateDeltaHash();
@@ -505,10 +506,15 @@ class Node : public Executable {
 
   void CallActOnFinalblock();
 
-  void ProcessTransactionWhenShardLeader();
-  void ProcessTransactionWhenShardBackup();
-  bool ComposeMicroBlock();
-  bool CheckMicroBlockValidity(bytes& errorMsg);
+  void ProcessTransactionWhenShardLeader(
+      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  void ProcessTransactionWhenShardBackup(
+      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  bool ComposeMicroBlock(
+      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  bool CheckMicroBlockValidity(
+      bytes& errorMsg,
+      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
                          const Peer& from);
 
