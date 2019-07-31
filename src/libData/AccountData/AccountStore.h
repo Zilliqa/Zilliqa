@@ -37,6 +37,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libServer/ScillaIPCServer.h"
 
 using StateHash = dev::h256;
 
@@ -117,6 +118,10 @@ class AccountStore
 
   /// empty everything including the persistent storage for account states
   void Init() override;
+
+  /// make sure it's called only after Init() was called
+  void SetScillaIPCServer(
+      std::shared_ptr<ScillaIPCServer> scillaIPCServer) override;
 
   /// empty states data in memory
   void InitSoft();

@@ -48,6 +48,11 @@ void AccountStore::Init() {
   m_db.ResetDB();
 }
 
+void AccountStore::SetScillaIPCServer(
+    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+  m_accountStoreTemp->SetScillaIPCServer(scillaIPCServer);
+}
+
 void AccountStore::InitSoft() {
   LOG_MARKER();
 
