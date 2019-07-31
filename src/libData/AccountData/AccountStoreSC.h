@@ -25,6 +25,7 @@
 #include <mutex>
 
 #include "AccountStoreBase.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/DetachedFunction.h"
 
 template <class MAP>
@@ -88,6 +89,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::mutex m_MutexCVCallContract;
   std::condition_variable cv_callContract;
   std::atomic<bool> m_txnProcessTimeout;
+
+  /// scilla IPC server
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
   /// Contract Deployment
   /// verify the return from scilla_checker for deployment is valid
@@ -177,6 +181,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
+
+  virtual void SetScillaIPCServer(
+      std::shared_ptr<ScillaIPCServer> scillaIPCServer);
 };
 
 #include "AccountStoreAtomic.tpp"

@@ -1300,3 +1300,10 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
   m_txnProcessTimeout = true;
   cv_callContract.notify_all();
 }
+
+template <class MAP>
+void AccountStoreSC<MAP>::SetScillaIPCServer(
+    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+  LOG_MARKER();
+  m_scillaIPCServer = std::move(scillaIPCServer);
+}
