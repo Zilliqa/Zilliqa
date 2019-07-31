@@ -191,7 +191,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
   it->Seek({key});
-  if (it->key().ToString().compare(0, key.size(), key) != 0) {
+  if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
     foundVal = false;
     return true;
