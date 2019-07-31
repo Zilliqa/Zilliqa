@@ -1297,7 +1297,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     }
     case PROCESSED_TEMP: {
       unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
-      ret = m_stateRootDB->ResetDB();
+      ret = m_processedTxnTmpDB->ResetDB();
       break;
     }
   }
@@ -1399,7 +1399,7 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     }
     case PROCESSED_TEMP: {
       unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
-      ret = m_tempStateDB->RefreshDB();
+      ret = m_processedTxnTmpDB->RefreshDB();
       break;
     }
   }
@@ -1494,7 +1494,7 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     }
     case PROCESSED_TEMP: {
       shared_lock<shared_timed_mutex> g(m_mutexProcessTx);
-      ret.push_back(m_stateRootDB->GetDBName());
+      ret.push_back(m_processedTxnTmpDB->GetDBName());
       break;
     }
   }
