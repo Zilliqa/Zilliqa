@@ -358,6 +358,23 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         }
       }
     }
+    /// Scilla IPC Server
+    if (ENABLE_SC) {
+      m_scillaIPCServerConnector =
+          make_unique<UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
+      m_scillaIPCServer =
+          make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+      if (m_scillaIPCServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
+      } else {
+        AccountStore::GetInstance().SetScillaIPCServer(m_scillaIPCServer);
+        if (m_scillaIPCServer->StartListening()) {
+          LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start")
+        }
+      }
+    }
   };
   DetachedFunction(1, func);
 }

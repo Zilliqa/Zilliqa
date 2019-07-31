@@ -26,6 +26,7 @@
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libServer/StatusServer.h"
 #include "libUtils/ThreadPool.h"
 
@@ -42,8 +43,10 @@ class Zilliqa {
 
   std::unique_ptr<StatusServer> m_statusServer;
   std::shared_ptr<LookupServer> m_lookupServer;
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
