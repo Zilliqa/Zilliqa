@@ -25,21 +25,20 @@
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
-  ScillaIPCServer(const dev::h160& contrAddr,
-                  jsonrpc::UnixDomainSocketServer& conn);
+  ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
+  ~ScillaIPCServer() = default;
 
-  inline virtual void fetchStateValueI(const Json::Value& request,
-                                       Json::Value& response);
-  inline virtual void updateStateValueI(const Json::Value& request,
-                                        Json::Value& response);
-  virtual bool fetchStateValue(const std::string& query, std::string& value,
-                               bool& found) = 0;
-  virtual bool updateStateValue(const std::string& query,
-                                const std::string& value) = 0;
+  virtual void fetchStateValueI(const Json::Value& request,
+                                Json::Value& response);
+  virtual void updateStateValueI(const Json::Value& request,
+                                 Json::Value& response);
+  bool fetchStateValue(const std::string& query, std::string& value,
+                       bool& found);
+  bool updateStateValue(const std::string& query, const std::string& value);
   void setContractAddress(const dev::h160& address);
 
  private:
-  dev::h160 m_contrAddr;
+  dev::h160 m_contrAddr = dev::h160();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
