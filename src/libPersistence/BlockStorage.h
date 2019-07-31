@@ -177,7 +177,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Adds a transaction body to storage.
   bool PutTxBody(const dev::h256& key, const bytes& body);
 
-  bool PutTxBodyTmp(const dev::h256& key, const bytes& body);
+  bool PutProcessedTxBodyTmp(const dev::h256& key, const bytes& body);
 
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);

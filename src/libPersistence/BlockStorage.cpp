@@ -113,7 +113,8 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
   return (ret == 0);
 }
 
-bool BlockStorage::PutTxBodyTmp(const dev::h256& key, const bytes& body) {
+bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
+                                         const bytes& body) {
   int ret;
   {
     unique_lock<shared_timed_mutex> g(m_mutexProcessTx);

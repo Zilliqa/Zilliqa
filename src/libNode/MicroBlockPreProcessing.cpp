@@ -427,6 +427,7 @@ void Node::ProcessTransactionWhenShardLeader() {
   }
 
   cv_TxnProcFinished.notify_all();
+  PutTxnsInTempDataBase(t_processedTransactions);
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -492,13 +493,6 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
-
-    for (const auto& hashTxnPair : t_processedTransactions) {
-      bytes serializedTxn;
-      hashTxnPair.second.Serialize(serializedTxn, 0);
-      BlockStorage::GetBlockStorage().PutTxBodyTmp(hashTxnPair.first,
-                                                   serializedTxn);
-    }
     m_processedTransactions[m_mediator.m_currentEpochNum] =
         move(t_processedTransactions);
     t_processedTransactions.clear();
@@ -652,7 +646,20 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   cv_TxnProcFinished.notify_all();
 
+  PutTxnsInTempDataBase(t_processedTransactions);
+
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+}
+
+void Node::PutTxnsInTempDataBase(
+    const std::unordered_map<TxnHash, TransactionWithReceipt>&
+        processedTransactions) {
+  for (const auto& hashTxnPair : processedTransactions) {
+    bytes serializedTxn;
+    hashTxnPair.second.Serialize(serializedTxn, 0);
+    BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
+                                                          serializedTxn);
+  }
 }
 
 void Node::ReinstateMemPool(
