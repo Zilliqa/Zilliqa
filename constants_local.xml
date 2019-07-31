@@ -145,6 +145,7 @@
         <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
+        <SCILLA_IPC_SOCKET_PATH>/tmp/scillaipcserversocket</SCILLA_IPC_SOCKET_PATH>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
