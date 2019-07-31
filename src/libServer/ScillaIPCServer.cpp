@@ -64,8 +64,8 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
     throw JsonRpcException("Updating state value failed");
   }
 
-  // Dummy response because a return value is needed for JSON-RPC.
-  response = "";
+  // We have nothing to return. A null response is expected in the client.
+  response.clear();
 }
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
