@@ -33,6 +33,9 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 
 #define TEST_SOCK_ADDR "/tmp/scillastateserversocket"
 
+// NOTE: Remember to use unique field names for different tests
+//       since the data in the storage persists across tests.
+
 // Connection sanity test.
 BOOST_AUTO_TEST_CASE(test_connection) {
   INIT_STDOUT_LOGGER();
@@ -57,7 +60,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
 
   // Prepare a query to "set field foo with value".
   ProtoScillaQuery query;
-  query.set_name("foo");
+  query.set_name("foo_test_query_simple");
   query.set_mapdepth(0);
   // Prepare the value itself to be set.
   ProtoScillaVal value;
@@ -104,9 +107,9 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
 
   // Prepare a map key insertion query.
   ProtoScillaQuery query;
-  query.set_name("foo");      // A map named "foo".
-  query.set_mapdepth(1);      // A single nested map.
-  query.add_indices("key1");  // "key1" to be inserted.
+  query.set_name("foo_test_query_map_1");  // A map named "foo".
+  query.set_mapdepth(1);                   // A single nested map.
+  query.add_indices("key1");               // "key1" to be inserted.
   // Prepare the value itself to be set for "key1".
   ProtoScillaVal value;
   value.set_bval("420");  // The actual content doesn't matter.
@@ -163,8 +166,8 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
 
   // Prepare a map key insertion query.
   ProtoScillaQuery query;
-  query.set_name("foo");  // A map named "foo".
-  query.set_mapdepth(2);  // A doubly nested map.
+  query.set_name("foo_test_query_map2");  // A map named "foo".
+  query.set_mapdepth(2);                  // A doubly nested map.
 
   // Add indices to the query.
   query.add_indices("key1a");
