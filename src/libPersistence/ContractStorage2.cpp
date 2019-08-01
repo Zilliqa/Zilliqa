@@ -177,6 +177,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, key.size(), key) == 0) {
+    if (query.ignoreval()) {
+      return true;
+    }
     entries.emplace(p->first, p->second);
     ++p;
   }
@@ -185,6 +188,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   while (p != m_stateDataMap.end() &&
          p->first.compare(0, key.size(), key) == 0) {
+    if (query.ignoreval()) {
+      return true;
+    }
     auto exist = entries.find(p->first);
     if (exist != entries.end()) {
       entries.emplace(p->first, p->second);
@@ -196,8 +202,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   it->Seek({key});
   if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
-    foundVal = false;
-    return true;
+    if (entries.empty()) {
+      foundVal = false;
+      return true;
+    }
   } else {
     if (query.ignoreval()) {
       return true;
