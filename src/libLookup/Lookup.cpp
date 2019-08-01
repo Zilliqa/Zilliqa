@@ -1470,6 +1470,103 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   return true;
 }
 
+#if 1  // clark
+bool Lookup::ProcessGetMicroBlockFromLookup(
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
+  vector<BlockHash> microBlockHashes;
+  uint32_t portNo = 0;
+
+  if (!Messenger::GetLookupGetMicroBlockFromLookup(message, offset,
+                                                   microBlockHashes, portNo)) {
+    LOG_GENERAL(WARNING, "Failed to process");
+    return false;
+  }
+
+  if (microBlockHashes.size() == 0) {
+    LOG_GENERAL(INFO, "No MicroBlock requested");
+    return true;
+  }
+
+  LOG_GENERAL(INFO, "Reques for " << microBlockHashes.size() << " blocks");
+
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer requestingNode(ipAddr, portNo);
+  vector<MicroBlock> retMicroBlocks;
+
+  for (const auto& mbhash : microBlockHashes) {
+    LOG_GENERAL(INFO, "[SendMB]"
+                          << "Request for microBlockHash " << mbhash);
+    shared_ptr<MicroBlock> mbptr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbhash, mbptr)) {
+      LOG_GENERAL(WARNING, "Failed to fetch micro block Hash " << mbhash);
+      continue;
+    } else {
+      retMicroBlocks.push_back(*mbptr);
+    }
+  }
+
+  bytes retMsg = {MessageType::LOOKUP,
+                  LookupInstructionType::SETMICROBLOCKFROMLOOKUP};
+
+  if (retMicroBlocks.size() == 0) {
+    LOG_GENERAL(WARNING, "return size 0 for microblocks");
+    return true;
+  }
+
+  if (!Messenger::SetLookupSetMicroBlockFromLookup(
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey, retMicroBlocks)) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(requestingNode, retMsg);
+  return true;
+}
+
+bool Lookup::ProcessSetMicroBlockFromLookup(
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  //[numberOfMicroBlocks][microblock1][microblock2]...
+  LOG_MARKER();
+
+  vector<MicroBlock> mbs;
+  PubKey lookupPubKey;
+
+  if (!Messenger::GetLookupSetMicroBlockFromLookup(message, offset,
+                                                   lookupPubKey, mbs)) {
+    LOG_GENERAL(WARNING, "Failed to process");
+    return false;
+  }
+
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  vector<TxnHash> txnhashes;
+
+  for (const auto& mb : mbs) {
+    LOG_GENERAL(INFO, "[SendMB]"
+                          << " Recvd " << mb.GetHeader().GetEpochNum()
+                          << " MBHash:" << mb.GetBlockHash());
+    AddMicroBlockToStorage(mb);
+    SendGetTxnFromLookup(mb.GetTranHashes());
+  }
+
+  return true;
+}
+#else
 // Unused code
 bool Lookup::ProcessGetMicroBlockFromLookup(
     [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
@@ -1567,9 +1664,14 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
 
   // return true;
 }
+#endif
 
+#if 0  // clark
 // UNUSED
+#endif
 void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
+  LOG_MARKER();
+
   bytes msg = {MessageType::LOOKUP,
                LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
 
@@ -2026,6 +2128,18 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
+#if 1  // clark
+    if (m_syncType == SyncType::LOOKUP_SYNC) {
+      vector<BlockHash> mbHashes;
+
+      for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
+        mbHashes.emplace_back(mbInfo.m_microBlockHash);
+      }
+
+      SendGetMicroBlockFromLookup(mbHashes);
+    }
+#endif
+
     m_mediator.m_node->AddBlock(txBlock);
     // Store Tx Block to disk
     bytes serializedTxBlock;
@@ -2036,16 +2150,26 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
+#if 1  // clark
+    if (LOOKUP_NODE_MODE && (m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+                             m_syncType == SyncType::LOOKUP_SYNC)) {
+#else
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
         (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+#endif
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, txBlock.GetHeader().GetBlockNum(), placeholder,
           true /*skip shardid check*/);
     }
   }
 
+#if 1  // clark
+  if (LOOKUP_NODE_MODE && (m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+                           m_syncType == SyncType::LOOKUP_SYNC)) {
+#else
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
       (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+#endif
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
   }
 
@@ -2060,54 +2184,76 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   m_mediator.UpdateTxBlockRand();
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
+#if 0  // clark
+      (m_syncType != SyncType::NEW_LOOKUP_SYNC &&
+       m_syncType != SyncType::LOOKUP_SYNC)) {
+#else
       (m_syncType != SyncType::NEW_LOOKUP_SYNC)) {
+#endif
     if (m_syncType == SyncType::RECOVERY_ALL_SYNC) {
-      LOG_EPOCH(
-          INFO, m_mediator.m_currentEpochNum,
-          "New node - At new DS epoch now, try getting state from lookup");
-      GetStateFromSeedNodes();
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "New node - At new DS epoch now, try getting state from lookup");
+    GetStateFromSeedNodes();
 #if 1  // clark
     } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Lookup node - Join back to network now.");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Lookup node - Join back to network now.");
 
-      if (!m_currDSExpired) {
-        if (FinishRejoinAsLookup()) {
-          SetSyncType(SyncType::NO_SYNC);
-        }
+    if (!m_currDSExpired) {
+      if (FinishRejoinAsLookup()) {
+        SetSyncType(SyncType::NO_SYNC);
       }
+    }
+
+    m_currDSExpired = false;
 #endif
     } else if (m_syncType == SyncType::NEW_SYNC ||
                m_syncType == SyncType::NORMAL_SYNC) {
-      PrepareForStartPow();
+    PrepareForStartPow();
     } else if (m_syncType == SyncType::DS_SYNC ||
                m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired &&
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
-              m_mediator.m_currentEpochNum) {
-        m_isFirstLoop = true;
-        SetSyncType(SyncType::NO_SYNC);
-        m_mediator.m_ds->FinishRejoinAsDS();
-      }
-      m_currDSExpired = false;
+    if (!m_currDSExpired &&
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+            m_mediator.m_currentEpochNum) {
+      m_isFirstLoop = true;
+      SetSyncType(SyncType::NO_SYNC);
+      m_mediator.m_ds->FinishRejoinAsDS();
     }
-  } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "New lookup node - Already should have latest state by now.");
-    if (GetDSInfo()) {
-      if (!m_currDSExpired) {
-        SetSyncType(SyncType::NO_SYNC);
-        m_isFirstLoop = true;
+    m_currDSExpired = false;
+    }
+}
+else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "New lookup node - Already should have latest state by now.");
+  if (GetDSInfo()) {
+    if (!m_currDSExpired) {
+      SetSyncType(SyncType::NO_SYNC);
+      m_isFirstLoop = true;
 
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
-        }
+      if (m_lookupServer->StartListening()) {
+        LOG_GENERAL(INFO, "API Server started to listen again");
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
       }
-      m_currDSExpired = false;
     }
+    m_currDSExpired = false;
   }
+#if 0  // clark
+  } else if (m_syncType == SyncType::LOOKUP_SYNC) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Lookup node - Join back to network now.");
+
+    if (!m_currDSExpired) {
+      if (FinishRejoinAsLookup()) {
+        SetSyncType(SyncType::NO_SYNC);
+      }
+    }
+
+    m_currDSExpired = false;
+  }
+#else
+  }
+#endif
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
@@ -2393,6 +2539,89 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
   return true;
 }
 
+#if 1  // clark
+bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  vector<TxnHash> txnhashes;
+  txnhashes.clear();
+
+  uint32_t portNo = 0;
+  if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, txnhashes,
+                                             portNo)) {
+    LOG_GENERAL(WARNING, "Failed to Process");
+    return false;
+  }
+
+  if (txnhashes.size() == 0) {
+    LOG_GENERAL(INFO, "No txn requested");
+    return true;
+  }
+
+  vector<TransactionWithReceipt> txnvector;
+  for (const auto& txnhash : txnhashes) {
+    shared_ptr<TransactionWithReceipt> txn;
+    if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txn)) {
+      LOG_GENERAL(WARNING, "Could not find " << txnhash);
+      continue;
+    }
+    txnvector.emplace_back(*txn);
+  }
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer requestingNode(ipAddr, portNo);
+
+  bytes setTxnMsg = {MessageType::LOOKUP,
+                     LookupInstructionType::SETTXNFROMLOOKUP};
+
+  if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
+                                             m_mediator.m_selfKey, txnvector)) {
+    LOG_GENERAL(WARNING, "Unable to Process");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(requestingNode, setTxnMsg);
+  return true;
+}
+
+// Ex archival code
+bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  vector<TransactionWithReceipt> txns;
+  PubKey lookupPubKey;
+
+  if (!Messenger::GetLookupSetTxnsFromLookup(message, offset, lookupPubKey,
+                                             txns)) {
+    LOG_GENERAL(WARNING, "Failed to Process");
+    return false;
+  }
+
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  for (const auto& txn : txns) {
+    bytes serializedTxBody;
+    txn.Serialize(serializedTxBody, 0);
+
+    if (!BlockStorage::GetBlockStorage().PutTxBody(
+            txn.GetTransaction().GetTranID(), serializedTxBody)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
+                               << txn.GetTransaction().GetTranID());
+      return false;
+    }
+  }
+
+  return true;
+}
+#else
 // Ex-Archival code
 bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
@@ -2468,7 +2697,10 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
 }
 
 // UNUSED
+#endif
 void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
+  LOG_MARKER();
+
   bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
 
   if (txnhashes.size() == 0) {
@@ -3229,33 +3461,7 @@ void Lookup::RejoinAsLookup() {
     LOG_GENERAL(INFO, "API Server stopped listen for syncing");
 
     auto func = [this]() mutable -> void {
-      while (true) {
-        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
-
-        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-          LOG_GENERAL(
-              WARNING,
-              "Downloading persistence from S3 has failed. Will try again!");
-          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
-        }
-
-        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
-          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
-          return;
-        }
-
-        if (!AccountStore::GetInstance().RefreshDB()) {
-          LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
-          return;
-        }
-
-        if (m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true, true)) {
-          break;
-        }
-
-        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
-      }
-
+      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
       StartSynchronization();
     };
 
@@ -3333,6 +3539,10 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETSTATEFROMSEED &&
           ins_byte != LookupInstructionType::SETLOOKUPOFFLINE &&
           ins_byte != LookupInstructionType::SETLOOKUPONLINE &&
+#if 1  // clark
+          ins_byte != LookupInstructionType::SETMICROBLOCKFROMLOOKUP &&
+          ins_byte != LookupInstructionType::SETTXNFROMLOOKUP &&
+#endif
           ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED &&
           ins_byte != LookupInstructionType::SETSTATEDELTASFROMSEED &&
           ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED);
@@ -3628,37 +3838,45 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
                                              const Peer&);
 
   InstructionHandler ins_handlers[] = {
-      &Lookup::ProcessGetDSInfoFromSeed,
-      &Lookup::ProcessSetDSInfoFromSeed,
-      &Lookup::ProcessGetDSBlockFromSeed,
-      &Lookup::ProcessSetDSBlockFromSeed,
-      &Lookup::ProcessGetTxBlockFromSeed,
-      &Lookup::ProcessSetTxBlockFromSeed,
-      &Lookup::ProcessGetStateFromSeed,
-      &Lookup::ProcessSetStateFromSeed,
-      &Lookup::ProcessSetLookupOffline,
-      &Lookup::ProcessSetLookupOnline,
-      &Lookup::ProcessGetOfflineLookups,
-      &Lookup::ProcessSetOfflineLookups,
-      &Lookup::ProcessRaiseStartPoW,
-      &Lookup::ProcessGetStartPoWFromSeed,
-      &Lookup::ProcessSetStartPoWFromSeed,
-      &Lookup::ProcessGetShardFromSeed,         // UNUSED
-      &Lookup::ProcessSetShardFromSeed,         // UNUSED
-      &Lookup::ProcessGetMicroBlockFromLookup,  // UNUSED
-      &Lookup::ProcessSetMicroBlockFromLookup,  // UNUSED
-      &Lookup::ProcessGetTxnsFromLookup,        // UNUSED
-      &Lookup::ProcessSetTxnsFromLookup,        // UNUSED
-      &Lookup::ProcessGetDirectoryBlocksFromSeed,
-      &Lookup::ProcessSetDirectoryBlocksFromSeed,
-      &Lookup::ProcessGetStateDeltaFromSeed,
-      &Lookup::ProcessGetStateDeltasFromSeed,
-      &Lookup::ProcessSetStateDeltaFromSeed,
-      &Lookup::ProcessSetStateDeltasFromSeed,
-      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
-      &Lookup::ProcessForwardTxn,
-      &Lookup::ProcessGetDSGuardNetworkInfo,
-      &Lookup::ProcessSetHistoricalDB};
+    &Lookup::ProcessGetDSInfoFromSeed,
+    &Lookup::ProcessSetDSInfoFromSeed,
+    &Lookup::ProcessGetDSBlockFromSeed,
+    &Lookup::ProcessSetDSBlockFromSeed,
+    &Lookup::ProcessGetTxBlockFromSeed,
+    &Lookup::ProcessSetTxBlockFromSeed,
+    &Lookup::ProcessGetStateFromSeed,
+    &Lookup::ProcessSetStateFromSeed,
+    &Lookup::ProcessSetLookupOffline,
+    &Lookup::ProcessSetLookupOnline,
+    &Lookup::ProcessGetOfflineLookups,
+    &Lookup::ProcessSetOfflineLookups,
+    &Lookup::ProcessRaiseStartPoW,
+    &Lookup::ProcessGetStartPoWFromSeed,
+    &Lookup::ProcessSetStartPoWFromSeed,
+    &Lookup::ProcessGetShardFromSeed,  // UNUSED
+    &Lookup::ProcessSetShardFromSeed,  // UNUSED
+#if 1                                  // clark
+    &Lookup::ProcessGetMicroBlockFromLookup,
+    &Lookup::ProcessSetMicroBlockFromLookup,
+    &Lookup::ProcessGetTxnsFromLookup,
+    &Lookup::ProcessSetTxnsFromLookup,
+#else
+    &Lookup::ProcessGetMicroBlockFromLookup,  // UNUSED
+    &Lookup::ProcessSetMicroBlockFromLookup,  // UNUSED
+    &Lookup::ProcessGetTxnsFromLookup,        // UNUSED
+    &Lookup::ProcessSetTxnsFromLookup,        // UNUSED
+#endif
+    &Lookup::ProcessGetDirectoryBlocksFromSeed,
+    &Lookup::ProcessSetDirectoryBlocksFromSeed,
+    &Lookup::ProcessGetStateDeltaFromSeed,
+    &Lookup::ProcessGetStateDeltasFromSeed,
+    &Lookup::ProcessSetStateDeltaFromSeed,
+    &Lookup::ProcessSetStateDeltasFromSeed,
+    &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
+    &Lookup::ProcessForwardTxn,
+    &Lookup::ProcessGetDSGuardNetworkInfo,
+    &Lookup::ProcessSetHistoricalDB
+  };
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
