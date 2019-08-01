@@ -138,10 +138,32 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   // Check that the fetched value is same as what we updated earlier.
   BOOST_CHECK_EQUAL(value.bval(), "420");
 
-  // Let's search for "key2" and ensure that it's not found.
+  // Let's fetch "key2" and ensure that it's not found.
   query.clear_indices();
   query.add_indices("key2");
   params["query"] = query.SerializeAsString();
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+  BOOST_CHECK_EQUAL(result[0].asBool(), false);
+
+  // Delete "key1"
+  query.clear_indices();
+  query.add_indices("key1");
+  query.set_ignoreval(true);
+  params["query"] = query.SerializeAsString();
+  params["value"] = "";
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("updateStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // Let's search for "key1" and ensure that it's not found.
+  // query and params are the same as the previousl query.
+  params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
   result = client.CallMethod("fetchStateValue", params);
@@ -247,6 +269,42 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
                     "840");
   BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2c").bval(),
                     "841");
+
+  // Let's delete key1b.
+  query.clear_indices();
+  query.add_indices("key1b");
+  query.set_ignoreval(true);
+  params["query"] = query.SerializeAsString();
+  params["value"] = "";
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("updateStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+
+  // We now expect the storage to contain:
+  // foo[key1a][key2a] : 420
+  query.clear_indices();  // Let's fetch back the entire map.
+  params.clear();
+  params["query"] = query.SerializeAsString();
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+  // Parse the fetched result and assert.
+  value.Clear();
+  BOOST_CHECK_EQUAL(result[0].asBool(), true);
+  // Compare the entries.
+  value.ParseFromString(result[1].asString());
+  BOOST_CHECK_EQUAL(value.has_mval(), true);
+
+  BOOST_CHECK_EQUAL(value.mval().m().size(), 1);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().size(), 1);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().at("key2a").bval(),
+                    "420");
 
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
