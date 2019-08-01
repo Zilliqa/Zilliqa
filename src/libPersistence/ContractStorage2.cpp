@@ -48,7 +48,7 @@ bool ContractStorage2::PutContractCodeBatch(
   return m_codeDB.BatchInsert(batch);
 }
 
-const bytes ContractStorage2::GetContractCode(const dev::h160& address) {
+bytes ContractStorage2::GetContractCode(const dev::h160& address) {
   shared_lock<shared_timed_mutex> g(m_codeMutex);
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
@@ -72,7 +72,7 @@ bool ContractStorage2::PutInitDataBatch(
   return m_initDataDB.BatchInsert(batch);
 }
 
-const bytes ContractStorage2::GetInitData(const dev::h160& address) {
+bytes ContractStorage2::GetInitData(const dev::h160& address) {
   shared_lock<shared_timed_mutex> g(m_initDataMutex);
   return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
 }
@@ -595,6 +595,17 @@ void ContractStorage2::Reset() {
   {
     unique_lock<shared_timed_mutex> g(m_stateDataMutex);
     m_stateDataDB.ResetDB();
+
+    p_stateDataMap.clear();
+    p_indexToBeDeleted.clear();
+
+    t_stateDataMap.clear();
+
+    r_stateDataMap.clear();
+    r_indexToBeDeleted.clear();
+
+    m_stateDataMap.clear();
+    m_indexToBeDeleted.clear();
   }
 }
 

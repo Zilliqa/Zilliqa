@@ -168,23 +168,11 @@ class Account : public AccountBase {
 
   const bytes GetInitData() const;
 
-  bool SetStorage(const Address& addr,
-                  const std::vector<std::pair<dev::h256, bytes>>& entries,
-                  bool temp, bool revertible = false);
-
-  /// Only called during UpdateAccountsTemp
-  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries,
-                  bool temp = false);
-
-  std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
-
   Json::Value GetInitJson(bool temp = false) const;
 
   Json::Value GetStateJson(bool temp = false) const;
 
   bool GetScillaVersion(uint32_t& scilla_version);
-
-  std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
 
   void GetUpdatedStates(std::map<std::string, bytes>& t_states,
                         std::vector<std::string>& toDeleteIndices) const;

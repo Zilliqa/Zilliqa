@@ -193,43 +193,6 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
-  if (!isContract()) {
-    return false;
-  }
-
-  return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot, temp);
-}
-
-bool Account::SetStorage(const Address& addr,
-                         const vector<pair<dev::h256, bytes>>& entries,
-                         bool temp, bool revertible) {
-  if (!isContract()) {
-    return false;
-  }
-
-  if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp, revertible, {}, false)) {
-    LOG_GENERAL(WARNING, "PutContractState failed");
-    return false;
-  }
-
-  SetAddress(addr);
-
-  return true;
-}
-
-string Account::GetRawStorage(const h256& k_hash, bool temp) const {
-  if (!isContract()) {
-    // LOG_GENERAL(WARNING,
-    //             "Not contract account, why call Account::GetRawStorage!");
-    return "";
-  }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
-                                                                    temp);
-}
-
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
                                   uint32_t& scilla_version) {
@@ -293,15 +256,6 @@ Json::Value Account::GetInitJson(bool temp) const {
     return Json::arrayValue;
   }
   return roots.first;
-}
-
-vector<h256> Account::GetStorageKeyHashes(bool temp) const {
-  if (!isContract()) {
-    return {};
-  }
-
-  return ContractStorage::GetContractStorage().GetContractStateIndexes(
-      m_address, temp);
 }
 
 void Account::GetUpdatedStates(
@@ -426,10 +380,9 @@ const bytes Account::GetCode() const {
   }
 
   if (m_codeCache.empty()) {
-    return ContractStorage::GetContractStorage().GetContractCode(m_address);
-  } else {
-    return m_codeCache;
+    return ContractStorage2::GetContractStorage().GetContractCode(m_address);
   }
+  return m_codeCache;
 }
 
 bool Account::GetScillaVersion(uint32_t& scilla_version) {
@@ -492,10 +445,9 @@ const bytes Account::GetInitData() const {
   }
 
   if (m_initDataCache.empty()) {
-    return ContractStorage::GetContractStorage().GetContractCode(m_address);
-  } else {
-    return m_codeCache;
+    return ContractStorage2::GetContractStorage().GetInitData(m_address);
   }
+  return m_initDataCache;
 }
 
 bool Account::SetImmutable(const bytes& code, const bytes& initData) {

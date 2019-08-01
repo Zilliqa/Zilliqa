@@ -44,7 +44,7 @@ void AccountStore::Init() {
 
   lock_guard<mutex> g(m_mutexDB);
 
-  ContractStorage::GetContractStorage().Reset();
+  ContractStorage2::GetContractStorage().Reset();
   m_db.ResetDB();
 }
 
@@ -79,7 +79,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage::GetContractStorage().InitTempState();
+  ContractStorage2::GetContractStorage().InitTempState();
 }
 
 void AccountStore::InitRevertibles() {
@@ -90,7 +90,7 @@ void AccountStore::InitRevertibles() {
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
 
-  ContractStorage::GetContractStorage().InitRevertibles();
+  ContractStorage2::GetContractStorage().InitRevertibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -200,7 +200,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
 
   for (auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
-      if (ContractStorage::GetContractStorage()
+      if (ContractStorage2::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
@@ -209,7 +209,8 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
     }
   }
 
-  if (!ContractStorage::GetContractStorage().PutContractCodeBatch(code_batch)) {
+  if (!ContractStorage2::GetContractStorage().PutContractCodeBatch(
+          code_batch)) {
     LOG_GENERAL(WARNING, "PutContractCodeBatch failed");
     return false;
   }
@@ -217,7 +218,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   bool ret = true;
 
   if (ret) {
-    if (!ContractStorage::GetContractStorage().CommitStateDB()) {
+    if (!ContractStorage2::GetContractStorage().CommitStateDB()) {
       LOG_GENERAL(WARNING,
                   "CommitTempStateDB failed. need to rever the change on "
                   "ContractCode");
@@ -227,7 +228,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
 
   if (!ret) {
     for (const auto& it : code_batch) {
-      if (!ContractStorage::GetContractStorage().DeleteContractCode(
+      if (!ContractStorage2::GetContractStorage().DeleteContractCode(
               h160(it.first))) {
         LOG_GENERAL(WARNING, "Failed to delete contract code for " << it.first);
       }
@@ -506,5 +507,5 @@ void AccountStore::RevertCommitTemp() {
     RemoveFromTrie(entry.first);
   }
 
-  ContractStorage::GetContractStorage().RevertContractStates();
+  ContractStorage2::GetContractStorage().RevertContractStates();
 }

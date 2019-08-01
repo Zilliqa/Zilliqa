@@ -90,7 +90,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
       const std::unordered_map<std::string, std::string>& batch);
 
   /// Get the desired code from persistence
-  const bytes GetContractCode(const dev::h160& address);
+  bytes GetContractCode(const dev::h160& address);
 
   /// Delete the contract code in persistence
   bool DeleteContractCode(const dev::h160& address);
@@ -101,7 +101,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool PutInitDataBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
-  const bytes GetInitData(const dev::h160& address);
+  bytes GetInitData(const dev::h160& address);
 
   bool DeleteInitData(const dev::h160& address);
 
