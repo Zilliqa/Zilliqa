@@ -64,7 +64,10 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   std::string rawAccountBase;
   {
-    std::lock_guard<std::mutex> g(m_mutexTrie);
+    std::lock(m_mutexTrie, m_mutexDB);
+    std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+    std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+
     rawAccountBase = m_state.at(address);
   }
   if (rawAccountBase.empty()) {
@@ -133,10 +136,14 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetPrevRootHash() const {
 
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
   for (auto const& entry : *(this->m_addressToAccount)) {
-    if (!UpdateStateTrie(entry.first, entry.second)) {
+    bytes rawBytes;
+    if (!entry.second.SerializeBase(rawBytes, 0)) {
+      LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
       return false;
     }
+    m_state.insert(entry.first, rawBytes);
   }
 
   return true;

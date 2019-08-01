@@ -258,41 +258,45 @@ bool AccountStore::RepopulateStateTrie() {
   unsigned int counter = 0;
   bool batched_once = false;
 
-  for (const auto& i : m_state) {
-    counter++;
+  {
+    lock_guard<mutex> g(m_mutexTrie);
+    for (const auto& i : m_state) {
+      counter++;
 
-    if (counter >= ACCOUNT_IO_BATCH_SIZE) {
-      // Write into db
-      if (!BlockStorage::GetBlockStorage().PutTempState(
-              *this->m_addressToAccount)) {
-        LOG_GENERAL(WARNING, "PutTempState failed");
-        return false;
-      } else {
-        // this->m_addressToAccount->clear();
-        counter = 0;
-        batched_once = true;
+      if (counter >= ACCOUNT_IO_BATCH_SIZE) {
+        // Write into db
+        if (!BlockStorage::GetBlockStorage().PutTempState(
+                *this->m_addressToAccount)) {
+          LOG_GENERAL(WARNING, "PutTempState failed");
+          return false;
+        } else {
+          // this->m_addressToAccount->clear();
+          counter = 0;
+          batched_once = true;
+        }
       }
-    }
 
-    Address address(i.first);
+      Address address(i.first);
 
-    if (!batched_once) {
-      if (this->m_addressToAccount->find(address) !=
-          this->m_addressToAccount->end()) {
+      if (!batched_once) {
+        if (this->m_addressToAccount->find(address) !=
+            this->m_addressToAccount->end()) {
+          continue;
+        }
+      }
+
+      Account account;
+      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
+                                   0)) {
+        LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
         continue;
       }
-    }
+      if (account.isContract()) {
+        account.SetAddress(address);
+      }
 
-    Account account;
-    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      continue;
+      this->m_addressToAccount->insert({address, account});
     }
-    if (account.isContract()) {
-      account.SetAddress(address);
-    }
-
-    this->m_addressToAccount->insert({address, account});
   }
 
   if (!this->m_addressToAccount->empty()) {
@@ -347,8 +351,11 @@ void AccountStore::DiscardUnsavedUpdates() {
   lock(g, g2);
 
   try {
-    m_state.db()->rollback();
-    m_state.setRoot(m_prevRoot);
+    {
+      lock_guard<mutex> g(m_mutexTrie);
+      m_state.db()->rollback();
+      m_state.setRoot(m_prevRoot);
+    }
     m_addressToAccount->clear();
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
@@ -385,6 +392,7 @@ bool AccountStore::RetrieveFromDisk() {
   try {
     h256 root(rootBytes);
     LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
+    lock_guard<mutex> g(m_mutexTrie);
     m_state.setRoot(root);
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "

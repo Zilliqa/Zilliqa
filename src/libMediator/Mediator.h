@@ -123,6 +123,8 @@ class Mediator {
                                  const uint64_t& epochNum);
 
   void SetupLogLevel();
+
+  bool ToProcessTransaction();
 };
 
 #endif  // ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_

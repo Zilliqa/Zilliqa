@@ -2017,7 +2017,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
         (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
-          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder);
+          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder,
+          true /*skip shardid check*/);
     }
   }
 
@@ -2803,7 +2804,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   if (!(expectedDSLeader.first == dspubkey)) {
-    LOG_CHECK_FAIL("Expected DS leader", dspubkey, expectedDSLeader.first);
+    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
     return false;
   }
 

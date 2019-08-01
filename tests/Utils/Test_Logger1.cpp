@@ -33,7 +33,7 @@ void test() {
 
 BOOST_AUTO_TEST_CASE(testLogger1) {
   // Write to a file
-  INIT_FILE_LOGGER("test1");
+  INIT_FILE_LOGGER("test1", "./");
   bytes bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
 
   LOG_GENERAL(INFO, "Hello world");

@@ -57,7 +57,7 @@ int main() {
   }
   mediator.RegisterColleagues(nullptr, &node, nullptr, vd.get());
 
-  if (node.CheckIntegrity()) {
+  if (node.CheckIntegrity(true)) {
     cout << "Validation Success";
   } else {
     cout << "Validation Failure";

@@ -328,7 +328,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::CheckIntegrity() {
+bool Node::CheckIntegrity(bool continueOnError) {
   DequeOfNode dsComm;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
@@ -421,11 +421,14 @@ bool Node::CheckIntegrity() {
     return false;
   }
 
+  bool result = true;
+
   for (uint i = 1; i < txBlocks.size(); i++) {
     auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
-      LOG_GENERAL(INFO, mbInfo.m_shardId);
+      LOG_GENERAL(INFO, "FB: " << txBlocks.at(i).GetHeader().GetBlockNum()
+                               << " MB: " << mbInfo.m_shardId);
       /// Skip because empty microblocks are not stored
       if (mbInfo.m_txnRootHash == TxnHash()) {
         continue;
@@ -436,18 +439,27 @@ bool Node::CheckIntegrity() {
         for (const auto& tranHash : tranHashes) {
           TxBodySharedPtr tx;
           if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
-            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
-            return false;
+            LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
+            result = false;
+            if (!continueOnError) {
+              break;
+            }
           }
         }
       } else {
-        LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
-                                 << "failed to fetch microblock");
-        return false;
+        LOG_GENERAL(WARNING, "Missing MB: " << mbInfo.m_microBlockHash);
+        result = false;
+        if (!continueOnError) {
+          break;
+        }
       }
     }
+    if (!result && !continueOnError) {
+      break;
+    }
   }
-  return true;
+
+  return result;
 }
 
 bool Node::ValidateDB() {
@@ -718,6 +730,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         }
       }
     }
+
+    RemoveIpMapping();
   }
 
   bool bInShardStructure = false;
@@ -819,6 +833,21 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
       ipMapping[v.second.get<std::string>("pubkey")] =
           Peer((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
     }
+  }
+}
+
+void Node::RemoveIpMapping() {
+  LOG_MARKER();
+
+  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+      LOG_GENERAL(INFO,
+                  IP_MAPPING_FILE_NAME << " has been removed successfully.");
+    } else {
+      LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot be removed!");
+    }
+  } else {
+    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
   }
 }
 

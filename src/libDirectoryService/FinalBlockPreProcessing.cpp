@@ -205,15 +205,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating final block");
 
-  if (!m_mediator.GetIsVacuousEpoch() &&
-      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-            TXN_SHARD_TARGET_DIFFICULTY &&
-        m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
-       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-           TXN_DS_TARGET_NUM)) {
-    m_mediator.m_node->ProcessTransactionWhenShardLeader();
+  if (m_mediator.ToProcessTransaction()) {
+    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;
@@ -221,7 +214,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   }
   AccountStore::GetInstance().CommitTempRevertible();
 
-  if (!m_mediator.m_node->ComposeMicroBlock()) {
+  if (!m_mediator.m_node->ComposeMicroBlock(m_microBlockGasLimit)) {
     LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
     m_mediator.m_node->m_microblock = nullptr;
   } else {
@@ -914,7 +907,8 @@ bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
     ret = false;
   }
 
-  if (ret && !m_mediator.m_node->CheckMicroBlockValidity(errorMsg)) {
+  if (ret && !m_mediator.m_node->CheckMicroBlockValidity(
+                 errorMsg, m_microBlockGasLimit)) {
     LOG_GENERAL(WARNING, "Microblock validation failed");
     ret = false;
   }
@@ -1037,15 +1031,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_2
-  if (!m_mediator.GetIsVacuousEpoch() &&
-      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-            TXN_SHARD_TARGET_DIFFICULTY &&
-        m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
-       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-           TXN_DS_TARGET_NUM)) {
-    m_mediator.m_node->ProcessTransactionWhenShardBackup();
+  if (m_mediator.ToProcessTransaction()) {
+    m_mediator.m_node->ProcessTransactionWhenShardBackup(m_microBlockGasLimit);
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1111,6 +1098,37 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
   }
 }
 
+void DirectoryService::CalculateCurrentDSMBGasLimit() {
+  LOG_MARKER();
+  // Adjust gas limit if there were finalblock view change in DS committee
+  // The gas limit revised with be the default microblock gas limit times
+  // 1/2 by current vc_count
+  uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
+  BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
+  VCBlockSharedPtr prevVCBlockptr;
+  if (m_mediator.m_ds->CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
+    if (m_mediator.m_ds->m_viewChangestate ==
+            DirectoryService::FINALBLOCK_CONSENSUS ||
+        m_mediator.m_ds->m_viewChangestate ==
+            DirectoryService::FINALBLOCK_CONSENSUS_PREP) {
+      for (unsigned int i = 0;
+           i < prevVCBlockptr->GetHeader().GetViewChangeCounter(); ++i) {
+        if (!SafeMath<uint64_t>::div(m_microBlockGasLimit, 2,
+                                     m_microBlockGasLimit)) {
+          LOG_GENERAL(WARNING, "m_microBlockGasLimit " << m_microBlockGasLimit
+                                                       << " div 2 failed");
+          break;
+        }
+      }
+      LOG_GENERAL(INFO,
+                  "m_microBlockGasLimit: "
+                      << m_microBlockGasLimit << " MICROBLOCK_GAS_LIMIT: "
+                      << MICROBLOCK_GAS_LIMIT << " vccounter: "
+                      << prevVCBlockptr->GetHeader().GetViewChangeCounter());
+    }
+  }
+}
+
 void DirectoryService::RunConsensusOnFinalBlock() {
   LOG_MARKER();
 
@@ -1153,6 +1171,12 @@ void DirectoryService::RunConsensusOnFinalBlock() {
 
     LOG_GENERAL(INFO, "RunConsensusOnFinalBlock ");
     PrepareRunConsensusOnFinalBlockNormal();
+
+    m_microBlockGasLimit = MICROBLOCK_GAS_LIMIT;
+    // checking whether process transaction
+    if (m_mediator.ToProcessTransaction()) {
+      CalculateCurrentDSMBGasLimit();
+    }
 
     // Upon consensus object creation failure, one should not return from the
     // function, but rather wait for view change.

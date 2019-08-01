@@ -105,7 +105,8 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   }
 
   // check if sender pubkey is one from our expected list
-  if (!CheckIfDSNode(senderPubKey)) {
+  if ((GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) ||
+      (!GUARD_MODE && !CheckIfDSNode(senderPubKey))) {
     LOG_GENERAL(WARNING,
                 "PubKey of packet sender "
                     << from
@@ -340,7 +341,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
 
   // m_timespec = r_timer_start();
 
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer.m_ipAddress,
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer,
                                        submitterPubKey, lookupId, gasPrice);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
