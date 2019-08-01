@@ -28,13 +28,14 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
   ~ScillaIPCServer() = default;
 
-  virtual void fetchStateValueI(const Json::Value& request,
-                                Json::Value& response);
-  virtual void updateStateValueI(const Json::Value& request,
-                                 Json::Value& response);
-  bool fetchStateValue(const std::string& query, std::string& value,
-                       bool& found);
-  bool updateStateValue(const std::string& query, const std::string& value);
+  inline virtual void fetchStateValueI(const Json::Value& request,
+                                       Json::Value& response);
+  inline virtual void updateStateValueI(const Json::Value& request,
+                                        Json::Value& response);
+  virtual bool fetchStateValue(const std::string& query, std::string& value,
+                               bool& found);
+  virtual bool updateStateValue(const std::string& query,
+                                const std::string& value);
   void setContractAddress(const dev::h160& address);
 
  private:

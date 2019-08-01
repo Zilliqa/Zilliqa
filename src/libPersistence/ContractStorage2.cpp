@@ -26,6 +26,9 @@
 #include <bits/stdc++.h>
 #include <boost/algorithm/string.hpp>
 
+// Single character used as separator when concatenating keys into one.
+#define DB_KEY_SEPARATOR "."
+
 using namespace std;
 using namespace ZilliqaMessage;
 
@@ -115,12 +118,12 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  string key = addr.hex() + "." + query.name();
+  string key = addr.hex() + DB_KEY_SEPARATOR + query.name();
 
   ProtoScillaVal value;
 
   for (const auto& index : query.indices()) {
-    key += "." + index;
+    key += DB_KEY_SEPARATOR + index;
   }
 
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -191,7 +194,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
   it->Seek({key});
-  if (it->key().ToString().compare(0, key.size(), key) != 0) {
+  if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
     foundVal = false;
     return true;
@@ -223,7 +226,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     // [address.vname.index0.index1.(...).]indexN0.indexN1.(...).indexNn
     string key_non_prefix =
         entry.first.substr(key.size() + 1, entry.first.size());
-    boost::split(indices, key_non_prefix, boost::is_any_of("."));
+    boost::split(indices, key_non_prefix, boost::is_any_of(DB_KEY_SEPARATOR));
     unsigned int n = indices.size();
     ProtoScillaVal t_value;
     if (query.indices().size() + indices.size() < query.mapdepth()) {
@@ -292,8 +295,8 @@ void ContractStorage2::FetchStateValueForAddress(
 
   auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
   it->Seek({address.hex()});
-  if (it->key().ToString().compare(0, address.hex().size(), address.hex()) !=
-      0) {
+  if (!it->Valid() || it->key().ToString().compare(0, address.hex().size(),
+                                                   address.hex()) != 0) {
     // no entry
   } else {
     for (; it->key().ToString().compare(0, address.hex().size(),
@@ -377,13 +380,13 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     return false;
   }
 
-  string key = addr.hex() + "." + query.name();
+  string key = addr.hex() + DB_KEY_SEPARATOR + query.name();
 
   // bytes keyReady;
   // copy(keyBase.begin(), keyBase.end(), keyReady.begin());
 
   for (const auto& index : query.indices()) {
-    key += "." + index;
+    key += DB_KEY_SEPARATOR + index;
   }
 
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -423,7 +426,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
       }
       for (const auto& entry : value.mval().m()) {
         string index(keyAcc);
-        index += "." + entry.first;
+        index += DB_KEY_SEPARATOR + entry.first;
         if (entry.second.has_mval()) {
           // We haven't reached the deepeast nesting
           return mapHandler(index, entry.second);
