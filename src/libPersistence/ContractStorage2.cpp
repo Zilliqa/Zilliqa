@@ -236,12 +236,12 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
         entry.first.substr(key.size() + 1, entry.first.size());
     boost::split(indices, key_non_prefix, boost::is_any_of(DB_KEY_SEPARATOR));
     unsigned int n = indices.size();
-    ProtoScillaVal *t_value = &value;
+    ProtoScillaVal* t_value = &value;
     for (unsigned int i = 0; i < indices.size(); ++i) {
       t_value = &(t_value->mutable_mval()->mutable_m()->operator[](indices[i]));
     }
-    if (query.indices().size() + indices.size() < query.mapdepth()) { 
-      t_value->mutable_mval()->mutable_m(); // Create empty map.
+    if (query.indices().size() + indices.size() < query.mapdepth()) {
+      t_value->mutable_mval()->mutable_m();  // Create empty map.
     } else {
       t_value->set_bval(entry.second.data(), entry.second.size());
     }
