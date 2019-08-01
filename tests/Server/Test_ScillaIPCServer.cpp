@@ -238,14 +238,15 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   value.ParseFromString(result[1].asString());
   BOOST_CHECK_EQUAL(value.has_mval(), true);
 
-  /*
-    BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().at("key2a").bval(),
-    "420");
-    BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2b").bval(),
-    "840");
-    BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2c").bval(),
-    "841");
-  */
+  BOOST_CHECK_EQUAL(value.mval().m().size(), 2);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().size(), 1);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().at("key2a").bval(),
+                    "420");
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().size(), 2);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2b").bval(),
+                    "840");
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2c").bval(),
+                    "841");
 
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
