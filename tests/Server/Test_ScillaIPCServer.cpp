@@ -18,6 +18,7 @@
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 #include <thread>
+#include "common/Constants.h"
 #include "libPersistence/ScillaMessage.pb.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/Logger.h"
@@ -31,15 +32,13 @@ using namespace jsonrpc;
 
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
-#define TEST_SOCK_ADDR "/tmp/scillastateserversocket"
-
 // NOTE: Remember to use unique field names for different tests
 //       since the data in the storage persists across tests.
 
 // Connection sanity test.
 BOOST_AUTO_TEST_CASE(test_connection) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s(TEST_SOCK_ADDR);
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.StartListening();
@@ -51,9 +50,9 @@ BOOST_AUTO_TEST_CASE(test_connection) {
 // Simple non-map query.
 BOOST_AUTO_TEST_CASE(test_query_simple) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s(TEST_SOCK_ADDR);
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  UnixDomainSocketClient c(TEST_SOCK_ADDR);
+  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.StartListening();
@@ -98,9 +97,9 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
 // Simple map query.
 BOOST_AUTO_TEST_CASE(test_query_map_1) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s(TEST_SOCK_ADDR);
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  UnixDomainSocketClient c(TEST_SOCK_ADDR);
+  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.StartListening();
@@ -157,9 +156,9 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
 // Nested map queries.
 BOOST_AUTO_TEST_CASE(test_query_map_2) {
   INIT_STDOUT_LOGGER();
-  UnixDomainSocketServer s(TEST_SOCK_ADDR);
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  UnixDomainSocketClient c(TEST_SOCK_ADDR);
+  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.StartListening();
