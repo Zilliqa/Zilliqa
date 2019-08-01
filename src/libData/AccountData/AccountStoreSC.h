@@ -25,8 +25,9 @@
 #include <mutex>
 
 #include "AccountStoreBase.h"
-#include "libServer/ScillaIPCServer.h"
 #include "libUtils/DetachedFunction.h"
+
+class ScillaIPCServer;
 
 template <class MAP>
 class AccountStoreSC;

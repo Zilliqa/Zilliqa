@@ -20,6 +20,7 @@
 #include <chrono>
 
 #include "libPersistence/ContractStorage2.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
@@ -183,6 +184,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         this->RemoveAccount(toAddr);
         return false;
       }
+
+      // prepare IPC with current contract address
+      m_scillaIPCServer->setContractAddress(toAddr);
 
       // Undergo scilla checker
       bool ret_checker = true;
@@ -433,6 +437,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         tpStart = r_timer_start();
       }
+
+      // prepare IPC with current contract address
+      m_scillaIPCServer->setContractAddress(toAddr);
 
       std::string runnerPrint;
       bool ret = true;
@@ -1192,6 +1199,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       return false;
     }
   }
+
+  // prepare IPC with current contract address
+  m_scillaIPCServer->setContractAddress(m_curContractAddr);
 
   std::string runnerPrint;
   bool result = true;
