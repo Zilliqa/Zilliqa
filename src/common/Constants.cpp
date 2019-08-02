@@ -518,6 +518,10 @@ const unsigned int REPOPULATE_STATE_IN_DS{std::min(
     REPOPULATE_STATE_PER_N_DS - 1)};
 const unsigned int NUM_STORE_TX_BODIES_INTERVAL{
     ReadConstantNumeric("NUM_STORE_TX_BODIES_INTERVAL", "node.transactions.")};
+const string BUCKET_NAME{
+    ReadConstantString("BUCKET_NAME", "node.transactions.")};
+const string TXN_PERSISTENCE_NAME{
+    ReadConstantString("TXN_PERSISTENCE_NAME", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

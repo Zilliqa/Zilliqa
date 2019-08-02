@@ -428,7 +428,7 @@ void Node::ProcessTransactionWhenShardLeader(
   }
 
   cv_TxnProcFinished.notify_all();
-  PutTxnsInTempDataBase(t_processedTransactions);
+  PutTxnsInTempDataBase(t_processedTransactions, true);
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -655,13 +655,47 @@ void Node::ProcessTransactionWhenShardBackup(
 
 void Node::PutTxnsInTempDataBase(
     const std::unordered_map<TxnHash, TransactionWithReceipt>&
-        processedTransactions) {
+        processedTransactions,
+    bool uploadToS3) {
+  vector<bytes> serializedTxns;
   for (const auto& hashTxnPair : processedTransactions) {
     bytes serializedTxn;
     hashTxnPair.second.Serialize(serializedTxn, 0);
     BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
                                                           serializedTxn);
+    if (uploadToS3) {
+      serializedTxns.push_back(serializedTxn);
+    }
   }
+
+  if (uploadToS3) {
+    std::ostringstream oss;
+    oss << "/tmp/txns_shard_" << m_myshardId << "_txblk_"
+        << m_mediator.m_currentEpochNum;
+    std::string txns_filename = oss.str();
+    std::ofstream txns_file(txns_filename, std::fstream::binary);
+
+    for (auto& txn : serializedTxns) {
+      txns_file.write(reinterpret_cast<char*>(txn.data()), txn.size());
+    }
+    txns_file.close();
+
+    // upload to S3
+    if (SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
+                               GetAwsS3CpString(txns_filename))) {
+      LOG_GENERAL(WARNING, "Failed to upload txns file -" << txns_filename);
+    } else {
+      LOG_GENERAL(DEBUG,
+                  "upload txns file- " << txns_filename << " successfully");
+    }
+  }
+}
+
+std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {
+  std::ostringstream ossS3Cmd;
+  ossS3Cmd << "aws s3 cp " << uploadFilePath << " s3://" << BUCKET_NAME << "/"
+           << TXN_PERSISTENCE_NAME << "/";
+  return ossS3Cmd.str();
 }
 
 void Node::ReinstateMemPool(

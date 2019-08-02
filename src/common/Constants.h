@@ -368,6 +368,8 @@ extern const bool ENABLE_REPOPULATE;
 extern const unsigned int REPOPULATE_STATE_PER_N_DS;
 extern const unsigned int REPOPULATE_STATE_IN_DS;
 extern const unsigned int NUM_STORE_TX_BODIES_INTERVAL;
+extern const std::string BUCKET_NAME;
+extern const std::string TXN_PERSISTENCE_NAME;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
