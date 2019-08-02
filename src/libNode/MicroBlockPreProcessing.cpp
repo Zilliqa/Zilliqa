@@ -428,6 +428,7 @@ void Node::ProcessTransactionWhenShardLeader(
   }
 
   cv_TxnProcFinished.notify_all();
+  PutTxnsInTempDataBase(t_processedTransactions);
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -485,6 +486,10 @@ void Node::UpdateProcessedTransactions() {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns = move(t_createdTxns);
     t_createdTxns.clear();
+  }
+  if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
+    BlockStorage::GetBlockStorage().ResetDB(
+        BlockStorage::DBTYPE::PROCESSED_TEMP);
   }
 
   {
@@ -643,7 +648,20 @@ void Node::ProcessTransactionWhenShardBackup(
 
   cv_TxnProcFinished.notify_all();
 
+  PutTxnsInTempDataBase(t_processedTransactions);
+
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+}
+
+void Node::PutTxnsInTempDataBase(
+    const std::unordered_map<TxnHash, TransactionWithReceipt>&
+        processedTransactions) {
+  for (const auto& hashTxnPair : processedTransactions) {
+    bytes serializedTxn;
+    hashTxnPair.second.Serialize(serializedTxn, 0);
+    BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
+                                                          serializedTxn);
+  }
 }
 
 void Node::ReinstateMemPool(

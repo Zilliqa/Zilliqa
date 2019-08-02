@@ -624,6 +624,10 @@ class Node : public Executable {
   /// Fallback Consensus Related
   std::atomic<NodeState> m_fallbackState{};
   bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
+
+  void PutTxnsInTempDataBase(
+      const std::unordered_map<TxnHash, TransactionWithReceipt>&
+          processedTransactions);
 };
 
 #endif  // ZILLIQA_SRC_LIBNODE_NODE_H_
