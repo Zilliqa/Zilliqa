@@ -2803,7 +2803,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!(expectedDSLeader.first == dspubkey)) {
+  if (expectedDSLeader.first != dspubkey) {
     LOG_CHECK_FAIL("DS leader pubkey", dspubkey, expectedDSLeader.first);
     return false;
   }
