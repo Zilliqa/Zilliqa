@@ -681,7 +681,7 @@ void Node::PutTxnsInTempDataBase(
     txns_file.close();
 
     // upload to S3
-    if (SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
+    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
                                GetAwsS3CpString(txns_filename))) {
       LOG_GENERAL(WARNING, "Failed to upload txns file -" << txns_filename);
     } else {
