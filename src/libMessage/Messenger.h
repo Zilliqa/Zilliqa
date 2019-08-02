@@ -441,10 +441,10 @@ class Messenger {
                                     uint32_t& listenPort);
   static bool SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
                                     const PairOfKey& lookupKey,
-                                    const std::vector<Peer>& candidateSeeds);
+                                    const VectorOfPeer& candidateSeeds);
   static bool GetLookupSetSeedPeers(const bytes& src, const unsigned int offset,
                                     PubKey& lookupPubKey,
-                                    std::vector<Peer>& candidateSeeds);
+                                    VectorOfPeer& candidateSeeds);
   static bool SetLookupGetDSInfoFromSeed(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort,
                                          const bool initialDS);
@@ -574,11 +574,11 @@ class Messenger {
                                          uint32_t& listenPort);
   static bool SetLookupSetOfflineLookups(bytes& dst, const unsigned int offset,
                                          const PairOfKey& lookupKey,
-                                         const std::vector<Peer>& nodes);
+                                         const VectorOfPeer& nodes);
   static bool GetLookupSetOfflineLookups(const bytes& src,
                                          const unsigned int offset,
                                          PubKey& lookupPubKey,
-                                         std::vector<Peer>& nodes);
+                                         VectorOfPeer& nodes);
   static bool GetLookupSetRaiseStartPoW(const bytes& src,
                                         const unsigned int offset,
                                         uint8_t& msgType, uint64_t& blockNumber,

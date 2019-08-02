@@ -85,7 +85,7 @@ class Lookup : public Executable {
   // Sharding committee members
 
   std::mutex m_mutexNodesInNetwork;
-  std::vector<Peer> m_nodesInNetwork;
+  VectorOfPeer m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
 
   std::atomic<bool> m_startedTxnBatchThread{};
@@ -246,7 +246,7 @@ class Lookup : public Executable {
   bool SetDSCommitteInfo(bool replaceMyPeerWithDefault = false);
 
   DequeOfShard GetShardPeers();
-  std::vector<Peer> GetNodePeers();
+  VectorOfPeer GetNodePeers();
 
   // Start synchronization with other lookup nodes as a lookup node
   void StartSynchronization();
@@ -407,7 +407,7 @@ class Lookup : public Executable {
 
   bool AlreadyJoinedNetwork();
 
-  void RemoveSeedNodeFromBlackList();
+  void RemoveSeedNodesFromBlackList();
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;

@@ -453,7 +453,7 @@ class DirectoryService : public Executable {
   };
 
   /// Sharing assignment for state delta
-  std::vector<Peer> m_sharingAssignment;
+  VectorOfPeer m_sharingAssignment;
 
   std::mutex m_MutexScheduleDSMicroBlockConsensus;
   std::condition_variable cv_scheduleDSMicroBlockConsensus;

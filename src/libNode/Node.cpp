@@ -573,7 +573,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   // Add ds guard nodes to blacklist exclusion list
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
-  m_mediator.m_lookup->RemoveSeedNodeFromBlackList();
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
 
   if (SyncType::RECOVERY_ALL_SYNC == syncType) {
     Blacklist::GetInstance().Enable(false);
@@ -2133,7 +2133,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
     return;
   }
 
-  std::vector<Peer> shardBlockReceivers;
+  VectorOfPeer shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(INFO,

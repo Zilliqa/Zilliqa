@@ -189,7 +189,7 @@ void DirectoryService::SendDSBlockToShardNodes(
 
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
-      std::vector<Peer> shardDSBlockReceivers;
+      VectorOfPeer shardDSBlockReceivers;
       unsigned int numOfDSBlockReceivers =
           NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
       if (numOfDSBlockReceivers <= NUM_DS_ELECTION) {
@@ -368,7 +368,7 @@ void DirectoryService::StartFirstTxEpoch() {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
-  m_mediator.m_lookup->RemoveSeedNodeFromBlackList();
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
