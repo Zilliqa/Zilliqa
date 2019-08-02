@@ -42,6 +42,7 @@
 #include <condition_variable>
 #include <map>
 #include <mutex>
+#include <set>
 #include <vector>
 
 class Mediator;
@@ -92,8 +93,6 @@ class Lookup : public Executable {
 
   // Start PoW variables
   std::atomic<bool> m_receivedRaiseStartPoW{};
-  std::mutex m_MutexCVStartPoWSubmission;
-  std::condition_variable cv_startPoWSubmission;
 
   // Store the StateRootHash of latest txBlock before States are repopulated.
   StateHash m_prevStateRootHashTemp;
@@ -411,6 +410,10 @@ class Lookup : public Executable {
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
+
+  // Start PoW variables
+  std::set<Peer> m_getStartPoWPeerSet;
+  std::mutex m_mutexGetStartPoWPeerSet;
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

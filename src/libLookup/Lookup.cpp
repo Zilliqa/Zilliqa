@@ -2819,29 +2819,43 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   if (expectedDSLeader.first != dspubkey) {
-    LOG_CHECK_FAIL("DS leader key", dspubkey, expectedDSLeader.first);
+    LOG_CHECK_FAIL("DS leader pubkey", dspubkey, expectedDSLeader.first);
     return false;
   }
 
   // DS leader has informed me that it's time to start PoW
+  // Prevent processing another RaiseStartPoW message
   m_receivedRaiseStartPoW.store(true);
-  cv_startPoWSubmission.notify_all();
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Threads running ProcessGetStartPoWFromSeed notified to start PoW");
+  // Tell the requesting nodes that it's time to start PoW
+  bytes setstartpow_message = {MessageType::LOOKUP,
+                               LookupInstructionType::SETSTARTPOWFROMSEED};
+  if (!Messenger::SetLookupSetStartPoWFromSeed(
+          setstartpow_message, MessageOffset::BODY,
+          m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::SetLookupSetStartPoWFromSeed failed.");
+    return false;
+  }
 
-  // Sleep for a while, then let all remaining threads running
-  // ProcessGetStartPoWFromSeed know that it's too late to do PoW Sleep time =
-  // time it takes for new node to try getting DSInfo + actual PoW window
+  {
+    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
+
+    vector<Peer> tempStartPoWPeerList;
+    std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
+              std::back_inserter(tempStartPoWPeerList));
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
+    P2PComm::GetInstance().SendMessage(tempStartPoWPeerList,
+                                       setstartpow_message);
+    m_getStartPoWPeerSet.clear();
+  }
+
+  // Reset m_receivedRaiseStartPoW after PoW duration
   this_thread::sleep_for(
       chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                       POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
   m_receivedRaiseStartPoW.store(false);
-  cv_startPoWSubmission.notify_all();
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Threads running ProcessGetStartPoWFromSeed notified it's too "
-            "late to start PoW");
 
   return true;
 }
@@ -2867,54 +2881,38 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
     return false;
   }
 
+  if (!IPCHECK::IsPortValid(portNo)) {
+    LOG_GENERAL(WARNING, "Invalid port number " << portNo);
+    return false;
+  }
+
   if (blockNumber !=
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-    LOG_EPOCH(
-        WARNING, m_mediator.m_currentEpochNum,
-        "DS block " << blockNumber
-                    << " in GetStartPoWFromSeed not equal to current DS block "
-                    << m_mediator.m_dsBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum());
+    LOG_CHECK_FAIL(
+        "GetStartPoWFromSeed current DS block", blockNumber,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
     return false;
   }
 
-  // Normally I'll get this message from new nodes at the vacuous epoch
-  // Wait a while if I haven't received RAISESTARTPOW from DS leader yet
-  // Wait time = time it takes to finish the vacuous epoch (or at least part of
-  // it) + actual PoW window
-  if (!m_receivedRaiseStartPoW.load()) {
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
-
-    if (cv_startPoWSubmission.wait_for(
-            cv_lk,
-            std::chrono::seconds(POW_WINDOW_IN_SECONDS +
-                                 POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
-        std::cv_status::timeout) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Timed out waiting for DS leader to raise startPoW");
+  // If already in PoW state, just respond immediately
+  // Otherwise, add this requesting peer to the list
+  if (m_receivedRaiseStartPoW.load()) {
+    bytes setstartpow_message = {MessageType::LOOKUP,
+                                 LookupInstructionType::SETSTARTPOWFROMSEED};
+    if (!Messenger::SetLookupSetStartPoWFromSeed(
+            setstartpow_message, MessageOffset::BODY,
+            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Messenger::SetLookupSetStartPoWFromSeed failed.");
       return false;
     }
 
-    if (!m_receivedRaiseStartPoW.load()) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "PoW duration already passed");
-      return false;
-    }
+    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+                                       setstartpow_message);
+  } else {
+    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
+    m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
   }
-
-  // Tell the new node that it's time to start PoW
-  bytes setstartpow_message = {MessageType::LOOKUP,
-                               LookupInstructionType::SETSTARTPOWFROMSEED};
-  if (!Messenger::SetLookupSetStartPoWFromSeed(
-          setstartpow_message, MessageOffset::BODY,
-          m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupSetStartPoWFromSeed failed.");
-    return false;
-  }
-  P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                     setstartpow_message);
 
   return true;
 }
