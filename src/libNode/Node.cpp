@@ -328,7 +328,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::CheckIntegrity(bool continueOnError) {
+bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   DequeOfNode dsComm;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
@@ -424,6 +424,10 @@ bool Node::CheckIntegrity(bool continueOnError) {
   bool result = true;
 
   for (uint i = 1; i < txBlocks.size(); i++) {
+    if (fromIsolatedBinary && (i % 100 == 0)) {
+      cout << "On tx block " << txBlocks.at(i).GetHeader().GetBlockNum()
+           << endl;
+    }
     auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
@@ -442,7 +446,7 @@ bool Node::CheckIntegrity(bool continueOnError) {
             if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
               LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
               result = false;
-              if (!continueOnError) {
+              if (!fromIsolatedBinary) {
                 break;
               }
             }
@@ -451,12 +455,12 @@ bool Node::CheckIntegrity(bool continueOnError) {
       } else {
         LOG_GENERAL(WARNING, "Missing MB: " << mbInfo.m_microBlockHash);
         result = false;
-        if (!continueOnError) {
+        if (!fromIsolatedBinary) {
           break;
         }
       }
     }
-    if (!result && !continueOnError) {
+    if (!result && !fromIsolatedBinary) {
       break;
     }
   }
