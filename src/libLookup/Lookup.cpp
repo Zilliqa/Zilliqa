@@ -919,21 +919,33 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
 void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   LOG_MARKER();
 
-  lock_guard<mutex> lock(m_mutexSeedNodes);
-  if (0 == m_seedNodes.size()) {
-    LOG_GENERAL(WARNING, "Seed nodes are empty");
+  VectorOfPeer notBlackListedSeedNodes;
+  {
+    lock_guard<mutex> lock(m_mutexSeedNodes);
+    if (0 == m_seedNodes.size()) {
+      LOG_GENERAL(WARNING, "Seed nodes are empty");
+      return;
+    }
+
+    for (const auto& node : m_seedNodes) {
+      auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
+      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend)) {
+        notBlackListedSeedNodes.push_back(
+            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+      }
+    }
+  }
+
+  if (notBlackListedSeedNodes.empty()) {
+    LOG_GENERAL(WARNING,
+                "All the seed nodes are blacklisted, please check you network "
+                "connection.");
     return;
   }
 
-  int index = rand() % m_seedNodes.size();
-  auto resolved_ip = TryGettingResolvedIP(m_seedNodes[index].second);
-
-  Blacklist::GetInstance().Exclude(
-      resolved_ip);  // exclude this lookup ip from blacklisting
-
-  Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
-  LOG_GENERAL(INFO, "Sending message to " << tmpPeer);
-  P2PComm::GetInstance().SendMessage(tmpPeer, message);
+  auto index = rand() % notBlackListedSeedNodes.size();
+  LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
+  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 
 // TODO: Refactor the code to remove the following assumption
@@ -2531,6 +2543,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   m_startedPoW = false;
 
+  // It is new DS epoch now, clear the seed node from black list
+  RemoveSeedNodesFromBlackList();
+
   if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() >
       lastTxBlockNum) {
     if (GetSyncType() != SyncType::NO_SYNC) {
@@ -2673,7 +2688,7 @@ bool Lookup::ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
-    std::vector<Peer> lookupNodesOffline;
+    VectorOfPeer lookupNodesOffline;
     for (const auto& pairPubKeyPeer : m_lookupNodesOffline)
       lookupNodesOffline.push_back(pairPubKeyPeer.second);
 
@@ -3601,6 +3616,17 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
 }
 
 bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
+
+void Lookup::RemoveSeedNodesFromBlackList() {
+  LOG_MARKER();
+
+  lock_guard<mutex> lock(m_mutexSeedNodes);
+
+  for (const auto& node : m_seedNodes) {
+    auto seedNodeIp = TryGettingResolvedIP(node.second);
+    Blacklist::GetInstance().Remove(seedNodeIp);
+  }
+}
 
 bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   if (!LOOKUP_NODE_MODE) {

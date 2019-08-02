@@ -259,6 +259,7 @@ void Node::StartFirstTxEpoch() {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 

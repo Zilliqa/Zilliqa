@@ -62,8 +62,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
 }
 
 void SendDataToShardNodesDefault(
-    const bytes& message,
-    const std::deque<std::vector<Peer>>& sharded_receivers,
+    const bytes& message, const std::deque<VectorOfPeer>& sharded_receivers,
     bool forceMulticast) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -151,18 +150,18 @@ void DataSender::DetermineNodesToSendDataTo(
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
     const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
     const unsigned int& my_shards_hi, bool forceMulticast,
-    std::deque<std::vector<Peer>>& sharded_receivers) {
+    std::deque<VectorOfPeer>& sharded_receivers) {
   auto p = shards.begin();
   advance(p, my_shards_lo);
 
   for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
-    std::vector<Peer> shardReceivers;
+    VectorOfPeer shardReceivers;
     if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
       auto blockRecver = blockswcosigRecver.find(i);
       if (blockRecver != blockswcosigRecver.end()) {
         // cosigs found, select nodes with cosig
-        std::vector<Peer> nodes_cosigned;
-        std::vector<Peer> nodes_not_cosigned;
+        VectorOfPeer nodes_cosigned;
+        VectorOfPeer nodes_not_cosigned;
         for (unsigned int i = 0; i < p->size(); i++) {
           const auto& kv = p->at(i);
           if (blockRecver->second.GetB2().at(i)) {
@@ -315,7 +314,7 @@ bool DataSender::SendDataToOthers(
         if (sendDataToShardFunc) {
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
         } else {
-          std::deque<std::vector<Peer>> sharded_receivers;
+          std::deque<VectorOfPeer> sharded_receivers;
           DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId,
                                      my_shards_lo, my_shards_hi, forceMulticast,
                                      sharded_receivers);
