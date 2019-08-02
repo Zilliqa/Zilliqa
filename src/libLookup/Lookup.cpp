@@ -2804,7 +2804,7 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
   }
 
   if (!(expectedDSLeader.first == dspubkey)) {
-    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
+    LOG_CHECK_FAIL("DS leader pubkey", dspubkey, expectedDSLeader.first);
     return false;
   }
 
