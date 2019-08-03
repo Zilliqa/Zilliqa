@@ -670,11 +670,11 @@ void Node::PutTxnsInTempDataBase(
   }
 
   if (uploadToS3) {
-    std::ostringstream oss;
+    ostringstream oss;
     oss << "/tmp/txns_shard_" << m_myshardId << "_txblk_"
         << m_mediator.m_currentEpochNum;
-    std::string txns_filename = oss.str();
-    std::ofstream txns_file(txns_filename, std::fstream::binary);
+    string txns_filename = oss.str();
+    ofstream txns_file(txns_filename, std::fstream::binary);
 
     for (const auto& pair : serializedHashTxnsPairs) {
       // write HASH LEN and HASH
@@ -700,6 +700,7 @@ void Node::PutTxnsInTempDataBase(
       LOG_GENERAL(DEBUG,
                   "upload txns file : " << txns_filename << " successfully");
     }
+    !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
   }
 }
 

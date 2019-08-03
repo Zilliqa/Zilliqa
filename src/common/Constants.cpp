@@ -522,6 +522,9 @@ const string BUCKET_NAME{
     ReadConstantString("BUCKET_NAME", "node.transactions.")};
 const string TXN_PERSISTENCE_NAME{
     ReadConstantString("TXN_PERSISTENCE_NAME", "node.transactions.")};
+const bool SHARDLDR_SAVE_TXN_LOCALLY{
+    ReadConstantString("SHARDLDR_SAVE_TXN_LOCALLY", "node.transactions.") ==
+    "true"};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

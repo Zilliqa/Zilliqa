@@ -370,6 +370,7 @@ extern const unsigned int REPOPULATE_STATE_IN_DS;
 extern const unsigned int NUM_STORE_TX_BODIES_INTERVAL;
 extern const std::string BUCKET_NAME;
 extern const std::string TXN_PERSISTENCE_NAME;
+extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
