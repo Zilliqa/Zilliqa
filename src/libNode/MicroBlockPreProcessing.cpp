@@ -657,14 +657,15 @@ void Node::PutTxnsInTempDataBase(
     const std::unordered_map<TxnHash, TransactionWithReceipt>&
         processedTransactions,
     bool uploadToS3) {
-  vector<bytes> serializedTxns;
+  vector<tuple<bytes, bytes>> serializedHashTxnsPairs;
   for (const auto& hashTxnPair : processedTransactions) {
     bytes serializedTxn;
     hashTxnPair.second.Serialize(serializedTxn, 0);
     BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
                                                           serializedTxn);
     if (uploadToS3) {
-      serializedTxns.push_back(serializedTxn);
+      serializedHashTxnsPairs.push_back(
+          std::make_tuple(hashTxnPair.first.asBytes(), serializedTxn));
     }
   }
 
@@ -675,18 +676,29 @@ void Node::PutTxnsInTempDataBase(
     std::string txns_filename = oss.str();
     std::ofstream txns_file(txns_filename, std::fstream::binary);
 
-    for (auto& txn : serializedTxns) {
-      txns_file.write(reinterpret_cast<char*>(txn.data()), txn.size());
+    for (const auto& pair : serializedHashTxnsPairs) {
+      // write HASH LEN and HASH
+      size_t size = std::get<0>(pair).size();
+      txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+      txns_file.write(reinterpret_cast<const char*>(std::get<0>(pair).data()),
+                      size);
+
+      // write TXN LEN AND TXN
+      size = std::get<1>(pair).size();
+      txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+      txns_file.write(reinterpret_cast<const char*>(std::get<1>(pair).data()),
+                      size);
     }
+
     txns_file.close();
 
     // upload to S3
     if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
-                               GetAwsS3CpString(txns_filename))) {
-      LOG_GENERAL(WARNING, "Failed to upload txns file -" << txns_filename);
+                                GetAwsS3CpString(txns_filename))) {
+      LOG_GENERAL(WARNING, "Failed to upload txns file :" << txns_filename);
     } else {
       LOG_GENERAL(DEBUG,
-                  "upload txns file- " << txns_filename << " successfully");
+                  "upload txns file : " << txns_filename << " successfully");
     }
   }
 }
