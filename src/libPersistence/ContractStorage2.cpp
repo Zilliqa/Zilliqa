@@ -131,10 +131,17 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
+  const auto& d_found = m_indexToBeDeleted.find(key);
+  if (d_found != m_indexToBeDeleted.end()) {
+    foundVal = false;
+    return true;
+  }
+
   if ((unsigned int)query.indices().size() == query.mapdepth()) {
     // result will not be a map and can be just fetched into the store
     bytes bval;
     bool found = false;
+
     const auto& t_found = t_stateDataMap.find(key);
     if (t_found != t_stateDataMap.end()) {
       bval = t_found->second;
