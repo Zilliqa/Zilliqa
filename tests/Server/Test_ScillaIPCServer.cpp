@@ -286,6 +286,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   // We now expect the storage to contain:
   // foo[key1a][key2a] : 420
   query.clear_indices();  // Let's fetch back the entire map.
+  query.set_ignoreval(false);
   params.clear();
   params["query"] = query.SerializeAsString();
   params.removeMember("value");
