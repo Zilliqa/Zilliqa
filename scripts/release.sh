@@ -24,6 +24,7 @@ privKeyFile=""
 pubKeyFile=""
 testnet_to_be_upgraded=""
 cluster_name="" # eg: dev.k8s.z7a.xyz
+release_bucket_name="zilliqa-release-data"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -124,10 +125,10 @@ fi
 
 # Read information from files
 rm -rf ${constantsDir}; mkdir ${constantsDir}; cd ${constantsDir}; mkdir l; mkdir l2; mkdir n; cd -;
-kubectl cp ${testnet_to_be_upgraded}-normal-0:/run/zilliqa/constants.xml ${constantsDir}/
-kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/
-kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/
-kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/
+kubectl cp ${testnet_to_be_upgraded}-dsguard-0:/run/zilliqa/constants.xml ${constantsDir}/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-level2lookup-0:/run/zilliqa/constants.xml ${constantsDir}/l2/constants.xml
+kubectl cp ${testnet_to_be_upgraded}-newlookup-0:/run/zilliqa/constants.xml ${constantsDir}/n/constants.xml
 constantFile="$(realpath ${constantsDir}/constants.xml)"
 constantLookupFile="$(realpath ${constantsDir}/l/constants.xml)"
 constantLevel2LookupFile="$(realpath ${constantsDir}/l2/constants.xml)"
@@ -268,7 +269,7 @@ cd -
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     cp ${constantLevel2LookupFile} ${constantLevel2LookupFile}_level2lookup
     [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
-    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./scripts) auto_back_up.py -C $(realpath ./scripts) downloadIncrDB.py -C $(realpath ./scripts) download_and_verify.sh -C $(realpath ./scripts) fetchHistorical.py -C $(realpath ./scripts) fetchHistorical.sh -C $(realpath ./scripts) uploadIncrDB.py -C $(realpath ./scripts) automateBackup.py -C $(realpath ./tests/Zilliqa) daemon_restart.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     if [ "$releaseZilliqa" = "true" ]; then
         cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
         cmd="${cmd} -C $(dirname ${constantLevel2LookupFile}) $(basename ${constantLevel2LookupFile})_level2lookup"
@@ -286,12 +287,13 @@ import boto3
 from boto3.s3.transfer import S3Transfer
 import sys
 
-BUCKET_NAME = 'zilliqa-release-data'
+BUCKET_NAME = '$release_bucket_name'
 
 transfer = boto3.client('s3')
 key = sys.argv[1]
+prefix_key="release/"+key
 print(key)
-transfer.upload_file(key, BUCKET_NAME, key,ExtraArgs={'ACL':'public-read'})
+transfer.upload_file(key, BUCKET_NAME, prefix_key,ExtraArgs={'ACL':'public-read'})
 print("Uploaded")
 
 EOF

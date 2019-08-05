@@ -104,12 +104,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   lock_guard<mutex> g(m_mutexGasPrice);
 
-  ethash_mining_result winning_result;
+  EthashMiningResult winning_result;
 
   uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
-  auto headerHash = POW::GenHeaderHash(
-      rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, m_mediator.m_selfPeer,
+                                       m_mediator.m_selfKey.second, lookupId,
+                                       m_proposedGasPrice);
 
   auto startTime = std::chrono::high_resolution_clock::now();
   int powTimeWindow = POW_WINDOW_IN_SECONDS;
@@ -183,7 +183,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
-          RejoinAsNormal();
+          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+          StartSynchronization();
         } else {
           LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
         }
@@ -236,7 +237,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       powTimeWindow -= shardPoWTime;
 
       if (powTimeWindow > 1) {
-        ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
+        EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
             block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
             FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
 
@@ -260,7 +261,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
-    RejoinAsNormal();
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    StartSynchronization();
     return false;
   }
 
@@ -459,8 +461,8 @@ bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
   uint8_t difficulty = POW_DIFFICULTY;
   uint8_t dsDifficulty = DS_POW_DIFFICULTY;
 
-  array<unsigned char, 32> rand1;
-  array<unsigned char, 32> rand2;
+  array<unsigned char, 32> rand1{};
+  array<unsigned char, 32> rand2{};
 
   if (!ReadVariablesFromStartPoWMessage(
           message, offset, block_num, dsDifficulty, difficulty, rand1, rand2)) {

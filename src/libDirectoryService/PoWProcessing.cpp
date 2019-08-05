@@ -105,7 +105,8 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   }
 
   // check if sender pubkey is one from our expected list
-  if (!CheckIfDSNode(senderPubKey)) {
+  if ((GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(senderPubKey)) ||
+      (!GUARD_MODE && !CheckIfDSNode(senderPubKey))) {
     LOG_GENERAL(WARNING,
                 "PubKey of packet sender "
                     << from
@@ -256,11 +257,10 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   Peer submitterPeer = sol.GetSubmitterPeer();
   PubKey submitterPubKey = sol.GetSubmitterKey();
   uint64_t nonce = sol.GetNonce();
-  string resultingHash = sol.GetResultingHash();
-  string mixHash = sol.GetMixHash();
-  Signature signature = sol.GetSignature();
+  const string& resultingHash = sol.GetResultingHash();
+  const string& mixHash = sol.GetMixHash();
   uint32_t lookupId = sol.GetLookupId();
-  uint128_t gasPrice = sol.GetGasPrice();
+  const uint128_t& gasPrice = sol.GetGasPrice();
 
   // Check block number
   if (!CheckWhetherDSBlockIsFresh(blockNumber)) {
@@ -341,7 +341,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
 
   // m_timespec = r_timer_start();
 
-  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer.m_ipAddress,
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer,
                                        submitterPubKey, lookupId, gasPrice);
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
@@ -359,7 +359,7 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-      array<uint8_t, 32> resultingHashArr, mixHashArr;
+      array<uint8_t, 32> resultingHashArr{}, mixHashArr{};
       DataConversion::HexStrToStdArray(resultingHash, resultingHashArr);
       DataConversion::HexStrToStdArray(mixHash, mixHashArr);
       PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice);
@@ -456,7 +456,8 @@ void DirectoryService::ResetPoWSubmissionCounter() {
   m_AllPoWCounter.clear();
 }
 
-void DirectoryService::AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln) {
+void DirectoryService::AddDSPoWs(const PubKey& Pubk,
+                                 const PoWSolution& DSPOWSoln) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
@@ -471,7 +472,8 @@ void DirectoryService::ClearDSPoWSolns() {
   m_allDSPoWs.clear();
 }
 
-std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk) {
+std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(
+    const PubKey& Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end()) {
     return m_allDSPoWs[Pubk].result;
@@ -481,7 +483,7 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk) {
   }
 }
 
-bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk) {
+bool DirectoryService::IsNodeSubmittedDSPoWSoln(const PubKey& Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   return m_allDSPoWs.find(Pubk) != m_allDSPoWs.end();
 }
@@ -497,7 +499,7 @@ uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation) {
   if (0 == reputation) {
     return 0;
   }
-  return log2(reputation);
+  return static_cast<uint8_t>(log2(reputation));
 }
 
 void DirectoryService::ClearReputationOfNodeWithoutPoW() {

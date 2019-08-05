@@ -86,7 +86,8 @@ class ConsensusCommon {
     INVALID_MICROBLOCK_TRAN_RECEIPT_HASH,
     INVALID_FINALBLOCK_STATE_ROOT,
     INVALID_FINALBLOCK_STATE_DELTA_HASH,
-    INVALID_COMMHASH
+    INVALID_COMMHASH,
+    WRONG_GASLIMIT
   };
 
   static std::map<ConsensusErrorCode, std::string> CONSENSUSERRORMSG;
@@ -107,7 +108,7 @@ class ConsensusCommon {
   };
 
   /// State of the active consensus session.
-  std::atomic<State> m_state;
+  std::atomic<State> m_state{};
 
   /// State of the active consensus session.
   ConsensusErrorCode m_consensusErrorCode;

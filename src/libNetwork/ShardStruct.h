@@ -23,6 +23,8 @@
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
 
+using VectorOfPeer = std::vector<Peer>;
+
 enum ShardData {
   SHARD_NODE_PUBKEY,
   SHARD_NODE_PEER,

@@ -31,12 +31,12 @@
 
 /// Stores information on the header part of the VC block.
 class VCBlockHeader : public BlockHeaderBase {
-  uint64_t m_VieWChangeDSEpochNo;
-  uint64_t m_VieWChangeEpochNo;
-  unsigned char m_ViewChangeState;
+  uint64_t m_VieWChangeDSEpochNo{};
+  uint64_t m_VieWChangeEpochNo{};
+  unsigned char m_ViewChangeState{};
   Peer m_CandidateLeaderNetworkInfo;
   PubKey m_CandidateLeaderPubKey;
-  uint32_t m_VCCounter;
+  uint32_t m_VCCounter{};
   VectorOfNode m_FaultyLeaders;
 
  public:

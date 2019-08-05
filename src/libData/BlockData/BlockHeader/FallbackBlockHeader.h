@@ -27,14 +27,14 @@
 
 /// Stores information on the header part of the fallback block.
 class FallbackBlockHeader : public BlockHeaderBase {
-  uint64_t m_fallbackDSEpochNo;
-  uint64_t m_fallbackEpochNo;
-  unsigned char m_fallbackState;
+  uint64_t m_fallbackDSEpochNo{};
+  uint64_t m_fallbackEpochNo{};
+  unsigned char m_fallbackState{};
   FallbackBlockHashSet m_hashset;
-  uint16_t m_leaderConsensusId;
+  uint16_t m_leaderConsensusId{};
   Peer m_leaderNetworkInfo;
   PubKey m_leaderPubKey;
-  uint32_t m_shardId;
+  uint32_t m_shardId{};
 
  public:
   /// Default constructor.

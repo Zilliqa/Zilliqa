@@ -37,7 +37,7 @@ class HashUtils {
     return BytesToHash(vec);
   }
   static const bytes BytesToHash(const bytes& vec) {
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    SHA2<HashType::HASH_VARIANT_256> sha2;
 
     sha2.Update(vec);
     const bytes& resVec = sha2.Finalize();

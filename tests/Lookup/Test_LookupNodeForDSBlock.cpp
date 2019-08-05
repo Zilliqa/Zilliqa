@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
   LOG_MARKER();
 
   uint32_t listen_port = 5000;
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
   Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
-  struct sockaddr_in localhost;
+  struct sockaddr_in localhost {};
   inet_pton(AF_INET, "127.0.0.1", &localhost.sin_addr);
 
   dsblockmsg.resize(curr_offset + 16);
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   LOG_GENERAL(INFO, i);
 
   uint32_t listen_port = 5000;
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 

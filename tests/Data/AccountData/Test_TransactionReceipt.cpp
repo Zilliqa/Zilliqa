@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(transactionwithreceipt) {
   TransactionReceipt tr;
   std::vector<TransactionWithReceipt> txrs;
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
 
   for (const auto& ts : transactionStrings) {
     sha2.Update(DataConversion::StringToCharArray(ts.c_str()));

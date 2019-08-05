@@ -41,7 +41,7 @@ class Zilliqa {
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
   std::unique_ptr<StatusServer> m_statusServer;
-  std::unique_ptr<LookupServer> m_lookupServer;
+  std::shared_ptr<LookupServer> m_lookupServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
 

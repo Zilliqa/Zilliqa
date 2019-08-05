@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
 #define ZILLIQA_SRC_LIBUTILS_SYSCOMMAND_H_
 
+#include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <array>
@@ -29,6 +30,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <utility>
 
 #include "Logger.h"
 
@@ -40,7 +42,8 @@ static int pid_place_holder;
 
 class SysCommand {
  public:
-  static FILE* popen_with_pid(std::string command, std::string type, int& pid) {
+  static FILE* popen_with_pid(const std::string& command,
+                              const std::string& type, int& pid) {
     pid_t child_pid;
     int fd[2];
     if (pipe(fd) != 0) {
@@ -102,7 +105,7 @@ class SysCommand {
     return stat;
   }
 
-  static bool ExecuteCmdWithoutOutput(std::string cmd) {
+  static bool ExecuteCmdWithoutOutput(const std::string& cmd) {
     std::string str;
     return ExecuteCmdWithOutput(cmd, str);
   }
@@ -110,7 +113,7 @@ class SysCommand {
   static bool ExecuteCmdWithOutput(std::string cmd, std::string& output) {
     LOG_MARKER();
 
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer{};
 
     signal(SIGCHLD, SIG_IGN);
 
@@ -119,7 +122,8 @@ class SysCommand {
     std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
                                                   pclose);
     if (!proc) {
-      LOG_GENERAL(WARNING, "popen() failed!");
+      LOG_GENERAL(WARNING, "popen() failed for command: " << cmd << ", Error: "
+                                                          << strerror(errno));
       return false;
     }
 
@@ -136,7 +140,7 @@ class SysCommand {
                                       int& pid) {
     LOG_MARKER();
 
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer{};
 
     signal(SIGCHLD, SIG_IGN);
 
@@ -149,7 +153,8 @@ class SysCommand {
     LOG_GENERAL(INFO, "ExecuteCmdWithOutputPID pid: " << pid);
 
     if (!proc) {
-      LOG_GENERAL(WARNING, "popen() failed!");
+      LOG_GENERAL(WARNING, "popen() failed for command: " << cmd << ", Error: "
+                                                          << strerror(errno));
       return false;
     }
 

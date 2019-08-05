@@ -105,6 +105,7 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
   auto txns = GenWithDummyValue(sender, receiver, n);
 
   std::vector<TxnHash> local_txnHashes;
+  local_txnHashes.reserve(txns.size());
   for (const auto& t : txns) {
     local_txnHashes.emplace_back(t.GetTranID());
   }
@@ -119,20 +120,20 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
                                      TXN_MISORDER_TOLERANCE_IN_PERCENT));
 
   // Shuffle # tolerance_num txns from the head
-  std::random_shuffle(
-      rcvd_txnHashes_2.begin(),
-      rcvd_txnHashes_2.begin() +
-          TXN_MISORDER_TOLERANCE_IN_PERCENT * n / ONE_HUNDRED_PERCENT);
+  std::random_shuffle(rcvd_txnHashes_2.begin(),
+                      rcvd_txnHashes_2.begin() +
+                          static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
+                                            n / ONE_HUNDRED_PERCENT));
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_2,
                                      TXN_MISORDER_TOLERANCE_IN_PERCENT));
 
   // Shuffle # tolerance_num txns from the tail
-  std::random_shuffle(
-      rcvd_txnHashes_3.end() -
-          TXN_MISORDER_TOLERANCE_IN_PERCENT * n / ONE_HUNDRED_PERCENT,
-      rcvd_txnHashes_3.end());
+  std::random_shuffle(rcvd_txnHashes_3.end() -
+                          static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
+                                            n / ONE_HUNDRED_PERCENT),
+                      rcvd_txnHashes_3.end());
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_3,

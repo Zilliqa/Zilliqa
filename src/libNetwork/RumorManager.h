@@ -73,7 +73,7 @@ class RumorManager {
   std::atomic<bool> m_continueRound;
   std::condition_variable m_condStopRound;
 
-  int32_t m_rawMessageExpiryInMs;
+  int32_t m_rawMessageExpiryInMs{};
 
   void SendMessages(const Peer& toPeer,
                     const std::vector<RRS::Message>& messages);
@@ -111,7 +111,7 @@ class RumorManager {
   void SendRumorToForeignPeers(const std::deque<Peer>& toForeignPeers,
                                const RawBytes& message);
 
-  void SendRumorToForeignPeers(const std::vector<Peer>& toForeignPeers,
+  void SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
                                const RawBytes& message);
 
   void PrintStatistics();

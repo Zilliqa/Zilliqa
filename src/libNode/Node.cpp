@@ -153,7 +153,8 @@ bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string output;
   // TBD - find better way to capture the exit status of command
-  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py", output);
+  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py " + STORAGE_PATH + "/",
+                                   output);
   return (output.find("Done!") != std::string::npos);
 }
 
@@ -327,7 +328,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::CheckIntegrity() {
+bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   DequeOfNode dsComm;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
@@ -420,33 +421,51 @@ bool Node::CheckIntegrity() {
     return false;
   }
 
+  bool result = true;
+
   for (uint i = 1; i < txBlocks.size(); i++) {
+    if (fromIsolatedBinary && (i % 100 == 0)) {
+      cout << "On tx block " << txBlocks.at(i).GetHeader().GetBlockNum()
+           << endl;
+    }
     auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
-      LOG_GENERAL(INFO, mbInfo.m_shardId);
+      LOG_GENERAL(INFO, "FB: " << txBlocks.at(i).GetHeader().GetBlockNum()
+                               << " MB: " << mbInfo.m_shardId);
       /// Skip because empty microblocks are not stored
       if (mbInfo.m_txnRootHash == TxnHash()) {
         continue;
       }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
-        auto tranHashes = mbptr->GetTranHashes();
-        for (const auto& tranHash : tranHashes) {
-          TxBodySharedPtr tx;
-          if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
-            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
-            return false;
+        if (LOOKUP_NODE_MODE) {
+          auto tranHashes = mbptr->GetTranHashes();
+          for (const auto& tranHash : tranHashes) {
+            TxBodySharedPtr tx;
+            if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+              LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
+              result = false;
+              if (!fromIsolatedBinary) {
+                break;
+              }
+            }
           }
         }
       } else {
-        LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
-                                 << "failed to fetch microblock");
-        return false;
+        LOG_GENERAL(WARNING, "Missing MB: " << mbInfo.m_microBlockHash);
+        result = false;
+        if (!fromIsolatedBinary) {
+          break;
+        }
       }
     }
+    if (!result && !fromIsolatedBinary) {
+      break;
+    }
   }
-  return true;
+
+  return result;
 }
 
 bool Node::ValidateDB() {
@@ -474,7 +493,7 @@ bool Node::ValidateDB() {
     return false;
   }
 
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
@@ -560,6 +579,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   // Add ds guard nodes to blacklist exclusion list
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
 
   if (SyncType::RECOVERY_ALL_SYNC == syncType) {
     Blacklist::GetInstance().Enable(false);
@@ -717,6 +737,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         }
       }
     }
+
+    RemoveIpMapping();
   }
 
   bool bInShardStructure = false;
@@ -785,7 +807,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if (st_result && ds_result && tx_result) {
     if (m_retriever->ValidateStates()) {
-      if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
+      if (LOOKUP_NODE_MODE && RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+          !m_retriever->CleanExtraTxBodies()) {
+        LOG_GENERAL(WARNING, "CleanExtraTxBodies failed");
+      } else {
         LOG_GENERAL(INFO, "RetrieveHistory Success");
         m_mediator.m_isRetrievedHistory = true;
         res = true;
@@ -807,7 +832,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml(IP_MAPPING_FILE_NAME, pt);
-  struct in_addr ip_addr;
+  struct in_addr ip_addr {};
 
   for (const ptree::value_type& v : pt.get_child("mapping")) {
     if (v.first == "peer") {
@@ -815,6 +840,21 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
       ipMapping[v.second.get<std::string>("pubkey")] =
           Peer((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
     }
+  }
+}
+
+void Node::RemoveIpMapping() {
+  LOG_MARKER();
+
+  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+      LOG_GENERAL(INFO,
+                  IP_MAPPING_FILE_NAME << " has been removed successfully.");
+    } else {
+      LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot be removed!");
+    }
+  } else {
+    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
   }
 }
 
@@ -1031,7 +1071,7 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1059,7 +1099,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      SHA2<HashType::HASH_VARIANT_256> sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1513,7 +1553,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
       checkedTxns.push_back(txn);
     } else {
-      LOG_GENERAL(WARNING, "Txn is not valid.");
+      LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
     }
 
     processed_count++;
@@ -1529,6 +1569,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
+      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
       m_createdTxns.insert(txn);
     }
 
@@ -2031,7 +2072,10 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
         }
       }
     } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-               ins_byte == NodeInstructionType::FINALBLOCK)  // Is seed node
+               (ins_byte == NodeInstructionType::FINALBLOCK ||
+                ins_byte ==
+                    NodeInstructionType::MBNFORWARDTRANSACTION))  // Is seed
+                                                                  // node
     {
       return false;
     } else  // Is lookup node
@@ -2081,7 +2125,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
 
   uint32_t nodes_lo, nodes_hi;
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // raw_message hash
   bytes this_msg_hash = sha256.Finalize();
 
@@ -2095,7 +2139,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
     return;
   }
 
-  std::vector<Peer> shardBlockReceivers;
+  VectorOfPeer shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(INFO,

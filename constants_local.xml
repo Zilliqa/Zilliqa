@@ -9,6 +9,8 @@
         <CHAIN_ID>2</CHAIN_ID>
         <GENESIS_PUBKEY>02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552</GENESIS_PUBKEY>
         <UPGRADE_TARGET_DS_NUM>1</UPGRADE_TARGET_DS_NUM>
+        <!-- Do not add a trailing "/" in the path-->
+        <STORAGE_PATH>.</STORAGE_PATH>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -179,6 +181,7 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <REMOTE_MINE>false</REMOTE_MINE>
         <MINING_PROXY_URL>http://127.0.0.1:4202/api</MINING_PROXY_URL>
+        <MAX_RETRY_SEND_POW_TIME>5</MAX_RETRY_SEND_POW_TIME>
         <!-- Every interval seconds to check if mining proxy has the PoW result -->
         <CHECK_MINING_RESULT_INTERVAL>5</CHECK_MINING_RESULT_INTERVAL>
         <!-- Make zilliqa node as an getWork server -->
@@ -263,9 +266,10 @@
         <ENABLE_REPOPULATE>true</ENABLE_REPOPULATE>
         <REPOPULATE_STATE_IN_DS>0</REPOPULATE_STATE_IN_DS>
         <REPOPULATE_STATE_PER_N_DS>10</REPOPULATE_STATE_PER_N_DS>
+        <NUM_STORE_TX_BODIES_INTERVAL>5</NUM_STORE_TX_BODIES_INTERVAL>
     </transactions>
     <verifier>
-        <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
+        <VERIFIER_PATH>./historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
         <SEED_PORT>33133</SEED_PORT>
     </verifier>

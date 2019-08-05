@@ -76,6 +76,11 @@ struct Peer : public Serializable {
   const uint32_t& GetListenPortHost() const;
   const std::string GetHostname() const;
 };
+namespace IPCHECK {
+static inline bool IsPortValid(const uint32_t listenPort) {
+  return (listenPort <= 65535);
+}
+}  // namespace IPCHECK
 
 inline std::ostream& operator<<(std::ostream& os, const Peer& p) {
   os << "<" << std::string(p.GetPrintableIPAddress()) << ":"

@@ -242,6 +242,7 @@ void Node::StartFirstTxEpoch() {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
@@ -642,6 +643,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     ResetConsensusId();
     // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
+    P2PComm::GetInstance().ClearPeerConnectionCount();
+
+    // Clear GetStartPow requesting peer list
+    {
+      lock_guard<mutex> g(m_mediator.m_lookup->m_mutexGetStartPoWPeerSet);
+      m_mediator.m_lookup->m_getStartPoWPeerSet.clear();
+    }
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
@@ -656,6 +664,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return false;
   }
+
+  m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE) {
     bool canPutNewEntry = true;

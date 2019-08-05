@@ -51,7 +51,7 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-bool Node::ComposeMicroBlock() {
+bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlock not expected to be called from "
@@ -64,7 +64,7 @@ bool Node::ComposeMicroBlock() {
   // TxBlockHeader
   const uint32_t version = MICROBLOCK_VERSION;
   const uint32_t shardId = m_myshardId;
-  const uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
+  const uint64_t gasLimit = microblock_gas_limit;
   const uint64_t gasUsed = m_gasUsedTotal;
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
@@ -265,7 +265,8 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
   }
 }
 
-void Node::ProcessTransactionWhenShardLeader() {
+void Node::ProcessTransactionWhenShardLeader(
+    const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
@@ -296,7 +297,7 @@ void Node::ProcessTransactionWhenShardLeader() {
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = std::move(it->second.begin()->second);
+        t = move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
@@ -319,7 +320,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
-  while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+  while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
     }
@@ -335,7 +336,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
@@ -427,6 +428,7 @@ void Node::ProcessTransactionWhenShardLeader() {
   }
 
   cv_TxnProcFinished.notify_all();
+  PutTxnsInTempDataBase(t_processedTransactions);
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -482,19 +484,24 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTxns = std::move(t_createdTxns);
+    m_createdTxns = move(t_createdTxns);
     t_createdTxns.clear();
+  }
+  if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
+    BlockStorage::GetBlockStorage().ResetDB(
+        BlockStorage::DBTYPE::PROCESSED_TEMP);
   }
 
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =
-        std::move(t_processedTransactions);
+        move(t_processedTransactions);
     t_processedTransactions.clear();
   }
 }
 
-void Node::ProcessTransactionWhenShardBackup() {
+void Node::ProcessTransactionWhenShardBackup(
+    const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
@@ -526,7 +533,7 @@ void Node::ProcessTransactionWhenShardBackup() {
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = std::move(it->second.begin()->second);
+        t = move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
@@ -549,7 +556,7 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
-  while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+  while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
     }
@@ -565,7 +572,7 @@ void Node::ProcessTransactionWhenShardBackup() {
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
@@ -641,7 +648,20 @@ void Node::ProcessTransactionWhenShardBackup() {
 
   cv_TxnProcFinished.notify_all();
 
+  PutTxnsInTempDataBase(t_processedTransactions);
+
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+}
+
+void Node::PutTxnsInTempDataBase(
+    const std::unordered_map<TxnHash, TransactionWithReceipt>&
+        processedTransactions) {
+  for (const auto& hashTxnPair : processedTransactions) {
+    bytes serializedTxn;
+    hashTxnPair.second.Serialize(serializedTxn, 0);
+    BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
+                                                          serializedTxn);
+  }
 }
 
 void Node::ReinstateMemPool(
@@ -716,14 +736,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   m_txn_distribute_window_open = false;
 
-  if (!m_mediator.GetIsVacuousEpoch() &&
-      ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
-            TXN_SHARD_TARGET_DIFFICULTY &&
-        m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
-       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-           TXN_DS_TARGET_NUM)) {
+  if (m_mediator.ToProcessTransaction()) {
     ProcessTransactionWhenShardLeader();
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
@@ -1064,6 +1077,24 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
   return LEGITIMACYRESULT::SUCCESS;
 }
 
+bool Node::CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CheckMicroBlockGasLimit not expected to be called "
+                "from LookUp node");
+    return true;
+  }
+
+  if (microblock_gas_limit != m_microblock->GetHeader().GetGasLimit()) {
+    LOG_CHECK_FAIL("Gas limit", m_microblock->GetHeader().GetGasLimit(),
+                   microblock_gas_limit);
+    m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASLIMIT);
+    return false;
+  }
+
+  return true;
+}
+
 bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1221,7 +1252,8 @@ bool Node::CheckMicroBlockTranReceiptHash() {
   return true;
 }
 
-bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
+bool Node::CheckMicroBlockValidity(bytes& errorMsg,
+                                   const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockValidity not expected to "
@@ -1232,9 +1264,10 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
   LOG_MARKER();
 
   return CheckMicroBlockVersion() && CheckMicroBlockshardId() &&
-         CheckMicroBlockTimestamp() && CheckMicroBlockHashes(errorMsg) &&
-         CheckMicroBlockTxnRootHash() && CheckMicroBlockStateDeltaHash() &&
-         CheckMicroBlockTranReceiptHash();
+         CheckMicroBlockTimestamp() &&
+         CheckMicroBlockGasLimit(microblock_gas_limit) &&
+         CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
+         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)

@@ -54,7 +54,7 @@ shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(const bytes& src,
 
 void ECPOINTSerialize::SetNumber(bytes& dst, unsigned int offset,
                                  unsigned int size,
-                                 shared_ptr<EC_POINT> value) {
+                                 const shared_ptr<EC_POINT>& value) {
   shared_ptr<BIGNUM> bnvalue;
 
   {

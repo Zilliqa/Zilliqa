@@ -238,7 +238,8 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     LOG_STATE("[VCBLK] Leader = "
               << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
     for (const auto& faulty : vcblock.GetHeader().GetFaultyLeaders()) {
-      LOG_STATE("[VCBLK] Faulty = " << faulty.second);
+      LOG_STATE("[VCBLK] Faulty = [PubKey] " << faulty.first << " [Peer] "
+                                             << faulty.second);
     }
   }
 

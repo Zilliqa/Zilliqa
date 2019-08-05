@@ -47,13 +47,13 @@ double ReadConstantDouble(const string& propertyName,
   return pt.get<double>(path + propertyName);
 }
 
-string ReadConstantString(string propertyName,
+string ReadConstantString(const string& propertyName,
                           const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
   return pt.get<string>(path + propertyName);
 }
 
-const vector<string> ReadAccountsFromConstantsFile(string propName) {
+const vector<string> ReadAccountsFromConstantsFile(const string& propName) {
   auto pt = PTree::GetInstance();
   vector<string> result;
   for (auto& acc : pt.get_child("node.accounts")) {
@@ -77,6 +77,7 @@ const string GENESIS_PUBKEY{
     ReadConstantString("GENESIS_PUBKEY", "node.general.")};
 const unsigned int UPGRADE_TARGET_DS_NUM{
     ReadConstantNumeric("UPGRADE_TARGET_DS_NUM")};
+const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -355,6 +356,8 @@ const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
                        "true"};
 const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
+const unsigned int MAX_RETRY_SEND_POW_TIME{
+    ReadConstantNumeric("MAX_RETRY_SEND_POW_TIME", "node.pow.")};
 const unsigned int CHECK_MINING_RESULT_INTERVAL{
     ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
 const bool GETWORK_SERVER_MINE{
@@ -517,6 +520,8 @@ const unsigned int REPOPULATE_STATE_PER_N_DS{
 const unsigned int REPOPULATE_STATE_IN_DS{std::min(
     ReadConstantNumeric("REPOPULATE_STATE_IN_DS", "node.transactions."),
     REPOPULATE_STATE_PER_N_DS - 1)};
+const unsigned int NUM_STORE_TX_BODIES_INTERVAL{
+    ReadConstantNumeric("NUM_STORE_TX_BODIES_INTERVAL", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

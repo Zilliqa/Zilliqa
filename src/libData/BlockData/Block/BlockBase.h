@@ -35,7 +35,6 @@ struct CoSignatures {
   std::vector<bool> m_B2;
 
   CoSignatures(unsigned int bitmaplen = 1) : m_B1(bitmaplen), m_B2(bitmaplen) {}
-  CoSignatures(const CoSignatures& src) = default;
   CoSignatures(const Signature& CS1, const std::vector<bool>& B1,
                const Signature& CS2, const std::vector<bool>& B2)
       : m_CS1(CS1), m_B1(B1), m_CS2(CS2), m_B2(B2) {}
@@ -86,6 +85,7 @@ class BlockBase : public SerializableDataBlock {
   /// Sets the co-sig members.
   void SetCoSignatures(const ConsensusCommon& src);
   void SetCoSignatures(CoSignatures& cosigs);
+  void SetCoSignatures(CoSignatures&& cosigs);
 
   friend std::ostream& operator<<(std::ostream& os, const BlockBase& t);
 };

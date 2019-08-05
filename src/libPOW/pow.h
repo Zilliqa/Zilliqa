@@ -35,14 +35,15 @@
 #include "depends/libethash/include/ethash/ethash.hpp"
 //#include "ethash/ethash.hpp"
 #include "libCrypto/Schnorr.h"
+#include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
 /// Stores the result of PoW mining.
-typedef struct ethash_mining_result {
+typedef struct EthashMiningResult {
   std::string result;
   std::string mix_hash;
-  uint64_t winning_nonce;
-  bool success;
+  uint64_t winning_nonce{};
+  bool success{};
 } ethash_mining_result_t;
 
 /// Implements the proof-of-work functionality.
@@ -74,9 +75,8 @@ class POW {
 
   static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
-      const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
-      const uint128_t& gasPrice);
+      const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
+      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
@@ -95,9 +95,8 @@ class POW {
                  const std::string& winning_mixhash);
   static bytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
-      const std::array<unsigned char, UINT256_SIZE>& rand2,
-      const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
-      const uint128_t& gasPrice);
+      const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
+      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
   static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
@@ -135,10 +134,10 @@ class POW {
   std::shared_ptr<ethash::epoch_context> m_epochContextLight = nullptr;
   std::shared_ptr<ethash::epoch_context_full> m_epochContextFull = nullptr;
   uint64_t m_currentBlockNum;
-  std::atomic<bool> m_shouldMine;
+  std::atomic<bool> m_shouldMine{};
   std::vector<dev::eth::MinerPtr> m_miners;
   std::vector<ethash_mining_result_t> m_vecMiningResult;
-  std::atomic<int> m_minerIndex;
+  std::atomic<int> m_minerIndex{};
   std::condition_variable m_cvMiningResult;
   std::mutex m_mutexMiningResult;
   std::unique_ptr<jsonrpc::HttpClient> m_httpClient;

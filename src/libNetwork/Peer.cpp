@@ -53,7 +53,7 @@ bool Peer::operator<(const Peer& r) const {
 
 const string Peer::GetPrintableIPAddress() const {
   char str[INET_ADDRSTRLEN];
-  struct sockaddr_in serv_addr;
+  struct sockaddr_in serv_addr {};
   serv_addr.sin_addr.s_addr = m_ipAddress.convert_to<unsigned long>();
   inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
   return string(str);
@@ -80,8 +80,6 @@ int Peer::Deserialize(const bytes& src, unsigned int offset) {
 }
 
 void Peer::SetHostname(const std::string& hostname) { m_hostname = hostname; }
-
 const uint32_t& Peer::GetListenPortHost() const { return m_listenPortHost; }
 const uint128_t& Peer::GetIpAddress() const { return m_ipAddress; }
-
 const std::string Peer::GetHostname() const { return m_hostname; }

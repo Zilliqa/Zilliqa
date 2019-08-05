@@ -184,13 +184,13 @@ void DirectoryService::SendDSBlockToShardNodes(
     }
 
     // Send the message
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+    SHA2<HashType::HASH_VARIANT_256> sha256;
     sha256.Update(dsblock_message_to_shard);
     auto this_msg_hash = sha256.Finalize();
 
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
-      std::vector<Peer> shardDSBlockReceivers;
+      VectorOfPeer shardDSBlockReceivers;
       unsigned int numOfDSBlockReceivers =
           NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
       if (numOfDSBlockReceivers <= NUM_DS_ELECTION) {
@@ -355,6 +355,7 @@ void DirectoryService::StartFirstTxEpoch() {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
   }
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
@@ -568,9 +569,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   // Now we can update the sharding structure and transaction sharing
   // assignments
   if (m_mode == BACKUP_DS) {
-    m_shards = std::move(m_tempShards);
-    m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
-    m_mapNodeReputation = std::move(m_tempMapNodeReputation);
+    m_shards = move(m_tempShards);
+    m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
+    m_mapNodeReputation = move(m_tempMapNodeReputation);
   } else if (m_mode == PRIMARY_DS) {
     ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
@@ -654,6 +655,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return;
   }
+
+  m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   StartFirstTxEpoch();
 }

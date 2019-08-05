@@ -51,7 +51,8 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
 }
 
 void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
-                                unsigned int size, shared_ptr<BIGNUM> value) {
+                                unsigned int size,
+                                const shared_ptr<BIGNUM>& value) {
   // Check for offset overflow
   if ((offset + size) < size) {
     LOG_GENERAL(WARNING,

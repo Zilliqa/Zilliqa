@@ -26,14 +26,14 @@
 
 /// Stores information on a single pow solution.
 class DSPowSolution {
-  uint64_t m_blockNumber;
-  uint8_t m_difficultyLevel;
+  uint64_t m_blockNumber{};
+  uint8_t m_difficultyLevel{};
   Peer m_submitterPeer;
   PubKey m_submitterKey;
-  uint64_t m_nonce;
+  uint64_t m_nonce{};
   std::string m_resultingHash;
   std::string m_mixHash;
-  uint32_t m_lookupId;
+  uint32_t m_lookupId{};
   uint128_t m_gasPrice;
   Signature m_signature;
 

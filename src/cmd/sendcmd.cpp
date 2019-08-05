@@ -40,14 +40,14 @@ typedef void (*handler_func)(const char*, const char*, vector<string>,
                              const uint32_t);
 
 typedef void (*handler_func_remote)(const char*, const char*, vector<string>,
-                                    const uint128_t, const uint32_t);
+                                    const uint128_t&, const uint32_t);
 
-struct message_handler {
+struct MessageHandler {
   const char* ins;
   handler_func func;
 };
 
-struct message_handler_2 {
+struct MessageHandler2 {
   const char* ins;
   handler_func_remote func;
 };
@@ -60,7 +60,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <hex string message>" << endl;
   } else {
-    struct in_addr ip_addr;
+    struct in_addr ip_addr {};
     inet_pton(AF_INET, "127.0.0.1", &ip_addr);
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
@@ -72,7 +72,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
 }
 
 void process_remote_cmd(const char* progname, const char* cmdname,
-                        vector<string> args, const uint128_t remote_ip,
+                        vector<string> args, const uint128_t& remote_ip,
                         const uint32_t listen_port) {
   const int num_args_required = 1;
   int numargs = args.size();
@@ -103,9 +103,9 @@ int main(int argc, const char* argv[]) {
     handler_func cmd_f = NULL;
     handler_func_remote cmd_f_remote = NULL;
     vector<string> cmd_v;
-    const message_handler message_handlers[] = {{"cmd", &process_cmd}};
+    const MessageHandler message_handlers[] = {{"cmd", &process_cmd}};
 
-    const message_handler_2 message_handlers_2[] = {
+    const MessageHandler2 message_handlers_2[] = {
         {"remotecmd", &process_remote_cmd}};
 
     for (auto message_handler : message_handlers) {

@@ -169,7 +169,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
     const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
-    array<unsigned char, BLOCK_HASH_SIZE> sortHash;
+    array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
   }
@@ -239,7 +239,7 @@ void DirectoryService::InjectPoWForDSNode(
 
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bytes serializedPubK;
 
   // Iterate through the current DS committee from the back, add a PoW
@@ -267,7 +267,7 @@ void DirectoryService::InjectPoWForDSNode(
     sha2.Update(serializedPubK);
     bytes PubKeyHash;
     PubKeyHash = sha2.Finalize();
-    array<unsigned char, 32> PubKeyHashArr;
+    array<unsigned char, 32> PubKeyHashArr{};
 
     // Injecting into sorted PoWs
     copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
@@ -347,9 +347,8 @@ bool DirectoryService::VerifyPoWWinner(
         const auto& dsPowSoln = dsWinnerPoWsFromLeader.at(DSPowWinner.first);
 
         auto headerHash = POW::GenHeaderHash(
-            m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-            peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
-            dsPowSoln.gasPrice);
+            m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer,
+            DSPowWinner.first, dsPowSoln.lookupId, dsPowSoln.gasPrice);
 
         string resultStr, mixHashStr;
         if (!DataConversion::charArrToHexStr(dsPowSoln.result, resultStr)) {
@@ -550,7 +549,7 @@ bool DirectoryService::VerifyPoWOrdering(
             return item.second == toFind;
           });
 
-      std::array<unsigned char, 32> result;
+      std::array<unsigned char, 32> result{};
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
@@ -643,9 +642,9 @@ bool DirectoryService::VerifyPoWOrdering(
 bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
                                            const PubKey& pubKey,
                                            const PoWSolution& powSoln) {
-  auto headerHash = POW::GenHeaderHash(
-      m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer.m_ipAddress,
-      pubKey, powSoln.lookupId, powSoln.gasPrice);
+  auto headerHash =
+      POW::GenHeaderHash(m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
+                         peer, pubKey, powSoln.lookupId, powSoln.gasPrice);
 
   auto difficulty =
       (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey))
@@ -976,6 +975,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   ComputeSharding(sortedPoWSolns);
 
   vector<Peer> proposedDSMembersInfo;
+  proposedDSMembersInfo.reserve(sortedDSPoWSolns.size());
   for (const auto& proposedMember : sortedDSPoWSolns) {
     proposedDSMembersInfo.emplace_back(m_allPoWConns[proposedMember.second]);
   }
@@ -1069,7 +1069,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
   auto announcementGeneratorFunc =
-      [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
+      [this, dsWinnerPoWs = move(dsWinnerPoWs)](
           bytes& dst, unsigned int offset, const uint32_t consensusID,
           const uint64_t blockNumber, const bytes& blockHash,
           const uint16_t leaderID, const PairOfKey& leaderKey,

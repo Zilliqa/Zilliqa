@@ -117,7 +117,7 @@ int POW::FromHex(char _i) {
 }
 
 ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
-  ethash_hash256 ret;
+  ethash_hash256 ret{};
   bytes b = HexStringToBytes(_s);
   if (b.size() != 32) {
     LOG_GENERAL(WARNING,
@@ -387,13 +387,25 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
   m_shouldMine = true;
 
   ethash_mining_result_t miningResult{"", "", 0, false};
-  if (!SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary, timeWindow)) {
+  uint32_t retryTime = 0;
+  bool sendWorkSuccess = false;
+  do {
+    if (SendWorkToProxy(pairOfKey, blockNum, headerHash, boundary,
+                        timeWindow)) {
+      sendWorkSuccess = true;
+      break;
+    }
+    ++retryTime;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  } while (!sendWorkSuccess && retryTime <= MAX_RETRY_SEND_POW_TIME);
+
+  if (!sendWorkSuccess) {
     LOG_GENERAL(WARNING, "Failed to send work package to mining proxy.");
     return miningResult;
   }
 
   uint64_t nonce = 0;
-  ethash_hash256 mixHash;
+  ethash_hash256 mixHash{};
   bool checkResult = CheckMiningResult(pairOfKey, headerHash, boundary, nonce,
                                        mixHash, timeWindow);
   if (!checkResult) {
@@ -401,7 +413,7 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
     return miningResult;
   }
 
-  ethash_hash256 hashResult;
+  ethash_hash256 hashResult{};
   auto verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash,
                                        mixHash, hashResult);
   if (verifyResult) {
@@ -561,7 +573,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
         LOG_GENERAL(WARNING,
                     "Mining proxy return invalid result, ret array size: "
                         << ret.size());
-        return false;
+        continue;
       }
 
       bool workDone = ret[0].asBool();
@@ -581,7 +593,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
           WARNING,
           "Exception captured in jsonrpc api zil_checkWorkStatus, exception: "
               << e.what());
-      return false;
+      continue;
     }
   }
   return false;
@@ -720,7 +732,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 
 bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                          const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const uint128_t& ipAddr, const PubKey& pubKey,
+                         const Peer& peer, const PubKey& pubKey,
                          uint32_t lookupId, const uint128_t& gasPrice) {
   bytes vec;
   for (const auto& s1 : rand1) {
@@ -731,10 +743,7 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
     vec.push_back(s1);
   }
 
-  bytes ipAddrVec;
-  Serializable::SetNumber<uint128_t>(ipAddrVec, 0, ipAddr, UINT128_SIZE);
-  vec.insert(std::end(vec), std::begin(ipAddrVec), std::end(ipAddrVec));
-
+  peer.Serialize(vec, vec.size());
   pubKey.Serialize(vec, vec.size());
 
   Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId,
@@ -749,11 +758,10 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 
 ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
-    const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId,
-    const uint128_t& gasPrice) {
+    const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
+    const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice) {
   bytes sha2_result =
-      ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
+      ConcatAndhash(rand1, rand2, peer, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
   std::string output;

@@ -62,7 +62,8 @@ string Server::GetCurrentDSEpoch() {
 
 string Server::GetNodeType() {
   if (!m_mediator.m_lookup->AlreadyJoinedNetwork()) {
-    return "Not in network";
+    return "Not in network, synced till epoch " +
+           to_string(m_mediator.m_currentEpochNum);
   } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
     return "Seed";
   } else if (LOOKUP_NODE_MODE) {

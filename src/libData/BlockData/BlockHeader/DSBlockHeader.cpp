@@ -70,7 +70,7 @@ bool DSBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
   bytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {
