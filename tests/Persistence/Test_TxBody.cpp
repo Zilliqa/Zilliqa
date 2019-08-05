@@ -175,7 +175,6 @@ BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
       r_tr.GetTransaction().GetTranID() == r_txn_hash,
       "Error: Transaction id field in binary file and  "
       "that in deserialized TR from binary file should have been same");
-
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
