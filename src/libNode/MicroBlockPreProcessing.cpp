@@ -428,7 +428,8 @@ void Node::ProcessTransactionWhenShardLeader(
   }
 
   cv_TxnProcFinished.notify_all();
-  PutTxnsInTempDataBase(t_processedTransactions, true);
+  PutTxnsInTempDataBase(t_processedTransactions);
+  SaveTxnsToS3(t_processedTransactions);
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -655,53 +656,52 @@ void Node::ProcessTransactionWhenShardBackup(
 
 void Node::PutTxnsInTempDataBase(
     const std::unordered_map<TxnHash, TransactionWithReceipt>&
-        processedTransactions,
-    bool uploadToS3) {
-  vector<tuple<bytes, bytes>> serializedHashTxnsPairs;
+        processedTransactions) {
   for (const auto& hashTxnPair : processedTransactions) {
     bytes serializedTxn;
     hashTxnPair.second.Serialize(serializedTxn, 0);
     BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
                                                           serializedTxn);
-    if (uploadToS3) {
-      serializedHashTxnsPairs.push_back(
-          std::make_tuple(hashTxnPair.first.asBytes(), serializedTxn));
-    }
+  }
+}
+
+void Node::SaveTxnsToS3(
+    const std::unordered_map<TxnHash, TransactionWithReceipt>&
+        processedTransactions) {
+  ostringstream oss;
+  oss << "/tmp/txns_shard_" << m_myshardId << "_txblk_"
+      << m_mediator.m_currentEpochNum;
+  string txns_filename = oss.str();
+  ofstream txns_file(txns_filename, std::fstream::binary);
+
+  for (const auto& hashTxnPair : processedTransactions) {
+    bytes serializedTxn;
+    hashTxnPair.second.Serialize(serializedTxn, 0);
+
+    // write HASH LEN and HASH
+    size_t size = hashTxnPair.first.size;
+    txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+    txns_file.write(reinterpret_cast<const char*>(hashTxnPair.first.data()),
+                    size);
+
+    // write TXN LEN AND TXN
+    size = serializedTxn.size();
+    txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+    txns_file.write(reinterpret_cast<const char*>(serializedTxn.data()), size);
   }
 
-  if (uploadToS3) {
-    ostringstream oss;
-    oss << "/tmp/txns_shard_" << m_myshardId << "_txblk_"
-        << m_mediator.m_currentEpochNum;
-    string txns_filename = oss.str();
-    ofstream txns_file(txns_filename, std::fstream::binary);
+  txns_file.close();
 
-    for (const auto& pair : serializedHashTxnsPairs) {
-      // write HASH LEN and HASH
-      size_t size = std::get<0>(pair).size();
-      txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
-      txns_file.write(reinterpret_cast<const char*>(std::get<0>(pair).data()),
-                      size);
-
-      // write TXN LEN AND TXN
-      size = std::get<1>(pair).size();
-      txns_file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
-      txns_file.write(reinterpret_cast<const char*>(std::get<1>(pair).data()),
-                      size);
-    }
-
-    txns_file.close();
-
-    // upload to S3
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
-                                GetAwsS3CpString(txns_filename))) {
-      LOG_GENERAL(WARNING, "Failed to upload txns file :" << txns_filename);
-    } else {
-      LOG_GENERAL(DEBUG,
-                  "upload txns file : " << txns_filename << " successfully");
-    }
-    !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
+  // upload to S3
+  if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
+                              GetAwsS3CpString(txns_filename))) {
+    LOG_GENERAL(WARNING, "Failed to upload txns file :" << txns_filename);
+  } else {
+    LOG_GENERAL(DEBUG,
+                "upload txns file : " << txns_filename << " successfully");
   }
+
+  !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
 }
 
 std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {

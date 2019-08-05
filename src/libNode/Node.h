@@ -627,8 +627,10 @@ class Node : public Executable {
 
   void PutTxnsInTempDataBase(
       const std::unordered_map<TxnHash, TransactionWithReceipt>&
-          processedTransactions,
-      bool uploadToS3 = false);
+          processedTransactions);
+
+  void SaveTxnsToS3(const std::unordered_map<TxnHash, TransactionWithReceipt>&
+                        processedTransactions);
 
   std::string GetAwsS3CpString(const std::string& uploadFilePath);
 };
