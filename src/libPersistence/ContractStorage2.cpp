@@ -211,7 +211,12 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     // no entry
     if (entries.empty()) {
       foundVal = false;
-      return true;
+      /// if querying the var without indices but still failed
+      /// maybe trying to fetching an invalid vname
+      /// as empty map will always have
+      /// an empty serialized ProtoScillaVal placeholder
+      /// so shouldn't be empty normally
+      return !query.indices().empty();
     }
   } else {
     if (query.ignoreval()) {
@@ -274,6 +279,13 @@ void ContractStorage2::DeleteIndex(const string& prefix) {
     ++p;
   }
 }
+
+// Json::Value ContractStorage2::FetchStateJsonForContract(const dev::h160&
+// address, const string& vname, const vector<string>& indices) {
+//   std::map<std::string, bytes> states;
+//   FetchStateValueForAddress(address, states);
+
+// }
 
 void ContractStorage2::FetchStateValueForAddress(
     const dev::h160& address, std::map<std::string, bytes>& states) {

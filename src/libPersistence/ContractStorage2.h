@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
 #define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
 
+#include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
@@ -109,6 +110,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal);
+
+  // Json::Value FetchStateJsonForContract(const dev::h160& address, const
+  // std::string& vname = "", const std::vector<std::string>& indices = {});
 
   void FetchStateValueForAddress(const dev::h160& address,
                                  std::map<std::string, bytes>& states);
