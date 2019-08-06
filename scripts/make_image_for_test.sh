@@ -109,14 +109,14 @@ then
 fi
 
 # Checking permission
-if [ "$EUID" -eq 0 ]
-then
-    echo "Please do not run as root"
-    echo
-    echo "If you see docker permission error previously, check if you have sudo-less docker."
-    echo "See https://docs.docker.com/install/linux/linux-postinstall"
-    exit 1
-fi
+#if [ "$EUID" -eq 0 ]
+#then
+#    echo "Please do not run as root"
+#    echo
+#    echo "If you see docker permission error previously, check if you have sudo-less docker."
+#    echo "See https://docs.docker.com/install/linux/linux-postinstall"
+#    exit 1
+#fi
 
 # Checking dependencies
 which docker >/dev/null 2>&1
