@@ -33,6 +33,8 @@
 
 #include "depends/libTrie/TrieDB.h"
 
+class ProtoScillaVal;
+
 namespace Contract {
 
 enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
@@ -64,6 +66,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   mutable std::shared_timed_mutex m_codeMutex;
   mutable std::shared_timed_mutex m_initDataMutex;
   mutable std::shared_timed_mutex m_stateDataMutex;
+
+  bool UpdateMapHandler(const std::string& keyAcc, const ProtoScillaVal& value);
 
   void DeleteIndex(const std::string& prefix);
 
@@ -111,11 +115,14 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal);
 
-  // Json::Value FetchStateJsonForContract(const dev::h160& address, const
-  // std::string& vname = "", const std::vector<std::string>& indices = {});
+  bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
+                                 const std::string& vname = "",
+                                 const std::vector<std::string>& indices = {});
 
-  void FetchStateValueForAddress(const dev::h160& address,
-                                 std::map<std::string, bytes>& states);
+  void FetchStateDataForContract(std::map<std::string, bytes>& states,
+                                 const dev::h160& address,
+                                 const std::string& vname = "",
+                                 const std::vector<std::string>& indices = {});
 
   void FetchUpdatedStateValuesForAddress(
       const dev::h160& address, std::map<std::string, bytes>& t_states,
