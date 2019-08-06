@@ -282,7 +282,6 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
-
   // We now expect the storage to contain:
   // foo[key1a][key2a] : 420
   query.clear_indices();  // Let's fetch back the entire map.
