@@ -285,6 +285,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   // We now expect the storage to contain:
   // foo[key1a][key2a] : 420
   query.clear_indices();  // Let's fetch back the entire map.
+  query.set_ignoreval(false);
   params.clear();
   params["query"] = query.SerializeAsString();
   params.removeMember("value");
@@ -304,6 +305,45 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().size(), 1);
   BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().at("key2a").bval(),
                     "420");
+
+  // Add foo[key1b][key2c] back again, with a different value.
+  query.add_indices("key1b");
+  query.add_indices("key2c");
+  value.set_bval("121");
+  params["query"] = query.SerializeAsString();
+  params["value"] = value.SerializeAsString();
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("updateStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // We now expect the storage to contain:
+  // foo[key1a][key2a] : 420
+  // foo[key1b][key2c] : 121
+  query.clear_indices();  // Let's fetch back the entire map.
+  params["query"] = query.SerializeAsString();
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // Parse the fetched result and assert.
+  value.Clear();
+  BOOST_CHECK_EQUAL(result[0].asBool(), true);
+  // Compare the entries.
+  value.ParseFromString(result[1].asString());
+  BOOST_CHECK_EQUAL(value.has_mval(), true);
+  // Ensure contents of map is correct.
+  BOOST_CHECK_EQUAL(value.mval().m().size(), 2);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().size(), 1);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1a").mval().m().at("key2a").bval(),
+                    "420");
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().size(), 1);
+  BOOST_CHECK_EQUAL(value.mval().m().at("key1b").mval().m().at("key2c").bval(),
+                    "121");
 
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
