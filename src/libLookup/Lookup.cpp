@@ -1506,11 +1506,20 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     LOG_GENERAL(INFO, "[SendMB]"
                           << "Request for microBlockHash " << mbhash);
     shared_ptr<MicroBlock> mbptr;
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbhash, mbptr)) {
-      LOG_GENERAL(WARNING, "Failed to fetch micro block Hash " << mbhash);
-      continue;
-    } else {
-      retMicroBlocks.push_back(*mbptr);
+    int retryCount = 5;
+
+    while (retryCount-- > 0) {
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbhash, mbptr)) {
+        LOG_GENERAL(WARNING,
+                    "Failed to fetch micro block Hash, retry... " << mbhash);
+        this_thread::sleep_for(chrono::seconds(1));
+        continue;
+      } else {
+        LOG_GENERAL(
+            INFO, "Request for microBlockHash " << mbhash << " successfully.");
+        retMicroBlocks.push_back(*mbptr);
+        break;
+      }
     }
   }
 
