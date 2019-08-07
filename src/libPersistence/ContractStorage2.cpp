@@ -546,7 +546,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
         // We have an empty map. Insert an entry for keyAcc in
         // the store to indicate that the key itself exists.
         bytes dst;
-        if (!SerializeToArray(value.mval(), dst, 0)) {
+        if (!SerializeToArray(value, dst, 0)) {
           return false;
         }
         // DB Put
