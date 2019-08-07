@@ -280,19 +280,31 @@ void ContractStorage2::DeleteIndex(const string& prefix) {
   }
 }
 
-void JsonMapWrapper(Json::Value& _json, const vector<string>& indices,
-                    const bytes& value, unsigned int cur_index,
-                    unsigned int mapdepth) {
-  if (cur_index + 1 < indices.size()) {
-    JsonMapWrapper(_json[indices.at(cur_index)], indices, value, cur_index + 1,
-                   mapdepth);
+bool ContractStorage2::FetchContractFieldsMapDepth(
+    const dev::h160& address, Json::Value& map_depth_json) {
+  std::map<std::string, bytes> map_depth_data_in_map;
+  string map_depth_data;
+  FetchStateDataForContract(map_depth_data_in_map, address,
+                            FIELDS_MAP_DEPTH_INDICATOR, {});
+
+  /// check the data obtained from storage
+  if (map_depth_data_in_map.size() == 1 &&
+      map_depth_data_in_map.find(address.hex() + DB_KEY_SEPARATOR +
+                                 FIELDS_MAP_DEPTH_INDICATOR) !=
+          map_depth_data_in_map.end()) {
+    map_depth_data = DataConversion::CharArrayToString(map_depth_data_in_map.at(
+        address.hex() + DB_KEY_SEPARATOR + FIELDS_MAP_DEPTH_INDICATOR));
   } else {
-    if (indices.size() == mapdepth) {
-      _json[indices.at(cur_index)] = DataConversion::CharArrayToString(value);
-    } else {
-      _json[indices.at(cur_index)] = Json::objectValue;
-    }
+    LOG_GENERAL(WARNING, "Cannot find FIELDS_MAP_DEPTH_INDICATOR");
+    return false;
   }
+
+  if (!JSONUtils::GetInstance().convertStrtoJson(map_depth_data,
+                                                 map_depth_json)) {
+    LOG_GENERAL(WARNING, "Cannot parse " << map_depth_data << " to JSON");
+    return false;
+  }
+  return true;
 }
 
 bool ContractStorage2::FetchStateJsonForContract(
@@ -300,6 +312,15 @@ bool ContractStorage2::FetchStateJsonForContract(
     const vector<string>& indices) {
   std::map<std::string, bytes> states;
   FetchStateDataForContract(states, address, vname, indices);
+
+  /// get the map depth
+  Json::Value map_depth_json;
+  bool found_map_depth_json = true;
+  if (!FetchContractFieldsMapDepth(address, map_depth_json)) {
+    LOG_GENERAL(WARNING, "FetchContractFieldsMapDepth failed for contract: "
+                             << address.hex());
+    found_map_depth_json = false;
+  }
 
   for (const auto& state : states) {
     vector<string> fragments;
@@ -311,12 +332,49 @@ bool ContractStorage2::FetchStateJsonForContract(
 
     string vname = fragments.at(1);
 
+    /// addr+vname+[indices...]
     vector<string> map_indices(fragments.begin() + 2, fragments.end());
 
-    if (indices.empty()) {
+    if (map_indices.empty()) {
+      if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
+        continue;
+      }
       _json[vname] = DataConversion::CharArrayToString(state.second);
     } else {
-      JsonMapWrapper(_json[vname], map_indices, state.second, 0, 1);
+      std::function<void(Json::Value&, const vector<string>&, const bytes&,
+                         unsigned int, int)>
+          jsonMapWrapper = [&](Json::Value& _json,
+                               const vector<string>& indices,
+                               const bytes& value, unsigned int cur_index,
+                               int mapdepth) -> void {
+        if (cur_index + 1 < indices.size()) {
+          jsonMapWrapper(_json[indices.at(cur_index)], indices, value,
+                         cur_index + 1, mapdepth);
+        } else {
+          if (mapdepth >= 0) {
+            if ((int)indices.size() == mapdepth) {
+              _json[indices.at(cur_index)] =
+                  DataConversion::CharArrayToString(value);
+            } else {
+              _json[indices.at(cur_index)] = Json::objectValue;
+            }
+          } else {
+            /// Check value whether parsable to Protobuf
+            ProtoScillaVal scilla_value;
+            if (scilla_value.ParseFromArray(value.data(), value.size()) &&
+                scilla_value.IsInitialized() && scilla_value.has_mval() &&
+                scilla_value.mval().m().empty()) {
+              _json[indices.at(cur_index)] = Json::objectValue;
+            } else {
+              _json[indices.at(cur_index)] =
+                  DataConversion::CharArrayToString(value);
+            }
+          }
+        }
+      };
+
+      jsonMapWrapper(_json[vname], map_indices, state.second, 0,
+                     found_map_depth_json ? map_depth_json[vname].asInt() : -1);
     }
   }
 
@@ -324,8 +382,8 @@ bool ContractStorage2::FetchStateJsonForContract(
 }
 
 void ContractStorage2::FetchStateDataForContract(
-    std::map<std::string, bytes>& states, const dev::h160& address,
-    const string& vname, const vector<string>& indices) {
+    map<string, bytes>& states, const dev::h160& address, const string& vname,
+    const vector<string>& indices) {
   // LOG_MARKER();
   string key = address.hex();
   if (!vname.empty()) {
@@ -405,38 +463,6 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value) {
   t_stateDataMap[key] = value;
 }
 
-bool ContractStorage2::UpdateMapHandler(const string& keyAcc,
-                                        const ProtoScillaVal& value) {
-  if (!value.has_mval()) {
-    LOG_GENERAL(WARNING, "val is not map but supposed to be");
-    return false;
-  }
-  if (value.mval().m().empty()) {
-    // We have an empty map. Insert an entry for keyAcc in
-    // the store to indicate that the key itself exists.
-    bytes dst;
-    if (!SerializeToArray(value.mval(), dst, 0)) {
-      return false;
-    }
-    // DB Put
-    UpdateStateData(keyAcc, dst);
-    return true;
-  }
-  for (const auto& entry : value.mval().m()) {
-    string index(keyAcc);
-    index += DB_KEY_SEPARATOR + entry.first;
-    if (entry.second.has_mval()) {
-      // We haven't reached the deepeast nesting
-      return UpdateMapHandler(index, entry.second);
-    } else {
-      // DB Put
-      UpdateStateData(index,
-                      DataConversion::StringToCharArray(entry.second.bval()));
-    }
-  }
-  return true;
-}
-
 bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
                                         unsigned int q_offset, const bytes& v,
                                         unsigned int v_offset) {
@@ -497,7 +523,39 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
   } else {
     DeleteIndex(key);
 
-    return UpdateMapHandler(key, value);
+    std::function<bool(const string&, const ProtoScillaVal&)> mapHandler =
+        [&](const string& keyAcc, const ProtoScillaVal& value) -> bool {
+      if (!value.has_mval()) {
+        LOG_GENERAL(WARNING, "val is not map but supposed to be");
+        return false;
+      }
+      if (value.mval().m().empty()) {
+        // We have an empty map. Insert an entry for keyAcc in
+        // the store to indicate that the key itself exists.
+        bytes dst;
+        if (!SerializeToArray(value.mval(), dst, 0)) {
+          return false;
+        }
+        // DB Put
+        UpdateStateData(keyAcc, dst);
+        return true;
+      }
+      for (const auto& entry : value.mval().m()) {
+        string index(keyAcc);
+        index += DB_KEY_SEPARATOR + entry.first;
+        if (entry.second.has_mval()) {
+          // We haven't reached the deepeast nesting
+          return mapHandler(index, entry.second);
+        } else {
+          // DB Put
+          UpdateStateData(
+              index, DataConversion::StringToCharArray(entry.second.bval()));
+        }
+      }
+      return true;
+    };
+
+    return mapHandler(key, value);
   }
   return true;
 }

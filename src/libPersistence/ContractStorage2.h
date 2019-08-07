@@ -67,8 +67,6 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   mutable std::shared_timed_mutex m_initDataMutex;
   mutable std::shared_timed_mutex m_stateDataMutex;
 
-  bool UpdateMapHandler(const std::string& keyAcc, const ProtoScillaVal& value);
-
   void DeleteIndex(const std::string& prefix);
 
   void UpdateStateData(const std::string& key, const bytes& value);
@@ -114,6 +112,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal);
+
+  bool FetchContractFieldsMapDepth(const dev::h160& address,
+                                   Json::Value& map_depth_json);
 
   bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
                                  const std::string& vname = "",
