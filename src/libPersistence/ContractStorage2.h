@@ -109,6 +109,10 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
+  std::string GenerateStorageKey(const dev::h160& addr,
+                                 const std::string& vname,
+                                 const std::vector<std::string>& indices);
+
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal);

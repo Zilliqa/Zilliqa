@@ -238,8 +238,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         ret_checker = false;
       }
 
-      if (ret_checker && !ParseContractCheckerOutput(checkerPrint, receipt)) {
+      bytes map_depth_data;
+
+      if (ret_checker &&
+          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data)) {
         ret_checker = false;
+      }
+
+      if (ret_checker) {
+        std::map<std::string, bytes> t_map_depth_map;
+        t_map_depth_map.emplace(
+            Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+                toAddr, FIELDS_MAP_DEPTH_INDICATOR, {}),
+            map_depth_data);
+        toAccount->UpdateStates(toAddr, t_map_depth_map, {}, true);
       }
 
       // Undergo scilla runner
@@ -741,8 +753,9 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const std::string& root_w_version) {
-  std::string cmdStr = root_w_version + '/' + SCILLA_CHECKER + " -libdir " +
-                       root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
+  std::string cmdStr = root_w_version + '/' + SCILLA_CHECKER +
+                       " -contractinfo -libdir " + root_w_version + '/' +
+                       SCILLA_LIB + " " + INPUT_CODE;
 
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
@@ -780,13 +793,32 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const std::string& checkerPrint, TransactionReceipt& receipt) {
+    const std::string& checkerPrint, TransactionReceipt& receipt,
+    bytes& map_depth_data) {
   Json::Value root;
   try {
     if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
       return false;
     }
+
+    if (!root.isMember("contract_info")) {
+      receipt.AddError(CHECKER_FAILED);
+      return false;
+    }
+
+    Json::Value map_depth_json;
+    if (root["contract_info"].isMember("fields")) {
+      for (const auto& field : root["contract_info"]["fields"]) {
+        if (field.isMember("vname") && field.isMember("depth") &&
+            field["depth"].isNumeric()) {
+          map_depth_json[field["vname"].asString()] = field["depth"].asInt();
+        }
+      }
+    }
+
+    map_depth_data = DataConversion::StringToCharArray(
+        JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
                                               << checkerPrint);

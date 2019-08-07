@@ -97,7 +97,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Contract Deployment
   /// verify the return from scilla_checker for deployment is valid
   bool ParseContractCheckerOutput(const std::string& checkerPrint,
-                                  TransactionReceipt& receipt);
+                                  TransactionReceipt& receipt,
+                                  bytes& map_depth_data);
 
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,

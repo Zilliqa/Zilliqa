@@ -94,6 +94,19 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
                                        protoMessage.ByteSize());
 }
 
+string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
+                                            const string& vname,
+                                            const vector<string>& indices) {
+  string ret = addr.hex();
+  if (!vname.empty()) {
+    ret += DB_KEY_SEPARATOR + vname;
+    for (const auto& index : indices) {
+      ret += DB_KEY_SEPARATOR + index;
+    }
+  }
+  return ret;
+}
+
 bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
                                        unsigned int d_offset, bool& foundVal) {
@@ -398,14 +411,7 @@ void ContractStorage2::FetchStateDataForContract(
     map<string, bytes>& states, const dev::h160& address, const string& vname,
     const vector<string>& indices) {
   // LOG_MARKER();
-  string key = address.hex();
-  if (!vname.empty()) {
-    key += DB_KEY_SEPARATOR + vname;
-
-    for (const string& index : indices) {
-      key += DB_KEY_SEPARATOR + index;
-    }
-  }
+  string key = GenerateStorageKey(address, vname, indices);
 
   auto p = t_stateDataMap.lower_bound(address.hex());
   while (p != t_stateDataMap.end() &&
