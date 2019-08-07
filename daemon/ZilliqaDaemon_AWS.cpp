@@ -53,6 +53,7 @@ const string PRIVKEY_OPT = "--privk";
 const string PUBKEY_OPT = "--pubk";
 const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
+const string SYNCTYPE_OPT = "--synctype";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
 
@@ -61,6 +62,7 @@ unordered_map<int, string> PubKey;
 unordered_map<int, string> IP;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
+unordered_map<int, string> SyncTypeString;
 
 enum SyncType : unsigned int {
   NO_SYNC = 0,
@@ -204,6 +206,15 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
                 fullLine = fullLine.substr(space_pos + 1);
                 continue;
               }
+
+              if (token == SYNCTYPE_OPT) {
+                space_pos = (string::npos == fullLine.find('\0'))
+                                ? fullLine.size()
+                                : fullLine.find('\0');
+                SyncTypeString[id] = fullLine.substr(0, space_pos);
+                fullLine = fullLine.substr(space_pos + 1);
+                continue;
+              }
             }
 
             Path[id] = path;
@@ -270,7 +281,8 @@ bool DownloadPersistenceFromS3(ofstream& log) {
 }
 
 void StartNewProcess(const string& pubKey, const string& privKey,
-                     const string& ip, const string& port, const string& path,
+                     const string& ip, const string& port,
+                     const string& syncType, const string& path,
                      const bool& cseed, ofstream& log) {
   log << currentTimeStamp().c_str() << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
@@ -288,7 +300,7 @@ void StartNewProcess(const string& pubKey, const string& privKey,
       }
       sleep(1);
     }
-    string syncType;
+    string syncType_cur;
     if (cseed) {
       // 1. Download Incremental DB Persistence
       // 2. Restart zilliqa with syncType 6
@@ -298,16 +310,16 @@ void StartNewProcess(const string& pubKey, const string& privKey,
             << endl;
         this_thread::sleep_for(chrono::seconds(10));
       }
-      syncType = "6";
+      syncType_cur = "6";
     } else {
       /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
       /// to Zilliqa process being killed. Thus, we can use the variable
       /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      syncType = bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
+      syncType_cur = bSuspend ? to_string(RECOVERY_ALL_SYNC) : syncType;
     }
     log << "\" "
         << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
-                   " " + port + " " + syncType + " " + path + " 2>&1")
+                   " " + port + " " + syncType_cur + " " + path + " 2>&1")
         << " \"" << endl;
     exit(0);
   }
@@ -358,13 +370,14 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
-      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid], Path[pid],
-                      cseed, log);
+      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid],
+                      SyncTypeString[pid], Path[pid], cseed, log);
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
       IP.erase(pid);
       Port.erase(pid);
+      SyncTypeString.erase(pid);
       Path.erase(pid);
     }
   }
