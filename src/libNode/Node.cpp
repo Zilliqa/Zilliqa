@@ -328,7 +328,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::CheckIntegrity(bool continueOnError) {
+bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   DequeOfNode dsComm;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
@@ -424,6 +424,10 @@ bool Node::CheckIntegrity(bool continueOnError) {
   bool result = true;
 
   for (uint i = 1; i < txBlocks.size(); i++) {
+    if (fromIsolatedBinary && (i % 100 == 0)) {
+      cout << "On tx block " << txBlocks.at(i).GetHeader().GetBlockNum()
+           << endl;
+    }
     auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
@@ -435,26 +439,28 @@ bool Node::CheckIntegrity(bool continueOnError) {
       }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
-        auto tranHashes = mbptr->GetTranHashes();
-        for (const auto& tranHash : tranHashes) {
-          TxBodySharedPtr tx;
-          if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
-            LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
-            result = false;
-            if (!continueOnError) {
-              break;
+        if (LOOKUP_NODE_MODE) {
+          auto tranHashes = mbptr->GetTranHashes();
+          for (const auto& tranHash : tranHashes) {
+            TxBodySharedPtr tx;
+            if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+              LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
+              result = false;
+              if (!fromIsolatedBinary) {
+                break;
+              }
             }
           }
         }
       } else {
         LOG_GENERAL(WARNING, "Missing MB: " << mbInfo.m_microBlockHash);
         result = false;
-        if (!continueOnError) {
+        if (!fromIsolatedBinary) {
           break;
         }
       }
     }
-    if (!result && !continueOnError) {
+    if (!result && !fromIsolatedBinary) {
       break;
     }
   }
@@ -573,6 +579,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   // Add ds guard nodes to blacklist exclusion list
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
       *m_mediator.m_DSCommittee);
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
 
   if (SyncType::RECOVERY_ALL_SYNC == syncType) {
     Blacklist::GetInstance().Enable(false);
@@ -2132,7 +2139,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
     return;
   }
 
-  std::vector<Peer> shardBlockReceivers;
+  VectorOfPeer shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(INFO,

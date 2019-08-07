@@ -930,7 +930,7 @@ void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
   m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
 }
 
-void P2PComm::SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+void P2PComm::SendRumorToForeignPeers(const VectorOfPeer& foreignPeers,
                                       const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);

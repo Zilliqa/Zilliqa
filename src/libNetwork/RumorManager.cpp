@@ -331,8 +331,8 @@ void RumorManager::SendRumorToForeignPeers(
   P2PComm::GetInstance().SendMessage(toForeignPeers, cmd, START_BYTE_GOSSIP);
 }
 
-void RumorManager::SendRumorToForeignPeers(
-    const std::vector<Peer>& toForeignPeers, const RawBytes& message) {
+void RumorManager::SendRumorToForeignPeers(const VectorOfPeer& toForeignPeers,
+                                           const RawBytes& message) {
   LOG_MARKER();
   LOG_PAYLOAD(INFO,
               "Forwarding new gossip to foreign peers. My IP = " << m_selfPeer,

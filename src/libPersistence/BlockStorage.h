@@ -92,6 +92,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
   std::shared_ptr<LevelDB> m_tempStateDB;
+  std::shared_ptr<LevelDB> m_processedTxnTmpDB;
   // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
   // unit test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
@@ -114,6 +115,7 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
         m_tempStateDB(std::make_shared<LevelDB>("tempState")),
+        m_processedTxnTmpDB(std::make_shared<LevelDB>("processedTxnTmp")),
         m_diagnosticDBNodes(
             std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
         m_diagnosticDBCoinbase(
@@ -147,7 +149,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     TEMP_STATE,
     DIAGNOSTIC_NODES,
     DIAGNOSTIC_COINBASE,
-    STATE_ROOT
+    STATE_ROOT,
+    PROCESSED_TEMP,
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -173,6 +176,8 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Adds a transaction body to storage.
   bool PutTxBody(const dev::h256& key, const bytes& body);
+
+  bool PutProcessedTxBodyTmp(const dev::h256& key, const bytes& body);
 
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
@@ -366,6 +371,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexStateRoot;
   mutable std::shared_timed_mutex m_mutexTxnHistorical;
   mutable std::shared_timed_mutex m_mutexMBHistorical;
+  mutable std::shared_timed_mutex m_mutexProcessTx;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;
