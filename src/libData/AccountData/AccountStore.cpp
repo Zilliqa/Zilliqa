@@ -514,39 +514,6 @@ void AccountStore::RevertCommitTemp() {
 bool AccountStore::MigrateContractStates() {
   LOG_MARKER();
 
-  std::function<bool(const string&, const Json::Value&, map<string, bytes>&)>
-      mapHandler = [&](const string& key, const Json::Value& j_value,
-                       map<string, bytes>& t_states) -> bool {
-    if (j_value.empty()) {
-      // make an empty protobuf scilla map value object
-      ProtoScillaVal::Map t_scillamap;
-      bytes dst;
-      if (!t_scillamap.SerializeToArray(dst.data(), t_scillamap.ByteSize())) {
-        return false;
-      }
-      t_states.emplace(key, dst);
-      return true;
-    } else {
-      for (const auto& map_entry : j_value) {
-        if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
-          LOG_GENERAL(WARNING, "Invalid map entry: " << map_entry.asString());
-          return false;
-        } else {
-          string new_key(key);
-          new_key += SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
-          if (map_entry["val"].type() != Json::arrayValue) {
-            t_states.emplace(new_key, DataConversion::StringToCharArray(
-                                          map_entry["val"].asString()));
-          } else {
-            return mapHandler(new_key, map_entry["val"], t_states);
-          }
-          return true;
-        }
-      }
-    }
-    return true;
-  };
-
   for (const auto& i : m_state) {
     Address address(i.first);
 
@@ -586,6 +553,44 @@ bool AccountStore::MigrateContractStates() {
           t_states.emplace(key, DataConversion::StringToCharArray(
                                     json_val["value"].asString()));
         } else {
+          /// mapHandler
+          std::function<bool(const string&, const Json::Value&,
+                             map<string, bytes>&)>
+              mapHandler = [&](const string& key, const Json::Value& j_value,
+                               map<string, bytes>& t_states) -> bool {
+            if (j_value.empty()) {
+              // make an empty protobuf scilla map value object
+              ProtoScillaVal::Map t_scillamap;
+              bytes dst;
+              if (!t_scillamap.SerializeToArray(dst.data(),
+                                                t_scillamap.ByteSize())) {
+                return false;
+              }
+              t_states.emplace(key, dst);
+              return true;
+            } else {
+              for (const auto& map_entry : j_value) {
+                if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
+                  LOG_GENERAL(WARNING,
+                              "Invalid map entry: " << map_entry.asString());
+                  return false;
+                } else {
+                  string new_key(key);
+                  new_key +=
+                      SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
+                  if (map_entry["val"].type() != Json::arrayValue) {
+                    t_states.emplace(new_key, DataConversion::StringToCharArray(
+                                                  map_entry["val"].asString()));
+                  } else {
+                    return mapHandler(new_key, map_entry["val"], t_states);
+                  }
+                  return true;
+                }
+              }
+            }
+            return true;
+          };
+
           if (!mapHandler(key, json_val["value"], t_states)) {
             LOG_GENERAL(WARNING, "failed to parse map value for: "
                                      << json_val["value"].asString());

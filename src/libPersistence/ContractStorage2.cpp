@@ -342,11 +342,9 @@ bool ContractStorage2::FetchStateJsonForContract(
 
   /// get the map depth
   Json::Value map_depth_json;
-  bool found_map_depth_json = true;
   if (!FetchContractFieldsMapDepth(address, map_depth_json)) {
     LOG_GENERAL(WARNING, "FetchContractFieldsMapDepth failed for contract: "
                              << address.hex());
-    found_map_depth_json = false;
   }
 
   for (const auto& state : states) {
@@ -399,8 +397,9 @@ bool ContractStorage2::FetchStateJsonForContract(
         }
       };
 
-      jsonMapWrapper(_json[vname], map_indices, state.second, 0,
-                     found_map_depth_json ? map_depth_json[vname].asInt() : -1);
+      jsonMapWrapper(
+          _json[vname], map_indices, state.second, 0,
+          map_depth_json.isMember(vname) ? map_depth_json[vname].asInt() : -1);
     }
   }
 
