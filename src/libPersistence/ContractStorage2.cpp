@@ -131,13 +131,11 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
 
   ProtoScillaVal value;
 
   for (const auto& index : query.indices()) {
-
     key += SCILLA_INDEX_SEPARATOR + index;
   }
 

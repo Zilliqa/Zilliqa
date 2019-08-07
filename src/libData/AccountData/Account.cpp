@@ -193,6 +193,16 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
+string Account::GetRawStorage(const h256& k_hash, bool temp) const {
+  if (!isContract()) {
+    // LOG_GENERAL(WARNING,
+    //             "Not contract account, why call Account::GetRawStorage!");
+    return "";
+  }
+  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
+                                                                    temp);
+}
+
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
                                   uint32_t& scilla_version) {
@@ -256,6 +266,15 @@ Json::Value Account::GetInitJson(bool temp) const {
     return Json::arrayValue;
   }
   return roots.first;
+}
+
+vector<h256> Account::GetStorageKeyHashes(bool temp) const {
+  if (!isContract()) {
+    return {};
+  }
+
+  return ContractStorage::GetContractStorage().GetContractStateIndexes(
+      m_address, temp);
 }
 
 void Account::GetUpdatedStates(

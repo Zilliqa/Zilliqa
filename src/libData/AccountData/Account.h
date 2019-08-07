@@ -168,6 +168,12 @@ class Account : public AccountBase {
 
   const bytes GetInitData() const;
 
+  /// Used in data migration, will deprecate after that
+  std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
+
+  /// Used in data migration, will deprecate after that
+  std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
+
   Json::Value GetInitJson(bool temp = false) const;
 
   Json::Value GetStateJson(bool temp = false) const;

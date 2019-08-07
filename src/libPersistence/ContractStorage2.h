@@ -72,7 +72,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   void UpdateStateData(const std::string& key, const bytes& value);
 
   ContractStorage2()
-      : m_codeDB("contractCode2"),
+      : m_codeDB("contractCode"),
         m_initDataDB("contractInitState2"),
         m_stateDataDB("contractStateData2"){};
 
