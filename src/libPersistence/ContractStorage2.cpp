@@ -244,15 +244,29 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     std::vector<string> indices;
     // remove the prefixes, as shown below surrounded by []
     // [address.vname.index0.index1.(...).]indexN0.indexN1.(...).indexNn
-    string key_non_prefix =
-        entry.first.substr(key.size() + 1, entry.first.size());
-    boost::split(indices, key_non_prefix, boost::is_any_of(DB_KEY_SEPARATOR));
-    unsigned int n = indices.size();
+    if (!boost::starts_with(entry.first, key)) {
+      LOG_GENERAL(WARNING, "Key is not a prefix of stored entry");
+      return false;
+    }
+    if (entry.first.size() > key.size()) {
+      string key_non_prefix =
+          entry.first.substr(key.size() + 1, entry.first.size());
+      boost::split(indices, key_non_prefix, boost::is_any_of(DB_KEY_SEPARATOR));
+    }
     ProtoScillaVal* t_value = &value;
     for (unsigned int i = 0; i < indices.size(); ++i) {
       t_value = &(t_value->mutable_mval()->mutable_m()->operator[](indices[i]));
     }
     if (query.indices().size() + indices.size() < query.mapdepth()) {
+      // Assert that we have a protobuf encoded empty map.
+      ProtoScillaVal emap;
+      emap.ParseFromArray(entry.second.data(), entry.second.size());
+      if (!emap.has_mval() || !emap.mval().m().empty()) {
+        LOG_GENERAL(WARNING,
+                    "Expected protobuf encoded empty map since entry has fewer "
+                    "keys than mapdepth");
+        return false;
+      }
       t_value->mutable_mval()->mutable_m();  // Create empty map.
     } else {
       t_value->set_bval(entry.second.data(), entry.second.size());
@@ -360,10 +374,9 @@ bool ContractStorage2::FetchStateJsonForContract(
             }
           } else {
             /// Check value whether parsable to Protobuf
-            ProtoScillaVal scilla_value;
-            if (scilla_value.ParseFromArray(value.data(), value.size()) &&
-                scilla_value.IsInitialized() && scilla_value.has_mval() &&
-                scilla_value.mval().m().empty()) {
+            ProtoScillaVal::Map scilla_mval;
+            if (scilla_mval.ParseFromArray(value.data(), value.size()) &&
+                scilla_mval.IsInitialized() && scilla_mval.m().empty()) {
               _json[indices.at(cur_index)] = Json::objectValue;
             } else {
               _json[indices.at(cur_index)] =
