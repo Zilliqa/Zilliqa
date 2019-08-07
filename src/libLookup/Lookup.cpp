@@ -2249,6 +2249,7 @@ else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
   }
 #if 0  // clark
   } else if (m_syncType == SyncType::LOOKUP_SYNC) {
+    this_thread::sleep_for(chrono::seconds(10));
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Lookup node - Join back to network now.");
 
