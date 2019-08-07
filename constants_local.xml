@@ -234,7 +234,11 @@
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
+<<<<<<< HEAD
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
+=======
+        <SCILLA_INDEX_SEPARATOR>.</SCILLA_INDEX_SEPARATOR>
+>>>>>>> bcaec84b72066452fda8cf49e0fc71f070f2133d
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>

@@ -462,6 +462,8 @@ const string INPUT_CODE{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
+const string SCILLA_INDEX_SEPARATOR{
+    ReadConstantString("SCILLA_INDEX_SEPARATOR", "node.smart_contract.")};
 const string FIELDS_MAP_DEPTH_INDICATOR{
     ReadConstantString("FIELDS_MAP_DEPTH_INDICATOR", "node.smart_contract.")};
 

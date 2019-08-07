@@ -445,6 +445,10 @@ bool Retriever::ValidateStates() {
   }
 }
 
+bool Retriever::MigrateContractStates() {
+  return AccountStore::GetInstance().MigrateContractStates();
+}
+
 void Retriever::CleanAll() {
   if (BlockStorage::GetBlockStorage().ResetAll()) {
     LOG_GENERAL(INFO, "Reset DB Succeed");
