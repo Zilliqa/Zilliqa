@@ -54,12 +54,17 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
 }
 
 TransactionWithReceipt constructDummyTxBody(int instanceNum) {
-  Address addr;
+  Address toAddr;
+
+  for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
+    toAddr.asArray().at(i) = i + 8;
+  }
+
   // return Transaction(0, instanceNum, addr,
   //                    Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {}, {});
   return TransactionWithReceipt(
-      Transaction(0, instanceNum, addr, Schnorr::GetInstance().GenKeyPair(), 0,
-                  1, 2, {}, {}),
+      Transaction(0, instanceNum, toAddr, Schnorr::GetInstance().GenKeyPair(),
+                  0, 1, 2, {}, {}),
       TransactionReceipt());
 }
 
@@ -103,6 +108,73 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
     // BOOST_CHECK_MESSAGE(body1 == *body2,
     //     "block shouldn't change after writing to/ reading from disk");
   }
+}
+
+BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  // checking if serialization and deserialization of TransactionWithReceipt
+  // to/from file is working or not
+
+  std::unordered_map<TxnHash, TransactionWithReceipt> txns;
+  TransactionWithReceipt tx_body = constructDummyTxBody(0);
+  auto tx_hash = tx_body.GetTransaction().GetTranID();
+
+  ostringstream oss;
+  oss << "/tmp/txns.1";
+  string txns_filename = oss.str();
+  ofstream ofile(txns_filename, std::fstream::binary);
+
+  bytes serializedTxn;
+  tx_body.Serialize(serializedTxn, 0);
+
+  // write HASH LEN and HASH
+  size_t size = tx_hash.size;
+  ofile.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+  ofile.write(reinterpret_cast<const char*>(tx_hash.data()), size);
+
+  // write TXN LEN AND TXN
+  size = serializedTxn.size();
+  ofile.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+  ofile.write(reinterpret_cast<const char*>(serializedTxn.data()), size);
+  ofile.close();
+
+  // Now read back file to see if the TransactionWithReceipt is good
+  ifstream infile(txns_filename, ios::in | ios::binary);
+  TxnHash r_txn_hash;
+  bytes buff;
+
+  // get the txnHash length and raw bytes of txnHash itself
+  size_t len;
+  infile.read(reinterpret_cast<char*>(&len), sizeof(len));
+  infile.read(reinterpret_cast<char*>(&r_txn_hash), len);
+
+  // get the TxnReceipt length and raw bytes of TxnReceipt itself
+  infile.read(reinterpret_cast<char*>(&len), sizeof(len));
+  buff.resize(len);
+  infile.read(reinterpret_cast<char*>(buff.data()), len);
+
+  infile.close();
+
+  // Deserialize the TxnReceipt bytes
+  TransactionWithReceipt r_tr;
+  r_tr.Deserialize(buff, 0);
+
+  BOOST_CHECK_MESSAGE(r_tr.GetTransaction().GetTranID() == tx_hash,
+                      "Error: Transaction id shouldn't change after "
+                      "serailization and deserialization from binary file");
+
+  BOOST_CHECK_MESSAGE(
+      r_tr.GetTransaction().GetToAddr() == tx_body.GetTransaction().GetToAddr(),
+      "Error: ToAddress shouldn't change after "
+      "serailization and deserialization from binary file");
+
+  BOOST_CHECK_MESSAGE(
+      r_tr.GetTransaction().GetTranID() == r_txn_hash,
+      "Error: Transaction id field in binary file and  "
+      "that in deserialized TR from binary file should have been same");
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
