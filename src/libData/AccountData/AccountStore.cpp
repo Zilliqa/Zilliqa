@@ -620,7 +620,10 @@ bool AccountStore::MigrateContractStates() {
       }
     }
 
-    // account.SetImmutable
+    account.SetImmutable(
+        account.GetCode(),
+        DataConversion::StringToCharArray(
+            JSONUtils::GetInstance().convertJsontoStr((immutable_states))));
     account.UpdateStates(address, mutable_states, {}, false);
   }
 

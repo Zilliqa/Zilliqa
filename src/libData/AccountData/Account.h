@@ -125,8 +125,6 @@ class Account : public AccountBase {
                            const uint64_t& blockNum, Json::Value& root,
                            uint32_t& scilla_version);
 
-  bool SetImmutable(const bytes& code, const bytes& initData);
-
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
  public:
@@ -143,6 +141,8 @@ class Account : public AccountBase {
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum,
                     uint32_t& scilla_version);
+
+  bool SetImmutable(const bytes& code, const bytes& initData);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
