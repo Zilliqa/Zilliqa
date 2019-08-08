@@ -920,37 +920,6 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   if (_json["message"].type() == Json::nullValue &&
       _json["states"].type() == Json::arrayValue &&
       _json["events"].type() == Json::arrayValue) {
-    /// * Remove the following logics as Scilla IPC steps in *
-
-    // std::vector<Contract::StateEntry> state_entries;
-    // try {
-    //   for (const auto& s : _json["states"]) {
-    //     if (!s.isMember("vname") || !s.isMember("type") ||
-    //         !s.isMember("value")) {
-    //       LOG_GENERAL(WARNING, "The json output of states is corrupted");
-    //       receipt.AddError(STATE_CORRUPTED);
-    //       return false;
-    //     }
-    //     std::string vname = s["vname"].asString();
-    //     std::string type = s["type"].asString();
-    //     std::string value =
-    //         s["value"].isString()
-    //             ? s["value"].asString()
-    //             : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-    //     if (vname != "_balance") {
-    //       state_entries.push_back(std::make_tuple(vname, true, type, value));
-    //     }
-    //   }
-    // } catch (const std::exception& e) {
-    //   LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-    //   return false;
-    // }
-
-    // if (!contractAccount->SetStorage(state_entries, true)) {
-    //   LOG_GENERAL(WARNING, "SetStorage failed");
-    //   return false;
-    // }
     return true;
   }
 

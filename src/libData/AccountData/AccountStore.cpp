@@ -190,7 +190,7 @@ bool AccountStore::MoveRootToDisk(const h256& root) {
   return true;
 }
 
-bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
+bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -198,6 +198,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   lock(g, g2);
 
   unordered_map<string, string> code_batch;
+  unordered_map<string, string> initdata_batch;
 
   for (auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
@@ -206,6 +207,11 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
               .empty()) {
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                               i.second.GetCode())});
+      }
+
+      if (ContractStorage2::GetContractStorage().GetInitData(i.first).empty()) {
+        initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
+                                                  i.second.GetInitData())});
       }
     }
   }
@@ -217,6 +223,11 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   }
 
   /// TODO: save init data
+  if (!ContractStorage2::GetContractStorage().PutInitDataBatch(
+          initdata_batch)) {
+    LOG_GENERAL(WARNING, "PutInitDataBatch failed");
+    return false;
+  }
 
   bool ret = true;
 
@@ -239,7 +250,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   }
 
   try {
-    if (repopulate && !RepopulateStateTrie()) {
+    if (repopulate && !RepopulateStateTrie(retrieveFromTrie)) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
       return false;
     }
@@ -261,13 +272,13 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   return true;
 }
 
-bool AccountStore::RepopulateStateTrie() {
+bool AccountStore::RepopulateStateTrie(bool retrieveFromTrie) {
   LOG_MARKER();
 
   unsigned int counter = 0;
   bool batched_once = false;
 
-  {
+  if (retrieveFromTrie) {
     lock_guard<mutex> g(m_mutexTrie);
     for (const auto& i : m_state) {
       counter++;
@@ -625,6 +636,14 @@ bool AccountStore::MigrateContractStates() {
         DataConversion::StringToCharArray(
             JSONUtils::GetInstance().convertJsontoStr((immutable_states))));
     account.UpdateStates(address, mutable_states, {}, false);
+
+    this->AddAccount(address, account);
+  }
+
+  /// repopulate trie and discard old persistence
+  if (!MoveUpdatesToDisk(true, false)) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
+    return false;
   }
 
   return true;
