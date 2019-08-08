@@ -766,10 +766,11 @@ std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -iblockchain " + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " +
-      INPUT_CODE + " -libdir " + root_w_version + '/' + SCILLA_LIB +
-      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors -balance " +
+      "rm -rf " + SCILLA_IPC_SOCKET_PATH + ";" + root_w_version + '/' +
+      SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
+      std::to_string(available_gas) + " -jsonerrors -balance " +
       balance.convert_to<std::string>();
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
@@ -780,13 +781,14 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -istate " + INPUT_STATE_JSON + " -iblockchain " +
-      INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
-      OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
-      " -disable-pp-json" + " -disable-validate-json" +
-      " -jsonerrors -balance " + balance.convert_to<std::string>();
+      "rm -rf " + SCILLA_IPC_SOCKET_PATH + ";" + root_w_version + '/' +
+      SCILLA_BINARY + " -init " + INIT_JSON + " -istate " + INPUT_STATE_JSON +
+      " -iblockchain " + INPUT_BLOCKCHAIN_JSON + " -imessage " +
+      INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
+      std::to_string(available_gas) + " -disable-pp-json" +
+      " -disable-validate-json" + " -jsonerrors -balance " +
+      balance.convert_to<std::string>();
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
