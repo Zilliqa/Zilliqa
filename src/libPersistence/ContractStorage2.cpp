@@ -326,12 +326,23 @@ bool ContractStorage2::FetchContractFieldsMapDepth(
     return false;
   }
 
-  if (!JSONUtils::GetInstance().convertStrtoJson(map_depth_data,
-                                                 map_depth_json)) {
+  if (!map_depth_data.empty() && !JSONUtils::GetInstance().convertStrtoJson(
+                                     map_depth_data, map_depth_json)) {
     LOG_GENERAL(WARNING, "Cannot parse " << map_depth_data << " to JSON");
     return false;
   }
   return true;
+}
+
+void ContractStorage2::InsertValueToStateJson(Json::Value& _json,
+                                              const string& value) {
+  Json::Value j_value;
+  if (JSONUtils::GetInstance().convertStrtoJson(value, j_value) &&
+      j_value.type() == Json::objectValue) {
+    _json = j_value;
+  } else {
+    _json = value;
+  }
 }
 
 bool ContractStorage2::FetchStateJsonForContract(
@@ -364,7 +375,8 @@ bool ContractStorage2::FetchStateJsonForContract(
       if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
         continue;
       }
-      _json[vname] = DataConversion::CharArrayToString(state.second);
+      InsertValueToStateJson(_json[vname],
+                             DataConversion::CharArrayToString(state.second));
     } else {
       std::function<void(Json::Value&, const vector<string>&, const bytes&,
                          unsigned int, int)>
@@ -378,13 +390,14 @@ bool ContractStorage2::FetchStateJsonForContract(
         } else {
           if (mapdepth >= 0) {
             if ((int)indices.size() == mapdepth) {
-              _json[indices.at(cur_index)] =
-                  DataConversion::CharArrayToString(value);
+              InsertValueToStateJson(_json[indices.at(cur_index)],
+                                     DataConversion::CharArrayToString(value));
             } else {
               _json[indices.at(cur_index)] = Json::objectValue;
             }
           } else {
-            /// Check value whether parsable to Protobuf
+            /// Enters only when the fields_map_depth not available, almost
+            /// impossible Check value whether parsable to Protobuf
             ProtoScillaVal::Map scilla_mval;
             if (scilla_mval.ParseFromArray(value.data(), value.size()) &&
                 scilla_mval.IsInitialized() && scilla_mval.m().empty()) {
@@ -397,9 +410,10 @@ bool ContractStorage2::FetchStateJsonForContract(
         }
       };
 
-      jsonMapWrapper(
-          _json[vname], map_indices, state.second, 0,
-          map_depth_json.isMember(vname) ? map_depth_json[vname].asInt() : -1);
+      jsonMapWrapper(_json[vname], map_indices, state.second, 0,
+                     (!map_depth_json.empty() && map_depth_json.isMember(vname))
+                         ? map_depth_json[vname].asInt()
+                         : -1);
     }
   }
 

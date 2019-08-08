@@ -120,6 +120,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool FetchContractFieldsMapDepth(const dev::h160& address,
                                    Json::Value& map_depth_json);
 
+  void InsertValueToStateJson(Json::Value& _json, const std::string& value);
+
   bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
                                  const std::string& vname = "",
                                  const std::vector<std::string>& indices = {});

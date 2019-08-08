@@ -216,6 +216,8 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
     return false;
   }
 
+  /// TODO: save init data
+
   bool ret = true;
 
   if (ret) {
@@ -528,79 +530,98 @@ bool AccountStore::MigrateContractStates() {
       continue;
     }
 
-    map<string, bytes> t_states;
+    map<string, bytes> mutable_states;
+    // map<string, bytes> immutable_states;
+    Json::Value immutable_states;
 
     for (const auto& index : account.GetStorageKeyHashes()) {
       string raw_val = account.GetRawStorage(index, false);
-      Json::Value json_val;
-      if (!JSONUtils::GetInstance().convertStrtoJson(raw_val, json_val)) {
-        LOG_GENERAL(WARNING, "Convert string to Json failed for: " << endl
-                                                                   << raw_val);
+
+      StateEntry entry;
+      uint32_t version;
+      if (!Messenger::GetStateData(DataConversion::StringToCharArray(raw_val),
+                                   0, entry, version)) {
+        LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
+        return false;
+      }
+
+      if (version != CONTRACT_STATE_VERSION) {
+        LOG_GENERAL(WARNING, "state data version "
+                                 << version
+                                 << " is not match to CONTRACT_STATE_VERSION "
+                                 << CONTRACT_STATE_VERSION);
+        return false;
+      }
+
+      string tVname = std::get<VNAME>(entry);
+      string tValue = std::get<VALUE>(entry);  /// could be "string" or [map]
+
+      if (!std::get<MUTABLE>(entry)) {
+        Json::Value immutable;
+        immutable["vname"] = tVname;
+        immutable["type"] = std::get<TYPE>(entry);
+        ContractStorage2::GetContractStorage().InsertValueToStateJson(
+            immutable["value"], tValue);
+        immutable_states.append(immutable);
+        continue;
       }
 
       string key = i.first.hex();
+      key += SCILLA_INDEX_SEPARATOR + tVname;
 
-      // check if complementary field exists
-      if (!(json_val.isMember("vname") && json_val.isMember("type") &&
-            json_val.isMember("value"))) {
-        LOG_GENERAL(WARNING, "Entry doesn't meet valid format: " << endl
-                                                                 << raw_val);
-        return false;
-      } else {
-        key += SCILLA_INDEX_SEPARATOR + json_val["vname"].asString();
-        if (json_val["value"].type() != Json::arrayValue) {
-          // compose index and store value into new db
-          t_states.emplace(key, DataConversion::StringToCharArray(
-                                    json_val["value"].asString()));
-        } else {
-          /// mapHandler
-          std::function<bool(const string&, const Json::Value&,
-                             map<string, bytes>&)>
-              mapHandler = [&](const string& key, const Json::Value& j_value,
-                               map<string, bytes>& t_states) -> bool {
-            if (j_value.empty()) {
-              // make an empty protobuf scilla map value object
-              ProtoScillaVal::Map t_scillamap;
-              bytes dst;
-              if (!t_scillamap.SerializeToArray(dst.data(),
-                                                t_scillamap.ByteSize())) {
+      // Check is the value is map
+      Json::Value json_val;
+      if (JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
+          json_val.type() == Json::arrayValue) {
+        /// mapHandler
+        std::function<bool(const string&, const Json::Value&,
+                           map<string, bytes>&)>
+            mapHandler = [&](const string& key, const Json::Value& j_value,
+                             map<string, bytes>& t_states) -> bool {
+          if (j_value.empty()) {
+            // make an empty protobuf scilla map value object
+            ProtoScillaVal::Map t_scillamap;
+            bytes dst;
+            if (!t_scillamap.SerializeToArray(dst.data(),
+                                              t_scillamap.ByteSize())) {
+              return false;
+            }
+            t_states.emplace(key, dst);
+            return true;
+          } else {
+            for (const auto& map_entry : j_value) {
+              if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
+                LOG_GENERAL(WARNING,
+                            "Invalid map entry: " << map_entry.asString());
                 return false;
-              }
-              t_states.emplace(key, dst);
-              return true;
-            } else {
-              for (const auto& map_entry : j_value) {
-                if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
-                  LOG_GENERAL(WARNING,
-                              "Invalid map entry: " << map_entry.asString());
-                  return false;
+              } else {
+                string new_key(key);
+                new_key += SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
+                if (map_entry["val"].type() != Json::arrayValue) {
+                  t_states.emplace(new_key, DataConversion::StringToCharArray(
+                                                map_entry["val"].asString()));
                 } else {
-                  string new_key(key);
-                  new_key +=
-                      SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
-                  if (map_entry["val"].type() != Json::arrayValue) {
-                    t_states.emplace(new_key, DataConversion::StringToCharArray(
-                                                  map_entry["val"].asString()));
-                  } else {
-                    return mapHandler(new_key, map_entry["val"], t_states);
-                  }
-                  return true;
+                  return mapHandler(new_key, map_entry["val"], t_states);
                 }
+                return true;
               }
             }
-            return true;
-          };
-
-          if (!mapHandler(key, json_val["value"], t_states)) {
-            LOG_GENERAL(WARNING, "failed to parse map value for: "
-                                     << json_val["value"].asString());
-            return false;
           }
+          return true;
+        };
+
+        if (!mapHandler(key, json_val, mutable_states)) {
+          LOG_GENERAL(WARNING, "failed to parse map value for: " << tValue);
+          return false;
+        } else {
+          mutable_states.emplace(key,
+                                 DataConversion::StringToCharArray(tValue));
         }
       }
     }
 
-    account.UpdateStates(address, t_states, {}, false);
+    // account.SetImmutable
+    account.UpdateStates(address, mutable_states, {}, false);
   }
 
   return true;
