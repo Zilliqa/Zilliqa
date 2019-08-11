@@ -34,6 +34,7 @@ CHUNK_SIZE = 4096
 EXPEC_LEN = 2
 TESTNET_NAME= 'TEST_NET_NAME'
 MAX_WORKER_JOBS = 50
+S3_MULTIPART_CHUNK_SIZE_IN_MB = 8 
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
@@ -99,13 +100,6 @@ def GetAllObjectsFromS3(url, folderName=""):
 	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
 	return 0
 
-def md5(fname):
-		hash_md5 = hashlib.md5()
-		with open(fname, "rb") as f:
-			for chunk in iter(lambda: f.read(4096), b""):
-				hash_md5.update(chunk)
-		return hash_md5.hexdigest()
-
 def GetPersistenceKey(key_url):
 	retry_counter = 0
 	while True:
@@ -122,15 +116,15 @@ def GetPersistenceKey(key_url):
 		with open(filename,'wb') as f:
 			total_length = response.headers.get('content-length')
 			total_length = int(total_length)
-			md5_hash = response.headers.get('ETag').strip('"') 
+			md5_hash = response.headers.get('ETag')
 			for chunk in progress.bar(response.iter_content(chunk_size=CHUNK_SIZE), expected_size=(total_length/CHUNK_SIZE) + 1):
 				if chunk:
 					f.write(chunk)
 					f.flush()
 			print("[" + str(datetime.datetime.now()) + "]"+" Downloaded " + filename + " successfully")
-		calc_md5_hash = md5(filename)
+		calc_md5_hash = calculate_multipart_etag(filename, S3_MULTIPART_CHUNK_SIZE_IN_MB * 1024 *1024)
 		if calc_md5_hash != md5_hash:
-			print("md5 checksum mismatch. Expected: " + md5_hash + ", Actual: " + calc_md5_hash)
+			print("md5 checksum mismatch for " + filename + ". Expected: " + md5_hash + ", Actual: " + calc_md5_hash)
 			os.remove(filename)
 			retry_counter += 1
 			if retry_counter > 3:
@@ -168,6 +162,41 @@ def ExtractAllGzippedObjects():
 			else:
 				shutil.rmtree(f)
 
+
+def calculate_multipart_etag(source_path, chunk_size):
+
+	"""
+	calculates a multipart upload etag for amazon s3
+	Arguments:
+	source_path -- The file to calculate the etage for
+	chunk_size -- The chunk size to calculate for.
+	Keyword Arguments:
+	expected -- If passed a string, the string will be compared to the resulting etag and raise an exception if they don't match
+	"""
+
+	md5s = []
+	with open(source_path,'rb') as fp:
+		first = True
+		while True:
+			data = fp.read(chunk_size)
+			if not data:
+				if first:
+					md5s.append(hashlib.md5())
+				break
+			md5s.append(hashlib.md5(data))
+			first = False
+
+	if len(md5s) > 1:
+		digests = b"".join(m.digest() for m in md5s)
+		new_md5 = hashlib.md5(digests)
+		new_etag = '"%s-%s"' % (new_md5.hexdigest(),len(md5s))
+	elif len(md5s) == 1: # file smaller than chunk size
+		new_etag = '"%s"' % md5s[0].hexdigest()
+	else: # empty file
+		new_etag = '""'
+
+	return new_etag
+				
 def run():
 	while (True):
 		try:
