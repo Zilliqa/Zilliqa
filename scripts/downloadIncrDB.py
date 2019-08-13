@@ -170,8 +170,6 @@ def calculate_multipart_etag(source_path, chunk_size):
 	Arguments:
 	source_path -- The file to calculate the etage for
 	chunk_size -- The chunk size to calculate for.
-	Keyword Arguments:
-	expected -- If passed a string, the string will be compared to the resulting etag and raise an exception if they don't match
 	"""
 
 	md5s = []
