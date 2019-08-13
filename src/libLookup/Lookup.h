@@ -114,7 +114,6 @@ class Lookup : public Executable {
 
   std::mutex m_mutexSetDSBlockFromSeed;
   std::mutex m_mutexSetTxBlockFromSeed;
-  std::mutex m_mutexSetStateDeltaFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
   std::mutex mutable m_mutexLookupNodes;
@@ -393,8 +392,9 @@ class Lookup : public Executable {
 
   std::mutex m_MutexCVSetTxBlockFromSeed;
   std::condition_variable cv_setTxBlockFromSeed;
-  std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
+  std::mutex m_mutexSetStateDeltaFromSeed;
+  bool m_skipAddStateDeltaToAccountStore = false;
 
   std::mutex m_mutexCVJoined;
   std::condition_variable cv_waitJoined;
