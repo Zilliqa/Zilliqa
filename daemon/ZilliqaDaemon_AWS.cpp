@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <array>
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <cstdio>
@@ -43,11 +44,9 @@ namespace po = boost::program_options;
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
+//#define LOCAL_TEST
 
 const vector<string> programName = {"zilliqa"};
-const string restart_zilliqa =
-    "python /zilliqa/tests/Zilliqa/daemon_restart.py";
-const string proj_dir = "~/zilliqa-test";
 const string logName = "epochinfo-00001-log.txt";
 const string PRIVKEY_OPT = "--privk";
 const string PUBKEY_OPT = "--pubk";
@@ -55,16 +54,31 @@ const string IP_OPT = "--address";
 const string PORT_OPT = "--port";
 const string SYNCTYPE_OPT = "--synctype";
 const string LOGPATH_OPT = "--logpath";
+
+string privK;
+string pubK;
+string address;
+string logpath(boost::filesystem::absolute("./").string());
+int port = -1;
+string ip;
+unsigned int syncType = 0;
+const char* synctype_descr =
+    "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
+    "for node recovery, 6 for new lookup , 7 for ds guard node sync and 8 "
+    "for offline validation of DB";
+int recovery = 0;
+
+#ifndef LOCAL_TEST
+const string restart_zilliqa =
+    "python /zilliqa/tests/Zilliqa/daemon_restart.py";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
-
-unordered_map<int, string> PrivKey;
-unordered_map<int, string> PubKey;
-unordered_map<int, string> IP;
-unordered_map<int, string> Port;
-unordered_map<int, string> SyncTypeString;
-unordered_map<int, string> LogPath;
-unordered_map<int, string> Path;
+#else
+const string restart_zilliqa =
+    "python /home/shengguang/Test/Zilliqa/tests/Zilliqa/daemon_restart.py";
+const string SUSPEND_LAUNCH = "./SUSPEND_LAUNCH";
+const string start_downloadScript = "python ./scripts/downloadIncrDB.py";
+#endif
 
 enum SyncType : unsigned int {
   NO_SYNC = 0,
@@ -165,72 +179,6 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
               closedir(dp);
               return result;
             }
-
-            fullLine = fullLine.substr(space_pos + 1);
-
-            while (!fullLine.empty() &&
-                   (string::npos != (space_pos = fullLine.find('\0')))) {
-              string token = fullLine.substr(0, space_pos);
-              fullLine = fullLine.substr(space_pos + 1);
-
-              if (token == PRIVKEY_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                PrivKey[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-
-              if (token == PUBKEY_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                PubKey[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-
-              if (token == IP_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                IP[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-
-              if (token == PORT_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                Port[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-
-              if (token == SYNCTYPE_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                SyncTypeString[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-
-              if (token == LOGPATH_OPT) {
-                space_pos = (string::npos == fullLine.find('\0'))
-                                ? fullLine.size()
-                                : fullLine.find('\0');
-                LogPath[id] = fullLine.substr(0, space_pos);
-                fullLine = fullLine.substr(space_pos + 1);
-                continue;
-              }
-            }
-
-            Path[id] = path;
-            log << currentTimeStamp().c_str() << "id: " << id
-                << " Path: " << path << endl;
           }
         }
       }
@@ -240,7 +188,8 @@ vector<pid_t> getProcIdByName(const string& procName, ofstream& log) {
   closedir(dp);
   return result;
 }
-string execute(const string& cmd) {
+
+static string execute(const string& cmd) {
   array<char, 128> buffer{};
   string result;
   shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
@@ -252,38 +201,7 @@ string execute(const string& cmd) {
   return result;
 }
 
-void initialize(unordered_map<string, vector<pid_t>>& pids,
-                unordered_map<pid_t, bool>& died, ofstream& log) {
-  bool isProcesstoTrack = false;
-  while (!isProcesstoTrack) {
-    for (const auto& v : programName) {
-      vector<pid_t> tmp = getProcIdByName(v, log);
-      if (tmp.size() > 0) {
-        isProcesstoTrack = true;
-        pids[v] = tmp;
-        log << currentTimeStamp().c_str() << "Process " << v << " exists in "
-            << pids[v].size() << " instances" << endl;
-        log << "Pids: ";
-        for (auto i : pids[v]) {
-          log << i << " ";
-          died[i] = false;
-        }
-        log << endl;
-      } else {
-        log << currentTimeStamp().c_str() << "Process " << v
-            << " does not exist" << endl;
-        // What to do??
-      }
-    }
-    if (!isProcesstoTrack) {
-      log << currentTimeStamp().c_str() << "No Process to Track so far\n"
-          << " Check again in 5 second ..." << endl;
-      sleep(5);
-    }
-  }
-}
-
-bool DownloadPersistenceFromS3(ofstream& log) {
+static bool DownloadPersistenceFromS3(ofstream& log) {
   string output;
   log << currentTimeStamp().c_str() << "downloading persistence from S3"
       << endl;
@@ -291,10 +209,9 @@ bool DownloadPersistenceFromS3(ofstream& log) {
   return (output.find("Done!") != std::string::npos);
 }
 
-void StartNewProcess(const string& pubKey, const string& privKey,
-                     const string& ip, const string& port,
-                     const string& syncType, const string& logPath,
-                     const string& path, bool cseed, ofstream& log) {
+static void StartNewProcess(const string& pubKey, const string& privKey,
+                            const string& ip, int port, const string& logPath,
+                            unsigned int syncType, ofstream& log) {
   log << currentTimeStamp().c_str() << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
@@ -311,8 +228,8 @@ void StartNewProcess(const string& pubKey, const string& privKey,
       }
       sleep(1);
     }
-    string syncType_cur;
-    if (cseed) {
+    string strSyncType;
+    if (NEW_LOOKUP_SYNC == syncType) {
       // 1. Download Incremental DB Persistence
       // 2. Restart zilliqa with syncType 6
       while (!DownloadPersistenceFromS3(log)) {
@@ -321,29 +238,59 @@ void StartNewProcess(const string& pubKey, const string& privKey,
             << endl;
         this_thread::sleep_for(chrono::seconds(10));
       }
-      syncType_cur = "6";
+      strSyncType = std::to_string(NEW_LOOKUP_SYNC);
     } else {
       /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
       /// to Zilliqa process being killed. Thus, we can use the variable
       /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      syncType_cur = bSuspend ? to_string(RECOVERY_ALL_SYNC) : syncType;
+      strSyncType =
+          bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(NO_SYNC);
+      log << "Suspend launch is " << bSuspend << ", set syncType to "
+          << strSyncType << endl;
     }
 
-    log << "Restarting Zilliqa process with \"" << PUBKEY_OPT << " " << pubKey
-        << " " << PRIVKEY_OPT << " " << privKey << " " << IP_OPT << " " << ip
-        << " " << PORT_OPT << " " << port << " " << SYNCTYPE_OPT << " "
-        << syncType_cur << " " << LOGPATH_OPT << " " << logPath << "\"" << endl;
-    log << "\" "
-        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
-                   " " + port + " " + syncType_cur + " " + logPath + " " +
-                   path + " 2>&1")
-        << " \"" << endl;
+    auto cmdToRun = restart_zilliqa + " " + pubKey + " " + privKey + " " + ip +
+                    " " + std::to_string(port) + " " + strSyncType + " " +
+                    logPath + " " + std::to_string(recovery);
+    log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+    log << "\" " << execute(cmdToRun + " 2>&1") << " \"" << endl;
     exit(0);
   }
 }
 
+static void initialize(unordered_map<string, vector<pid_t>>& pids,
+                       unordered_map<pid_t, bool>& died, unsigned int syncType,
+                       ofstream& log) {
+  bool isProcesstoTrack = false;
+  for (const auto& v : programName) {
+    vector<pid_t> tmp = getProcIdByName(v, log);
+    if (tmp.size() > 0) {
+      isProcesstoTrack = true;
+      pids[v] = tmp;
+      log << currentTimeStamp().c_str() << "Process " << v << " exists in "
+          << pids[v].size() << " instances" << endl;
+      log << "Pids: ";
+      for (auto i : pids[v]) {
+        log << i << " ";
+        died[i] = false;
+      }
+      log << endl;
+    } else {
+      log << currentTimeStamp().c_str() << "Process " << v << " does not exist"
+          << endl;
+      // What to do??
+    }
+  }
+
+  if (!isProcesstoTrack) {
+    log << currentTimeStamp().c_str() << "No Process to track, start it..."
+        << endl;
+    StartNewProcess(pubK, privK, address, port, logpath, syncType, log);
+  }
+}
+
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
-                    unordered_map<pid_t, bool>& died, bool cseed,
+                    unordered_map<pid_t, bool>& died, unsigned int syncType,
                     ofstream& log) {
   const string name = programName[0];
 
@@ -363,6 +310,8 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   }
 
   for (const pid_t& pid : pids[name]) {
+    // If sig is 0 (the null signal), error checking is performed but no signal
+    // is actually sent
     int w = kill(pid, 0);
 
     if (w < 0) {
@@ -387,40 +336,42 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
-      StartNewProcess(PubKey[pid], PrivKey[pid], IP[pid], Port[pid],
-                      SyncTypeString[pid], LogPath[pid], Path[pid], cseed, log);
+      StartNewProcess(pubK, privK, address, port, logpath, syncType, log);
       died.erase(pid);
-      PrivKey.erase(pid);
-      PubKey.erase(pid);
-      IP.erase(pid);
-      Port.erase(pid);
-      SyncTypeString.erase(pid);
-      LogPath.erase(pid);
-      Path.erase(pid);
     }
   }
 }
 
-int main(int argc, const char* argv[]) {
+int readInputs(int argc, const char* argv[]) {
   po::options_description desc("Options");
+
   desc.add_options()("help,h", "Print help messages")(
-      "cseed,s", "Runs for community seed node");
-  pid_t pid_parent, sid;
+      "privk,i", po::value<string>(&privK)->required(), "32-byte private key")(
+      "pubk,u", po::value<string>(&pubK)->required(), "33-byte public key")(
+      "address,a", po::value<string>(&address)->required(),
+      "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
+      "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
+      "port,p", po::value<int>(&port),
+      "Specifies port to bind to, if not specified in address")(
+      "loadconfig,l", "Loads configuration if set (deprecated)")(
+      "synctype,s", po::value<unsigned int>(&syncType), synctype_descr)(
+      "recovery,r", "Runs in recovery mode if set")(
+      "logpath,g", po::value<string>(&logpath),
+      "customized log path, could be relative path (e.g., \"./logs/\"), or "
+      "absolute path (e.g., \"/usr/local/test/logs/\")");
+
   po::variables_map vm;
-  bool cseed = false;
   try {
     po::store(po::parse_command_line(argc, argv, desc), vm);
 
+    /** --help option
+     */
     if (vm.count("help")) {
       cout << desc << endl;
       return SUCCESS;
     }
+    recovery = vm.count("recovery");
     po::notify(vm);
-
-    if (vm.count("cseed")) {
-      cout << "Running Daemon for community seed node" << endl;
-      cseed = true;
-    }
   } catch (boost::program_options::required_option& e) {
     std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
     std::cout << desc;
@@ -430,10 +381,23 @@ int main(int argc, const char* argv[]) {
     return ERROR_IN_COMMAND_LINE;
   }
 
+  return SUCCESS;
+}
+
+int main(int argc, const char* argv[]) {
+  if (readInputs(argc, argv) != SUCCESS) {
+    std::cout << "Failed to read inputs" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
   ofstream log;
   log.open("daemon-log.txt", fstream::out | fstream::trunc);
+  for (int i = 0; i < argc; ++i) {
+    log << argv[i] << " ";
+  }
+  log << endl;
 
-  pid_parent = fork();
+  auto pid_parent = fork();
 
   if (pid_parent < 0) {
     log << "Failed to fork " << endl;
@@ -447,7 +411,7 @@ int main(int argc, const char* argv[]) {
 
   umask(0);
 
-  sid = setsid();
+  auto sid = setsid();
 
   if (sid < 0) {
     log << "Unable to set sid" << endl;
@@ -466,10 +430,10 @@ int main(int argc, const char* argv[]) {
   unordered_map<string, vector<pid_t>> pids;
   unordered_map<pid_t, bool> died;
 
-  initialize(pids, died, log);
+  initialize(pids, died, syncType, log);
 
   while (1) {
-    MonitorProcess(pids, died, cseed, log);
+    MonitorProcess(pids, died, syncType, log);
     sleep(5);
   }
 

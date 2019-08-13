@@ -27,12 +27,13 @@ from subprocess import Popen, PIPE
 
 IP_SITE = 'ifconfig.me'
 PROJ_DIR = '/run/zilliqa'
+#PROJ_DIR = '/home/shengguang/Test/Zilliqa/build/bin' # For local test
 
 def main():
-	if len(sys.argv) == 7:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', sys.argv[6])
-	elif len(sys.argv) == 6:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', './')
+	if len(sys.argv) == 8:
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], './', sys.argv[6], sys.argv[7])
+	elif len(sys.argv) == 7:
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], './', './', sys.argv[6])
 	else:
 		print "Not enough args"
 
@@ -54,7 +55,7 @@ def isPortOpen(port):
 	sock.close()
 	return True
 
-def run_restart(pubKey, privKey, ip, port, typ, path, logPath):
+def run_restart(pubKey, privKey, ip, port, typ, path, logPath, recovery):
 	keypairs = []
 	keypairs.append(privKey + " " + pubKey)
 
@@ -64,7 +65,10 @@ def run_restart(pubKey, privKey, ip, port, typ, path, logPath):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + ip + ' --port ' + str(port) + ' --synctype ' + typ + ' --logpath ' + logPath + ' --recovery >> ./error_log_zilliqa 2>&1')
+		zilliqaCmd = path + 'zilliqa' + ' --privk ' + keypair[0] + ' --pubk ' + keypair[1] + ' --address ' + ip + ' --port ' + str(port) + ' --synctype ' + typ + ' --logpath ' + logPath
+		if recovery is not 0:
+			zilliqaCmd += ' --recovery'
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + zilliqaCmd + ' >> ./error_log_zilliqa 2>&1')
 
 if __name__ == "__main__":
 	main()
