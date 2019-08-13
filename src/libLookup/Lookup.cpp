@@ -1982,7 +1982,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
       // Get the state-delta for all txBlocks from random lookup nodes
       GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
-      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltaFromSeed);
+      std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
       if (cv_setStateDeltasFromSeed.wait_for(
               cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
           std::cv_status::timeout) {
@@ -2130,10 +2130,13 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
             "ProcessSetStateDeltaFromSeed sent by " << from << " for block "
                                                     << blockNum);
 
-  if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
+  if (!m_skipAddStateDeltaToAccountStore &&
+      !AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }
+
+  BlockStorage::GetBlockStorage().PutStateDelta(blockNum, stateDelta);
 
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
