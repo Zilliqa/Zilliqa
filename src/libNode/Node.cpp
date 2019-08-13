@@ -657,9 +657,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     /// Retrieve lacked final-block state-delta from lookup nodes
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
       unique_lock<mutex> lock(
-          m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
+          m_mediator.m_lookup->m_mutexSetStateDeltaFromSeed);
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
-
+      m_mediator.m_lookup->m_skipAddStateDeltaToAccountStore = false;
       do {
         m_mediator.m_lookup->GetStateDeltaFromSeedNodes(
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
