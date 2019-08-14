@@ -288,7 +288,7 @@ class Lookup : public Executable {
                                      const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-#if 1  // clark
+
   bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
@@ -296,19 +296,9 @@ class Lookup : public Executable {
   bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
-#else
-  // UNUSED
-  bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
-                                [[gnu::unused]] unsigned int offset,
-                                [[gnu::unused]] const Peer& from);
-  // UNUSED
-  bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
-                                [[gnu::unused]] unsigned int offset,
-                                [[gnu::unused]] const Peer& from);
-#endif
+
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
-#if 1  // clark
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
   bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
@@ -318,19 +308,7 @@ class Lookup : public Executable {
   bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from);
-#else
-  // UNUSED
-  void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  // UNUSED
-  bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
-                                      [[gnu::unused]] unsigned int offset,
-                                      [[gnu::unused]] const Peer& from);
-  // UNUSED
-  bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
-                                      [[gnu::unused]] unsigned int offset,
-                                      [[gnu::unused]] const Peer& from);
-#endif
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
