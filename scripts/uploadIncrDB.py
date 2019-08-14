@@ -378,7 +378,7 @@ if __name__ == '__main__':
 	if args['backup']:
 		print('Upload to backup is true')
 		PERSISTENCE_SNAPSHOT_NAME = 'incremental-backup'
-		STATEDELTA_BUCKET_NAME = 'statedelta-backup'
+		STATEDELTA_DIFF_NAME = 'statedelta-backup'
 
 	global webhook
 	global tt, dd
