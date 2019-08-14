@@ -292,9 +292,11 @@ class Lookup : public Executable {
   bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
+
   bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
+
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
