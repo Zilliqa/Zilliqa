@@ -375,7 +375,8 @@ if __name__ == '__main__':
 	parser.add_argument('-d','--dsblktime', help='Avg dsBlockTime to get mined', required=False, default=600)
 	parser.add_argument('--backup', action='store_true', help='upload to backup-S3')
 	args = vars(parser.parse_args())
-	if args.backup:
+	if args['backup']:
+		print('Upload to backup is true')
 		PERSISTENCE_SNAPSHOT_NAME = 'incremental-backup'
 		STATEDELTA_BUCKET_NAME = 'statedelta-backup'
 
