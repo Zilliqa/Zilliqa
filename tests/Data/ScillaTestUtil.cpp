@@ -136,7 +136,7 @@ uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
 
 // Return the _amount in message.json. Remove that and _sender.
 uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
-  uint64_t amount = atoi(message["_amount"].asCString());
+  uint64_t amount = message["_amount"].asUInt();
   // Remove _amount and _sender as they will be automatically inserted.
   message.removeMember("_amount");
   message.removeMember("_sender");

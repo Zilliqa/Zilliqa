@@ -308,11 +308,11 @@ void ContractStorage2::DeleteIndex(const string& prefix) {
 }
 
 bool ContractStorage2::FetchContractFieldsMapDepth(
-    const dev::h160& address, Json::Value& map_depth_json) {
+    const dev::h160& address, Json::Value& map_depth_json, bool temp) {
   std::map<std::string, bytes> map_depth_data_in_map;
   string map_depth_data;
   FetchStateDataForContract(map_depth_data_in_map, address,
-                            FIELDS_MAP_DEPTH_INDICATOR, {});
+                            FIELDS_MAP_DEPTH_INDICATOR, {}, temp);
 
   /// check the data obtained from storage
   if (map_depth_data_in_map.size() == 1 &&
@@ -334,26 +334,45 @@ bool ContractStorage2::FetchContractFieldsMapDepth(
   return true;
 }
 
-void ContractStorage2::InsertValueToStateJson(Json::Value& _json,
-                                              const string& value) {
+void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key, string value, bool unquote) {
+  if (unquote) {
+    // unquote key
+    if (key.front() == '"') {
+      key.erase(0, 1);
+    }
+    if (key.back() == '"') {
+      key.pop_back();
+    }
+  }
+
   Json::Value j_value;
   if (JSONUtils::GetInstance().convertStrtoJson(value, j_value) &&
       j_value.type() == Json::objectValue) {
-    _json = j_value;
+    _json[key] = j_value;
   } else {
-    _json = value;
+    if (unquote) {
+      // unquote value
+      if (value.front() == '"') {
+        value.erase(0, 1);
+      }
+      if (value.back() == '"') {
+        value.pop_back();
+      }
+    }
+
+    _json[key] = value;
   }
 }
 
 bool ContractStorage2::FetchStateJsonForContract(
     Json::Value& _json, const dev::h160& address, const string& vname,
-    const vector<string>& indices) {
+    const vector<string>& indices, bool temp) {
   std::map<std::string, bytes> states;
-  FetchStateDataForContract(states, address, vname, indices);
+  FetchStateDataForContract(states, address, vname, indices, temp);
 
   /// get the map depth
   Json::Value map_depth_json;
-  if (!FetchContractFieldsMapDepth(address, map_depth_json)) {
+  if (!FetchContractFieldsMapDepth(address, map_depth_json, temp)) {
     LOG_GENERAL(WARNING, "FetchContractFieldsMapDepth failed for contract: "
                              << address.hex());
   }
@@ -375,7 +394,7 @@ bool ContractStorage2::FetchStateJsonForContract(
       if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
         continue;
       }
-      InsertValueToStateJson(_json[vname],
+      InsertValueToStateJson(_json, vname,
                              DataConversion::CharArrayToString(state.second));
     } else {
       std::function<void(Json::Value&, const vector<string>&, const bytes&,
@@ -390,7 +409,7 @@ bool ContractStorage2::FetchStateJsonForContract(
         } else {
           if (mapdepth >= 0) {
             if ((int)indices.size() == mapdepth) {
-              InsertValueToStateJson(_json[indices.at(cur_index)],
+              InsertValueToStateJson(_json, indices.at(cur_index),
                                      DataConversion::CharArrayToString(value));
             } else {
               _json[indices.at(cur_index)] = Json::objectValue;
@@ -422,32 +441,37 @@ bool ContractStorage2::FetchStateJsonForContract(
 
 void ContractStorage2::FetchStateDataForContract(
     map<string, bytes>& states, const dev::h160& address, const string& vname,
-    const vector<string>& indices) {
-  // LOG_MARKER();
+    const vector<string>& indices, bool temp) {
+  LOG_MARKER();
   string key = GenerateStorageKey(address, vname, indices);
 
-  auto p = t_stateDataMap.lower_bound(address.hex());
-  while (p != t_stateDataMap.end() &&
-         p->first.compare(0, address.hex().size(), address.hex()) == 0) {
-    states.emplace(p->first, p->second);
-  }
+  std::map<std::string, bytes>::iterator p;
 
-  p = m_stateDataMap.lower_bound(address.hex());
-  while (p != m_stateDataMap.end() &&
-         p->first.compare(0, address.hex().size(), address.hex()) == 0) {
-    if (states.find(p->first) == states.end()) {
+  if (temp) {
+    p = t_stateDataMap.lower_bound(key);
+    while (p != t_stateDataMap.end() &&
+           p->first.compare(0, key.size(), key) == 0) {
       states.emplace(p->first, p->second);
+      ++p;
     }
   }
 
+  p = m_stateDataMap.lower_bound(key);
+  while (p != m_stateDataMap.end() &&
+         p->first.compare(0, key.size(), key) == 0) {
+    if (states.find(p->first) == states.end()) {
+      states.emplace(p->first, p->second);
+    }
+    ++p;
+  }
+
   auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
-  it->Seek({address.hex()});
-  if (!it->Valid() || it->key().ToString().compare(0, address.hex().size(),
-                                                   address.hex()) != 0) {
+  it->Seek({key});
+  if (!it->Valid() || it->key().ToString().compare(0, key.size(),
+                                                   key) != 0) {
     // no entry
   } else {
-    for (; it->key().ToString().compare(0, address.hex().size(),
-                                        address.hex()) == 0 &&
+    for (; it->key().ToString().compare(0, key.size(), key) == 0 &&
            it->Valid();
          it->Next()) {
       if (states.find(it->key().ToString()) == states.end()) {
@@ -477,16 +501,20 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, address.hex().size(), address.hex()) == 0) {
     t_states.emplace(p->first, p->second);
+    ++p;
   }
 
   auto r = m_indexToBeDeleted.lower_bound(address.hex());
   while (r != m_indexToBeDeleted.end() &&
          r->compare(0, address.hex().size(), address.hex()) == 0) {
     toDeletedIndices.emplace_back(*r);
+    ++p;
   }
 }
 
 void ContractStorage2::UpdateStateData(const string& key, const bytes& value) {
+  LOG_GENERAL(INFO, "key: " << key << " value: " << DataConversion::CharArrayToString(value));
+
   auto pos = m_indexToBeDeleted.find(key);
   if (pos != m_indexToBeDeleted.end()) {
     m_indexToBeDeleted.erase(pos);
@@ -580,6 +608,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
           return mapHandler(index, entry.second);
         } else {
           // DB Put
+          LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: " << entry.second.bval());
           UpdateStateData(
               index, DataConversion::StringToCharArray(entry.second.bval()));
         }
@@ -596,6 +625,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const std::map<std::string, bytes>& t_states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible) {
+  LOG_MARKER();
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
@@ -707,6 +737,7 @@ void ContractStorage2::InitTempState() {
 
 dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
                                                  bool temp) {
+  LOG_MARKER();
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();

@@ -89,6 +89,9 @@ class AccountStore
   /// buffer for the raw bytes of state delta serialized
   bytes m_stateDeltaSerialized;
 
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
+
   AccountStore();
   ~AccountStore();
 

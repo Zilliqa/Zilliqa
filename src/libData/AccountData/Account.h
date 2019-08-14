@@ -174,9 +174,16 @@ class Account : public AccountBase {
   /// Used in data migration, will deprecate after that
   std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
 
+  /// deprecated after data migration
   Json::Value GetInitJson(bool temp = false) const;
 
+  /// deprecated after data migration
   Json::Value GetStateJson(bool temp = false) const;
+
+  /// deprecated after data migration
+  bool GetStorageJson(
+      std::pair<Json::Value, Json::Value>& roots, bool temp = false,
+      uint32_t& scilla_version = scilla_version_place_holder) const;
 
   bool GetScillaVersion(uint32_t& scilla_version);
 
@@ -188,9 +195,7 @@ class Account : public AccountBase {
                     const std::vector<std::string>& toDeleteIndices, bool temp,
                     bool revertible = false);
 
-  bool GetStorageJson(
-      std::pair<Json::Value, Json::Value>& roots, bool temp = false,
-      uint32_t& scilla_version = scilla_version_place_holder) const;
+  bool FetchStateJson(Json::Value& root, const std::string& vname = "", const std::vector<std::string>& indices = {}, bool temp = false) const;
 
   /// Computes an account address from a specified PubKey.
   static Address GetAddressFromPublicKey(const PubKey& pubKey);

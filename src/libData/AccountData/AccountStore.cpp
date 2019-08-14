@@ -16,13 +16,16 @@
  */
 
 #include <leveldb/db.h>
+// #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 
 #include "AccountStore.h"
+#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libPersistence/ScillaMessage.pb.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -32,10 +35,31 @@ using namespace Contract;
 
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
+
+  /// Scilla IPC Server
+  if (ENABLE_SC) {
+    /// remove previous file path
+    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
+    m_scillaIPCServerConnector =
+        make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
+    m_scillaIPCServer =
+        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+    if (m_scillaIPCServer == nullptr) {
+      LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
+    } else {
+      SetScillaIPCServer(m_scillaIPCServer);
+      if (m_scillaIPCServer->StartListening()) {
+        LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
+      } else {
+        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start")
+      }
+    }
+  }
 }
 
 AccountStore::~AccountStore() {
   // boost::filesystem::remove_all("./state");
+  m_scillaIPCServer->StopListening();
 }
 
 void AccountStore::Init() {
@@ -572,7 +596,7 @@ bool AccountStore::MigrateContractStates() {
         immutable["vname"] = tVname;
         immutable["type"] = std::get<TYPE>(entry);
         ContractStorage2::GetContractStorage().InsertValueToStateJson(
-            immutable["value"], tValue);
+            immutable, "value", tValue, false);
         immutable_states.append(immutable);
         continue;
       }
@@ -603,7 +627,7 @@ bool AccountStore::MigrateContractStates() {
             for (const auto& map_entry : j_value) {
               if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
                 LOG_GENERAL(WARNING,
-                            "Invalid map entry: " << map_entry.asString());
+                            "Invalid map entry: " << JSONUtils::GetInstance().convertJsontoStr(map_entry));
                 return false;
               } else {
                 string new_key(key);

@@ -212,7 +212,7 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   }
 
   if (!JSONUtils::GetInstance().convertStrtoJson(
-          {initData.begin(), initData.end()}, root)) {
+          DataConversion::CharArrayToString(initData), root)) {
     return false;
   }
 
@@ -222,12 +222,13 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
         entry.isMember("value") && entry["vname"] == "_scilla_version" &&
         entry["type"] == "Uint32") {
       try {
-        m_scilla_version = boost::lexical_cast<uint32_t>(entry["value"]);
+        m_scilla_version =
+            boost::lexical_cast<uint32_t>(entry["value"].asString());
         scilla_version = m_scilla_version;
         found_scilla_version = true;
       } catch (...) {
         LOG_GENERAL(WARNING,
-                    "invalid value for _scilal_version " << entry["value"]);
+                    "invalid value for _scilla_version " << entry["value"]);
       }
       break;
     }
@@ -255,6 +256,7 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
+/// deprecated after data migration
 Json::Value Account::GetInitJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
@@ -295,6 +297,7 @@ void Account::UpdateStates(const Address& addr,
   }
 }
 
+/// deprecated after data migration
 Json::Value Account::GetStateJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
@@ -308,6 +311,7 @@ Json::Value Account::GetStateJson(bool temp) const {
   return roots.second;
 }
 
+/// deprecated after data migration
 bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
                              uint32_t& scilla_version) const {
   if (!isContract()) {
@@ -334,6 +338,32 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
     return false;
   }
   // LOG_GENERAL(INFO, "States: " << root);
+
+  return true;
+}
+
+bool Account::FetchStateJson(Json::Value& root, const string& vname, const vector<string>& indices, bool temp) const {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING,
+                "Not contract account, why call Account::GetStorageJson!");
+    return false;
+  }
+
+  if (vname != "_balance") {
+    if (!ContractStorage2::GetContractStorage().FetchStateJsonForContract(root, GetAddress(), vname, indices, temp)) {
+      LOG_GENERAL(WARNING, "ContractStorage2::FetchStateJsonForContract failed");
+      return false;
+    }
+  }
+
+  // if ((vname.empty() && indices.empty()) || vname == "_balance") {
+  //   Json::Value balance;
+  //   balance[string("vname")] = "_balance";
+  //   balance[string("type")] = "Uint128";
+  //   balance[string("value")] = GetBalance().convert_to<string>();
+  //   root.append(balance);
+  // }
+  LOG_GENERAL(INFO, "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
 
   return true;
 }
@@ -415,7 +445,7 @@ bool Account::GetScillaVersion(uint32_t& scilla_version) {
     Json::Value root;
     bytes initData = GetInitData();
     if (!JSONUtils::GetInstance().convertStrtoJson(
-            {initData.begin(), initData.end()}, root)) {
+            DataConversion::CharArrayToString(initData), root)) {
       LOG_GENERAL(WARNING, "Convert InitData to Json failed"
                                << endl
                                << DataConversion::CharArrayToString(initData));
