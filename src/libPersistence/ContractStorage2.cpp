@@ -441,19 +441,16 @@ bool ContractStorage2::FetchStateJsonForContract(
   return true;
 }
 
-void ContractStorage2::FetchStateDataForContract(
-    map<string, bytes>& states, const dev::h160& address, const string& vname,
-    const vector<string>& indices, bool temp) {
-  LOG_MARKER();
-  string key = GenerateStorageKey(address, vname, indices);
-
+void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const string& key, bool temp, bool checkExist) {
   std::map<std::string, bytes>::iterator p;
-
   if (temp) {
     p = t_stateDataMap.lower_bound(key);
     while (p != t_stateDataMap.end() &&
            p->first.compare(0, key.size(), key) == 0) {
       states.emplace(p->first, p->second);
+      if (checkExist) {
+        return;
+      }
       ++p;
     }
   }
@@ -463,6 +460,9 @@ void ContractStorage2::FetchStateDataForContract(
          p->first.compare(0, key.size(), key) == 0) {
     if (states.find(p->first) == states.end()) {
       states.emplace(p->first, p->second);
+      if (checkExist) {
+        return;
+      }
     }
     ++p;
   }
@@ -479,6 +479,9 @@ void ContractStorage2::FetchStateDataForContract(
       if (states.find(it->key().ToString()) == states.end()) {
         bytes val(it->value().data(), it->value().data() + it->value().size());
         states.emplace(it->key().ToString(), val);
+        if (checkExist) {
+          return;
+        }
       }
     }
   }
@@ -490,6 +493,13 @@ void ContractStorage2::FetchStateDataForContract(
       it++;
     }
   }
+}
+
+void ContractStorage2::FetchStateDataForContract(
+    map<string, bytes>& states, const dev::h160& address, const string& vname,
+    const vector<string>& indices, bool temp) {
+  string key = GenerateStorageKey(address, vname, indices);
+  FetchStateDataForKey(states, key, temp);
 }
 
 void ContractStorage2::FetchUpdatedStateValuesForAddress(
@@ -566,59 +576,86 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     key += SCILLA_INDEX_SEPARATOR + index;
   }
 
-  if ((unsigned int)query.indices().size() > query.mapdepth()) {
-    LOG_GENERAL(WARNING, "indices is deeper than map depth");
-    return false;
-  } else if (query.ignoreval()) {
+  for (int i = 0; i < query.indices().size() - 1; ++i) {
+    key += SCILLA_INDEX_SEPARATOR + query.indices()[i];
+  }
+
+  if (query.ignoreval()) {
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
     }
-    DeleteIndex(key);
-  } else if ((unsigned int)query.indices().size() == query.mapdepth()) {
-    if (value.has_mval()) {
-      LOG_GENERAL(WARNING, "val is not bytes but supposed to be");
-      return false;
+    for (int i = 0; i < query.indices().size() - 1; ++i) {
+      key += SCILLA_INDEX_SEPARATOR + query.indices()[i];
     }
-    UpdateStateData(key, DataConversion::StringToCharArray(value.bval()));
-    return true;
-  } else {
+    string parent_key = key;
+    key += SCILLA_INDEX_SEPARATOR + query.indices()[query.indices().size()-1];
     DeleteIndex(key);
 
-    std::function<bool(const string&, const ProtoScillaVal&)> mapHandler =
-        [&](const string& keyAcc, const ProtoScillaVal& value) -> bool {
-      if (!value.has_mval()) {
-        LOG_GENERAL(WARNING, "val is not map but supposed to be");
+    map<string, bytes> t_states;
+    FetchStateDataForKey(t_states, parent_key, true, true);
+    if (t_states.empty()) {
+      ProtoScillaVal::Map empty_mval;
+      bytes dst;
+      if (!SerializeToArray(empty_mval, dst, 0)) {
+        LOG_GENERAL(WARNING, "empty_mval SerializeToArray failed");
         return false;
       }
-      if (value.mval().m().empty()) {
-        // We have an empty map. Insert an entry for keyAcc in
-        // the store to indicate that the key itself exists.
-        bytes dst;
-        if (!SerializeToArray(value, dst, 0)) {
+      UpdateStateData(parent_key, dst);
+    }
+  } else {
+    for (const auto& index : query.indices()) {
+      key += SCILLA_INDEX_SEPARATOR + index;
+    }
+
+    if ((unsigned int)query.indices().size() > query.mapdepth()) {
+      LOG_GENERAL(WARNING, "indices is deeper than map depth");
+      return false;
+    } else if ((unsigned int)query.indices().size() == query.mapdepth()) {
+      if (value.has_mval()) {
+        LOG_GENERAL(WARNING, "val is not bytes but supposed to be");
+        return false;
+      }
+      UpdateStateData(key, DataConversion::StringToCharArray(value.bval()));
+      return true;
+    } else {
+      DeleteIndex(key);
+
+      std::function<bool(const string&, const ProtoScillaVal&)> mapHandler =
+          [&](const string& keyAcc, const ProtoScillaVal& value) -> bool {
+        if (!value.has_mval()) {
+          LOG_GENERAL(WARNING, "val is not map but supposed to be");
           return false;
         }
-        // DB Put
-        UpdateStateData(keyAcc, dst);
-        return true;
-      }
-      for (const auto& entry : value.mval().m()) {
-        string index(keyAcc);
-        index += SCILLA_INDEX_SEPARATOR + entry.first;
-        if (entry.second.has_mval()) {
-          // We haven't reached the deepeast nesting
-          return mapHandler(index, entry.second);
-        } else {
+        if (value.mval().m().empty()) {
+          // We have an empty map. Insert an entry for keyAcc in
+          // the store to indicate that the key itself exists.
+          bytes dst;
+          if (!SerializeToArray(value.mval(), dst, 0)) {
+            return false;
+          }
           // DB Put
-          LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: " << entry.second.bval());
-          UpdateStateData(
-              index, DataConversion::StringToCharArray(entry.second.bval()));
+          UpdateStateData(keyAcc, dst);
+          return true;
         }
-      }
-      return true;
-    };
+        for (const auto& entry : value.mval().m()) {
+          string index(keyAcc);
+          index += SCILLA_INDEX_SEPARATOR + entry.first;
+          if (entry.second.has_mval()) {
+            // We haven't reached the deepeast nesting
+            return mapHandler(index, entry.second);
+          } else {
+            // DB Put
+            LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: " << entry.second.bval());
+            UpdateStateData(
+                index, DataConversion::StringToCharArray(entry.second.bval()));
+          }
+        }
+        return true;
+      };
 
-    return mapHandler(key, value);
+      return mapHandler(key, value);
+    }
   }
   return true;
 }

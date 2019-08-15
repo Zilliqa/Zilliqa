@@ -128,6 +128,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                                  const std::vector<std::string>& indices = {},
                                  bool temp = false);
 
+  void FetchStateDataForKey(std::map<std::string, bytes>& states, const std::string& key, bool temp, bool checkExist = false);
+
   void FetchStateDataForContract(std::map<std::string, bytes>& states,
                                  const dev::h160& address,
                                  const std::string& vname = "",
