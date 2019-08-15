@@ -26,9 +26,6 @@
 #include <bits/stdc++.h>
 #include <boost/algorithm/string.hpp>
 
-// Single character used as separator when concatenating keys into one.
-#define DB_KEY_SEPARATOR "."
-
 using namespace std;
 using namespace ZilliqaMessage;
 
@@ -99,9 +96,9 @@ string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
                                             const vector<string>& indices) {
   string ret = addr.hex();
   if (!vname.empty()) {
-    ret += DB_KEY_SEPARATOR + vname;
+    ret += SCILLA_INDEX_SEPARATOR + vname;
     for (const auto& index : indices) {
-      ret += DB_KEY_SEPARATOR + index;
+      ret += SCILLA_INDEX_SEPARATOR + index;
     }
   }
   return ret;
@@ -266,7 +263,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     if (entry.first.size() > key.size()) {
       string key_non_prefix =
           entry.first.substr(key.size() + 1, entry.first.size());
-      boost::split(indices, key_non_prefix, boost::is_any_of(DB_KEY_SEPARATOR));
+      boost::split(indices, key_non_prefix, boost::is_any_of(SCILLA_INDEX_SEPARATOR));
     }
     ProtoScillaVal* t_value = &value;
     for (unsigned int i = 0; i < indices.size(); ++i) {
@@ -318,11 +315,11 @@ bool ContractStorage2::FetchContractFieldsMapDepth(
 
   /// check the data obtained from storage
   if (map_depth_data_in_map.size() == 1 &&
-      map_depth_data_in_map.find(address.hex() + DB_KEY_SEPARATOR +
+      map_depth_data_in_map.find(address.hex() + SCILLA_INDEX_SEPARATOR +
                                  FIELDS_MAP_DEPTH_INDICATOR) !=
           map_depth_data_in_map.end()) {
     map_depth_data = DataConversion::CharArrayToString(map_depth_data_in_map.at(
-        address.hex() + DB_KEY_SEPARATOR + FIELDS_MAP_DEPTH_INDICATOR));
+        address.hex() + SCILLA_INDEX_SEPARATOR + FIELDS_MAP_DEPTH_INDICATOR));
   } else {
     LOG_GENERAL(WARNING, "Cannot find FIELDS_MAP_DEPTH_INDICATOR");
     return false;
@@ -381,7 +378,7 @@ bool ContractStorage2::FetchStateJsonForContract(
 
   for (const auto& state : states) {
     vector<string> fragments;
-    boost::split(fragments, state.first, boost::is_any_of(DB_KEY_SEPARATOR));
+    boost::split(fragments, state.first, boost::is_any_of(SCILLA_INDEX_SEPARATOR));
     if (fragments.at(0) != address.hex()) {
       LOG_GENERAL(WARNING, "wrong state fetched: " << state.first);
       return false;
