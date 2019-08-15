@@ -626,7 +626,9 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
           index += SCILLA_INDEX_SEPARATOR + entry.first;
           if (entry.second.has_mval()) {
             // We haven't reached the deepeast nesting
-            return mapHandler(index, entry.second);
+            if (!mapHandler(index, entry.second)) {
+              return false;
+            }
           } else {
             // DB Put
             LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: " << entry.second.bval());
