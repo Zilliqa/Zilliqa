@@ -114,7 +114,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   foundVal = true;
 
-  if (s_offset >= src.size()) {
+  if (s_offset > src.size()) {
     LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
                              << src.size() << ", offset " << s_offset);
   }
@@ -419,9 +419,10 @@ bool ContractStorage2::FetchStateJsonForContract(
           } else {
             /// Enters only when the fields_map_depth not available, almost
             /// impossible Check value whether parsable to Protobuf
-            ProtoScillaVal::Map scilla_mval;
-            if (scilla_mval.ParseFromArray(value.data(), value.size()) &&
-                scilla_mval.IsInitialized() && scilla_mval.m().empty()) {
+            ProtoScillaVal empty_val;
+            if (empty_val.ParseFromArray(value.data(), value.size()) &&
+                empty_val.IsInitialized() && empty_val.has_mval() &&
+                empty_val.mval().m().empty()) {
               _json[indices.at(cur_index)] = Json::objectValue;
             } else {
               _json[indices.at(cur_index)] =
@@ -441,16 +442,13 @@ bool ContractStorage2::FetchStateJsonForContract(
   return true;
 }
 
-void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const string& key, bool temp, bool checkExist) {
+void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const string& key, bool temp) {
   std::map<std::string, bytes>::iterator p;
   if (temp) {
     p = t_stateDataMap.lower_bound(key);
     while (p != t_stateDataMap.end() &&
            p->first.compare(0, key.size(), key) == 0) {
       states.emplace(p->first, p->second);
-      if (checkExist) {
-        return;
-      }
       ++p;
     }
   }
@@ -460,9 +458,6 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const st
          p->first.compare(0, key.size(), key) == 0) {
     if (states.find(p->first) == states.end()) {
       states.emplace(p->first, p->second);
-      if (checkExist) {
-        return;
-      }
     }
     ++p;
   }
@@ -479,9 +474,6 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const st
       if (states.find(it->key().ToString()) == states.end()) {
         bytes val(it->value().data(), it->value().data() + it->value().size());
         states.emplace(it->key().ToString(), val);
-        if (checkExist) {
-          return;
-        }
       }
     }
   }
@@ -540,13 +532,13 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
                                         unsigned int v_offset) {
   LOG_MARKER();
 
-  if (q_offset >= q.size()) {
+  if (q_offset > q.size()) {
     LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
                              << q.size() << ", offset " << q_offset);
     return false;
   }
 
-  if (v_offset >= v.size()) {
+  if (v_offset > v.size()) {
     LOG_GENERAL(WARNING, "Invalid value data and offset, data size "
                              << v.size() << ", offset " << v_offset);
   }
@@ -569,17 +561,6 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
 
-  // bytes keyReady;
-  // copy(keyBase.begin(), keyBase.end(), keyReady.begin());
-
-  for (const auto& index : query.indices()) {
-    key += SCILLA_INDEX_SEPARATOR + index;
-  }
-
-  for (int i = 0; i < query.indices().size() - 1; ++i) {
-    key += SCILLA_INDEX_SEPARATOR + query.indices()[i];
-  }
-
   if (query.ignoreval()) {
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
@@ -590,14 +571,16 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     }
     string parent_key = key;
     key += SCILLA_INDEX_SEPARATOR + query.indices()[query.indices().size()-1];
+    LOG_GENERAL(INFO, "Delete key: " << key);
     DeleteIndex(key);
 
     map<string, bytes> t_states;
-    FetchStateDataForKey(t_states, parent_key, true, true);
+    FetchStateDataForKey(t_states, parent_key, true);
     if (t_states.empty()) {
-      ProtoScillaVal::Map empty_mval;
+      ProtoScillaVal empty_val;
+      empty_val.mutable_mval()->mutable_m();
       bytes dst;
-      if (!SerializeToArray(empty_mval, dst, 0)) {
+      if (!SerializeToArray(empty_val, dst, 0)) {
         LOG_GENERAL(WARNING, "empty_mval SerializeToArray failed");
         return false;
       }
@@ -631,7 +614,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
           // We have an empty map. Insert an entry for keyAcc in
           // the store to indicate that the key itself exists.
           bytes dst;
-          if (!SerializeToArray(value.mval(), dst, 0)) {
+          if (!SerializeToArray(value, dst, 0)) {
             return false;
           }
           // DB Put
