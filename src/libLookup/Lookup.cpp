@@ -1492,7 +1492,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     return true;
   }
 
-  LOG_GENERAL(INFO, "Reques for " << microBlockHashes.size() << " blocks");
+  LOG_GENERAL(INFO, "Request for " << microBlockHashes.size() << " blocks");
 
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
@@ -2414,7 +2414,6 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
   LOG_MARKER();
 
   vector<TxnHash> txnhashes;
-  txnhashes.clear();
 
   uint32_t portNo = 0;
   if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, txnhashes,
@@ -2428,14 +2427,14 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return true;
   }
 
-  vector<TransactionWithReceipt> txnvector;
+  vector<TransactionWithReceipt> txns;
   for (const auto& txnhash : txnhashes) {
-    shared_ptr<TransactionWithReceipt> txn;
-    if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txn)) {
+    shared_ptr<TransactionWithReceipt> txnptr;
+    if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txnptr)) {
       LOG_GENERAL(WARNING, "Could not find " << txnhash);
       continue;
     }
-    txnvector.emplace_back(*txn);
+    txns.emplace_back(*txnptr);
   }
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
@@ -2444,7 +2443,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                      LookupInstructionType::SETTXNFROMLOOKUP};
 
   if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
-                                             m_mediator.m_selfKey, txnvector)) {
+                                             m_mediator.m_selfKey, txns)) {
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
