@@ -81,7 +81,7 @@ def GetCurrentTxBlockNum():
     val = loaded_json["result"]
     if (val != None and val != ''):
         blockNum = int(val) - 1 # -1 because we need TxBlockNum (not epochnum)
-    return blockNum
+    return blockNum + 1
 
 def backUp(curr_blockNum):
     with tarfile.open(TESTNET_NAME + ".tar.gz", "w:gz") as tar:
