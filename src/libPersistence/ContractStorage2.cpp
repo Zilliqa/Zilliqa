@@ -96,9 +96,9 @@ string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
                                             const vector<string>& indices) {
   string ret = addr.hex();
   if (!vname.empty()) {
-    ret += SCILLA_INDEX_SEPARATOR + vname;
+    ret += SCILLA_INDEX_SEPARATOR + vname + SCILLA_INDEX_SEPARATOR;
     for (const auto& index : indices) {
-      ret += SCILLA_INDEX_SEPARATOR + index;
+      ret += index + SCILLA_INDEX_SEPARATOR;
     }
   }
   return ret;
@@ -128,12 +128,13 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
+  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name()
+                + SCILLA_INDEX_SEPARATOR;
 
   ProtoScillaVal value;
 
   for (const auto& index : query.indices()) {
-    key += SCILLA_INDEX_SEPARATOR + index;
+    key += index + SCILLA_INDEX_SEPARATOR;
   }
 
   if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -262,9 +263,12 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
     if (entry.first.size() > key.size()) {
       string key_non_prefix =
-          entry.first.substr(key.size() + 1, entry.first.size());
+          entry.first.substr(key.size(), entry.first.size());
       boost::split(indices, key_non_prefix, boost::is_any_of(SCILLA_INDEX_SEPARATOR));
     }
+    if (indices.size() > 0 && indices.back().empty())
+      indices.pop_back();
+
     ProtoScillaVal* t_value = &value;
     for (unsigned int i = 0; i < indices.size(); ++i) {
       t_value = &(t_value->mutable_mval()->mutable_m()->operator[](indices[i]));
@@ -383,6 +387,8 @@ bool ContractStorage2::FetchStateJsonForContract(
       LOG_GENERAL(WARNING, "wrong state fetched: " << state.first);
       return false;
     }
+    if (fragments.back().empty())
+      fragments.pop_back();
 
     string vname = fragments.at(1);
 
@@ -556,7 +562,8 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     return false;
   }
 
-  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name();
+  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name()
+                + SCILLA_INDEX_SEPARATOR;
 
   if (query.ignoreval()) {
     if (query.indices().size() < 1) {
@@ -564,10 +571,10 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
       return false;
     }
     for (int i = 0; i < query.indices().size() - 1; ++i) {
-      key += SCILLA_INDEX_SEPARATOR + query.indices().Get(i);
+      key += query.indices().Get(i)+ SCILLA_INDEX_SEPARATOR;
     }
     string parent_key = key;
-    key += SCILLA_INDEX_SEPARATOR + query.indices().Get(query.indices().size()-1);
+    key += query.indices().Get(query.indices().size()-1) + SCILLA_INDEX_SEPARATOR;
     LOG_GENERAL(INFO, "Delete key: " << key);
     DeleteIndex(key);
 
@@ -585,7 +592,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     }
   } else {
     for (const auto& index : query.indices()) {
-      key += SCILLA_INDEX_SEPARATOR + index;
+      key += index + SCILLA_INDEX_SEPARATOR;
     }
 
     if ((unsigned int)query.indices().size() > query.mapdepth()) {
@@ -620,7 +627,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
         }
         for (const auto& entry : value.mval().m()) {
           string index(keyAcc);
-          index += SCILLA_INDEX_SEPARATOR + entry.first;
+          index += entry.first + SCILLA_INDEX_SEPARATOR;
           if (entry.second.has_mval()) {
             // We haven't reached the deepeast nesting
             if (!mapHandler(index, entry.second)) {
