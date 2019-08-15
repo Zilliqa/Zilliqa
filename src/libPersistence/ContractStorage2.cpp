@@ -567,10 +567,10 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
       return false;
     }
     for (int i = 0; i < query.indices().size() - 1; ++i) {
-      key += SCILLA_INDEX_SEPARATOR + query.indices()[i];
+      key += SCILLA_INDEX_SEPARATOR + query.indices().Get(i);
     }
     string parent_key = key;
-    key += SCILLA_INDEX_SEPARATOR + query.indices()[query.indices().size()-1];
+    key += SCILLA_INDEX_SEPARATOR + query.indices().Get(query.indices().size()-1);
     LOG_GENERAL(INFO, "Delete key: " << key);
     DeleteIndex(key);
 
