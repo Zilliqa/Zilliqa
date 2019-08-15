@@ -146,8 +146,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   const auto& d_found = m_indexToBeDeleted.find(key);
   if (d_found != m_indexToBeDeleted.end()) {
-    foundVal = false;
-    return true;
+    if ((unsigned int)query.indices().size() == query.mapdepth()) {
+      foundVal = false;
+      return true;
+    }
   }
 
   if ((unsigned int)query.indices().size() == query.mapdepth()) {
