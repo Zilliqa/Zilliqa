@@ -288,27 +288,27 @@ class Lookup : public Executable {
                                      const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-  // UNUSED
+
   bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
-  // UNUSED
+
   bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
+
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
-  // UNUSED
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  // UNUSED
   bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from);
-  // UNUSED
+
   bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from);
+
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
