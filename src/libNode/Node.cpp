@@ -153,8 +153,9 @@ bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string output;
   // TBD - find better way to capture the exit status of command
-  SysCommand::ExecuteCmdWithOutput("./downloadIncrDB.py " + STORAGE_PATH + "/",
-                                   output);
+  string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
+  SysCommand::ExecuteCmdWithOutput(
+      "./downloadIncrDB.py " + STORAGE_PATH + "/ " + excludembtxns, output);
   return (output.find("Done!") != std::string::npos);
 }
 
