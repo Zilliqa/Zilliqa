@@ -1,4 +1,4 @@
-add_executable(ZilliqaDaemon ZilliqaDaemon_AWS.cpp)
+add_executable(ZilliqaDaemon ZilliqaDaemon.cpp)
 
 target_link_libraries (ZilliqaDaemon Boost::program_options Boost::filesystem)
 
