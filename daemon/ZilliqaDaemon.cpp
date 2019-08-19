@@ -258,6 +258,7 @@ static void StartNewProcess(const string& pubKey, const string& privKey,
   }
 }
 
+#if 0  // clark
 static void initialize(unordered_map<string, vector<pid_t>>& pids,
                        unordered_map<pid_t, bool>& died, unsigned int syncType,
                        ofstream& log) {
@@ -288,6 +289,7 @@ static void initialize(unordered_map<string, vector<pid_t>>& pids,
     StartNewProcess(pubK, privK, address, port, logpath, syncType, log);
   }
 }
+#endif
 
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
                     unordered_map<pid_t, bool>& died, unsigned int syncType,
@@ -430,7 +432,11 @@ int main(int argc, const char* argv[]) {
   unordered_map<string, vector<pid_t>> pids;
   unordered_map<pid_t, bool> died;
 
+#if 1  // clark
+  StartNewProcess(pubK, privK, address, port, logpath, syncType, log);
+#else
   initialize(pids, died, syncType, log);
+#endif
 
   while (1) {
     MonitorProcess(pids, died, syncType, log);
