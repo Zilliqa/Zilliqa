@@ -602,7 +602,7 @@ bool AccountStore::MigrateContractStates() {
       }
 
       string key = i.first.hex();
-      key += SCILLA_INDEX_SEPARATOR + tVname;
+      key += SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR;
 
       // Check is the value is map
       Json::Value json_val;
@@ -615,10 +615,11 @@ bool AccountStore::MigrateContractStates() {
                              map<string, bytes>& t_states) -> bool {
           if (j_value.empty()) {
             // make an empty protobuf scilla map value object
-            ProtoScillaVal::Map t_scillamap;
+            ProtoScillaVal t_scillaVal;
+            t_scillaVal.mutable_mval()->mutable_m();
             bytes dst;
-            if (!t_scillamap.SerializeToArray(dst.data(),
-                                              t_scillamap.ByteSize())) {
+            if (!t_scillaVal.SerializeToArray(dst.data(),
+                                              t_scillaVal.ByteSize())) {
               return false;
             }
             t_states.emplace(key, dst);
@@ -633,10 +634,10 @@ bool AccountStore::MigrateContractStates() {
                 return false;
               } else {
                 string new_key(key);
-                new_key += SCILLA_INDEX_SEPARATOR + map_entry["key"].asString();
+                new_key += "\"" + map_entry["key"].asString() + "\"" + SCILLA_INDEX_SEPARATOR;
                 if (map_entry["val"].type() != Json::arrayValue) {
                   t_states.emplace(new_key, DataConversion::StringToCharArray(
-                                                map_entry["val"].asString()));
+                                                "\"" + map_entry["val"].asString() + "\""));
                 } else {
                   return mapHandler(new_key, map_entry["val"], t_states);
                 }
