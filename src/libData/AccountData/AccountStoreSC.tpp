@@ -380,6 +380,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
+      toAccount->SetStorageRoot(Contract::ContractStorage2::GetContractStorage().GetContractStateHash(toAddr, true));
+
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       break;
     }
@@ -1162,6 +1164,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       ret = true;
     }
   }
+
+  contractAccount->SetStorageRoot(Contract::ContractStorage2::GetContractStorage().GetContractStateHash(m_curContractAddr, true));
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));

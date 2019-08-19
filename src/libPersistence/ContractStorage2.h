@@ -67,9 +67,13 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   mutable std::shared_timed_mutex m_initDataMutex;
   mutable std::shared_timed_mutex m_stateDataMutex;
 
-  void DeleteIndex(const std::string& prefix);
+  void DeleteByPrefix(const std::string& prefix);
 
-  void UpdateStateData(const std::string& key, const bytes& value);
+  void DeleteByIndex(const std::string& index);
+
+  void UpdateStateData(const std::string& key, const bytes& value, bool cleanEmpty = false);
+
+  bool CleanEmptyMapPlaceholders(const std::string& key);
 
   ContractStorage2()
       : m_codeDB("contractCode"),

@@ -144,6 +144,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   const auto& d_found = m_indexToBeDeleted.find(key);
   if (d_found != m_indexToBeDeleted.end()) {
+    // ignore the deleted empty placeholder
     if ((unsigned int)query.indices().size() == query.mapdepth()) {
       foundVal = false;
       return true;
@@ -236,8 +237,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
       return true;
     }
     // found entries
-    for (; it->key().ToString().compare(0, key.size(), key) == 0 && it->Valid();
-         it->Next()) {
+    for (; it->Valid() && it->key().ToString().compare(0, key.size(), key) == 0; it->Next()) {
       auto exist = entries.find(it->key().ToString());
       if (exist != entries.end()) {
         bytes val(it->value().data(), it->value().data() + it->value().size());
@@ -292,9 +292,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   return SerializeToArray(value, dst, 0);
 }
 
-void ContractStorage2::DeleteIndex(const string& prefix) {
-  LOG_MARKER();
-
+void ContractStorage2::DeleteByPrefix(const string& prefix) {
   auto p = t_stateDataMap.lower_bound(prefix);
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
@@ -310,6 +308,20 @@ void ContractStorage2::DeleteIndex(const string& prefix) {
   }
 }
 
+void ContractStorage2::DeleteByIndex(const string& index) {
+  auto p = t_stateDataMap.find(index);
+  if (p != t_stateDataMap.end()) {
+    LOG_GENERAL(INFO, "delete index from t: " << index);
+    m_indexToBeDeleted.emplace(index);
+  }
+
+  p = m_stateDataMap.find(index);
+  if (p != m_stateDataMap.end()) {
+    LOG_GENERAL(INFO, "delete index from m: " << index);
+    m_indexToBeDeleted.emplace(index);
+  }
+}
+
 bool ContractStorage2::FetchContractFieldsMapDepth(
     const dev::h160& address, Json::Value& map_depth_json, bool temp) {
   std::map<std::string, bytes> map_depth_data_in_map;
@@ -320,10 +332,10 @@ bool ContractStorage2::FetchContractFieldsMapDepth(
   /// check the data obtained from storage
   if (map_depth_data_in_map.size() == 1 &&
       map_depth_data_in_map.find(address.hex() + SCILLA_INDEX_SEPARATOR +
-                                 FIELDS_MAP_DEPTH_INDICATOR) !=
+                                 FIELDS_MAP_DEPTH_INDICATOR + SCILLA_INDEX_SEPARATOR) !=
           map_depth_data_in_map.end()) {
     map_depth_data = DataConversion::CharArrayToString(map_depth_data_in_map.at(
-        address.hex() + SCILLA_INDEX_SEPARATOR + FIELDS_MAP_DEPTH_INDICATOR));
+        address.hex() + SCILLA_INDEX_SEPARATOR + FIELDS_MAP_DEPTH_INDICATOR + SCILLA_INDEX_SEPARATOR));
   } else {
     LOG_GENERAL(WARNING, "Cannot find FIELDS_MAP_DEPTH_INDICATOR");
     return false;
@@ -471,9 +483,7 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states, const st
                                                    key) != 0) {
     // no entry
   } else {
-    for (; it->key().ToString().compare(0, key.size(), key) == 0 &&
-           it->Valid();
-         it->Next()) {
+    for (; it->Valid() && it->key().ToString().compare(0, key.size(), key) == 0; it->Next()) {
       if (states.find(it->key().ToString()) == states.end()) {
         bytes val(it->value().data(), it->value().data() + it->value().size());
         states.emplace(it->key().ToString(), val);
@@ -515,12 +525,37 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
   while (r != m_indexToBeDeleted.end() &&
          r->compare(0, address.hex().size(), address.hex()) == 0) {
     toDeletedIndices.emplace_back(*r);
-    ++p;
+    ++r;
   }
 }
 
-void ContractStorage2::UpdateStateData(const string& key, const bytes& value) {
+bool ContractStorage2::CleanEmptyMapPlaceholders(const string& key) {
+  // key = 0xabc.vname.[index1.index2.[...].indexn.
+  vector<string> indices;
+  boost::split(indices, key, boost::is_any_of(SCILLA_INDEX_SEPARATOR));
+  if (indices.size() < 2) {
+    LOG_GENERAL(WARNING, "indices size too small: " << indices.size());
+    return false;
+  }
+  if (indices.back().empty())
+    indices.pop_back();
+  
+  string scankey = indices.at(0) + SCILLA_INDEX_SEPARATOR + indices.at(1) + SCILLA_INDEX_SEPARATOR;
+  DeleteByIndex(scankey); // clean root level
+
+  for (unsigned int i = 2; i < indices.size() - 1 /*exclude the value key*/; ++i) {
+    scankey += indices.at(i) + SCILLA_INDEX_SEPARATOR;
+    DeleteByIndex(scankey);
+  }
+  return true;
+}
+
+void ContractStorage2::UpdateStateData(const string& key, const bytes& value, bool cleanEmpty) {
   LOG_GENERAL(INFO, "key: " << key << " value: " << DataConversion::CharArrayToString(value));
+
+  if (cleanEmpty) {
+    CleanEmptyMapPlaceholders(key);
+  }
 
   auto pos = m_indexToBeDeleted.find(key);
   if (pos != m_indexToBeDeleted.end()) {
@@ -576,7 +611,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     string parent_key = key;
     key += query.indices().Get(query.indices().size()-1) + SCILLA_INDEX_SEPARATOR;
     LOG_GENERAL(INFO, "Delete key: " << key);
-    DeleteIndex(key);
+    DeleteByPrefix(key);
 
     map<string, bytes> t_states;
     FetchStateDataForKey(t_states, parent_key, true);
@@ -603,10 +638,10 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
         LOG_GENERAL(WARNING, "val is not bytes but supposed to be");
         return false;
       }
-      UpdateStateData(key, DataConversion::StringToCharArray(value.bval()));
+      UpdateStateData(key, DataConversion::StringToCharArray(value.bval()), true);
       return true;
     } else {
-      DeleteIndex(key);
+      DeleteByPrefix(key);
 
       std::function<bool(const string&, const ProtoScillaVal&)> mapHandler =
           [&](const string& keyAcc, const ProtoScillaVal& value) -> bool {
@@ -622,7 +657,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
             return false;
           }
           // DB Put
-          UpdateStateData(keyAcc, dst);
+          UpdateStateData(keyAcc, dst, true);
           return true;
         }
         for (const auto& entry : value.mval().m()) {
@@ -637,7 +672,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
             // DB Put
             LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: " << entry.second.bval());
             UpdateStateData(
-                index, DataConversion::StringToCharArray(entry.second.bval()));
+                index, DataConversion::StringToCharArray(entry.second.bval()), true);
           }
         }
         return true;
@@ -777,6 +812,7 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
   // iterate the raw protobuf string and hash
   SHA2<HashType::HASH_VARIANT_256> sha2;
   for (const auto& state : states) {
+    LOG_GENERAL(INFO, "state key: " << state.first << " value: " << DataConversion::CharArrayToString(state.second));
     sha2.Update(state.second);
   }
   return dev::h256(sha2.Finalize());
