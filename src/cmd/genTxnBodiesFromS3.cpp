@@ -42,10 +42,6 @@ string GetAwsS3CpString(string source, string dest) {
 }
 
 int main(int argc, char* argv[]) {
-  PairOfKey key;  // Dummy to initate mediator
-  Peer peer;
-  map<PubKey, Peer> IPMapping;
-
   string bucketName, backupFolderName, jsonOutputPath;
   bool saveToJsonFormat = false;
   po::options_description desc("Options");
