@@ -31,9 +31,9 @@ PROJ_DIR = '/run/zilliqa'
 
 def main():
 	if len(sys.argv) == 8:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], './', sys.argv[6], sys.argv[7])
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', sys.argv[6], sys.argv[7])
 	elif len(sys.argv) == 7:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], './', './', sys.argv[6])
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], '', './', sys.argv[6])
 	else:
 		print "Not enough args"
 
