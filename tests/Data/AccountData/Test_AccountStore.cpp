@@ -436,9 +436,11 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 void RunCFContract(Address& contrAddr1, Address& contrAddr2,
                    dev::h256& codeHash1, dev::h256& codeHash2,
                    dev::h256& contrStateHash1, dev::h256& contrStateHash2,
-                   bytes& contrCode1, bytes& contrCode2, Json::Value& initJson1,
-                   Json::Value& stateJson1, Json::Value& initJson2,
+                   bytes& contrCode1, bytes& contrCode2, bytes& initData1,
+                   Json::Value& stateJson1, bytes& initData2,
                    uint128_t& contrBalance) {
+  LOG_MARKER();
+
   uint64_t nonce = 0;
   PairOfKey owner = Schnorr::GetInstance().GenKeyPair();
   PairOfKey donor = Schnorr::GetInstance().GenKeyPair();
@@ -497,7 +499,7 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   codeHash1 = account1->GetCodeHash();
   contrStateHash1 = account1->GetStorageRoot();
   contrCode1 = account1->GetCode();
-  BOOST_CHECK_MESSAGE(JSONUtils::GetInstance().convertStrtoJson(DataConversion::CharArrayToString(account1->GetInitData()), initJson1), "GetInitData for account 1 failed");
+  initData1 = account1->GetInitData();
   BOOST_CHECK_MESSAGE(account1->FetchStateJson(stateJson1, "", {}, true), "FetchStateJson for account 1 failed");
   contrBalance = account1->GetBalance();
 
@@ -517,29 +519,35 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   contrStateHash2 = account2->GetStorageRoot();
   contrCode2 = account2->GetCode();
   // initJson2 = account2->GetInitJson(true);
-  BOOST_CHECK_MESSAGE(JSONUtils::GetInstance().convertStrtoJson(DataConversion::CharArrayToString(account2->GetInitData()), initJson2), "GetInitData for account 2 failed");
+  initData2 = account2->GetInitData();
 }
 
 void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
                      const dev::h256& codeHash1, const dev::h256& codeHash2,
                      const dev::h256& contrStateHash1,
                      const dev::h256& contrStateHash2, const bytes& contrCode1,
-                     const bytes& contrCode2, const Json::Value& initJson1,
+                     const bytes& contrCode2, const bytes& initData1,
                      const Json::Value& stateJson1,
-                     const Json::Value& initJson2,
+                     const bytes& initData2,
                      const uint128_t& contrBalance) {
+  LOG_MARKER();
+
   // Check the contract with invocation
   Account* account1;
-  account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
+  account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
   BOOST_CHECK_MESSAGE(codeHash1 == account1->GetCodeHash(),
                       "CodeHash1 doesn't match");
   BOOST_CHECK_MESSAGE(contrStateHash1 == account1->GetStorageRoot(),
                       "ContrStateHash1 doesn't match");
   BOOST_CHECK_MESSAGE(contrCode1 == account1->GetCode(),
                       "ContrCode1 doesn't match");
-  BOOST_CHECK_MESSAGE(initJson1 == account1->GetInitJson(true),
-                      "InitJson1 doesn't match");
-  BOOST_CHECK_MESSAGE(stateJson1 == account1->GetStateJson(true),
+  BOOST_CHECK_MESSAGE(initData1 == account1->GetInitData(),
+                      "initData1 doesn't match");
+  if (initData1 != account1->GetInitData()) 
+    LOG_GENERAL(INFO,  "initData1: " << DataConversion::CharArrayToString(initData1) << std::endl << "account Initdata: " << DataConversion::CharArrayToString(account1->GetInitData()));
+  Json::Value t_stateJson;
+  BOOST_CHECK_MESSAGE(account1->FetchStateJson(t_stateJson,"",{}, true), "FetchStateJson for account 1 failed");
+  BOOST_CHECK_MESSAGE(stateJson1 == t_stateJson,
                       "StateJson1 doesn't match");
   BOOST_CHECK_MESSAGE(contrBalance == account1->GetBalance(),
                       "ContrBalance doesn't match");
@@ -553,8 +561,10 @@ void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
                       "ContrStateHash2 doesn't match");
   BOOST_CHECK_MESSAGE(contrCode2 == account2->GetCode(),
                       "ContrCode2 doesn't match");
-  BOOST_CHECK_MESSAGE(initJson2 == account2->GetInitJson(true),
-                      "InitJson2 doesn't match");
+  BOOST_CHECK_MESSAGE(initData2 == account2->GetInitData(),
+                      "initData2 doesn't match");
+  if (initData2 != account2->GetInitData()) 
+    LOG_GENERAL(INFO,  "initData2: " << DataConversion::CharArrayToString(initData2) << std::endl << "account Initdata: " << DataConversion::CharArrayToString(account2->GetInitData()));
 }
 
 BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
@@ -572,17 +582,20 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 
   Address contrAddr1, contrAddr2;
   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-  bytes contrCode1, contrCode2;
-  Json::Value initJson1, stateJson1, initJson2;
+  bytes contrCode1, contrCode2, initData1, initData2;
+  Json::Value stateJson1;
   uint128_t contrBalance;
 
   if (!SCILLA_ROOT.empty()) {
     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
-                  contrStateHash2, contrCode1, contrCode2, initJson1,
-                  stateJson1, initJson2, contrBalance);
+                  contrStateHash2, contrCode1, contrCode2, initData1,
+                  stateJson1, initData2, contrBalance);
   }
 
-  /*AccountStore::GetInstance().UpdateStateTrieAll();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(), "Failed to SerializeDelta");
+  AccountStore::GetInstance().CommitTemp();
+
+  AccountStore::GetInstance().UpdateStateTrieAll();
   auto root1 = AccountStore::GetInstance().GetStateRootHash();
   bytes rawstates;
   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Serialize(rawstates, 0),
@@ -608,292 +621,295 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   if (!SCILLA_ROOT.empty()) {
     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                    initJson1, stateJson1, initJson2, contrBalance);
-  }*/
+                    initData1, stateJson1, initData2, contrBalance);
+  }
 }
 
-// BOOST_AUTO_TEST_CASE(stateDelta) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(stateDelta) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2;
-//   Json::Value initJson1, stateJson1, initJson2;
-//   uint128_t contrBalance;
+  Address contrAddr1, contrAddr2;
+  dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
+  bytes contrCode1, contrCode2, initData1, initData2;
+  Json::Value stateJson1;
+  uint128_t contrBalance;
 
-//   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initJson1,
-//                   stateJson1, initJson2, contrBalance);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initData1,
+                  stateJson1, initData2, contrBalance);
+  }
 
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-//                       "SerializeDelta failed");
-//   auto statehash = AccountStore::GetInstance().GetStateDeltaHash();
-//   BOOST_CHECK_MESSAGE(statehash != dev::h256(), "StateDeltaHash is null");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
+                      "SerializeDelta failed");
+  auto statehash = AccountStore::GetInstance().GetStateDeltaHash();
+  BOOST_CHECK_MESSAGE(statehash != dev::h256(), "StateDeltaHash is null");
 
-//   bytes rawdelta;
-//   AccountStore::GetInstance().GetSerializedDelta(rawdelta);
+  bytes rawdelta;
+  AccountStore::GetInstance().GetSerializedDelta(rawdelta);
 
-//   AccountStore::GetInstance().InitTemp();
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().DeserializeDeltaTemp(rawdelta, 0),
-//       "AccountStore::DeserializeDeltaTemp failed");
-//   AccountStore::GetInstance().SerializeDelta();
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetStateDeltaHash() == statehash,
-//       "StateDeltaHash after DeserializeDeltaTemp doesn't match original");
+  AccountStore::GetInstance().InitTemp();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().DeserializeDeltaTemp(rawdelta, 0),
+      "AccountStore::DeserializeDeltaTemp failed");
+  AccountStore::GetInstance().SerializeDelta();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetStateDeltaHash() == statehash,
+      "StateDeltaHash after DeserializeDeltaTemp doesn't match original");
 
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) == 0,
-//       "address1 in AccountStore has balance before deserializing delta");
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DeserializeDelta(rawdelta, 0),
-//                       "AccountStore::DeserializeDelta failed");
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) == 21,
-//       "address1 in AccountStore has no balance after deserializing delta");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 0,
+      "address1 in AccountStore has balance before deserializing delta");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DeserializeDelta(rawdelta, 0),
+                      "AccountStore::DeserializeDelta failed");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 21,
+      "address1 in AccountStore has no balance after deserializing delta");
 
-//   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initJson1, stateJson1, initJson2, contrBalance);
-//   }
-// }
+  if (!SCILLA_ROOT.empty()) {
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
+                    contrStateHash1, contrStateHash2, contrCode1, contrCode2,
+                    initData1, stateJson1, initData2, contrBalance);
+  }
+}
 
-// BOOST_AUTO_TEST_CASE(commitRevertible) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(commitRevertible) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2;
-//   Json::Value initJson1, stateJson1, initJson2;
-//   uint128_t contrBalance;
+  Address contrAddr1, contrAddr2;
+  dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
+  bytes contrCode1, contrCode2, initData1, initData2;
+  Json::Value stateJson1;
+  uint128_t contrBalance;
 
-//   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initJson1,
-//                   stateJson1, initJson2, contrBalance);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initData1,
+                  stateJson1, initData2, contrBalance);
+  }
 
-//   AccountStore::GetInstance().SerializeDelta();
-//   auto root0 = AccountStore::GetInstance().GetStateRootHash();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) == 21,
-//       "address1 in AccountStore has no balance after CommitTempRevertible");
-//   BOOST_CHECK_MESSAGE(root1 != root0,
-//                       "StateRootHash didn't change after CommitTempRevertible");
+  AccountStore::GetInstance().SerializeDelta();
+  auto root0 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 21,
+      "address1 in AccountStore has no balance after CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root0,
+                      "StateRootHash didn't change after CommitTempRevertible");
 
-//   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initJson1, stateJson1, initJson2, contrBalance);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
+                    contrStateHash1, contrStateHash2, contrCode1, contrCode2,
+                    initData1, stateJson1, initData2, contrBalance);
+  }
 
-//   AccountStore::GetInstance().RevertCommitTemp();
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 0,
-//                       "address1 in AccountStore balance didn't revert");
-//   auto root2 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE((root2 != root1) && (root2 == root0),
-//                       "StateRootHash didn't revert");
+  AccountStore::GetInstance().RevertCommitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 0,
+                      "address1 in AccountStore balance didn't revert");
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root1) && (root2 == root0),
+                      "StateRootHash didn't revert");
 
-//   if (!SCILLA_ROOT.empty()) {
-//     // Check the contract with invocation
-//     Account* account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
+  if (!SCILLA_ROOT.empty()) {
+    // Check the contract with invocation
+    Account* account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
 
-//     BOOST_CHECK_MESSAGE(account1 == nullptr,
-//                         "account1 is not reverted to nullptr");
+    BOOST_CHECK_MESSAGE(account1 == nullptr,
+                        "account1 is not reverted to nullptr");
 
-//     // Check the contract without invocation
-//     Account* account2 = AccountStore::GetInstance().GetAccount(contrAddr2);
+    // Check the contract without invocation
+    Account* account2 = AccountStore::GetInstance().GetAccount(contrAddr2);
 
-//     BOOST_CHECK_MESSAGE(account2 == nullptr,
-//                         "account2 is not reverted to nullptr");
-//   }
-// }
+    BOOST_CHECK_MESSAGE(account2 == nullptr,
+                        "account2 is not reverted to nullptr");
+  }
+}
 
-// BOOST_AUTO_TEST_CASE(commitRevertible2) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(commitRevertible2) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
-//   AccountStore::GetInstance().SerializeDelta();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//   AccountStore::GetInstance().IncreaseBalanceTemp(address1, 1);
-//   AccountStore::GetInstance().SerializeDelta();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().IncreaseBalanceTemp(address1, 1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
 
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 22,
-//                       "address1 in AccountStore balance didn't change after "
-//                       "CommitTempRevertible");
-//   BOOST_CHECK_MESSAGE(root1 != root2,
-//                       "StateRootHash didn't change after CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 22,
+                      "address1 in AccountStore balance didn't change after "
+                      "CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root2,
+                      "StateRootHash didn't change after CommitTempRevertible");
 
-//   AccountStore::GetInstance().RevertCommitTemp();
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
-//                       "address1 in AccountStore balance didn't revert");
-//   auto root3 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE((root2 != root3) && (root3 == root1),
-//                       "StateRootHash didn't revert");
-// }
+  AccountStore::GetInstance().RevertCommitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+                      "address1 in AccountStore balance didn't revert");
+  auto root3 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root3) && (root3 == root1),
+                      "StateRootHash didn't revert");
+}
 
-// BOOST_AUTO_TEST_CASE(DiskOperation) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(DiskOperation) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccount(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
 
-//   auto balance1 = AccountStore::GetInstance().GetBalance(address1);
+  auto balance1 = AccountStore::GetInstance().GetBalance(address1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2;
-//   Json::Value initJson1, stateJson1, initJson2;
-//   uint128_t contrBalance;
+  Address contrAddr1, contrAddr2;
+  dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
+  bytes contrCode1, contrCode2, initData1, initData2;
+  Json::Value stateJson1;
+  uint128_t contrBalance;
 
-//   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initJson1,
-//                   stateJson1, initJson2, contrBalance);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
+                  contrStateHash2, contrCode1, contrCode2, initData1,
+                  stateJson1, initData2, contrBalance);
+  }
 
-//   AccountStore::GetInstance().UpdateStateTrieAll();
-//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(), "Failed to SerializeDelta");
+  AccountStore::GetInstance().CommitTemp();
 
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().MoveUpdatesToDisk(),
-//                       "AccountStore::MoveUpdatesToDisk failed");
-//   AccountStore::GetInstance().InitSoft();
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) != balance1,
-//       "Balance after InitSoft is still the same");
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() != root1,
-//                       "StateRootHash after InitSoft is still the same");
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().RetrieveFromDisk(),
-//                       "AccountStore::RetrieveFromDisk failed");
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) == balance1,
-//       "Balance after RetrieveFromDisk is different");
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root1,
-//                       "StateRootHash after RetrieveFromDisk is different");
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initJson1, stateJson1, initJson2, contrBalance);
-//   }
-// }
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().MoveUpdatesToDisk(),
+                      "AccountStore::MoveUpdatesToDisk failed");
+  AccountStore::GetInstance().InitSoft();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) != balance1,
+      "Balance after InitSoft is still the same");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() != root1,
+                      "StateRootHash after InitSoft is still the same");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().RetrieveFromDisk(),
+                      "AccountStore::RetrieveFromDisk failed");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == balance1,
+      "Balance after RetrieveFromDisk is different");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root1,
+                      "StateRootHash after RetrieveFromDisk is different");
 
-// BOOST_AUTO_TEST_CASE(DiskOperation2) {
-//   INIT_STDOUT_LOGGER();
+  if (!SCILLA_ROOT.empty()) {
+    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
+                    contrStateHash1, contrStateHash2, contrCode1, contrCode2,
+                    initData1, stateJson1, initData2, contrBalance);
+  }
+}
 
-//   LOG_MARKER();
+BOOST_AUTO_TEST_CASE(DiskOperation2) {
+  INIT_STDOUT_LOGGER();
 
-//   AccountStore::GetInstance().Init();
+  LOG_MARKER();
 
-//   std::vector<std::vector<Address>> list_addresses;
+  AccountStore::GetInstance().Init();
 
-//   for (auto i = 0; i < 1; i++) {
-//     std::vector<Address> addresses;
-//     int num_address = 10000;
-//     for (auto i = 0; i < num_address; i++) {
-//       PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address = Account::GetAddressFromPublicKey(pubKey);
+  std::vector<std::vector<Address>> list_addresses;
 
-//       Account account(21, 211);
-//       AccountStore::GetInstance().AddAccount(address, account);
-//       addresses.push_back(address);
+  for (auto i = 0; i < 1; i++) {
+    std::vector<Address> addresses;
+    int num_address = 10000;
+    for (auto i = 0; i < num_address; i++) {
+      PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+      Address address = Account::GetAddressFromPublicKey(pubKey);
 
-//       if ((i % (num_address / 10)) == 0) {
-//         LOG_GENERAL(INFO, i << " Added");
-//       }
-//     }
+      Account account(21, 211);
+      AccountStore::GetInstance().AddAccount(address, account);
+      addresses.push_back(address);
 
-//     list_addresses.push_back(addresses);
+      if ((i % (num_address / 10)) == 0) {
+        LOG_GENERAL(INFO, i << " Added");
+      }
+    }
 
-//     LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 1");
-//     AccountStore::GetInstance().UpdateStateTrieAll();
-//     AccountStore::GetInstance().MoveUpdatesToDisk();
+    list_addresses.push_back(addresses);
 
-//     std::string output;
-//     if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state", output)) {
-//       LOG_GENERAL(INFO, "Num of AddAccount: "
-//                             << list_addresses.size() * addresses.size()
-//                             << ", size of state db: " << output);
-//     }
+    LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 1");
+    AccountStore::GetInstance().UpdateStateTrieAll();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
 
-//     for (auto i = 0; i < 2; i++) {
-//       AccountStore::GetInstance().InitSoft();
-//       AccountStore::GetInstance().RetrieveFromDisk();
+    std::string output;
+    if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state", output)) {
+      LOG_GENERAL(INFO, "Num of AddAccount: "
+                            << list_addresses.size() * addresses.size()
+                            << ", size of state db: " << output);
+    }
 
-//       for (const auto& addr : addresses) {
-//         AccountStore::GetInstance().IncreaseBalance(addr, 1);
-//       }
+    for (auto i = 0; i < 2; i++) {
+      AccountStore::GetInstance().InitSoft();
+      AccountStore::GetInstance().RetrieveFromDisk();
 
-//       LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 2_" << (i + 1));
-//       AccountStore::GetInstance().UpdateStateTrieAll();
-//       AccountStore::GetInstance().MoveUpdatesToDisk();
+      for (const auto& addr : addresses) {
+        AccountStore::GetInstance().IncreaseBalance(addr, 1);
+      }
 
-//       output.clear();
-//       if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state",
-//                                            output)) {
-//         LOG_GENERAL(INFO,
-//                     "After IncreaseBalance, size of state db: " << output);
-//       }
-//     }
-//   }
+      LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 2_" << (i + 1));
+      AccountStore::GetInstance().UpdateStateTrieAll();
+      AccountStore::GetInstance().MoveUpdatesToDisk();
 
-//   AccountStore::GetInstance().InitSoft();
-//   AccountStore::GetInstance().RetrieveFromDisk();
+      output.clear();
+      if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state",
+                                           output)) {
+        LOG_GENERAL(INFO,
+                    "After IncreaseBalance, size of state db: " << output);
+      }
+    }
+  }
 
-//   int num_errors = 0;
+  AccountStore::GetInstance().InitSoft();
+  AccountStore::GetInstance().RetrieveFromDisk();
 
-//   for (const auto& addresses : list_addresses) {
-//     for (const auto& address : addresses) {
-//       if (AccountStore::GetInstance().GetBalance(address) == 0) {
-//         num_errors++;
-//       }
-//     }
-//   }
+  int num_errors = 0;
 
-//   BOOST_CHECK_EQUAL(0, num_errors);
-// }
+  for (const auto& addresses : list_addresses) {
+    for (const auto& address : addresses) {
+      if (AccountStore::GetInstance().GetBalance(address) == 0) {
+        num_errors++;
+      }
+    }
+  }
+
+  BOOST_CHECK_EQUAL(0, num_errors);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
