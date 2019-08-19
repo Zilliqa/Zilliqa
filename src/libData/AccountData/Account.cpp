@@ -342,7 +342,8 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
   return true;
 }
 
-bool Account::FetchStateJson(Json::Value& root, const string& vname, const vector<string>& indices, bool temp) const {
+bool Account::FetchStateJson(Json::Value& root, const string& vname,
+                             const vector<string>& indices, bool temp) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
                 "Not contract account, why call Account::GetStorageJson!");
@@ -350,8 +351,10 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname, const vecto
   }
 
   if (vname != "_balance") {
-    if (!ContractStorage2::GetContractStorage().FetchStateJsonForContract(root, GetAddress(), vname, indices, temp)) {
-      LOG_GENERAL(WARNING, "ContractStorage2::FetchStateJsonForContract failed");
+    if (!ContractStorage2::GetContractStorage().FetchStateJsonForContract(
+            root, GetAddress(), vname, indices, temp)) {
+      LOG_GENERAL(WARNING,
+                  "ContractStorage2::FetchStateJsonForContract failed");
       return false;
     }
   }
@@ -363,7 +366,8 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname, const vecto
   //   balance[string("value")] = GetBalance().convert_to<string>();
   //   root.append(balance);
   // }
-  LOG_GENERAL(INFO, "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
+  LOG_GENERAL(INFO,
+              "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
 
   return true;
 }

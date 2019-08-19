@@ -602,9 +602,16 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
 
   ProtoScillaVal value;
   // Create an nested empty protobuf map.
-  value.mutable_mval()->mutable_m()
-      ->operator[]("key1a").mutable_mval()->mutable_m()
-      ->operator[]("key2a").mutable_mval()->mutable_m();
+  value.mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key1a")
+      .mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key2a")
+      .mutable_mval()
+      ->mutable_m();
 
   // Prepare JSON for JSON-RPC call.
   Json::Value params;
@@ -680,22 +687,42 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
 
   ProtoScillaVal value;
   // Create an initial protobuf map.
-  value.mutable_mval()->mutable_m()
-    ->operator[]("key1a").mutable_mval()->mutable_m()
-    ->operator[]("key2a")
-    .set_bval("420");
-  value.mutable_mval()->mutable_m()
-    ->operator[]("key1b").mutable_mval()->mutable_m()
-    ->operator[]("key2b")
-    .set_bval("421");
-  value.mutable_mval()->mutable_m()
-    ->operator[]("key1c").mutable_mval()->mutable_m()
-    ->operator[]("key2c")
-    .set_bval("422");
-  value.mutable_mval()->mutable_m()
-    ->operator[]("key1d").mutable_mval()->mutable_m()
-    ->operator[]("key2d")
-    .set_bval("423");
+  value.mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key1a")
+      .mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key2a")
+      .set_bval("420");
+  value.mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key1b")
+      .mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key2b")
+      .set_bval("421");
+  value.mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key1c")
+      .mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key2c")
+      .set_bval("422");
+  value.mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key1d")
+      .mutable_mval()
+      ->mutable_m()
+      ->
+      operator[]("key2d")
+      .set_bval("423");
 
   // Prepare JSON for JSON-RPC call.
   Json::Value params;

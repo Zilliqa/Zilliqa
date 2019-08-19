@@ -71,7 +71,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   void DeleteByIndex(const std::string& index);
 
-  void UpdateStateData(const std::string& key, const bytes& value, bool cleanEmpty = false);
+  void UpdateStateData(const std::string& key, const bytes& value,
+                       bool cleanEmpty = false);
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
 
@@ -122,17 +123,18 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                        bool& foundVal);
 
   bool FetchContractFieldsMapDepth(const dev::h160& address,
-                                   Json::Value& map_depth_json,
-                                   bool temp);
+                                   Json::Value& map_depth_json, bool temp);
 
-  void InsertValueToStateJson(Json::Value& _json, std::string key, std::string value, bool unquote = true);
+  void InsertValueToStateJson(Json::Value& _json, std::string key,
+                              std::string value, bool unquote = true);
 
   bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
                                  const std::string& vname = "",
                                  const std::vector<std::string>& indices = {},
                                  bool temp = false);
 
-  void FetchStateDataForKey(std::map<std::string, bytes>& states, const std::string& key, bool temp);
+  void FetchStateDataForKey(std::map<std::string, bytes>& states,
+                            const std::string& key, bool temp);
 
   void FetchStateDataForContract(std::map<std::string, bytes>& states,
                                  const dev::h160& address,

@@ -195,7 +195,9 @@ class Account : public AccountBase {
                     const std::vector<std::string>& toDeleteIndices, bool temp,
                     bool revertible = false);
 
-  bool FetchStateJson(Json::Value& root, const std::string& vname = "", const std::vector<std::string>& indices = {}, bool temp = false) const;
+  bool FetchStateJson(Json::Value& root, const std::string& vname = "",
+                      const std::vector<std::string>& indices = {},
+                      bool temp = false) const;
 
   /// Computes an account address from a specified PubKey.
   static Address GetAddressFromPublicKey(const PubKey& pubKey);

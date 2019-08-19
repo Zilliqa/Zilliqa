@@ -606,7 +606,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       initDataBytes.resize(protoAccount.initdata().size());
       copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
            initDataBytes.begin());
-      if (codeBytes != account.GetCode() || initDataBytes != account.GetInitData()) {
+      if (codeBytes != account.GetCode() ||
+          initDataBytes != account.GetInitData()) {
         if (!account.SetImmutable(codeBytes, initDataBytes)) {
           LOG_GENERAL(WARNING, "Account::SetImmutable failed");
           return false;

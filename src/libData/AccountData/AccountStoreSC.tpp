@@ -380,7 +380,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
-      toAccount->SetStorageRoot(Contract::ContractStorage2::GetContractStorage().GetContractStateHash(toAddr, true));
+      toAccount->SetStorageRoot(
+          Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+              toAddr, true));
 
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       break;
@@ -755,11 +757,10 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const std::string& root_w_version) {
-  std::string cmdStr = 
-    // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-                       root_w_version + '/' + SCILLA_CHECKER +
-                       " -contractinfo -libdir " + root_w_version + '/' +
-                       SCILLA_LIB + " " + INPUT_CODE;
+  std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
+      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
 
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
@@ -770,12 +771,11 @@ std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " + 
-      root_w_version + '/' +
-      SCILLA_BINARY + " -init " + INIT_JSON + " -ipcaddress " +
-      SCILLA_IPC_SOCKET_PATH + " -iblockchain " + INPUT_BLOCKCHAIN_JSON +
-      " -o " + OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
       std::to_string(available_gas) + " -jsonerrors -balance " +
       balance.convert_to<std::string>();
   LOG_GENERAL(INFO, cmdStr);
@@ -787,15 +787,14 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " + 
-      root_w_version + '/' +
-      SCILLA_BINARY + " -init " + INIT_JSON + " -ipcaddress " +
-      SCILLA_IPC_SOCKET_PATH + " -iblockchain " + INPUT_BLOCKCHAIN_JSON +
-      " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i " +
-      INPUT_CODE + " -libdir " + root_w_version + '/' + SCILLA_LIB +
-      " -gaslimit " + std::to_string(available_gas) + " -disable-pp-json" +
-      " -disable-validate-json" + " -jsonerrors -balance " +
-      balance.convert_to<std::string>();
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
+      OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
+      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
+      " -disable-pp-json" + " -disable-validate-json" +
+      " -jsonerrors -balance " + balance.convert_to<std::string>();
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
@@ -1165,7 +1164,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  contractAccount->SetStorageRoot(Contract::ContractStorage2::GetContractStorage().GetContractStateHash(m_curContractAddr, true));
+  contractAccount->SetStorageRoot(
+      Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+          m_curContractAddr, true));
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));

@@ -627,7 +627,9 @@ bool AccountStore::MigrateContractStates() {
             for (const auto& map_entry : j_value) {
               if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
                 LOG_GENERAL(WARNING,
-                            "Invalid map entry: " << JSONUtils::GetInstance().convertJsontoStr(map_entry));
+                            "Invalid map entry: "
+                                << JSONUtils::GetInstance().convertJsontoStr(
+                                       map_entry));
                 return false;
               } else {
                 string new_key(key);
