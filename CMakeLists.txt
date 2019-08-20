@@ -183,8 +183,10 @@ if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
 endif()
 
 include(FindProtobuf)
-find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(Protobuf CONFIG REQUIRED)
+include_directories(${PROTOBUF_INSTALL_DIR}/include)
+set(PROTOBUF_LIBRARY ${PROTOBUF_INSTALL_DIR}/lib)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 

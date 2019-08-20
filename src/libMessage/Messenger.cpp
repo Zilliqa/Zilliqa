@@ -123,24 +123,38 @@ void NumberToArray(const T& number, bytes& dst, const unsigned int offset) {
 
 inline bool CheckRequiredFieldsProtoBlockLink(
     const ProtoBlockLink& protoBlockLink) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoBlockLink.has_version() && protoBlockLink.has_index() &&
          protoBlockLink.has_dsindex() && protoBlockLink.has_blocktype() &&
          protoBlockLink.has_blockhash();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
     const ProtoDSBlock::DSBlockHeader::PowDSWinners& powDSWinner) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return powDSWinner.has_key() && powDSWinner.has_val();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
     const ProtoDSBlock::DSBlockHashSet& dsBlockHashSet) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return dsBlockHashSet.has_shardinghash() &&
          dsBlockHashSet.has_reservedfield();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
     const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member dswinners
   // Don't need to enforce check on optional members dsdifficulty, difficulty,
   // and gasprice
@@ -151,24 +165,40 @@ inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
          protoDSBlockHeader.has_blockheaderbase() &&
          CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
              protoDSBlockHeader.hash());
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSBlock(const ProtoDSBlock& protoDSBlock) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoDSBlock.has_header() && protoDSBlock.has_blockbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSNode(const ProtoDSNode& protoDSNode) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoDSNode.has_pubkey() && protoDSNode.has_peer();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSCommittee(
     const ProtoDSCommittee& protoDSCommittee) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member dsnodes
   return protoDSCommittee.has_version();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoMicroBlockHeader.has_shardid() &&
          protoMicroBlockHeader.has_gaslimit() &&
          protoMicroBlockHeader.has_gasused() &&
@@ -181,18 +211,28 @@ inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
          protoMicroBlockHeader.has_statedeltahash() &&
          protoMicroBlockHeader.has_tranreceipthash() &&
          protoMicroBlockHeader.has_blockheaderbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoMicroBlock(
     const ProtoMicroBlock& protoMicroBlock) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member tranhashes
   return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoShardingStructureMember(
     const ProtoShardingStructure::Member& protoMember) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoMember.has_pubkey() && protoMember.has_peerinfo() &&
          protoMember.has_reputation();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoShardingStructureShard(
@@ -203,24 +243,38 @@ inline bool CheckRequiredFieldsProtoShardingStructureShard(
 
 inline bool CheckRequiredFieldsProtoShardingStructure(
     const ProtoShardingStructure& protoShardingStructure) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member shards
   return protoShardingStructure.has_version();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
     const ProtoTxBlock::TxBlockHashSet& protoTxBlockHashSet) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTxBlockHashSet.has_stateroothash() &&
          protoTxBlockHashSet.has_statedeltahash() &&
          protoTxBlockHashSet.has_mbinfohash();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoMbInfo.has_mbhash() && protoMbInfo.has_txroot() &&
          protoMbInfo.has_shardid();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTxBlockHeader.has_gaslimit() &&
          protoTxBlockHeader.has_gasused() && protoTxBlockHeader.has_rewards() &&
          protoTxBlockHeader.has_blocknum() && protoTxBlockHeader.has_hash() &&
@@ -230,15 +284,23 @@ inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
          protoTxBlockHeader.has_blockheaderbase() &&
          CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
              protoTxBlockHeader.hash());
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTxBlock(const ProtoTxBlock& protoTxBlock) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member mbinfos
   return protoTxBlock.has_header() && protoTxBlock.has_blockbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
     const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member faultyleaders
   return protoVCBlockHeader.has_viewchangedsepochno() &&
          protoVCBlockHeader.has_viewchangeepochno() &&
@@ -247,14 +309,22 @@ inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
          protoVCBlockHeader.has_candidateleaderpubkey() &&
          protoVCBlockHeader.has_vccounter() &&
          protoVCBlockHeader.has_blockheaderbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
     const ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member faultyleaders
   return protoFallbackBlockHeader.has_fallbackdsepochno() &&
          protoFallbackBlockHeader.has_fallbackepochno() &&
@@ -265,74 +335,120 @@ inline bool CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
          protoFallbackBlockHeader.has_leaderpubkey() &&
          protoFallbackBlockHeader.has_blockheaderbase() &&
          protoFallbackBlockHeader.has_shardid();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoFallbackBlock(
     const ProtoFallbackBlock& protoFallbackBlock) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated member mbinfos
   return protoFallbackBlock.has_header() && protoFallbackBlock.has_blockbase();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoBlockBaseCoSignatures(
     const ProtoBlockBase::CoSignatures& protoCoSignatures) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   // Don't need to enforce check on repeated members b1 and b2
   return protoCoSignatures.has_cs1() && protoCoSignatures.has_cs2();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoBlockBase(
     const ProtoBlockBase& protoBlockBase) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
          protoBlockBase.has_timestamp() &&
          CheckRequiredFieldsProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoBlockHeaderBase(
     const ProtoBlockHeaderBase& protoBlockHeaderBase) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoBlockHeaderBase.has_version() &&
          protoBlockHeaderBase.has_committeehash() &&
          protoBlockHeaderBase.has_prevhash();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoAccountBase(
     const ProtoAccountBase& protoAccountBase) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoAccountBase.has_version() && protoAccountBase.has_balance() &&
          protoAccountBase.has_nonce();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount& protoAccount) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoAccount.has_base();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoStateData.has_version() && protoStateData.has_vname() &&
          protoStateData.has_ismutable() && protoStateData.has_type() &&
          protoStateData.has_value();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransaction(
     const ProtoTransaction& protoTransaction) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTransaction.has_tranid() && protoTransaction.has_info() &&
          protoTransaction.has_signature();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
     const ProtoTransactionCoreInfo& protoTxnCoreInfo) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() &&
          protoTxnCoreInfo.has_toaddr() && protoTxnCoreInfo.has_senderpubkey() &&
          protoTxnCoreInfo.has_amount() && protoTxnCoreInfo.has_gasprice() &&
          protoTxnCoreInfo.has_gaslimit();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransactionReceipt(
     const ProtoTransactionReceipt& protoTransactionReceipt) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTransactionReceipt.has_receipt() &&
          protoTransactionReceipt.has_cumgas();
+#endif
+  return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
     const ProtoTransactionWithReceipt& protoTxnWReceipt) {
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
+#endif
+  return true;
 }
 
 // ============================================================================
@@ -370,7 +486,7 @@ bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
   accountBase.SetBalance(tmpNumber);
   accountBase.SetNonce(protoAccountBase.nonce());
 
-  if (protoAccountBase.has_codehash()) {
+  if (!protoAccountBase.codehash().empty()) {
     dev::h256 tmpCodeHash;
     if (!Messenger::CopyWithSizeCheck(protoAccountBase.codehash(),
                                       tmpCodeHash.asArray())) {
@@ -379,7 +495,7 @@ bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
     accountBase.SetCodeHash(tmpCodeHash);
   }
 
-  if (protoAccountBase.has_storageroot()) {
+  if (!protoAccountBase.storageroot().empty()) {
     dev::h256 tmpStorageRoot;
     if (!Messenger::CopyWithSizeCheck(protoAccountBase.storageroot(),
                                       tmpStorageRoot.asArray())) {
@@ -397,7 +513,7 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
   AccountBaseToProtobuf(account, *protoAccountBase);
 
-  if (protoAccountBase->has_codehash()) {
+  if (!protoAccountBase->codehash().empty()) {
     bytes codebytes = account.GetCode();
     protoAccount.set_code(codebytes.data(), codebytes.size());
     for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
@@ -426,7 +542,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
   if (account.GetCodeHash() != dev::h256()) {
     dev::h256 tmpCodeHash = account.GetCodeHash();
 
-    if (!protoAccount.has_code()) {
+    if (protoAccount.code().empty()) {
       LOG_GENERAL(WARNING, "Account has valid codehash but no code content");
       return false;
     }
@@ -551,10 +667,12 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     return false;
   }
 
+#if 0
   if (!protoAccount.has_numbersign()) {
     LOG_GENERAL(WARNING, "numbersign is not found in ProtoAccount for Delta");
     return false;
   }
+#endif
 
   int256_t balanceDelta = protoAccount.numbersign()
                               ? accbase.GetBalance().convert_to<int256_t>()
@@ -566,8 +684,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     return false;
   }
 
-  if ((protoAccount.has_code() && protoAccount.code().size() > 0) ||
-      account.isContract()) {
+  if ((protoAccount.code().size() > 0) || account.isContract()) {
     if (fullCopy) {
       bytes tmpVec;
 
@@ -1029,12 +1146,12 @@ bool ProtobufToTransactionCoreInfo(
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
   txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
-  if (protoTxnCoreInfo.has_code() && protoTxnCoreInfo.code().size() > 0) {
+  if (protoTxnCoreInfo.code().size() > 0) {
     txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
     copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
          txnCoreInfo.code.begin());
   }
-  if (protoTxnCoreInfo.has_data() && protoTxnCoreInfo.data().size() > 0) {
+  if (protoTxnCoreInfo.data().size() > 0) {
     txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
     copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
          txnCoreInfo.data.begin());
@@ -1320,17 +1437,12 @@ bool ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  const uint8_t dsdifficulty = protoDSBlockHeader.has_dsdifficulty()
-                                   ? protoDSBlockHeader.dsdifficulty()
-                                   : 0;
-  const uint8_t difficulty =
-      protoDSBlockHeader.has_difficulty() ? protoDSBlockHeader.difficulty() : 0;
+  const uint8_t dsdifficulty = protoDSBlockHeader.dsdifficulty();
+  const uint8_t difficulty = protoDSBlockHeader.difficulty();
   uint128_t gasprice = 0;
 
-  if (protoDSBlockHeader.has_gasprice()) {
-    ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-        protoDSBlockHeader.gasprice(), gasprice);
-  }
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+      protoDSBlockHeader.gasprice(), gasprice);
 
   dsBlockHeader = DSBlockHeader(
       dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
@@ -3413,12 +3525,15 @@ bool Messenger::GetFallbackBlockWShardingStructure(
     return false;
   }
 
+// TODO: Check if default value is acceptable for each field
+#if 0
   if (!result.has_fallbackblock() || !result.has_sharding()) {
     LOG_GENERAL(
         WARNING,
         "GetFallbackBlockWShardingStructure check required field failed");
     return false;
   }
+#endif
 
   ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
 
@@ -3993,7 +4108,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     return false;
   }
 
-  if (!announcement.has_dsblock()) {
+  if (!announcement.dsblock().IsInitialized()) {
     LOG_GENERAL(
         WARNING,
         "DSDSBlockAnnouncement initialization failed (no ds block). Debug: "
@@ -4128,7 +4243,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     return false;
   }
 
-  if (!announcement.has_finalblock()) {
+  if (!announcement.finalblock().IsInitialized()) {
     LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed");
     return false;
   }
@@ -4148,7 +4263,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     return false;
   }
 
-  if (finalblock.has_microblock()) {
+  if (finalblock.microblock().IsInitialized()) {
     ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
   } else {
     LOG_GENERAL(WARNING, "Announcement doesn't include ds microblock");
@@ -4228,7 +4343,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
     return false;
   }
 
-  if (!announcement.has_vcblock()) {
+  if (!announcement.vcblock().IsInitialized()) {
     LOG_GENERAL(WARNING, "DSVCBlockAnnouncement initialization failed");
     return false;
   }
@@ -4781,7 +4896,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
     return false;
   }
 
-  if (!announcement.has_microblock()) {
+  if (!announcement.microblock().IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeMicroBlockAnnouncement initialization failed");
     return false;
   }
@@ -4875,7 +4990,7 @@ bool Messenger::GetNodeFallbackBlockAnnouncement(
     return false;
   }
 
-  if (!announcement.has_fallbackblock()) {
+  if (!announcement.fallbackblock().IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeFallbackBlockAnnouncement initialization failed");
     return false;
   }

@@ -35,6 +35,9 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 }
 
 inline bool CheckRequiredFieldsProtoSWInfo(const ProtoSWInfo& protoSWInfo) {
+  return true;
+// TODO: Check if default value is acceptable for each field
+#if 0
   return protoSWInfo.has_zilliqamajorversion() &&
          protoSWInfo.has_zilliqaminorversion() &&
          protoSWInfo.has_zilliqafixversion() &&
@@ -44,6 +47,7 @@ inline bool CheckRequiredFieldsProtoSWInfo(const ProtoSWInfo& protoSWInfo) {
          protoSWInfo.has_scillaminorversion() &&
          protoSWInfo.has_scillafixversion() &&
          protoSWInfo.has_scillaupgradeds() && protoSWInfo.has_scillacommit();
+#endif
 }
 
 void SWInfoToProtobuf(const SWInfo& swInfo, ProtoSWInfo& protoSWInfo) {
