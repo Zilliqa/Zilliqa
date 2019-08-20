@@ -359,13 +359,13 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
     }
   }
 
-  // if ((vname.empty() && indices.empty()) || vname == "_balance") {
-  //   Json::Value balance;
-  //   balance[string("vname")] = "_balance";
-  //   balance[string("type")] = "Uint128";
-  //   balance[string("value")] = GetBalance().convert_to<string>();
-  //   root.append(balance);
-  // }
+  if ((vname.empty() && indices.empty()) || vname == "_balance") {
+    Json::Value balance;
+    balance[string("vname")] = "_balance";
+    balance[string("type")] = "Uint128";
+    balance[string("value")] = GetBalance().convert_to<string>();
+    root.append(balance);
+  }
   LOG_GENERAL(INFO,
               "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
 
