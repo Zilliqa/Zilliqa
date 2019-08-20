@@ -15,7 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/// Should be run from a folder with constants.xml with LOOKUP_NODE_MODE set to true
+/// Should be run from a folder with constants.xml with LOOKUP_NODE_MODE set to
+/// true
 
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
@@ -93,7 +94,9 @@ int main(int argc, char* argv[]) {
     if (saveToJsonFormat) {
       if (!(boost::filesystem::exists(jsonOutputPath))) {
         if (!boost::filesystem::create_directories(jsonOutputPath)) {
-          cerr << "Failed to created JSON output folder ! will skip creating txns in json format" << endl;
+          cerr << "Failed to created JSON output folder ! will skip creating "
+                  "txns in json format"
+               << endl;
           saveToJsonFormat = false;
         }
       }
