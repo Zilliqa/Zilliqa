@@ -37,7 +37,7 @@ using namespace std;
 
 namespace po = boost::program_options;
 
-string GetAwsS3CpString(string source, string dest) {
+string GetAwsS3CpString(const string& source, const string& dest) {
   ostringstream ossS3Cmd;
   ossS3Cmd << "aws s3 cp " << source << " " << dest << " --recursive";
   return ossS3Cmd.str();
