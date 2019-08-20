@@ -682,7 +682,11 @@ Json::Value LookupServer::GetSmartContractState(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetStateJson(false);
+    Json::Value root;
+    if (!account->FetchStateJson(root)) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
+    }
+    return root;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -721,7 +725,14 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetInitJson(false);
+    bytes initData = account->GetInitData();
+    string initDataStr = DataConversion::CharArrayToString(initData);
+    Json::Value initDataJson;
+    if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+      throw JsonRpcException(RPC_PARSE_ERROR,
+                             "Unable to convert initData into Json");
+    }
+    return initDataJson;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
