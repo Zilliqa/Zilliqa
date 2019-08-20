@@ -31,7 +31,7 @@ using namespace std;
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_UNHANDLED_EXCEPTION -2
 
-#define JSON_OUTPUT_FOLDER_PATH "./txns_json"
+#define JSON_OUTPUT_FOLDER "txns_json"
 
 namespace po = boost::program_options;
 
@@ -55,7 +55,8 @@ int main(int argc, char* argv[]) {
       "Save the txns in json format to file")(
       "jsonOutputPath,p",
       po::value<string>(&jsonOutputPath)
-          ->default_value(JSON_OUTPUT_FOLDER_PATH),
+          ->default_value(bfs::current_path().string() + "/" +
+                          JSON_OUTPUT_FOLDER),
       "Json folder path to store txns in json format");
 
   po::variables_map vm;
@@ -73,11 +74,13 @@ int main(int argc, char* argv[]) {
     }
     po::notify(vm);
 
-    string source = "s3://" + bucketName + "/" + backupFolderName;
-    string dest = ".";
+    string remoteS3Path = "s3://" + bucketName + "/" + backupFolderName;
+    string localBackupPath =
+        bfs::current_path().string() + "/" + backupFolderName;
     // Download from S3
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT,
-                                GetAwsS3CpString(source, dest))) {
+    if (!SysCommand::ExecuteCmd(
+            SysCommand::WITHOUT_OUTPUT,
+            GetAwsS3CpString(remoteS3Path, localBackupPath))) {
       LOG_GENERAL(WARNING, "Failed to download backup folder from S3 : s3://"
                                << bucketName << "/" << backupFolderName);
     } else {
@@ -94,9 +97,10 @@ int main(int argc, char* argv[]) {
     }
 
     // Loop through all files in backupFolderName and store to leveldb
-    vector<string> listOfTxnFiles = getAllFilesInDir(backupFolderName);
+    vector<string> listOfTxnFiles = getAllFilesInDir(localBackupPath);
     for (const auto& txns_filename : listOfTxnFiles) {
       ifstream infile;
+      LOG_GENERAL(INFO, "Parsing " << txns_filename << endl);
       try {
         // Now read back file to see if the TransactionWithReceipt is good
         infile.open(txns_filename, ios::in | ios::binary);
@@ -111,6 +115,7 @@ int main(int argc, char* argv[]) {
 
           // get the TxnReceipt length and raw bytes of TxnReceipt itself
           infile.read(reinterpret_cast<char*>(&len), sizeof(len));
+          buff.clear();
           buff.resize(len);
           infile.read(reinterpret_cast<char*>(buff.data()), len);
 
@@ -126,7 +131,7 @@ int main(int argc, char* argv[]) {
           }
 
           BlockStorage::GetBlockStorage().PutTxBody(r_txn_hash, buff);
-
+          LOG_GENERAL(INFO, "Inserted Txn : " << r_txn_hash << endl);
           if (saveToJsonFormat) {
             Json::Value v = JSONConversion::convertTxtoJson(r_tr);
 
