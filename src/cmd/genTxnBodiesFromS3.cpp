@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/// Should be run from a folder with constants.xml
+/// Should be run from a folder with constants.xml with LOOKUP_NODE_MODE set to true
 
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
@@ -30,6 +30,7 @@ using namespace std;
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_DOWNLOADING_BACKUP -3
 
 #define JSON_OUTPUT_FOLDER "txns_json"
 
@@ -83,6 +84,7 @@ int main(int argc, char* argv[]) {
             GetAwsS3CpString(remoteS3Path, localBackupPath))) {
       LOG_GENERAL(WARNING, "Failed to download backup folder from S3 : s3://"
                                << bucketName << "/" << backupFolderName);
+      return ERROR_DOWNLOADING_BACKUP;
     } else {
       LOG_GENERAL(DEBUG, "Backup folder downloaded successfully : ");
     }
@@ -90,8 +92,9 @@ int main(int argc, char* argv[]) {
     // create json output folder
     if (saveToJsonFormat) {
       if (!(boost::filesystem::exists(jsonOutputPath))) {
-        if (!boost::filesystem::create_directory(jsonOutputPath)) {
-          cerr << "Failed to created JSON output folder !" << endl;
+        if (!boost::filesystem::create_directories(jsonOutputPath)) {
+          cerr << "Failed to created JSON output folder ! will skip creating txns in json format" << endl;
+          saveToJsonFormat = false;
         }
       }
     }
@@ -107,7 +110,7 @@ int main(int argc, char* argv[]) {
         TxnHash r_txn_hash;
         bytes buff;
 
-        // get the txnHash length and raw bytes of txnHash itself
+        // Get the txnHash length and raw bytes of txnHash itself
         size_t len;
         // Loop through each txn in file
         while (infile.read(reinterpret_cast<char*>(&len), sizeof(len))) {
@@ -165,5 +168,5 @@ int main(int argc, char* argv[]) {
   }
   cout << "SUCCESS!" << endl;
 
-  return 0;
+  return SUCCESS;
 }
