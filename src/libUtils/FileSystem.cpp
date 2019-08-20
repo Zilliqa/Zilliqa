@@ -49,7 +49,7 @@ void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {
  *
  */
 std::vector<std::string> getAllFilesInDir(
-    const bfs::path& dirPath, const std::vector<std::string> dirSkipList) {
+    const bfs::path& dirPath, const std::vector<std::string>& dirSkipList) {
   // Create a vector of string
   std::vector<std::string> listOfFiles;
   try {

@@ -28,6 +28,6 @@ namespace bfs = boost::filesystem;
 // Copy source directory to destination directory
 void recursive_copy_dir(const bfs::path& src, const bfs::path& dst);
 std::vector<std::string> getAllFilesInDir(
-    const bfs::path& dirPath, const std::vector<std::string> dirSkipList = {});
+    const bfs::path& dirPath, const std::vector<std::string>& dirSkipList = {});
 
 #endif  // ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
