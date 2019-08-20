@@ -634,10 +634,12 @@ bool AccountStore::MigrateContractStates() {
                 return false;
               } else {
                 string new_key(key);
-                new_key += "\"" + map_entry["key"].asString() + "\"" + SCILLA_INDEX_SEPARATOR;
+                new_key += "\"" + map_entry["key"].asString() + "\"" +
+                           SCILLA_INDEX_SEPARATOR;
                 if (map_entry["val"].type() != Json::arrayValue) {
-                  t_states.emplace(new_key, DataConversion::StringToCharArray(
-                                                "\"" + map_entry["val"].asString() + "\""));
+                  t_states.emplace(
+                      new_key, DataConversion::StringToCharArray(
+                                   "\"" + map_entry["val"].asString() + "\""));
                 } else {
                   return mapHandler(new_key, map_entry["val"], t_states);
                 }
