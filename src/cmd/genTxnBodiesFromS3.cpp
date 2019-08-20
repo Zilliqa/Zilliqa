@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
             Json::Value v = JSONConversion::convertTxtoJson(r_tr);
 
             // create file with filename as "<<txnhash>>.json"
-            ofstream ofile(jsonOutputPath + "/" + txns_filename + ".json");
+            ofstream ofile(jsonOutputPath + "/" + r_txn_hash.hex() + ".json");
             ofile << v.toStyledString();
             ofile.close();
           }
