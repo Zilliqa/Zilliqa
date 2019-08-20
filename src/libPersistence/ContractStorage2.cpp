@@ -271,8 +271,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     if (indices.size() > 0 && indices.back().empty()) indices.pop_back();
 
     ProtoScillaVal* t_value = &value;
-    for (unsigned int i = 0; i < indices.size(); ++i) {
-      t_value = &(t_value->mutable_mval()->mutable_m()->operator[](indices[i]));
+    for (const auto& index : indices) {
+      t_value = &(t_value->mutable_mval()->mutable_m()->operator[](index));
     }
     if (query.indices().size() + indices.size() < query.mapdepth()) {
       // Assert that we have a protobuf encoded empty map.

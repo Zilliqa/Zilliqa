@@ -602,7 +602,7 @@ bool AccountStore::MigrateContractStates() {
       }
 
       string key = i.first.hex();
-      key += SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR;
+      key += (SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR);
 
       // Check is the value is map
       Json::Value json_val;

@@ -461,7 +461,8 @@ bool Account::GetScillaVersion(uint32_t& scilla_version) {
           entry.isMember("value") && entry["vname"] == "_scilla_version" &&
           entry["type"] == "Uint32") {
         try {
-          m_scilla_version = boost::lexical_cast<uint32_t>(entry["value"]);
+          m_scilla_version =
+              boost::lexical_cast<uint32_t>(entry["value"].asString());
           found_scilla_version = true;
         } catch (...) {
           LOG_GENERAL(WARNING,
