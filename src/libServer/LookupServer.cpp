@@ -1085,11 +1085,7 @@ double LookupServer::GetTotalCoinSupply() {
   const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
   boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
   rewards = rewards / 1000000000000;  // Convert to ZIL
-  if (!SafeMath<boost::multiprecision::cpp_dec_float_50>::sub(ans, rewards,
-                                                              ans)) {
-    LOG_GENERAL(WARNING, "total - rewards failed");
-    throw JsonRpcException(RPC_MISC_ERROR, "SafeMath error");
-  }
+  ans -= rewards;
 
   return ans.convert_to<double>();
 }
