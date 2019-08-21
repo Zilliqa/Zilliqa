@@ -2423,7 +2423,7 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
 template <class MAP>
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
                                 MAP& addressToAccount) {
-  if (offset >= src.size()) {
+  if (offset > src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;
