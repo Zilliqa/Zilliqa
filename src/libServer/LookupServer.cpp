@@ -1080,12 +1080,16 @@ double LookupServer::GetTxBlockRate() {
 }
 
 double LookupServer::GetTotalCoinSupply() {
-  boost::multiprecision::cpp_dec_float_50 ans(
-      to_string(MAX_COIN_SUPPLY));  // convert to QA
+  auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
+  boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
   const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
   boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
-  rewards /= 1000000000000;
-  ans -= rewards;
+  rewards = rewards / 1000000000000;  // Convert to ZIL
+  if (!SafeMath<boost::multiprecision::cpp_dec_float_50>::sub(ans, rewards,
+                                                              ans)) {
+    LOG_GENERAL(WARNING, "total - rewards failed");
+    throw JsonRpcException(RPC_MISC_ERROR, "SafeMath error");
+  }
 
   return ans.convert_to<double>();
 }

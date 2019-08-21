@@ -69,8 +69,6 @@ const unsigned int INIT_DS_EPOCH_NUM = 2;
 
 const unsigned int MAINNET_CHAIN_ID = 1;
 
-const uint64_t MAX_COIN_SUPPLY = 12000000000;  // 12 Billion
-
 // Testing parameters
 
 // Metadata type
