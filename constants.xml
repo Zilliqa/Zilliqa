@@ -221,8 +221,8 @@
         <INCRDB_DSNUMS_WITH_STATEDELTAS>10</INCRDB_DSNUMS_WITH_STATEDELTAS>
     </recovery>
     <smart_contract>
-        <ENABLE_SC>false</ENABLE_SC>
-        <SCILLA_ROOT/>
+        <ENABLE_SC>true</ENABLE_SC>
+        <SCILLA_ROOT>/home/liuhc/smartcontract/ScillaOct5/scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
@@ -234,8 +234,7 @@
         <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
-        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
-        <SCILLA_INDEX_SEPARATOR>.</SCILLA_INDEX_SEPARATOR>
+        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
     </smart_contract>
     <tests>
