@@ -360,11 +360,15 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
   }
 
   if ((vname.empty() && indices.empty()) || vname == "_balance") {
-    Json::Value balance;
-    balance[string("vname")] = "_balance";
-    balance[string("type")] = "Uint128";
-    balance[string("value")] = GetBalance().convert_to<string>();
-    root.append(balance);
+    try {
+      Json::Value balance;
+      balance["vname"] = "_balance";
+      balance["type"] = "Uint128";
+      balance["value"] = GetBalance().convert_to<string>();
+      root.append(balance);
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    }
   }
   LOG_GENERAL(INFO,
               "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
