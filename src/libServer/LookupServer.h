@@ -182,6 +182,12 @@ class LookupServer : public Server,
     response = this->GetShardMembers(request[0u].asUInt());
   }
 
+  inline virtual void GetTotalCoinSupplyI(const Json::Value& request,
+                                          Json::Value& response) {
+    (void)request;
+    response = this->GetTotalCoinSupply();
+  }
+
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json);
   Json::Value GetTransaction(const std::string& transactionHash);
@@ -200,6 +206,7 @@ class LookupServer : public Server,
   double GetTransactionRate();
   double GetTxBlockRate();
   double GetDSBlockRate();
+  double GetTotalCoinSupply();
   Json::Value GetShardMembers(unsigned int shardID);
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);

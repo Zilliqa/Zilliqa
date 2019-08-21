@@ -207,6 +207,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_REAL, NULL),
+      &LookupServer::GetTotalCoinSupplyI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1072,6 +1076,17 @@ double LookupServer::GetTxBlockRate() {
   numTx = numTx * 1000000;
   boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
   boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
+  return ans.convert_to<double>();
+}
+
+double LookupServer::GetTotalCoinSupply() {
+  boost::multiprecision::cpp_dec_float_50 ans(
+      to_string(MAX_COIN_SUPPLY));  // convert to QA
+  const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
+  boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
+  rewards /= 1000000000000;
+  ans -= rewards;
+
   return ans.convert_to<double>();
 }
 
