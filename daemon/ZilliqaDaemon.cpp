@@ -266,6 +266,18 @@ static void StartNewProcess(ofstream& log) {
   }
 }
 
+void KillProcess(unordered_map<string, vector<pid_t>>& pids, ofstream& log) {
+  const string name = programName[0];
+
+  for (const pid_t& pid : pids[name]) {
+    log << currentTimeStamp().c_str() << "Killing " << name << " process..."
+        << endl;
+    kill(pid, SIGTERM);
+    log << currentTimeStamp().c_str() << name << " process killed successfully."
+        << endl;
+  }
+}
+
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
                     unordered_map<pid_t, bool>& died, ofstream& log) {
   const string name = programName[0];
@@ -378,20 +390,8 @@ int main(int argc, const char* argv[]) {
   for (int i = 0; i < argc; ++i) {
     log << argv[i] << " ";
   }
-  log << endl;
 
-  auto pid_parent = fork();
-
-  if (pid_parent < 0) {
-    log << "Failed to fork " << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if (pid_parent > 0) {
-    log << "Started daemon successfully" << endl;
-    exit(EXIT_SUCCESS);
-  }
-
+  log << endl << "Started daemon successfully" << endl;
   umask(0);
 
   auto sid = setsid();
@@ -420,5 +420,6 @@ int main(int argc, const char* argv[]) {
     sleep(5);
   }
 
+  KillProcess(pids, log);
   exit(EXIT_SUCCESS);
 }
