@@ -1079,15 +1079,20 @@ double LookupServer::GetTxBlockRate() {
   return ans.convert_to<double>();
 }
 
-double LookupServer::GetTotalCoinSupply() {
+string LookupServer::GetTotalCoinSupply() {
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
   boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
   const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
   boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
-  rewards = rewards / 1000000000000;  // Convert to ZIL
   ans -= rewards;
+  ans /= 1000000000000;  // Convert to ZIL
 
-  return ans.convert_to<double>();
+  ostringstream streamObj;
+  streamObj << std::fixed;
+  streamObj << std::setprecision(12);
+  streamObj << ans;
+
+  return streamObj.str();
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {

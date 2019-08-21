@@ -206,7 +206,7 @@ class LookupServer : public Server,
   double GetTransactionRate();
   double GetTxBlockRate();
   double GetDSBlockRate();
-  double GetTotalCoinSupply();
+  std::string GetTotalCoinSupply();
   Json::Value GetShardMembers(unsigned int shardID);
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
