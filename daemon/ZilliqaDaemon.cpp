@@ -33,6 +33,7 @@ const string launch_zilliqa = "python /zilliqa/tests/Zilliqa/launch_zilliqa.py";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
 const string daemon_log = "daemon-log.txt";
+const string default_logPath = "/run/zilliqa/";
 
 enum SyncType : unsigned int {
   NO_SYNC = 0,
@@ -47,10 +48,7 @@ enum SyncType : unsigned int {
 };
 
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream* log)
-    : m_logPath(boost::filesystem::absolute("./").string()),
-      m_port(-1),
-      m_syncType(0),
-      m_cseed(false) {
+    : m_logPath(default_logPath), m_port(-1), m_syncType(0), m_cseed(false) {
   m_log = log;
 
   if (ReadInputs(argc, argv) != SUCCESS) {
@@ -237,9 +235,8 @@ void ZilliqaDaemon::StartNewProcess() {
   *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
          << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
-  pid_t pid;
 
-  if (0 == (pid = fork())) {
+  if (0 == fork()) {
     bool bSuspend = false;
 
     while (ifstream(SUSPEND_LAUNCH).good()) {
@@ -290,20 +287,31 @@ void ZilliqaDaemon::StartNewProcess() {
 }
 
 void ZilliqaDaemon::StartScripts() {
-  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
-    string cmdToRun = "/run/zilliqa/uploadIncrDB.py &";
-    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
+  signal(SIGCHLD, SIG_IGN);
 
-    cmdToRun = "/run/zilliqa/auto_back_up.py -f 10 &";
-    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
+  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
+    if (0 == fork()) {
+      string cmdToRun = "/run/zilliqa/uploadIncrDB.py &";
+      *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      exit(0);
+    }
+
+    if (0 == fork()) {
+      string cmdToRun = "/run/zilliqa/auto_back_up.py -f 10";
+      *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      exit(0);
+    }
   }
 
   if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
-    string cmdToRun = "/run/zilliqa/uploadIncrDB.py --backup &";
-    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
+    if (0 == fork()) {
+      string cmdToRun = "/run/zilliqa/uploadIncrDB.py --backup";
+      *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      exit(0);
+    }
   }
 }
 
