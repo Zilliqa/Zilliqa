@@ -122,7 +122,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
-const char SCILLA_INDEX_SEPARATOR = 0x1B;
+const char SCILLA_INDEX_SEPARATOR = 0x16;
 
 const float ONE_HUNDRED_PERCENT = 100.f;
 
