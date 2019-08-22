@@ -207,6 +207,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_REAL, NULL),
+      &LookupServer::GetTotalCoinSupplyI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1073,6 +1077,22 @@ double LookupServer::GetTxBlockRate() {
   boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
   boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
   return ans.convert_to<double>();
+}
+
+string LookupServer::GetTotalCoinSupply() {
+  auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
+  boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
+  const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
+  boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
+  ans -= rewards;
+  ans /= 1000000000000;  // Convert to ZIL
+
+  ostringstream streamObj;
+  streamObj << std::fixed;
+  streamObj << std::setprecision(12);
+  streamObj << ans;
+
+  return streamObj.str();
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {
