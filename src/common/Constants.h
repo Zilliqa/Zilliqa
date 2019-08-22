@@ -122,7 +122,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
-const std::string SCILLA_INDEX_SEPARATOR{'\x16'};
+const char SCILLA_INDEX_SEPARATOR = 0x1B;
 
 const float ONE_HUNDRED_PERCENT = 100.f;
 
@@ -340,7 +340,6 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
-extern const std::string SCILLA_INDEX_SEPARATOR;
 extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
 
 // Test constants

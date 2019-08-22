@@ -595,6 +595,8 @@ bool AccountStore::MigrateContractStates() {
         Json::Value immutable;
         immutable["vname"] = tVname;
         immutable["type"] = std::get<TYPE>(entry);
+        LOG_GENERAL(INFO,
+                    "Immutable vname: " << tVname << " value: " << tValue);
         ContractStorage2::GetContractStorage().InsertValueToStateJson(
             immutable, "value", tValue, false);
         immutable_states.append(immutable);
@@ -602,14 +604,14 @@ bool AccountStore::MigrateContractStates() {
       }
 
       string key = i.first.hex();
-      // key += (SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR);
-      key.append(SCILLA_INDEX_SEPARATOR);
-      key.append(tVname);
-      key.append(SCILLA_INDEX_SEPARATOR);
+      key += SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR;
 
       // Check is the value is map
       Json::Value json_val;
-      if (JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
+      LOG_GENERAL(INFO, "tVname " << tVname << endl << " tValue: " << tValue);
+
+      if (tValue[0] == '[' &&
+          JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
           json_val.type() == Json::arrayValue) {
         /// mapHandler
         std::function<bool(const string&, const Json::Value&,
@@ -621,6 +623,7 @@ bool AccountStore::MigrateContractStates() {
             ProtoScillaVal t_scillaVal;
             t_scillaVal.mutable_mval()->mutable_m();
             bytes dst;
+            dst.resize(t_scillaVal.ByteSize());
             if (!t_scillaVal.SerializeToArray(dst.data(),
                                               t_scillaVal.ByteSize())) {
               return false;
@@ -628,6 +631,9 @@ bool AccountStore::MigrateContractStates() {
             t_states.emplace(key, dst);
             return true;
           } else {
+            LOG_GENERAL(INFO, "non-empty j_value: "
+                                  << JSONUtils::GetInstance().convertJsontoStr(
+                                         j_value));
             for (const auto& map_entry : j_value) {
               if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
                 LOG_GENERAL(WARNING,
@@ -656,20 +662,24 @@ bool AccountStore::MigrateContractStates() {
         if (!mapHandler(key, json_val, mutable_states)) {
           LOG_GENERAL(WARNING, "failed to parse map value for: " << tValue);
           return false;
-        } else {
-          mutable_states.emplace(key,
-                                 DataConversion::StringToCharArray(tValue));
         }
+      } else {
+        LOG_GENERAL(INFO, "not map value");
+        mutable_states.emplace(key, DataConversion::StringToCharArray(tValue));
       }
+
+      LOG_GENERAL(INFO,
+                  "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
+                      immutable_states));
+
+      account.SetImmutable(
+          account.GetCode(),
+          DataConversion::StringToCharArray(
+              JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
+      account.UpdateStates(address, mutable_states, {}, false);
+
+      this->AddAccount(address, account);
     }
-
-    account.SetImmutable(
-        account.GetCode(),
-        DataConversion::StringToCharArray(
-            JSONUtils::GetInstance().convertJsontoStr((immutable_states))));
-    account.UpdateStates(address, mutable_states, {}, false);
-
-    this->AddAccount(address, account);
   }
 
   /// repopulate trie and discard old persistence
