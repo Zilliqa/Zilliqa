@@ -66,7 +66,63 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream* log)
 
   *m_log << endl;
   KillProcess();
-  StartNewProcess(m_log);
+  StartNewProcess();
+  StartScripts();
+}
+
+void ZilliqaDaemon::MonitorProcess() {
+  const string name = programName[0];
+
+  if (m_pids[name].empty()) {
+    *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Looking for new "
+           << name << " process..." << endl;
+    vector<pid_t> tmp = ZilliqaDaemon::GetProcIdByName(name);
+
+    for (const pid_t& i : tmp) {
+      m_died[i] = false;
+      m_pids[name].push_back(i);
+      *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+             << "Started monitoring new process " << name << " with PiD: " << i
+             << endl;
+    }
+
+    return;
+  }
+
+  for (const pid_t& pid : m_pids[name]) {
+    // If sig is 0 (the null signal), error checking is performed but no signal
+    // is actually sent
+    int w = kill(pid, 0);
+
+    if (w < 0) {
+      if (errno == EPERM) {
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+               << "Daemon does not have permission "
+               << "Name: " << name << " Id: " << pid << endl;
+      } else if (errno == ESRCH) {
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Process died "
+               << "Name: " << name << " Id: " << pid << endl;
+        m_died[pid] = true;
+      } else {
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+               << "Kill failed due to " << errno << " Name: " << name
+               << "Id: " << pid << endl;
+      }
+    }
+
+    if (m_died[pid]) {
+      auto it = find(m_pids[name].begin(), m_pids[name].end(), pid);
+
+      if (it != m_pids[name].end()) {
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Not monitoring "
+               << pid << " of " << name << endl;
+        m_pids[name].erase(it);
+      }
+
+      StartNewProcess();
+      m_died.erase(pid);
+    }
+  }
 }
 
 string ZilliqaDaemon::CurrentTimeStamp() {
@@ -78,6 +134,29 @@ string ZilliqaDaemon::CurrentTimeStamp() {
   }
 
   return "[" + string(t) + "] : ";
+}
+
+string ZilliqaDaemon::Execute(const string& cmd) {
+  array<char, 128> buffer{};
+  string result;
+  shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+
+  if (!pipe) throw std::runtime_error("popen() failed!");
+
+  while (!feof(pipe.get())) {
+    if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
+      result += buffer.data();
+  }
+
+  return result;
+}
+
+bool ZilliqaDaemon::DownloadPersistenceFromS3(ofstream* log) {
+  string output;
+  *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+       << "downloading persistence from S3" << endl;
+  output = Execute(start_downloadScript);
+  return (output.find("Done!") != std::string::npos);
 }
 
 vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
@@ -154,32 +233,9 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
   return result;
 }
 
-string ZilliqaDaemon::Execute(const string& cmd) {
-  array<char, 128> buffer{};
-  string result;
-  shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-
-  if (!pipe) throw std::runtime_error("popen() failed!");
-
-  while (!feof(pipe.get())) {
-    if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-      result += buffer.data();
-  }
-
-  return result;
-}
-
-bool ZilliqaDaemon::DownloadPersistenceFromS3(ofstream* log) {
-  string output;
-  *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-       << "downloading persistence from S3" << endl;
-  output = Execute(start_downloadScript);
-  return (output.find("Done!") != std::string::npos);
-}
-
-void ZilliqaDaemon::StartNewProcess(ofstream* log) {
-  *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-       << "Create new Zilliqa process..." << endl;
+void ZilliqaDaemon::StartNewProcess() {
+  *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+         << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
 
@@ -188,10 +244,10 @@ void ZilliqaDaemon::StartNewProcess(ofstream* log) {
 
     while (ifstream(SUSPEND_LAUNCH).good()) {
       if (!bSuspend) {
-        *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-             << "Temporarily suspend launch new zilliqa process, please wait "
-                "until \""
-             << SUSPEND_LAUNCH << "\" file disappeared." << endl;
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+               << "Temporarily suspend launch new zilliqa process, please wait "
+                  "until \""
+               << SUSPEND_LAUNCH << "\" file disappeared." << endl;
         bSuspend = true;
       }
 
@@ -203,10 +259,10 @@ void ZilliqaDaemon::StartNewProcess(ofstream* log) {
     if (m_cseed) {
       // 1. Download Incremental DB Persistence
       // 2. Restart zilliqa with syncType 6
-      while (!ZilliqaDaemon::DownloadPersistenceFromS3(log)) {
-        *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-             << "Downloading persistence from S3 has failed. Will try again!"
-             << endl;
+      while (!ZilliqaDaemon::DownloadPersistenceFromS3(m_log)) {
+        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
+               << "Downloading persistence from S3 has failed. Will try again!"
+               << endl;
         this_thread::sleep_for(chrono::seconds(10));
       }
 
@@ -219,17 +275,35 @@ void ZilliqaDaemon::StartNewProcess(ofstream* log) {
           bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(m_syncType);
       m_recovery =
           (strSyncType == to_string(RECOVERY_ALL_SYNC)) ? 1 : m_recovery;
-      *log << "Suspend launch is " << bSuspend
-           << ", set syncType = " << strSyncType
-           << ", recovery = " << m_recovery << endl;
+      *m_log << "Suspend launch is " << bSuspend
+             << ", set syncType = " << strSyncType
+             << ", recovery = " << m_recovery << endl;
     }
 
     auto cmdToRun = launch_zilliqa + " " + m_pubKey + " " + m_privKey + " " +
                     m_ip + " " + std::to_string(m_port) + " " + strSyncType +
                     " " + m_logPath + " " + std::to_string(m_recovery);
-    *log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-    *log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
+    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+    *m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
     exit(0);
+  }
+}
+
+void ZilliqaDaemon::StartScripts() {
+  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
+    string cmdToRun = "/run/zilliqa/uploadIncrDB.py &";
+    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
+
+    cmdToRun = "/run/zilliqa/auto_back_up.py -f 10 &";
+    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
+  }
+
+  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
+    string cmdToRun = "/run/zilliqa/uploadIncrDB.py --backup &";
+    *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
+    *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
   }
 }
 
@@ -248,61 +322,6 @@ void ZilliqaDaemon::KillProcess() {
   m_syncType = 0;
 }
 
-void ZilliqaDaemon::MonitorProcess() {
-  const string name = programName[0];
-
-  if (m_pids[name].empty()) {
-    *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Looking for new "
-           << name << " process..." << endl;
-    vector<pid_t> tmp = ZilliqaDaemon::GetProcIdByName(name);
-
-    for (const pid_t& i : tmp) {
-      m_died[i] = false;
-      m_pids[name].push_back(i);
-      *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-             << "Started monitoring new process " << name << " with PiD: " << i
-             << endl;
-    }
-
-    return;
-  }
-
-  for (const pid_t& pid : m_pids[name]) {
-    // If sig is 0 (the null signal), error checking is performed but no signal
-    // is actually sent
-    int w = kill(pid, 0);
-
-    if (w < 0) {
-      if (errno == EPERM) {
-        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-               << "Daemon does not have permission "
-               << "Name: " << name << " Id: " << pid << endl;
-      } else if (errno == ESRCH) {
-        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Process died "
-               << "Name: " << name << " Id: " << pid << endl;
-        m_died[pid] = true;
-      } else {
-        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
-               << "Kill failed due to " << errno << " Name: " << name
-               << "Id: " << pid << endl;
-      }
-    }
-
-    if (m_died[pid]) {
-      auto it = find(m_pids[name].begin(), m_pids[name].end(), pid);
-
-      if (it != m_pids[name].end()) {
-        *m_log << ZilliqaDaemon::CurrentTimeStamp().c_str() << "Not monitoring "
-               << pid << " of " << name << endl;
-        m_pids[name].erase(it);
-      }
-
-      StartNewProcess(m_log);
-      m_died.erase(pid);
-    }
-  }
-}
-
 int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
   po::options_description desc("Options");
 
@@ -317,7 +336,10 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
       "Specifies port to bind to, if not specified in address")(
       "loadconfig,l", "Loads configuration if set (deprecated)")(
       "synctype,s", po::value<unsigned int>(&m_syncType), synctype_descr)(
-      "recovery,r", "Runs in recovery mode if set")(
+      "nodetype,n", po::value<string>(&m_nodeType)->required(),
+      "Specifies node type")(
+      "nodeindex,x", po::value<int>(&m_nodeIndex)->required(),
+      "Specifies node index")("recovery,r", "Runs in recovery mode if set")(
       "logpath,g", po::value<string>(&m_logPath),
       "customized log path, could be relative path (e.g., \"./logs/\"), or "
       "absolute path (e.g., \"/usr/local/test/logs/\")");

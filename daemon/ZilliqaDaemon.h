@@ -51,8 +51,8 @@ class ZilliqaDaemon {
   std::ofstream* m_log;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;
   std::unordered_map<pid_t, bool> m_died;
-  std::string m_privKey, m_pubKey, m_ip, m_logPath;
-  int m_port, m_recovery;
+  std::string m_privKey, m_pubKey, m_ip, m_logPath, m_nodeType;
+  int m_port, m_recovery, m_nodeIndex;
   unsigned int m_syncType;
   bool m_cseed;
 
@@ -61,7 +61,8 @@ class ZilliqaDaemon {
   static bool DownloadPersistenceFromS3(std::ofstream* log);
 
   std::vector<pid_t> GetProcIdByName(const std::string& procName);
-  void StartNewProcess(std::ofstream* log);
+  void StartNewProcess();
+  void StartScripts();
   void KillProcess();
   int ReadInputs(int argc, const char* argv[]);
 };
