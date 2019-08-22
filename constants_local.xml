@@ -188,7 +188,7 @@
         <POW_BOUNDARY_N_DIVIDED>8</POW_BOUNDARY_N_DIVIDED>
         <POW_BOUNDARY_N_DIVIDED_START>32</POW_BOUNDARY_N_DIVIDED_START>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
-        <NUM_FINAL_BLOCK_PER_POW>20</NUM_FINAL_BLOCK_PER_POW>
+        <NUM_FINAL_BLOCK_PER_POW>5</NUM_FINAL_BLOCK_PER_POW>
         <!-- Shard difficulty adjust by compare pow number to EXPECTED_SHARD_NODE_NUM -->
         <POW_CHANGE_TO_ADJ_DIFF>9</POW_CHANGE_TO_ADJ_DIFF>
         <!-- DS difficulty adjust by compare DS pow number to NUM_DS_ELECTION -->
@@ -220,8 +220,8 @@
         <INCRDB_DSNUMS_WITH_STATEDELTAS>10</INCRDB_DSNUMS_WITH_STATEDELTAS>
     </recovery>
     <smart_contract>
-        <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/home/liuhc/smartcontract/ScillaOct5/scilla</SCILLA_ROOT>
+        <ENABLE_SC>false</ENABLE_SC>
+        <SCILLA_ROOT/>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
@@ -233,7 +233,7 @@
         <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
-        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
     </smart_contract>
     <tests>
@@ -279,44 +279,7 @@
     <!-- These are the genesis accounts -->
     <accounts>
         <account>
-            <private_key>2A995ADB71F9110B519AAEE4959B6E611218FE42F1C554B3D0175DB5D5F54759</private_key>
             <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>
-        </account>
-        <account>
-            <private_key>3375F915F3F9AE35E6B301B7670F53AD1A5BE15D8221EC7FD5E503F21D3450C8</private_key>
-            <wallet_address>8254b2c9acdf181d5d6796d63320fbb20d4edd12</wallet_address>
-        </account>
-        <account>
-            <private_key>0FC87CC5ACF5A1433DE7301972B9649EE31688F291F781396B0F67AD98A88246</private_key>
-            <wallet_address>affc3236b726660ed9b99dff11451e4e8c107dea</wallet_address>
-        </account>
-        <account>
-            <private_key>EED54FF9A0B20164A96F6C96EBC32D64EE535DEBFFF5EDB6CDAA554E659AD6D3</private_key>
-            <wallet_address>465a6ed0572b5b09aade72d3ee158d6238f8f7b9</wallet_address>
-        </account>
-        <account>
-            <private_key>0E393A5563037D912EB14FE3E5B3A7F56C8E557BBC93652B409B3CA656DEE8F5</private_key>
-            <wallet_address>0c51808101be8673f4e136b2a7dcca4e9bea38a5</wallet_address>
-        </account>
-        <account>
-            <private_key>5CBB2D96A04D1EDE56DA7F12704A098E6015CD5C599966C56DCAA04825339BE0</private_key>
-            <wallet_address>956c698fca564f44694fe5a88838ee0b6381509f</wallet_address>
-        </account>
-        <account>
-            <private_key>D73DDCD02135FA1C8C132FEA4662AB6BBC2388AE1A6C6E820BECB16D9A9DBB29</private_key>
-            <wallet_address>604caa8b1120eb124e4df4e1ab3cf1b8d54baf00</wallet_address>
-        </account>
-        <account>
-            <private_key>C33DED115CBDFE3E3E904CF84A456F21A4EE4D663AD396424CAAA0C8461D3E5D</private_key>
-            <wallet_address>2b79ce6066a9697c14e3a2bdf400d4fb5b36691c</wallet_address>
-        </account>
-        <account>
-            <private_key>50DAFDB8B1E4615AB7FC7AACC53A28A7EA2EE76600801CA002DAD2F9C6B9A62B</private_key>
-            <wallet_address>9564bee628816404bde310beb7240e99c462147d</wallet_address>
-        </account>
-        <account>
-            <private_key>5B4D818CEE58F1B860B4EFE25104A8C4318E9A261447013BAF8B4E3E034CC70C</private_key>
-            <wallet_address>18f498810e4c6dba67df1d9b41590f63aec5ba7f</wallet_address>
         </account>
     </accounts>
     <!-- For constants.xml, the remaining constants below are auto-populated -->
