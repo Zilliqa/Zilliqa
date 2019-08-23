@@ -114,7 +114,6 @@ class Lookup : public Executable {
 
   std::mutex m_mutexSetDSBlockFromSeed;
   std::mutex m_mutexSetTxBlockFromSeed;
-  std::mutex m_mutexSetStateDeltaFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
   std::mutex mutable m_mutexLookupNodes;
@@ -289,27 +288,27 @@ class Lookup : public Executable {
                                      const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-  // UNUSED
+
   bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
-  // UNUSED
+
   bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
+
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
-  // UNUSED
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  // UNUSED
   bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from);
-  // UNUSED
+
   bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from);
+
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
@@ -393,8 +392,9 @@ class Lookup : public Executable {
 
   std::mutex m_MutexCVSetTxBlockFromSeed;
   std::condition_variable cv_setTxBlockFromSeed;
-  std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
+  std::mutex m_mutexSetStateDeltaFromSeed;
+  bool m_skipAddStateDeltaToAccountStore = false;
 
   std::mutex m_mutexCVJoined;
   std::condition_variable cv_waitJoined;

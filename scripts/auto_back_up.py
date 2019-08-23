@@ -28,6 +28,7 @@ TESTNET_NAME= "TEST_NET_NAME"
 BUCKET_NAME='BUCKET_NAME'
 AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
 
+
 def recvall(sock):
     BUFF_SIZE = 4096 # 4 KiB
     data = ""
@@ -73,12 +74,13 @@ def send_packet_tcp(data, host, port):
     return received
 
 def GetCurrentTxBlockNum():
-    loaded_json = get_response([], 'GetCurrentMiniEpoch', '127.0.0.1', 4301)
+    loaded_json = get_response([], 'GetEpochFin', '127.0.0.1', 4301)
+    blockNum = -1
+    if loaded_json == None:
+        return blockNum
     val = loaded_json["result"]
     if (val != None and val != ''):
         blockNum = int(val) - 1 # -1 because we need TxBlockNum (not epochnum)
-    else:
-        blockNum = -1
     return blockNum + 1
 
 def backUp(curr_blockNum):

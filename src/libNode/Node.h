@@ -629,6 +629,11 @@ class Node : public Executable {
   void PutTxnsInTempDataBase(
       const std::unordered_map<TxnHash, TransactionWithReceipt>&
           processedTransactions);
+
+  void SaveTxnsToS3(const std::unordered_map<TxnHash, TransactionWithReceipt>&
+                        processedTransactions);
+
+  std::string GetAwsS3CpString(const std::string& uploadFilePath);
 };
 
 #endif  // ZILLIQA_SRC_LIBNODE_NODE_H_

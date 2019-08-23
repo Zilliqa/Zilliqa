@@ -50,21 +50,48 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   /// Retrieve final block state delta from last DS epoch to
   /// current TX epoch and buffer the statedelta for each.
   for (const auto& block : blocks) {
-    if (block->GetHeader().GetBlockNum() >= lastBlockNum + 1 - extra_txblocks) {
+    uint64_t blockNum = block->GetHeader().GetBlockNum();
+    if (blockNum >= lastBlockNum + 1 - extra_txblocks) {
       bytes stateDelta;
-      if (!BlockStorage::GetBlockStorage().GetStateDelta(
-              block->GetHeader().GetBlockNum(), stateDelta)) {
-        // if any of state-delta is not fetched from extra txblocks set, simple
-        // skip all extra blocks
+      if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum,
+                                                         stateDelta)) {
         LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
-                              << block->GetHeader().GetBlockNum()
-                              << ". Will trim rest of txBlks");
-        extraStateDeltas.clear();
-        trimIncompletedBlocks = true;
-        break;
-      } else {
-        extraStateDeltas.push_back(stateDelta);
+                              << blockNum << ". Try fetching it from seeds");
+        unsigned int retry = 1;
+        while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
+          // Get the state-delta for this txBlock from random seed nodes
+          std::unique_lock<std::mutex> cv_lk(
+              m_mediator.m_lookup->m_mutexSetStateDeltaFromSeed);
+          m_mediator.m_lookup->m_skipAddStateDeltaToAccountStore = true;
+          m_mediator.m_lookup->GetStateDeltaFromSeedNodes(blockNum);
+          if (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                  cv_lk,
+                  std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+              std::cv_status::timeout) {
+            LOG_GENERAL(
+                WARNING,
+                "[Retry: " << retry
+                           << "] Didn't receive statedelta for txBlkNum: "
+                           << blockNum << "! Will try again");
+            retry++;
+          } else {
+            break;
+          }
+        }
+        // if state-delta is still not fetched from extra txblocks set, simple
+        // skip all extra blocks
+        if (retry > RETRY_GETSTATEDELTAS_COUNT) {
+          extraStateDeltas.clear();
+          trimIncompletedBlocks = true;
+          break;
+        }
+
+        // got state-delta at last
+        BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
+        BlockStorage::GetBlockStorage().DeleteStateDelta(blockNum);
       }
+      // store it.
+      extraStateDeltas.push_back(stateDelta);
     }
   }
 

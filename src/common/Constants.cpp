@@ -522,6 +522,15 @@ const unsigned int REPOPULATE_STATE_IN_DS{std::min(
     REPOPULATE_STATE_PER_N_DS - 1)};
 const unsigned int NUM_STORE_TX_BODIES_INTERVAL{
     ReadConstantNumeric("NUM_STORE_TX_BODIES_INTERVAL", "node.transactions.")};
+const string BUCKET_NAME{
+    ReadConstantString("BUCKET_NAME", "node.transactions.")};
+const string TXN_PERSISTENCE_NAME{
+    ReadConstantString("TXN_PERSISTENCE_NAME", "node.transactions.")};
+const bool ENABLE_TXNS_BACKUP{
+    ReadConstantString("ENABLE_TXNS_BACKUP", "node.transactions.") == "true"};
+const bool SHARDLDR_SAVE_TXN_LOCALLY{
+    ReadConstantString("SHARDLDR_SAVE_TXN_LOCALLY", "node.transactions.") ==
+    "true"};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

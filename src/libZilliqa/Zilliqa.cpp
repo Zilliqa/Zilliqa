@@ -269,6 +269,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
+        m_lookup.CleanVariables();
         m_lookup.StartSynchronization();
         break;
       case SyncType::RECOVERY_ALL_SYNC:
