@@ -224,7 +224,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
 
-  for (auto& i : *m_addressToAccount) {
+  for (const auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
       if (ContractStorage2::GetContractStorage()
               .GetContractCode(i.first)
@@ -548,11 +548,15 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
-bool AccountStore::MigrateContractStates() {
+bool AccountStore::MigrateContractStates(Address the_addr) {
   LOG_MARKER();
 
   for (const auto& i : m_state) {
     Address address(i.first);
+    if (the_addr != address) {
+      continue;
+    }
+    LOG_GENERAL(INFO, "Address: " << address.hex());
 
     Account account;
     if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
@@ -568,6 +572,8 @@ bool AccountStore::MigrateContractStates() {
     map<string, bytes> mutable_states;
     // map<string, bytes> immutable_states;
     Json::Value immutable_states;
+
+    // generate depth_map
 
     for (const auto& index : account.GetStorageKeyHashes()) {
       string raw_val = account.GetRawStorage(index, false);
@@ -631,9 +637,6 @@ bool AccountStore::MigrateContractStates() {
             t_states.emplace(key, dst);
             return true;
           } else {
-            LOG_GENERAL(INFO, "non-empty j_value: "
-                                  << JSONUtils::GetInstance().convertJsontoStr(
-                                         j_value));
             for (const auto& map_entry : j_value) {
               if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
                 LOG_GENERAL(WARNING,
@@ -643,16 +646,17 @@ bool AccountStore::MigrateContractStates() {
                 return false;
               } else {
                 string new_key(key);
-                new_key += "\"" + map_entry["key"].asString() + "\"" +
+                new_key += '"' + map_entry["key"].asString() + '"' +
                            SCILLA_INDEX_SEPARATOR;
                 if (map_entry["val"].type() != Json::arrayValue) {
                   t_states.emplace(
                       new_key, DataConversion::StringToCharArray(
-                                   "\"" + map_entry["val"].asString() + "\""));
+                                   '"' + map_entry["val"].asString() + '"'));
                 } else {
-                  return mapHandler(new_key, map_entry["val"], t_states);
+                  if (!mapHandler(new_key, map_entry["val"], t_states)) {
+                    return false;
+                  }
                 }
-                return true;
               }
             }
           }
@@ -678,6 +682,12 @@ bool AccountStore::MigrateContractStates() {
               JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
       account.UpdateStates(address, mutable_states, {}, false);
 
+      LOG_GENERAL(INFO, "current account immutables: "
+                            << DataConversion::CharArrayToString(
+                                   account.GetInitData()));
+
+      Account* originalAccount = GetAccount(address);
+      *originalAccount = account;
       this->AddAccount(address, account);
     }
   }

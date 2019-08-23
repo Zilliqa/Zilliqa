@@ -30,8 +30,12 @@ int main(int argc, const char* argv[]) {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
 
+  LOG_GENERAL(INFO, "Begin");
+
   Mediator mediator(key, peer);
   Retriever retriever(mediator);
+
+  LOG_GENERAL(INFO, "Start Retrieving States");
 
   if (!retriever.RetrieveStates()) {
     LOG_GENERAL(FATAL, "RetrieveStates failed");
@@ -41,12 +45,15 @@ int main(int argc, const char* argv[]) {
   bool got_state = false;
   Address the_addr;
 
+  LOG_GENERAL(INFO, "finished RetrieveStates");
+
   if (argc >= 2) {
     std::string addrStr(argv[1]);
     Address addr(addrStr);
     the_addr = addr;
     Account* account;
     account = AccountStore::GetInstance().GetAccount(addr);
+    LOG_GENERAL(INFO, "Getting the account");
     if (account == nullptr) {
       LOG_GENERAL(WARNING,
                   "Cannot get account " << addr.hex() << " from persistence");
@@ -66,7 +73,7 @@ int main(int argc, const char* argv[]) {
     }
   }
 
-  if (!retriever.MigrateContractStates()) {
+  if (!retriever.MigrateContractStates(the_addr)) {
     LOG_GENERAL(WARNING, "MigrateContractStates failed");
   }
 
