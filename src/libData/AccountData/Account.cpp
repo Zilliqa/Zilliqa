@@ -359,20 +359,9 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
     }
   }
 
-  // if ((vname.empty() && indices.empty()) || vname == "_balance") {
-  //   try {
-  //     Json::Value balance;
-  //     string vname("vname");
-  //     string type("type");
-  //     string value("value");
-  //     balance.operator[](vname) = "_balance";
-  //     balance.operator[](type) = "Uint128";
-  //     balance.operator[](value) = GetBalance().convert_to<string>();
-  //     root.append(balance);
-  //   } catch (const std::exception& e) {
-  //     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-  //   }
-  // }
+  if ((vname.empty() && indices.empty()) || vname == "_balance") {
+    root["_balance"] = GetBalance().convert_to<string>();
+  }
   LOG_GENERAL(INFO,
               "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
 

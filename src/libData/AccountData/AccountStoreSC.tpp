@@ -48,6 +48,37 @@ void AccountStoreSC<MAP>::Init() {
 }
 
 template <class MAP>
+void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
+                                              bool& ret_checker, int& pid,
+                                              TransactionReceipt& receipt) {
+  auto func1 = [this, &checkerPrint, &ret_checker, &pid,
+                &receipt]() mutable -> void {
+    try {
+      if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
+                                  GetContractCheckerCmdStr(m_root_w_version),
+                                  checkerPrint, pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: "
+                                 << GetContractCheckerCmdStr(m_root_w_version));
+        receipt.AddError(EXECUTE_CMD_FAILED);
+        ret_checker = false;
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (1): "
+                               << e.what());
+      ret_checker = false;
+    }
+
+    cv_callContract.notify_all();
+  };
+  DetachedFunction(1, func1);
+
+  {
+    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+    cv_callContract.wait(lk);
+  }
+}
+
+template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const unsigned int& numShards,
                                          const bool& isDS,
@@ -193,34 +224,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string checkerPrint;
 
       int pid = -1;
-      auto func1 = [this, &checkerPrint, &ret_checker, &pid,
-                    &receipt]() mutable -> void {
-        try {
-          if (!SysCommand::ExecuteCmd(
-                  SysCommand::WITH_OUTPUT_PID,
-                  GetContractCheckerCmdStr(m_root_w_version), checkerPrint,
-                  pid)) {
-            LOG_GENERAL(WARNING,
-                        "ExecuteCmd failed: "
-                            << GetContractCheckerCmdStr(m_root_w_version));
-            receipt.AddError(EXECUTE_CMD_FAILED);
-            ret_checker = false;
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(
-              WARNING,
-              "Exception caught in SysCommand::ExecuteCmd (1): " << e.what());
-          ret_checker = false;
-        }
-
-        cv_callContract.notify_all();
-      };
-      DetachedFunction(1, func1);
-
-      {
-        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-        cv_callContract.wait(lk);
-      }
+      InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(

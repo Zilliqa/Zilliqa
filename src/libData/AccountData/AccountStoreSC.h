@@ -95,11 +95,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
   /// Contract Deployment
-  /// verify the return from scilla_checker for deployment is valid
-  bool ParseContractCheckerOutput(const std::string& checkerPrint,
-                                  TransactionReceipt& receipt,
-                                  bytes& map_depth_data);
-
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint,
@@ -142,10 +137,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// updating m_root_w_version
   bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
-  /// generate input files for interpreter to deploy contract
-  bool ExportCreateContractFiles(const Account& contract,
-                                 const uint32_t& scilla_version);
-
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
   bool ExportContractFiles(Account& contract);
@@ -169,6 +160,20 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
  protected:
   AccountStoreSC();
+
+  /// generate input files for interpreter to deploy contract
+  bool ExportCreateContractFiles(const Account& contract,
+                                 const uint32_t& scilla_version);
+
+  /// capsulate and expose in protected for using by data migartion
+  void InvokeScillaChecker(std::string& checkerPrint, bool& ret_checker,
+                           int& pid, TransactionReceipt& receipt);
+
+  /// verify the return from scilla_checker for deployment is valid
+  /// expose in protected for using by data migration
+  bool ParseContractCheckerOutput(const std::string& checkerPrint,
+                                  TransactionReceipt& receipt,
+                                  bytes& map_depth_data);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,

@@ -386,7 +386,7 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
     if (key.empty()) {
       _json = j_value;
     } else {
-      _json[key] = j_value;
+      _json[key] = value;
     }
   }
 }

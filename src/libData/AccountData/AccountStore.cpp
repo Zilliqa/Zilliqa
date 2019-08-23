@@ -575,6 +575,9 @@ bool AccountStore::MigrateContractStates(Address the_addr) {
 
     // generate depth_map
 
+    uint32_t scilla_version;
+    bool found_scilla_version = false;
+
     for (const auto& index : account.GetStorageKeyHashes()) {
       string raw_val = account.GetRawStorage(index, false);
 
@@ -601,6 +604,10 @@ bool AccountStore::MigrateContractStates(Address the_addr) {
         Json::Value immutable;
         immutable["vname"] = tVname;
         immutable["type"] = std::get<TYPE>(entry);
+        if (tVname == "_scilla_version") {
+          scilla_version = boost::lexical_cast<uint32_t>(tValue);
+          found_scilla_version = true;
+        }
         LOG_GENERAL(INFO,
                     "Immutable vname: " << tVname << " value: " << tValue);
         ContractStorage2::GetContractStorage().InsertValueToStateJson(
@@ -671,25 +678,64 @@ bool AccountStore::MigrateContractStates(Address the_addr) {
         LOG_GENERAL(INFO, "not map value");
         mutable_states.emplace(key, DataConversion::StringToCharArray(tValue));
       }
-
-      LOG_GENERAL(INFO,
-                  "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
-                      immutable_states));
-
-      account.SetImmutable(
-          account.GetCode(),
-          DataConversion::StringToCharArray(
-              JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
-      account.UpdateStates(address, mutable_states, {}, false);
-
-      LOG_GENERAL(INFO, "current account immutables: "
-                            << DataConversion::CharArrayToString(
-                                   account.GetInitData()));
-
-      Account* originalAccount = GetAccount(address);
-      *originalAccount = account;
-      this->AddAccount(address, account);
     }
+
+    LOG_GENERAL(INFO,
+                "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
+                    immutable_states));
+
+    account.SetImmutable(
+        account.GetCode(),
+        DataConversion::StringToCharArray(
+            JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
+
+    if (found_scilla_version) {
+      if (ExportCreateContractFiles(account, scilla_version)) {
+        std::string checkerPrint;
+        bool ret_checker;
+        int pid = -1;
+        TransactionReceipt receipt;
+        InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
+
+        if (ret_checker) {
+          bytes map_depth_data;
+          if (!ParseContractCheckerOutput(checkerPrint, receipt,
+                                          map_depth_data)) {
+            LOG_GENERAL(WARNING,
+                        "Failed to generate map_depth_data from scilla_checker "
+                        "print for contract "
+                            << address.hex());
+            return false;
+          }
+          mutable_states.emplace(
+              Contract::ContractStorage2::GetContractStorage()
+                  .GenerateStorageKey(address, FIELDS_MAP_DEPTH_INDICATOR, {}),
+              map_depth_data);
+        } else {
+          LOG_GENERAL(WARNING, "InvokeScillaChecker failed for contract: "
+                                   << address.hex());
+          return false;
+        }
+      } else {
+        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed for contract: "
+                                 << address.hex());
+        return false;
+      }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Didn't find scilla_version for contract: " << address.hex());
+      return false;
+    }
+
+    account.UpdateStates(address, mutable_states, {}, false);
+
+    LOG_GENERAL(
+        INFO, "current account immutables: "
+                  << DataConversion::CharArrayToString(account.GetInitData()));
+
+    Account* originalAccount = GetAccount(address);
+    *originalAccount = account;
+    this->AddAccount(address, account);
   }
 
   /// repopulate trie and discard old persistence

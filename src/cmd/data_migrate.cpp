@@ -75,20 +75,20 @@ int main(int argc, const char* argv[]) {
 
   if (!retriever.MigrateContractStates(the_addr)) {
     LOG_GENERAL(WARNING, "MigrateContractStates failed");
-  }
-
-  if (got_state) {
-    Account* account;
-    account = AccountStore::GetInstance().GetAccount(the_addr);
-    Json::Value root;
-    if (!account->FetchStateJson(root)) {
-      LOG_GENERAL(WARNING, "FetchStateJson failed");
-    } else {
-      LOG_GENERAL(INFO,
-                  "State: " << JSONUtils::GetInstance().convertJsontoStr(root));
+  } else {
+    if (got_state) {
+      Account* account;
+      account = AccountStore::GetInstance().GetAccount(the_addr);
+      Json::Value root;
+      if (!account->FetchStateJson(root)) {
+        LOG_GENERAL(WARNING, "FetchStateJson failed");
+      } else {
+        LOG_GENERAL(
+            INFO, "State: " << JSONUtils::GetInstance().convertJsontoStr(root));
+      }
+      LOG_GENERAL(INFO, "Init Data: " << DataConversion::CharArrayToString(
+                            account->GetInitData()));
     }
-    LOG_GENERAL(INFO, "Init Data: " << DataConversion::CharArrayToString(
-                          account->GetInitData()));
   }
 
   return 0;
