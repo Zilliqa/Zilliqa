@@ -367,7 +367,11 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
   Json::Value j_value;
   if (JSONUtils::GetInstance().convertStrtoJson(value, j_value) &&
       j_value.type() == Json::objectValue) {
-    _json[key] = j_value;
+    if (key.empty()) {
+      _json = j_value;
+    } else {
+      _json[key] = j_value;
+    }
   } else {
     if (unquote) {
       // unquote value
@@ -379,7 +383,11 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
       }
     }
 
-    _json[key] = value;
+    if (key.empty()) {
+      _json = j_value;
+    } else {
+      _json[key] = j_value;
+    }
   }
 }
 
@@ -410,54 +418,59 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
 
     string vname = fragments.at(1);
 
+    if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
+      continue;
+    }
+
     /// addr+vname+[indices...]
     vector<string> map_indices(fragments.begin() + 2, fragments.end());
 
-    if (map_indices.empty()) {
-      if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
-        continue;
-      }
-      InsertValueToStateJson(_json, vname,
-                             DataConversion::CharArrayToString(state.second));
-    } else {
-      std::function<void(Json::Value&, const vector<string>&, const bytes&,
-                         unsigned int, int)>
-          jsonMapWrapper = [&](Json::Value& _json,
-                               const vector<string>& indices,
-                               const bytes& value, unsigned int cur_index,
-                               int mapdepth) -> void {
-        if (cur_index + 1 < indices.size()) {
-          jsonMapWrapper(_json[indices.at(cur_index)], indices, value,
-                         cur_index + 1, mapdepth);
-        } else {
-          if (mapdepth >= 0) {
-            if ((int)indices.size() == mapdepth) {
-              InsertValueToStateJson(_json, indices.at(cur_index),
-                                     DataConversion::CharArrayToString(value));
-            } else {
-              _json[indices.at(cur_index)] = Json::objectValue;
+    std::function<void(Json::Value&, const vector<string>&, const bytes&,
+                       unsigned int, int)>
+        jsonMapWrapper = [&](Json::Value& _json, const vector<string>& indices,
+                             const bytes& value, unsigned int cur_index,
+                             int mapdepth) -> void {
+      if (cur_index + 1 < indices.size()) {
+        jsonMapWrapper(_json[indices.at(cur_index)], indices, value,
+                       cur_index + 1, mapdepth);
+      } else {
+        if (mapdepth > 0) {
+          if ((int)indices.size() == mapdepth) {
+            for (const auto& index : indices) {
+              LOG_GENERAL(INFO, "index: " << index);
             }
+            InsertValueToStateJson(_json, indices.at(cur_index),
+                                   DataConversion::CharArrayToString(value));
           } else {
-            /// Enters only when the fields_map_depth not available, almost
-            /// impossible Check value whether parsable to Protobuf
-            ProtoScillaVal empty_val;
-            if (empty_val.ParseFromArray(value.data(), value.size()) &&
-                empty_val.IsInitialized() && empty_val.has_mval() &&
-                empty_val.mval().m().empty()) {
-              _json[indices.at(cur_index)] = Json::objectValue;
+            if (indices.empty()) {
+              _json = Json::objectValue;
             } else {
-              _json[indices.at(cur_index)] =
-                  DataConversion::CharArrayToString(value);
+              _json[indices.at(cur_index)] = Json::objectValue;
             }
           }
+        } else if (mapdepth == 0) {
+          InsertValueToStateJson(_json, "",
+                                 DataConversion::CharArrayToString(value));
+        } else {
+          /// Enters only when the fields_map_depth not available, almost
+          /// impossible Check value whether parsable to Protobuf
+          ProtoScillaVal empty_val;
+          if (empty_val.ParseFromArray(value.data(), value.size()) &&
+              empty_val.IsInitialized() && empty_val.has_mval() &&
+              empty_val.mval().m().empty()) {
+            _json[indices.at(cur_index)] = Json::objectValue;
+          } else {
+            InsertValueToStateJson(_json, indices.at(cur_index),
+                                   DataConversion::CharArrayToString(value));
+          }
         }
-      };
+      }
+    };
 
-      jsonMapWrapper(_json[vname], map_indices, state.second, 0,
-                     (!map_depth_json.empty() && map_depth_json.isMember(vname))
-                         ? map_depth_json[vname].asInt()
-                         : -1);
-    }
+    jsonMapWrapper(_json[vname], map_indices, state.second, 0,
+                   (!map_depth_json.empty() && map_depth_json.isMember(vname))
+                       ? map_depth_json[vname].asInt()
+                       : -1);
   }
 
   return true;
