@@ -519,6 +519,10 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   contrCode2 = account2->GetCode();
   // initJson2 = account2->GetInitJson(true);
   initData2 = account2->GetInitData();
+
+  Json::Value stateJson2;
+  BOOST_CHECK_MESSAGE(account2->FetchStateJson(stateJson2, "", {}, true),
+                      "FetchStateJson for account 2 failed");
 }
 
 void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
