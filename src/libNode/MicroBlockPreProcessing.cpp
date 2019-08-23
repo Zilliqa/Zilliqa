@@ -429,7 +429,9 @@ void Node::ProcessTransactionWhenShardLeader(
 
   cv_TxnProcFinished.notify_all();
   PutTxnsInTempDataBase(t_processedTransactions);
-  SaveTxnsToS3(t_processedTransactions);
+  if (ENABLE_TXNS_BACKUP) {
+    SaveTxnsToS3(t_processedTransactions);
+  }
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
