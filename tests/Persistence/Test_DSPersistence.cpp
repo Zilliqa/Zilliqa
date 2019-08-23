@@ -65,6 +65,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
   }
 
   std::vector<PubKey> removeDSNodePubkeys;
+  removeDSNodePubkeys.reserve(2);
   for (int i = 0; i < 2; i++) {
     removeDSNodePubkeys.emplace_back(
         Schnorr::GetInstance().GenKeyPair().second);
