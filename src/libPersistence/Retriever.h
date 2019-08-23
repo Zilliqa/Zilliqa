@@ -34,7 +34,7 @@ class Retriever {
   bool RetrieveBlockLink(bool trimIncompletedBlocks);
   bool RetrieveStates();
   bool ValidateStates();
-  bool MigrateContractStates(Address addr);
+  bool MigrateContractStates();
   bool CleanExtraTxBodies();
   void CleanAll();
 

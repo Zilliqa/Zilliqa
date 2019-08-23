@@ -548,14 +548,11 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
-bool AccountStore::MigrateContractStates(Address the_addr) {
+bool AccountStore::MigrateContractStates() {
   LOG_MARKER();
 
   for (const auto& i : m_state) {
     Address address(i.first);
-    if (the_addr != address) {
-      continue;
-    }
     LOG_GENERAL(INFO, "Address: " << address.hex());
 
     Account account;

@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
     }
   }
 
-  if (!retriever.MigrateContractStates(the_addr)) {
+  if (!retriever.MigrateContractStates()) {
     LOG_GENERAL(WARNING, "MigrateContractStates failed");
   } else {
     if (got_state) {
@@ -89,6 +89,7 @@ int main(int argc, const char* argv[]) {
       LOG_GENERAL(INFO, "Init Data: " << DataConversion::CharArrayToString(
                             account->GetInitData()));
     }
+    LOG_GENERAL(INFO, "Migrate contract data finished");
   }
 
   return 0;

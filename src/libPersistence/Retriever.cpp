@@ -445,8 +445,8 @@ bool Retriever::ValidateStates() {
   }
 }
 
-bool Retriever::MigrateContractStates(Address addr) {
-  return AccountStore::GetInstance().MigrateContractStates(addr);
+bool Retriever::MigrateContractStates() {
+  return AccountStore::GetInstance().MigrateContractStates();
 }
 
 void Retriever::CleanAll() {
