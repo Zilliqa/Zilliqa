@@ -303,7 +303,7 @@ bool Validator::CheckDirBlocks(
         LOG_GENERAL(WARNING, "BlockStorage::PutDSBlock failed " << dsblock);
         return false;
       }
-      m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
       if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
         LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
@@ -338,7 +338,7 @@ bool Validator::CheckDirBlocks(
         break;
       }
 
-      m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(
+      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
           vcblock, mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,

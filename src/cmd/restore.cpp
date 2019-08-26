@@ -316,7 +316,7 @@ int main(int argc, char* argv[]) {
         for (const auto& dswinner : dsblock->GetHeader().GetDSPoWWinners()) {
           IPMapping.emplace(dswinner.first, dswinner.second);
         }
-        mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
+        mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock);
         //[TODO] Add condition for VC
       }
       mediator.m_blocklinkchain.AddBlockLink(

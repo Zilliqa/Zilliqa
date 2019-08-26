@@ -336,7 +336,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         }
       }
 
-      m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
@@ -350,8 +350,8 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
                         << std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
         return false;
       }
-      m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(*vcblock,
-                                                                    dsComm);
+      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(*vcblock,
+                                                                     dsComm);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::FB) {

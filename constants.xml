@@ -16,7 +16,7 @@
     <version>
         <MSG_VERSION>1</MSG_VERSION>
         <TRANSACTION_VERSION>1</TRANSACTION_VERSION>
-        <DSBLOCK_VERSION>1</DSBLOCK_VERSION>
+        <DSBLOCK_VERSION>2</DSBLOCK_VERSION>
         <TXBLOCK_VERSION>1</TXBLOCK_VERSION>
         <MICROBLOCK_VERSION>1</MICROBLOCK_VERSION>
         <VCBLOCK_VERSION>1</VCBLOCK_VERSION>
@@ -151,6 +151,11 @@
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>200</COMM_SIZE>
         <NUM_DS_ELECTION>5</NUM_DS_ELECTION>
+        <!-- DS Node must meet this minimum threshold to remain in the committee -->
+        <DS_PERFORMANCE_THRESHOLD_PERCENT>0.05</DS_PERFORMANCE_THRESHOLD_PERCENT>
+        <!-- Maximum number of Byzantine DS Nodes to remove each round. Must be smaller than
+             NUM_DS_ELECTION -->
+        <NUM_DS_BYZANTINE_REMOVED>3</NUM_DS_BYZANTINE_REMOVED>
         <!-- SHARD_SIZE_TOLERANCE_LO must be smaller than COMM_SIZE -->
         <SHARD_SIZE_TOLERANCE_LO>50</SHARD_SIZE_TOLERANCE_LO>
         <SHARD_SIZE_TOLERANCE_HI>10</SHARD_SIZE_TOLERANCE_HI>

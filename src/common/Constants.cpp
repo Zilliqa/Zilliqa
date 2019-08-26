@@ -307,6 +307,10 @@ const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
 const unsigned int NUM_DS_ELECTION{
     ReadConstantNumeric("NUM_DS_ELECTION", "node.network_composition.")};
+const double DS_PERFORMANCE_THRESHOLD_PERCENT{ReadConstantDouble(
+    "DS_PERFORMANCE_THRESHOLD_PERCENT", "node.network_composition.")};
+const unsigned int NUM_DS_BYZANTINE_REMOVED{ReadConstantNumeric(
+    "NUM_DS_BYZANTINE_REMOVED", "node.network_composition.")};
 const unsigned int SHARD_SIZE_TOLERANCE_LO{ReadConstantNumeric(
     "SHARD_SIZE_TOLERANCE_LO", "node.network_composition.")};
 const unsigned int SHARD_SIZE_TOLERANCE_HI{ReadConstantNumeric(
