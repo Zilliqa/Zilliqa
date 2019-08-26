@@ -105,6 +105,12 @@ def main():
 
     isBackup = False
 
+    while True:
+        if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml"):
+            break
+        print("Waiting for constants.xml generated...")
+        time.sleep(frequency)
+
     tree = xtree.parse("constants.xml")
     root = tree.getroot()
 

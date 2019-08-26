@@ -29,11 +29,12 @@ const char* synctype_descr =
     "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
     "for node recovery, 6 for new lookup , 7 for ds guard node sync and 8 "
     "for offline validation of DB";
+
 const string launch_zilliqa = "python /zilliqa/tests/Zilliqa/launch_zilliqa.py";
 const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
 const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
-const string daemon_log = "daemon-log.txt";
 const string default_logPath = "/run/zilliqa/";
+const string daemon_log = "daemon-log.txt";
 
 enum SyncType : unsigned int {
   NO_SYNC = 0,
@@ -52,7 +53,7 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream* log)
   m_log = log;
 
   if (ReadInputs(argc, argv) != SUCCESS) {
-    std::cout << "Failed to read inputs" << std::endl;
+    *m_log << "Failed to read inputs" << endl;
     exit(EXIT_FAILURE);
   }
 
@@ -291,17 +292,16 @@ void ZilliqaDaemon::StartScripts() {
 
   if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
     if (0 == fork()) {
-      string cmdToRun = "/run/zilliqa/uploadIncrDB.py &";
+      string cmdToRun = "python3 /run/zilliqa/uploadIncrDB.py &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
       *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
 
     if (0 == fork()) {
-      string cmdToRun = "/run/zilliqa/auto_back_up.py -f 10 &";
+      sleep(60);
+      string cmdToRun = "python3 /run/zilliqa/auto_back_up.py -f 10 &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
       *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
@@ -309,9 +309,8 @@ void ZilliqaDaemon::StartScripts() {
 
   if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
     if (0 == fork()) {
-      string cmdToRun = "/run/zilliqa/uploadIncrDB.py --backup";
+      string cmdToRun = "python3 /run/zilliqa/uploadIncrDB.py --backup &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
       *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
@@ -363,7 +362,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
     /** --help option
      */
     if (vm.count("help")) {
-      cout << desc << endl;
+      *m_log << desc << endl;
       return SUCCESS;
     }
 
@@ -371,15 +370,15 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
     m_recovery = vm.count("recovery");
 
     if (vm.count("cseed")) {
-      cout << "Running Daemon for community seed node" << endl;
+      *m_log << "Running Daemon for community seed node" << endl;
       m_cseed = true;
     }
   } catch (boost::program_options::required_option& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-    std::cout << desc;
+    *m_log << "ERROR: " << e.what() << endl << endl;
+    *m_log << desc;
     return ERROR_IN_COMMAND_LINE;
   } catch (boost::program_options::error& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+    *m_log << "ERROR: " << e.what() << endl << endl;
     return ERROR_IN_COMMAND_LINE;
   }
 

@@ -52,7 +52,7 @@ std_handler.setFormatter(FORMATTER)
 rootLogger.addHandler(std_handler)
 
 def setup_logging():
-  logfile = "uploadIncrDB-log.txt"
+  logfile = os.path.dirname(os.path.abspath(__file__)) + "/uploadIncrDB-log.txt"
   backup_count = 5
   rotating_size = 8
   fh = handlers.RotatingFileHandler(
