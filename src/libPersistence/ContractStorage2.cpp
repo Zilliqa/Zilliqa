@@ -216,7 +216,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
       return true;
     }
     auto exist = entries.find(p->first);
-    if (exist != entries.end()) {
+    if (exist == entries.end()) {
       entries.emplace(p->first, p->second);
     }
     ++p;
@@ -243,7 +243,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     for (; it->Valid() && it->key().ToString().compare(0, key.size(), key) == 0;
          it->Next()) {
       auto exist = entries.find(it->key().ToString());
-      if (exist != entries.end()) {
+      if (exist == entries.end()) {
         bytes val(it->value().data(), it->value().data() + it->value().size());
         entries.emplace(it->key().ToString(), val);
       }
