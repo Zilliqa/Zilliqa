@@ -293,14 +293,16 @@ void ZilliqaDaemon::StartScripts() {
     if (0 == fork()) {
       string cmdToRun = "/run/zilliqa/uploadIncrDB.py &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
 
     if (0 == fork()) {
-      string cmdToRun = "/run/zilliqa/auto_back_up.py -f 10";
+      string cmdToRun = "/run/zilliqa/auto_back_up.py -f 10 &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
   }
@@ -309,7 +311,8 @@ void ZilliqaDaemon::StartScripts() {
     if (0 == fork()) {
       string cmdToRun = "/run/zilliqa/uploadIncrDB.py --backup";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      //      *m_log << "\" " << system(cmdToRun.c_str()) << " \"" << endl;
+      *m_log << "\" " << Execute(cmdToRun) << " \"" << endl;
       exit(0);
     }
   }
