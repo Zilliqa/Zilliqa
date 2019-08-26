@@ -516,7 +516,7 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
   }
 
   for (auto it = states.begin(); it != states.end();) {
-    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend()) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.end()) {
       it = states.erase(it);
     } else {
       it++;
@@ -841,7 +841,7 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
   }
 
   std::map<std::string, bytes> states;
-  FetchStateDataForContract(states, address);
+  FetchStateDataForContract(states, address, "", {}, temp);
 
   // iterate the raw protobuf string and hash
   SHA2<HashType::HASH_VARIANT_256> sha2;
