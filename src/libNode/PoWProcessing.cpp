@@ -183,8 +183,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
-          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
-          StartSynchronization();
+          RejoinAsNormal();
         } else {
           LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
         }
