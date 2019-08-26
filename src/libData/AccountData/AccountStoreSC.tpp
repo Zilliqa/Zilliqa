@@ -652,7 +652,6 @@ bool AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
     tpStart = r_timer_start();
   }
 
-  std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
   if (!contract.GetScillaVersion(scilla_version)) {
     LOG_GENERAL(WARNING, "Failed to get scilla_version");
@@ -671,6 +670,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
     os.close();
 
     os.open(INIT_JSON);
+    LOG_GENERAL(INFO, "init data to export: " << DataConversion::CharArrayToString(contract.GetInitData()));
     os << DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 

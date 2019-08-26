@@ -570,11 +570,12 @@ bool AccountStore::MigrateContractStates() {
     // map<string, bytes> immutable_states;
     Json::Value immutable_states;
 
-    // generate depth_map
+    /// generate depth_map
 
     uint32_t scilla_version;
     bool found_scilla_version = false;
 
+    /// retrieving immutable states (init data)
     for (const auto& index : account.GetStorageKeyHashes()) {
       string raw_val = account.GetRawStorage(index, false);
 
@@ -610,6 +611,97 @@ bool AccountStore::MigrateContractStates() {
         ContractStorage2::GetContractStorage().InsertValueToStateJson(
             immutable, "value", tValue, false);
         immutable_states.append(immutable);
+      } else {
+        continue;
+      }
+    }
+
+    LOG_GENERAL(INFO,
+                "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
+                    immutable_states));
+
+    account.SetImmutable(
+        account.GetCode(),
+        DataConversion::StringToCharArray(
+            JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
+
+    Json::Value map_depth_json;
+
+    if (found_scilla_version) {
+      if (ExportCreateContractFiles(account, scilla_version)) {
+        std::string checkerPrint;
+        bool ret_checker;
+        int pid = -1;
+        TransactionReceipt receipt;
+        InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
+
+        if (ret_checker) {
+          bytes map_depth_data;
+          if (!ParseContractCheckerOutput(checkerPrint, receipt,
+                                          map_depth_data)) {
+            LOG_GENERAL(WARNING,
+                        "Failed to generate map_depth_data from scilla_checker "
+                        "print for contract "
+                            << address.hex());
+            return false;
+          }
+          /// redundant conversion here as don't want to change
+          /// ParseContractCheckerOutput
+          if (!JSONUtils::GetInstance().convertStrtoJson(
+                  DataConversion::CharArrayToString(map_depth_data),
+                  map_depth_json)) {
+            LOG_GENERAL(WARNING,
+                        "Account "
+                            << address.hex()
+                            << " failed to parse map_depth_data into json "
+                            << DataConversion::CharArrayToString(
+                                   map_depth_data));
+            return false;
+          }
+          mutable_states.emplace(
+              Contract::ContractStorage2::GetContractStorage()
+                  .GenerateStorageKey(address, FIELDS_MAP_DEPTH_INDICATOR, {}),
+              map_depth_data);
+        } else {
+          LOG_GENERAL(WARNING, "InvokeScillaChecker failed for contract: "
+                                   << address.hex());
+          return false;
+        }
+      } else {
+        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed for contract: "
+                                 << address.hex());
+        return false;
+      }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Didn't find scilla_version for contract: " << address.hex());
+      return false;
+    }
+
+    /// retrieving mutable states
+    for (const auto& index : account.GetStorageKeyHashes()) {
+      string raw_val = account.GetRawStorage(index, false);
+
+      StateEntry entry;
+      uint32_t version;
+      if (!Messenger::GetStateData(DataConversion::StringToCharArray(raw_val),
+                                   0, entry, version)) {
+        LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
+        return false;
+      }
+
+      if (version != CONTRACT_STATE_VERSION) {
+        LOG_GENERAL(WARNING, "state data version "
+                                 << version
+                                 << " is not match to CONTRACT_STATE_VERSION "
+                                 << CONTRACT_STATE_VERSION);
+        return false;
+      }
+
+      string tVname = std::get<VNAME>(entry);
+      string tValue = std::get<VALUE>(entry);  /// could be "string" or [map]
+
+      if (!std::get<MUTABLE>(entry)) {
         continue;
       }
 
@@ -620,6 +712,7 @@ bool AccountStore::MigrateContractStates() {
       Json::Value json_val;
       LOG_GENERAL(INFO, "tVname " << tVname << endl << " tValue: " << tValue);
 
+      /// arrayValue & first elemtn contains key/val [TODO]
       if (tValue[0] == '[' &&
           JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
           json_val.type() == Json::arrayValue) {
@@ -655,7 +748,10 @@ bool AccountStore::MigrateContractStates() {
                 if (map_entry["val"].type() != Json::arrayValue) {
                   t_states.emplace(
                       new_key, DataConversion::StringToCharArray(
-                                   '"' + map_entry["val"].asString() + '"'));
+                                   '"' +
+                                   JSONUtils::GetInstance().convertJsontoStr(
+                                       map_entry["val"]) +
+                                   '"'));
                 } else {
                   if (!mapHandler(new_key, map_entry["val"], t_states)) {
                     return false;
@@ -675,53 +771,6 @@ bool AccountStore::MigrateContractStates() {
         LOG_GENERAL(INFO, "not map value");
         mutable_states.emplace(key, DataConversion::StringToCharArray(tValue));
       }
-    }
-
-    LOG_GENERAL(INFO,
-                "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
-                    immutable_states));
-
-    account.SetImmutable(
-        account.GetCode(),
-        DataConversion::StringToCharArray(
-            JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
-
-    if (found_scilla_version) {
-      if (ExportCreateContractFiles(account, scilla_version)) {
-        std::string checkerPrint;
-        bool ret_checker;
-        int pid = -1;
-        TransactionReceipt receipt;
-        InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
-
-        if (ret_checker) {
-          bytes map_depth_data;
-          if (!ParseContractCheckerOutput(checkerPrint, receipt,
-                                          map_depth_data)) {
-            LOG_GENERAL(WARNING,
-                        "Failed to generate map_depth_data from scilla_checker "
-                        "print for contract "
-                            << address.hex());
-            return false;
-          }
-          mutable_states.emplace(
-              Contract::ContractStorage2::GetContractStorage()
-                  .GenerateStorageKey(address, FIELDS_MAP_DEPTH_INDICATOR, {}),
-              map_depth_data);
-        } else {
-          LOG_GENERAL(WARNING, "InvokeScillaChecker failed for contract: "
-                                   << address.hex());
-          return false;
-        }
-      } else {
-        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed for contract: "
-                                 << address.hex());
-        return false;
-      }
-    } else {
-      LOG_GENERAL(WARNING,
-                  "Didn't find scilla_version for contract: " << address.hex());
-      return false;
     }
 
     account.UpdateStates(address, mutable_states, {}, false);

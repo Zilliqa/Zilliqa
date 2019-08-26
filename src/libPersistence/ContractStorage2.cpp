@@ -128,6 +128,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
+  LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
+
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
 
@@ -187,6 +189,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
 
     value.set_bval(bval.data(), bval.size());
+    LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
     return SerializeToArray(value, dst, 0);
   }
 
@@ -290,6 +293,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
   }
 
+  LOG_GENERAL(INFO, "value to fetch 2: " << value.DebugString());
   return SerializeToArray(value, dst, 0);
 }
 
