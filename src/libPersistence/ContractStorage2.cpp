@@ -311,6 +311,22 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
     m_indexToBeDeleted.emplace(p->first);
     ++p;
   }
+
+  auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  it->Seek({prefix});
+  if (!it->Valid() ||
+      it->key().ToString().compare(0, prefix.size(), prefix) != 0) {
+    // no entry
+  } else {
+    for (; it->Valid() &&
+           it->key().ToString().compare(0, prefix.size(), prefix) == 0;
+         it->Next()) {
+      if (m_indexToBeDeleted.find(it->key().ToString()) ==
+          m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.emplace(it->key().ToString());
+      }
+    }
+  }
 }
 
 void ContractStorage2::DeleteByIndex(const string& index) {
@@ -318,11 +334,18 @@ void ContractStorage2::DeleteByIndex(const string& index) {
   if (p != t_stateDataMap.end()) {
     LOG_GENERAL(INFO, "delete index from t: " << index);
     m_indexToBeDeleted.emplace(index);
+    return;
   }
 
   p = m_stateDataMap.find(index);
   if (p != m_stateDataMap.end()) {
     LOG_GENERAL(INFO, "delete index from m: " << index);
+    m_indexToBeDeleted.emplace(index);
+    return;
+  }
+
+  if (m_stateDataDB.Exists(index)) {
+    LOG_GENERAL(INFO, "delete index from db: " << index);
     m_indexToBeDeleted.emplace(index);
   }
 }
@@ -516,7 +539,7 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
   }
 
   for (auto it = states.begin(); it != states.end();) {
-    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.end()) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend()) {
       it = states.erase(it);
     } else {
       it++;
