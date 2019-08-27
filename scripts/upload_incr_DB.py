@@ -36,7 +36,6 @@ BUCKET_NAME='BUCKET_NAME'
 NUM_TXBLOCK = 1
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
-SOURCE = './'
 TESTNET_NAME= "TEST_NET_NAME"
 SYNC_INTERVAL = 1
 
@@ -404,12 +403,13 @@ if __name__ == '__main__':
 	tt = int(args['txblktime'])
 	dd = int(args['dsblktime'])
 	webhook = args['webhook']
+	source = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 	# create temp folder
-	if not os.path.exists(SOURCE+'temp'):
-		os.makedirs(SOURCE+'temp')
-	CleanupDir(SOURCE+'temp')
-	os.chdir(SOURCE)
+	if not os.path.exists(source+'temp'):
+		os.makedirs(source+'temp')
+	CleanupDir(source+'temp')
+	os.chdir(source)
 
 	main()
 	f.close()
