@@ -29,21 +29,14 @@ const char* synctype_descr =
     "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
     "for node recovery, 6 for new lookup , 7 for ds guard node sync and 8 "
     "for offline validation of DB";
-#if 0  // clark
-const string launch_zilliqa =
-    "python /home/clark/Git/newdaemon/Zilliqa/tests/Zilliqa/launch_zilliqa.py";
-const string SUSPEND_LAUNCH = "./SUSPEND_LAUNCH";
-const string start_downloadScript =
-    "python /home/clark/Git/newdaemon/Zilliqa/scripts/downloadIncrDB.py";
-const string default_logPath = "/home/clark/Git/newdaemon/Zilliqa/";
-const string scripts_path = "/home/clark/Git/newdaemon/Zilliqa/scripts/";
-#else
-const string launch_zilliqa = "python /zilliqa/tests/Zilliqa/launch_zilliqa.py";
-const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
-const string start_downloadScript = "python /run/zilliqa/downloadIncrDB.py";
-const string default_logPath = "/run/zilliqa/";
+
 const string scripts_path = "/run/zilliqa/";
-#endif
+const string default_logPath = "/run/zilliqa/";
+const string SUSPEND_LAUNCH = "/run/zilliqa/SUSPEND_LAUNCH";
+const string launch_zilliqa_script = "launch_zilliqa.py";
+const string upload_incr_DB_script = "upload_incr_DB.py";
+const string download_incr_DB_script = "download_incr_DB.py";
+const string auto_backup_script = "auto_backup.py";
 const string daemon_log = "daemon-log.txt";
 
 enum SyncType : unsigned int {
@@ -164,7 +157,7 @@ bool ZilliqaDaemon::DownloadPersistenceFromS3(ofstream* log) {
   string output;
   *log << ZilliqaDaemon::CurrentTimeStamp().c_str()
        << "downloading persistence from S3" << endl;
-  output = Execute(start_downloadScript);
+  output = Execute("python " + scripts_path + download_incr_DB_script);
   return (output.find("Done!") != std::string::npos);
 }
 
@@ -288,9 +281,10 @@ void ZilliqaDaemon::StartNewProcess() {
              << ", recovery = " << m_recovery << endl;
     }
 
-    auto cmdToRun = launch_zilliqa + " " + m_pubKey + " " + m_privKey + " " +
-                    m_ip + " " + std::to_string(m_port) + " " + strSyncType +
-                    " " + m_logPath + " " + std::to_string(m_recovery);
+    string cmdToRun = "python " + scripts_path + launch_zilliqa_script + " " +
+                      m_pubKey + " " + m_privKey + " " + m_ip + " " +
+                      std::to_string(m_port) + " " + strSyncType + " " +
+                      m_logPath + " " + std::to_string(m_recovery);
     *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
     *m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
     exit(0);
@@ -302,14 +296,16 @@ void ZilliqaDaemon::StartScripts() {
 
   if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
     if (0 == fork()) {
-      string cmdToRun = "python3 " + scripts_path + "uploadIncrDB.py &";
+      string cmdToRun =
+          "python3 " + scripts_path + upload_incr_DB_script + " &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
       *m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
       exit(0);
     }
 
     if (0 == fork()) {
-      string cmdToRun = "python3 " + scripts_path + "auto_back_up.py -f 10 &";
+      string cmdToRun =
+          "python3 " + scripts_path + auto_backup_script + " -f 10 &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
       *m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
       exit(0);
@@ -319,7 +315,7 @@ void ZilliqaDaemon::StartScripts() {
   if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
     if (0 == fork()) {
       string cmdToRun =
-          "python3 " + scripts_path + "uploadIncrDB.py --backup &";
+          "python3 " + scripts_path + upload_incr_DB_script + " --backup &";
       *m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
       *m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
       exit(0);
