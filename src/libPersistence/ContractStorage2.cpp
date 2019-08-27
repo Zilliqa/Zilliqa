@@ -559,6 +559,7 @@ void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
 void ContractStorage2::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
     vector<std::string>& toDeletedIndices) {
+  LOG_MARKER();
   if (address == dev::h160()) {
     LOG_GENERAL(WARNING, "address provided is empty");
     return;
@@ -746,6 +747,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible) {
   LOG_MARKER();
+
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
@@ -872,9 +874,12 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
     LOG_GENERAL(
         INFO, "state key: " << state.first << " value: "
                             << DataConversion::CharArrayToString(state.second));
+    sha2.Update(DataConversion::StringToCharArray(state.first));
     sha2.Update(state.second);
   }
-  return dev::h256(sha2.Finalize());
+  // return dev::h256(sha2.Finalize());
+  dev::h256 ret(sha2.Finalize());
+  return ret;
 }
 
 void ContractStorage2::Reset() {
