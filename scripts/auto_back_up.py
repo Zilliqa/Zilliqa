@@ -111,7 +111,7 @@ def main():
         print("Waiting for constants.xml generated...")
         time.sleep(frequency)
 
-    tree = xtree.parse("constants.xml")
+    tree = xtree.parse(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml")
     root = tree.getroot()
 
     for elem in tree.iter(tag=TAG_NUM_FINAL_BLOCK_PER_POW):
