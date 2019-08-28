@@ -52,7 +52,12 @@ enum SyncType : unsigned int {
 };
 
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream* log)
-    : m_logPath(default_logPath), m_port(-1), m_syncType(0), m_cseed(false) {
+    : m_logPath(default_logPath),
+      m_port(-1),
+      m_recovery(0),
+      m_nodeIndex(0),
+      m_syncType(0),
+      m_cseed(false) {
   m_log = log;
 
   if (ReadInputs(argc, argv) != SUCCESS) {
