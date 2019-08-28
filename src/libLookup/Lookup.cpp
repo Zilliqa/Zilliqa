@@ -2561,6 +2561,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   // before repopulating state in CommitTxBlocks. if (CheckStateRoot()) {
   // Attempt PoW
   m_startedPoW = true;
+  // set the node as synced
+  m_syncType = NO_SYNC;
   dsBlockRand = m_mediator.m_dsBlockRand;
   txBlockRand = m_mediator.m_txBlockRand;
 
