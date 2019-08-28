@@ -1056,8 +1056,8 @@ void Node::StartSynchronization() {
                                                  : NEW_NODE_SYNC_INTERVAL));
       // check again may be pow was started by now
       if (m_mediator.m_lookup->m_startedPoW) {
-        // No need to keep on syncronizing now. If failed to do PoW, it will
-        // start syncronization again in next DS block
+        // No need to keep on synchronizing now. If failed to do PoW, it will
+        // start synchronization again in next DS block
         break;
       }
     }
