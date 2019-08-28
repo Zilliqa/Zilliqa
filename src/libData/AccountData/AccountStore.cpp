@@ -630,7 +630,7 @@ bool AccountStore::MigrateContractStates() {
     if (found_scilla_version) {
       if (ExportCreateContractFiles(account, scilla_version)) {
         std::string checkerPrint;
-        bool ret_checker;
+        bool ret_checker = true;
         int pid = -1;
         TransactionReceipt receipt;
         InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
@@ -647,9 +647,13 @@ bool AccountStore::MigrateContractStates() {
           }
           /// redundant conversion here as don't want to change
           /// ParseContractCheckerOutput
-          if (!JSONUtils::GetInstance().convertStrtoJson(
-                  DataConversion::CharArrayToString(map_depth_data),
-                  map_depth_json)) {
+          if (map_depth_data.empty()) {
+            map_depth_json = Json::objectValue;
+            map_depth_data = DataConversion::StringToCharArray(
+                JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+          } else if (!JSONUtils::GetInstance().convertStrtoJson(
+                         DataConversion::CharArrayToString(map_depth_data),
+                         map_depth_json)) {
             LOG_GENERAL(WARNING,
                         "Account "
                             << address.hex()
@@ -712,15 +716,27 @@ bool AccountStore::MigrateContractStates() {
       Json::Value json_val;
       LOG_GENERAL(INFO, "tVname " << tVname << endl << " tValue: " << tValue);
 
+      if (!map_depth_json.isMember(tVname)) {
+        LOG_GENERAL(WARNING, tVname
+                                 << " is not found in map_depth_json: "
+                                 << JSONUtils::GetInstance().convertJsontoStr(
+                                        map_depth_json));
+        return false;
+      }
+
+      uint map_depth = map_depth_json[tVname].asUInt();
+
       /// arrayValue & first elemtn contains key/val [TODO]
-      if (tValue[0] == '[' &&
+      if (map_depth > 0 &&
           JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
           json_val.type() == Json::arrayValue) {
         /// mapHandler
         std::function<bool(const string&, const Json::Value&,
-                           map<string, bytes>&)>
+                           map<string, bytes>&, uint, uint)>
             mapHandler = [&](const string& key, const Json::Value& j_value,
-                             map<string, bytes>& t_states) -> bool {
+                             map<string, bytes>& t_states, uint cur_depth,
+                             uint map_depth) -> bool {
+          cur_depth++;
           if (j_value.empty()) {
             // make an empty protobuf scilla map value object
             ProtoScillaVal t_scillaVal;
@@ -745,17 +761,19 @@ bool AccountStore::MigrateContractStates() {
                 string new_key(key);
                 new_key += '"' + map_entry["key"].asString() + '"' +
                            SCILLA_INDEX_SEPARATOR;
-                if (map_entry["val"].type() != Json::arrayValue) {
+                if (map_entry["val"].type() == Json::arrayValue &&
+                    cur_depth < map_depth) {
+                  if (!mapHandler(new_key, map_entry["val"], t_states,
+                                  cur_depth, map_depth)) {
+                    return false;
+                  }
+                } else {
                   t_states.emplace(
                       new_key, DataConversion::StringToCharArray(
                                    '"' +
                                    JSONUtils::GetInstance().convertJsontoStr(
                                        map_entry["val"]) +
                                    '"'));
-                } else {
-                  if (!mapHandler(new_key, map_entry["val"], t_states)) {
-                    return false;
-                  }
                 }
               }
             }
@@ -763,7 +781,7 @@ bool AccountStore::MigrateContractStates() {
           return true;
         };
 
-        if (!mapHandler(key, json_val, mutable_states)) {
+        if (!mapHandler(key, json_val, mutable_states, 0, map_depth)) {
           LOG_GENERAL(WARNING, "failed to parse map value for: " << tValue);
           return false;
         }
