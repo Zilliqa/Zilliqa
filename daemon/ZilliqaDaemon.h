@@ -44,21 +44,21 @@
 
 class ZilliqaDaemon {
  public:
-  ZilliqaDaemon(int argc, const char* argv[], std::ofstream* log);
+  ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log);
   void MonitorProcess();
 
  private:
-  std::ofstream* m_log;
+  std::ofstream& m_log;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;
   std::unordered_map<pid_t, bool> m_died;
-  std::string m_privKey, m_pubKey, m_ip, m_logPath, m_nodeType;
+  std::string m_privKey, m_pubKey, m_ip, m_logPath, m_nodeType, m_curPath;
   int m_port, m_recovery, m_nodeIndex;
   unsigned int m_syncType;
   bool m_cseed;
 
   static std::string CurrentTimeStamp();
   static std::string Execute(const std::string& cmd);
-  static bool DownloadPersistenceFromS3(std::ofstream* log);
+  bool DownloadPersistenceFromS3();
 
   std::vector<pid_t> GetProcIdByName(const std::string& procName);
   void StartNewProcess();
