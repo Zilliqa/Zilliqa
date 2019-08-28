@@ -1221,8 +1221,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  // prepare IPC with current contract address
-  m_scillaIPCServer->setContractAddress(m_curContractAddr);
+  // prepare IPC with the recipient contract address
+  m_scillaIPCServer->setContractAddress(recipient);
 
   std::string runnerPrint;
   bool result = true;
