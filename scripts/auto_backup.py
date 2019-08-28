@@ -96,7 +96,7 @@ def backUp(curr_blockNum):
 
 def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    parser = argparse.ArgumentParser(description='Lookup autorecovery script')
+    parser = argparse.ArgumentParser(description='Automatically backup script')
     parser.add_argument('-f','--frequency', help='Polling frequency in seconds (default = 0 or run once)', required=False, default=0)
     args = vars(parser.parse_args())
 
