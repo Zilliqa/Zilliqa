@@ -341,6 +341,7 @@ extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
+extern const bool LOG_SC;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;

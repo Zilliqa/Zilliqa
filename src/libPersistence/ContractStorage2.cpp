@@ -107,7 +107,9 @@ string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
 bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
                                        unsigned int d_offset, bool& foundVal) {
-  LOG_MARKER();
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
 
   foundVal = true;
 
@@ -128,7 +130,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
+  }
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
@@ -189,7 +193,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
 
     value.set_bval(bval.data(), bval.size());
-    LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
+    }
     return SerializeToArray(value, dst, 0);
   }
 
@@ -293,7 +299,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     }
   }
 
-  LOG_GENERAL(INFO, "value to fetch 2: " << value.DebugString());
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "value to fetch 2: " << value.DebugString());
+  }
   return SerializeToArray(value, dst, 0);
 }
 
@@ -332,20 +340,26 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
 void ContractStorage2::DeleteByIndex(const string& index) {
   auto p = t_stateDataMap.find(index);
   if (p != t_stateDataMap.end()) {
-    LOG_GENERAL(INFO, "delete index from t: " << index);
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "delete index from t: " << index);
+    }
     m_indexToBeDeleted.emplace(index);
     return;
   }
 
   p = m_stateDataMap.find(index);
   if (p != m_stateDataMap.end()) {
-    LOG_GENERAL(INFO, "delete index from m: " << index);
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "delete index from m: " << index);
+    }
     m_indexToBeDeleted.emplace(index);
     return;
   }
 
   if (m_stateDataDB.Exists(index)) {
-    LOG_GENERAL(INFO, "delete index from db: " << index);
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "delete index from db: " << index);
+    }
     m_indexToBeDeleted.emplace(index);
   }
 }
@@ -464,7 +478,9 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
         if (mapdepth > 0) {
           if ((int)indices.size() == mapdepth) {
             for (const auto& index : indices) {
-              LOG_GENERAL(INFO, "index: " << index);
+              if (LOG_SC) {
+                LOG_GENERAL(INFO, "index: " << index);
+              }
             }
             InsertValueToStateJson(_json, indices.at(cur_index),
                                    DataConversion::CharArrayToString(value));
@@ -604,8 +620,10 @@ bool ContractStorage2::CleanEmptyMapPlaceholders(const string& key) {
 
 void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
                                        bool cleanEmpty) {
-  LOG_GENERAL(INFO, "key: " << key << " value: "
-                            << DataConversion::CharArrayToString(value));
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "key: " << key << " value: "
+                              << DataConversion::CharArrayToString(value));
+  }
 
   if (cleanEmpty) {
     CleanEmptyMapPlaceholders(key);
@@ -622,7 +640,9 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
 bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
                                         unsigned int q_offset, const bytes& v,
                                         unsigned int v_offset) {
-  LOG_MARKER();
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
 
   if (q_offset > q.size()) {
     LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
@@ -665,7 +685,9 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     string parent_key = key;
     key += query.indices().Get(query.indices().size() - 1) +
            SCILLA_INDEX_SEPARATOR;
-    LOG_GENERAL(INFO, "Delete key: " << key);
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Delete key: " << key);
+    }
     DeleteByPrefix(key);
 
     map<string, bytes> t_states;
@@ -726,8 +748,11 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
             }
           } else {
             // DB Put
-            LOG_GENERAL(INFO, "mval().m() first: " << entry.first << " second: "
-                                                   << entry.second.bval());
+            if (LOG_SC) {
+              LOG_GENERAL(INFO, "mval().m() first: " << entry.first
+                                                     << " second: "
+                                                     << entry.second.bval());
+            }
             UpdateStateData(
                 index, DataConversion::StringToCharArray(entry.second.bval()),
                 true);
@@ -746,7 +771,9 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const std::map<std::string, bytes>& t_states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible) {
-  LOG_MARKER();
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
 
   if (temp) {
     for (const auto& state : t_states) {
@@ -859,7 +886,10 @@ void ContractStorage2::InitTempState() {
 
 dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
                                                  bool temp) {
-  LOG_MARKER();
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
+
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
@@ -871,9 +901,11 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
   // iterate the raw protobuf string and hash
   SHA2<HashType::HASH_VARIANT_256> sha2;
   for (const auto& state : states) {
-    LOG_GENERAL(
-        INFO, "state key: " << state.first << " value: "
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "state key: "
+                            << state.first << " value: "
                             << DataConversion::CharArrayToString(state.second));
+    }
     sha2.Update(DataConversion::StringToCharArray(state.first));
     sha2.Update(state.second);
   }

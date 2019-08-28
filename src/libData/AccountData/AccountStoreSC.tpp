@@ -85,6 +85,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
   // LOG_MARKER();
+  LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -765,8 +766,6 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
       root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
-
-  LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
 
@@ -782,7 +781,6 @@ std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
       " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
       std::to_string(available_gas) + " -jsonerrors -balance " +
       balance.convert_to<std::string>();
-  LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
 
@@ -799,7 +797,6 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
       " -disable-pp-json" + " -disable-validate-json" +
       " -jsonerrors -balance " + balance.convert_to<std::string>();
-  LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
 
@@ -878,13 +875,15 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
               std::istreambuf_iterator<char>()};
   }
 
-  LOG_GENERAL(
-      INFO,
-      "Output: " << std::endl
-                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                               "\n ... "
-                         : outStr));
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : outStr));
+  }
 
   if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
@@ -983,13 +982,15 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
       outStr = {std::istreambuf_iterator<char>(in),
                 std::istreambuf_iterator<char>()};
     }
-    LOG_GENERAL(
-        INFO,
-        "Output: " << std::endl
-                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                                 "\n ... "
-                           : outStr));
+    if (LOG_SC) {
+      LOG_GENERAL(
+          INFO, "Output: " << std::endl
+                           << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                                   ? outStr.substr(
+                                         0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                         "\n ... "
+                                   : outStr));
+    }
 
     if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
