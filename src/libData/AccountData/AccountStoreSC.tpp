@@ -515,9 +515,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt)) {
-        if (m_curDepth > 0) {
-          Contract::ContractStorage2::GetContractStorage().RevertPrevState();
-        }
+        Contract::ContractStorage2::GetContractStorage().RevertPrevState();
         ret = false;
       }
       if (!ret) {
