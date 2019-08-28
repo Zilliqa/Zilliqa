@@ -3459,6 +3459,9 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
+  // make sure no VCDSBlock is processed at same time
+  lock_guard<mutex> g1(m_mediator.m_node->m_mutexDSBlock);
+
   // Not all calls to GetLookupSetDirectoryBlocksFromSeed set
   // shardingStructureVersion
 
