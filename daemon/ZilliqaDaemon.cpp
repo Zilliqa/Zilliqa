@@ -53,7 +53,7 @@ enum SyncType : unsigned int {
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
     : m_log(log),
       m_logPath(default_logPath),
-      m_curPath(boost::filesystem::current_path().string()),
+      m_curPath(boost::filesystem::current_path().string() + "/zilliqa/"),
       m_port(-1),
       m_recovery(0),
       m_nodeIndex(0),
@@ -244,7 +244,14 @@ void ZilliqaDaemon::StartNewProcess() {
         << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
 
-  if (0 == fork()) {
+  pid_t pid_parent = fork();
+
+  if (pid_parent < 0) {
+    m_log << "Failed to fork " << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  if (pid_parent == 0) {
     bool bSuspend = false;
 
     while (ifstream(SUSPEND_LAUNCH).good()) {
@@ -299,14 +306,28 @@ void ZilliqaDaemon::StartScripts() {
   signal(SIGCHLD, SIG_IGN);
 
   if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
-    if (0 == fork()) {
+    pid_t pid_parent = fork();
+
+    if (pid_parent < 0) {
+      m_log << "Failed to fork " << endl;
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
       string cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " &";
       m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
       m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
       exit(0);
     }
 
-    if (0 == fork()) {
+    pid_parent = fork();
+
+    if (pid_parent < 0) {
+      m_log << "Failed to fork " << endl;
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
       string cmdToRun =
           "python3 " + m_curPath + auto_backup_script + " -f 10 &";
       m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
@@ -316,7 +337,14 @@ void ZilliqaDaemon::StartScripts() {
   }
 
   if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
-    if (0 == fork()) {
+    pid_t pid_parent = fork();
+
+    if (pid_parent < 0) {
+      m_log << "Failed to fork " << endl;
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
       string cmdToRun =
           "python3 " + m_curPath + upload_incr_DB_script + " --backup &";
       m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
