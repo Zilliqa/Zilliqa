@@ -626,9 +626,13 @@ bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
 }
 
 bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
-                                     uint64_t highblocknum) {
+                                     uint64_t highBlockNum) {
+  LOG_MARKER();
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "ComposeGetDSBlockMessage for blocks " << lowBlockNum << " to "
+                                                   << highBlockNum);
   SendMessageToRandomSeedNode(
-      ComposeGetDSBlockMessage(lowBlockNum, highblocknum));
+      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
   return true;
 }
 
@@ -2562,7 +2566,7 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   // Attempt PoW
   m_startedPoW = true;
   // set the node as synced
-  m_syncType = NO_SYNC;
+  SetSyncType(NO_SYNC);
   dsBlockRand = m_mediator.m_dsBlockRand;
   txBlockRand = m_mediator.m_txBlockRand;
 
@@ -3578,7 +3582,7 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
     return;
   }
-
+  LOG_GENERAL(INFO, "blocklink index = " << index_num);
   if (!toSendSeed) {
     SendMessageToRandomLookupNode(message);
   } else {

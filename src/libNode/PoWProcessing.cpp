@@ -48,6 +48,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 bool Node::GetLatestDSBlock() {
+  LOG_MARKER();
   unsigned int counter = 1;
   while (!m_mediator.m_lookup->m_fetchedLatestDSBlock &&
          counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
