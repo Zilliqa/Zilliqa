@@ -281,8 +281,10 @@ void Node::Init() {
   // set consensusID for first epoch to 1.
   LOG_MARKER();
 
-  m_retriever->CleanAll();
-  m_retriever.reset();
+  if (m_retriever) {
+    m_retriever->CleanAll();
+    m_retriever.reset();
+  }
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
