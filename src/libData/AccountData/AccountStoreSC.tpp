@@ -828,6 +828,10 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       }
     }
 
+    if (map_depth_json.empty()) {
+      map_depth_json = Json::objectValue;
+    }
+
     map_depth_data = DataConversion::StringToCharArray(
         JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
   } catch (const std::exception& e) {

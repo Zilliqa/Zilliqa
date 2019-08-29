@@ -423,6 +423,8 @@ const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
     ReadConstantNumeric("INCRDB_DSNUMS_WITH_STATEDELTAS", "node.recovery.")};
+const bool CONTRACT_STATES_MIGRATED{
+    ReadConstantString("CONTRACT_STATES_MIGRATED", "node.recovery.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

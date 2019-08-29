@@ -424,6 +424,13 @@ bool Retriever::RetrieveStates() {
 bool Retriever::ValidateStates() {
   LOG_MARKER();
 
+  if (CONTRACT_STATES_MIGRATED) {
+    LOG_GENERAL(INFO,
+                "Data migration just applied, skip for this time, remember to "
+                "disble if it's done");
+    return true;
+  }
+
   if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash() ==
       AccountStore::GetInstance().GetStateRootHash()) {
     LOG_GENERAL(INFO, "ValidateStates passed.");

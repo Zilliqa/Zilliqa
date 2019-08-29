@@ -324,6 +324,7 @@ extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
+extern const bool CONTRACT_STATES_MIGRATED;
 
 // Smart contract constants
 extern const bool ENABLE_SC;
