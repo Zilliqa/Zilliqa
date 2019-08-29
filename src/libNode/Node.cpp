@@ -1054,14 +1054,6 @@ void Node::StartSynchronization() {
       this_thread::sleep_for(chrono::seconds(m_mediator.m_lookup->m_startedPoW
                                                  ? POW_WINDOW_IN_SECONDS
                                                  : NEW_NODE_SYNC_INTERVAL));
-      // check again may be pow was started by now
-      if (m_mediator.m_lookup->m_startedPoW) {
-        // No need to keep on synchronizing now. If failed to do PoW, it will
-        // start synchronization again in next DS block
-        LOG_GENERAL(INFO,
-                    "PoW already started. Stopping syncronization thread");
-        break;
-      }
     }
   };
 

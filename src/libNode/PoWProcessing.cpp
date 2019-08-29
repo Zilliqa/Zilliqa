@@ -115,7 +115,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   auto startTime = std::chrono::high_resolution_clock::now();
   int powTimeWindow = POW_WINDOW_IN_SECONDS;
 
-  // Only in guard mode that shard guard can submit diffferent PoW
+  // Only in guard mode that shard guard can submit different PoW
   if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
                         m_mediator.m_selfKey.second)) {
     winning_result = POW::GetInstance().PoWMine(
@@ -187,7 +187,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
           m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
           StartSynchronization();
         } else {
-          LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
+          LOG_GENERAL(WARNING, "DS block not recvd, will initiate rejoin");
+          RejoinAsNormal();
         }
       }
     };
