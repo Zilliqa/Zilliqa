@@ -32,7 +32,6 @@ const char* synctype_descr =
 
 const string default_logPath = "/run/zilliqa/";
 const string SUSPEND_LAUNCH = "SUSPEND_LAUNCH";
-const string launch_zilliqa_script = "launch_zilliqa.py";
 const string upload_incr_DB_script = "upload_incr_DB.py";
 const string download_incr_DB_script = "download_incr_DB.py";
 const string auto_backup_script = "auto_backup.py";
@@ -292,12 +291,22 @@ void ZilliqaDaemon::StartNewProcess() {
             << ", recovery = " << m_recovery << endl;
     }
 
-    string cmdToRun = "python " + m_curPath + launch_zilliqa_script + " " +
-                      m_pubKey + " " + m_privKey + " " + m_ip + " " +
-                      std::to_string(m_port) + " " + strSyncType + " " +
-                      m_logPath + " " + std::to_string(m_recovery);
+    string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
+                      m_pubKey + " --address " + m_ip + " --port " +
+                      to_string(m_port) + " --synctype " + strSyncType +
+                      " --logpath " + m_logPath;
+
+    if (1 == m_recovery) {
+      cmdToRun += " --recovery";
+    }
+
     m_log << "Start to run command: \"" << cmdToRun << "\"" << endl;
-    m_log << "\" " << Execute(cmdToRun + " 2>&1") << " \"" << endl;
+    m_log << "\" "
+          << Execute("cd " + m_curPath +
+                     "; ulimit -Sc unlimited; ulimit -Hc unlimited;" +
+                     cmdToRun + " >> ./error_log_zilliqa 2>&1")
+          << " \"" << endl;
+
     exit(0);
   }
 }
