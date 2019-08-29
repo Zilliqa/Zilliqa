@@ -30,7 +30,6 @@ const char* synctype_descr =
     "for node recovery, 6 for new lookup , 7 for ds guard node sync and 8 "
     "for offline validation of DB";
 
-const string default_logPath = "/run/zilliqa/";
 const string SUSPEND_LAUNCH = "SUSPEND_LAUNCH";
 const string upload_incr_DB_script = "upload_incr_DB.py";
 const string download_incr_DB_script = "download_incr_DB.py";
@@ -51,7 +50,7 @@ enum SyncType : unsigned int {
 
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
     : m_log(log),
-      m_logPath(default_logPath),
+      m_logPath(boost::filesystem::current_path().string() + "/zilliqa/"),
       m_curPath(boost::filesystem::current_path().string() + "/zilliqa/"),
       m_port(-1),
       m_recovery(0),
@@ -253,7 +252,7 @@ void ZilliqaDaemon::StartNewProcess() {
   if (pid_parent == 0) {
     bool bSuspend = false;
 
-    while (ifstream(SUSPEND_LAUNCH).good()) {
+    while (ifstream(m_curPath + SUSPEND_LAUNCH).good()) {
       if (!bSuspend) {
         m_log << ZilliqaDaemon::CurrentTimeStamp().c_str()
               << "Temporarily suspend launch new zilliqa process, please wait "
