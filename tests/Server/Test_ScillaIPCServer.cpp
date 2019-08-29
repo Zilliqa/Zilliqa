@@ -22,6 +22,7 @@
 #include "libPersistence/ScillaMessage.pb.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SysCommand.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK
@@ -771,6 +772,37 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
 
   server.StopListening();
   LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
+}
+
+// This test launches a server, invokes `make test_extipcserver`
+// in the Scilla testsuite and checks if it finished successfully.
+BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
+  INIT_STDOUT_LOGGER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(INFO, "SCILLA_ROOT not provided. Not running Scilla testsuite");
+    return;
+  }
+
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  ScillaIPCServer server(s);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
+  server.StartListening();
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");
+
+  std::string cwd;
+  if (ENABLE_SCILLA_MULTI_VERSION) {
+    cwd = SCILLA_ROOT + "/0";
+   } else {
+     cwd = SCILLA_ROOT;
+   }
+
+  if (SysCommand::ExecuteCmdWithoutOutput("make test_extipcserver", cwd)) {
+    LOG_GENERAL(INFO, "Scilla testsuite with external IPC server succeeded.")
+  }
+
+  server.StopListening();
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: server has stopped listening.");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
