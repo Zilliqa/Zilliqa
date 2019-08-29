@@ -54,13 +54,19 @@ using namespace boost::multiprecision;
 void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   LOG_MARKER();
 
-  m_mediator.m_dsBlockChain.AddBlock(dsblock);
   LOG_GENERAL(INFO, "Block num = " << dsblock.GetHeader().GetBlockNum());
   LOG_GENERAL(
       INFO, "DS diff   = " << to_string(dsblock.GetHeader().GetDSDifficulty()));
   LOG_GENERAL(INFO,
               "Diff      = " << to_string(dsblock.GetHeader().GetDifficulty()));
   LOG_GENERAL(INFO, "Timestamp = " << dsblock.GetTimestamp());
+
+  if (-1 == m_mediator.m_dsBlockChain.AddBlock(dsblock)) {
+    LOG_GENERAL(
+        WARNING,
+        "This block is already added. Skipped re-adding to blocklink again");
+    return;
+  }
 
   // Update the rand1 value for next PoW
   m_mediator.UpdateDSBlockRand();
