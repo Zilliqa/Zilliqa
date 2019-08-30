@@ -11,7 +11,6 @@ message ByteArray
 // Primitives that are used for persistent storage
 //
 // NOTE:
-//   For backward compatibility, all fields should be marked optional/repeated.
 //   Only append new fields to the end of these messages.
 //   This means that if a field is to be deprecated, do not remove it.
 // ============================================================================
@@ -78,14 +77,9 @@ message ProtoDSBlock
             ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
             // Add new members here
         }
-<<<<<<< HEAD
         repeated PowDSWinners dswinners = 10; // Added in: v1.0, Deprecated in: N/A
-        optional DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
-        repeated ByteArray dsremoved    = 12; // Added in: v2.0, Deprecated in: N/A
-=======
-        repeated PowDSWinners dswinners = 10;  // Added in: v1.0, Deprecated in: N/A
         DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
->>>>>>> 93412850c8cd45b9b7d5d1fbcd2ef682419c0d35
+        repeated ByteArray dsremoved    = 12; // Added in: v2.0, Deprecated in: N/A
         // Add new members here
     }
     DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -283,23 +277,17 @@ message ProtoAccount
     }
     ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
 
-<<<<<<< HEAD
-    optional bytes code            = 2; // Added in: v1.0, Deprecated in: N/A
+    bytes code            = 2; // Added in: v1.0, Deprecated in: N/A
     repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A
-    optional bool numbersign       = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    bool numbersign       = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
     message StorageData2
     {
-        required string key        = 1; // Added in: v1.1, Deprecated in: N/A
-        required bytes data        = 2; // Added in: v1.1, Deprecated in: N/A
+        string key        = 1; // Added in: v1.1, Deprecated in: N/A
+        bytes data        = 2; // Added in: v1.1, Deprecated in: N/A
     }
     repeated StorageData2 storage2  = 5; // Added in: v1.1, Deprecated in: N/A
     repeated string todelete        = 6; // Added in: v1.1, Deprecated in: N/A
-    optional bytes initdata         = 7; // Added in: v1.1, Deprecated in: N/A
-=======
-    bytes code            = 2;  // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A
-    bool numbersign       = 4;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
->>>>>>> 93412850c8cd45b9b7d5d1fbcd2ef682419c0d35
+    bytes initdata         = 7; // Added in: v1.1, Deprecated in: N/A
 }
 
 message ProtoStateIndex
@@ -309,19 +297,11 @@ message ProtoStateIndex
 
 message ProtoStateData
 {
-<<<<<<< HEAD
-    optional uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
-    optional string vname   = 2; // Added in: v1.0, Deprecated in: N/A
-    optional bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
-    optional string type    = 4; // Added in: v1.0, Deprecated in: N/A
-    optional string value   = 5; // Added in: v1.0, Deprecated in: N/A
-=======
     uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
     string vname   = 2; // Added in: v1.0, Deprecated in: N/A
     bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
     string type    = 4; // Added in: v1.0, Deprecated in: N/A
-    string value   = 5; // Added in: v1.0, Deprecated in: N/A 
->>>>>>> 93412850c8cd45b9b7d5d1fbcd2ef682419c0d35
+    string value   = 5; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoAccountStore
@@ -1030,13 +1010,8 @@ message DSLookupSetDSGuardNetworkInfoUpdate
         ProtoPeer dsguardnewnetworkinfo    = 3;
         uint64 timestamp                   = 4;
     }
-<<<<<<< HEAD
-    required Data data                              = 1;
-    required ByteArray signature                    = 2;
-=======
     Data data                              = 1;
     ByteArray signature                    = 2; 
->>>>>>> 93412850c8cd45b9b7d5d1fbcd2ef682419c0d35
 }
 
 // To update shard node of guard node's network info change

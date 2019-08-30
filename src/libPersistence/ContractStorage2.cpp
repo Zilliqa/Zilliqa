@@ -17,7 +17,11 @@
 
 #include "ContractStorage2.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "ScillaMessage.pb.h"
+#pragma GCC diagnostic pop
+
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"

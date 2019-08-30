@@ -19,7 +19,10 @@
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 #include <thread>
 #include "common/Constants.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
+#pragma GCC diagnostic pop
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
@@ -793,9 +796,9 @@ BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
   std::string cwd;
   if (ENABLE_SCILLA_MULTI_VERSION) {
     cwd = SCILLA_ROOT + "/0";
-   } else {
-     cwd = SCILLA_ROOT;
-   }
+  } else {
+    cwd = SCILLA_ROOT;
+  }
 
   if (SysCommand::ExecuteCmdWithoutOutput("make test_extipcserver", cwd)) {
     LOG_GENERAL(INFO, "Scilla testsuite with external IPC server succeeded.")

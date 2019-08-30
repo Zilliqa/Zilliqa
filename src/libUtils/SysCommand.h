@@ -44,7 +44,7 @@ class SysCommand {
  public:
   static FILE* popen_with_pid(const std::string& command,
                               const std::string& type, int& pid,
-                              const std::string &cwd = "") {
+                              const std::string& cwd = "") {
     pid_t child_pid;
     int fd[2];
     if (pipe(fd) != 0) {
@@ -71,8 +71,12 @@ class SysCommand {
       setpgid(
           child_pid,
           child_pid);  // Needed so negative PIDs can kill children of /bin/sh
-      if (!cwd.empty())
-        chdir(cwd.c_str());
+      if (!cwd.empty()) {
+        if (chdir(cwd.c_str()) < 0) {
+          LOG_GENERAL(WARNING, "chdir failed");
+          exit(1);
+        }
+      }
       execl("/bin/sh", "/bin/sh", "-c", command.c_str(), NULL);
       exit(0);
     } else {
@@ -108,16 +112,17 @@ class SysCommand {
     return stat;
   }
 
-  static bool ExecuteCmdWithoutOutput(const std::string& cmd, const std::string &cwd = "") {
+  static bool ExecuteCmdWithoutOutput(const std::string& cmd,
+                                      const std::string& cwd = "") {
     std::string str;
     return ExecuteCmdWithOutput(cmd, str, cwd);
   }
 
-  static bool ExecuteCmdWithOutput(std::string cmd, std::string& output, const std::string& cwd = "") {
+  static bool ExecuteCmdWithOutput(std::string cmd, std::string& output,
+                                   const std::string& cwd = "") {
     LOG_MARKER();
 
-    if (!cwd.empty())
-      cmd = "cd " + cwd + "; " + cmd;
+    if (!cwd.empty()) cmd = "cd " + cwd + "; " + cmd;
 
     std::array<char, 128> buffer{};
 
