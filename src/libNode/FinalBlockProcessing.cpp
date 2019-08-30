@@ -863,6 +863,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
          NUM_FINAL_BLOCK_PER_POW) != 0) {
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
+
+    if (ARCHIVAL_LOOKUP)  // newlookup and level2lookup
+    {
+      m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+    }
   }
 
   FallbackTimerPulse();

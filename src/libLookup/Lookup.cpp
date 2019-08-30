@@ -1493,6 +1493,12 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   }
 
   LOG_GENERAL(INFO, "Request for " << microBlockHashes.size() << " blocks");
+  if (microBlockHashes.size() > MAX_FETCHMISSINGMBS_NUM) {
+    LOG_GENERAL(WARNING, "Requesting for more than max allowed : "
+                             << MAX_FETCHMISSINGMBS_NUM
+                             << ". Looks Suspicious so ignore request");
+    return false;
+  }
 
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
@@ -1541,6 +1547,12 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
     [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   //[numberOfMicroBlocks][microblock1][microblock2]...
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
   LOG_MARKER();
 
   vector<MicroBlock> mbs;
@@ -1566,7 +1578,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                           << " Recvd " << mb.GetHeader().GetEpochNum()
                           << " MBHash:" << mb.GetBlockHash());
     AddMicroBlockToStorage(mb);
-    SendGetTxnFromLookup(mb.GetTranHashes());
+    SendGetTxnFromLookup(mb.GetBlockHash(), mb.GetTranHashes());
   }
 
   return true;
@@ -2414,9 +2426,9 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
   LOG_MARKER();
 
   vector<TxnHash> txnhashes;
-
+  BlockHash mbHash;
   uint32_t portNo = 0;
-  if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, txnhashes,
+  if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, mbHash, txnhashes,
                                              portNo)) {
     LOG_GENERAL(WARNING, "Failed to Process");
     return false;
@@ -2442,8 +2454,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
   bytes setTxnMsg = {MessageType::LOOKUP,
                      LookupInstructionType::SETTXNFROMLOOKUP};
 
-  if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
-                                             m_mediator.m_selfKey, txns)) {
+  if (!Messenger::SetLookupSetTxnsFromLookup(
+          setTxnMsg, MessageOffset::BODY, m_mediator.m_selfKey, mbHash, txns)) {
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
@@ -2458,11 +2470,12 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  BlockHash mbHash;
   vector<TransactionWithReceipt> txns;
   PubKey lookupPubKey;
 
   if (!Messenger::GetLookupSetTxnsFromLookup(message, offset, lookupPubKey,
-                                             txns)) {
+                                             mbHash, txns)) {
     LOG_GENERAL(WARNING, "Failed to Process");
     return false;
   }
@@ -2486,10 +2499,32 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
+  // Delete the mb from unavailable list here
+  std::lock_guard<mutex> lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+  auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks();
+  for (auto it = mbs.begin(); it != mbs.end(); it++) {
+    auto mbsVec = it->second;
+    size_t origSiz = mbsVec.size();
+    mbsVec.erase(
+        std::remove_if(mbsVec.begin(), mbsVec.end(),
+                       [mbHash](const std::pair<BlockHash, TxnHash>& e) {
+                         return e.first == mbHash;
+                       }),
+        mbsVec.end());
+    if (mbsVec.size() < origSiz) {
+      if (mbsVec.size() == 0) {
+        // Finally delete the entry for this final block
+        mbs.erase(it->first);
+      }
+      break;
+    }
+  }
+
   return true;
 }
 
-void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
+void Lookup::SendGetTxnFromLookup(const BlockHash& mbHash,
+                                  const vector<TxnHash>& txnhashes) {
   LOG_MARKER();
 
   bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
@@ -2500,7 +2535,7 @@ void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
   }
 
   if (!Messenger::SetLookupGetTxnsFromLookup(
-          msg, MessageOffset::BODY, txnhashes,
+          msg, MessageOffset::BODY, mbHash, txnhashes,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Failed to process");
     return;
@@ -4184,4 +4219,69 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
 
   LOG_GENERAL(INFO, "HistDB Success");
   return true;
+}
+
+void Lookup::CheckAndFetchUnavailableMBs() {
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::CheckAndFetchUnavailableMBs not expected to be called from "
+        "other than the ARCHIVAL LOOKUP.");
+    return;
+  }
+  LOG_MARKER();
+
+  if (m_startedFetchMissingMBsThread) {
+    LOG_GENERAL(
+        WARNING,
+        "The last FetchMissingMBsThread hasn't finished, discard this time");
+    return;
+  }
+
+  unsigned int maxMBSToBeFetched = MAX_FETCHMISSINGMBS_NUM;
+  auto main_func = [this, maxMBSToBeFetched]() mutable -> void {
+    m_startedFetchMissingMBsThread = true;
+    auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
+    unsigned int count = 0;
+    for (const auto& it : unavailableMBs) {
+      // skip mbs from latest final block
+      if (it.first == m_mediator.m_currentEpochNum - 1) {
+        continue;
+      }
+      LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "
+                            << it.first << ": " << it.second.size());
+
+      // Delete missing mbs from unavailable list which has no txns
+      auto mbsIt = it.second;
+      mbsIt.erase(std::remove_if(mbsIt.begin(), mbsIt.end(),
+                                 [](const std::pair<BlockHash, TxnHash> e) {
+                                   return e.second == TxnHash();
+                                 }),
+                  mbsIt.end());
+
+      LOG_GENERAL(INFO,
+                  "After deleting microblock bodies with no transactions, "
+                  "Unavailable count = "
+                      << mbsIt.size());
+
+      vector<BlockHash> mbHashes;
+      for (auto it2 : mbsIt) {
+        count++;
+        if (count > maxMBSToBeFetched) {
+          LOG_GENERAL(INFO, "Max fetch missing mbs limit of "
+                                << maxMBSToBeFetched
+                                << "is reached. Remaining missing mbs will be "
+                                   "handled in next epoch");
+          break;
+        }
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "BlockHash = " << it2.first << ", TxnHash = " << it2.second);
+        mbHashes.emplace_back(it2.first);
+      }
+      SendGetMicroBlockFromLookup(mbHashes);
+    }
+
+    m_startedFetchMissingMBsThread = false;
+  };
+  DetachedFunction(1, main_func);
 }

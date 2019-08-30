@@ -806,14 +806,16 @@ message LookupForwardTxnsFromSeed
 message LookupGetTxnsFromLookup
 {
     required uint32 portno   = 1;
-    repeated bytes txnhashes = 2;
+    required bytes mbhash   = 2;
+    repeated bytes txnhashes = 3;
 }
 
 message LookupSetTxnsFromLookup
 {
-    repeated ByteArray transactions = 1;
-    required ByteArray pubkey       = 2;
-    required ByteArray signature    = 3;
+    required bytes mbhash          = 1;
+    repeated ByteArray transactions = 2;
+    required ByteArray pubkey       = 3;
+    required ByteArray signature    = 4;
 }
 
 message LookupGetDirectoryBlocksFromSeed

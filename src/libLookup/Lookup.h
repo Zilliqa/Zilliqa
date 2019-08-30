@@ -91,6 +91,8 @@ class Lookup : public Executable {
 
   std::atomic<bool> m_startedTxnBatchThread{};
 
+  std::atomic<bool> m_startedFetchMissingMBsThread{};
+
   // Start PoW variables
   std::atomic<bool> m_receivedRaiseStartPoW{};
 
@@ -297,7 +299,8 @@ class Lookup : public Executable {
                                 [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
 
-  void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
+  void SendGetTxnFromLookup(const BlockHash& mbHash,
+                            const std::vector<TxnHash>& txnhashes);
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
@@ -367,6 +370,9 @@ class Lookup : public Executable {
 
   static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
+
+  /// Check and fetch unavailable microblocks
+  void CheckAndFetchUnavailableMBs();
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 

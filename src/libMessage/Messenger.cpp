@@ -6774,6 +6774,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
 // UNUSED
 bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
                                            const unsigned int offset,
+                                           const BlockHash& mbHash,
                                            const vector<TxnHash>& txnhashes,
                                            uint32_t portNo) {
   LOG_MARKER();
@@ -6781,6 +6782,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
   LookupGetTxnsFromLookup result;
 
   result.set_portno(portNo);
+  result.set_mbhash(mbHash.data(), mbHash.size);
 
   for (const auto& txhash : txnhashes) {
     result.add_txnhashes(txhash.data(), txhash.size);
@@ -6797,6 +6799,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
 // UNUSED
 bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
                                            const unsigned int offset,
+                                           BlockHash& mbHash,
                                            vector<TxnHash>& txnhashes,
                                            uint32_t& portNo) {
   LOG_MARKER();
@@ -6810,17 +6813,19 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
   LookupGetTxnsFromLookup result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  portNo = result.portno();
-
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetTxnsFromLookup initialization failure");
     return false;
   }
 
+  portNo = result.portno();
+  auto hash = result.mbhash();
+  unsigned int size = min((unsigned int)hash.size(), (unsigned int)mbHash.size);
+  copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
+
   for (const auto& hash : result.txnhashes()) {
     txnhashes.emplace_back();
-    unsigned int size =
-        min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
+    size = min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
     copy(hash.begin(), hash.begin() + size, txnhashes.back().asArray().begin());
   }
   return true;
@@ -6829,7 +6834,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
 // UNUSED
 bool Messenger::SetLookupSetTxnsFromLookup(
     bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
-    const vector<TransactionWithReceipt>& txns) {
+    const BlockHash& mbHash, const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   LookupSetTxnsFromLookup result;
@@ -6867,7 +6872,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 // UNUSED
 bool Messenger::GetLookupSetTxnsFromLookup(
     const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
-    vector<TransactionWithReceipt>& txns) {
+    BlockHash& mbHash, vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
