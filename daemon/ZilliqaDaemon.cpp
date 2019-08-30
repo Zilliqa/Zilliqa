@@ -127,7 +127,7 @@ void ZilliqaDaemon::MonitorProcess() {
 }
 
 void ZilliqaDaemon::LOG(ofstream& log, const string& msg) {
-  log << ZilliqaDaemon::CurrentTimeStamp() << msg << endl;
+  log << "[" << ZilliqaDaemon::CurrentTimeStamp() << "] : " << msg << endl;
 }
 
 string ZilliqaDaemon::CurrentTimeStamp() {
