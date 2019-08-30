@@ -72,7 +72,10 @@ class SysCommand {
           child_pid,
           child_pid);  // Needed so negative PIDs can kill children of /bin/sh
       if (!cwd.empty())
-        chdir(cwd.c_str());
+        if (chdir(cwd.c_str()) < 0) {
+          LOG_GENERAL(WARNING, "chdir failed");
+          exit(1);
+        }
       execl("/bin/sh", "/bin/sh", "-c", command.c_str(), NULL);
       exit(0);
     } else {
