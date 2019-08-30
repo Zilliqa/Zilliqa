@@ -286,6 +286,21 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
+  // let's try fetching _only_ foo[key1b]
+  query.clear_indices();
+  query.add_indices("key1b");
+  query.set_ignoreval(false);
+  params["query"] = query.SerializeAsString();
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // We should _not_ find foo["key1b"]
+  BOOST_CHECK_EQUAL(result[0].asBool(), false);
+
   // We now expect the storage to contain:
   // foo[key1a][key2a] : 420
   query.clear_indices();  // Let's fetch back the entire map.
@@ -311,6 +326,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
                     "420");
 
   // Add foo[key1b][key2c] back again, with a different value.
+  query.clear_indices();
   query.add_indices("key1b");
   query.add_indices("key2c");
   value.set_bval("121");
