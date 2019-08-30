@@ -286,6 +286,38 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
+  // let's try fetching foo[key1b][key2b]
+  query.clear_indices();
+  query.add_indices("key1b");
+  query.add_indices("key2b");
+  query.set_ignoreval(false);
+  params["query"] = query.SerializeAsString();
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // We should _not_ find foo["key1b"]["key2b"]
+  BOOST_CHECK_EQUAL(result[0].asBool(), false);
+
+  // let's try fetching foo[key1b][key2d]
+  query.clear_indices();
+  query.add_indices("key1b");
+  query.add_indices("key2d");
+  query.set_ignoreval(false);
+  params["query"] = query.SerializeAsString();
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // We should _not_ find foo["key1b"]["key2d"]
+  BOOST_CHECK_EQUAL(result[0].asBool(), false);
+
   // let's try fetching _only_ foo[key1b]
   query.clear_indices();
   query.add_indices("key1b");
