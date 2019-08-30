@@ -40,13 +40,11 @@ RUN apt-get update \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
-    libprotobuf-dev \
     libsnappy-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
     python \
     python-pip \
     libsecp256k1-dev \
@@ -56,6 +54,7 @@ RUN apt-get update \
 ARG COMMIT=
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
+ARG PROTO3_DIR=/zilliqa/scripts/download_proto3.sh
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
@@ -63,6 +62,7 @@ ARG EXTRA_CMAKE_ARGS=
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT} \
+    && ${PROTO3_DIR} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \

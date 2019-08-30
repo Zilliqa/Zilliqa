@@ -27,6 +27,8 @@
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 
+class ScillaIPCServer;
+
 template <class MAP>
 class AccountStoreSC;
 
@@ -89,16 +91,14 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::condition_variable cv_callContract;
   std::atomic<bool> m_txnProcessTimeout;
 
-  /// Contract Deployment
-  /// verify the return from scilla_checker for deployment is valid
-  bool ParseContractCheckerOutput(const std::string& checkerPrint,
-                                  TransactionReceipt& receipt);
+  /// scilla IPC server
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
+  /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint,
-                           TransactionReceipt& receipt,
-                           Account* contractAccount);
+                           TransactionReceipt& receipt);
   /// convert the interpreter output into parsable json object for deployment
   bool ParseCreateContractOutput(Json::Value& jsonOutput,
                                  const std::string& runnerPrint,
@@ -106,14 +106,12 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for deployment
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
                                      uint64_t& gasRemained,
-                                     TransactionReceipt& receipt,
-                                     Account* contractAccount);
+                                     TransactionReceipt& receipt);
 
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
-                         TransactionReceipt& receipt, bool temp,
-                         bool first = true);
+                         TransactionReceipt& receipt);
   /// convert the interpreter output into parsable json object for calling
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint,
@@ -121,8 +119,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for calling and update states
   bool ParseCallContractJsonOutput(const Json::Value& _json,
                                    uint64_t& gasRemained,
-                                   TransactionReceipt& receipt, bool first,
-                                   bool temp);
+                                   TransactionReceipt& receipt);
 
   /// Utility functions
   /// get the json format file for the current blocknum
@@ -130,26 +127,25 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// get the command for invoking the scilla_checker while deploying
   std::string GetContractCheckerCmdStr(const std::string& root_w_version);
   /// get the command for invoking the scilla_runner while deploying
-  std::string GetCreateContractCmdStr(const std::string& root_w_version,
-                                      const uint64_t& available_gas);
+  std::string GetCreateContractCmdStr(
+      const std::string& root_w_version, const uint64_t& available_gas,
+      const boost::multiprecision::uint128_t& balance);
   /// get the command for invoking the scilla_runner while calling
-  std::string GetCallContractCmdStr(const std::string& root_w_version,
-                                    const uint64_t& available_gas);
+  std::string GetCallContractCmdStr(
+      const std::string& root_w_version, const uint64_t& available_gas,
+      const boost::multiprecision::uint128_t& balance);
   /// updating m_root_w_version
   bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
-  /// generate input files for interpreter to deploy contract
-  bool ExportCreateContractFiles(const Account& contract);
-
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
-  bool ExportContractFiles(const Account& contract);
+  bool ExportContractFiles(Account& contract);
   /// generate the files for message from txn for interpreter to call contract
-  bool ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(Account& contract,
                                const Transaction& transaction);
   /// generate the files for message from previous contract output for
   /// interpreter to call another contract
-  bool ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(Account& contract,
                                const Json::Value& contractData);
 
   /// Amount Transfer
@@ -165,16 +161,34 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
  protected:
   AccountStoreSC();
 
- public:
-  /// Initialize the class
-  void Init() override;
+  /// generate input files for interpreter to deploy contract
+  bool ExportCreateContractFiles(const Account& contract,
+                                 const uint32_t& scilla_version);
+
+  /// capsulate and expose in protected for using by data migartion
+  void InvokeScillaChecker(std::string& checkerPrint, bool& ret_checker,
+                           int& pid, TransactionReceipt& receipt);
+
+  /// verify the return from scilla_checker for deployment is valid
+  /// expose in protected for using by data migration
+  bool ParseContractCheckerOutput(const std::string& checkerPrint,
+                                  TransactionReceipt& receipt,
+                                  bytes& map_depth_data);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
-                      TransactionReceipt& receipt, bool temp = false);
+                      TransactionReceipt& receipt);
+
+ public:
+  /// Initialize the class
+  void Init() override;
+
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
+
+  virtual void SetScillaIPCServer(
+      std::shared_ptr<ScillaIPCServer> scillaIPCServer);
 };
 
 #include "AccountStoreAtomic.tpp"

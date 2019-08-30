@@ -75,6 +75,7 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
 * Ubuntu 16.04:
 
     ```bash
+    sudo add-apt-repository --yes ppa:maarten-fonville/protobuf
     sudo apt-get update
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \

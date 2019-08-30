@@ -27,12 +27,7 @@
 
 class Mediator;
 
-class Server {
- protected:
-  Mediator& m_mediator;
-  Server(Mediator& mediator) : m_mediator(mediator) {}
-  ~Server();
-
+class ServerBase {
  public:
   enum RPCErrorCode {
     //! Standard JSON-RPC 2.0 errors
@@ -63,7 +58,15 @@ class Server {
     RPC_IN_WARMUP = -28,          //!< Client still warming up
     RPC_METHOD_DEPRECATED = -32,  //!< RPC method is deprecated
   };
+};
 
+class Server : public ServerBase {
+ protected:
+  Mediator& m_mediator;
+  Server(Mediator& mediator) : m_mediator(mediator) {}
+  ~Server();
+
+ public:
   inline virtual void GetCurrentMiniEpochI(const Json::Value& request,
                                            Json::Value& response) {
     (void)request;

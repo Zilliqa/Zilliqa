@@ -398,12 +398,25 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   AccountBaseToProtobuf(account, *protoAccountBase);
 
   if (protoAccountBase->has_codehash()) {
+    // set code
     bytes codebytes = account.GetCode();
     protoAccount.set_code(codebytes.data(), codebytes.size());
-    for (const auto& keyHash : account.GetStorageKeyHashes(false)) {
-      ProtoAccount::StorageData* entry = protoAccount.add_storage();
-      entry->set_keyhash(keyHash.data(), keyHash.size);
-      entry->set_data(account.GetRawStorage(keyHash, false));
+
+    // set initdata
+    bytes initbytes = account.GetInitData();
+    protoAccount.set_initdata(initbytes.data(), initbytes.size());
+
+    // set data
+    map<std::string, bytes> t_states;
+    vector<std::string> deletedIndices;
+    account.GetUpdatedStates(t_states, deletedIndices);
+    for (const auto& state : t_states) {
+      ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
+      entry->set_key(state.first);
+      entry->set_data(state.second.data(), state.second.size());
+    }
+    for (const auto& todelete : deletedIndices) {
+      protoAccount.add_todelete(todelete);
     }
   }
 }
@@ -430,11 +443,15 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       LOG_GENERAL(WARNING, "Account has valid codehash but no code content");
       return false;
     }
-    bytes tmpVec;
-    tmpVec.resize(protoAccount.code().size());
+    bytes codeBytes, initBytes;
+    codeBytes.resize(protoAccount.code().size());
     copy(protoAccount.code().begin(), protoAccount.code().end(),
-         tmpVec.begin());
-    account.SetCode(tmpVec);
+         codeBytes.begin());
+    initBytes.resize(protoAccount.initdata().size());
+    copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
+         initBytes.begin());
+
+    account.SetImmutable(codeBytes, initBytes);
 
     if (account.GetCodeHash() != tmpCodeHash) {
       LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
@@ -443,21 +460,21 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       return false;
     }
 
-    dev::h256 tmpHash, tmpStorageRoot = account.GetStorageRoot();
+    dev::h256 tmpStorageRoot = account.GetStorageRoot();
 
-    vector<pair<dev::h256, bytes>> entries;
-    for (const auto& entry : protoAccount.storage()) {
-      if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-        return false;
-      }
+    map<string, bytes> t_states;
+    vector<std::string> toDeleteIndices;
 
-      entries.emplace_back(tmpHash,
-                           DataConversion::StringToCharArray(entry.data()));
+    for (const auto& entry : protoAccount.storage2()) {
+      t_states.emplace(entry.key(),
+                       DataConversion::StringToCharArray(entry.data()));
     }
 
-    if (!account.SetStorage(addr, entries, false)) {
-      return false;
+    for (const auto& entry : protoAccount.todelete()) {
+      toDeleteIndices.emplace_back(entry);
     }
+
+    account.UpdateStates(addr, t_states, toDeleteIndices, false);
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
       LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
@@ -503,19 +520,24 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
+      protoAccount.set_initdata(newAccount.GetInitData().data(),
+                                newAccount.GetInitData().size());
     }
 
     if (fullCopy ||
         newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
-      for (const auto& keyHash : newAccount.GetStorageKeyHashes(true)) {
-        string rlpStr = newAccount.GetRawStorage(keyHash, true);
-        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash, false)) {
-          ProtoAccount::StorageData* entry = protoAccount.add_storage();
-          entry->set_keyhash(keyHash.data(), keyHash.size);
-          entry->set_data(rlpStr);
-        }
+      map<std::string, bytes> t_states;
+      vector<std::string> deletedIndices;
+      newAccount.GetUpdatedStates(t_states, deletedIndices);
+      for (const auto& state : t_states) {
+        ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
+        entry->set_key(state.first);
+        entry->set_data(state.second.data(), state.second.size());
+      }
+      for (const auto& deleted : deletedIndices) {
+        protoAccount.add_todelete(deleted);
       }
     }
   }
@@ -569,7 +591,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   if ((protoAccount.has_code() && protoAccount.code().size() > 0) ||
       account.isContract()) {
     if (fullCopy) {
-      bytes tmpVec;
+      bytes codeBytes, initDataBytes;
 
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
@@ -578,11 +600,18 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                  << MAX_CODE_SIZE_IN_BYTES);
         return false;
       }
-      tmpVec.resize(protoAccount.code().size());
+      codeBytes.resize(protoAccount.code().size());
       copy(protoAccount.code().begin(), protoAccount.code().end(),
-           tmpVec.begin());
-      if (tmpVec != account.GetCode()) {
-        account.SetCode(tmpVec);
+           codeBytes.begin());
+      initDataBytes.resize(protoAccount.initdata().size());
+      copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
+           initDataBytes.begin());
+      if (codeBytes != account.GetCode() ||
+          initDataBytes != account.GetInitData()) {
+        if (!account.SetImmutable(codeBytes, initDataBytes)) {
+          LOG_GENERAL(WARNING, "Account::SetImmutable failed");
+          return false;
+        }
       }
 
       if (account.GetCodeHash() != accbase.GetCodeHash()) {
@@ -596,21 +625,21 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
       dev::h256 tmpHash;
 
-      vector<pair<dev::h256, bytes>> entries;
-      for (const auto& entry : protoAccount.storage()) {
-        if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-          return false;
-        }
+      map<string, bytes> t_states;
+      vector<std::string> toDeleteIndices;
 
-        entries.emplace_back(tmpHash,
-                             DataConversion::StringToCharArray(entry.data()));
+      for (const auto& entry : protoAccount.storage2()) {
+        t_states.emplace(entry.key(),
+                         DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (!account.SetStorage(addr, entries, temp, revertible)) {
-        return false;
+      for (const auto& entry : protoAccount.todelete()) {
+        toDeleteIndices.emplace_back(entry);
       }
 
-      if (!entries.empty() &&
+      account.UpdateStates(addr, t_states, toDeleteIndices, temp);
+
+      if ((!t_states.empty() || !toDeleteIndices.empty()) &&
           accbase.GetStorageRoot() != account.GetStorageRoot()) {
         LOG_GENERAL(WARNING,
                     "Storage root mismatch. Expected: "
@@ -2409,7 +2438,7 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
 template <class MAP>
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
                                 MAP& addressToAccount) {
-  if (offset >= src.size()) {
+  if (offset > src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
     return false;

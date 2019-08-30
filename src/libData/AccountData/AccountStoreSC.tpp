@@ -19,7 +19,8 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 
-#include "libPersistence/ContractStorage.h"
+#include "libPersistence/ContractStorage2.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
@@ -47,10 +48,44 @@ void AccountStoreSC<MAP>::Init() {
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, TransactionReceipt& receipt, bool temp) {
+void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
+                                              bool& ret_checker, int& pid,
+                                              TransactionReceipt& receipt) {
+  auto func1 = [this, &checkerPrint, &ret_checker, &pid,
+                &receipt]() mutable -> void {
+    try {
+      if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
+                                  GetContractCheckerCmdStr(m_root_w_version),
+                                  checkerPrint, pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: "
+                                 << GetContractCheckerCmdStr(m_root_w_version));
+        receipt.AddError(EXECUTE_CMD_FAILED);
+        ret_checker = false;
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (1): "
+                               << e.what());
+      ret_checker = false;
+    }
+
+    cv_callContract.notify_all();
+  };
+  DetachedFunction(1, func1);
+
+  {
+    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+    cv_callContract.wait(lk);
+  }
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
+                                         const unsigned int& numShards,
+                                         const bool& isDS,
+                                         const Transaction& transaction,
+                                         TransactionReceipt& receipt) {
   // LOG_MARKER();
+  LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -154,15 +189,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
       try {
         // Initiate the contract account, including setting the contract code
         // store the immutable states
+        uint32_t scilla_version;
         if (!toAccount->InitContract(transaction.GetCode(),
                                      transaction.GetData(), toAddr, blockNum,
-                                     temp)) {
+                                     scilla_version)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
 
         m_curBlockNum = blockNum;
-        if (init && !ExportCreateContractFiles(*toAccount)) {
+        if (init && !ExportCreateContractFiles(*toAccount, scilla_version)) {
           LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
           init = false;
         }
@@ -181,39 +217,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         return false;
       }
 
+      // prepare IPC with current contract address
+      m_scillaIPCServer->setContractAddress(toAddr);
+
       // Undergo scilla checker
       bool ret_checker = true;
       std::string checkerPrint;
 
       int pid = -1;
-      auto func1 = [this, &checkerPrint, &ret_checker, &pid,
-                    &receipt]() mutable -> void {
-        try {
-          if (!SysCommand::ExecuteCmd(
-                  SysCommand::WITH_OUTPUT_PID,
-                  GetContractCheckerCmdStr(m_root_w_version), checkerPrint,
-                  pid)) {
-            LOG_GENERAL(WARNING,
-                        "ExecuteCmd failed: "
-                            << GetContractCheckerCmdStr(m_root_w_version));
-            receipt.AddError(EXECUTE_CMD_FAILED);
-            ret_checker = false;
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(
-              WARNING,
-              "Exception caught in SysCommand::ExecuteCmd (1): " << e.what());
-          ret_checker = false;
-        }
-
-        cv_callContract.notify_all();
-      };
-      DetachedFunction(1, func1);
-
-      {
-        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-        cv_callContract.wait(lk);
-      }
+      InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(
@@ -231,8 +243,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         ret_checker = false;
       }
 
-      if (ret_checker && !ParseContractCheckerOutput(checkerPrint, receipt)) {
+      bytes map_depth_data;
+
+      if (ret_checker &&
+          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data)) {
         ret_checker = false;
+      }
+
+      if (ret_checker) {
+        std::map<std::string, bytes> t_map_depth_map;
+        t_map_depth_map.emplace(
+            Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+                toAddr, FIELDS_MAP_DEPTH_INDICATOR, {}),
+            map_depth_data);
+        toAccount->UpdateStates(toAddr, t_map_depth_map, {}, true);
       }
 
       // Undergo scilla runner
@@ -242,16 +266,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         std::string runnerPrint;
 
         pid = -1;
-        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
-                      &receipt]() mutable -> void {
+        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
+                      &fromAddr]() mutable -> void {
           try {
             if (!SysCommand::ExecuteCmd(
                     SysCommand::WITH_OUTPUT_PID,
-                    GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                    GetCreateContractCmdStr(m_root_w_version, gasRemained,
+                                            this->GetBalance(fromAddr)),
                     runnerPrint, pid)) {
               LOG_GENERAL(WARNING,
                           "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                              m_root_w_version, gasRemained));
+                              m_root_w_version, gasRemained,
+                              this->GetBalance(fromAddr)));
               receipt.AddError(EXECUTE_CMD_FAILED);
               ret = false;
             }
@@ -285,8 +311,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
             ret = false;
           }
 
-          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
-                                          toAccount)) {
+          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
             ret = false;
           }
           if (!ret) {
@@ -360,6 +385,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         }
       }
 
+      toAccount->SetStorageRoot(
+          Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+              toAddr, true));
+
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       break;
     }
@@ -429,19 +458,24 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         tpStart = r_timer_start();
       }
 
+      // prepare IPC with current contract address
+      m_scillaIPCServer->setContractAddress(toAddr);
+
       std::string runnerPrint;
       bool ret = true;
       int pid = -1;
 
-      auto func = [this, &runnerPrint, &ret, &pid, gasRemained,
-                   &receipt]() mutable -> void {
+      auto func = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
+                   &fromAddr]() mutable -> void {
         try {
           if (!SysCommand::ExecuteCmd(
                   SysCommand::WITH_OUTPUT_PID,
-                  GetCallContractCmdStr(m_root_w_version, gasRemained),
+                  GetCallContractCmdStr(m_root_w_version, gasRemained,
+                                        this->GetBalance(fromAddr)),
                   runnerPrint, pid)) {
             LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                     m_root_w_version, gasRemained));
+                                     m_root_w_version, gasRemained,
+                                     this->GetBalance(fromAddr)));
             receipt.AddError(EXECUTE_CMD_FAILED);
             ret = false;
           }
@@ -453,6 +487,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
         cv_callContract.notify_all();
       };
 
+      Contract::ContractStorage2::GetContractStorage().BufferCurrentState();
       DetachedFunction(1, func);
 
       {
@@ -480,10 +515,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(
                                << r_timer_end(tpStart) << " microseconds");
       }
 
-      if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, temp)) {
-        if (m_curDepth > 0) {
-          Contract::ContractStorage::GetContractStorage().RevertPrevState();
-        }
+      if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt)) {
+        Contract::ContractStorage2::GetContractStorage().RevertPrevState();
         ret = false;
       }
       if (!ret) {
@@ -565,7 +598,8 @@ Json::Value AccountStoreSC<MAP>::GetBlockStateJson(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
+bool AccountStoreSC<MAP>::ExportCreateContractFiles(
+    const Account& contract, const uint32_t& scilla_version) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -573,13 +607,6 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 
   if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
     boost::filesystem::create_directories("./" + SCILLA_LOG);
-  }
-
-  std::pair<Json::Value, Json::Value> roots;
-  uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, true, scilla_version)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
-    return false;
   }
 
   if (!PrepareRootPathWVersion(scilla_version)) {
@@ -593,8 +620,9 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
-    // Initialize Json
-    JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
+    os.open(INIT_JSON);
+    os << DataConversion::CharArrayToString(contract.GetInitData());
+    os.close();
 
     // Block Json
     JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
@@ -608,7 +636,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
+bool AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
@@ -623,10 +651,9 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
     tpStart = r_timer_start();
   }
 
-  std::pair<Json::Value, Json::Value> roots;
   uint32_t scilla_version;
-  if (!contract.GetStorageJson(roots, true, scilla_version)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
+  if (!contract.GetScillaVersion(scilla_version)) {
+    LOG_GENERAL(WARNING, "Failed to get scilla_version");
     return false;
   }
 
@@ -641,11 +668,12 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
-    // Initialize Json
-    JSONUtils::GetInstance().writeJsontoFile(INIT_JSON, roots.first);
-
-    // State Json
-    JSONUtils::GetInstance().writeJsontoFile(INPUT_STATE_JSON, roots.second);
+    os.open(INIT_JSON);
+    LOG_GENERAL(
+        INFO, "init data to export: "
+                  << DataConversion::CharArrayToString(contract.GetInitData()));
+    os << DataConversion::CharArrayToString(contract.GetInitData());
+    os.close();
 
     // Block Json
     JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
@@ -663,7 +691,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Transaction& transaction) {
+    Account& contract, const Transaction& transaction) {
   LOG_MARKER();
 
   if (!ExportContractFiles(contract)) {
@@ -696,7 +724,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Json::Value& contractData) {
+    Account& contract, const Json::Value& contractData) {
   LOG_MARKER();
 
   if (!ExportContractFiles(contract)) {
@@ -734,49 +762,78 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const std::string& root_w_version) {
-  std::string cmdStr = root_w_version + '/' + SCILLA_CHECKER + " -libdir " +
-                       root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
-
-  LOG_GENERAL(INFO, cmdStr);
+  std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
+      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
   return cmdStr;
 }
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
-    const std::string& root_w_version, const uint64_t& available_gas) {
+    const std::string& root_w_version, const uint64_t& available_gas,
+    const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -iblockchain " + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " +
-      INPUT_CODE + " -libdir " + root_w_version + '/' + SCILLA_LIB +
-      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors";
-
-  LOG_GENERAL(INFO, cmdStr);
+      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
+      std::to_string(available_gas) + " -jsonerrors -balance " +
+      balance.convert_to<std::string>();
   return cmdStr;
 }
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
-    const std::string& root_w_version, const uint64_t& available_gas) {
+    const std::string& root_w_version, const uint64_t& available_gas,
+    const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -istate " + INPUT_STATE_JSON + " -iblockchain " +
+      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
       OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
       SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
-      " -disable-pp-json" + " -disable-validate-json" + " -jsonerrors";
-  LOG_GENERAL(INFO, cmdStr);
+      " -disable-pp-json" + " -disable-validate-json" +
+      " -jsonerrors -balance " + balance.convert_to<std::string>();
   return cmdStr;
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const std::string& checkerPrint, TransactionReceipt& receipt) {
+    const std::string& checkerPrint, TransactionReceipt& receipt,
+    bytes& map_depth_data) {
+  LOG_MARKER();
+
   Json::Value root;
   try {
     if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
       return false;
     }
+
+    if (!root.isMember("contract_info")) {
+      receipt.AddError(CHECKER_FAILED);
+      return false;
+    }
+
+    Json::Value map_depth_json;
+    if (root["contract_info"].isMember("fields")) {
+      for (const auto& field : root["contract_info"]["fields"]) {
+        if (field.isMember("vname") && field.isMember("depth") &&
+            field["depth"].isNumeric()) {
+          map_depth_json[field["vname"].asString()] = field["depth"].asInt();
+        }
+      }
+    }
+
+    if (map_depth_json.empty()) {
+      map_depth_json = Json::objectValue;
+    }
+
+    map_depth_data = DataConversion::StringToCharArray(
+        JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
                                               << checkerPrint);
@@ -789,14 +846,12 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
                                               const std::string& runnerPrint,
-                                              TransactionReceipt& receipt,
-                                              Account* contractAccount) {
+                                              TransactionReceipt& receipt) {
   Json::Value jsonOutput;
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt,
-                                       contractAccount);
+  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt);
 }
 
 template <class MAP>
@@ -824,13 +879,15 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
               std::istreambuf_iterator<char>()};
   }
 
-  LOG_GENERAL(
-      INFO,
-      "Output: " << std::endl
-                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                               "\n ... "
-                         : outStr));
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : outStr));
+  }
 
   if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
@@ -842,7 +899,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt, Account* contractAccount) {
+    TransactionReceipt& receipt) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -866,8 +923,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("message") || !_json.isMember("states") ||
-      !_json.isMember("events")) {
+  if (!_json.isMember("message") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Contract creation failed");
       receipt.AddError(CREATE_CONTRACT_FAILED);
@@ -881,35 +937,6 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   if (_json["message"].type() == Json::nullValue &&
       _json["states"].type() == Json::arrayValue &&
       _json["events"].type() == Json::arrayValue) {
-    std::vector<Contract::StateEntry> state_entries;
-    try {
-      for (const auto& s : _json["states"]) {
-        if (!s.isMember("vname") || !s.isMember("type") ||
-            !s.isMember("value")) {
-          LOG_GENERAL(WARNING, "The json output of states is corrupted");
-          receipt.AddError(STATE_CORRUPTED);
-          return false;
-        }
-        std::string vname = s["vname"].asString();
-        std::string type = s["type"].asString();
-        std::string value =
-            s["value"].isString()
-                ? s["value"].asString()
-                : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-        if (vname != "_balance") {
-          state_entries.push_back(std::make_tuple(vname, true, type, value));
-        }
-      }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-      return false;
-    }
-
-    if (!contractAccount->SetStorage(state_entries, true)) {
-      LOG_GENERAL(WARNING, "SetStorage failed");
-      return false;
-    }
     return true;
   }
 
@@ -923,14 +950,12 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                             const std::string& runnerPrint,
-                                            TransactionReceipt& receipt,
-                                            bool temp, bool first) {
+                                            TransactionReceipt& receipt) {
   Json::Value jsonOutput;
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt, first,
-                                     temp);
+  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt);
 }
 
 template <class MAP>
@@ -961,13 +986,15 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
       outStr = {std::istreambuf_iterator<char>(in),
                 std::istreambuf_iterator<char>()};
     }
-    LOG_GENERAL(
-        INFO,
-        "Output: " << std::endl
-                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                                 "\n ... "
-                           : outStr));
+    if (LOG_SC) {
+      LOG_GENERAL(
+          INFO, "Output: " << std::endl
+                           << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                                   ? outStr.substr(
+                                         0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                         "\n ... "
+                                   : outStr));
+    }
 
     if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
@@ -989,7 +1016,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt, bool first, bool temp) {
+    TransactionReceipt& receipt) {
   // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1019,8 +1046,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("message") || !_json.isMember("states") ||
-      !_json.isMember("events")) {
+  if (!_json.isMember("message") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
       receipt.AddError(CALL_CONTRACT_FAILED);
@@ -1060,26 +1086,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   std::vector<Contract::StateEntry> state_entries;
   try {
-    for (const auto& s : _json["states"]) {
-      if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value")) {
-        LOG_GENERAL(WARNING,
-                    "Address: " << m_curContractAddr.hex()
-                                << ", The json output of states is corrupted");
-        receipt.AddError(STATE_CORRUPTED);
-        return false;
-      }
-      std::string vname = s["vname"].asString();
-      std::string type = s["type"].asString();
-      std::string value =
-          s["value"].isString()
-              ? s["value"].asString()
-              : JSONUtils::GetInstance().convertJsontoStr(s["value"]);
-
-      if (vname != "_balance") {
-        state_entries.push_back(std::make_tuple(vname, true, type, value));
-      }
-    }
-
     for (const auto& e : _json["events"]) {
       LogEntry entry;
       if (!entry.Install(e, m_curContractAddr)) {
@@ -1167,25 +1173,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  if (first) {
-    if (ret) {
-      if (!contractAccount->SetStorage(state_entries, temp)) {
-        LOG_GENERAL(WARNING, "SetStorage failed");
-        return false;
-      }
-      if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG,
-                    "LDB Write (microseconds) = " << r_timer_end(tpStart));
-        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
-      }
-      return true;
-    }
-    Contract::ContractStorage::GetContractStorage().BufferCurrentState();
-  }
-
-  if (!contractAccount->SetStorage(state_entries, temp)) {
-    LOG_GENERAL(WARNING, "SetStorage failed");
-  }
+  contractAccount->SetStorageRoot(
+      Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+          m_curContractAddr, true));
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
@@ -1234,18 +1224,23 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
+  // prepare IPC with the recipient contract address
+  m_scillaIPCServer->setContractAddress(recipient);
+
   std::string runnerPrint;
   bool result = true;
   int pid = -1;
-  auto func = [this, &runnerPrint, &result, &pid, gasRemained,
-               &receipt]() mutable -> void {
+  auto func = [this, &runnerPrint, &result, &pid, gasRemained, &receipt,
+               &recipient]() mutable -> void {
     try {
       if (!SysCommand::ExecuteCmd(
               SysCommand::WITH_OUTPUT_PID,
-              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
-              pid)) {
+              GetCallContractCmdStr(m_root_w_version, gasRemained,
+                                    this->GetBalance(recipient)),
+              runnerPrint, pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                 m_root_w_version, gasRemained));
+                                 m_root_w_version, gasRemained,
+                                 this->GetBalance(recipient)));
         receipt.AddError(EXECUTE_CMD_FAILED);
         result = false;
       }
@@ -1296,7 +1291,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   Address t_address = m_curContractAddr;
   m_curSenderAddr = m_curContractAddr;
   m_curContractAddr = recipient;
-  if (!ParseCallContract(gasRemained, runnerPrint, receipt, temp, false)) {
+  if (!ParseCallContract(gasRemained, runnerPrint, receipt)) {
     LOG_GENERAL(WARNING,
                 "ParseCallContract failed of calling contract: " << recipient);
     return false;
@@ -1338,4 +1333,11 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
   LOG_MARKER();
   m_txnProcessTimeout = true;
   cv_callContract.notify_all();
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::SetScillaIPCServer(
+    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+  LOG_MARKER();
+  m_scillaIPCServer = std::move(scillaIPCServer);
 }
