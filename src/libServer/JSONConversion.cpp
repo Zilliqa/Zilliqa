@@ -255,6 +255,26 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   return ret;
 }
 
+const vector<string> JSONConversion::convertJsonArrayToVector(
+    const Json::Value& _json) {
+  if (!_json.isArray()) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Expected Array type");
+  }
+
+  vector<string> vec;
+
+  for (const auto& ele : _json) {
+    if (!ele.isString()) {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Every array value should be a string");
+    }
+
+    vec.push_back(ele.asString());
+  }
+  return vec;
+}
+
 const Json::Value JSONConversion::convertTxtoJson(
     const TransactionWithReceipt& twr) {
   Json::Value _json;
