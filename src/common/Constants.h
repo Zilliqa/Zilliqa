@@ -262,6 +262,8 @@ extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
+extern const double DS_PERFORMANCE_THRESHOLD_PERCENT;
+extern const unsigned int NUM_DS_BYZANTINE_REMOVED;
 extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
 extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
 
@@ -370,6 +372,7 @@ extern const unsigned int REPOPULATE_STATE_IN_DS;
 extern const unsigned int NUM_STORE_TX_BODIES_INTERVAL;
 extern const std::string BUCKET_NAME;
 extern const std::string TXN_PERSISTENCE_NAME;
+extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 
 // Viewchange constants

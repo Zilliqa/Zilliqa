@@ -15,19 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
-#define ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
+#ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
+#define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
 
-#include <boost/filesystem.hpp>
-#include <iostream>
-#include <string>
-#include <vector>
+#include "libCrypto/Schnorr.h"
+#include "libData/BlockData/Block.h"
+#include "libNetwork/Guard.h"
+#include "libNetwork/Peer.h"
+#include "libNetwork/ShardStruct.h"
 
-namespace bfs = boost::filesystem;
+// Used in both libDirectoryService and libNode
+void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
+                                      DequeOfNode& dsComm,
+                                      const DSBlock& dsblock);
 
-// Copy source directory to destination directory
-void recursive_copy_dir(const bfs::path& src, const bfs::path& dst);
-std::vector<std::string> getAllFilesInDir(
-    const bfs::path& dirPath, const std::vector<std::string>& dirSkipList = {});
-
-#endif  // ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
+#endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_

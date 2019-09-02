@@ -75,11 +75,18 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:validateDB> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(validateDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(validateDB PUBLIC  Node Mediator Validator)
+target_link_libraries(validateDB PUBLIC Node Mediator Validator)
 
 add_executable(restore restore.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:restore> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(restore PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(restore PUBLIC  Node Mediator Validator)
+target_link_libraries(restore PUBLIC Node Mediator Validator)
+
+add_executable(genTxnBodiesFromS3 genTxnBodiesFromS3.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genTxnBodiesFromS3> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(genTxnBodiesFromS3 PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountData Utils Persistence Server)

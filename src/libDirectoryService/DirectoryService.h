@@ -26,6 +26,7 @@
 #include <set>
 #include <shared_mutex>
 
+#include "common/Constants.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libCrypto/Schnorr.h"
@@ -206,6 +207,11 @@ class DirectoryService : public Executable {
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
+  // DS Reputation
+  // Map<Public Key, Number of Co-Sigs> observed from the coinbase rewards.
+  std::map<PubKey, uint32_t> m_dsMemberPerformance;
+  std::mutex m_mutexDsMemberPerformance;
+
   // pow solutions
   std::vector<DSPowSolution> m_powSolutions;
   std::mutex m_mutexPowSolution;
@@ -265,7 +271,6 @@ class DirectoryService : public Executable {
                                                unsigned int my_shards_hi);
 
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
-                                        VectorOfPoWSoln& sortedPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
                                         MapOfPubKeyPoW& dsWinnerPoWs,
                                         uint8_t& dsDifficulty,
@@ -273,7 +278,8 @@ class DirectoryService : public Executable {
                                         BlockHash& prevHash);
   void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
-                          unsigned int numOfProposedDSMembers);
+                          unsigned int numOfProposedDSMembers,
+                          const std::vector<PubKey>& removeDSNodePubkeys);
 
   // Gas Pricer
   uint128_t GetNewGasPrice();
@@ -284,6 +290,7 @@ class DirectoryService : public Executable {
 
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
+  bool VerifyRemovedByzantineNodes();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromLeader,
                          const MapOfPubKeyPoW& priorityNodePoWs);
@@ -291,6 +298,12 @@ class DirectoryService : public Executable {
                            const PoWSolution& powSoln);
   bool VerifyNodePriority(const DequeOfShard& shards,
                           MapOfPubKeyPoW& priorityNodePoWs);
+
+  // DS Reputation
+  void SaveDSPerformance();
+  unsigned int DetermineByzantineNodes(
+      unsigned int numOfProposedDSMembers,
+      std::vector<PubKey>& removeDSNodePubkeys);
 
   // internal calls from RunConsensusOnDSBlock
   bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -305,7 +318,7 @@ class DirectoryService : public Executable {
                                const unsigned int& my_shards_lo,
                                const unsigned int& my_shards_hi);
   void UpdateMyDSModeAndConsensusId();
-  void UpdateDSCommiteeComposition();
+  void UpdateDSCommitteeComposition();
 
   void ProcessDSBlockConsensusWhenDone();
 
@@ -613,7 +626,8 @@ class DirectoryService : public Executable {
 
   // Sort the PoW submissions
   VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
-                              bool trimBeyondCommSize = false);
+                              bool trimBeyondCommSize = false,
+                              unsigned int byzantineRemoved = 0);
   int64_t GetAllPoWSize() const;
 
   bool SendPoWPacketSubmissionToOtherDSComm();
@@ -632,6 +646,20 @@ class DirectoryService : public Executable {
                                        VCBlockSharedPtr& prevVCBlockptr);
 
   std::string GetStateString() const;
+
+  // DS Reputation functions with no state access.
+  static void SaveDSPerformanceCore(
+      std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+          coinbaseRewardees,
+      std::map<PubKey, uint32_t>& dsMemberPerformance, DequeOfNode& dsComm,
+      uint64_t currentEpochNum, unsigned int numOfFinalBlock,
+      int finalblockRewardID);
+  static unsigned int DetermineByzantineNodesCore(
+      unsigned int numOfProposedDSMembers,
+      std::vector<PubKey>& removeDSNodePubkeys, uint64_t currentEpochNum,
+      unsigned int numOfFinalBlock, double performanceThreshold,
+      unsigned int maxByzantineRemoved, DequeOfNode& dsComm,
+      const std::map<PubKey, uint32_t>& dsMemberPerformance);
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

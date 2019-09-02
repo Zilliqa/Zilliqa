@@ -307,6 +307,10 @@ const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
 const unsigned int NUM_DS_ELECTION{
     ReadConstantNumeric("NUM_DS_ELECTION", "node.network_composition.")};
+const double DS_PERFORMANCE_THRESHOLD_PERCENT{ReadConstantDouble(
+    "DS_PERFORMANCE_THRESHOLD_PERCENT", "node.network_composition.")};
+const unsigned int NUM_DS_BYZANTINE_REMOVED{ReadConstantNumeric(
+    "NUM_DS_BYZANTINE_REMOVED", "node.network_composition.")};
 const unsigned int SHARD_SIZE_TOLERANCE_LO{ReadConstantNumeric(
     "SHARD_SIZE_TOLERANCE_LO", "node.network_composition.")};
 const unsigned int SHARD_SIZE_TOLERANCE_HI{ReadConstantNumeric(
@@ -522,6 +526,8 @@ const string BUCKET_NAME{
     ReadConstantString("BUCKET_NAME", "node.transactions.")};
 const string TXN_PERSISTENCE_NAME{
     ReadConstantString("TXN_PERSISTENCE_NAME", "node.transactions.")};
+const bool ENABLE_TXNS_BACKUP{
+    ReadConstantString("ENABLE_TXNS_BACKUP", "node.transactions.") == "true"};
 const bool SHARDLDR_SAVE_TXN_LOCALLY{
     ReadConstantString("SHARDLDR_SAVE_TXN_LOCALLY", "node.transactions.") ==
     "true"};

@@ -626,9 +626,13 @@ bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
 }
 
 bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
-                                     uint64_t highblocknum) {
+                                     uint64_t highBlockNum) {
+  LOG_MARKER();
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "ComposeGetDSBlockMessage for blocks " << lowBlockNum << " to "
+                                                   << highBlockNum);
   SendMessageToRandomSeedNode(
-      ComposeGetDSBlockMessage(lowBlockNum, highblocknum));
+      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
   return true;
 }
 
@@ -1769,47 +1773,52 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
       cv_latestDSBlock.notify_all();
       return true;
     }
-    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-        dirBlocks;
-    for (const auto& dsblock : dsBlocks) {
-      if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
-        // skip as already I have them
-        continue;
-      }
-      dirBlocks.emplace_back(dsblock);
-    }
-    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
-      LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
-      return true;
-    }
-    uint64_t dsblocknumbefore =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    uint64_t index_num = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
 
-    DequeOfNode newDScomm;
-    if (!m_mediator.m_validator->CheckDirBlocks(
-            dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), index_num,
-            newDScomm)) {
-      LOG_GENERAL(WARNING, "Could not verify all DS blocks");
-    }
-    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
-    uint64_t dsblocknumafter =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-    LOG_GENERAL(INFO, "DS epoch before" << dsblocknumbefore + 1
-                                        << " DS epoch now "
-                                        << dsblocknumafter + 1);
-
-    if (dsblocknumbefore < dsblocknumafter) {
-      if (m_syncType == SyncType::DS_SYNC ||
-          m_syncType == SyncType::LOOKUP_SYNC) {
-        if (!m_isFirstLoop) {
-          m_currDSExpired = true;
-        } else {
-          m_isFirstLoop = false;
+    // only process DS block for lookup nodes, otherwise for normal node
+    // it's purpose is just for indication if new DS block is mined or not
+    if (!LOOKUP_NODE_MODE) {
+      vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+          dirBlocks;
+      for (const auto& dsblock : dsBlocks) {
+        if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
+          // skip as already I have them
+          continue;
         }
+        dirBlocks.emplace_back(dsblock);
       }
-      m_mediator.UpdateDSBlockRand();
+      if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
+        LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
+        return true;
+      }
+      uint64_t dsblocknumbefore =
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+      uint64_t index_num = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+
+      DequeOfNode newDScomm;
+      if (!m_mediator.m_validator->CheckDirBlocks(
+              dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+              index_num, newDScomm)) {
+        LOG_GENERAL(WARNING, "Could not verify all DS blocks");
+      }
+      m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
+      uint64_t dsblocknumafter =
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+      LOG_GENERAL(INFO, "DS epoch before" << dsblocknumbefore + 1
+                                          << " DS epoch now "
+                                          << dsblocknumafter + 1);
+
+      if (dsblocknumbefore < dsblocknumafter) {
+        if (m_syncType == SyncType::DS_SYNC ||
+            m_syncType == SyncType::LOOKUP_SYNC) {
+          if (!m_isFirstLoop) {
+            m_currDSExpired = true;
+          } else {
+            m_isFirstLoop = false;
+          }
+        }
+        m_mediator.UpdateDSBlockRand();
+      }
     }
   }
 
@@ -2561,6 +2570,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   // before repopulating state in CommitTxBlocks. if (CheckStateRoot()) {
   // Attempt PoW
   m_startedPoW = true;
+  // set the node as synced
+  SetSyncType(NO_SYNC);
   dsBlockRand = m_mediator.m_dsBlockRand;
   txBlockRand = m_mediator.m_txBlockRand;
 
@@ -3459,6 +3470,9 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
+  // make sure no VCDSBlock is processed at same time
+  lock_guard<mutex> g1(m_mediator.m_node->m_mutexDSBlock);
+
   // Not all calls to GetLookupSetDirectoryBlocksFromSeed set
   // shardingStructureVersion
 
@@ -3573,7 +3587,7 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
     return;
   }
-
+  LOG_GENERAL(INFO, "blocklink index = " << index_num);
   if (!toSendSeed) {
     SendMessageToRandomLookupNode(message);
   } else {
