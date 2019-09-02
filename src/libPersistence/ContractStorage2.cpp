@@ -262,11 +262,15 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   set<string>::iterator isDeleted;
 
+  uint32_t counter = 0;
+
   for (const auto& entry : entries) {
     isDeleted = m_indexToBeDeleted.find(entry.first);
     if (isDeleted != m_indexToBeDeleted.end()) {
       continue;
     }
+
+    counter++;
 
     std::vector<string> indices;
     // remove the prefixes, as shown below surrounded by []
@@ -301,6 +305,11 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     } else {
       t_value->set_bval(entry.second.data(), entry.second.size());
     }
+  }
+
+  if (!counter) {
+    foundVal = false;
+    return true;
   }
 
   if (LOG_SC) {
