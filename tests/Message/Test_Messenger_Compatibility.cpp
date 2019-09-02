@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE(test_optionalfield) {
   TwoFields twoFields;
   twoFields.ParseFromArray(tmp.data(), tmp.size());
   BOOST_CHECK(twoFields.IsInitialized());
-  BOOST_CHECK(twoFields.has_field1());
-  BOOST_CHECK(!twoFields.has_field2());
+  // BOOST_CHECK(twoFields.has_field1());
+  BOOST_CHECK(twoFields.field2() == 0);
   BOOST_CHECK(twoFields.field1() == oneField.field1());
   LOG_GENERAL(INFO, "twoFields.field1 = " << twoFields.field1());
 }

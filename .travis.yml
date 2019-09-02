@@ -33,11 +33,9 @@ addons:
     - libleveldb-dev
     - libmicrohttpd-dev
     - libminiupnpc-dev
-    - libprotobuf-dev
     - libsnappy-dev
     - libssl-dev
     - pkg-config
-    - protobuf-compiler
     # Development dependency
     - ccache
     - clang-5.0

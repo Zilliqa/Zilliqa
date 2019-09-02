@@ -1,10 +1,10 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package ZilliqaMessage;
 
 message ByteArray
 {
-    required bytes data = 1;
+    bytes data = 1;
 }
 
 // ============================================================================
@@ -19,11 +19,11 @@ message ByteArray
 // Used in database "blockLinks"
 message ProtoBlockLink
 {
-    optional uint32 version   = 1; // Added in: v1.0, Deprecated in: N/A
-    optional uint64 index     = 2; // Added in: v1.0, Deprecated in: N/A
-    optional uint64 dsindex   = 3; // Added in: v1.0, Deprecated in: N/A
-    optional uint32 blocktype = 4; // Added in: v1.0, Deprecated in: N/A
-    optional bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
+    uint32 version   = 1; // Added in: v1.0, Deprecated in: N/A
+    uint64 index     = 2; // Added in: v1.0, Deprecated in: N/A
+    uint64 dsindex   = 3; // Added in: v1.0, Deprecated in: N/A
+    uint32 blocktype = 4; // Added in: v1.0, Deprecated in: N/A
+    bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -32,24 +32,24 @@ message ProtoBlockBase
 {
     message CoSignatures
     {
-        optional ByteArray cs1   = 1;               // Added in: v1.0, Deprecated in: N/A
+        ByteArray cs1   = 1;               // Added in: v1.0, Deprecated in: N/A
         repeated bool b1         = 2 [packed=true]; // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray cs2   = 3;               // Added in: v1.0, Deprecated in: N/A
+        ByteArray cs2   = 3;               // Added in: v1.0, Deprecated in: N/A
         repeated bool b2         = 4 [packed=true]; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    optional bytes blockhash     = 1;               // Added in: v1.0, Deprecated in: N/A
-    optional CoSignatures cosigs = 2;               // Added in: v1.0, Deprecated in: N/A
-    optional uint64 timestamp    = 3;               // Added in: v1.0, Deprecated in: N/A
+    bytes blockhash     = 1;               // Added in: v1.0, Deprecated in: N/A
+    CoSignatures cosigs = 2;               // Added in: v1.0, Deprecated in: N/A
+    uint64 timestamp    = 3;               // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
 // Used in "dsBlockHeader", "microBlockHeader", "txBlockHeader", and "VCBlockHeader"
 message ProtoBlockHeaderBase
 {
-    optional uint32 version      = 1;   // Added in: v1.0, Deprecated in: N/A
-    optional bytes committeehash = 2;   // Added in: v1.0, Deprecated in: N/A
-    optional bytes prevhash      = 3;   // Added in: v1.0, Deprecated in: N/A
+    uint32 version      = 1;   // Added in: v1.0, Deprecated in: N/A
+    bytes committeehash = 2;   // Added in: v1.0, Deprecated in: N/A
+    bytes prevhash      = 3;   // Added in: v1.0, Deprecated in: N/A
 }
 
 // Used in database "dsBlocks"
@@ -57,49 +57,49 @@ message ProtoDSBlock
 {
     message DSBlockHashSet
     {
-        optional bytes shardinghash     = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes reservedfield    = 2;  // Added in: v1.0, Deprecated in: N/A
+        bytes shardinghash     = 1;  // Added in: v1.0, Deprecated in: N/A
+        bytes reservedfield    = 2;  // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     message DSBlockHeader
     {
-        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 dsdifficulty                  = 2;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional uint32 difficulty                    = 3;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional bytes prevhash                       = 4;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
-        optional ByteArray leaderpubkey               = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray gasprice                   = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray swinfo                     = 9;  // Added in: v1.0, Deprecated in: N/A
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint32 dsdifficulty                  = 2;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        uint32 difficulty                    = 3;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        bytes prevhash                       = 4;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
+        ByteArray leaderpubkey               = 5;  // Added in: v1.0, Deprecated in: N/A
+        uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray gasprice                   = 8;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray swinfo                     = 9;  // Added in: v1.0, Deprecated in: N/A
         message PowDSWinners
         {
-            optional ByteArray key      = 1;  // Added in: v1.0, Deprecated in: N/A
-            optional ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
+            ByteArray key      = 1;  // Added in: v1.0, Deprecated in: N/A
+            ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
             // Add new members here
         }
         repeated PowDSWinners dswinners = 10; // Added in: v1.0, Deprecated in: N/A
-        optional DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
+        DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
         repeated ByteArray dsremoved    = 12; // Added in: v2.0, Deprecated in: N/A
         // Add new members here
     }
-    optional DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
-    optional ProtoBlockBase blockbase   = 2;  // Added in: v1.0, Deprecated in: N/A
+    DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase   = 2;  // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
 // Used in database "dsCommittee"
 message ProtoDSNode
 {
-    optional ByteArray pubkey = 1; // Added in: v1.0, Deprecated in: N/A
-    optional ByteArray peer   = 2; // Added in: v1.0, Deprecated in: N/A
+    ByteArray pubkey = 1; // Added in: v1.0, Deprecated in: N/A
+    ByteArray peer   = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
 // Used in database "dsCommittee"
 message ProtoDSCommittee
 {
-    optional uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
+    uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
     repeated ProtoDSNode dsnodes = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
@@ -109,24 +109,24 @@ message ProtoMicroBlock
 {
     message MicroBlockHeader
     {
-        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 shardid                       = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gaslimit                      = 3;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gasused                       = 4;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray rewards                    = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash                       = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes txroothash                     = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 numtxs                        = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray minerpubkey                = 10; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 dsblocknum                    = 11; // Added in: v1.0, Deprecated in: N/A
-        optional bytes statedeltahash                 = 12; // Added in: v1.0, Deprecated in: N/A
-        optional bytes tranreceipthash                = 13; // Added in: v1.0, Deprecated in: N/A
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint32 shardid                       = 2;  // Added in: v1.0, Deprecated in: N/A
+        uint64 gaslimit                      = 3;  // Added in: v1.0, Deprecated in: N/A
+        uint64 gasused                       = 4;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray rewards                    = 5;  // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 6;  // Added in: v1.0, Deprecated in: N/A
+        uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        bytes txroothash                     = 8;  // Added in: v1.0, Deprecated in: N/A
+        uint32 numtxs                        = 9;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray minerpubkey                = 10; // Added in: v1.0, Deprecated in: N/A
+        uint64 dsblocknum                    = 11; // Added in: v1.0, Deprecated in: N/A
+        bytes statedeltahash                 = 12; // Added in: v1.0, Deprecated in: N/A
+        bytes tranreceipthash                = 13; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    optional MicroBlockHeader header   = 1;  // Added in: v1.0, Deprecated in: N/A
+    MicroBlockHeader header   = 1;  // Added in: v1.0, Deprecated in: N/A
     repeated bytes tranhashes          = 2;  // Added in: v1.0, Deprecated in: N/A
-    optional ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -135,9 +135,9 @@ message ProtoShardingStructure
 {
     message Member
     {
-        optional ByteArray pubkey   = 1; // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray peerinfo = 2; // Added in: v1.0, Deprecated in: N/A
-        optional uint32 reputation  = 3; // Added in: v1.0, Deprecated in: N/A
+        ByteArray pubkey   = 1; // Added in: v1.0, Deprecated in: N/A
+        ByteArray peerinfo = 2; // Added in: v1.0, Deprecated in: N/A
+        uint32 reputation  = 3; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     message Shard
@@ -145,7 +145,7 @@ message ProtoShardingStructure
         repeated Member members     = 1; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    optional uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
+    uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
     repeated Shard shards           = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
@@ -153,9 +153,9 @@ message ProtoShardingStructure
 // Used in database "txBlocks"
 message ProtoMbInfo
 {
-    optional bytes mbhash   = 1; // Added in: v1.0, Deprecated in: N/A
-    optional bytes txroot   = 2; // Added in: v1.0, Deprecated in: N/A
-    optional uint32 shardid = 3; // Added in: v1.0, Deprecated in: N/A
+    bytes mbhash   = 1; // Added in: v1.0, Deprecated in: N/A
+    bytes txroot   = 2; // Added in: v1.0, Deprecated in: N/A
+    uint32 shardid = 3; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -164,28 +164,28 @@ message ProtoTxBlock
 {
     message TxBlockHashSet
     {
-        optional bytes stateroothash   = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes statedeltahash  = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes mbinfohash      = 3;  // Added in: v1.0, Deprecated in: N/A
+        bytes stateroothash   = 1;  // Added in: v1.0, Deprecated in: N/A
+        bytes statedeltahash  = 2;  // Added in: v1.0, Deprecated in: N/A
+        bytes mbinfohash      = 3;  // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     message TxBlockHeader
     {
-        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gasused                       = 3;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 numtxs                        = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 dsblocknum                    = 10; // Added in: v1.0, Deprecated in: N/A
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
+        uint64 gasused                       = 3;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
+        uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
+        uint32 numtxs                        = 8;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
+        uint64 dsblocknum                    = 10; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    optional TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
+    TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
     repeated ProtoMbInfo mbinfos       = 2;  // Added in: v1.0, Deprecated in: N/A
-    optional ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase  = 3;  // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -194,19 +194,19 @@ message ProtoVCBlock
 {
     message VCBlockHeader
     {
-        optional ProtoBlockHeaderBase blockheaderbase = 1; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 viewchangedsepochno           = 2; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 viewchangeepochno             = 3; // Added in: v1.0, Deprecated in: N/A
-        optional uint32 viewchangestate               = 4; // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional ByteArray candidateleadernetworkinfo = 5; // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray candidateleaderpubkey      = 6; // Added in: v1.0, Deprecated in: N/A
-        optional uint32 vccounter                     = 7; // Added in: v1.0, Deprecated in: N/A
+        ProtoBlockHeaderBase blockheaderbase = 1; // Added in: v1.0, Deprecated in: N/A
+        uint64 viewchangedsepochno           = 2; // Added in: v1.0, Deprecated in: N/A
+        uint64 viewchangeepochno             = 3; // Added in: v1.0, Deprecated in: N/A
+        uint32 viewchangestate               = 4; // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        ByteArray candidateleadernetworkinfo = 5; // Added in: v1.0, Deprecated in: N/A
+        ByteArray candidateleaderpubkey      = 6; // Added in: v1.0, Deprecated in: N/A
+        uint32 vccounter                     = 7; // Added in: v1.0, Deprecated in: N/A
         repeated ProtoDSNode faultyleaders            = 8; // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash                       = 9; // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 9; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    optional VCBlockHeader header                     = 1; // Added in: v1.0, Deprecated in: N/A
-    optional ProtoBlockBase blockbase                 = 2; // Added in: v1.0, Deprecated in: N/A
+    VCBlockHeader header                     = 1; // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase                 = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -214,45 +214,45 @@ message ProtoFallbackBlock
 {
     message FallbackBlockHeader
     {
-        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 fallbackdsepochno             = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 fallbackepochno               = 3;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 fallbackstate                 = 4;  // Added in: v1.0, Deprecated in: N/A, only LSB used
-        optional bytes stateroothash                  = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 leaderconsensusid             = 6;  // Added in: v1.0, Deprecated in: N/A, only lower 2 bytes used
-        optional ByteArray leadernetworkinfo          = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray leaderpubkey               = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 shardid                       = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash                       = 10; // Added in: v1.0, Deprecated in: N/A
+        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        uint64 fallbackdsepochno             = 2;  // Added in: v1.0, Deprecated in: N/A
+        uint64 fallbackepochno               = 3;  // Added in: v1.0, Deprecated in: N/A
+        uint32 fallbackstate                 = 4;  // Added in: v1.0, Deprecated in: N/A, only LSB used
+        bytes stateroothash                  = 5;  // Added in: v1.0, Deprecated in: N/A
+        uint32 leaderconsensusid             = 6;  // Added in: v1.0, Deprecated in: N/A, only lower 2 bytes used
+        ByteArray leadernetworkinfo          = 7;  // Added in: v1.0, Deprecated in: N/A
+        ByteArray leaderpubkey               = 8;  // Added in: v1.0, Deprecated in: N/A
+        uint32 shardid                       = 9;  // Added in: v1.0, Deprecated in: N/A
+        bytes prevhash                       = 10; // Added in: v1.0, Deprecated in: N/A
     }
-    optional FallbackBlockHeader header      = 1;
-    optional ProtoBlockBase blockbase        = 2;
+    FallbackBlockHeader header      = 1;
+    ProtoBlockBase blockbase        = 2;
 }
 
 // Used in database "diagnosticNodes"
 message ProtoDiagnosticDataNodes
 {
-    optional ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
-    optional ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A
+    ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
+    ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
 // Used in database "diagnosticCoinb"
 message ProtoDiagnosticDataCoinbase
 {
-  optional ByteArray nodecount          = 1;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray sigcount           = 2;  // Added in: v1.0, Deprecated in: N/A
-  optional uint32 lookupcount           = 3;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray totalreward        = 4;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray basereward         = 5;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray baserewardeach     = 6;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray lookupreward       = 7;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray rewardeachlookup   = 8;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray nodereward         = 9;  // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray rewardeach         = 10; // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray balanceleft        = 11; // Added in: v1.0, Deprecated in: N/A
-  optional ByteArray luckydrawwinnerkey = 12; // Added in: v1.0, Deprecated in: N/A
-  optional bytes luckydrawwinneraddr    = 13; // Added in: v1.0, Deprecated in: N/A
+  ByteArray nodecount          = 1;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray sigcount           = 2;  // Added in: v1.0, Deprecated in: N/A
+  uint32 lookupcount           = 3;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray totalreward        = 4;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray basereward         = 5;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray baserewardeach     = 6;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray lookupreward       = 7;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray rewardeachlookup   = 8;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray nodereward         = 9;  // Added in: v1.0, Deprecated in: N/A
+  ByteArray rewardeach         = 10; // Added in: v1.0, Deprecated in: N/A
+  ByteArray balanceleft        = 11; // Added in: v1.0, Deprecated in: N/A
+  ByteArray luckydrawwinnerkey = 12; // Added in: v1.0, Deprecated in: N/A
+  bytes luckydrawwinneraddr    = 13; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -262,25 +262,25 @@ message ProtoDiagnosticDataCoinbase
 
 message ProtoAccountBase
 {
-    optional uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
-    optional ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
-    optional uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
-    optional bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
-    optional bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
+    uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
+    ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
+    uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
+    bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
+    bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoAccount
 {
     message StorageData
     {
-        required bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
-        required string data         = 2; // Added in: v1.0, Deprecated in: N/A
+        bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
+        string data         = 2; // Added in: v1.0, Deprecated in: N/A
     }
-    optional ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
+    ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
 
-    optional bytes code            = 2;  // Added in: v1.0, Deprecated in: N/A
+    bytes code            = 2;  // Added in: v1.0, Deprecated in: N/A
     repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A
-    optional bool numbersign       = 4;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    bool numbersign       = 4;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex
@@ -290,36 +290,36 @@ message ProtoStateIndex
 
 message ProtoStateData
 {
-    optional uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
-    optional string vname   = 2; // Added in: v1.0, Deprecated in: N/A
-    optional bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
-    optional string type    = 4; // Added in: v1.0, Deprecated in: N/A
-    optional string value   = 5; // Added in: v1.0, Deprecated in: N/A
+    uint32 version = 1; // Added in: v1.0, Deprecated in: N/A
+    string vname   = 2; // Added in: v1.0, Deprecated in: N/A
+    bool ismutable = 3; // Added in: v1.0, Deprecated in: N/A
+    string type    = 4; // Added in: v1.0, Deprecated in: N/A
+    string value   = 5; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoAccountStore
 {
     message AddressAccount
     {
-        required bytes address        = 1;
-        required ProtoAccount account = 2;
+        bytes address        = 1;
+        ProtoAccount account = 2;
     }
     repeated AddressAccount entries   = 3;
 }
 
 message ProtoPeer
 {
-    required ByteArray ipaddress    = 1;
-    required uint32 listenporthost  = 2;
+    ByteArray ipaddress    = 1;
+    uint32 listenporthost  = 2;
 }
 
 message ProtoPoWSolution
 {
-    required uint64 nonce        = 1;
-    required bytes result        = 2;
-    required bytes mixhash       = 3;
-    required uint32 lookupid     = 4;
-    required ByteArray gasprice  = 5;
+    uint64 nonce        = 1;
+    bytes result        = 2;
+    bytes mixhash       = 3;
+    uint32 lookupid     = 4;
+    ByteArray gasprice  = 5;
 }
 
 message ProtoCommittee
@@ -331,10 +331,10 @@ message ProtoShardingStructureWithPoWSolns
 {
     message Member
     {
-        required ByteArray pubkey         = 1;
-        required ByteArray peerinfo       = 2;
-        required uint32 reputation        = 3;
-        required ProtoPoWSolution powsoln = 4;
+        ByteArray pubkey         = 1;
+        ByteArray peerinfo       = 2;
+        uint32 reputation        = 3;
+        ProtoPoWSolution powsoln = 4;
     }
     message Shard
     {
@@ -345,28 +345,28 @@ message ProtoShardingStructureWithPoWSolns
 
 message ProtoDSWinnerPoW
 {
-     required ByteArray pubkey         = 1;
-     required ProtoPoWSolution powsoln = 2;
+     ByteArray pubkey         = 1;
+     ProtoPoWSolution powsoln = 2;
 }
 
 message ProtoTransactionCoreInfo
 {
-    optional uint32 version         = 1;
-    optional uint64 nonce           = 2;
-    optional bytes toaddr           = 3;
-    optional ByteArray senderpubkey = 4;
-    optional ByteArray amount       = 5;
-    optional ByteArray gasprice     = 6;
-    optional uint64 gaslimit        = 7;
-    optional bytes code             = 8;
-    optional bytes data             = 9;
+    uint32 version         = 1;
+    uint64 nonce           = 2;
+    bytes toaddr           = 3;
+    ByteArray senderpubkey = 4;
+    ByteArray amount       = 5;
+    ByteArray gasprice     = 6;
+    uint64 gaslimit        = 7;
+    bytes code             = 8;
+    bytes data             = 9;
 }
 
 message ProtoTransaction
 {
-    optional bytes tranid                  = 1;
-    optional ProtoTransactionCoreInfo info = 2;
-    optional ByteArray signature           = 3;
+    bytes tranid                  = 1;
+    ProtoTransactionCoreInfo info = 2;
+    ByteArray signature           = 3;
 }
 
 message ProtoTxnFileOffset
@@ -382,34 +382,34 @@ message ProtoTransactionArray
 
 message ProtoTransactionReceipt
 {
-    optional bytes receipt    = 1;
-    optional uint64 cumgas = 2;
+    bytes receipt    = 1;
+    uint64 cumgas = 2;
 }
 
 message ProtoTransactionWithReceipt
 {
-    optional ProtoTransaction transaction    = 1;
-    optional ProtoTransactionReceipt receipt = 2;
+    ProtoTransaction transaction    = 1;
+    ProtoTransactionReceipt receipt = 2;
 }
 
 message ProtoSWInfo
 {
-    optional uint32 zilliqamajorversion        = 1;
-    optional uint32 zilliqaminorversion        = 2;
-    optional uint32 zilliqafixversion          = 3;
-    optional uint64 zilliqaupgradeds           = 4;
-    optional uint32 zilliqacommit              = 5;
-    optional uint32 scillamajorversion         = 6;
-    optional uint32 scillaminorversion         = 7;
-    optional uint32 scillafixversion           = 8;
-    optional uint64 scillaupgradeds            = 9;
-    optional uint32 scillacommit               = 10;
+    uint32 zilliqamajorversion        = 1;
+    uint32 zilliqaminorversion        = 2;
+    uint32 zilliqafixversion          = 3;
+    uint64 zilliqaupgradeds           = 4;
+    uint32 zilliqacommit              = 5;
+    uint32 scillamajorversion         = 6;
+    uint32 scillaminorversion         = 7;
+    uint32 scillafixversion           = 8;
+    uint64 scillaupgradeds            = 9;
+    uint32 scillacommit               = 10;
 }
 
 message ProtoFallbackBlockWShardingStructure
 {
-    optional ProtoFallbackBlock fallbackblock   = 1;
-    optional ProtoShardingStructure sharding    = 2;
+    ProtoFallbackBlock fallbackblock   = 1;
+    ProtoShardingStructure sharding    = 2;
 }
 
 message ProtoSingleDirectoryBlock
@@ -430,11 +430,11 @@ message PMHello
 {
     message Data
     {
-        required ByteArray pubkey  = 1;
-        required uint32 listenport = 2;
+        ByteArray pubkey  = 1;
+        uint32 listenport = 2;
     }
-    required Data data             = 1;
-    required ByteArray signature   = 2;
+    Data data             = 1;
+    ByteArray signature   = 2;
 }
 
 // ============================================================================
@@ -445,18 +445,18 @@ message DSPoWSubmission
 {
     message Data
     {
-        required uint64 blocknumber        = 1;
-        required uint32 difficultylevel    = 2; // only LSB used
-        required ByteArray submitterpeer   = 3;
-        required ByteArray submitterpubKey = 4;
-        required uint64 nonce              = 5;
-        required string resultinghash      = 6;
-        required string mixhash            = 7;
-        required uint32 lookupid           = 8;
-        required ByteArray gasprice        = 9;
+        uint64 blocknumber        = 1;
+        uint32 difficultylevel    = 2; // only LSB used
+        ByteArray submitterpeer   = 3;
+        ByteArray submitterpubKey = 4;
+        uint64 nonce              = 5;
+        string resultinghash      = 6;
+        string mixhash            = 7;
+        uint32 lookupid           = 8;
+        ByteArray gasprice        = 9;
     }
-    required Data data                     = 1;
-    required ByteArray signature           = 2;
+    Data data                     = 1;
+    ByteArray signature           = 2;
 }
 
 message DSPoWPacketSubmission
@@ -465,48 +465,48 @@ message DSPoWPacketSubmission
     {
         repeated DSPoWSubmission dsPowSubmissions    = 1;
     }
-    required Data data                               = 1;
-    required ByteArray pubkey                        = 2;
-    required ByteArray signature                     = 3;
+    Data data                               = 1;
+    ByteArray pubkey                        = 2;
+    ByteArray signature                     = 3;
 }
 
 message DSMicroBlockSubmission
 {
     message Data
     {
-        required uint32 microblocktype       = 1; // only LSB used
-        required uint64 epochnumber          = 2;
+        uint32 microblocktype       = 1; // only LSB used
+        uint64 epochnumber          = 2;
         repeated ProtoMicroBlock microblocks = 3;
         repeated bytes statedeltas           = 4;
     }
-    required Data data                       = 1;
-    required ByteArray pubkey                = 2;
-    required ByteArray signature             = 3;
+    Data data                       = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
 }
 
 message DSDSBlockAnnouncement
 {
-    required ProtoDSBlock dsblock                        = 1;
-    required ProtoShardingStructureWithPoWSolns sharding = 2;
+    ProtoDSBlock dsblock                        = 1;
+    ProtoShardingStructureWithPoWSolns sharding = 2;
     repeated ProtoDSWinnerPoW dswinnerpows               = 3;
 }
 
 message DSFinalBlockAnnouncement
 {
-    required ProtoTxBlock txblock       = 1;
-    optional ProtoMicroBlock microblock = 2;
+    ProtoTxBlock txblock       = 1;
+    ProtoMicroBlock microblock = 2;
 }
 
 message DSVCBlockAnnouncement
 {
-    required ByteArray vcblock = 1;
+    ByteArray vcblock = 1;
 }
 
 message DSMissingMicroBlocksErrorMsg
 {
     repeated bytes mbhashes    = 1;
-    required uint64 epochnum   = 2;
-    required uint32 listenport = 3;
+    uint64 epochnum   = 2;
+    uint32 listenport = 3;
 }
 
 // ============================================================================
@@ -515,62 +515,62 @@ message DSMissingMicroBlocksErrorMsg
 
 message NodeDSBlock
 {
-    required uint32 shardid                        = 1;
-    required ProtoDSBlock dsblock                  = 2;
+    uint32 shardid                        = 1;
+    ProtoDSBlock dsblock                  = 2;
     repeated ProtoVCBlock vcblocks                 = 3;
-    required ProtoShardingStructure sharding       = 4;
+    ProtoShardingStructure sharding       = 4;
 }
 
 message NodeFinalBlock
 {
-    required uint64 dsblocknumber = 1;
-    required uint32 consensusid   = 2;
-    required ProtoTxBlock txblock = 3;
-    required bytes statedelta     = 4;
+    uint64 dsblocknumber = 1;
+    uint32 consensusid   = 2;
+    ProtoTxBlock txblock = 3;
+    bytes statedelta     = 4;
     repeated uint32 shardids      = 5;
 }
 
 message NodeMBnForwardTransaction
 {
-    required ProtoMicroBlock microblock = 1;
+    ProtoMicroBlock microblock = 1;
     repeated ByteArray txnswithreceipt  = 2;
 }
 
 message NodeVCBlock
 {
-    required ProtoVCBlock vcblock = 1;
+    ProtoVCBlock vcblock = 1;
 }
 
 message NodeForwardTxnBlock
 {
-    required uint64 epochnumber            = 1;
-    required uint64 dsblocknum             = 2;
-    required uint32 shardid                = 3;
-    required ByteArray pubkey              = 4;
+    uint64 epochnumber            = 1;
+    uint64 dsblocknum             = 2;
+    uint32 shardid                = 3;
+    ByteArray pubkey              = 4;
     repeated ProtoTransaction transactions = 5;
-    required ByteArray signature           = 6;
+    ByteArray signature           = 6;
 }
 
 message NodeMicroBlockAnnouncement
 {
-    required ProtoMicroBlock microblock = 1;
+    ProtoMicroBlock microblock = 1;
 }
 
 message NodeFallbackBlockAnnouncement
 {
-    required ByteArray fallbackblock = 1;
+    ByteArray fallbackblock = 1;
 }
 
 message NodeFallbackBlock
 {
-    required ProtoFallbackBlock fallbackblock = 1;
+    ProtoFallbackBlock fallbackblock = 1;
 }
 
 message NodeMissingTxnsErrorMsg
 {
     repeated bytes txnhashes   = 1;
-    required uint64 epochnum   = 2;
-    required uint32 listenport = 3;
+    uint64 epochnum   = 2;
+    uint32 listenport = 3;
 }
 
 // ============================================================================
@@ -579,38 +579,38 @@ message NodeMissingTxnsErrorMsg
 
 message LookupGetSeedPeers
 {
-    required uint32 listenport = 1;
+    uint32 listenport = 1;
 }
 
 message LookupSetSeedPeers
 {
     repeated ByteArray candidateseeds = 1;
-    required ByteArray pubkey         = 2;
-    required ByteArray signature      = 3;
+    ByteArray pubkey         = 2;
+    ByteArray signature      = 3;
 }
 
 // From normal node to lookup nodes.
 message LookupGetDSInfoFromSeed
 {
-    required uint32 listenport =        1;
-    required bool initialds =           2;
+    uint32 listenport =        1;
+    bool initialds =           2;
 }
 
 // From DS leader to lookup nodes and from lookup nodes to normal nodes.
 message LookupSetDSInfoFromSeed
 {
-    required ProtoDSCommittee dscommittee = 1;
-    required ByteArray pubkey             = 2;
-    required ByteArray signature          = 3;
-    required bool initialds               = 4;
+    ProtoDSCommittee dscommittee = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
+    bool initialds               = 4;
 }
 
 // From new join lookup node or new join normal node to existing lookup node.
 message LookupGetDSBlockFromSeed
 {
-    required uint64 lowblocknum            = 1;
-    required uint64 highblocknum           = 2;
-    required uint32 listenport             = 3;
+    uint64 lowblocknum            = 1;
+    uint64 highblocknum           = 2;
+    uint32 listenport             = 3;
 }
 
 // From lookup nodes to new join lookup node or new join normal node.
@@ -618,21 +618,21 @@ message LookupSetDSBlockFromSeed
 {
     message Data
     {
-        required uint64 lowblocknum    = 1;
-        required uint64 highblocknum   = 2;
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
         repeated ProtoDSBlock dsblocks = 3;
     }
-    required Data data             = 1;
-    required ByteArray pubkey      = 2;
-    required ByteArray signature   = 3;
+    Data data             = 1;
+    ByteArray pubkey      = 2;
+    ByteArray signature   = 3;
 }
 
 // From new join lookup node or new join normal node to existing lookup node.
 message LookupGetTxBlockFromSeed
 {
-    required uint64 lowblocknum  = 1;
-    required uint64 highblocknum = 2;
-    required uint32 listenport   = 3;
+    uint64 lowblocknum  = 1;
+    uint64 highblocknum = 2;
+    uint32 listenport   = 3;
 }
 
 // From lookup nodes to new join lookup node or new join normal node.
@@ -640,63 +640,63 @@ message LookupSetTxBlockFromSeed
 {
     message Data
     {
-        required uint64 lowblocknum    = 1;
-        required uint64 highblocknum   = 2;
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
         repeated ProtoTxBlock txblocks = 3;
     }
-    required Data data             = 1;
-    required ByteArray pubkey      = 2;
-    required ByteArray signature   = 3;
+    Data data             = 1;
+    ByteArray pubkey      = 2;
+    ByteArray signature   = 3;
 }
 
 message LookupGetStateDeltaFromSeed
 {
-    required uint64 blocknum     = 1;
-    required uint32 listenport   = 2;
+    uint64 blocknum     = 1;
+    uint32 listenport   = 2;
 }
 
 message LookupGetStateDeltasFromSeed
 {
-    required uint64 lowblocknum  = 1;
-    required uint64 highblocknum = 2;
-    required uint32 listenport   = 3;
+    uint64 lowblocknum  = 1;
+    uint64 highblocknum = 2;
+    uint32 listenport   = 3;
 }
 
 message LookupSetStateDeltaFromSeed
 {
     message Data
     {
-        required uint64 blocknum     = 1;
-        required bytes statedelta    = 2;
+        uint64 blocknum     = 1;
+        bytes statedelta    = 2;
     }
-    required Data data           = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 message LookupSetStateDeltasFromSeed
 {
     message Data
     {
-        required uint64 lowblocknum    = 1;
-        required uint64 highblocknum   = 2;
+        uint64 lowblocknum    = 1;
+        uint64 highblocknum   = 2;
         repeated bytes statedeltas = 3;
     }
-    required Data data           = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 message LookupGetStateFromSeed
 {
-    required uint32 listenport = 1;
+    uint32 listenport = 1;
 }
 
 message LookupSetStateFromSeed
 {
-    required ByteArray accountstore          = 1;
-    required ByteArray pubkey                = 2;
-    required ByteArray signature             = 3;
+    ByteArray accountstore          = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
 }
 
 // msgtype is used to prevent replay attacks
@@ -704,12 +704,12 @@ message LookupSetLookupOffline
 {
     message Data
     {
-        required uint32 msgtype     = 1; // Only LSB used
-        required uint32 listenport  = 2;
+        uint32 msgtype     = 1; // Only LSB used
+        uint32 listenport  = 2;
     }
-    required Data data              = 1;
-    required ByteArray pubkey       = 2;
-    required ByteArray signature    = 3;
+    Data data              = 1;
+    ByteArray pubkey       = 2;
+    ByteArray signature    = 3;
 }
 
 // msgtype and blocknumber are used to prevent replay attacks
@@ -717,24 +717,24 @@ message LookupSetLookupOnline
 {
     message Data
     {
-        required uint32 msgtype     = 1; // Only LSB used
-        required uint32 listenport  = 2;
+        uint32 msgtype     = 1; // Only LSB used
+        uint32 listenport  = 2;
     }
-    required Data data              = 1;
-    required ByteArray pubkey       = 2;
-    required ByteArray signature    = 3;
+    Data data              = 1;
+    ByteArray pubkey       = 2;
+    ByteArray signature    = 3;
 }
 
 message LookupGetOfflineLookups
 {
-    required uint32 listenport = 1;
+    uint32 listenport = 1;
 }
 
 message LookupSetOfflineLookups
 {
     repeated ByteArray nodes     = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 // msgtype and blocknumber is used to prevent replay attacks
@@ -742,96 +742,96 @@ message LookupRaiseStartPoW
 {
     message Data
     {
-        required uint32 msgtype      = 1; // Only LSB used
-        required uint64 blocknumber  = 2;
+        uint32 msgtype      = 1; // Only LSB used
+        uint64 blocknumber  = 2;
     }
-    required Data data           = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 message LookupGetStartPoWFromSeed
 {
     message Data
     {
-        required uint32 listenport  = 1;
-        required uint64 blocknumber = 2;
+        uint32 listenport  = 1;
+        uint64 blocknumber = 2;
     }
-    required Data data           = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 message LookupSetStartPoWFromSeed
 {
-    required uint64 blocknumber  = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    uint64 blocknumber  = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 // From archival node to lookup node.
 message LookupGetShardsFromSeed
 {
-    required uint32 listenport = 1;
+    uint32 listenport = 1;
 }
 
 // From lookup node to archival node.
 message LookupSetShardsFromSeed
 {
-    required ProtoShardingStructure sharding = 1;
-    required ByteArray pubkey                = 2;
-    required ByteArray signature             = 3;
+    ProtoShardingStructure sharding = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
 }
 
 message LookupGetMicroBlockFromLookup
 {
-    required uint32 portno            = 1;
+    uint32 portno            = 1;
     repeated bytes mbhashes           = 2;
 }
 
 message LookupSetMicroBlockFromLookup
 {
     repeated ProtoMicroBlock microblocks = 1;
-    required ByteArray pubkey            = 2;
-    required ByteArray signature         = 3;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
 }
 
 message LookupForwardTxnsFromSeed
 {
-    optional ProtoTransactionArray shardtransactions = 1;
-    optional ProtoTransactionArray dstransactions    = 2;
+    ProtoTransactionArray shardtransactions = 1;
+    ProtoTransactionArray dstransactions    = 2;
 }
 
 
 message LookupGetTxnsFromLookup
 {
-    required uint32 portno   = 1;
+    uint32 portno   = 1;
     repeated bytes txnhashes = 2;
 }
 
 message LookupSetTxnsFromLookup
 {
     repeated ByteArray transactions = 1;
-    required ByteArray pubkey       = 2;
-    required ByteArray signature    = 3;
+    ByteArray pubkey       = 2;
+    ByteArray signature    = 3;
 }
 
 message LookupGetDirectoryBlocksFromSeed
 {
-    required uint32 portno      = 1;
-    required uint64 indexnum    = 2;
+    uint32 portno      = 1;
+    uint64 indexnum    = 2;
 }
 
 message LookupSetDirectoryBlocksFromSeed
 {
     message Data
     {
-        required uint64 indexnum                     = 1;
+        uint64 indexnum                     = 1;
         repeated ProtoSingleDirectoryBlock dirblocks = 2;
     }
-    required Data data           = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
 }
 
 // ============================================================================
@@ -842,14 +842,14 @@ message ConsensusAnnouncement
 {
     message ConsensusInfo
     {
-        required uint32 consensusid           = 1;
-        required uint64 blocknumber           = 2;
-        required bytes blockhash              = 3; // 32 bytes
-        required uint32 leaderid              = 4; // only lower 2 bytes used
+        uint32 consensusid           = 1;
+        uint64 blocknumber           = 2;
+        bytes blockhash              = 3; // 32 bytes
+        uint32 leaderid              = 4; // only lower 2 bytes used
     }
-    required ConsensusInfo consensusinfo      = 1;
-    required ByteArray pubkey                 = 2;
-    required ByteArray signature              = 3; // The signature of the consensus info
+    ConsensusInfo consensusinfo      = 1;
+    ByteArray pubkey                 = 2;
+    ByteArray signature              = 3; // The signature of the consensus info
     oneof announcement
     {
         DSDSBlockAnnouncement dsblock         = 4;
@@ -858,108 +858,108 @@ message ConsensusAnnouncement
         DSVCBlockAnnouncement vcblock         = 7;
         NodeFallbackBlockAnnouncement fallbackblock = 8;
     }
-    required ByteArray finalsignature         = 9;
+    ByteArray finalsignature         = 9;
 }
 
 message ConsensusCommit
 {
     message ConsensusInfo
     {
-        required uint32 consensusid        = 1;
-        required uint64 blocknumber        = 2;
-        required bytes blockhash           = 3; // 32 bytes
-        required uint32 backupid           = 4; // only lower 2 bytes used
-        required ByteArray commitpoint     = 5;
-        required ByteArray commitpointhash = 6;
+        uint32 consensusid        = 1;
+        uint64 blocknumber        = 2;
+        bytes blockhash           = 3; // 32 bytes
+        uint32 backupid           = 4; // only lower 2 bytes used
+        ByteArray commitpoint     = 5;
+        ByteArray commitpointhash = 6;
     }
-    required ConsensusInfo consensusinfo   = 1;
-    required ByteArray pubkey              = 2;
-    required ByteArray signature           = 3;
+    ConsensusInfo consensusinfo   = 1;
+    ByteArray pubkey              = 2;
+    ByteArray signature           = 3;
 }
 
 message ConsensusChallenge
 {
     message SubsetInfo
     {
-        required ByteArray aggregatedcommit = 1;
-        required ByteArray aggregatedkey    = 2;
-        required ByteArray challenge        = 3;
+        ByteArray aggregatedcommit = 1;
+        ByteArray aggregatedkey    = 2;
+        ByteArray challenge        = 3;
     }
     message ConsensusInfo
     {
-        required uint32 consensusid         = 1;
-        required uint64 blocknumber         = 2;
-        required bytes blockhash            = 3; // 32 bytes
-        required uint32 leaderid            = 4; // only lower 2 bytes used
+        uint32 consensusid         = 1;
+        uint64 blocknumber         = 2;
+        bytes blockhash            = 3; // 32 bytes
+        uint32 leaderid            = 4; // only lower 2 bytes used
         repeated SubsetInfo subsetinfo      = 5;
     }
-    required ConsensusInfo consensusinfo    = 1;
-    required ByteArray pubkey               = 2;
-    required ByteArray signature            = 3;
+    ConsensusInfo consensusinfo    = 1;
+    ByteArray pubkey               = 2;
+    ByteArray signature            = 3;
 }
 
 message ConsensusResponse
 {
     message SubsetInfo
     {
-        required ByteArray response      = 1;
+        ByteArray response      = 1;
     }
     message ConsensusInfo
     {
-        required uint32 consensusid      = 1;
-        required uint64 blocknumber      = 2;
-        required bytes blockhash         = 3; // 32 bytes
-        required uint32 backupid         = 4; // only lower 2 byte used
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 backupid         = 4; // only lower 2 byte used
         repeated SubsetInfo subsetinfo   = 5;
     }
-    required ConsensusInfo consensusinfo = 1;
-    required ByteArray pubkey            = 2;
-    required ByteArray signature         = 3;
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
 }
 
 message ConsensusCollectiveSig
 {
     message ConsensusInfo
     {
-        required uint32 consensusid      = 1;
-        required uint64 blocknumber      = 2;
-        required bytes blockhash         = 3; // 32 bytes
-        required uint32 leaderid         = 4; // only lower 2 bytes used
-        required ByteArray collectivesig = 5;
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 leaderid         = 4; // only lower 2 bytes used
+        ByteArray collectivesig = 5;
         repeated bool bitmap             = 6 [packed=true];
     }
-    required ConsensusInfo consensusinfo = 1;
-    required ByteArray pubkey            = 2;
-    required ByteArray signature         = 3;
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
 }
 
 message ConsensusCommitFailure
 {
     message ConsensusInfo
     {
-        required uint32 consensusid      = 1;
-        required uint64 blocknumber      = 2;
-        required bytes blockhash         = 3; // 32 bytes
-        required uint32 backupid         = 4; // only lower 2 bytes used
-        required bytes errormsg          = 5;
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 backupid         = 4; // only lower 2 bytes used
+        bytes errormsg          = 5;
     }
-    required ConsensusInfo consensusinfo = 1;
-    required ByteArray pubkey            = 2;
-    required ByteArray signature         = 3;
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
 }
 
 message ConsensusConsensusFailure
 {
     message ConsensusInfo
     {
-        required uint32 consensusid      = 1;
-        required uint64 blocknumber      = 2;
-        required bytes blockhash         = 3; // 32 bytes
-        required uint32 leaderid         = 4; // only lower 2 bytes used
+        uint32 consensusid      = 1;
+        uint64 blocknumber      = 2;
+        bytes blockhash         = 3; // 32 bytes
+        uint32 leaderid         = 4; // only lower 2 bytes used
     }
-    required ConsensusInfo consensusinfo = 1;
-    required ByteArray pubkey            = 2;
-    required ByteArray signature         = 3;
+    ConsensusInfo consensusinfo = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
 }
 
 // ============================================================================
@@ -969,11 +969,11 @@ message ConsensusConsensusFailure
 // From node undergoing vc pre check to fetch latest blocks
 message LookupGetDSTxBlockFromSeed
 {
-    required uint64 dslowblocknum            = 1;
-    required uint64 dshighblocknum           = 2;
-    required uint64 txlowblocknum            = 3;
-    required uint64 txhighblocknum           = 4;
-    required uint32 listenport               = 5;
+    uint64 dslowblocknum            = 1;
+    uint64 dshighblocknum           = 2;
+    uint64 txlowblocknum            = 3;
+    uint64 txhighblocknum           = 4;
+    uint32 listenport               = 5;
 }
 
 // From lookup nodes to node under going vc pre check
@@ -984,9 +984,9 @@ message VCNodeSetDSTxBlockFromSeed
         repeated ProtoDSBlock dsblocks   = 1;
         repeated ProtoTxBlock txblocks   = 2;
     }
-    required Data data               = 1;
-    required ByteArray pubkey        = 2;
-    required ByteArray signature     = 3;
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
 }
 
 // ============================================================================
@@ -998,13 +998,13 @@ message DSLookupSetDSGuardNetworkInfoUpdate
 {
     message Data
     {
-        required uint64 dsepochnumber               = 1;
-        required ByteArray dsguardpubkey            = 2;
-        required ProtoPeer dsguardnewnetworkinfo    = 3;
-        required uint64 timestamp                   = 4;
+        uint64 dsepochnumber               = 1;
+        ByteArray dsguardpubkey            = 2;
+        ProtoPeer dsguardnewnetworkinfo    = 3;
+        uint64 timestamp                   = 4;
     }
-    required Data data                              = 1;
-    required ByteArray signature                    = 2;
+    Data data                              = 1;
+    ByteArray signature                    = 2;
 }
 
 // To update shard node of guard node's network info change
@@ -1012,19 +1012,19 @@ message NodeGetGuardNodeNetworkInfoUpdate
 {
     message Data
     {
-        required uint32 portno          = 1;
-        required uint64 dsepochnumber   = 2;
+        uint32 portno          = 1;
+        uint64 dsepochnumber   = 2;
     }
-    required Data data                  = 1;
-    required ByteArray pubkey           = 2;
-    required ByteArray signature        = 3;
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
 }
 
 message ProtoDSGuardUpdateStruct
 {
-    required ByteArray dsguardpubkey            = 1;
-    required ProtoPeer dsguardnewnetworkinfo    = 2;
-    required uint64 timestamp                   = 3;
+    ByteArray dsguardpubkey            = 1;
+    ProtoPeer dsguardnewnetworkinfo    = 2;
+    uint64 timestamp                   = 3;
 }
 
 // From sending New DS guard node network info to requesing shard node
@@ -1034,20 +1034,20 @@ message NodeSetGuardNodeNetworkInfoUpdate
     {
         repeated ProtoDSGuardUpdateStruct dsguardupdatestruct = 1;
     }
-    required Data data                              = 1;
-    required ByteArray lookuppubkey                 = 2;
-    required ByteArray signature                    = 3;
+    Data data                              = 1;
+    ByteArray lookuppubkey                 = 2;
+    ByteArray signature                    = 3;
 }
 
 message SeedSetHistoricalDB
 {
     message Data
     {
-        required uint32 code            = 1;
-        optional string path            = 2;
+        uint32 code            = 1;
+        string path            = 2;
     }
-    required Data data                  = 1;
-    required ByteArray pubkey           = 2;
-    required ByteArray signature        = 3;
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
 
 }

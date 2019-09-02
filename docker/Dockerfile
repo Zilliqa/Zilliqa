@@ -39,13 +39,11 @@ RUN apt-get update \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
-    libprotobuf-dev \
     libsnappy-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
     python \
     python-pip \
     libsecp256k1-dev \
