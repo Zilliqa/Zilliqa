@@ -50,15 +50,16 @@ void AccountStoreSC<MAP>::Init() {
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
                                               bool& ret_checker, int& pid,
+                                              const uint64_t& gasRemained,
                                               TransactionReceipt& receipt) {
-  auto func1 = [this, &checkerPrint, &ret_checker, &pid,
+  auto func1 = [this, &checkerPrint, &ret_checker, &pid, &gasRemained,
                 &receipt]() mutable -> void {
     try {
       if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
-                                  GetContractCheckerCmdStr(m_root_w_version),
+                                  GetContractCheckerCmdStr(m_root_w_version, gasRemained),
                                   checkerPrint, pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: "
-                                 << GetContractCheckerCmdStr(m_root_w_version));
+                                 << GetContractCheckerCmdStr(m_root_w_version, gasRemained));
         receipt.AddError(EXECUTE_CMD_FAILED);
         ret_checker = false;
       }
@@ -225,7 +226,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string checkerPrint;
 
       int pid = -1;
-      InvokeScillaChecker(checkerPrint, ret_checker, pid, receipt);
+      InvokeScillaChecker(checkerPrint, ret_checker, pid, gasRemained, receipt);
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(
@@ -246,7 +247,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       bytes map_depth_data;
 
       if (ret_checker &&
-          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data)) {
+          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data, gasRemained)) {
         ret_checker = false;
       }
 
@@ -761,11 +762,12 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
-    const std::string& root_w_version) {
+    const std::string& root_w_version, const uint64_t& available_gas) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
+      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE +
+      " -gaslimit " + std::to_string(available_gas);
   return cmdStr;
 }
 
@@ -803,7 +805,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const std::string& checkerPrint, TransactionReceipt& receipt,
-    bytes& map_depth_data) {
+    bytes& map_depth_data, uint64_t& gasRemained) {
   LOG_MARKER();
 
   Json::Value root;
@@ -812,6 +814,28 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
       return false;
     }
+
+    if (!root.isMember("gas_remaining")) {
+      LOG_GENERAL(
+          WARNING,
+          "The json output of this contract didn't contain gas_remaining");
+      if (gasRemained > CONTRACT_CREATE_GAS) {
+        gasRemained -= CONTRACT_CREATE_GAS;
+      } else {
+        gasRemained = 0;
+      }
+      receipt.AddError(NO_GAS_REMAINING_FOUND);
+      return false;
+    }
+    try {
+      gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                              root["gas_remaining"].asString()));
+    } catch (...) {
+      LOG_GENERAL(WARNING, "_amount " << root["gas_remaining"].asString()
+                                      << " is not numeric");
+      return false;
+    }
+    LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
     if (!root.isMember("contract_info")) {
       receipt.AddError(CHECKER_FAILED);
