@@ -2562,9 +2562,16 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
   // Delete the mb from unavailable list here
   std::lock_guard<mutex> lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
   auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks();
+  vector<UnavailableMicroBlockList::key_type> todelTxBlkNums;
   for (auto it = mbs.begin(); it != mbs.end(); it++) {
     auto mbsVec = it->second;
     size_t origSiz = mbsVec.size();
+    // Take an opportunity to delete entry if no mbs found for this txblk
+    // and was left undeleted for whatever reason.
+    if (0 == origSiz) {
+      todelTxBlkNums.emplace_back(it->first);
+      continue;
+    }
     mbsVec.erase(
         std::remove_if(mbsVec.begin(), mbsVec.end(),
                        [mbHash](const std::pair<BlockHash, TxnHash>& e) {
@@ -2578,6 +2585,10 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
       }
       break;
     }
+  }
+
+  for (const auto& i : todelTxBlkNums) {
+    mbs.erase(i);
   }
 
   return true;
