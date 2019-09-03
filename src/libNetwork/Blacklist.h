@@ -74,7 +74,7 @@ class Blacklist {
   /// Node to be excluded from blacklisting
   bool Exclude(const uint128_t& ip);
 
-  /// Check if part of exclusion list / whitelisted ip
+  /// Check if given IP is a part of whitelisted ip
   bool IsWhitelistedIP(const uint128_t& ip);
 
   /// Remove node from exclusion list for blacklisting
