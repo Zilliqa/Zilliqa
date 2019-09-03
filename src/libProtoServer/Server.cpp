@@ -661,7 +661,8 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
                       contractAddr.hex());
         continue;
       }
-      protoContractAccount->set_state(root.toStyledString());
+      protoContractAccount->set_state(
+          JSONUtils::GetInstance().convertJsontoStr(root));
     }
 
   } catch (exception& e) {

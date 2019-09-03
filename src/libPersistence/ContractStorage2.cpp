@@ -410,17 +410,25 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
                                               string value, bool unquote) {
   if (unquote) {
     // unquote key
-    if (key.front() == '"') {
+    while (key.front() == '"') {
       key.erase(0, 1);
     }
-    if (key.back() == '"') {
+    while (key.back() == '"') {
       key.pop_back();
+    }
+
+    // unquote value
+    while (value.front() == '"') {
+      value.erase(0, 1);
+    }
+    while (value.back() == '"') {
+      value.pop_back();
     }
   }
 
   Json::Value j_value;
-  if (JSONUtils::GetInstance().convertStrtoJson(value, j_value) &&
-      j_value.type() == Json::objectValue) {
+
+  if (JSONUtils::GetInstance().convertStrtoJson(value, j_value)) {
     if (key.empty()) {
       _json = j_value;
     } else {
@@ -428,13 +436,13 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
     }
   } else {
     if (unquote) {
-      // unquote value
-      if (value.front() == '"') {
-        value.erase(0, 1);
-      }
-      if (value.back() == '"') {
-        value.pop_back();
-      }
+      // // unquote value
+      // if (value.front() == '"') {
+      //   value.erase(0, 1);
+      // }
+      // if (value.back() == '"') {
+      //   value.pop_back();
+      // }
     }
 
     if (key.empty()) {
@@ -485,16 +493,17 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
                              const bytes& value, unsigned int cur_index,
                              int mapdepth) -> void {
       if (cur_index + 1 < indices.size()) {
-        jsonMapWrapper(_json[indices.at(cur_index)], indices, value,
-                       cur_index + 1, mapdepth);
+        string key = indices.at(cur_index);
+        while (key.front() == '"') {
+          key.erase(0, 1);
+        }
+        while (key.back() == '"') {
+          key.pop_back();
+        }
+        jsonMapWrapper(_json[key], indices, value, cur_index + 1, mapdepth);
       } else {
         if (mapdepth > 0) {
           if ((int)indices.size() == mapdepth) {
-            for (const auto& index : indices) {
-              if (LOG_SC) {
-                LOG_GENERAL(INFO, "index: " << index);
-              }
-            }
             InsertValueToStateJson(_json, indices.at(cur_index),
                                    DataConversion::CharArrayToString(value));
           } else {

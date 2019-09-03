@@ -26,7 +26,7 @@
 /// persistence
 
 using namespace std;
-int main(int argc, const char* argv[]) {
+int main() {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
 
@@ -42,53 +42,11 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
-  bool got_state = false;
-  Address the_addr;
-
   LOG_GENERAL(INFO, "finished RetrieveStates");
-
-  if (argc >= 2) {
-    std::string addrStr(argv[1]);
-    Address addr(addrStr);
-    the_addr = addr;
-    Account* account;
-    account = AccountStore::GetInstance().GetAccount(addr);
-    LOG_GENERAL(INFO, "Getting the account");
-    if (account == nullptr) {
-      LOG_GENERAL(WARNING,
-                  "Cannot get account " << addr.hex() << " from persistence");
-    } else {
-      std::pair<Json::Value, Json::Value> roots;
-      if (!account->GetStorageJson(roots)) {
-        LOG_GENERAL(WARNING, "Cannot get StorageJson");
-      } else {
-        LOG_GENERAL(INFO,
-                    "InitJson: " << JSONUtils::GetInstance().convertJsontoStr(
-                        roots.first));
-        LOG_GENERAL(
-            INFO, "StorageJson: " << JSONUtils::GetInstance().convertJsontoStr(
-                      roots.second));
-        got_state = true;
-      }
-    }
-  }
 
   if (!retriever.MigrateContractStates()) {
     LOG_GENERAL(WARNING, "MigrateContractStates failed");
   } else {
-    if (got_state) {
-      Account* account;
-      account = AccountStore::GetInstance().GetAccount(the_addr);
-      Json::Value root;
-      if (!account->FetchStateJson(root)) {
-        LOG_GENERAL(WARNING, "FetchStateJson failed");
-      } else {
-        LOG_GENERAL(
-            INFO, "State: " << JSONUtils::GetInstance().convertJsontoStr(root));
-      }
-      LOG_GENERAL(INFO, "Init Data: " << DataConversion::CharArrayToString(
-                            account->GetInitData()));
-    }
     LOG_GENERAL(INFO, "Migrate contract data finished");
   }
 

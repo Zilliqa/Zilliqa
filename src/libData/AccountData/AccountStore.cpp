@@ -566,7 +566,20 @@ bool AccountStore::MigrateContractStates() {
     if (account.isContract()) {
       account.SetAddress(address);
     } else {
+      this->AddAccount(address, account);
       continue;
+    }
+
+    std::pair<Json::Value, Json::Value> roots;
+    if (!account.GetStorageJson(roots)) {
+      LOG_GENERAL(WARNING, "Cannot get StorageJson");
+    } else {
+      LOG_GENERAL(
+          INFO, "InitJson: "
+                    << JSONUtils::GetInstance().convertJsontoStr(roots.first));
+      LOG_GENERAL(
+          INFO, "old account state: "
+                    << JSONUtils::GetInstance().convertJsontoStr(roots.second));
     }
 
     map<string, bytes> mutable_states;
@@ -717,7 +730,6 @@ bool AccountStore::MigrateContractStates() {
 
       // Check is the value is map
       Json::Value json_val;
-      LOG_GENERAL(INFO, "tVname " << tVname << endl << " tValue: " << tValue);
 
       if (!map_depth_json.isMember(tVname)) {
         LOG_GENERAL(WARNING, tVname
@@ -799,6 +811,14 @@ bool AccountStore::MigrateContractStates() {
     LOG_GENERAL(
         INFO, "current account immutables: "
                   << DataConversion::CharArrayToString(account.GetInitData()));
+    Json::Value cur_state;
+    if (!account.FetchStateJson(cur_state)) {
+      LOG_GENERAL(WARNING, "account fetch state json failed")
+      return false;
+    }
+    LOG_GENERAL(INFO,
+                "current account state: "
+                    << JSONUtils::GetInstance().convertJsontoStr(cur_state));
 
     Account* originalAccount = GetAccount(address);
     *originalAccount = account;
