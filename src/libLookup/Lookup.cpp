@@ -1482,6 +1482,16 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     return false;
   }
 
+  // verify if sender is from whitelisted list
+  uint128_t ipAddr = from.m_ipAddress;
+  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
+    LOG_GENERAL(WARNING,
+                "Requesting IP : "
+                    << ipAddr
+                    << " is not in whitelisted IP list. Ignore the request");
+    return false;
+  }
+
   vector<BlockHash> microBlockHashes;
   uint32_t portNo = 0;
 
@@ -1494,16 +1504,6 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   if (microBlockHashes.size() == 0) {
     LOG_GENERAL(INFO, "No MicroBlock requested");
     return true;
-  }
-
-  // verify if sender is from whitelisted list
-  uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
-    LOG_GENERAL(WARNING,
-                "Requesting IP : "
-                    << ipAddr
-                    << " is not in whitelisted IP list. Ignore the request");
-    return false;
   }
 
   LOG_GENERAL(INFO, "Request for " << microBlockHashes.size() << " blocks");
@@ -2443,6 +2443,22 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
+  // verify if sender is from whitelisted list
+  uint128_t ipAddr = from.m_ipAddress;
+  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
+    LOG_GENERAL(WARNING,
+                "Requesting IP : "
+                    << ipAddr
+                    << " is not in whitelisted IP list. Ignore the request");
+    return false;
+  }
+
   vector<TxnHash> txnhashes;
   BlockHash mbHash;
   uint32_t portNo = 0;
@@ -2452,9 +2468,34 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (txnhashes.size() == 0) {
+  auto requestedNum = txnhashes.size();
+  if (requestedNum == 0) {
     LOG_GENERAL(INFO, "No txn requested");
     return true;
+  }
+
+  if (requestedNum > MICROBLOCK_GAS_LIMIT) {
+    LOG_GENERAL(WARNING, "No microblock can have more than "
+                             << MICROBLOCK_GAS_LIMIT
+                             << " missing txns. Looks suspicious so will "
+                                "ignore the message and blacklist sender");
+    Blacklist::GetInstance().Add(from.GetIpAddress());
+    return false;
+  }
+
+  MicroBlockSharedPtr mbptr;
+  if (BlockStorage::GetBlockStorage().GetMicroBlock(mbHash, mbptr)) {
+    if (mbptr->GetHeader().GetNumTxs() != requestedNum) {
+      LOG_GENERAL(WARNING, "Num of requested txnhashes "
+                               << requestedNum
+                               << " does not match local storage count "
+                               << mbptr->GetTranHashes().size());
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING,
+                "Microblock (" << mbHash << ") does not exist locally");
+    return false;
   }
 
   vector<TransactionWithReceipt> txns;
@@ -2462,11 +2503,12 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     shared_ptr<TransactionWithReceipt> txnptr;
     if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txnptr)) {
       LOG_GENERAL(WARNING, "Could not find " << txnhash);
+      // TBD - may be want to blacklist.
       continue;
     }
     txns.emplace_back(*txnptr);
   }
-  uint128_t ipAddr = from.m_ipAddress;
+
   Peer requestingNode(ipAddr, portNo);
 
   bytes setTxnMsg = {MessageType::LOOKUP,
@@ -4274,13 +4316,14 @@ void Lookup::CheckAndFetchUnavailableMBs() {
       LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "
                             << it.first << ": " << it.second.size());
 
-      // Delete missing mbs from unavailable list which has no txns
+      // Delete missing mbs from unavailable list which has no txns or which is
+      // available in storage
       auto mbsIt = it.second;
       mbsIt.erase(
           std::remove_if(mbsIt.begin(), mbsIt.end(),
                          [](const std::pair<BlockHash, TxnHash> e) {
                            MicroBlockSharedPtr mbptr;
-                           return (e.second == TxnHash()) ||
+                           return e.second == TxnHash() ||
                                   BlockStorage::GetBlockStorage().GetMicroBlock(
                                       e.first, mbptr);
                          }),
