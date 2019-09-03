@@ -4276,11 +4276,15 @@ void Lookup::CheckAndFetchUnavailableMBs() {
 
       // Delete missing mbs from unavailable list which has no txns
       auto mbsIt = it.second;
-      mbsIt.erase(std::remove_if(mbsIt.begin(), mbsIt.end(),
-                                 [](const std::pair<BlockHash, TxnHash> e) {
-                                   return e.second == TxnHash();
-                                 }),
-                  mbsIt.end());
+      mbsIt.erase(
+          std::remove_if(mbsIt.begin(), mbsIt.end(),
+                         [](const std::pair<BlockHash, TxnHash> e) {
+                           MicroBlockSharedPtr mbptr;
+                           return (e.second == TxnHash()) ||
+                                  BlockStorage::GetBlockStorage().GetMicroBlock(
+                                      e.first, mbptr);
+                         }),
+          mbsIt.end());
 
       LOG_GENERAL(INFO,
                   "After deleting microblock bodies with no transactions, "

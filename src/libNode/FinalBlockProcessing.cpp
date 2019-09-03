@@ -1003,6 +1003,16 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
 
   LOG_MARKER();
 
+#ifdef SJ_TEST_SJ_MISSING_MBTXNS
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(
+        INFO,
+        "Stimulating missing mb/txns so ignoring received mb/txns message "
+        "(SJ_TEST_SJ_MISSING_MBTXNS)");
+    return false;
+  }
+#endif  // SJ_TEST_SJ_MISSING_MBTXNS
+
   MBnForwardedTxnEntry entry;
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
