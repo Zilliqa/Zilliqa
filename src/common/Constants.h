@@ -191,6 +191,7 @@ extern const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS;
 extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
 extern const unsigned int RETRY_REJOINING_TIMEOUT;
 extern const unsigned int RETRY_GETSTATEDELTAS_COUNT;
+extern const unsigned int MAX_FETCHMISSINGMBS_NUM;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;
