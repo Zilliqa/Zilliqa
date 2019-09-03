@@ -1492,6 +1492,16 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     return true;
   }
 
+  // verify if sender is from whitelisted list
+  uint128_t ipAddr = from.m_ipAddress;
+  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
+    LOG_GENERAL(WARNING,
+                "Requesting IP : "
+                    << ipAddr
+                    << " is not in whitelisted IP list. Ignore the request");
+    return false;
+  }
+
   LOG_GENERAL(INFO, "Request for " << microBlockHashes.size() << " blocks");
   if (microBlockHashes.size() > MAX_FETCHMISSINGMBS_NUM) {
     LOG_GENERAL(WARNING, "Requesting for more than max allowed : "
@@ -1500,7 +1510,6 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     return false;
   }
 
-  uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   vector<MicroBlock> retMicroBlocks;
 
