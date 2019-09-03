@@ -183,7 +183,7 @@ if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
 endif()
 
 if(SJ_TEST_SJ_MISSING_MBTXNS)
-    message(STATUS "SJ 2test enabled")
+    message(STATUS "SJ 2 test enabled")
     add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
 endif()
 

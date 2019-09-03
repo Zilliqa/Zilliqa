@@ -135,7 +135,7 @@ do
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;        
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-9>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"
         exit 1
     ;;
     esac

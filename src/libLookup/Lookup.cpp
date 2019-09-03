@@ -4319,34 +4319,30 @@ void Lookup::CheckAndFetchUnavailableMBs() {
     m_startedFetchMissingMBsThread = true;
     auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
     unsigned int count = 0;
-    for (const auto& it : unavailableMBs) {
+    for (auto& m : unavailableMBs) {
       // skip mbs from latest final block
-      if (it.first == m_mediator.m_currentEpochNum - 1) {
+      if (m.first == m_mediator.m_currentEpochNum - 1) {
         continue;
       }
       LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "
-                            << it.first << ": " << it.second.size());
+                            << m.first << ": " << m.second.size());
 
-      // Delete missing mbs from unavailable list which has no txns or which is
-      // available in storage
-      auto mbsIt = it.second;
-      mbsIt.erase(
-          std::remove_if(mbsIt.begin(), mbsIt.end(),
-                         [](const std::pair<BlockHash, TxnHash> e) {
-                           MicroBlockSharedPtr mbptr;
-                           return e.second == TxnHash() ||
-                                  BlockStorage::GetBlockStorage().GetMicroBlock(
-                                      e.first, mbptr);
-                         }),
-          mbsIt.end());
+      // Delete missing mbs from unavailable list which has no txns
+      auto& mbs = m.second;
+      mbs.erase(std::remove_if(mbs.begin(), mbs.end(),
+                               [](const std::pair<BlockHash, TxnHash> e) {
+                                 MicroBlockSharedPtr mbptr;
+                                 return e.second == TxnHash();
+                               }),
+                mbs.end());
 
       LOG_GENERAL(INFO,
                   "After deleting microblock bodies with no transactions, "
                   "Unavailable count = "
-                      << mbsIt.size());
+                      << mbs.size());
 
       vector<BlockHash> mbHashes;
-      for (auto it2 : mbsIt) {
+      for (const auto& mb : mbs) {
         count++;
         if (count > maxMBSToBeFetched) {
           LOG_GENERAL(INFO, "Max fetch missing mbs limit of "
@@ -4356,8 +4352,8 @@ void Lookup::CheckAndFetchUnavailableMBs() {
           break;
         }
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "BlockHash = " << it2.first << ", TxnHash = " << it2.second);
-        mbHashes.emplace_back(it2.first);
+                  "BlockHash = " << mb.first << ", TxnHash = " << mb.second);
+        mbHashes.emplace_back(mb.first);
       }
       SendGetMicroBlockFromLookup(mbHashes);
     }
