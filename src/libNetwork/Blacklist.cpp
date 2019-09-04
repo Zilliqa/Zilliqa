@@ -124,5 +124,5 @@ bool Blacklist::RemoveExclude(const uint128_t& ip) {
 
 bool Blacklist::IsWhitelistedIP(const uint128_t& ip) {
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return m_excludedIP.end() == m_excludedIP.find(ip);
+  return m_excludedIP.end() != m_excludedIP.find(ip);
 }

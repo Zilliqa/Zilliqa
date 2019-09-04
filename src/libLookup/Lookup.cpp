@@ -2498,6 +2498,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
+  LOG_GENERAL(INFO, "Num of requested txnhashes " << requestedNum);
+
   vector<TransactionWithReceipt> txns;
   for (const auto& txnhash : txnhashes) {
     shared_ptr<TransactionWithReceipt> txnptr;
@@ -2508,6 +2510,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     }
     txns.emplace_back(*txnptr);
   }
+
+  LOG_GENERAL(INFO, "Num of txnhashes found locally " << txns.size());
 
   Peer requestingNode(ipAddr, portNo);
 
@@ -2547,6 +2551,9 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
+  LOG_GENERAL(INFO,
+              "Received " << txns.size() << " txns for microblock :" << mbHash);
+
   for (const auto& txn : txns) {
     bytes serializedTxBody;
     txn.Serialize(serializedTxBody, 0);
@@ -2561,17 +2568,10 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
 
   // Delete the mb from unavailable list here
   std::lock_guard<mutex> lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-  auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks();
-  vector<UnavailableMicroBlockList::key_type> todelTxBlkNums;
-  for (auto it = mbs.begin(); it != mbs.end(); it++) {
+  auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
+  for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
     auto mbsVec = it->second;
-    size_t origSiz = mbsVec.size();
-    // Take an opportunity to delete entry if no mbs found for this txblk
-    // and was left undeleted for whatever reason.
-    if (0 == origSiz) {
-      todelTxBlkNums.emplace_back(it->first);
-      continue;
-    }
+    auto origSiz = mbsVec.size();
     mbsVec.erase(
         std::remove_if(mbsVec.begin(), mbsVec.end(),
                        [mbHash](const std::pair<BlockHash, TxnHash>& e) {
@@ -2579,16 +2579,17 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                        }),
         mbsVec.end());
     if (mbsVec.size() < origSiz) {
-      if (mbsVec.size() == 0) {
-        // Finally delete the entry for this final block
-        mbs.erase(it->first);
-      }
-      break;
+      LOG_GENERAL(INFO, "Removed entry of unavailable microblock: " << mbHash);
     }
-  }
-
-  for (const auto& i : todelTxBlkNums) {
-    mbs.erase(i);
+    if (mbsVec.size() == 0) {
+      // Finally delete the entry for this final block
+      LOG_GENERAL(INFO,
+                  "Removed entry of unavailable microblocks list for txBlk: "
+                      << it->first);
+      it = unavailableMBs.erase(it);
+    } else {
+      ++it;
+    }
   }
 
   return true;
@@ -4356,6 +4357,14 @@ void Lookup::CheckAndFetchUnavailableMBs() {
         mbHashes.emplace_back(mb.first);
       }
       SendGetMicroBlockFromLookup(mbHashes);
+    }
+
+    // Delete the entry for those fb with no pending mbs
+    for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
+      if (it->second.size() == 0) {
+        it = unavailableMBs.erase(it);
+      } else
+        ++it;
     }
 
     m_startedFetchMissingMBsThread = false;
