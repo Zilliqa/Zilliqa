@@ -359,7 +359,7 @@ message ProtoTransactionCoreInfo
     ByteArray gasprice     = 6;
     uint64 gaslimit        = 7;
     oneof oneof8 { bytes code = 8; }
-    bytes data             = 9;
+    oneof oneof9 { bytes data = 9; }
 }
 
 message ProtoTransaction
