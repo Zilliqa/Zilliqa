@@ -446,7 +446,7 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
           auto tranHashes = mbptr->GetTranHashes();
           for (const auto& tranHash : tranHashes) {
             TxBodySharedPtr tx;
-            if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+            if (!BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
               LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
               result = false;
               if (!fromIsolatedBinary) {
