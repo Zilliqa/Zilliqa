@@ -6954,6 +6954,8 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 
   LookupSetTxnsFromLookup result;
 
+  result.set_mbhash(mbHash.data(), mbHash.size);
+
   for (auto const& txn : txns) {
     SerializableToProtobufByteArray(txn, *result.add_transactions());
   }
@@ -7007,6 +7009,10 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  auto hash = result.mbhash();
+  unsigned int size = min((unsigned int)hash.size(), (unsigned int)mbHash.size);
+  copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
   if (result.transactions().size() > 0) {
     bytes tmp;

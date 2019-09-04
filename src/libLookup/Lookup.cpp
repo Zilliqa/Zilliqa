@@ -2498,7 +2498,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Num of requested txnhashes " << requestedNum);
+  LOG_GENERAL(INFO, "Num of requested txnhashes = " << requestedNum);
 
   vector<TransactionWithReceipt> txns;
   for (const auto& txnhash : txnhashes) {
@@ -2511,7 +2511,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     txns.emplace_back(*txnptr);
   }
 
-  LOG_GENERAL(INFO, "Num of txnhashes found locally " << txns.size());
+  LOG_GENERAL(INFO, "Num of txnhashes found locally = " << txns.size());
 
   Peer requestingNode(ipAddr, portNo);
 
@@ -4320,6 +4320,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
     m_startedFetchMissingMBsThread = true;
     auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
     unsigned int count = 0;
+    bool limitReached = false;
     for (auto& m : unavailableMBs) {
       // skip mbs from latest final block
       if (m.first == m_mediator.m_currentEpochNum - 1) {
@@ -4350,6 +4351,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                                 << maxMBSToBeFetched
                                 << "is reached. Remaining missing mbs will be "
                                    "handled in next epoch");
+          limitReached = true;
           break;
         }
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -4357,6 +4359,9 @@ void Lookup::CheckAndFetchUnavailableMBs() {
         mbHashes.emplace_back(mb.first);
       }
       SendGetMicroBlockFromLookup(mbHashes);
+      if (limitReached) {
+        break;
+      }
     }
 
     // Delete the entry for those fb with no pending mbs
