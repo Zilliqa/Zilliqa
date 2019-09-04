@@ -24,7 +24,6 @@
 #include "libUtils/Logger.h"
 
 class Synchronizer {
-  DSBlock ConstructGenesisDSBlock();
   bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
                                      const DSBlock& dsBlock);
   bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
@@ -35,6 +34,7 @@ class Synchronizer {
   bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
 
  public:
+  static DSBlock ConstructGenesisDSBlock();
   bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                TxBlockChain& txBlockChain);
 
