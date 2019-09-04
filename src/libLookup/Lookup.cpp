@@ -2570,7 +2570,7 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
   std::lock_guard<mutex> lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
   auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
   for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
-    auto mbsVec = it->second;
+    auto& mbsVec = it->second;
     auto origSiz = mbsVec.size();
     mbsVec.erase(
         std::remove_if(mbsVec.begin(), mbsVec.end(),
@@ -4349,7 +4349,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
         if (count > maxMBSToBeFetched) {
           LOG_GENERAL(INFO, "Max fetch missing mbs limit of "
                                 << maxMBSToBeFetched
-                                << "is reached. Remaining missing mbs will be "
+                                << " is reached. Remaining missing mbs will be "
                                    "handled in next epoch");
           limitReached = true;
           break;
