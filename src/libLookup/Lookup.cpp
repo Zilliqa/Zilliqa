@@ -2579,12 +2579,15 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                        }),
         mbsVec.end());
     if (mbsVec.size() < origSiz) {
-      LOG_GENERAL(INFO, "Removed entry of unavailable microblock: " << mbHash);
+      LOG_GENERAL(
+          INFO, "[TxBlk - "
+                    << it->first
+                    << "] Removed entry of unavailable microblock: " << mbHash);
     }
     if (mbsVec.size() == 0) {
       // Finally delete the entry for this final block
       LOG_GENERAL(INFO,
-                  "Removed entry of unavailable microblocks list for txBlk: "
+                  "Removed entry of unavailable microblocks list for TxBlk: "
                       << it->first);
       it = unavailableMBs.erase(it);
     } else {
@@ -4342,6 +4345,10 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                   "After deleting microblock bodies with no transactions, "
                   "Unavailable count = "
                       << mbs.size());
+
+      if (0 == mbs.size()) {
+        continue;
+      }
 
       vector<BlockHash> mbHashes;
       for (const auto& mb : mbs) {
