@@ -173,14 +173,14 @@ message ProtoTxBlock
     {
         ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
         uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
-        oneof oneof3 { uint64 gasused        = 3; } // Added in: v1.0, Deprecated in: N/A
+        oneof oneof3 { uint64 gasused        = 3;} // Added in: v1.0, Deprecated in: N/A
         ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
         bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
-        uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof6 {uint64 blocknum        = 6;} // Added in: v1.0, Deprecated in: N/A
         TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
-        oneof oneof8 { uint32 numtxs         = 8; } // Added in: v1.0, Deprecated in: N/A
+        oneof oneof8 { uint32 numtxs         = 8;} // Added in: v1.0, Deprecated in: N/A
         ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
-        uint64 dsblocknum                    = 10; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof10 {uint64 dsblocknum     = 10;}// Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
