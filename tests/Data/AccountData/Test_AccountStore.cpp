@@ -757,11 +757,11 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   if (!SCILLA_ROOT.empty()) {
 //     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
 //                   codeHash2, codeHash3, codeHash4, contrStateHash1,
-//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
-//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
-//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
-//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
-//                   contrBalance4);
+//                   contrStateHash2, contrStateHash3, contrStateHash4,
+//                   contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                   initData2, initData3, initData4, stateJson1, stateJson2,
+//                   stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                   contrBalance3, contrBalance4);
 //   }
 
 //   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -792,13 +792,14 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //       "address1 in AccountStore has no balance after deserializing delta");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4,
+//     codeHash1,
 //                     codeHash2, codeHash3, codeHash4, contrStateHash1,
 //                     contrStateHash2, contrStateHash3, contrStateHash4,
-//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
-//                     initData2, initData3, initData4, stateJson1, stateJson2,
-//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
-//                     contrBalance3, contrBalance4);
+//                     contrCode1, contrCode2, contrCode3, contrCode4,
+//                     initData1, initData2, initData3, initData4, stateJson1,
+//                     stateJson2, stateJson3, stateJson4, contrBalance1,
+//                     contrBalance2, contrBalance3, contrBalance4);
 //   }
 // }
 
@@ -826,11 +827,11 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   if (!SCILLA_ROOT.empty()) {
 //     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
 //                   codeHash2, codeHash3, codeHash4, contrStateHash1,
-//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
-//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
-//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
-//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
-//                   contrBalance4);
+//                   contrStateHash2, contrStateHash3, contrStateHash4,
+//                   contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                   initData2, initData3, initData4, stateJson1, stateJson2,
+//                   stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                   contrBalance3, contrBalance4);
 //   }
 
 //   AccountStore::GetInstance().SerializeDelta();
@@ -845,13 +846,14 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //                       CommitTempRevertible");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4,
+//     codeHash1,
 //                     codeHash2, codeHash3, codeHash4, contrStateHash1,
 //                     contrStateHash2, contrStateHash3, contrStateHash4,
-//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
-//                     initData2, initData3, initData4, stateJson1, stateJson2,
-//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
-//                     contrBalance3, contrBalance4);
+//                     contrCode1, contrCode2, contrCode3, contrCode4,
+//                     initData1, initData2, initData3, initData4, stateJson1,
+//                     stateJson2, stateJson3, stateJson4, contrBalance1,
+//                     contrBalance2, contrBalance3, contrBalance4);
 //   }
 
 //   AccountStore::GetInstance().RevertCommitTemp();
@@ -938,11 +940,11 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   if (!SCILLA_ROOT.empty()) {
 //     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
 //                   codeHash2, codeHash3, codeHash4, contrStateHash1,
-//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
-//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
-//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
-//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
-//                   contrBalance4);
+//                   contrStateHash2, contrStateHash3, contrStateHash4,
+//                   contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                   initData2, initData3, initData4, stateJson1, stateJson2,
+//                   stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                   contrBalance3, contrBalance4);
 //   }
 
 //   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -971,13 +973,14 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //                       "StateRootHash after RetrieveFromDisk is different");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4,
+//     codeHash1,
 //                     codeHash2, codeHash3, codeHash4, contrStateHash1,
 //                     contrStateHash2, contrStateHash3, contrStateHash4,
-//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
-//                     initData2, initData3, initData4, stateJson1, stateJson2,
-//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
-//                     contrBalance3, contrBalance4);
+//                     contrCode1, contrCode2, contrCode3, contrCode4,
+//                     initData1, initData2, initData3, initData4, stateJson1,
+//                     stateJson2, stateJson3, stateJson4, contrBalance1,
+//                     contrBalance2, contrBalance3, contrBalance4);
 //   }
 // }
 
