@@ -406,24 +406,21 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
   return true;
 }
 
+void UnquoteString(string& input) {
+  while (input.front() == '"') {
+    input.erase(0, 1);
+  }
+  while (input.back() == '"') {
+    input.pop_back();
+  }
+}
+
 void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
                                               string value, bool unquote) {
   if (unquote) {
     // unquote key
-    while (key.front() == '"') {
-      key.erase(0, 1);
-    }
-    while (key.back() == '"') {
-      key.pop_back();
-    }
-
-    // unquote value
-    while (value.front() == '"') {
-      value.erase(0, 1);
-    }
-    while (value.back() == '"') {
-      value.pop_back();
-    }
+    UnquoteString(key);
+    UnquoteString(value);
   }
 
   Json::Value j_value;
@@ -435,16 +432,6 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
       _json[key] = j_value;
     }
   } else {
-    if (unquote) {
-      // // unquote value
-      // if (value.front() == '"') {
-      //   value.erase(0, 1);
-      // }
-      // if (value.back() == '"') {
-      //   value.pop_back();
-      // }
-    }
-
     if (key.empty()) {
       _json = j_value;
     } else {
@@ -494,12 +481,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
                              int mapdepth) -> void {
       if (cur_index + 1 < indices.size()) {
         string key = indices.at(cur_index);
-        while (key.front() == '"') {
-          key.erase(0, 1);
-        }
-        while (key.back() == '"') {
-          key.pop_back();
-        }
+        UnquoteString(key);
         jsonMapWrapper(_json[key], indices, value, cur_index + 1, mapdepth);
       } else {
         if (mapdepth > 0) {
@@ -510,7 +492,9 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
             if (indices.empty()) {
               _json = Json::objectValue;
             } else {
-              _json[indices.at(cur_index)] = Json::objectValue;
+              string key = indices.at(cur_index);
+              UnquoteString(key);
+              _json[key] = Json::objectValue;
             }
           }
         } else if (mapdepth == 0) {
@@ -524,12 +508,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
               empty_val.IsInitialized() && empty_val.has_mval() &&
               empty_val.mval().m().empty()) {
             string key = indices.at(cur_index);
-            while (key.front() == '"') {
-              key.erase(0, 1);
-            }
-            while (key.back() == '"') {
-              key.pop_back();
-            }
+            UnquoteString(key);
             _json[key] = Json::objectValue;
           } else {
             InsertValueToStateJson(_json, indices.at(cur_index),
