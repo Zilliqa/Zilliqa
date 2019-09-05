@@ -137,6 +137,11 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   if (LOG_SC) {
     LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
   }
+  
+  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
+    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
+    return false;
+  }
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
@@ -710,11 +715,6 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
 
   if (!value.IsInitialized()) {
     LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaVal failed");
-    return false;
-  }
-
-  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
-    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
     return false;
   }
 
