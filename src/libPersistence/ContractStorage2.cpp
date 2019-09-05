@@ -713,6 +713,16 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     return false;
   }
 
+  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
+    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
+    return false;
+  }
+
+  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
+    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
+    return false;
+  }
+
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
 
