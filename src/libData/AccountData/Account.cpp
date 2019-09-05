@@ -346,7 +346,7 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
                              const vector<string>& indices, bool temp) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
-                "Not contract account, why call Account::GetStorageJson!");
+                "Not contract account, why call Account::FetchStateJson!");
     return false;
   }
 
