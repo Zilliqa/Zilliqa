@@ -143,7 +143,7 @@
         <!-- Only for lookup nodes -->
         <LOOKUP_RPC_PORT>4201</LOOKUP_RPC_PORT>
         <NUM_SHARD_PEER_TO_REVEAL>5</NUM_SHARD_PEER_TO_REVEAL>
-        <!-- Only for lookup nodes -->
+        <!-- For lookup, DS and shard nodes -->
         <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
