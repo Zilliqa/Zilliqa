@@ -4322,6 +4322,8 @@ void Lookup::CheckAndFetchUnavailableMBs() {
   unsigned int maxMBSToBeFetched = MAX_FETCHMISSINGMBS_NUM;
   auto main_func = [this, maxMBSToBeFetched]() mutable -> void {
     m_startedFetchMissingMBsThread = true;
+    std::lock_guard<mutex> lock(
+        m_mediator.m_node->m_mutexUnavailableMicroBlocks);
     auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
     unsigned int count = 0;
     bool limitReached = false;
