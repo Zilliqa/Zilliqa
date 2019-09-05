@@ -275,6 +275,14 @@ bool Validator::CheckDirBlocks(
         ret = false;
         break;
       }
+      if (dsblock.GetHeader().GetMyHash() != dsblock.GetBlockHash()) {
+        LOG_GENERAL(WARNING, "DSblock "
+                                 << prevdsblocknum + 1
+                                 << " has different blockhash than stored "
+                                 << " Stored: " << dsblock.GetBlockHash());
+        ret = false;
+        break;
+      }
 
       if (!CheckBlockCosignature(dsblock, mutable_ds_comm)) {
         LOG_GENERAL(WARNING, "Co-sig verification of ds block "
@@ -318,6 +326,14 @@ bool Validator::CheckDirBlocks(
                     "processed "
                         << prevdsblocknum << " "
                         << vcblock.GetHeader().GetViewChangeDSEpochNo());
+        ret = false;
+        break;
+      }
+      if (vcblock.GetHeader().GetMyHash() != vcblock.GetBlockHash()) {
+        LOG_GENERAL(WARNING, "VCblock in "
+                                 << prevdsblocknum
+                                 << " has different blockhash than stored "
+                                 << " Stored: " << vcblock.GetBlockHash());
         ret = false;
         break;
       }
@@ -366,6 +382,17 @@ bool Validator::CheckDirBlocks(
                     "being processed "
                         << prevdsblocknum << " "
                         << fallbackblock.GetHeader().GetFallbackDSEpochNo());
+        ret = false;
+        break;
+      }
+
+      if (fallbackblock.GetHeader().GetMyHash() !=
+          fallbackblock.GetBlockHash()) {
+        LOG_GENERAL(WARNING,
+                    "Fallbackblock in "
+                        << prevdsblocknum
+                        << " has different blockhash than stored "
+                        << " Stored: " << fallbackblock.GetBlockHash());
         ret = false;
         break;
       }

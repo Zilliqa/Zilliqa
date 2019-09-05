@@ -18,10 +18,10 @@ message ByteArray
 // Used in database "blockLinks"
 message ProtoBlockLink
 {
-    uint32 version   = 1; // Added in: v1.0, Deprecated in: N/A
-    uint64 index     = 2; // Added in: v1.0, Deprecated in: N/A
-    uint64 dsindex   = 3; // Added in: v1.0, Deprecated in: N/A
-    uint32 blocktype = 4; // Added in: v1.0, Deprecated in: N/A
+    oneof oneof1 { uint32 version   = 1; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof2 { uint64 index     = 2; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint64 dsindex   = 3; } // Added in: v1.0, Deprecated in: N/A
+    oneof oneof4 { uint32 blocktype = 4; } // Added in: v1.0, Deprecated in: N/A
     bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
@@ -67,8 +67,8 @@ message ProtoDSBlock
         uint32 difficulty                    = 3;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
         bytes prevhash                       = 4;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
         ByteArray leaderpubkey               = 5;  // Added in: v1.0, Deprecated in: N/A
-        uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
-        uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof6 { uint64 blocknum       = 6; } // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint64 epochnum       = 7; } // Added in: v1.0, Deprecated in: N/A
         ByteArray gasprice                   = 8;  // Added in: v1.0, Deprecated in: N/A
         ByteArray swinfo                     = 9;  // Added in: v1.0, Deprecated in: N/A
         message PowDSWinners
@@ -109,14 +109,14 @@ message ProtoMicroBlock
     message MicroBlockHeader
     {
         ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        uint32 shardid                       = 2;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof2 { uint32 shardid        = 2; } // Added in: v1.0, Deprecated in: N/A
         uint64 gaslimit                      = 3;  // Added in: v1.0, Deprecated in: N/A
-        uint64 gasused                       = 4;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof4 { uint64 gasused        = 4; } // Added in: v1.0, Deprecated in: N/A
         ByteArray rewards                    = 5;  // Added in: v1.0, Deprecated in: N/A
         bytes prevhash                       = 6;  // Added in: v1.0, Deprecated in: N/A
-        uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint64 epochnum       = 7; } // Added in: v1.0, Deprecated in: N/A
         bytes txroothash                     = 8;  // Added in: v1.0, Deprecated in: N/A
-        uint32 numtxs                        = 9;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof9 { uint32 numtxs         = 9; } // Added in: v1.0, Deprecated in: N/A
         ByteArray minerpubkey                = 10; // Added in: v1.0, Deprecated in: N/A
         uint64 dsblocknum                    = 11; // Added in: v1.0, Deprecated in: N/A
         bytes statedeltahash                 = 12; // Added in: v1.0, Deprecated in: N/A
@@ -136,7 +136,7 @@ message ProtoShardingStructure
     {
         ByteArray pubkey   = 1; // Added in: v1.0, Deprecated in: N/A
         ByteArray peerinfo = 2; // Added in: v1.0, Deprecated in: N/A
-        uint32 reputation  = 3; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof3 { uint32 reputation  = 3; } // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     message Shard
@@ -154,7 +154,7 @@ message ProtoMbInfo
 {
     bytes mbhash   = 1; // Added in: v1.0, Deprecated in: N/A
     bytes txroot   = 2; // Added in: v1.0, Deprecated in: N/A
-    uint32 shardid = 3; // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint32 shardid = 3; } // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -172,14 +172,14 @@ message ProtoTxBlock
     {
         ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
         uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
-        uint64 gasused                       = 3;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof3 { uint64 gasused        = 3;} // Added in: v1.0, Deprecated in: N/A
         ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
         bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
-        uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof6 {uint64 blocknum        = 6;} // Added in: v1.0, Deprecated in: N/A
         TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
-        uint32 numtxs                        = 8;  // Added in: v1.0, Deprecated in: N/A
+        oneof oneof8 { uint32 numtxs         = 8;} // Added in: v1.0, Deprecated in: N/A
         ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
-        uint64 dsblocknum                    = 10; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof10 {uint64 dsblocknum     = 10;}// Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -196,10 +196,10 @@ message ProtoVCBlock
         ProtoBlockHeaderBase blockheaderbase = 1; // Added in: v1.0, Deprecated in: N/A
         uint64 viewchangedsepochno           = 2; // Added in: v1.0, Deprecated in: N/A
         uint64 viewchangeepochno             = 3; // Added in: v1.0, Deprecated in: N/A
-        uint32 viewchangestate               = 4; // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        oneof oneof4 { uint32 viewchangestate = 4; } // Added in: v1.0, Deprecated in: N/A, Only LSB used
         ByteArray candidateleadernetworkinfo = 5; // Added in: v1.0, Deprecated in: N/A
         ByteArray candidateleaderpubkey      = 6; // Added in: v1.0, Deprecated in: N/A
-        uint32 vccounter                     = 7; // Added in: v1.0, Deprecated in: N/A
+        oneof oneof7 { uint32 vccounter      = 7; } // Added in: v1.0, Deprecated in: N/A
         repeated ProtoDSNode faultyleaders            = 8; // Added in: v1.0, Deprecated in: N/A
         bytes prevhash                       = 9; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
@@ -263,7 +263,7 @@ message ProtoAccountBase
 {
     uint32 version    = 1; // Added in: v1.0, Deprecated in: N/A
     ByteArray balance = 2; // Added in: v1.0, Deprecated in: N/A
-    uint64 nonce      = 3; // Added in: v1.0, Deprecated in: N/A
+    oneof oneof3 { uint64 nonce = 3; } // Added in: v1.0, Deprecated in: N/A
     bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
     bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
 }
@@ -317,7 +317,7 @@ message ProtoAccountStore
 message ProtoPeer
 {
     ByteArray ipaddress    = 1;
-    uint32 listenporthost  = 2;
+    oneof oneof2 { uint32 listenporthost  = 2; }
 }
 
 message ProtoPoWSolution
@@ -325,7 +325,7 @@ message ProtoPoWSolution
     uint64 nonce        = 1;
     bytes result        = 2;
     bytes mixhash       = 3;
-    uint32 lookupid     = 4;
+    oneof oneof4 { uint32 lookupid     = 4; }
     ByteArray gasprice  = 5;
 }
 
@@ -340,7 +340,7 @@ message ProtoShardingStructureWithPoWSolns
     {
         ByteArray pubkey         = 1;
         ByteArray peerinfo       = 2;
-        uint32 reputation        = 3;
+        oneof oneof3 { uint32 reputation = 3; }
         ProtoPoWSolution powsoln = 4;
     }
     message Shard
@@ -359,14 +359,14 @@ message ProtoDSWinnerPoW
 message ProtoTransactionCoreInfo
 {
     uint32 version         = 1;
-    uint64 nonce           = 2;
+    oneof oneof2 { uint64 nonce = 2; }
     bytes toaddr           = 3;
     ByteArray senderpubkey = 4;
     ByteArray amount       = 5;
     ByteArray gasprice     = 6;
     uint64 gaslimit        = 7;
-    bytes code             = 8;
-    bytes data             = 9;
+    oneof oneof8 { bytes code = 8; }
+    oneof oneof9 { bytes data = 9; }
 }
 
 message ProtoTransaction
@@ -390,7 +390,7 @@ message ProtoTransactionArray
 message ProtoTransactionReceipt
 {
     bytes receipt    = 1;
-    uint64 cumgas = 2;
+    oneof oneof2 { uint64 cumgas = 2; }
 }
 
 message ProtoTransactionWithReceipt
@@ -1011,7 +1011,7 @@ message DSLookupSetDSGuardNetworkInfoUpdate
         uint64 timestamp                   = 4;
     }
     Data data                              = 1;
-    ByteArray signature                    = 2; 
+    ByteArray signature                    = 2;
 }
 
 // To update shard node of guard node's network info change
