@@ -457,10 +457,8 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBody);
-    bodyString = m_txBodyDB->Lookup(key);
+    return m_txBodyDB->Exists(key);
   }
-
-  return !(bodyString.empty());
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
