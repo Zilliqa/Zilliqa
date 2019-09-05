@@ -523,7 +523,14 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
           if (empty_val.ParseFromArray(value.data(), value.size()) &&
               empty_val.IsInitialized() && empty_val.has_mval() &&
               empty_val.mval().m().empty()) {
-            _json[indices.at(cur_index)] = Json::objectValue;
+            string key = indices.at(cur_index);
+            while (key.front() == '"') {
+              key.erase(0, 1);
+            }
+            while (key.back() == '"') {
+              key.pop_back();
+            }
+            _json[key] = Json::objectValue;
           } else {
             InsertValueToStateJson(_json, indices.at(cur_index),
                                    DataConversion::CharArrayToString(value));
