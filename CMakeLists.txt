@@ -182,6 +182,11 @@ if(SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
     add_definitions(-DSJ_TEST_SJ_TXNBLKS_PROCESS_SLOW)
 endif()
 
+if(SJ_TEST_SJ_MISSING_MBTXNS)
+    message(STATUS "SJ 2 test enabled")
+    add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
+endif()
+
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
