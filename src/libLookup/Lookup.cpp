@@ -4346,7 +4346,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                   "Unavailable count = "
                       << mbs.size());
 
-      if (0 == mbs.size()) {
+      if (mbs.empty()) {
         continue;
       }
 
@@ -4373,7 +4373,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
 
     // Delete the entry for those fb with no pending mbs
     for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
-      if (it->second.size() == 0) {
+      if (it->second.empty()) {
         it = unavailableMBs.erase(it);
       } else
         ++it;
