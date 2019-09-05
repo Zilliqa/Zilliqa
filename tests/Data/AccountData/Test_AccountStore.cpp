@@ -746,17 +746,22 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   Account account1(21, 211);
 //   AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2, initData1, initData2;
-//   Json::Value stateJson1;
-//   uint128_t contrBalance;
+//   Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+//   dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+//       contrStateHash2, contrStateHash3, contrStateHash4;
+//   bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+//       initData3, initData4;
+//   Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+//   uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
 //   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//     contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initData1,
-//                   stateJson1, initData2, contrBalance);
+//     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                   codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
+//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
+//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
+//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
+//                   contrBalance4);
 //   }
 
 //   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -787,9 +792,13 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //       "address1 in AccountStore has no balance after deserializing delta");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initData1, stateJson1, initData2, contrBalance);
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                     codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                     contrStateHash2, contrStateHash3, contrStateHash4,
+//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                     initData2, initData3, initData4, stateJson1, stateJson2,
+//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                     contrBalance3, contrBalance4);
 //   }
 // }
 
@@ -806,17 +815,22 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   Account account1(21, 211);
 //   AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2, initData1, initData2;
-//   Json::Value stateJson1;
-//   uint128_t contrBalance;
+//   Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+//   dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+//       contrStateHash2, contrStateHash3, contrStateHash4;
+//   bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+//       initData3, initData4;
+//   Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+//   uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
 //   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//     contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initData1,
-//                   stateJson1, initData2, contrBalance);
+//     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                   codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
+//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
+//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
+//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
+//                   contrBalance4);
 //   }
 
 //   AccountStore::GetInstance().SerializeDelta();
@@ -831,9 +845,13 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //                       CommitTempRevertible");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initData1, stateJson1, initData2, contrBalance);
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                     codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                     contrStateHash2, contrStateHash3, contrStateHash4,
+//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                     initData2, initData3, initData4, stateJson1, stateJson2,
+//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                     contrBalance3, contrBalance4);
 //   }
 
 //   AccountStore::GetInstance().RevertCommitTemp();
@@ -905,21 +923,26 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccount(address1, account1);
+//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
 //   auto balance1 = AccountStore::GetInstance().GetBalance(address1);
 
-//   Address contrAddr1, contrAddr2;
-//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-//   bytes contrCode1, contrCode2, initData1, initData2;
-//   Json::Value stateJson1;
-//   uint128_t contrBalance;
+//   Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+//   dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+//       contrStateHash2, contrStateHash3, contrStateHash4;
+//   bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+//       initData3, initData4;
+//   Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+//   uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
 //   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//     contrStateHash1,
-//                   contrStateHash2, contrCode1, contrCode2, initData1,
-//                   stateJson1, initData2, contrBalance);
+//     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                   codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                   contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
+//                   contrCode2, contrCode3, contrCode4, initData1, initData2,
+//                   initData3, initData4, stateJson1, stateJson2, stateJson3,
+//                   stateJson4, contrBalance1, contrBalance2, contrBalance3,
+//                   contrBalance4);
 //   }
 
 //   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -948,9 +971,13 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //                       "StateRootHash after RetrieveFromDisk is different");
 
 //   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-//                     initData1, stateJson1, initData2, contrBalance);
+//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+//                     codeHash2, codeHash3, codeHash4, contrStateHash1,
+//                     contrStateHash2, contrStateHash3, contrStateHash4,
+//                     contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+//                     initData2, initData3, initData4, stateJson1, stateJson2,
+//                     stateJson3, stateJson4, contrBalance1, contrBalance2,
+//                     contrBalance3, contrBalance4);
 //   }
 // }
 
@@ -971,7 +998,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //       Address address = Account::GetAddressFromPublicKey(pubKey);
 
 //       Account account(21, 211);
-//       AccountStore::GetInstance().AddAccount(address, account);
+//       AccountStore::GetInstance().AddAccountTemp(address, account);
 //       addresses.push_back(address);
 
 //       if ((i % (num_address / 10)) == 0) {
