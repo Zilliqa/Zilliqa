@@ -454,7 +454,7 @@ bool Retriever::ValidateStates() {
   if (CONTRACT_STATES_MIGRATED) {
     LOG_GENERAL(INFO,
                 "Data migration just applied, skip for this time, remember to "
-                "disble if it's done");
+                "disable if it's done");
     return true;
   }
 

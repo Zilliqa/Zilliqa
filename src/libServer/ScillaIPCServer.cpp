@@ -37,7 +37,7 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                    &ScillaIPCServer::updateStateValueI);
 }
 
-void ScillaIPCServer::setContractAddress(const dev::h160 &address) {
+void ScillaIPCServer::setContractAddress(const Address &address) {
   m_contrAddr = address;
 }
 

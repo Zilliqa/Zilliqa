@@ -277,9 +277,9 @@ message ProtoAccount
     }
     ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
 
-    bytes code            = 2; // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage   = 3; // Added in: v1.0, Deprecated in: N/A
-    bool numbersign       = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    bytes code                      = 2; // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage    = 3; // Added in: v1.0, Deprecated in: N/A
+    bool numbersign                 = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
     message StorageData2
     {
         string key        = 1; // Added in: v1.1, Deprecated in: N/A
@@ -287,7 +287,7 @@ message ProtoAccount
     }
     repeated StorageData2 storage2  = 5; // Added in: v1.1, Deprecated in: N/A
     repeated string todelete        = 6; // Added in: v1.1, Deprecated in: N/A
-    bytes initdata         = 7; // Added in: v1.1, Deprecated in: N/A
+    bytes initdata                  = 7; // Added in: v1.1, Deprecated in: N/A
 }
 
 message ProtoStateIndex

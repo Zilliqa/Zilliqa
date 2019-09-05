@@ -250,7 +250,6 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
     return false;
   }
 
-  /// TODO: save init data
   if (!ContractStorage2::GetContractStorage().PutInitDataBatch(
           initdata_batch)) {
     LOG_GENERAL(WARNING, "PutInitDataBatch failed");
@@ -743,7 +742,6 @@ bool AccountStore::MigrateContractStates() {
 
       uint map_depth = map_depth_json[tVname].asUInt();
 
-      /// arrayValue & first elemtn contains key/val [TODO]
       if (map_depth > 0 &&
           JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
           json_val.type() == Json::arrayValue) {

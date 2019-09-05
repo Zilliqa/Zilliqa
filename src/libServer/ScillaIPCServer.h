@@ -23,6 +23,8 @@
 
 #include "depends/common/FixedHash.h"
 
+#include "libData/AccountData/Address.h"
+
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
   ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
@@ -36,10 +38,10 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                bool& found);
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
-  void setContractAddress(const dev::h160& address);
+  void setContractAddress(const Address& address);
 
  private:
-  dev::h160 m_contrAddr = dev::h160();
+  Address m_contrAddr = Address();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
