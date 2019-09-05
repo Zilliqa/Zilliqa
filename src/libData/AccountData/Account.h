@@ -119,7 +119,7 @@ class Account : public AccountBase {
   bytes m_codeCache;
   bytes m_initDataCache;
   Address m_address;  // used by contract account only
-  uint32_t m_scilla_version = -1;
+  uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
 
   bool PrepareInitDataJson(const bytes& initData, const Address& addr,
                            const uint64_t& blockNum, Json::Value& root,
