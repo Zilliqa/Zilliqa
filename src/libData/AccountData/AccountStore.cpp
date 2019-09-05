@@ -16,7 +16,6 @@
  */
 
 #include <leveldb/db.h>
-// #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 
 #include "AccountStore.h"
 #include "depends/safeserver/safetcpsocketserver.h"
