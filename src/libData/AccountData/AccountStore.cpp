@@ -654,8 +654,8 @@ bool AccountStore::MigrateContractStates() {
 
         if (ret_checker) {
           bytes map_depth_data;
-          if (!ParseContractCheckerOutput(checkerPrint, receipt,
-                                          map_depth_data, gasRem)) {
+          if (!ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
+                                          gasRem)) {
             LOG_GENERAL(WARNING,
                         "Failed to generate map_depth_data from scilla_checker "
                         "print for contract "

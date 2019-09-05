@@ -126,7 +126,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
   /// get the command for invoking the scilla_checker while deploying
   std::string GetContractCheckerCmdStr(const std::string& root_w_version,
-      const uint64_t& available_gas);
+                                       const uint64_t& available_gas);
   /// get the command for invoking the scilla_runner while deploying
   std::string GetCreateContractCmdStr(
       const std::string& root_w_version, const uint64_t& available_gas,

@@ -55,11 +55,12 @@ void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
   auto func1 = [this, &checkerPrint, &ret_checker, &pid, &gasRemained,
                 &receipt]() mutable -> void {
     try {
-      if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID,
-                                  GetContractCheckerCmdStr(m_root_w_version, gasRemained),
-                                  checkerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: "
-                                 << GetContractCheckerCmdStr(m_root_w_version, gasRemained));
+      if (!SysCommand::ExecuteCmd(
+              SysCommand::WITH_OUTPUT_PID,
+              GetContractCheckerCmdStr(m_root_w_version, gasRemained),
+              checkerPrint, pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetContractCheckerCmdStr(
+                                 m_root_w_version, gasRemained));
         receipt.AddError(EXECUTE_CMD_FAILED);
         ret_checker = false;
       }
@@ -247,7 +248,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       bytes map_depth_data;
 
       if (ret_checker &&
-          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data, gasRemained)) {
+          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
+                                      gasRemained)) {
         ret_checker = false;
       }
 
@@ -766,8 +768,8 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE +
-      " -gaslimit " + std::to_string(available_gas);
+      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
+      std::to_string(available_gas);
   return cmdStr;
 }
 
@@ -828,8 +830,9 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       return false;
     }
     try {
-      gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
-                                              root["gas_remaining"].asString()));
+      gasRemained = std::min(
+          gasRemained,
+          boost::lexical_cast<uint64_t>(root["gas_remaining"].asString()));
     } catch (...) {
       LOG_GENERAL(WARNING, "_amount " << root["gas_remaining"].asString()
                                       << " is not numeric");
