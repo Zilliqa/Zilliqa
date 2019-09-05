@@ -655,8 +655,14 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
 
       auto protoContractAccount = ret.add_address();
       protoContractAccount->set_address(contractAddr.hex());
+      Json::Value root;
+      if (!contractAccount->FetchStateJson(root)) {
+        ret.set_error("Unable to fetch state in JSON for contract " +
+                      contractAddr.hex());
+        continue;
+      }
       protoContractAccount->set_state(
-          contractAccount->GetStateJson(false).toStyledString());
+          JSONUtils::GetInstance().convertJsontoStr(root));
     }
 
   } catch (exception& e) {

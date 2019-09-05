@@ -49,7 +49,8 @@ enum ReceiptError : unsigned int {
   CHAIN_CALL_DIFF_SHARD,
   PREPARATION_FAILED,
   NO_OUTPUT,
-  OUTPUT_ILLEGAL
+  OUTPUT_ILLEGAL,
+  MAP_DEPTH_MISSING
 };
 
 class TransactionReceipt : public SerializableDataBlock {

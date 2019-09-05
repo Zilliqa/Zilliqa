@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG BASE=zilliqa/scilla:v0.3.0
+ARG BASE=zilliqa/scilla:v0.4.0-alpha.0
 FROM ${BASE}
 
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -40,13 +40,11 @@ RUN apt-get update \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
-    libprotobuf-dev \
     libsnappy-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
     python \
     python-pip \
     libsecp256k1-dev \

@@ -122,6 +122,8 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
+const char SCILLA_INDEX_SEPARATOR = 0x16;
+
 const float ONE_HUNDRED_PERCENT = 100.f;
 
 const unsigned int GENESIS_DSBLOCK_VERSION = 1;
@@ -261,6 +263,7 @@ extern const unsigned int STATUS_RPC_PORT;
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STATUS_RPC;  //
 extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
+extern const std::string SCILLA_IPC_SOCKET_PATH;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;
@@ -326,6 +329,7 @@ extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
+extern const bool CONTRACT_STATES_MIGRATED;
 
 // Smart contract constants
 extern const bool ENABLE_SC;
@@ -342,6 +346,8 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
+extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
+extern const bool LOG_SC;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
