@@ -125,7 +125,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// get the json format file for the current blocknum
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
   /// get the command for invoking the scilla_checker while deploying
-  std::string GetContractCheckerCmdStr(const std::string& root_w_version);
+  std::string GetContractCheckerCmdStr(const std::string& root_w_version,
+      const uint64_t& available_gas);
   /// get the command for invoking the scilla_runner while deploying
   std::string GetCreateContractCmdStr(
       const std::string& root_w_version, const uint64_t& available_gas,
@@ -167,13 +168,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// capsulate and expose in protected for using by data migartion
   void InvokeScillaChecker(std::string& checkerPrint, bool& ret_checker,
-                           int& pid, TransactionReceipt& receipt);
+                           int& pid, const uint64_t& gasRemained,
+                           TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  bytes& map_depth_data);
+                                  bytes& map_depth_datam,
+                                  uint64_t& gasRemained);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
