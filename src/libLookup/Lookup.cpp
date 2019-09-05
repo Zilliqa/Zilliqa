@@ -2562,7 +2562,8 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
             txn.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
                                << txn.GetTransaction().GetTranID());
-      return false;
+      continue;  // Transaction already existed locally. Move on so as to delete
+                 // the entry from unavailable list
     }
   }
 
