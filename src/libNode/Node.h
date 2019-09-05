@@ -615,7 +615,6 @@ class Node : public Executable {
   std::string GetStateString() const;
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                       const uint64_t& blocknum,
                                        bool& toSendTxnToLookup,
                                        bool skipShardIDCheck = false);
 

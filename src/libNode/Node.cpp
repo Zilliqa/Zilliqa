@@ -611,6 +611,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     return false;
   }
 
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+      (SyncType::NEW_LOOKUP_SYNC == syncType)) {
+    // Additional safe-guard mechanism, find if have not received any MBs from
+    // last N txblks in persistence from S3.
+    m_mediator.m_lookup->FindMissingMBsForLastNTxBlks(
+        LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
+    m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+  }
+
   if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
       (rejoiningAfterRecover &&
        (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {

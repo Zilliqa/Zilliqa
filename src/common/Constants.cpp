@@ -183,6 +183,8 @@ const unsigned int RETRY_GETSTATEDELTAS_COUNT{
     ReadConstantNumeric("RETRY_GETSTATEDELTAS_COUNT", "node.epoch_timing.")};
 const unsigned int MAX_FETCHMISSINGMBS_NUM{
     ReadConstantNumeric("MAX_FETCHMISSINGMBS_NUM", "node.epoch_timing.")};
+const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(
+    "LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{

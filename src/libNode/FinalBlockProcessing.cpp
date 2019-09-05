@@ -101,11 +101,11 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 }
 
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                           const uint64_t& blocknum,
                                            bool& toSendTxnToLookup,
                                            bool skipShardIDCheck) {
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
+  uint64_t blockNum = finalBlock.GetHeader().GetBlockNum();
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
 
   // bool doRejoin = false;
@@ -117,7 +117,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
       if (skipShardIDCheck ||
           !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
             info.m_txnRootHash == TxnHash())) {
-        m_unavailableMicroBlocks[blocknum].push_back(
+        m_unavailableMicroBlocks[blockNum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
         LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
                               << info.m_microBlockHash << " [TxnRootHash] "
@@ -712,8 +712,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   DetachedFunction(1, resumeBlackList);
 
-  if (!LoadUnavailableMicroBlockHashes(
-          txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
+  if (!LoadUnavailableMicroBlockHashes(txBlock, toSendTxnToLookup)) {
     return false;
   }
 

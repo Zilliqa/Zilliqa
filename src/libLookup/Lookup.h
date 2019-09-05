@@ -374,6 +374,10 @@ class Lookup : public Executable {
   /// Check and fetch unavailable microblocks
   void CheckAndFetchUnavailableMBs();
 
+  /// Find any unavailable mbs from last N txblks and add to
+  /// m_unavailableMicroBlocks
+  void FindMissingMBsForLastNTxBlks(const uint32_t& num);
+
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
