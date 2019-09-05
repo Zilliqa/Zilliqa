@@ -44,6 +44,9 @@
 class Mediator;
 class Retriever;
 
+typedef std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
+    UnavailableMicroBlockList;
+
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable {
   enum Action {
@@ -400,8 +403,7 @@ class Node : public Executable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
-      m_unavailableMicroBlocks;
+  UnavailableMicroBlockList m_unavailableMicroBlocks;
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId{};
@@ -616,6 +618,8 @@ class Node : public Executable {
                                        const uint64_t& blocknum,
                                        bool& toSendTxnToLookup,
                                        bool skipShardIDCheck = false);
+
+  UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
