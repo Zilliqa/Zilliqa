@@ -146,7 +146,7 @@
         <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
-        <SCILLA_IPC_SOCKET_PATH>/tmp/scillaipcsocket</SCILLA_IPC_SOCKET_PATH>
+        <SCILLA_IPC_SOCKET_PATH>/tmp/zilliqa.sock</SCILLA_IPC_SOCKET_PATH>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -242,7 +242,7 @@
         <INPUT_CODE>input.scilla</INPUT_CODE>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
-        <LOG_SC>true</LOG_SC>
+        <LOG_SC>false</LOG_SC>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>
