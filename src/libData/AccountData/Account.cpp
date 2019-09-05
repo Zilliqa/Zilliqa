@@ -279,11 +279,11 @@ vector<h256> Account::GetStorageKeyHashes(bool temp) const {
       m_address, temp);
 }
 
-void Account::GetUpdatedStates(
-    std::map<std::string, bytes>& t_states,
-    std::vector<std::string>& toDeleteIndices) const {
+void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
+                               std::vector<std::string>& toDeleteIndices,
+                               bool temp) const {
   ContractStorage2::GetContractStorage().FetchUpdatedStateValuesForAddress(
-      GetAddress(), t_states, toDeleteIndices);
+      GetAddress(), t_states, toDeleteIndices, temp);
 }
 
 void Account::UpdateStates(const Address& addr,

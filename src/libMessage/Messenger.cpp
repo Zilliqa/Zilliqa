@@ -524,7 +524,7 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
     // set data
     map<std::string, bytes> t_states;
     vector<std::string> deletedIndices;
-    account.GetUpdatedStates(t_states, deletedIndices);
+    account.GetUpdatedStates(t_states, deletedIndices, false);
     for (const auto& state : t_states) {
       ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
       entry->set_key(state.first);
@@ -645,7 +645,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
       map<std::string, bytes> t_states;
       vector<std::string> deletedIndices;
-      newAccount.GetUpdatedStates(t_states, deletedIndices);
+      newAccount.GetUpdatedStates(t_states, deletedIndices, true);
       for (const auto& state : t_states) {
         ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
         entry->set_key(state.first);

@@ -407,10 +407,10 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
 }
 
 void UnquoteString(string& input) {
-  while (input.front() == '"') {
+  if (input.front() == '"') {
     input.erase(0, 1);
   }
-  while (input.back() == '"') {
+  if (input.back() == '"') {
     input.pop_back();
   }
 }
@@ -420,7 +420,7 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
   if (unquote) {
     // unquote key
     UnquoteString(key);
-    UnquoteString(value);
+    // UnquoteString(value);
   }
 
   Json::Value j_value;
@@ -429,12 +429,18 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
     if (key.empty()) {
       _json = j_value;
     } else {
+      if (unquote) {
+        UnquoteString(value);
+      }
       _json[key] = j_value;
     }
   } else {
     if (key.empty()) {
       _json = j_value;
     } else {
+      if (unquote) {
+        UnquoteString(value);
+      }
       _json[key] = value;
     }
   }
@@ -582,7 +588,7 @@ void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
 
 void ContractStorage2::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
-    vector<std::string>& toDeletedIndices) {
+    vector<std::string>& toDeletedIndices, bool temp) {
   LOG_MARKER();
   if (address == dev::h160()) {
     LOG_GENERAL(WARNING, "address provided is empty");
@@ -593,6 +599,34 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
          p->first.compare(0, address.hex().size(), address.hex()) == 0) {
     t_states.emplace(p->first, p->second);
     ++p;
+  }
+
+  if (!temp) {
+    p = m_stateDataMap.lower_bound(address.hex());
+    while (p != m_stateDataMap.end() &&
+           p->first.compare(0, address.hex().size(), address.hex()) == 0) {
+      if (t_states.find(p->first) == t_states.end()) {
+        t_states.emplace(p->first, p->second);
+      }
+      ++p;
+    }
+
+    auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+    it->Seek({address.hex()});
+    if (!it->Valid() || it->key().ToString().compare(0, address.hex().size(),
+                                                     address.hex()) != 0) {
+      // no entry
+    } else {
+      for (; it->Valid() && it->key().ToString().compare(
+                                0, address.hex().size(), address.hex()) == 0;
+           it->Next()) {
+        if (t_states.find(it->key().ToString()) == t_states.end()) {
+          bytes val(it->value().data(),
+                    it->value().data() + it->value().size());
+          t_states.emplace(it->key().ToString(), val);
+        }
+      }
+    }
   }
 
   auto r = m_indexToBeDeleted.lower_bound(address.hex());

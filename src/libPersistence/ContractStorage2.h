@@ -144,7 +144,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   void FetchUpdatedStateValuesForAddress(
       const dev::h160& address, std::map<std::string, bytes>& t_states,
-      std::vector<std::string>& toDeletedIndices);
+      std::vector<std::string>& toDeletedIndices, bool temp = false);
 
   bool UpdateStateValue(const dev::h160& addr, const bytes& q,
                         unsigned int q_offset, const bytes& v,

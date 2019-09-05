@@ -187,8 +187,10 @@ class Account : public AccountBase {
 
   bool GetScillaVersion(uint32_t& scilla_version);
 
+  /// !temp represents getting whole states
   void GetUpdatedStates(std::map<std::string, bytes>& t_states,
-                        std::vector<std::string>& toDeleteIndices) const;
+                        std::vector<std::string>& toDeleteIndices,
+                        bool temp) const;
 
   void UpdateStates(const Address& addr,
                     const std::map<std::string, bytes>& t_states,

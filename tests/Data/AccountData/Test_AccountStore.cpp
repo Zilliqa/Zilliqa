@@ -431,7 +431,42 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 //   AccountStore::GetInstance().CommitTemp();
 //   AccountStore::GetInstance().CommitTempRevertible();
 //   AccountStore::GetInstance().RevertCommitTemp();
-// }
+// }T
+
+void RunTransaction(const PairOfKey& sender, unsigned int major_index,
+                    unsigned int minor_index, ScillaTestUtil::ScillaTest& t,
+                    const Address& contrAddr, uint64_t& nonce, bool deploy,
+                    bool retrieve) {
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t.blockchain);
+  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t.init);
+  bytes data;
+  uint64_t amount = 0;
+  if (deploy) {
+    data = bytes(initStr.begin(), initStr.end());
+  } else {
+    amount = ScillaTestUtil::PrepareMessageData(t.message, data);
+  }
+  bytes _bytes;
+  Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, sender,
+                 amount, PRECISION_MIN_VALUE, 20000, deploy ? t.code : _bytes,
+                 data);
+  TransactionReceipt tr;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
+  nonce++;
+
+  LOG_GENERAL(INFO, "tr" << std::to_string(major_index) << "_"
+                         << std::to_string(minor_index)
+                         << " processing finished");
+
+  if (retrieve) {
+    BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
+                        "SerializeDelta failed");
+    AccountStore::GetInstance().CommitTemp();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
+    AccountStore::GetInstance().InitSoft();
+    AccountStore::GetInstance().RetrieveFromDisk();
+  }
+}
 
 void RunCFContract(Address& contrAddr1, Address& contrAddr2,
                    Address& contrAddr3, Address& contrAddr4,
@@ -440,9 +475,9 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
                    dev::h256& contrStateHash1, dev::h256& contrStateHash2,
                    dev::h256& contrStateHash3, dev::h256& contrStateHash4,
                    bytes& contrCode1, bytes& contrCode2, bytes& contrCode3,
-                   bytes& contrCode4, bytes& initData1, Json::Value& stateJson1,
-                   bytes& initData2, Json::Value& stateJson2, bytes& initData3,
-                   Json::Value& stateJson3, bytes& initData4,
+                   bytes& contrCode4, bytes& initData1, bytes& initData2,
+                   bytes& initData3, bytes& initData4, Json::Value& stateJson1,
+                   Json::Value& stateJson2, Json::Value& stateJson3,
                    Json::Value& stateJson4, uint128_t& contrBalance1,
                    uint128_t& contrBalance2, uint128_t& contrBalance3,
                    uint128_t& contrBalance4) {
@@ -455,591 +490,110 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {20000000000, nonce});
 
   contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr1: " << contrAddr1.hex());
 
-  ScillaTestUtil::ScillaTest t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,
-      t13, t14, t15, t16;
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t1, "map_corners_test", 1),
-                      "Unable to fetch test map_corners_test_1.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t2, "map_corners_test", 2),
-                      "Unable to fetch test map_corners_test_2.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t3, "map_corners_test", 3),
-                      "Unable to fetch test map_corners_test_3.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t4, "map_corners_test", 4),
-                      "Unable to fetch test map_corners_test_4.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t5, "map_corners_test", 5),
-                      "Unable to fetch test map_corners_test_5.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t6, "map_corners_test", 6),
-                      "Unable to fetch test map_corners_test_6.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t7, "map_corners_test", 7),
-                      "Unable to fetch test map_corners_test_7.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t8, "map_corners_test", 8),
-                      "Unable to fetch test map_corners_test_8.");
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(t9, "map_corners_test", 9),
-                      "Unable to fetch test map_corners_test_9.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t10, "map_corners_test", 10),
-      "Unable to fetch test map_corners_test_10.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t11, "map_corners_test", 11),
-      "Unable to fetch test map_corners_test_11.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t12, "map_corners_test", 12),
-      "Unable to fetch test map_corners_test_12.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t13, "map_corners_test", 13),
-      "Unable to fetch test map_corners_test_13.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t14, "map_corners_test", 14),
-      "Unable to fetch test map_corners_test_14.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t15, "map_corners_test", 15),
-      "Unable to fetch test map_corners_test_15.");
-  BOOST_CHECK_MESSAGE(
-      ScillaTestUtil::GetScillaTest(t16, "map_corners_test", 16),
-      "Unable to fetch test map_corners_test_16.");
+  std::vector<ScillaTestUtil::ScillaTest> tests;
+
+  for (unsigned int i = 1; i <= 16; i++) {
+    ScillaTestUtil::ScillaTest test;
+    BOOST_CHECK_MESSAGE(
+        ScillaTestUtil::GetScillaTest(test, "map_corners_test", i),
+        "Unable to fetch test map_corners_test_" << i << ".");
+    tests.emplace_back(test);
+  }
 
   // Replace owner address in init.json
-  for (auto& it : t1.init) {
+  for (auto& it : tests[0].init) {
     if (it["vname"] == "owner") {
       it["value"] = "0x" + ownerAddr.hex();
     }
   }
 
   // and remove _creation_block (automatic insertion later).
-  ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
-  ScillaTestUtil::RemoveThisAddressFromInit(t1.init);
+  ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
 
-  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  // Transaction to deploy contract and with invocation
-  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data(initStr.begin(), initStr.end());
-  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 20000, t1.code, data);
-  TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
-  nonce++;
+  for (unsigned int i = 0; i < tests.size() + 1; i++) {
+    bool deploy = i == 0;
+    RunTransaction(owner, 1, i, tests.at(deploy ? i : i - 1),
+                   deploy ? NullAddress : contrAddr1, nonce, deploy, true);
+  }
 
-  LOG_GENERAL(INFO, "tr1 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  // Execute message_1, the Donate transaction.
-  bytes dataT1;
-  uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataT1);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  Transaction tx1_1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT1);
-  TransactionReceipt tr1_1;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_1, tr1_1);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_1 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT2;
-  amount = ScillaTestUtil::PrepareMessageData(t2.message, dataT2);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
-  Transaction tx1_2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT2);
-  TransactionReceipt tr1_2;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_2, tr1_2);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_2 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT3;
-  amount = ScillaTestUtil::PrepareMessageData(t3.message, dataT3);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t3.blockchain);
-  Transaction tx1_3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT3);
-  TransactionReceipt tr1_3;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_3, tr1_3);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_3 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT4;
-  amount = ScillaTestUtil::PrepareMessageData(t4.message, dataT4);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
-  Transaction tx1_4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT4);
-  TransactionReceipt tr1_4;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_4, tr1_4);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_4 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT5;
-  amount = ScillaTestUtil::PrepareMessageData(t5.message, dataT5);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
-  Transaction tx1_5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT5);
-  TransactionReceipt tr1_5;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_5, tr1_5);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_5 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT6;
-  amount = ScillaTestUtil::PrepareMessageData(t6.message, dataT6);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t6.blockchain);
-  Transaction tx1_6(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT6);
-  TransactionReceipt tr1_6;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_6, tr1_6);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_6 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT7;
-  amount = ScillaTestUtil::PrepareMessageData(t7.message, dataT7);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t7.blockchain);
-  Transaction tx1_7(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT7);
-  TransactionReceipt tr1_7;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_7, tr1_7);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_7 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT8;
-  amount = ScillaTestUtil::PrepareMessageData(t8.message, dataT8);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t8.blockchain);
-  Transaction tx1_8(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT8);
-  TransactionReceipt tr1_8;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_8, tr1_8);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_8 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT9;
-  amount = ScillaTestUtil::PrepareMessageData(t9.message, dataT9);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t9.blockchain);
-  Transaction tx1_9(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT9);
-  TransactionReceipt tr1_9;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_9, tr1_9);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_9 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT10;
-  amount = ScillaTestUtil::PrepareMessageData(t10.message, dataT10);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t10.blockchain);
-  Transaction tx1_10(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT10);
-  TransactionReceipt tr1_10;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_10, tr1_10);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_10 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT11;
-  amount = ScillaTestUtil::PrepareMessageData(t11.message, dataT11);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t11.blockchain);
-  Transaction tx1_11(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT11);
-  TransactionReceipt tr1_11;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_11, tr1_11);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_11 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT12;
-  amount = ScillaTestUtil::PrepareMessageData(t12.message, dataT12);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t12.blockchain);
-  Transaction tx1_12(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT12);
-  TransactionReceipt tr1_12;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_12, tr1_12);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_12 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT13;
-  amount = ScillaTestUtil::PrepareMessageData(t13.message, dataT13);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t13.blockchain);
-  Transaction tx1_13(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT13);
-  TransactionReceipt tr1_13;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_13, tr1_13);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_13 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT14;
-  amount = ScillaTestUtil::PrepareMessageData(t14.message, dataT14);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t14.blockchain);
-  Transaction tx1_14(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT14);
-  TransactionReceipt tr1_14;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_14, tr1_14);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_14 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT15;
-  amount = ScillaTestUtil::PrepareMessageData(t15.message, dataT15);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t15.blockchain);
-  Transaction tx1_15(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT15);
-  TransactionReceipt tr1_15;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_15, tr1_15);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_15 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
-
-  bytes dataT16;
-  amount = ScillaTestUtil::PrepareMessageData(t16.message, dataT16);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t16.blockchain);
-  Transaction tx1_16(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT16);
-  TransactionReceipt tr1_16;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx1_16, tr1_16);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr1_16 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
+  Account* account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
+  codeHash1 = account1->GetCodeHash();
+  contrStateHash1 = account1->GetStorageRoot();
+  contrCode1 = account1->GetCode();
+  initData1 = account1->GetInitData();
+  BOOST_CHECK_MESSAGE(account1->FetchStateJson(stateJson1),
+                      "fetch stateJson for account 1 failed");
+  contrBalance1 = account1->GetBalance();
 
   contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2.hex());
 
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  // Transaction to deploy contract and with invocation
-  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data(initStr.begin(), initStr.end());
-  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 20000, t1.code, data);
-  TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2);
-  nonce++;
+  RunTransaction(owner, 2, 0, tests.at(0), NullAddress, nonce, true, true);
 
-  LOG_GENERAL(INFO, "tr2 processing finished");
-
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  AccountStore::GetInstance().CommitTemp();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitSoft();
-  AccountStore::GetInstance().RetrieveFromDisk();
+  Account* account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
+  codeHash2 = account2->GetCodeHash();
+  contrStateHash2 = account2->GetStorageRoot();
+  contrCode2 = account2->GetCode();
+  initData2 = account2->GetInitData();
+  BOOST_CHECK_MESSAGE(account2->FetchStateJson(stateJson2),
+                      "fetch stateJson for account 2 failed");
+  contrBalance2 = account2->GetBalance();
 
   contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3.hex());
 
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  // Transaction to deploy contract and with invocation
-  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data(initStr.begin(), initStr.end());
-  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 20000, t1.code, data);
-  TransactionReceipt tr3;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3);
-  nonce++;
+  RunTransaction(owner, 3, 0, tests.at(0), NullAddress, nonce, true, false);
 
-  LOG_GENERAL(INFO, "tr3 processing finished");
+  Account* account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr3);
+  codeHash3 = account3->GetCodeHash();
+  contrStateHash3 = account3->GetStorageRoot();
+  contrCode3 = account3->GetCode();
+  initData3 = account3->GetInitData();
+  BOOST_CHECK_MESSAGE(account3->FetchStateJson(stateJson3, "", {}, true),
+                      "fetch stateJson for account 3 failed");
+  contrBalance3 = account3->GetBalance();
 
   contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4.hex());
 
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  // Transaction to deploy contract and with invocation
-  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data(initStr.begin(), initStr.end());
-  Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 20000, t1.code, data);
-  TransactionReceipt tr4;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx4, tr4);
-  nonce++;
+  for (unsigned int i = 0; i < tests.size() + 1; i++) {
+    bool deploy = i == 0;
+    RunTransaction(owner, 4, i, tests.at(deploy ? i : i - 1),
+                   deploy ? NullAddress : contrAddr4, nonce, deploy, false);
+  }
 
-  // Execute message_1, the Donate transaction.
-  amount = ScillaTestUtil::PrepareMessageData(t1.message, dataT1);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
-  Transaction tx4_1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT1);
-  TransactionReceipt tr4_1;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_1, tr4_1);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_1 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t2.message, dataT2);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
-  Transaction tx4_2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT2);
-  TransactionReceipt tr4_2;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_2, tr4_2);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_2 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t3.message, dataT3);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t3.blockchain);
-  Transaction tx4_3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT3);
-  TransactionReceipt tr4_3;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_3, tr4_3);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_3 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t4.message, dataT4);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
-  Transaction tx4_4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT4);
-  TransactionReceipt tr4_4;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_4, tr4_4);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_4 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t5.message, dataT5);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
-  Transaction tx4_5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT5);
-  TransactionReceipt tr4_5;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_5, tr4_5);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_5 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t6.message, dataT6);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t6.blockchain);
-  Transaction tx4_6(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT6);
-  TransactionReceipt tr4_6;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_6, tr4_6);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_6 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t7.message, dataT7);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t7.blockchain);
-  Transaction tx4_7(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT7);
-  TransactionReceipt tr4_7;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_7, tr4_7);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_7 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t8.message, dataT8);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t8.blockchain);
-  Transaction tx4_8(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT8);
-  TransactionReceipt tr4_8;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_8, tr4_8);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_8 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t9.message, dataT9);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t9.blockchain);
-  Transaction tx4_9(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4, owner,
-                    amount, PRECISION_MIN_VALUE, 20000, {}, dataT9);
-  TransactionReceipt tr4_9;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_9, tr4_9);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_9 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t10.message, dataT10);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t10.blockchain);
-  Transaction tx4_10(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT10);
-  TransactionReceipt tr4_10;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_10, tr4_10);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_10 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t11.message, dataT11);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t11.blockchain);
-  Transaction tx4_11(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT11);
-  TransactionReceipt tr4_11;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_11, tr4_11);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_11 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t12.message, dataT12);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t12.blockchain);
-  Transaction tx4_12(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT12);
-  TransactionReceipt tr4_12;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_12, tr4_12);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_12 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t13.message, dataT13);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t13.blockchain);
-  Transaction tx4_13(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT13);
-  TransactionReceipt tr4_13;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_13, tr4_13);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_13 processing finished");
-
-  amount = ScillaTestUtil::PrepareMessageData(t14.message, dataT14);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t14.blockchain);
-  Transaction tx4_14(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT14);
-  TransactionReceipt tr4_14;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_14, tr4_14);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_14 processing finished");
-
-  bytes dataT15;
-  amount = ScillaTestUtil::PrepareMessageData(t15.message, dataT15);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t15.blockchain);
-  Transaction tx4_15(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr4,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT15);
-  TransactionReceipt tr4_15;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_15, tr4_15);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_15 processing finished");
-
-  bytes dataT16;
-  amount = ScillaTestUtil::PrepareMessageData(t16.message, dataT16);
-  bnum = ScillaTestUtil::GetBlockNumberFromJson(t16.blockchain);
-  Transaction tx4_16(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1,
-                     owner, amount, PRECISION_MIN_VALUE, 20000, {}, dataT16);
-  TransactionReceipt tr4_16;
-  AccountStore::GetInstance().UpdateAccountsTemp(100, 1, true, tx4_16, tr4_16);
-  nonce++;
-
-  LOG_GENERAL(INFO, "tr4_16 processing finished");
+  Account* account4 = AccountStore::GetInstance().GetAccountTemp(contrAddr4);
+  codeHash4 = account4->GetCodeHash();
+  contrStateHash4 = account4->GetStorageRoot();
+  contrCode4 = account4->GetCode();
+  initData4 = account4->GetInitData();
+  BOOST_CHECK_MESSAGE(account4->FetchStateJson(stateJson4, "", {}, true),
+                      "fetch stateJson for account 4 failed");
+  contrBalance4 = account4->GetBalance();
 }
 
-void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
-                     const dev::h256& codeHash1, const dev::h256& codeHash2,
-                     const dev::h256& contrStateHash1,
-                     const dev::h256& contrStateHash2, const bytes& contrCode1,
-                     const bytes& contrCode2, const bytes& initData1,
-                     const Json::Value& stateJson1, const bytes& initData2,
-                     const uint128_t& contrBalance) {
+void CheckRFContract(
+    const Address& contrAddr1, const Address& contrAddr2,
+    const Address& contrAddr3, const Address& contrAddr4,
+    const dev::h256& codeHash1, const dev::h256& codeHash2,
+    const dev::h256& codeHash3, const dev::h256& codeHash4,
+    const dev::h256& contrStateHash1, const dev::h256& contrStateHash2,
+    const dev::h256& contrStateHash3, const dev::h256& contrStateHash4,
+    const bytes& contrCode1, const bytes& contrCode2, const bytes& contrCode3,
+    const bytes& contrCode4, const bytes& initData1, const bytes& initData2,
+    const bytes& initData3, const bytes& initData4,
+    const Json::Value& stateJson1, const Json::Value& stateJson2,
+    const Json::Value& stateJson3, const Json::Value& stateJson4,
+    const uint128_t& contrBalance1, const uint128_t& contrBalance2,
+    const uint128_t& contrBalance3, const uint128_t& contrBalance4) {
   LOG_MARKER();
 
   // Check the contract with invocation
   Account* account1;
-  account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
+  account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
   BOOST_CHECK_MESSAGE(codeHash1 == account1->GetCodeHash(),
                       "CodeHash1 doesn't match");
   BOOST_CHECK_MESSAGE(contrStateHash1 == account1->GetStorageRoot(),
@@ -1048,18 +602,11 @@ void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
                       "ContrCode1 doesn't match");
   BOOST_CHECK_MESSAGE(initData1 == account1->GetInitData(),
                       "initData1 doesn't match");
-  if (initData1 != account1->GetInitData())
-    LOG_GENERAL(INFO,
-                "initData1: " << DataConversion::CharArrayToString(initData1)
-                              << std::endl
-                              << "account Initdata: "
-                              << DataConversion::CharArrayToString(
-                                     account1->GetInitData()));
-  Json::Value t_stateJson;
-  BOOST_CHECK_MESSAGE(account1->FetchStateJson(t_stateJson, "", {}, true),
+  Json::Value t_stateJson_1;
+  BOOST_CHECK_MESSAGE(account1->FetchStateJson(t_stateJson_1, "", {}, true),
                       "FetchStateJson for account 1 failed");
-  BOOST_CHECK_MESSAGE(stateJson1 == t_stateJson, "StateJson1 doesn't match");
-  BOOST_CHECK_MESSAGE(contrBalance == account1->GetBalance(),
+  BOOST_CHECK_MESSAGE(stateJson1 == t_stateJson_1, "StateJson1 doesn't match");
+  BOOST_CHECK_MESSAGE(contrBalance1 == account1->GetBalance(),
                       "ContrBalance doesn't match");
 
   // Check the contract without invocation
@@ -1073,13 +620,48 @@ void CheckRFContract(const Address& contrAddr1, const Address& contrAddr2,
                       "ContrCode2 doesn't match");
   BOOST_CHECK_MESSAGE(initData2 == account2->GetInitData(),
                       "initData2 doesn't match");
-  if (initData2 != account2->GetInitData())
-    LOG_GENERAL(INFO,
-                "initData2: " << DataConversion::CharArrayToString(initData2)
-                              << std::endl
-                              << "account Initdata: "
-                              << DataConversion::CharArrayToString(
-                                     account2->GetInitData()));
+  Json::Value t_stateJson_2;
+  BOOST_CHECK_MESSAGE(account2->FetchStateJson(t_stateJson_2, "", {}, true),
+                      "FetchStateJson for account 2 failed");
+  BOOST_CHECK_MESSAGE(stateJson2 == t_stateJson_2, "StateJson3 doesn't match");
+  BOOST_CHECK_MESSAGE(contrBalance2 == account2->GetBalance(),
+                      "ContrBalance doesn't match");
+
+  // Check the contract without invocation and retrieval
+  Account* account3;
+  account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr3);
+  BOOST_CHECK_MESSAGE(codeHash3 == account3->GetCodeHash(),
+                      "CodeHash3 doesn't match");
+  BOOST_CHECK_MESSAGE(contrStateHash3 == account3->GetStorageRoot(),
+                      "ContrStateHash3 doesn't match");
+  BOOST_CHECK_MESSAGE(contrCode3 == account3->GetCode(),
+                      "ContrCode3 doesn't match");
+  BOOST_CHECK_MESSAGE(initData3 == account3->GetInitData(),
+                      "initData3 doesn't match");
+  Json::Value t_stateJson_3;
+  BOOST_CHECK_MESSAGE(account3->FetchStateJson(t_stateJson_3, "", {}, true),
+                      "FetchStateJson for account 3 failed");
+  BOOST_CHECK_MESSAGE(stateJson3 == t_stateJson_3, "StateJson3 doesn't match");
+  BOOST_CHECK_MESSAGE(contrBalance3 == account3->GetBalance(),
+                      "ContrBalance doesn't match");
+
+  // Check the contract with invocation and without retrieval
+  Account* account4;
+  account4 = AccountStore::GetInstance().GetAccountTemp(contrAddr4);
+  BOOST_CHECK_MESSAGE(codeHash4 == account4->GetCodeHash(),
+                      "CodeHash4 doesn't match");
+  BOOST_CHECK_MESSAGE(contrStateHash4 == account4->GetStorageRoot(),
+                      "ContrStateHash4 doesn't match");
+  BOOST_CHECK_MESSAGE(contrCode4 == account4->GetCode(),
+                      "ContrCode4 doesn't match");
+  BOOST_CHECK_MESSAGE(initData4 == account4->GetInitData(),
+                      "initData4 doesn't match");
+  Json::Value t_stateJson_4;
+  BOOST_CHECK_MESSAGE(account4->FetchStateJson(t_stateJson_4, "", {}, true),
+                      "FetchStateJson for account 4 failed");
+  BOOST_CHECK_MESSAGE(stateJson4 == t_stateJson_4, "StateJson4 doesn't match");
+  BOOST_CHECK_MESSAGE(contrBalance4 == account4->GetBalance(),
+                      "ContrBalance doesn't match");
 }
 
 BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
@@ -1093,21 +675,24 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
   Account account1(21, 211);
-  AccountStore::GetInstance().AddAccount(address1, account1);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-  Address contrAddr1, contrAddr2, contrAddr3;
-  dev::h256 codeHash1, codeHash2, codeHash3, contrStateHash1, contrStateHash2,
-      contrStateHash3;
-  bytes contrCode1, contrCode2, contrCode3, initData1, initData2, initData3;
-  Json::Value stateJson1;
-  uint128_t contrBalance1, contrBalance2, contrBalance3;
+  Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+  dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+      contrStateHash2, contrStateHash3, contrStateHash4;
+  bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+      initData3, initData4;
+  Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+  uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
   if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, contrAddr3, codeHash1, codeHash2,
-                  codeHash3, contrStateHash1, contrStateHash2, contrStateHash3,
-                  contrCode1, contrCode2, contrCode3, initData1, stateJson1,
-                  initData2, stateJson2, initData3, stateJson3, contrBalance1,
-                  contrBalance2, contrBalance3);
+    RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+                  codeHash2, codeHash3, codeHash4, contrStateHash1,
+                  contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
+                  contrCode2, contrCode3, contrCode4, initData1, initData2,
+                  initData3, initData4, stateJson1, stateJson2, stateJson3,
+                  stateJson4, contrBalance1, contrBalance2, contrBalance3,
+                  contrBalance4);
   }
 
   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
@@ -1138,71 +723,75 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
                       "State root didn't match after deserialize");
 
   if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(contrAddr1, contrAddr2, contrAddr3, codeHash1, codeHash2,
-                    codeHash3, contrStateHash1, contrStateHash2,
-                    contrStateHash3, contrCode1, contrCode2, contrCode3,
-                    initData1, stateJson1, initData2, stateJson2, initData2,
-                    stateJson2, contrBalance1, contrBalance2, contrBalance3);
+    CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+                    codeHash2, codeHash3, codeHash4, contrStateHash1,
+                    contrStateHash2, contrStateHash3, contrStateHash4,
+                    contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+                    initData2, initData3, initData4, stateJson1, stateJson2,
+                    stateJson3, stateJson4, contrBalance1, contrBalance2,
+                    contrBalance3, contrBalance4);
   }
 }
 
-BOOST_AUTO_TEST_CASE(stateDelta) {
-  INIT_STDOUT_LOGGER();
+// BOOST_AUTO_TEST_CASE(stateDelta) {
+//   INIT_STDOUT_LOGGER();
 
-  LOG_MARKER();
+//   LOG_MARKER();
 
-  AccountStore::GetInstance().Init();
+//   AccountStore::GetInstance().Init();
 
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-  Account account1(21, 211);
-  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+//   Account account1(21, 211);
+//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-  Address contrAddr1, contrAddr2;
-  dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
-  bytes contrCode1, contrCode2, initData1, initData2;
-  Json::Value stateJson1;
-  uint128_t contrBalance;
+//   Address contrAddr1, contrAddr2;
+//   dev::h256 codeHash1, codeHash2, contrStateHash1, contrStateHash2;
+//   bytes contrCode1, contrCode2, initData1, initData2;
+//   Json::Value stateJson1;
+//   uint128_t contrBalance;
 
-  if (!SCILLA_ROOT.empty()) {
-    RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2, contrStateHash1,
-                  contrStateHash2, contrCode1, contrCode2, initData1,
-                  stateJson1, initData2, contrBalance);
-  }
+//   if (!SCILLA_ROOT.empty()) {
+//     RunCFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
+//     contrStateHash1,
+//                   contrStateHash2, contrCode1, contrCode2, initData1,
+//                   stateJson1, initData2, contrBalance);
+//   }
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "SerializeDelta failed");
-  auto statehash = AccountStore::GetInstance().GetStateDeltaHash();
-  BOOST_CHECK_MESSAGE(statehash != dev::h256(), "StateDeltaHash is null");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
+//                       "SerializeDelta failed");
+//   auto statehash = AccountStore::GetInstance().GetStateDeltaHash();
+//   BOOST_CHECK_MESSAGE(statehash != dev::h256(), "StateDeltaHash is null");
 
-  bytes rawdelta;
-  AccountStore::GetInstance().GetSerializedDelta(rawdelta);
+//   bytes rawdelta;
+//   AccountStore::GetInstance().GetSerializedDelta(rawdelta);
 
-  AccountStore::GetInstance().InitTemp();
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().DeserializeDeltaTemp(rawdelta, 0),
-      "AccountStore::DeserializeDeltaTemp failed");
-  AccountStore::GetInstance().SerializeDelta();
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().GetStateDeltaHash() == statehash,
-      "StateDeltaHash after DeserializeDeltaTemp doesn't match original");
+//   AccountStore::GetInstance().InitTemp();
+//   BOOST_CHECK_MESSAGE(
+//       AccountStore::GetInstance().DeserializeDeltaTemp(rawdelta, 0),
+//       "AccountStore::DeserializeDeltaTemp failed");
+//   AccountStore::GetInstance().SerializeDelta();
+//   BOOST_CHECK_MESSAGE(
+//       AccountStore::GetInstance().GetStateDeltaHash() == statehash,
+//       "StateDeltaHash after DeserializeDeltaTemp doesn't match original");
 
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().GetBalance(address1) == 0,
-      "address1 in AccountStore has balance before deserializing delta");
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DeserializeDelta(rawdelta, 0),
-                      "AccountStore::DeserializeDelta failed");
-  BOOST_CHECK_MESSAGE(
-      AccountStore::GetInstance().GetBalance(address1) == 21,
-      "address1 in AccountStore has no balance after deserializing delta");
+//   BOOST_CHECK_MESSAGE(
+//       AccountStore::GetInstance().GetBalance(address1) == 0,
+//       "address1 in AccountStore has balance before deserializing delta");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DeserializeDelta(rawdelta,
+//   0),
+//                       "AccountStore::DeserializeDelta failed");
+//   BOOST_CHECK_MESSAGE(
+//       AccountStore::GetInstance().GetBalance(address1) == 21,
+//       "address1 in AccountStore has no balance after deserializing delta");
 
-  if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
-                    contrStateHash1, contrStateHash2, contrCode1, contrCode2,
-                    initData1, stateJson1, initData2, contrBalance);
-  }
-}
+//   if (!SCILLA_ROOT.empty()) {
+//     CheckRFContract(contrAddr1, contrAddr2, codeHash1, codeHash2,
+//                     contrStateHash1, contrStateHash2, contrCode1, contrCode2,
+//                     initData1, stateJson1, initData2, contrBalance);
+//   }
+// }
 
 // BOOST_AUTO_TEST_CASE(commitRevertible) {
 //   INIT_STDOUT_LOGGER();
