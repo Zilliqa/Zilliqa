@@ -61,7 +61,9 @@ AccountStore::AccountStore() {
 
 AccountStore::~AccountStore() {
   // boost::filesystem::remove_all("./state");
-  m_scillaIPCServer->StopListening();
+  if (m_scillaIPCServer != nullptr) {
+    m_scillaIPCServer->StopListening();
+  }
 }
 
 void AccountStore::Init() {
