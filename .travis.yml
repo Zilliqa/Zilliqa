@@ -49,7 +49,6 @@ addons:
     - python-pip
 
 script:
-  - ./scripts/download_proto3.sh;
   - ./scripts/ci_build.sh;
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
