@@ -124,6 +124,8 @@ const std::string dsNodeFile = "dsnodes.xml";
 
 const float ONE_HUNDRED_PERCENT = 100.f;
 
+const unsigned int GENESIS_DSBLOCK_VERSION = 1;
+
 // General constants
 extern const unsigned int DEBUG_LEVEL;
 extern const bool ENABLE_DO_REJOIN;

@@ -16,6 +16,10 @@
  */
 
 #include "Message/ZilliqaTest.pb.h"
+#include "libLookup/Synchronizer.h"
+#include "libMessage/Messenger.h"
+#include "libMessage/ZilliqaMessage.pb.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE message
@@ -56,6 +60,18 @@ BOOST_AUTO_TEST_CASE(test_optionalfield) {
   BOOST_CHECK(twoFields.field2() == 0);
   BOOST_CHECK(twoFields.field1() == oneField.field1());
   LOG_GENERAL(INFO, "twoFields.field1 = " << twoFields.field1());
+}
+
+BOOST_AUTO_TEST_CASE(test_Genesis_DSBlock_Hash) {
+  DSBlock genesisDSBlock = Synchronizer::ConstructGenesisDSBlock();
+  LOG_GENERAL(INFO, "Genesis DSHeader " << genesisDSBlock.GetHeader());
+
+  auto blockHash = genesisDSBlock.GetBlockHash();
+
+  BlockHash expectedHash(
+      "63fcdb962dc1c084fbf470b3f0d33869487849980c76bec0b050b9c83462c90f");
+  LOG_GENERAL(INFO, "Genesis DS Block hash: " << blockHash);
+  BOOST_REQUIRE(blockHash == expectedHash);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
