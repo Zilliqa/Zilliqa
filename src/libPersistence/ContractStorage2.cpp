@@ -419,8 +419,9 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
                                               string value, bool unquote) {
   if (unquote) {
     // unquote key
-    UnquoteString(key);
-    // UnquoteString(value);
+    if (key != "\"\"") {
+      UnquoteString(key);
+    }
   }
 
   Json::Value j_value;
@@ -487,7 +488,9 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
                              int mapdepth) -> void {
       if (cur_index + 1 < indices.size()) {
         string key = indices.at(cur_index);
-        UnquoteString(key);
+        if (key != "\"\"") {
+          UnquoteString(key);
+        }
         jsonMapWrapper(_json[key], indices, value, cur_index + 1, mapdepth);
       } else {
         if (mapdepth > 0) {
@@ -499,7 +502,9 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
               _json = Json::objectValue;
             } else {
               string key = indices.at(cur_index);
-              UnquoteString(key);
+              if (key != "\"\"") {
+                UnquoteString(key);
+              }
               _json[key] = Json::objectValue;
             }
           }
@@ -514,7 +519,9 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
               empty_val.IsInitialized() && empty_val.has_mval() &&
               empty_val.mval().m().empty()) {
             string key = indices.at(cur_index);
-            UnquoteString(key);
+            if (key != "\"\"") {
+              UnquoteString(key);
+            }
             _json[key] = Json::objectValue;
           } else {
             InsertValueToStateJson(_json, indices.at(cur_index),
@@ -959,7 +966,9 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
                             << DataConversion::CharArrayToString(state.second));
     }
     sha2.Update(DataConversion::StringToCharArray(state.first));
-    sha2.Update(state.second);
+    if (!state.second.empty()) {
+      sha2.Update(state.second);
+    }
   }
   // return dev::h256(sha2.Finalize());
   dev::h256 ret(sha2.Finalize());
