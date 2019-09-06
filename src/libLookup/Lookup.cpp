@@ -1797,7 +1797,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
     // only process DS block for lookup nodes, otherwise for normal node
     // it's purpose is just for indication if new DS block is mined or not
-    if (!LOOKUP_NODE_MODE) {
+    if (LOOKUP_NODE_MODE) {
       vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
           dirBlocks;
       for (const auto& dsblock : dsBlocks) {
