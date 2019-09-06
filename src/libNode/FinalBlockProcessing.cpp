@@ -117,12 +117,17 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
       if (skipShardIDCheck ||
           !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
             info.m_txnRootHash == TxnHash())) {
-        m_unavailableMicroBlocks[blockNum].push_back(
-            {info.m_microBlockHash, info.m_txnRootHash});
-        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                              << info.m_microBlockHash << " [TxnRootHash] "
-                              << info.m_txnRootHash << " shardID "
-                              << info.m_shardId);
+        auto& mbs = m_unavailableMicroBlocks[blockNum];
+        if (std::find_if(mbs.begin(), mbs.end(),
+                         [info](const std::pair<BlockHash, TxnHash>& e) {
+                           return e.first == info.m_microBlockHash;
+                         }) == mbs.end()) {
+          mbs.push_back({info.m_microBlockHash, info.m_txnRootHash});
+          LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                                << info.m_microBlockHash << " [TxnRootHash] "
+                                << info.m_txnRootHash << " shardID "
+                                << info.m_shardId);
+        }
       }
     } else {
       if (info.m_shardId == m_myshardId) {

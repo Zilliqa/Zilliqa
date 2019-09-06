@@ -1797,7 +1797,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
     // only process DS block for lookup nodes, otherwise for normal node
     // it's purpose is just for indication if new DS block is mined or not
-    if (!LOOKUP_NODE_MODE) {
+    if (LOOKUP_NODE_MODE) {
       vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
           dirBlocks;
       for (const auto& dsblock : dsBlocks) {
@@ -2097,7 +2097,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
     // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
-    // all.
+    // all for last few txBlks.
     FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
     CheckAndFetchUnavailableMBs();
   }
@@ -2179,12 +2179,17 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
                                                          mbptr) &&
           info.m_txnRootHash != TxnHash()) {
         lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-        m_mediator.m_node->GetUnavailableMicroBlocks()[i].push_back(
-            {info.m_microBlockHash, info.m_txnRootHash});
-        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                              << info.m_microBlockHash << " [TxnRootHash] "
-                              << info.m_txnRootHash << " shardID "
-                              << info.m_shardId);
+        auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks()[i];
+        if (std::find_if(mbs.begin(), mbs.end(),
+                         [info](const std::pair<BlockHash, TxnHash>& e) {
+                           return e.first == info.m_microBlockHash;
+                         }) == mbs.end()) {
+          mbs.push_back({info.m_microBlockHash, info.m_txnRootHash});
+          LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                                << info.m_microBlockHash << " [TxnRootHash] "
+                                << info.m_txnRootHash << " shardID "
+                                << info.m_shardId);
+        }
       }
     }
   }
