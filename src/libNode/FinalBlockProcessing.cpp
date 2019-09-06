@@ -726,6 +726,12 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
     }
+
+    // Contract storage
+    if (!Contract::ContractStorage2::GetContractStorage().CommitStateDB()) {
+      LOG_GENERAL(WARNING, "CommitStateDB failed");
+      return false;
+    }
     // if lookup and loaded microblocks, then skip
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&

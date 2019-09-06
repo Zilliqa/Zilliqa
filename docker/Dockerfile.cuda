@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla:v0.3.0
+FROM zilliqa/scilla:v0.4.0-alpha.0
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -39,13 +39,11 @@ RUN apt-get update \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
-    libprotobuf-dev \
     libsnappy-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
     python \
     python-pip \
     libsecp256k1-dev \
@@ -104,7 +102,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 ####################### End of CUDA Installation ###############################
 
-ARG ZILLIQA_VERSION=v4.8.0-alpha.0
+ARG ZILLIQA_VERSION=v5.0.0-alpha.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

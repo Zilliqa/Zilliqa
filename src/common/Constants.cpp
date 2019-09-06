@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -305,6 +306,8 @@ const bool ENABLE_STATUS_RPC{
     ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
 const unsigned int NUM_SHARD_PEER_TO_REVEAL{
     ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
+const std::string SCILLA_IPC_SOCKET_PATH{
+    ReadConstantString("SCILLA_IPC_SOCKET_PATH", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
@@ -428,6 +431,8 @@ const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
     ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
     ReadConstantNumeric("INCRDB_DSNUMS_WITH_STATEDELTAS", "node.recovery.")};
+const bool CONTRACT_STATES_MIGRATED{
+    ReadConstantString("CONTRACT_STATES_MIGRATED", "node.recovery.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
@@ -468,6 +473,10 @@ const string INPUT_CODE{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
+const string FIELDS_MAP_DEPTH_INDICATOR{
+    ReadConstantString("FIELDS_MAP_DEPTH_INDICATOR", "node.smart_contract.")};
+const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
+                  "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{

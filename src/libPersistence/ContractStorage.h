@@ -39,7 +39,6 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
-
   LevelDB m_stateIndexDB;
   LevelDB m_stateDataDB;
 
@@ -73,7 +72,7 @@ class ContractStorage : public Singleton<ContractStorage> {
   std::vector<bytes> GetContractStatesData(const dev::h160& address, bool temp);
 
   ContractStorage()
-      : m_codeDB("contractCode"),
+      : m_codeDB("contractCode_deprecated"),
         m_stateIndexDB("contractStateIndex"),
         m_stateDataDB("contractStateData"){};
 

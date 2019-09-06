@@ -203,18 +203,6 @@ void Lookup::SetLookupNodes() {
     level++;
   }
 
-  // Add myself to lookupnodes
-  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    const PubKey& myPubKey = m_mediator.m_selfKey.second;
-    if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&myPubKey](const PairOfNode& node) {
-                       return node.first == myPubKey;
-                     }) == m_lookupNodes.end()) {
-      m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
-                                 m_mediator.m_selfPeer);
-    }
-  }
-
   m_lookupNodesStatic = m_lookupNodes;
 }
 
@@ -3166,7 +3154,9 @@ void Lookup::StartSynchronization() {
   LOG_MARKER();
 
   auto func = [this]() -> void {
-    GetMyLookupOffline();
+    if (!ARCHIVAL_LOOKUP) {
+      GetMyLookupOffline();
+    }
     GetDSInfoFromLookupNodes();
     while (GetSyncType() != SyncType::NO_SYNC) {
       GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
@@ -4384,10 +4374,10 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                   "BlockHash = " << mb.first << ", TxnHash = " << mb.second);
         mbHashes.emplace_back(mb.first);
       }
-      SendGetMicroBlockFromLookup(mbHashes);
       if (limitReached) {
         break;
       }
+      SendGetMicroBlockFromLookup(mbHashes);
     }
 
     // Delete the entry for those fb with no pending mbs

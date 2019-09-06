@@ -24,6 +24,7 @@
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/ContractStorage2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -104,7 +105,7 @@ void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
 const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
 
 void Account::SetAddress(const Address& addr) {
-  if (m_address == Address()) {
+  if (!m_address) {
     m_address = addr;
   }
 }
@@ -137,7 +138,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum,
-                           bool temp) {
+                           uint32_t& scilla_version) {
   LOG_MARKER();
   if (isContract()) {
     LOG_GENERAL(WARNING, "Already Initialized");
@@ -145,37 +146,16 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   Json::Value initDataJson;
-  if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson)) {
+  if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson,
+                           scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
   }
 
-  std::vector<StateEntry> state_entries;
-
-  for (auto& v : initDataJson) {
-    if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
-      LOG_GENERAL(WARNING,
-                  "This variable in initialization of contract is corrupted");
-      return false;
-    }
-
-    string vname = v["vname"].asString();
-    string type = v["type"].asString();
-
-    string value = JSONUtils::GetInstance().convertJsontoStr(v["value"]);
-
-    state_entries.push_back(std::make_tuple(vname, false, type, value));
-  }
-
-  if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, state_entries, m_storageRoot, temp)) {
-    LOG_GENERAL(WARNING, "ContractStorage::PutContractState failed");
-    return false;
-  }
-
-  if (!SetCode(code)) {
-    LOG_GENERAL(WARNING, "SetCode failed");
-    return false;
+  if (!SetImmutable(
+          code, DataConversion::StringToCharArray(
+                    JSONUtils::GetInstance().convertJsontoStr(initDataJson)))) {
+    LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
   SetAddress(addr);
@@ -213,33 +193,6 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::SetStorage(const vector<StateEntry>& state_entries, bool temp) {
-  if (!isContract()) {
-    return false;
-  }
-
-  return ContractStorage::GetContractStorage().PutContractState(
-      m_address, state_entries, m_storageRoot, temp);
-}
-
-bool Account::SetStorage(const Address& addr,
-                         const vector<pair<dev::h256, bytes>>& entries,
-                         bool temp, bool revertible) {
-  if (!isContract()) {
-    return false;
-  }
-
-  if (!ContractStorage::GetContractStorage().PutContractState(
-          addr, entries, m_storageRoot, temp, revertible, {}, false)) {
-    LOG_GENERAL(WARNING, "PutContractState failed");
-    return false;
-  }
-
-  SetAddress(addr);
-
-  return true;
-}
-
 string Account::GetRawStorage(const h256& k_hash, bool temp) const {
   if (!isContract()) {
     // LOG_GENERAL(WARNING,
@@ -251,14 +204,38 @@ string Account::GetRawStorage(const h256& k_hash, bool temp) const {
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
-                                  const uint64_t& blockNum, Json::Value& root) {
+                                  const uint64_t& blockNum, Json::Value& root,
+                                  uint32_t& scilla_version) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
   }
 
   if (!JSONUtils::GetInstance().convertStrtoJson(
-          {initData.begin(), initData.end()}, root)) {
+          DataConversion::CharArrayToString(initData), root)) {
+    return false;
+  }
+
+  bool found_scilla_version = false;
+  for (const auto& entry : root) {
+    if (entry.isMember("vname") && entry.isMember("type") &&
+        entry.isMember("value") && entry["vname"] == "_scilla_version" &&
+        entry["type"] == "Uint32") {
+      try {
+        m_scilla_version =
+            boost::lexical_cast<uint32_t>(entry["value"].asString());
+        scilla_version = m_scilla_version;
+        found_scilla_version = true;
+      } catch (...) {
+        LOG_GENERAL(WARNING,
+                    "invalid value for _scilla_version " << entry["value"]);
+      }
+      break;
+    }
+  }
+
+  if (!found_scilla_version) {
+    LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
     return false;
   }
 
@@ -279,6 +256,7 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
+/// deprecated after data migration
 Json::Value Account::GetInitJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
@@ -301,6 +279,25 @@ vector<h256> Account::GetStorageKeyHashes(bool temp) const {
       m_address, temp);
 }
 
+void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
+                               std::vector<std::string>& toDeleteIndices,
+                               bool temp) const {
+  ContractStorage2::GetContractStorage().FetchUpdatedStateValuesForAddress(
+      GetAddress(), t_states, toDeleteIndices, temp);
+}
+
+void Account::UpdateStates(const Address& addr,
+                           const std::map<std::string, bytes>& t_states,
+                           const std::vector<std::string>& toDeleteIndices,
+                           bool temp, bool revertible) {
+  ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
+      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
+  if (!m_address) {
+    SetAddress(addr);
+  }
+}
+
+/// deprecated after data migration
 Json::Value Account::GetStateJson(bool temp) const {
   if (!isContract()) {
     return Json::arrayValue;
@@ -314,6 +311,7 @@ Json::Value Account::GetStateJson(bool temp) const {
   return roots.second;
 }
 
+/// deprecated after data migration
 bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
                              uint32_t& scilla_version) const {
   if (!isContract()) {
@@ -340,6 +338,32 @@ bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
     return false;
   }
   // LOG_GENERAL(INFO, "States: " << root);
+
+  return true;
+}
+
+bool Account::FetchStateJson(Json::Value& root, const string& vname,
+                             const vector<string>& indices, bool temp) const {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING,
+                "Not contract account, why call Account::FetchStateJson!");
+    return false;
+  }
+
+  if (vname != "_balance") {
+    if (!ContractStorage2::GetContractStorage().FetchStateJsonForContract(
+            root, GetAddress(), vname, indices, temp)) {
+      LOG_GENERAL(WARNING,
+                  "ContractStorage2::FetchStateJsonForContract failed");
+      return false;
+    }
+  }
+
+  if ((vname.empty() && indices.empty()) || vname == "_balance") {
+    root["_balance"] = GetBalance().convert_to<string>();
+  }
+  LOG_GENERAL(INFO,
+              "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
 
   return true;
 }
@@ -396,10 +420,6 @@ bool Account::SetCode(const bytes& code) {
   }
 
   m_codeCache = code;
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(code);
-  SetCodeHash(dev::h256(sha2.Finalize()));
-  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
   return true;
 }
 
@@ -409,8 +429,86 @@ const bytes Account::GetCode() const {
   }
 
   if (m_codeCache.empty()) {
-    return ContractStorage::GetContractStorage().GetContractCode(m_address);
-  } else {
-    return m_codeCache;
+    return ContractStorage2::GetContractStorage().GetContractCode(m_address);
   }
+  return m_codeCache;
+}
+
+bool Account::GetScillaVersion(uint32_t& scilla_version) {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING, "Not a contract why call GetScillaVersion");
+    return false;
+  }
+
+  // Be careful is m_scilla_version changed to other data type
+  if (m_scilla_version == (uint32_t)-1) {
+    Json::Value root;
+    bytes initData = GetInitData();
+    if (!JSONUtils::GetInstance().convertStrtoJson(
+            DataConversion::CharArrayToString(initData), root)) {
+      LOG_GENERAL(WARNING, "Convert InitData to Json failed"
+                               << endl
+                               << DataConversion::CharArrayToString(initData));
+      return false;
+    }
+    bool found_scilla_version = false;
+    for (const auto& entry : root) {
+      if (entry.isMember("vname") && entry.isMember("type") &&
+          entry.isMember("value") && entry["vname"] == "_scilla_version" &&
+          entry["type"] == "Uint32") {
+        try {
+          m_scilla_version =
+              boost::lexical_cast<uint32_t>(entry["value"].asString());
+          found_scilla_version = true;
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "invalid value for _scilal_version " << entry["value"]);
+        }
+        break;
+      }
+    }
+
+    if (!found_scilla_version) {
+      LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
+      return false;
+    }
+  }
+  scilla_version = m_scilla_version;
+  return true;
+}
+
+bool Account::SetInitData(const bytes& initData) {
+  // LOG_MARKER();
+
+  if (initData.size() == 0) {
+    LOG_GENERAL(WARNING, "InitData for this contract is empty");
+    return false;
+  }
+
+  m_initDataCache = initData;
+  return true;
+}
+
+const bytes Account::GetInitData() const {
+  if (!isContract()) {
+    return {};
+  }
+
+  if (m_initDataCache.empty()) {
+    return ContractStorage2::GetContractStorage().GetInitData(m_address);
+  }
+  return m_initDataCache;
+}
+
+bool Account::SetImmutable(const bytes& code, const bytes& initData) {
+  if (!SetCode(code) || !SetInitData(initData)) {
+    return false;
+  }
+
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(code);
+  sha2.Update(initData);
+  SetCodeHash(dev::h256(sha2.Finalize()));
+  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
+  return true;
 }
