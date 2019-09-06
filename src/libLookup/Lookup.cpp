@@ -1482,6 +1482,16 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     return false;
   }
 
+  // verify if sender is from whitelisted list
+  uint128_t ipAddr = from.m_ipAddress;
+  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
+    LOG_GENERAL(WARNING,
+                "Requesting IP : "
+                    << ipAddr
+                    << " is not in whitelisted IP list. Ignore the request");
+    return false;
+  }
+
   vector<BlockHash> microBlockHashes;
   uint32_t portNo = 0;
 
@@ -1497,8 +1507,13 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   }
 
   LOG_GENERAL(INFO, "Request for " << microBlockHashes.size() << " blocks");
+  if (microBlockHashes.size() > MAX_FETCHMISSINGMBS_NUM) {
+    LOG_GENERAL(WARNING, "Requesting for more than max allowed : "
+                             << MAX_FETCHMISSINGMBS_NUM
+                             << ". Looks Suspicious so ignore request");
+    return false;
+  }
 
-  uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   vector<MicroBlock> retMicroBlocks;
 
@@ -1545,6 +1560,12 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
     [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   //[numberOfMicroBlocks][microblock1][microblock2]...
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
   LOG_MARKER();
 
   vector<MicroBlock> mbs;
@@ -1570,7 +1591,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                           << " Recvd " << mb.GetHeader().GetEpochNum()
                           << " MBHash:" << mb.GetBlockHash());
     AddMicroBlockToStorage(mb);
-    SendGetTxnFromLookup(mb.GetTranHashes());
+    SendGetTxnFromLookup(mb.GetBlockHash(), mb.GetTranHashes());
   }
 
   return true;
@@ -1776,7 +1797,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
     // only process DS block for lookup nodes, otherwise for normal node
     // it's purpose is just for indication if new DS block is mined or not
-    if (!LOOKUP_NODE_MODE) {
+    if (LOOKUP_NODE_MODE) {
       vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
           dirBlocks;
       for (const auto& dsblock : dsBlocks) {
@@ -2422,37 +2443,83 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
-  vector<TxnHash> txnhashes;
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
 
+  // verify if sender is from whitelisted list
+  uint128_t ipAddr = from.m_ipAddress;
+  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
+    LOG_GENERAL(WARNING,
+                "Requesting IP : "
+                    << ipAddr
+                    << " is not in whitelisted IP list. Ignore the request");
+    return false;
+  }
+
+  vector<TxnHash> txnhashes;
+  BlockHash mbHash;
   uint32_t portNo = 0;
-  if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, txnhashes,
+  if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, mbHash, txnhashes,
                                              portNo)) {
     LOG_GENERAL(WARNING, "Failed to Process");
     return false;
   }
 
-  if (txnhashes.size() == 0) {
+  auto requestedNum = txnhashes.size();
+  if (requestedNum == 0) {
     LOG_GENERAL(INFO, "No txn requested");
     return true;
   }
+
+  if (requestedNum > MICROBLOCK_GAS_LIMIT) {
+    LOG_GENERAL(WARNING, "No microblock can have more than "
+                             << MICROBLOCK_GAS_LIMIT
+                             << " missing txns. Looks suspicious so will "
+                                "ignore the message and blacklist sender");
+    Blacklist::GetInstance().Add(from.GetIpAddress());
+    return false;
+  }
+
+  MicroBlockSharedPtr mbptr;
+  if (BlockStorage::GetBlockStorage().GetMicroBlock(mbHash, mbptr)) {
+    if (mbptr->GetHeader().GetNumTxs() != requestedNum) {
+      LOG_GENERAL(WARNING, "Num of requested txnhashes "
+                               << requestedNum
+                               << " does not match local storage count "
+                               << mbptr->GetTranHashes().size());
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING,
+                "Microblock (" << mbHash << ") does not exist locally");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Num of requested txnhashes = " << requestedNum);
 
   vector<TransactionWithReceipt> txns;
   for (const auto& txnhash : txnhashes) {
     shared_ptr<TransactionWithReceipt> txnptr;
     if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txnptr)) {
       LOG_GENERAL(WARNING, "Could not find " << txnhash);
+      // TBD - may be want to blacklist.
       continue;
     }
     txns.emplace_back(*txnptr);
   }
-  uint128_t ipAddr = from.m_ipAddress;
+
+  LOG_GENERAL(INFO, "Num of txnhashes found locally = " << txns.size());
+
   Peer requestingNode(ipAddr, portNo);
 
   bytes setTxnMsg = {MessageType::LOOKUP,
                      LookupInstructionType::SETTXNFROMLOOKUP};
 
-  if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
-                                             m_mediator.m_selfKey, txns)) {
+  if (!Messenger::SetLookupSetTxnsFromLookup(
+          setTxnMsg, MessageOffset::BODY, m_mediator.m_selfKey, mbHash, txns)) {
     LOG_GENERAL(WARNING, "Unable to Process");
     return false;
   }
@@ -2467,11 +2534,12 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  BlockHash mbHash;
   vector<TransactionWithReceipt> txns;
   PubKey lookupPubKey;
 
   if (!Messenger::GetLookupSetTxnsFromLookup(message, offset, lookupPubKey,
-                                             txns)) {
+                                             mbHash, txns)) {
     LOG_GENERAL(WARNING, "Failed to Process");
     return false;
   }
@@ -2483,6 +2551,9 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
+  LOG_GENERAL(INFO,
+              "Received " << txns.size() << " txns for microblock :" << mbHash);
+
   for (const auto& txn : txns) {
     bytes serializedTxBody;
     txn.Serialize(serializedTxBody, 0);
@@ -2491,14 +2562,45 @@ bool Lookup::ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
             txn.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
                                << txn.GetTransaction().GetTranID());
-      return false;
+      continue;  // Transaction already existed locally. Move on so as to delete
+                 // the entry from unavailable list
+    }
+  }
+
+  // Delete the mb from unavailable list here
+  std::lock_guard<mutex> lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+  auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
+  for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
+    auto& mbsVec = it->second;
+    auto origSiz = mbsVec.size();
+    mbsVec.erase(
+        std::remove_if(mbsVec.begin(), mbsVec.end(),
+                       [mbHash](const std::pair<BlockHash, TxnHash>& e) {
+                         return e.first == mbHash;
+                       }),
+        mbsVec.end());
+    if (mbsVec.size() < origSiz) {
+      LOG_GENERAL(
+          INFO, "[TxBlk - "
+                    << it->first
+                    << "] Removed entry of unavailable microblock: " << mbHash);
+    }
+    if (mbsVec.size() == 0) {
+      // Finally delete the entry for this final block
+      LOG_GENERAL(INFO,
+                  "Removed entry of unavailable microblocks list for TxBlk: "
+                      << it->first);
+      it = unavailableMBs.erase(it);
+    } else {
+      ++it;
     }
   }
 
   return true;
 }
 
-void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
+void Lookup::SendGetTxnFromLookup(const BlockHash& mbHash,
+                                  const vector<TxnHash>& txnhashes) {
   LOG_MARKER();
 
   bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
@@ -2509,7 +2611,7 @@ void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
   }
 
   if (!Messenger::SetLookupGetTxnsFromLookup(
-          msg, MessageOffset::BODY, txnhashes,
+          msg, MessageOffset::BODY, mbHash, txnhashes,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Failed to process");
     return;
@@ -4198,4 +4300,89 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
 
   LOG_GENERAL(INFO, "HistDB Success");
   return true;
+}
+
+void Lookup::CheckAndFetchUnavailableMBs() {
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::CheckAndFetchUnavailableMBs not expected to be called from "
+        "other than the ARCHIVAL LOOKUP.");
+    return;
+  }
+  LOG_MARKER();
+
+  if (m_startedFetchMissingMBsThread) {
+    LOG_GENERAL(
+        WARNING,
+        "The last FetchMissingMBsThread hasn't finished, discard this time");
+    return;
+  }
+
+  unsigned int maxMBSToBeFetched = MAX_FETCHMISSINGMBS_NUM;
+  auto main_func = [this, maxMBSToBeFetched]() mutable -> void {
+    m_startedFetchMissingMBsThread = true;
+    std::lock_guard<mutex> lock(
+        m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+    auto& unavailableMBs = m_mediator.m_node->GetUnavailableMicroBlocks();
+    unsigned int count = 0;
+    bool limitReached = false;
+    for (auto& m : unavailableMBs) {
+      // skip mbs from latest final block
+      if (m.first == m_mediator.m_currentEpochNum - 1) {
+        continue;
+      }
+      LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "
+                            << m.first << ": " << m.second.size());
+
+      // Delete missing mbs from unavailable list which has no txns
+      auto& mbs = m.second;
+      mbs.erase(std::remove_if(mbs.begin(), mbs.end(),
+                               [](const std::pair<BlockHash, TxnHash> e) {
+                                 MicroBlockSharedPtr mbptr;
+                                 return e.second == TxnHash();
+                               }),
+                mbs.end());
+
+      LOG_GENERAL(INFO,
+                  "After deleting microblock bodies with no transactions, "
+                  "Unavailable count = "
+                      << mbs.size());
+
+      if (mbs.empty()) {
+        continue;
+      }
+
+      vector<BlockHash> mbHashes;
+      for (const auto& mb : mbs) {
+        count++;
+        if (count > maxMBSToBeFetched) {
+          LOG_GENERAL(INFO, "Max fetch missing mbs limit of "
+                                << maxMBSToBeFetched
+                                << " is reached. Remaining missing mbs will be "
+                                   "handled in next epoch");
+          limitReached = true;
+          break;
+        }
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "BlockHash = " << mb.first << ", TxnHash = " << mb.second);
+        mbHashes.emplace_back(mb.first);
+      }
+      SendGetMicroBlockFromLookup(mbHashes);
+      if (limitReached) {
+        break;
+      }
+    }
+
+    // Delete the entry for those fb with no pending mbs
+    for (auto it = unavailableMBs.begin(); it != unavailableMBs.end();) {
+      if (it->second.empty()) {
+        it = unavailableMBs.erase(it);
+      } else
+        ++it;
+    }
+
+    m_startedFetchMissingMBsThread = false;
+  };
+  DetachedFunction(1, main_func);
 }

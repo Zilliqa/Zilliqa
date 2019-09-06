@@ -126,6 +126,8 @@ const char SCILLA_INDEX_SEPARATOR = 0x16;
 
 const float ONE_HUNDRED_PERCENT = 100.f;
 
+const unsigned int GENESIS_DSBLOCK_VERSION = 1;
+
 // General constants
 extern const unsigned int DEBUG_LEVEL;
 extern const bool ENABLE_DO_REJOIN;
@@ -193,6 +195,7 @@ extern const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS;
 extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
 extern const unsigned int RETRY_REJOINING_TIMEOUT;
 extern const unsigned int RETRY_GETSTATEDELTAS_COUNT;
+extern const unsigned int MAX_FETCHMISSINGMBS_NUM;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;

@@ -651,21 +651,23 @@ class Messenger {
                                                std::vector<MicroBlock>& mbs);
   // UNUSED
   static bool SetLookupGetTxnsFromLookup(bytes& dst, const unsigned int offset,
+                                         const BlockHash& mbHash,
                                          const std::vector<TxnHash>& txnhashes,
                                          uint32_t portNo);
   static bool GetLookupGetTxnsFromLookup(const bytes& src,
                                          const unsigned int offset,
+                                         BlockHash& mbHash,
                                          std::vector<TxnHash>& txnhashes,
                                          uint32_t& portNo);
   // UNUSED
   static bool SetLookupSetTxnsFromLookup(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
-      const std::vector<TransactionWithReceipt>& txns);
+      const BlockHash& mbHash, const std::vector<TransactionWithReceipt>& txns);
 
   // USUSED
   static bool GetLookupSetTxnsFromLookup(
       const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
-      std::vector<TransactionWithReceipt>& txns);
+      BlockHash& mbHash, std::vector<TransactionWithReceipt>& txns);
 
   static bool SetLookupGetDirectoryBlocksFromSeed(bytes& dst,
                                                   const unsigned int offset,

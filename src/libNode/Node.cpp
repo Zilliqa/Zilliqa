@@ -2322,3 +2322,7 @@ void Node::GetEntireNetworkPeerInfo(VectorOfNode& peers,
     pubKeys.emplace_back(i.first);
   }
 }
+
+UnavailableMicroBlockList& Node::GetUnavailableMicroBlocks() {
+  return m_unavailableMicroBlocks;
+}

@@ -869,6 +869,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
          NUM_FINAL_BLOCK_PER_POW) != 0) {
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
+
+    if (ARCHIVAL_LOOKUP)  // newlookup and level2lookup
+    {
+      m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+    }
   }
 
   FallbackTimerPulse();
@@ -1003,6 +1008,16 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   }
 
   LOG_MARKER();
+
+#ifdef SJ_TEST_SJ_MISSING_MBTXNS
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(
+        INFO,
+        "Stimulating missing mb/txns so ignoring received mb/txns message "
+        "(SJ_TEST_SJ_MISSING_MBTXNS)");
+    return false;
+  }
+#endif  // SJ_TEST_SJ_MISSING_MBTXNS
 
   MBnForwardedTxnEntry entry;
 

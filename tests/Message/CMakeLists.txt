@@ -31,5 +31,5 @@ message(STATUS "Test_Messenger_Compatibility compile flags new = ${TESTMESSENGER
 set_target_properties(Test_Messenger_Compatibility PROPERTIES COMPILE_OPTIONS "${TESTMESSENGERCOMPATIBILITY_COMPILE_FLAGS}")
 
 target_include_directories (Test_Messenger_Compatibility PUBLIC ${CMAKE_BINARY_DIR}/src ${CMAKE_BINARY_DIR}/tests ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_Messenger_Compatibility PUBLIC Boost::unit_test_framework Utils protobuf)
+target_link_libraries(Test_Messenger_Compatibility PUBLIC Boost::unit_test_framework Utils protobuf Block BlockHeader TestUtils Lookup Node Mediator DirectoryService)
 add_test(NAME Test_Messenger_Compatibility COMMAND Test_Messenger_Compatibility)

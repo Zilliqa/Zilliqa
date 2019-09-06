@@ -182,6 +182,8 @@ const unsigned int RETRY_REJOINING_TIMEOUT{
     ReadConstantNumeric("RETRY_REJOINING_TIMEOUT", "node.epoch_timing.")};
 const unsigned int RETRY_GETSTATEDELTAS_COUNT{
     ReadConstantNumeric("RETRY_GETSTATEDELTAS_COUNT", "node.epoch_timing.")};
+const unsigned int MAX_FETCHMISSINGMBS_NUM{
+    ReadConstantNumeric("MAX_FETCHMISSINGMBS_NUM", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{
