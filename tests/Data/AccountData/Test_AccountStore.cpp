@@ -468,19 +468,21 @@ void RunTransaction(const PairOfKey& sender, unsigned int major_index,
   }
 }
 
-void RunCFContract(Address& contrAddr1, Address& contrAddr2,
-                   Address& contrAddr3, Address& contrAddr4,
-                   dev::h256& codeHash1, dev::h256& codeHash2,
-                   dev::h256& codeHash3, dev::h256& codeHash4,
-                   dev::h256& contrStateHash1, dev::h256& contrStateHash2,
-                   dev::h256& contrStateHash3, dev::h256& contrStateHash4,
-                   bytes& contrCode1, bytes& contrCode2, bytes& contrCode3,
-                   bytes& contrCode4, bytes& initData1, bytes& initData2,
-                   bytes& initData3, bytes& initData4, Json::Value& stateJson1,
-                   Json::Value& stateJson2, Json::Value& stateJson3,
-                   Json::Value& stateJson4, uint128_t& contrBalance1,
-                   uint128_t& contrBalance2, uint128_t& contrBalance3,
-                   uint128_t& contrBalance4) {
+void RunCFContract(
+    [[gnu::unused]] Address& contrAddr1, [[gnu::unused]] Address& contrAddr2,
+    Address& contrAddr3, Address& contrAddr4,
+    [[gnu::unused]] dev::h256& codeHash1, [[gnu::unused]] dev::h256& codeHash2,
+    dev::h256& codeHash3, dev::h256& codeHash4,
+    [[gnu::unused]] dev::h256& contrStateHash1,
+    [[gnu::unused]] dev::h256& contrStateHash2, dev::h256& contrStateHash3,
+    dev::h256& contrStateHash4, [[gnu::unused]] bytes& contrCode1,
+    [[gnu::unused]] bytes& contrCode2, bytes& contrCode3, bytes& contrCode4,
+    [[gnu::unused]] bytes& initData1, [[gnu::unused]] bytes& initData2,
+    bytes& initData3, bytes& initData4, [[gnu::unused]] Json::Value& stateJson1,
+    [[gnu::unused]] Json::Value& stateJson2, Json::Value& stateJson3,
+    Json::Value& stateJson4, [[gnu::unused]] uint128_t& contrBalance1,
+    [[gnu::unused]] uint128_t& contrBalance2, uint128_t& contrBalance3,
+    uint128_t& contrBalance4) {
   LOG_MARKER();
 
   uint64_t nonce = 0;
@@ -513,34 +515,34 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
   ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
   ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
 
-  for (unsigned int i = 0; i < tests.size() + 1; i++) {
-    bool deploy = i == 0;
-    RunTransaction(owner, 1, i, tests.at(deploy ? i : i - 1),
-                   deploy ? NullAddress : contrAddr1, nonce, deploy, true);
-  }
+  // for (unsigned int i = 0; i < tests.size() + 1; i++) {
+  //   bool deploy = i == 0;
+  //   RunTransaction(owner, 1, i, tests.at(deploy ? i : i - 1),
+  //                  deploy ? NullAddress : contrAddr1, nonce, deploy, true);
+  // }
 
-  Account* account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
-  codeHash1 = account1->GetCodeHash();
-  contrStateHash1 = account1->GetStorageRoot();
-  contrCode1 = account1->GetCode();
-  initData1 = account1->GetInitData();
-  BOOST_CHECK_MESSAGE(account1->FetchStateJson(stateJson1),
-                      "fetch stateJson for account 1 failed");
-  contrBalance1 = account1->GetBalance();
+  // Account* account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
+  // codeHash1 = account1->GetCodeHash();
+  // contrStateHash1 = account1->GetStorageRoot();
+  // contrCode1 = account1->GetCode();
+  // initData1 = account1->GetInitData();
+  // BOOST_CHECK_MESSAGE(account1->FetchStateJson(stateJson1),
+  //                     "fetch stateJson for account 1 failed");
+  // contrBalance1 = account1->GetBalance();
 
-  contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
-  LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2.hex());
+  // contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
+  // LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2.hex());
 
-  RunTransaction(owner, 2, 0, tests.at(0), NullAddress, nonce, true, true);
+  // RunTransaction(owner, 2, 0, tests.at(0), NullAddress, nonce, true, true);
 
-  Account* account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
-  codeHash2 = account2->GetCodeHash();
-  contrStateHash2 = account2->GetStorageRoot();
-  contrCode2 = account2->GetCode();
-  initData2 = account2->GetInitData();
-  BOOST_CHECK_MESSAGE(account2->FetchStateJson(stateJson2),
-                      "fetch stateJson for account 2 failed");
-  contrBalance2 = account2->GetBalance();
+  // Account* account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
+  // codeHash2 = account2->GetCodeHash();
+  // contrStateHash2 = account2->GetStorageRoot();
+  // contrCode2 = account2->GetCode();
+  // initData2 = account2->GetInitData();
+  // BOOST_CHECK_MESSAGE(account2->FetchStateJson(stateJson2),
+  //                     "fetch stateJson for account 2 failed");
+  // contrBalance2 = account2->GetBalance();
 
   contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3.hex());
@@ -576,56 +578,61 @@ void RunCFContract(Address& contrAddr1, Address& contrAddr2,
 }
 
 void CheckRFContract(
-    const Address& contrAddr1, const Address& contrAddr2,
-    const Address& contrAddr3, const Address& contrAddr4,
-    const dev::h256& codeHash1, const dev::h256& codeHash2,
-    const dev::h256& codeHash3, const dev::h256& codeHash4,
-    const dev::h256& contrStateHash1, const dev::h256& contrStateHash2,
+    [[gnu::unused]] const Address& contrAddr1,
+    [[gnu::unused]] const Address& contrAddr2, const Address& contrAddr3,
+    const Address& contrAddr4, [[gnu::unused]] const dev::h256& codeHash1,
+    [[gnu::unused]] const dev::h256& codeHash2, const dev::h256& codeHash3,
+    const dev::h256& codeHash4,
+    [[gnu::unused]] const dev::h256& contrStateHash1,
+    [[gnu::unused]] const dev::h256& contrStateHash2,
     const dev::h256& contrStateHash3, const dev::h256& contrStateHash4,
-    const bytes& contrCode1, const bytes& contrCode2, const bytes& contrCode3,
-    const bytes& contrCode4, const bytes& initData1, const bytes& initData2,
-    const bytes& initData3, const bytes& initData4,
-    const Json::Value& stateJson1, const Json::Value& stateJson2,
+    [[gnu::unused]] const bytes& contrCode1,
+    [[gnu::unused]] const bytes& contrCode2, const bytes& contrCode3,
+    const bytes& contrCode4, [[gnu::unused]] const bytes& initData1,
+    [[gnu::unused]] const bytes& initData2, const bytes& initData3,
+    const bytes& initData4, [[gnu::unused]] const Json::Value& stateJson1,
+    [[gnu::unused]] const Json::Value& stateJson2,
     const Json::Value& stateJson3, const Json::Value& stateJson4,
-    const uint128_t& contrBalance1, const uint128_t& contrBalance2,
+    [[gnu::unused]] const uint128_t& contrBalance1,
+    [[gnu::unused]] const uint128_t& contrBalance2,
     const uint128_t& contrBalance3, const uint128_t& contrBalance4) {
   LOG_MARKER();
 
-  // Check the contract with invocation
-  Account* account1;
-  account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
-  BOOST_CHECK_MESSAGE(codeHash1 == account1->GetCodeHash(),
-                      "CodeHash1 doesn't match");
-  BOOST_CHECK_MESSAGE(contrStateHash1 == account1->GetStorageRoot(),
-                      "ContrStateHash1 doesn't match");
-  BOOST_CHECK_MESSAGE(contrCode1 == account1->GetCode(),
-                      "ContrCode1 doesn't match");
-  BOOST_CHECK_MESSAGE(initData1 == account1->GetInitData(),
-                      "initData1 doesn't match");
-  Json::Value t_stateJson_1;
-  BOOST_CHECK_MESSAGE(account1->FetchStateJson(t_stateJson_1, "", {}, true),
-                      "FetchStateJson for account 1 failed");
-  BOOST_CHECK_MESSAGE(stateJson1 == t_stateJson_1, "StateJson1 doesn't match");
-  BOOST_CHECK_MESSAGE(contrBalance1 == account1->GetBalance(),
-                      "ContrBalance doesn't match");
+  // // Check the contract with invocation
+  // Account* account1;
+  // account1 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
+  // BOOST_CHECK_MESSAGE(codeHash1 == account1->GetCodeHash(),
+  //                     "CodeHash1 doesn't match");
+  // BOOST_CHECK_MESSAGE(contrStateHash1 == account1->GetStorageRoot(),
+  //                     "ContrStateHash1 doesn't match");
+  // BOOST_CHECK_MESSAGE(contrCode1 == account1->GetCode(),
+  //                     "ContrCode1 doesn't match");
+  // BOOST_CHECK_MESSAGE(initData1 == account1->GetInitData(),
+  //                     "initData1 doesn't match");
+  // Json::Value t_stateJson_1;
+  // BOOST_CHECK_MESSAGE(account1->FetchStateJson(t_stateJson_1, "", {}, true),
+  //                     "FetchStateJson for account 1 failed");
+  // BOOST_CHECK_MESSAGE(stateJson1 == t_stateJson_1, "StateJson1 doesn't
+  // match"); BOOST_CHECK_MESSAGE(contrBalance1 == account1->GetBalance(),
+  //                     "ContrBalance doesn't match");
 
-  // Check the contract without invocation
-  Account* account2;
-  account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
-  BOOST_CHECK_MESSAGE(codeHash2 == account2->GetCodeHash(),
-                      "CodeHash2 doesn't match");
-  BOOST_CHECK_MESSAGE(contrStateHash2 == account2->GetStorageRoot(),
-                      "ContrStateHash2 doesn't match");
-  BOOST_CHECK_MESSAGE(contrCode2 == account2->GetCode(),
-                      "ContrCode2 doesn't match");
-  BOOST_CHECK_MESSAGE(initData2 == account2->GetInitData(),
-                      "initData2 doesn't match");
-  Json::Value t_stateJson_2;
-  BOOST_CHECK_MESSAGE(account2->FetchStateJson(t_stateJson_2, "", {}, true),
-                      "FetchStateJson for account 2 failed");
-  BOOST_CHECK_MESSAGE(stateJson2 == t_stateJson_2, "StateJson3 doesn't match");
-  BOOST_CHECK_MESSAGE(contrBalance2 == account2->GetBalance(),
-                      "ContrBalance doesn't match");
+  // // Check the contract without invocation
+  // Account* account2;
+  // account2 = AccountStore::GetInstance().GetAccountTemp(contrAddr2);
+  // BOOST_CHECK_MESSAGE(codeHash2 == account2->GetCodeHash(),
+  //                     "CodeHash2 doesn't match");
+  // BOOST_CHECK_MESSAGE(contrStateHash2 == account2->GetStorageRoot(),
+  //                     "ContrStateHash2 doesn't match");
+  // BOOST_CHECK_MESSAGE(contrCode2 == account2->GetCode(),
+  //                     "ContrCode2 doesn't match");
+  // BOOST_CHECK_MESSAGE(initData2 == account2->GetInitData(),
+  //                     "initData2 doesn't match");
+  // Json::Value t_stateJson_2;
+  // BOOST_CHECK_MESSAGE(account2->FetchStateJson(t_stateJson_2, "", {}, true),
+  //                     "FetchStateJson for account 2 failed");
+  // BOOST_CHECK_MESSAGE(stateJson2 == t_stateJson_2, "StateJson3 doesn't
+  // match"); BOOST_CHECK_MESSAGE(contrBalance2 == account2->GetBalance(),
+  //                     "ContrBalance doesn't match");
 
   // Check the contract without invocation and retrieval
   Account* account3;
@@ -803,116 +810,134 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 //   }
 // }
 
-// BOOST_AUTO_TEST_CASE(commitRevertible) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(commitRevertible) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-//   Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
-//   dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
-//       contrStateHash2, contrStateHash3, contrStateHash4;
-//   bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
-//       initData3, initData4;
-//   Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
-//   uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
+  Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+  dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+      contrStateHash2, contrStateHash3, contrStateHash4;
+  bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+      initData3, initData4;
+  Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+  uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
-//   if (!SCILLA_ROOT.empty()) {
-//     RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
-//                   codeHash2, codeHash3, codeHash4, contrStateHash1,
-//                   contrStateHash2, contrStateHash3, contrStateHash4,
-//                   contrCode1, contrCode2, contrCode3, contrCode4, initData1,
-//                   initData2, initData3, initData4, stateJson1, stateJson2,
-//                   stateJson3, stateJson4, contrBalance1, contrBalance2,
-//                   contrBalance3, contrBalance4);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    RunCFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+                  codeHash2, codeHash3, codeHash4, contrStateHash1,
+                  contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
+                  contrCode2, contrCode3, contrCode4, initData1, initData2,
+                  initData3, initData4, stateJson1, stateJson2, stateJson3,
+                  stateJson4, contrBalance1, contrBalance2, contrBalance3,
+                  contrBalance4);
+  }
 
-//   AccountStore::GetInstance().SerializeDelta();
-//   auto root0 = AccountStore::GetInstance().GetStateRootHash();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE(
-//       AccountStore::GetInstance().GetBalance(address1) == 21,
-//       "address1 in AccountStore has no balance after CommitTempRevertible");
-//   BOOST_CHECK_MESSAGE(root1 != root0,
-//                       "StateRootHash didn't change after
-//                       CommitTempRevertible");
+  AccountStore::GetInstance().SerializeDelta();
+  auto root0 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 21,
+      "address1 in AccountStore has no balance after CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root0,
+                      "StateRootHash didn't change after CommitTempRevertible");
 
-//   if (!SCILLA_ROOT.empty()) {
-//     CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4,
-//     codeHash1,
-//                     codeHash2, codeHash3, codeHash4, contrStateHash1,
-//                     contrStateHash2, contrStateHash3, contrStateHash4,
-//                     contrCode1, contrCode2, contrCode3, contrCode4,
-//                     initData1, initData2, initData3, initData4, stateJson1,
-//                     stateJson2, stateJson3, stateJson4, contrBalance1,
-//                     contrBalance2, contrBalance3, contrBalance4);
-//   }
+  if (!SCILLA_ROOT.empty()) {
+    CheckRFContract(contrAddr1, contrAddr2, contrAddr3, contrAddr4, codeHash1,
+                    codeHash2, codeHash3, codeHash4, contrStateHash1,
+                    contrStateHash2, contrStateHash3, contrStateHash4,
+                    contrCode1, contrCode2, contrCode3, contrCode4, initData1,
+                    initData2, initData3, initData4, stateJson1, stateJson2,
+                    stateJson3, stateJson4, contrBalance1, contrBalance2,
+                    contrBalance3, contrBalance4);
+  }
 
-//   AccountStore::GetInstance().RevertCommitTemp();
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 0,
-//                       "address1 in AccountStore balance didn't revert");
-//   auto root2 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE((root2 != root1) && (root2 == root0),
-//                       "StateRootHash didn't revert");
+  AccountStore::GetInstance().RevertCommitTemp();
+  AccountStore::GetInstance().InitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 0,
+                      "address1 in AccountStore balance didn't revert");
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root1) && (root2 == root0),
+                      "StateRootHash didn't revert");
 
-//   if (!SCILLA_ROOT.empty()) {
-//     // Check the contract with invocation
-//     Account* account1 = AccountStore::GetInstance().GetAccount(contrAddr1);
+  if (!SCILLA_ROOT.empty()) {
+    // Check the contract with invocation
+    Account* account3 = AccountStore::GetInstance().GetAccount(contrAddr3);
 
-//     BOOST_CHECK_MESSAGE(account1 == nullptr,
-//                         "account1 is not reverted to nullptr");
+    BOOST_CHECK_MESSAGE(account3 == nullptr,
+                        "account3 is not reverted to nullptr");
 
-//     // Check the contract without invocation
-//     Account* account2 = AccountStore::GetInstance().GetAccount(contrAddr2);
+    // Check the contract without invocation
+    Account* account4 = AccountStore::GetInstance().GetAccount(contrAddr4);
 
-//     BOOST_CHECK_MESSAGE(account2 == nullptr,
-//                         "account2 is not reverted to nullptr");
-//   }
-// }
+    BOOST_CHECK_MESSAGE(account4 == nullptr,
+                        "account4 is not reverted to nullptr");
 
-// BOOST_AUTO_TEST_CASE(commitRevertible2) {
-//   INIT_STDOUT_LOGGER();
+    Account t_account3;
+    t_account3.SetAddress(contrAddr3);
+    t_account3.SetCodeHash(codeHash3);
+    AccountStore::GetInstance().AddAccountTemp(contrAddr3, t_account3);
+    Json::Value t_stateJson3;
+    BOOST_CHECK_MESSAGE(t_account3.FetchStateJson(t_stateJson3, "", {}, true),
+                        "fetch stateJson for account 3 failed");
+    BOOST_CHECK_MESSAGE(!t_stateJson3.isMember("f_s1"),
+                        "state still exists for account3 after reverting!");
 
-//   LOG_MARKER();
+    Account t_account4;
+    t_account4.SetAddress(contrAddr4);
+    t_account4.SetCodeHash(codeHash4);
+    AccountStore::GetInstance().AddAccountTemp(contrAddr4, t_account4);
+    Json::Value t_stateJson4;
+    BOOST_CHECK_MESSAGE(t_account4.FetchStateJson(t_stateJson4, "", {}, true),
+                        "fetch stateJson for account 4 failed");
+    BOOST_CHECK_MESSAGE(!t_stateJson4.isMember("f_s1"),
+                        "state still exists for account4 after reverting!");
+  }
+}
 
-//   AccountStore::GetInstance().Init();
+BOOST_AUTO_TEST_CASE(commitRevertible2) {
+  INIT_STDOUT_LOGGER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  LOG_MARKER();
 
-//   Account account1(21, 211);
-//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
-//   AccountStore::GetInstance().SerializeDelta();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().Init();
 
-//   AccountStore::GetInstance().IncreaseBalanceTemp(address1, 1);
-//   AccountStore::GetInstance().SerializeDelta();
-//   AccountStore::GetInstance().CommitTempRevertible();
-//   auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 22,
-//                       "address1 in AccountStore balance didn't change after "
-//                       "CommitTempRevertible");
-//   BOOST_CHECK_MESSAGE(root1 != root2,
-//                       "StateRootHash didn't change after
-//                       CommitTempRevertible");
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//   AccountStore::GetInstance().RevertCommitTemp();
-//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
-//                       "address1 in AccountStore balance didn't revert");
-//   auto root3 = AccountStore::GetInstance().GetStateRootHash();
-//   BOOST_CHECK_MESSAGE((root2 != root3) && (root3 == root1),
-//                       "StateRootHash didn't revert");
-// }
+  AccountStore::GetInstance().IncreaseBalanceTemp(address1, 1);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTempRevertible();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
+
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 22,
+                      "address1 in AccountStore balance didn't change after "
+                      "CommitTempRevertible");
+  BOOST_CHECK_MESSAGE(root1 != root2,
+                      "StateRootHash didn't change after CommitTempRevertible");
+
+  AccountStore::GetInstance().RevertCommitTemp();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+                      "address1 in AccountStore balance didn't revert");
+  auto root3 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE((root2 != root3) && (root3 == root1),
+                      "StateRootHash didn't revert");
+}
 
 // BOOST_AUTO_TEST_CASE(DiskOperation) {
 //   INIT_STDOUT_LOGGER();
