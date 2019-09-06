@@ -4356,10 +4356,10 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                   "BlockHash = " << mb.first << ", TxnHash = " << mb.second);
         mbHashes.emplace_back(mb.first);
       }
-      SendGetMicroBlockFromLookup(mbHashes);
       if (limitReached) {
         break;
       }
+      SendGetMicroBlockFromLookup(mbHashes);
     }
 
     // Delete the entry for those fb with no pending mbs
