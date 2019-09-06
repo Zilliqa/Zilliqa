@@ -623,7 +623,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
-      if (!m_mediator.m_lookup->GetMyLookupOffline()) {
+      if (!ARCHIVAL_LOOKUP && !m_mediator.m_lookup->GetMyLookupOffline()) {
         LOG_GENERAL(WARNING, "Cannot fetch data from off-line lookup node!");
         return false;
       }

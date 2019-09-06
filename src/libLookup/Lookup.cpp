@@ -3117,7 +3117,9 @@ void Lookup::StartSynchronization() {
   LOG_MARKER();
 
   auto func = [this]() -> void {
-    GetMyLookupOffline();
+    if (!ARCHIVAL_LOOKUP) {
+      GetMyLookupOffline();
+    }
     GetDSInfoFromLookupNodes();
     while (GetSyncType() != SyncType::NO_SYNC) {
       GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
