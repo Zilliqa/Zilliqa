@@ -188,6 +188,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsDSEpochI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure(
+          "GetSmartContractSubState", jsonrpc::PARAMS_BY_POSITION,
+          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, "param02",
+          jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_ARRAY, NULL),
+      &LookupServer::GetSmartContractSubStateI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractState", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
@@ -655,7 +661,9 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 }
 
-Json::Value LookupServer::GetSmartContractState(const string& address) {
+Json::Value LookupServer::GetSmartContractState(const string& address,
+                                                const string& vname,
+                                                const Json::Value& indices) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -686,7 +694,13 @@ Json::Value LookupServer::GetSmartContractState(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetStateJson(false);
+    Json::Value root;
+    const auto indices_vector =
+        JSONConversion::convertJsonArrayToVector(indices);
+    if (!account->FetchStateJson(root, vname, indices_vector)) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
+    }
+    return root;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -725,7 +739,14 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetInitJson(false);
+    bytes initData = account->GetInitData();
+    string initDataStr = DataConversion::CharArrayToString(initData);
+    Json::Value initDataJson;
+    if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
+      throw JsonRpcException(RPC_PARSE_ERROR,
+                             "Unable to convert initData into Json");
+    }
+    return initDataJson;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {

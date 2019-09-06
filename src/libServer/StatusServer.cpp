@@ -93,7 +93,7 @@ string StatusServer::GetLatestEpochStatesUpdated() {
 }
 
 string StatusServer::GetEpochFin() {
-  LOG_MARKER();
+  // LOG_MARKER();
   uint64_t epochNum;
   if (!BlockStorage::GetBlockStorage().GetEpochFin(epochNum)) {
     return "";

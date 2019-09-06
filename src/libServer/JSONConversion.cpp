@@ -255,6 +255,26 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   return ret;
 }
 
+const vector<string> JSONConversion::convertJsonArrayToVector(
+    const Json::Value& _json) {
+  if (!_json.isArray()) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Expected Array type");
+  }
+
+  vector<string> vec;
+
+  for (const auto& ele : _json) {
+    if (!ele.isString()) {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Every array value should be a string");
+    }
+
+    vec.emplace_back(ele.asString());
+  }
+  return vec;
+}
+
 const Json::Value JSONConversion::convertTxtoJson(
     const TransactionWithReceipt& twr) {
   Json::Value _json;
@@ -270,6 +290,15 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
   _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
   _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
+
+  if (!twr.GetTransaction().GetCode().empty()) {
+    _json["code"] =
+        DataConversion::CharArrayToString(twr.GetTransaction().GetCode());
+  }
+  if (!twr.GetTransaction().GetData().empty()) {
+    _json["data"] =
+        DataConversion::CharArrayToString(twr.GetTransaction().GetData());
+  }
 
   return _json;
 }

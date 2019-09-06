@@ -18,10 +18,16 @@
 #include <leveldb/db.h>
 
 #include "AccountStore.h"
+#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "libPersistence/ScillaMessage.pb.h"
+#pragma GCC diagnostic pop
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -31,10 +37,33 @@ using namespace Contract;
 
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
+
+  /// Scilla IPC Server
+  if (ENABLE_SC) {
+    /// remove previous file path
+    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
+    m_scillaIPCServerConnector =
+        make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
+    m_scillaIPCServer =
+        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+    if (m_scillaIPCServer == nullptr) {
+      LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
+    } else {
+      SetScillaIPCServer(m_scillaIPCServer);
+      if (m_scillaIPCServer->StartListening()) {
+        LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
+      } else {
+        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start")
+      }
+    }
+  }
 }
 
 AccountStore::~AccountStore() {
   // boost::filesystem::remove_all("./state");
+  if (m_scillaIPCServer != nullptr) {
+    m_scillaIPCServer->StopListening();
+  }
 }
 
 void AccountStore::Init() {
@@ -44,8 +73,13 @@ void AccountStore::Init() {
 
   lock_guard<mutex> g(m_mutexDB);
 
-  ContractStorage::GetContractStorage().Reset();
+  ContractStorage2::GetContractStorage().Reset();
   m_db.ResetDB();
+}
+
+void AccountStore::SetScillaIPCServer(
+    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+  m_accountStoreTemp->SetScillaIPCServer(scillaIPCServer);
 }
 
 void AccountStore::InitSoft() {
@@ -74,7 +108,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage::GetContractStorage().InitTempState();
+  ContractStorage2::GetContractStorage().InitTempState();
 }
 
 void AccountStore::InitRevertibles() {
@@ -85,7 +119,7 @@ void AccountStore::InitRevertibles() {
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
 
-  ContractStorage::GetContractStorage().InitRevertibles();
+  ContractStorage2::GetContractStorage().InitRevertibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -184,7 +218,7 @@ bool AccountStore::MoveRootToDisk(const h256& root) {
   return true;
 }
 
-bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
+bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -192,27 +226,40 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   lock(g, g2);
 
   unordered_map<string, string> code_batch;
+  unordered_map<string, string> initdata_batch;
 
-  for (auto& i : *m_addressToAccount) {
+  for (const auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
-      if (ContractStorage::GetContractStorage()
+      if (ContractStorage2::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                               i.second.GetCode())});
       }
+
+      if (ContractStorage2::GetContractStorage().GetInitData(i.first).empty()) {
+        initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
+                                                  i.second.GetInitData())});
+      }
     }
   }
 
-  if (!ContractStorage::GetContractStorage().PutContractCodeBatch(code_batch)) {
+  if (!ContractStorage2::GetContractStorage().PutContractCodeBatch(
+          code_batch)) {
     LOG_GENERAL(WARNING, "PutContractCodeBatch failed");
+    return false;
+  }
+
+  if (!ContractStorage2::GetContractStorage().PutInitDataBatch(
+          initdata_batch)) {
+    LOG_GENERAL(WARNING, "PutInitDataBatch failed");
     return false;
   }
 
   bool ret = true;
 
   if (ret) {
-    if (!ContractStorage::GetContractStorage().CommitStateDB()) {
+    if (!ContractStorage2::GetContractStorage().CommitStateDB()) {
       LOG_GENERAL(WARNING,
                   "CommitTempStateDB failed. need to rever the change on "
                   "ContractCode");
@@ -222,7 +269,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
 
   if (!ret) {
     for (const auto& it : code_batch) {
-      if (!ContractStorage::GetContractStorage().DeleteContractCode(
+      if (!ContractStorage2::GetContractStorage().DeleteContractCode(
               h160(it.first))) {
         LOG_GENERAL(WARNING, "Failed to delete contract code for " << it.first);
       }
@@ -230,7 +277,7 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   }
 
   try {
-    if (repopulate && !RepopulateStateTrie()) {
+    if (repopulate && !RepopulateStateTrie(retrieveFromTrie)) {
       LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
       return false;
     }
@@ -252,13 +299,13 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate) {
   return true;
 }
 
-bool AccountStore::RepopulateStateTrie() {
+bool AccountStore::RepopulateStateTrie(bool retrieveFromTrie) {
   LOG_MARKER();
 
   unsigned int counter = 0;
   bool batched_once = false;
 
-  {
+  if (retrieveFromTrie) {
     lock_guard<mutex> g(m_mutexTrie);
     for (const auto& i : m_state) {
       counter++;
@@ -418,7 +465,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt, true);
+                                            transaction, receipt);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -501,5 +548,288 @@ void AccountStore::RevertCommitTemp() {
     RemoveFromTrie(entry.first);
   }
 
-  ContractStorage::GetContractStorage().RevertContractStates();
+  ContractStorage2::GetContractStorage().RevertContractStates();
+}
+
+bool AccountStore::MigrateContractStates() {
+  LOG_MARKER();
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+    LOG_GENERAL(INFO, "Address: " << address.hex());
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return false;
+    }
+    if (account.isContract()) {
+      account.SetAddress(address);
+    } else {
+      this->AddAccount(address, account);
+      continue;
+    }
+
+    std::pair<Json::Value, Json::Value> roots;
+    if (!account.GetStorageJson(roots)) {
+      LOG_GENERAL(WARNING, "Cannot get StorageJson");
+    } else {
+      LOG_GENERAL(
+          INFO, "InitJson: "
+                    << JSONUtils::GetInstance().convertJsontoStr(roots.first));
+      LOG_GENERAL(
+          INFO, "old account state: "
+                    << JSONUtils::GetInstance().convertJsontoStr(roots.second));
+    }
+
+    map<string, bytes> mutable_states;
+    // map<string, bytes> immutable_states;
+    Json::Value immutable_states;
+
+    /// generate depth_map
+
+    uint32_t scilla_version;
+    bool found_scilla_version = false;
+
+    /// retrieving immutable states (init data)
+    for (const auto& index : account.GetStorageKeyHashes()) {
+      string raw_val = account.GetRawStorage(index, false);
+
+      StateEntry entry;
+      uint32_t version;
+      if (!Messenger::GetStateData(DataConversion::StringToCharArray(raw_val),
+                                   0, entry, version)) {
+        LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
+        return false;
+      }
+
+      if (version != CONTRACT_STATE_VERSION) {
+        LOG_GENERAL(WARNING, "state data version "
+                                 << version
+                                 << " is not match to CONTRACT_STATE_VERSION "
+                                 << CONTRACT_STATE_VERSION);
+        return false;
+      }
+
+      string tVname = std::get<VNAME>(entry);
+      string tValue = std::get<VALUE>(entry);  /// could be "string" or [map]
+
+      if (!std::get<MUTABLE>(entry)) {
+        Json::Value immutable;
+        immutable["vname"] = tVname;
+        immutable["type"] = std::get<TYPE>(entry);
+        if (tVname == "_scilla_version") {
+          scilla_version = boost::lexical_cast<uint32_t>(tValue);
+          found_scilla_version = true;
+        }
+        LOG_GENERAL(INFO,
+                    "Immutable vname: " << tVname << " value: " << tValue);
+        ContractStorage2::GetContractStorage().InsertValueToStateJson(
+            immutable, "value", tValue, false);
+        immutable_states.append(immutable);
+      } else {
+        continue;
+      }
+    }
+
+    LOG_GENERAL(INFO,
+                "Immutables: " << JSONUtils::GetInstance().convertJsontoStr(
+                    immutable_states));
+
+    account.SetImmutable(
+        account.GetCode(),
+        DataConversion::StringToCharArray(
+            JSONUtils::GetInstance().convertJsontoStr(immutable_states)));
+
+    Json::Value map_depth_json;
+
+    if (found_scilla_version) {
+      if (ExportCreateContractFiles(account, scilla_version)) {
+        std::string checkerPrint;
+        bool ret_checker = true;
+        int pid = -1;
+        TransactionReceipt receipt;
+        uint64_t gasRem = UINT64_MAX;
+        InvokeScillaChecker(checkerPrint, ret_checker, pid, gasRem, receipt);
+
+        if (ret_checker) {
+          bytes map_depth_data;
+          if (!ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
+                                          gasRem)) {
+            LOG_GENERAL(WARNING,
+                        "Failed to generate map_depth_data from scilla_checker "
+                        "print for contract "
+                            << address.hex());
+            return false;
+          }
+          /// redundant conversion here as don't want to change
+          /// ParseContractCheckerOutput
+          if (map_depth_data.empty()) {
+            map_depth_json = Json::objectValue;
+            map_depth_data = DataConversion::StringToCharArray(
+                JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+          } else if (!JSONUtils::GetInstance().convertStrtoJson(
+                         DataConversion::CharArrayToString(map_depth_data),
+                         map_depth_json)) {
+            LOG_GENERAL(WARNING,
+                        "Account "
+                            << address.hex()
+                            << " failed to parse map_depth_data into json "
+                            << DataConversion::CharArrayToString(
+                                   map_depth_data));
+            return false;
+          }
+          mutable_states.emplace(
+              Contract::ContractStorage2::GetContractStorage()
+                  .GenerateStorageKey(address, FIELDS_MAP_DEPTH_INDICATOR, {}),
+              map_depth_data);
+        } else {
+          LOG_GENERAL(WARNING, "InvokeScillaChecker failed for contract: "
+                                   << address.hex());
+          return false;
+        }
+      } else {
+        LOG_GENERAL(WARNING, "ExportCreateContractFiles failed for contract: "
+                                 << address.hex());
+        return false;
+      }
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Didn't find scilla_version for contract: " << address.hex());
+      return false;
+    }
+
+    /// retrieving mutable states
+    for (const auto& index : account.GetStorageKeyHashes()) {
+      string raw_val = account.GetRawStorage(index, false);
+
+      StateEntry entry;
+      uint32_t version;
+      if (!Messenger::GetStateData(DataConversion::StringToCharArray(raw_val),
+                                   0, entry, version)) {
+        LOG_GENERAL(WARNING, "Messenger::GetStateData failed.");
+        return false;
+      }
+
+      if (version != CONTRACT_STATE_VERSION) {
+        LOG_GENERAL(WARNING, "state data version "
+                                 << version
+                                 << " is not match to CONTRACT_STATE_VERSION "
+                                 << CONTRACT_STATE_VERSION);
+        return false;
+      }
+
+      string tVname = std::get<VNAME>(entry);
+      string tValue = std::get<VALUE>(entry);  /// could be "string" or [map]
+
+      if (!std::get<MUTABLE>(entry)) {
+        continue;
+      }
+
+      string key = i.first.hex();
+      key += SCILLA_INDEX_SEPARATOR + tVname + SCILLA_INDEX_SEPARATOR;
+
+      // Check is the value is map
+      Json::Value json_val;
+
+      if (!map_depth_json.isMember(tVname)) {
+        LOG_GENERAL(WARNING, tVname
+                                 << " is not found in map_depth_json: "
+                                 << JSONUtils::GetInstance().convertJsontoStr(
+                                        map_depth_json));
+        return false;
+      }
+
+      uint map_depth = map_depth_json[tVname].asUInt();
+
+      if (map_depth > 0 &&
+          JSONUtils::GetInstance().convertStrtoJson(tValue, json_val) &&
+          json_val.type() == Json::arrayValue) {
+        /// mapHandler
+        std::function<bool(const string&, const Json::Value&,
+                           map<string, bytes>&, uint, uint)>
+            mapHandler = [&](const string& key, const Json::Value& j_value,
+                             map<string, bytes>& t_states, uint cur_depth,
+                             uint map_depth) -> bool {
+          cur_depth++;
+          if (j_value.empty()) {
+            // make an empty protobuf scilla map value object
+            ProtoScillaVal t_scillaVal;
+            t_scillaVal.mutable_mval()->mutable_m();
+            bytes dst;
+            dst.resize(t_scillaVal.ByteSize());
+            if (!t_scillaVal.SerializeToArray(dst.data(),
+                                              t_scillaVal.ByteSize())) {
+              return false;
+            }
+            t_states.emplace(key, dst);
+            return true;
+          } else {
+            for (const auto& map_entry : j_value) {
+              if (!(map_entry.isMember("key") && map_entry.isMember("val"))) {
+                LOG_GENERAL(WARNING,
+                            "Invalid map entry: "
+                                << JSONUtils::GetInstance().convertJsontoStr(
+                                       map_entry));
+                return false;
+              } else {
+                string new_key(key);
+                new_key += '"' + map_entry["key"].asString() + '"' +
+                           SCILLA_INDEX_SEPARATOR;
+                if (map_entry["val"].type() == Json::arrayValue &&
+                    cur_depth < map_depth) {
+                  if (!mapHandler(new_key, map_entry["val"], t_states,
+                                  cur_depth, map_depth)) {
+                    return false;
+                  }
+                } else {
+                  t_states.emplace(
+                      new_key, DataConversion::StringToCharArray(
+                                   '"' +
+                                   JSONUtils::GetInstance().convertJsontoStr(
+                                       map_entry["val"]) +
+                                   '"'));
+                }
+              }
+            }
+          }
+          return true;
+        };
+
+        if (!mapHandler(key, json_val, mutable_states, 0, map_depth)) {
+          LOG_GENERAL(WARNING, "failed to parse map value for: " << tValue);
+          return false;
+        }
+      } else {
+        LOG_GENERAL(INFO, "not map value");
+        mutable_states.emplace(key, DataConversion::StringToCharArray(tValue));
+      }
+    }
+
+    account.UpdateStates(address, mutable_states, {}, false);
+
+    LOG_GENERAL(
+        INFO, "current account immutables: "
+                  << DataConversion::CharArrayToString(account.GetInitData()));
+    Json::Value cur_state;
+    if (!account.FetchStateJson(cur_state)) {
+      LOG_GENERAL(WARNING, "account fetch state json failed")
+      return false;
+    }
+    LOG_GENERAL(INFO,
+                "current account state: "
+                    << JSONUtils::GetInstance().convertJsontoStr(cur_state));
+
+    Account* originalAccount = GetAccount(address);
+    *originalAccount = account;
+    this->AddAccount(address, account);
+  }
+
+  /// repopulate trie and discard old persistence
+  if (!MoveUpdatesToDisk(true, false)) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
+    return false;
+  }
+
+  return true;
 }

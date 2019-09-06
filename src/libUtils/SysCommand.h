@@ -43,7 +43,8 @@ static int pid_place_holder;
 class SysCommand {
  public:
   static FILE* popen_with_pid(const std::string& command,
-                              const std::string& type, int& pid) {
+                              const std::string& type, int& pid,
+                              const std::string& cwd = "") {
     pid_t child_pid;
     int fd[2];
     if (pipe(fd) != 0) {
@@ -70,6 +71,12 @@ class SysCommand {
       setpgid(
           child_pid,
           child_pid);  // Needed so negative PIDs can kill children of /bin/sh
+      if (!cwd.empty()) {
+        if (chdir(cwd.c_str()) < 0) {
+          LOG_GENERAL(WARNING, "chdir failed");
+          exit(1);
+        }
+      }
       execl("/bin/sh", "/bin/sh", "-c", command.c_str(), NULL);
       exit(0);
     } else {
@@ -105,13 +112,17 @@ class SysCommand {
     return stat;
   }
 
-  static bool ExecuteCmdWithoutOutput(const std::string& cmd) {
+  static bool ExecuteCmdWithoutOutput(const std::string& cmd,
+                                      const std::string& cwd = "") {
     std::string str;
-    return ExecuteCmdWithOutput(cmd, str);
+    return ExecuteCmdWithOutput(cmd, str, cwd);
   }
 
-  static bool ExecuteCmdWithOutput(std::string cmd, std::string& output) {
+  static bool ExecuteCmdWithOutput(std::string cmd, std::string& output,
+                                   const std::string& cwd = "") {
     LOG_MARKER();
+
+    if (!cwd.empty()) cmd = "cd " + cwd + "; " + cmd;
 
     std::array<char, 128> buffer{};
 
@@ -137,7 +148,7 @@ class SysCommand {
   }
 
   static bool ExecuteCmdWithOutputPID(std::string cmd, std::string& output,
-                                      int& pid) {
+                                      int& pid, const std::string& cwd = "") {
     LOG_MARKER();
 
     std::array<char, 128> buffer{};
@@ -147,7 +158,7 @@ class SysCommand {
     // Log the stderr into stdout as well
     cmd += " 2>&1 ";
     std::unique_ptr<FILE, std::function<void(FILE*)>> proc(
-        popen_with_pid(cmd.c_str(), "r", pid),
+        popen_with_pid(cmd.c_str(), "r", pid, cwd),
         [pid](FILE* ptr) { popen_with_pid(ptr, pid); });
 
     LOG_GENERAL(INFO, "ExecuteCmdWithOutputPID pid: " << pid);
@@ -171,14 +182,15 @@ class SysCommand {
 
   static bool ExecuteCmd(const SYSCMD_OPTION& option, const std::string& cmd,
                          std::string& output = cmd_output_place_holder,
-                         int& pid = pid_place_holder) {
+                         int& pid = pid_place_holder,
+                         const std::string& cwd = "") {
     switch (option) {
       case WITHOUT_OUTPUT:
-        return ExecuteCmdWithoutOutput(cmd);
+        return ExecuteCmdWithoutOutput(cmd, cwd);
       case WITH_OUTPUT:
-        return ExecuteCmdWithOutput(cmd, output);
+        return ExecuteCmdWithOutput(cmd, output, cwd);
       case WITH_OUTPUT_PID:
-        return ExecuteCmdWithOutputPID(cmd, output, pid);
+        return ExecuteCmdWithOutputPID(cmd, output, pid, cwd);
       default:
         return false;
     }

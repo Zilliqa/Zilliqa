@@ -37,6 +37,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libServer/ScillaIPCServer.h"
 
 using StateHash = dev::h256;
 
@@ -44,6 +45,8 @@ class AccountStore;
 
 class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   AccountStore& m_parent;
+
+  friend class AccountStore;
 
  public:
   AccountStoreTemp(AccountStore& parent);
@@ -86,6 +89,9 @@ class AccountStore
   /// buffer for the raw bytes of state delta serialized
   bytes m_stateDeltaSerialized;
 
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
+
   AccountStore();
   ~AccountStore();
 
@@ -116,6 +122,10 @@ class AccountStore
   /// empty everything including the persistent storage for account states
   void Init() override;
 
+  /// make sure it's called only after Init() was called
+  void SetScillaIPCServer(
+      std::shared_ptr<ScillaIPCServer> scillaIPCServer) override;
+
   /// empty states data in memory
   void InitSoft();
 
@@ -124,10 +134,10 @@ class AccountStore
 
   bool UpdateStateTrieFromTempStateDB();
 
-  bool RepopulateStateTrie();
+  bool RepopulateStateTrie(bool retrieveFromTrie = true);
 
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk(bool repopulate = false);
+  bool MoveUpdatesToDisk(bool repopulate = false, bool retrieveFromTrie = true);
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
   void DiscardUnsavedUpdates();
@@ -195,6 +205,9 @@ class AccountStore
 
   /// clean the data for revert the AccountStore
   void InitRevertibles();
+
+  /// Migrate the old contract states into the new one
+  bool MigrateContractStates();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

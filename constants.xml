@@ -143,10 +143,11 @@
         <!-- Only for lookup nodes -->
         <LOOKUP_RPC_PORT>4201</LOOKUP_RPC_PORT>
         <NUM_SHARD_PEER_TO_REVEAL>5</NUM_SHARD_PEER_TO_REVEAL>
-        <!-- Only for lookup nodes -->
+        <!-- For lookup, DS and shard nodes -->
         <STATUS_RPC_PORT>4301</STATUS_RPC_PORT>
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
+        <SCILLA_IPC_SOCKET_PATH>/tmp/zilliqa.sock</SCILLA_IPC_SOCKET_PATH>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -224,6 +225,7 @@
         <REJOIN_NODE_NOT_IN_NETWORK>true</REJOIN_NODE_NOT_IN_NETWORK>
         <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
         <INCRDB_DSNUMS_WITH_STATEDELTAS>10</INCRDB_DSNUMS_WITH_STATEDELTAS>
+        <CONTRACT_STATES_MIGRATED>false</CONTRACT_STATES_MIGRATED>
     </recovery>
     <smart_contract>
         <ENABLE_SC>false</ENABLE_SC>
@@ -240,6 +242,8 @@
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
+        <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
+        <LOG_SC>false</LOG_SC>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>

@@ -457,10 +457,8 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBody);
-    bodyString = m_txBodyDB->Lookup(key);
+    return m_txBodyDB->Exists(key);
   }
-
-  return !(bodyString.empty());
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
@@ -1547,7 +1545,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
            RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
            RefreshDB(PROCESSED_TEMP) &
-           Contract::ContractStorage::GetContractStorage().RefreshAll();
+           Contract::ContractStorage2::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
@@ -1557,6 +1555,6 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
            RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
            RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-           Contract::ContractStorage::GetContractStorage().RefreshAll();
+           Contract::ContractStorage2::GetContractStorage().RefreshAll();
   }
 }
