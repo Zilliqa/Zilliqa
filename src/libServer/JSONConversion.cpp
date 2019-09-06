@@ -270,7 +270,7 @@ const vector<string> JSONConversion::convertJsonArrayToVector(
                                       "Every array value should be a string");
     }
 
-    vec.push_back(ele.asString());
+    vec.emplace_back(ele.asString());
   }
   return vec;
 }
