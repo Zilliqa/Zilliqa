@@ -161,6 +161,11 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetNumTxnsDSEpoch();
   }
+  inline virtual void GetSmartContractSubStateI(const Json::Value& request,
+                                                Json::Value& response) {
+    response = this->GetSmartContractState(request[0u].asString(),
+                                           request[1u].asString(), request[2u]);
+  }
   inline virtual void GetSmartContractStateI(const Json::Value& request,
                                              Json::Value& response) {
     response = this->GetSmartContractState(request[0u].asString());
@@ -227,7 +232,9 @@ class LookupServer : public Server,
   // gets the number of transaction starting from block blockNum to most recent
   // block
 
-  Json::Value GetSmartContractState(const std::string& address);
+  Json::Value GetSmartContractState(
+      const std::string& address, const std::string& vname = "",
+      const Json::Value& indices = Json::arrayValue);
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
