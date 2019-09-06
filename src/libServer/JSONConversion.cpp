@@ -271,6 +271,15 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
   _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
 
+  if (!twr.GetTransaction().GetCode().empty()) {
+    _json["code"] =
+        DataConversion::CharArrayToString(twr.GetTransaction().GetCode());
+  }
+  if (!twr.GetTransaction().GetData().empty()) {
+    _json["data"] =
+        DataConversion::CharArrayToString(twr.GetTransaction().GetData());
+  }
+
   return _json;
 }
 
