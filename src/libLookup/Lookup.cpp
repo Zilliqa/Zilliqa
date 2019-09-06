@@ -203,18 +203,6 @@ void Lookup::SetLookupNodes() {
     level++;
   }
 
-  // Add myself to lookupnodes
-  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    const PubKey& myPubKey = m_mediator.m_selfKey.second;
-    if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&myPubKey](const PairOfNode& node) {
-                       return node.first == myPubKey;
-                     }) == m_lookupNodes.end()) {
-      m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
-                                 m_mediator.m_selfPeer);
-    }
-  }
-
   m_lookupNodesStatic = m_lookupNodes;
 }
 
