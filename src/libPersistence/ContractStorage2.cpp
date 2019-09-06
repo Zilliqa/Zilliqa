@@ -412,6 +412,9 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
 }
 
 void UnquoteString(string& input) {
+  if (input == "\"\"") {
+    return;
+  }
   if (input.front() == '"') {
     input.erase(0, 1);
   }
@@ -424,9 +427,7 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
                                               string value, bool unquote) {
   if (unquote) {
     // unquote key
-    if (key != "\"\"") {
-      UnquoteString(key);
-    }
+    UnquoteString(key);
   }
 
   Json::Value j_value;
@@ -493,9 +494,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
                              int mapdepth) -> void {
       if (cur_index + 1 < indices.size()) {
         string key = indices.at(cur_index);
-        if (key != "\"\"") {
-          UnquoteString(key);
-        }
+        UnquoteString(key);
         jsonMapWrapper(_json[key], indices, value, cur_index + 1, mapdepth);
       } else {
         if (mapdepth > 0) {
@@ -507,9 +506,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
               _json = Json::objectValue;
             } else {
               string key = indices.at(cur_index);
-              if (key != "\"\"") {
-                UnquoteString(key);
-              }
+              UnquoteString(key);
               _json[key] = Json::objectValue;
             }
           }
@@ -524,9 +521,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
               empty_val.IsInitialized() && empty_val.has_mval() &&
               empty_val.mval().m().empty()) {
             string key = indices.at(cur_index);
-            if (key != "\"\"") {
-              UnquoteString(key);
-            }
+            UnquoteString(key);
             _json[key] = Json::objectValue;
           } else {
             InsertValueToStateJson(_json, indices.at(cur_index),
