@@ -105,7 +105,7 @@ void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
 const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
 
 void Account::SetAddress(const Address& addr) {
-  if (m_address == Address()) {
+  if (!m_address) {
     m_address = addr;
   }
 }
@@ -292,7 +292,7 @@ void Account::UpdateStates(const Address& addr,
                            bool temp, bool revertible) {
   ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
       addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
-  if (m_address == Address()) {
+  if (!m_address) {
     SetAddress(addr);
   }
 }
