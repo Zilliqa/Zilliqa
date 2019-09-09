@@ -123,10 +123,11 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                            return e.first == info.m_microBlockHash;
                          }) == mbs.end()) {
           mbs.push_back({info.m_microBlockHash, info.m_txnRootHash});
-          LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                                << info.m_microBlockHash << " [TxnRootHash] "
-                                << info.m_txnRootHash << " shardID "
-                                << info.m_shardId);
+          LOG_GENERAL(
+              INFO,
+              "[TxBlk:" << blockNum << "] Add unavailable block [MbBlockHash] "
+                        << info.m_microBlockHash << " [TxnRootHash] "
+                        << info.m_txnRootHash << " shardID " << info.m_shardId);
         }
       }
     } else {
