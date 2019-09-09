@@ -897,9 +897,9 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
-    if (ARCHIVAL_LOOKUP)  // newlookup and level2lookup
+    if (LOOKUP_NODE_MODE)  // lookup, newlookup and level2lookup
     {
-      m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+      m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
     }
   }
 
@@ -1101,7 +1101,9 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
        entry.m_microBlock.GetHeader()
            .GetEpochNum()) || /* Buffer for syncing seed node */
       (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-       (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC))) {
+       m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
         .push_back(entry);

@@ -611,13 +611,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     return false;
   }
 
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-      (SyncType::NEW_LOOKUP_SYNC == syncType)) {
+  if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+       SyncType::NEW_LOOKUP_SYNC == syncType) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       SyncType::RECOVERY_ALL_SYNC == syncType)) {
     // Additional safe-guard mechanism, find if have not received any MBs from
     // last N txblks in persistence from S3.
     m_mediator.m_lookup->FindMissingMBsForLastNTxBlks(
         LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
-    m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+    m_mediator.m_lookup->CheckAndFetchUnavailableMBs(false);
   }
 
   if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
@@ -2083,14 +2085,15 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
           return true;
         }
       }
-    } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+    } else if (LOOKUP_NODE_MODE &&
                (ins_byte == NodeInstructionType::FINALBLOCK ||
                 ins_byte ==
                     NodeInstructionType::MBNFORWARDTRANSACTION))  // Is seed
+                                                                  // or lookup
                                                                   // node
     {
       return false;
-    } else  // Is lookup node
+    } else  // Any other message types
     {
       return true;
     }

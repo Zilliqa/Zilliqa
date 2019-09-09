@@ -372,7 +372,7 @@ class Lookup : public Executable {
                                const PubKey& pubKeyToVerify);
 
   /// Check and fetch unavailable microblocks
-  void CheckAndFetchUnavailableMBs();
+  void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
 
   /// Find any unavailable mbs from last N txblks and add to
   /// m_unavailableMicroBlocks

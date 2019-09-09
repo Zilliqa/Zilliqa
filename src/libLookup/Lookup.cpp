@@ -2049,16 +2049,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
-    if (m_syncType == SyncType::LOOKUP_SYNC) {
-      vector<BlockHash> mbHashes;
-
-      for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-        mbHashes.emplace_back(mbInfo.m_microBlockHash);
-      }
-
-      SendGetMicroBlockFromLookup(mbHashes);
-    }
-
     m_mediator.m_node->AddBlock(txBlock);
     // Store Tx Block to disk
     bytes serializedTxBlock;
@@ -2069,8 +2059,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
-    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-        (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+    if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+         m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
+        (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+         m_syncType == SyncType::LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, placeholder, true /*skip shardid check*/);
     }
@@ -2081,13 +2073,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   // To trigger m_isVacuousEpoch calculation
   m_mediator.IncreaseEpochNum();
 
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-      (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+  if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+       m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       m_syncType == SyncType::LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
     // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
     // all for last few txBlks.
     FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
-    CheckAndFetchUnavailableMBs();
+    CheckAndFetchUnavailableMBs(false);
   }
 
   m_mediator.m_consensusID =
@@ -2102,17 +2096,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
-    } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Lookup node - Join back to network now.");
-
-      if (!m_currDSExpired) {
-        if (FinishRejoinAsLookup()) {
-          SetSyncType(SyncType::NO_SYNC);
-        }
-      }
-
-      m_currDSExpired = false;
     } else if (m_syncType == SyncType::NEW_SYNC ||
                m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
@@ -2127,12 +2110,16 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       }
       m_currDSExpired = false;
     }
-  } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "New lookup node - Already should have latest state by now.");
+  } else if (m_syncType == LOOKUP_SYNC ||
+             m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    LOG_EPOCH(
+        INFO, m_mediator.m_currentEpochNum,
+        "Lookup / New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        SetSyncType(SyncType::NO_SYNC);
+        if ((!ARCHIVAL_LOOKUP && FinishRejoinAsLookup()) || ARCHIVAL_LOOKUP) {
+          SetSyncType(SyncType::NO_SYNC);
+        }
         m_isFirstLoop = true;
 
         if (m_lookupServer->StartListening()) {
@@ -4341,7 +4328,7 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   return true;
 }
 
-void Lookup::CheckAndFetchUnavailableMBs() {
+void Lookup::CheckAndFetchUnavailableMBs(bool skipLatestTxBlk) {
   if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
@@ -4359,7 +4346,8 @@ void Lookup::CheckAndFetchUnavailableMBs() {
   }
 
   unsigned int maxMBSToBeFetched = MAX_FETCHMISSINGMBS_NUM;
-  auto main_func = [this, maxMBSToBeFetched]() mutable -> void {
+  auto main_func = [this, maxMBSToBeFetched,
+                    skipLatestTxBlk]() mutable -> void {
     m_startedFetchMissingMBsThread = true;
     std::lock_guard<mutex> lock(
         m_mediator.m_node->m_mutexUnavailableMicroBlocks);
@@ -4368,7 +4356,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
     bool limitReached = false;
     for (auto& m : unavailableMBs) {
       // skip mbs from latest final block
-      if (m.first == m_mediator.m_currentEpochNum - 1) {
+      if (skipLatestTxBlk && (m.first == m_mediator.m_currentEpochNum - 1)) {
         continue;
       }
       LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "
