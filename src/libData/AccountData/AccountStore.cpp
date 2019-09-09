@@ -803,6 +803,15 @@ bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
         }
       } else {
         LOG_GENERAL(INFO, "not map value");
+        Json::Value tJson;
+        if (JSONUtils::GetInstance().convertStrtoJson(tValue, tJson) &&
+            (tJson.type() == Json::objectValue ||
+             tJson.type() == Json::arrayValue)) {
+          // do nothing
+        } else {
+          tValue.insert(0, "\"");
+          tValue.append("\"");
+        }
         mutable_states.emplace(key, DataConversion::StringToCharArray(tValue));
       }
     }
