@@ -3348,8 +3348,10 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    if (m_lookupServer) {
+      m_lookupServer->StopListening();
+      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    }
 
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
