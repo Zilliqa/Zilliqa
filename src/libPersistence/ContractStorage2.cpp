@@ -412,6 +412,9 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
 }
 
 void UnquoteString(string& input) {
+  if (input == "\"\"") {
+    return;
+  }
   if (input.front() == '"') {
     input.erase(0, 1);
   }
@@ -425,7 +428,6 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
   if (unquote) {
     // unquote key
     UnquoteString(key);
-    // UnquoteString(value);
   }
 
   Json::Value j_value;
@@ -959,7 +961,9 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
                             << DataConversion::CharArrayToString(state.second));
     }
     sha2.Update(DataConversion::StringToCharArray(state.first));
-    sha2.Update(state.second);
+    if (!state.second.empty()) {
+      sha2.Update(state.second);
+    }
   }
   // return dev::h256(sha2.Finalize());
   dev::h256 ret(sha2.Finalize());
