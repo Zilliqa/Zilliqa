@@ -179,6 +179,76 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
 }
 
+// insert, delete and query empty string key.
+BOOST_AUTO_TEST_CASE(test_query_empty_key) {
+  INIT_STDOUT_LOGGER();
+  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  ScillaIPCServer server(s);
+  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  Client client(c);
+
+  server.StartListening();
+
+  // Prepare a map key insertion query.
+  ProtoScillaQuery query;
+  query.set_name("foo_test_query_empty_key");  // A map named "foo".
+  query.set_mapdepth(1);                       // A single nested map.
+  query.add_indices("");                       // key "" to be inserted.
+  // Prepare the value itself to be set for key "".
+  ProtoScillaVal value;
+  value.set_bval("420");  // The actual content doesn't matter.
+  // Prepare JSON for JSON-RPC call.
+  Json::Value params;
+  params["query"] = query.SerializeAsString();
+  params["value"] = value.SerializeAsString();
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+
+  // Call the server method to add the key/val pair.
+  Json::Value result = client.CallMethod("updateStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // Let's now fetch that value back. Query remains same except that we have no
+  // value now.
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+  value.Clear();
+  BOOST_CHECK_EQUAL(result[0].asBool(), true);
+  value.ParseFromString(result[1].asString());
+  // Check that the fetched value is same as what we updated earlier.
+  BOOST_CHECK_EQUAL(value.bval(), "420");
+
+  // Delete key ""
+  query.clear_indices();
+  query.add_indices("");
+  query.set_ignoreval(true);
+  params["query"] = query.SerializeAsString();
+  params["value"] = "";
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("updateStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+
+  // Let's search for key "" and ensure that it's not found.
+  // query and params are the same as the previousl query.
+  params.removeMember("value");
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
+                        params.toStyledString());
+  result = client.CallMethod("fetchStateValue", params);
+  LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
+                        result.toStyledString());
+  BOOST_CHECK_EQUAL(result[0].asBool(), false);
+
+  server.StopListening();
+  LOG_GENERAL(INFO, "Test ScillaIPCServer test query done!");
+}
+
 // Nested map queries.
 BOOST_AUTO_TEST_CASE(test_query_map_2) {
   INIT_STDOUT_LOGGER();
