@@ -2150,6 +2150,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 }
 
 void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
+  LOG_MARKER();
   uint64_t upperLimit =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   uint64_t lowerLimit = 1;
@@ -3332,7 +3333,7 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
   return true;
 }
 
-void Lookup::RejoinAsNewLookup() {
+void Lookup::RejoinAsNewLookup(bool fromLookup) {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(WARNING,
                 "Lookup::RejoinAsNewLookup not expected to be called from "
@@ -3344,12 +3345,44 @@ void Lookup::RejoinAsNewLookup() {
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     m_lookupServer->StopListening();
     LOG_GENERAL(INFO, "API Server stopped listen for syncing");
-    auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
-      StartSynchronization();
-    };
 
-    DetachedFunction(1, func);
+    if (fromLookup) {
+      LOG_GENERAL(INFO, "Syncing from lookup ...");
+      auto func = [this]() mutable -> void {
+        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+        StartSynchronization();
+      };
+
+      DetachedFunction(1, func);
+    } else {
+      LOG_GENERAL(INFO, "Syncing from S3 ...");
+      auto func = [this]() mutable -> void {
+        while (true) {
+          m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+          this->CleanVariables();
+          while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+            LOG_GENERAL(
+                WARNING,
+                "Downloading persistence from S3 has failed. Will try again!");
+            this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+          }
+          if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+            return;
+          }
+          if (!AccountStore::GetInstance().RefreshDB()) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+            return;
+          }
+          if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
+            break;
+          };
+          this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+        }
+        InitSync();
+      };
+      DetachedFunction(1, func);
+    }
   }
 }
 

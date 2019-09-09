@@ -614,13 +614,36 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   if (!m_mediator.CheckWhetherBlockIsLatest(
           dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
     LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
-    // Missed some final block, rejoin to get from lookup.
-    if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+
+    // Missed some ds block, rejoin
+    if (dsBlockNumber >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       if (!LOOKUP_NODE_MODE) {
         RejoinAsNormal();
       } else if (ARCHIVAL_LOOKUP) {
-        m_mediator.m_lookup->RejoinAsNewLookup();
-      } else {
+        // Sync from S3
+        m_mediator.m_lookup->RejoinAsNewLookup(false);
+      } else  // Lookup
+      {
+        m_mediator.m_lookup->RejoinAsLookup();
+      }
+    }
+    // Missed some final block, rejoin
+    else if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+      if (!LOOKUP_NODE_MODE) {
+        RejoinAsNormal();
+      } else if (ARCHIVAL_LOOKUP) {
+        // Too many txblks ( and corresponding mb/txns) to be fetch from lookup.
+        // so sync from S3 instead
+        if (txBlock.GetHeader().GetBlockNum() - m_mediator.m_currentEpochNum >
+            NUM_FINAL_BLOCK_PER_POW) {
+          m_mediator.m_lookup->RejoinAsNewLookup(false);
+        } else {
+          // Sync from lookup
+          m_mediator.m_lookup->RejoinAsNewLookup(true);
+        }
+      } else  // Lookup
+      {
         m_mediator.m_lookup->RejoinAsLookup();
       }
     }

@@ -262,7 +262,7 @@ class Lookup : public Executable {
 
   // Rejoin the network as a newlookup node in case of failure happens in
   // protocol
-  void RejoinAsNewLookup();
+  void RejoinAsNewLookup(bool fromLookup = true);
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
