@@ -551,7 +551,7 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
-bool AccountStore::MigrateContractStates() {
+bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
   LOG_MARKER();
 
   for (const auto& i : m_state) {
@@ -660,6 +660,9 @@ bool AccountStore::MigrateContractStates() {
                         "Failed to generate map_depth_data from scilla_checker "
                         "print for contract "
                             << address.hex());
+            if (ignoreCheckerFailure) {
+              continue;
+            }
             return false;
           }
           /// redundant conversion here as don't want to change
@@ -785,10 +788,8 @@ bool AccountStore::MigrateContractStates() {
                 } else {
                   t_states.emplace(
                       new_key, DataConversion::StringToCharArray(
-                                   '"' +
                                    JSONUtils::GetInstance().convertJsontoStr(
-                                       map_entry["val"]) +
-                                   '"'));
+                                       map_entry["val"])));
                 }
               }
             }
