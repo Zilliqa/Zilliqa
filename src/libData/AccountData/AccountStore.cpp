@@ -785,10 +785,8 @@ bool AccountStore::MigrateContractStates() {
                 } else {
                   t_states.emplace(
                       new_key, DataConversion::StringToCharArray(
-                                   '"' +
                                    JSONUtils::GetInstance().convertJsontoStr(
-                                       map_entry["val"]) +
-                                   '"'));
+                                       map_entry["val"])));
                 }
               }
             }
