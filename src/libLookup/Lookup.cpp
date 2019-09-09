@@ -490,14 +490,15 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     return;
   }
 
-  // To avoid sending message to multiplier
+  // To avoid sending message to multiplier and himself
   VectorOfNode tmp;
   std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
                std::back_inserter(tmp), [this](const PairOfNode& node) {
-                 return find_if(m_multipliers.begin(), m_multipliers.end(),
-                                [&node](const PairOfNode& mult) {
-                                  return node.second == mult.second;
-                                }) == m_multipliers.end();
+                 return (find_if(m_multipliers.begin(), m_multipliers.end(),
+                                 [&node](const PairOfNode& mult) {
+                                   return node.second == mult.second;
+                                 }) == m_multipliers.end()) &&
+                        (node.second != m_mediator.m_selfPeer);
                });
 
   int index = rand() % tmp.size();
