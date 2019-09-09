@@ -126,7 +126,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                                    Json::Value& map_depth_json, bool temp);
 
   void InsertValueToStateJson(Json::Value& _json, std::string key,
-                              std::string value, bool unquote = true);
+                              std::string value, bool unquote = true,
+                              bool nokey = false);
 
   bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
                                  const std::string& vname = "",
