@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+
+#include <boost/program_options.hpp>
+
 #include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libPersistence/BlockStorage.h"
@@ -25,30 +29,72 @@
 /// Should be run from a folder named "persistence" consisting of the
 /// persistence
 
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+
 using namespace std;
-int main() {
+namespace po = boost::program_options;
+
+int main(int argc, const char* argv[]) {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
+  string ignore_checker_str;
 
-  LOG_GENERAL(INFO, "Begin");
+  try {
+    po::options_description desc("Options");
 
-  Mediator mediator(key, peer);
-  Retriever retriever(mediator);
+    desc.add_options()("help,h", "Print help messages")(
+        "ignore_checker,i", po::value<string>(&ignore_checker_str),
+        "whether ignore scilla checker result (true to ignore, default false)");
 
-  LOG_GENERAL(INFO, "Start Retrieving States");
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
-  if (!retriever.RetrieveStates()) {
-    LOG_GENERAL(FATAL, "RetrieveStates failed");
-    return 0;
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    bool ignore_checker = (ignore_checker_str == "true");
+
+    LOG_GENERAL(INFO, "Begin");
+
+    Mediator mediator(key, peer);
+    Retriever retriever(mediator);
+
+    LOG_GENERAL(INFO, "Start Retrieving States");
+
+    if (!retriever.RetrieveStates()) {
+      LOG_GENERAL(FATAL, "RetrieveStates failed");
+      return 0;
+    }
+
+    LOG_GENERAL(INFO, "finished RetrieveStates");
+
+    if (!retriever.MigrateContractStates(ignore_checker)) {
+      LOG_GENERAL(WARNING, "MigrateContractStates failed");
+    } else {
+      LOG_GENERAL(INFO, "Migrate contract data finished");
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << std::endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
 
-  LOG_GENERAL(INFO, "finished RetrieveStates");
-
-  if (!retriever.MigrateContractStates()) {
-    LOG_GENERAL(WARNING, "MigrateContractStates failed");
-  } else {
-    LOG_GENERAL(INFO, "Migrate contract data finished");
-  }
-
-  return 0;
+  return SUCCESS;
 }
