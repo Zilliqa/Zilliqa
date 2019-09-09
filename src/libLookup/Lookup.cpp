@@ -2406,6 +2406,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
+
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
     m_currDSExpired = false;
@@ -3384,8 +3390,10 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    if (m_lookupServer) {
+      m_lookupServer->StopListening();
+      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    }
 
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);

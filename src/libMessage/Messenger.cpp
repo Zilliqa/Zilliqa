@@ -753,7 +753,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         toDeleteIndices.emplace_back(entry);
       }
 
-      account.UpdateStates(addr, t_states, toDeleteIndices, temp);
+      account.UpdateStates(addr, t_states, toDeleteIndices, temp, revertible);
 
       if ((!t_states.empty() || !toDeleteIndices.empty()) &&
           accbase.GetStorageRoot() != account.GetStorageRoot()) {

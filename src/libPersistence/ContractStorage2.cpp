@@ -412,6 +412,10 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
 }
 
 void UnquoteString(string& input) {
+  if (input == "\"\"") {
+    input = "";
+    return;
+  }
   if (input.front() == '"') {
     input.erase(0, 1);
   }
@@ -421,17 +425,17 @@ void UnquoteString(string& input) {
 }
 
 void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
-                                              string value, bool unquote) {
+                                              string value, bool unquote,
+                                              bool nokey) {
   if (unquote) {
     // unquote key
     UnquoteString(key);
-    // UnquoteString(value);
   }
 
   Json::Value j_value;
 
   if (JSONUtils::GetInstance().convertStrtoJson(value, j_value)) {
-    if (key.empty()) {
+    if (nokey) {
       _json = j_value;
     } else {
       if (unquote) {
@@ -440,7 +444,7 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
       _json[key] = j_value;
     }
   } else {
-    if (key.empty()) {
+    if (nokey) {
       _json = j_value;
     } else {
       if (unquote) {
@@ -509,8 +513,8 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
             }
           }
         } else if (mapdepth == 0) {
-          InsertValueToStateJson(_json, "",
-                                 DataConversion::CharArrayToString(value));
+          InsertValueToStateJson(
+              _json, "", DataConversion::CharArrayToString(value), true, true);
         } else {
           /// Enters only when the fields_map_depth not available, almost
           /// impossible Check value whether parsable to Protobuf
@@ -959,7 +963,9 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
                             << DataConversion::CharArrayToString(state.second));
     }
     sha2.Update(DataConversion::StringToCharArray(state.first));
-    sha2.Update(state.second);
+    if (!state.second.empty()) {
+      sha2.Update(state.second);
+    }
   }
   // return dev::h256(sha2.Finalize());
   dev::h256 ret(sha2.Finalize());

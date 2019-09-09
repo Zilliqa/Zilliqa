@@ -362,8 +362,11 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
   if ((vname.empty() && indices.empty()) || vname == "_balance") {
     root["_balance"] = GetBalance().convert_to<string>();
   }
-  LOG_GENERAL(INFO,
-              "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
+
+  if (LOG_SC) {
+    LOG_GENERAL(INFO,
+                "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
+  }
 
   return true;
 }

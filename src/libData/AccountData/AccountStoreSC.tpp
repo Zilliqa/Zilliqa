@@ -672,9 +672,11 @@ bool AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
     os.close();
 
     os.open(INIT_JSON);
-    LOG_GENERAL(
-        INFO, "init data to export: "
-                  << DataConversion::CharArrayToString(contract.GetInitData()));
+    if (LOG_SC) {
+      LOG_GENERAL(INFO,
+                  "init data to export: " << DataConversion::CharArrayToString(
+                      contract.GetInitData()));
+    }
     os << DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 
