@@ -2118,6 +2118,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if (FinishRejoinAsLookup()) {
           SetSyncType(SyncType::NO_SYNC);
+
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
       }
 
@@ -2393,6 +2399,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
+
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
     m_currDSExpired = false;
