@@ -536,7 +536,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !buffered) {
+  if (LOOKUP_NODE_MODE && !buffered) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       // Buffer the Final Block
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);

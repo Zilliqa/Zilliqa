@@ -1726,11 +1726,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
 
   if ((!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) ||
-      (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC &&
+      (LOOKUP_NODE_MODE &&
+       (m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+        m_syncType == SyncType::LOOKUP_SYNC) &&
        m_dsInfoWaitingNotifying)) {
-    LOG_EPOCH(
-        INFO, m_mediator.m_currentEpochNum,
-        "Notifying ProcessSetStateFromSeed that DSInfo has been received");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Notifying that DSInfo has been received");
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
     m_fetchedDSInfo = true;
   }
@@ -2119,14 +2120,13 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if ((!ARCHIVAL_LOOKUP && FinishRejoinAsLookup()) || ARCHIVAL_LOOKUP) {
           SetSyncType(SyncType::NO_SYNC);
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
         m_isFirstLoop = true;
-
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
-        }
       }
       m_currDSExpired = false;
     }
