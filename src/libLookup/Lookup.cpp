@@ -2151,8 +2151,8 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
     auto mbsinfo = b.GetMicroBlockInfos();
     for (const auto& info : mbsinfo) {
       MicroBlockSharedPtr mbptr;
-      if (!BlockStorage::GetBlockStorage().GetMicroBlock(info.m_microBlockHash,
-                                                         mbptr) &&
+      if (!BlockStorage::GetBlockStorage().CheckMicroBlock(
+              info.m_microBlockHash) &&
           info.m_txnRootHash != TxnHash()) {
         lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
         auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks()[i];

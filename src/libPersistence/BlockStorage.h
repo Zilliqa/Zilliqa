@@ -194,11 +194,13 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   bool ReleaseDB();
 
-  // /// Retrieves the requested Micro block
+  /// Retrieves the requested Micro block
   bool GetMicroBlock(const BlockHash& blockHash,
                      MicroBlockSharedPtr& microblock);
 
-  // /// Retrieves the range Micro blocks
+  bool CheckMicroBlock(const BlockHash& blockHash);
+
+  /// Retrieves the range Micro blocks
   bool GetRangeMicroBlocks(const uint64_t lowEpochNum,
                            const uint64_t hiEpochNum, const uint32_t loShardId,
                            const uint32_t hiShardId,
