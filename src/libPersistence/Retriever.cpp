@@ -479,8 +479,8 @@ bool Retriever::ValidateStates() {
   }
 }
 
-bool Retriever::MigrateContractStates() {
-  return AccountStore::GetInstance().MigrateContractStates();
+bool Retriever::MigrateContractStates(bool ignore_checker) {
+  return AccountStore::GetInstance().MigrateContractStates(ignore_checker);
 }
 
 void Retriever::CleanAll() {
