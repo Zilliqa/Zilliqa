@@ -929,7 +929,8 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend)) {
+      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
             Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
       }
