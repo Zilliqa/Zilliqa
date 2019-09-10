@@ -479,8 +479,10 @@ bool Retriever::ValidateStates() {
   }
 }
 
-bool Retriever::MigrateContractStates(bool ignore_checker) {
-  return AccountStore::GetInstance().MigrateContractStates(ignore_checker);
+bool Retriever::MigrateContractStates(
+    bool ignore_checker, const std::string& contract_address_output_dir) {
+  return AccountStore::GetInstance().MigrateContractStates(
+      ignore_checker, contract_address_output_dir);
 }
 
 void Retriever::CleanAll() {

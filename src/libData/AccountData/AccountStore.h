@@ -207,7 +207,8 @@ class AccountStore
   void InitRevertibles();
 
   /// Migrate the old contract states into the new one
-  bool MigrateContractStates(bool ignoreCheckerFailure);
+  bool MigrateContractStates(bool ignoreCheckerFailure,
+                             const std::string& contract_address_output_dir);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
