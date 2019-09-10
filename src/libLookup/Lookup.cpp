@@ -1477,7 +1477,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
     LOG_GENERAL(WARNING,
                 "Requesting IP : "
-                    << ipAddr
+                    << from.GetPrintableIPAddress()
                     << " is not in whitelisted IP list. Ignore the request");
     return false;
   }
@@ -3150,18 +3150,30 @@ void Lookup::StartSynchronization() {
 
   LOG_MARKER();
 
-  auto func = [this]() -> void {
-    if (!ARCHIVAL_LOOKUP) {
-      GetMyLookupOffline();
-    }
-    GetDSInfoFromLookupNodes();
-    while (GetSyncType() != SyncType::NO_SYNC) {
-      GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
-      GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
-    }
-  };
-  DetachedFunction(1, func);
+  if (ARCHIVAL_LOOKUP) {
+    auto func = [this]() -> void {
+      GetDSInfoFromSeedNodes();
+      while (GetSyncType() != SyncType::NO_SYNC) {
+        GetDSBlockFromSeedNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+      }
+    };
+    DetachedFunction(1, func);
+  } else {
+    auto func = [this]() -> void {
+      if (!ARCHIVAL_LOOKUP) {
+        GetMyLookupOffline();
+      }
+      GetDSInfoFromLookupNodes();
+      while (GetSyncType() != SyncType::NO_SYNC) {
+        GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+      }
+    };
+    DetachedFunction(1, func);
+  }
 }
 
 bool Lookup::GetDSInfoLoop() {
