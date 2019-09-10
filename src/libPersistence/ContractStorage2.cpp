@@ -412,8 +412,7 @@ bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
 }
 
 void UnquoteString(string& input) {
-  if (input == "\"\"") {
-    input = "";
+  if (input.empty()) {
     return;
   }
   if (input.front() == '"') {
@@ -434,11 +433,13 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
 
   Json::Value j_value;
 
-  if (JSONUtils::GetInstance().convertStrtoJson(value, j_value)) {
+  if (JSONUtils::GetInstance().convertStrtoJson(value, j_value) &&
+      (j_value.type() == Json::arrayValue ||
+       j_value.type() == Json::objectValue)) {
     if (nokey) {
       _json = j_value;
     } else {
-      if (unquote) {
+      if (unquote && !nokey) {
         UnquoteString(value);
       }
       _json[key] = j_value;
@@ -447,7 +448,7 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
     if (nokey) {
       _json = j_value;
     } else {
-      if (unquote) {
+      if (unquote && !nokey) {
         UnquoteString(value);
       }
       _json[key] = value;
