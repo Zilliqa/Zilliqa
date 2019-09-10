@@ -2476,7 +2476,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
   if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
     LOG_GENERAL(WARNING,
                 "Requesting IP : "
-                    << ipAddr
+                    << from.GetPrintableIPAddress()
                     << " is not in whitelisted IP list. Ignore the request");
     return false;
   }
