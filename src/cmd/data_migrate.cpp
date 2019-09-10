@@ -40,13 +40,17 @@ int main(int argc, const char* argv[]) {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
   string ignore_checker_str;
+  string contract_address_output_dir;
 
   try {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
         "ignore_checker,i", po::value<string>(&ignore_checker_str),
-        "whether ignore scilla checker result (true to ignore, default false)");
+        "whether ignore scilla checker result (true to ignore, default false)")(
+        "contract_addresses,c", po::value<string>(&contract_address_output_dir),
+        "indicate the path to output the contract addresses, no output if "
+        "empty");
 
     po::variables_map vm;
     try {
@@ -85,7 +89,8 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, "finished RetrieveStates");
 
-    if (!retriever.MigrateContractStates(ignore_checker)) {
+    if (!retriever.MigrateContractStates(ignore_checker,
+                                         contract_address_output_dir)) {
       LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
       LOG_GENERAL(INFO, "Migrate contract data finished");

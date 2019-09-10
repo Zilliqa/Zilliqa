@@ -551,8 +551,14 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
-bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
+bool AccountStore::MigrateContractStates(
+    bool ignoreCheckerFailure, const string& contract_address_output_dir) {
   LOG_MARKER();
+
+  std::ofstream os;
+  if (!contract_address_output_dir.empty()) {
+    os.open(contract_address_output_dir);
+  }
 
   for (const auto& i : m_state) {
     Address address(i.first);
@@ -565,6 +571,9 @@ bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
     }
     if (account.isContract()) {
       account.SetAddress(address);
+      if (!contract_address_output_dir.empty()) {
+        os << address.hex() << endl;
+      }
     } else {
       this->AddAccount(address, account);
       continue;
@@ -833,6 +842,10 @@ bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
     Account* originalAccount = GetAccount(address);
     *originalAccount = account;
     this->AddAccount(address, account);
+  }
+
+  if (!contract_address_output_dir.empty()) {
+    os.close();
   }
 
   /// repopulate trie and discard old persistence

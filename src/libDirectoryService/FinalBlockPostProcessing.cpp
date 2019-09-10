@@ -227,12 +227,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     };
     DetachedFunction(1, writeStateToDisk);
   } else {
-    // Contract storage
-    if (!Contract::ContractStorage2::GetContractStorage().CommitStateDB()) {
-      LOG_GENERAL(WARNING, "CommitStateDB failed");
-      return;
-    }
-
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
                  CoinbaseReward::FINALBLOCK_REWARD,
