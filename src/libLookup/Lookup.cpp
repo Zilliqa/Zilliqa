@@ -3162,9 +3162,7 @@ void Lookup::StartSynchronization() {
     DetachedFunction(1, func);
   } else {
     auto func = [this]() -> void {
-      if (!ARCHIVAL_LOOKUP) {
-        GetMyLookupOffline();
-      }
+      GetMyLookupOffline();
       GetDSInfoFromLookupNodes();
       while (GetSyncType() != SyncType::NO_SYNC) {
         GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
