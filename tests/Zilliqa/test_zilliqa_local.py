@@ -261,6 +261,9 @@ def run_start(numdsnodes):
 		shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
 		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		ipc_path = "/tmp/zilliqa.sock." + str(NODE_LISTEN_PORT + x)
+		patch_scilla_ipc_path_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path)
+
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
 		if (x < numdsnodes):
@@ -268,6 +271,15 @@ def run_start(numdsnodes):
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
 		else:
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
+
+def patch_scilla_ipc_path_xml(filepath, ipc_path):
+        root = ET.parse(filepath).getroot()
+
+        td = root.find('jsonrpc')
+        td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
+
+        tree = ET.ElementTree(root)
+        tree.write(filepath)
 
 # To rejoin ds guard index 2
 def run_start_dsguard2():
