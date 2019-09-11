@@ -552,7 +552,8 @@ void AccountStore::RevertCommitTemp() {
 }
 
 bool AccountStore::MigrateContractStates(
-    bool ignoreCheckerFailure, const string& contract_address_output_dir, const string& normal_address_output_dir) {
+    bool ignoreCheckerFailure, const string& contract_address_output_dir,
+    const string& normal_address_output_dir) {
   LOG_MARKER();
 
   std::ofstream os_1;

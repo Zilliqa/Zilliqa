@@ -51,8 +51,10 @@ int main(int argc, const char* argv[]) {
         "whether ignore scilla checker result (true to ignore, default false)")(
         "contract_addresses,c", po::value<string>(&contract_address_output_dir),
         "indicate the path to output the contract addresses, no output if "
-        "empty")("normal_addresses,n", po::value<string>(&normal_address_output_dir),
-        "indicate the path to output the contract addresses, no output if empty");
+        "empty")("normal_addresses,n",
+                 po::value<string>(&normal_address_output_dir),
+                 "indicate the path to output the contract addresses, no "
+                 "output if empty");
 
     po::variables_map vm;
     try {

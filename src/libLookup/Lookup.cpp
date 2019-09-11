@@ -203,18 +203,6 @@ void Lookup::SetLookupNodes() {
     level++;
   }
 
-  // Add myself to lookupnodes
-  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    const PubKey& myPubKey = m_mediator.m_selfKey.second;
-    if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&myPubKey](const PairOfNode& node) {
-                       return node.first == myPubKey;
-                     }) == m_lookupNodes.end()) {
-      m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
-                                 m_mediator.m_selfPeer);
-    }
-  }
-
   m_lookupNodesStatic = m_lookupNodes;
 }
 
@@ -502,14 +490,15 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     return;
   }
 
-  // To avoid sending message to multiplier
+  // To avoid sending message to multiplier and himself
   VectorOfNode tmp;
   std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
                std::back_inserter(tmp), [this](const PairOfNode& node) {
-                 return find_if(m_multipliers.begin(), m_multipliers.end(),
-                                [&node](const PairOfNode& mult) {
-                                  return node.second == mult.second;
-                                }) == m_multipliers.end();
+                 return (find_if(m_multipliers.begin(), m_multipliers.end(),
+                                 [&node](const PairOfNode& mult) {
+                                   return node.second == mult.second;
+                                 }) == m_multipliers.end()) &&
+                        (node.second != m_mediator.m_selfPeer);
                });
 
   int index = rand() % tmp.size();
@@ -2118,6 +2107,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if (FinishRejoinAsLookup()) {
           SetSyncType(SyncType::NO_SYNC);
+
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
       }
 
@@ -2393,6 +2388,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     if (!m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
+
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
     m_currDSExpired = false;
@@ -3129,7 +3130,9 @@ void Lookup::StartSynchronization() {
   LOG_MARKER();
 
   auto func = [this]() -> void {
-    GetMyLookupOffline();
+    if (!ARCHIVAL_LOOKUP) {
+      GetMyLookupOffline();
+    }
     GetDSInfoFromLookupNodes();
     while (GetSyncType() != SyncType::NO_SYNC) {
       GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
@@ -3358,8 +3361,10 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    if (m_lookupServer) {
+      m_lookupServer->StopListening();
+      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    }
 
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
@@ -4368,10 +4373,10 @@ void Lookup::CheckAndFetchUnavailableMBs() {
                   "BlockHash = " << mb.first << ", TxnHash = " << mb.second);
         mbHashes.emplace_back(mb.first);
       }
-      SendGetMicroBlockFromLookup(mbHashes);
       if (limitReached) {
         break;
       }
+      SendGetMicroBlockFromLookup(mbHashes);
     }
 
     // Delete the entry for those fb with no pending mbs
