@@ -390,7 +390,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       toAccount->SetStorageRoot(
           Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-              toAddr, true));
+              toAddr, true, true));
 
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       break;
@@ -1204,7 +1204,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   contractAccount->SetStorageRoot(
       Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-          m_curContractAddr, true));
+          m_curContractAddr, true, true));
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
