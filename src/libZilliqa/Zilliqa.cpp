@@ -280,6 +280,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         // When doing recovery, make sure to let other lookups know I'm back
         // online
         if (LOOKUP_NODE_MODE) {
+          m_lookup.SetSyncType(NO_SYNC);
           if (!m_mediator.m_lookup->GetMyLookupOnline(true)) {
             LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
           }
