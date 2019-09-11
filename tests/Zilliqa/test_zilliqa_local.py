@@ -261,7 +261,7 @@ def run_start(numdsnodes):
 		shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
 		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-		ipc_path = "/tmp/zilliqa.sock." + str(NODE_LISTEN_PORT + x)
+		ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
 		patch_scilla_ipc_path_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path)
 
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
