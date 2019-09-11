@@ -167,7 +167,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   }
 
   d_found = m_indexToBeDeleted.find(key);
-  if (d_found != m_indexToBeDeleted.end()) {
+  if (d_found != m_indexToBeDeleted.end() &&
+      t_stateDataMap.find(key) == t_stateDataMap.end()) {
     // ignore the deleted empty placeholder
     if ((unsigned int)query.indices().size() == query.mapdepth()) {
       foundVal = false;
@@ -284,7 +285,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
       continue;
     }
     isDeleted = m_indexToBeDeleted.find(entry.first);
-    if (isDeleted != m_indexToBeDeleted.end()) {
+    if (isDeleted != m_indexToBeDeleted.end() &&
+        t_stateDataMap.find(entry.first) == t_stateDataMap.end()) {
       continue;
     }
 
@@ -599,7 +601,9 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
   }
 
   for (auto it = states.begin(); it != states.end();) {
-    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend()) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend() &&
+        ((temp && t_stateDataMap.find(it->first) == t_stateDataMap.end()) ||
+         !temp)) {
       it = states.erase(it);
     } else {
       it++;
