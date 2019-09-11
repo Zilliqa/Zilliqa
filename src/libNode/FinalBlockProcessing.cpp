@@ -544,7 +544,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       if (!m_seedTxnBlksBuffer.empty()) {
         LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
         for (const auto& txnblk : m_seedTxnBlksBuffer) {
-          ProcessFinalBlockCore(txnblk, offset, Peer(), true);
+          if (!ProcessFinalBlockCore(txnblk, offset, Peer(), true)) {
+            // ignore bufferred final blocks because rejoin must have been
+            // already
+            break;
+          }
         }
         // clear the buffer since all buffered ones are checked and processed
         m_seedTxnBlksBuffer.clear();
