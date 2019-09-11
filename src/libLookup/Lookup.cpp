@@ -3328,12 +3328,18 @@ void Lookup::RejoinAsNewLookup() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
+    };
 
-    auto func = [this]() mutable -> void {
+    DetachedFunction(1, func1);
+
+    auto func2 = [this]() mutable -> void {
       while (true) {
-        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
         this->CleanVariables();
         while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
@@ -3356,7 +3362,7 @@ void Lookup::RejoinAsNewLookup() {
       }
       InitSync();
     };
-    DetachedFunction(1, func);
+    DetachedFunction(1, func2);
   }
 }
 
