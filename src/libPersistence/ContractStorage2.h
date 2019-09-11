@@ -58,10 +58,12 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   // Used for RevertCommitTemp
   std::unordered_map<std::string, bytes> r_stateDataMap;
-  std::set<std::string> r_indexToBeDeleted;
+  // value being true for newly added, false for newly deleted
+  std::unordered_map<std::string, bool> r_indexToBeDeleted;
 
   // Used for delete map index
   std::set<std::string> m_indexToBeDeleted;
+  std::set<std::string> t_indexToBeDeleted;
 
   mutable std::shared_timed_mutex m_codeMutex;
   mutable std::shared_timed_mutex m_initDataMutex;

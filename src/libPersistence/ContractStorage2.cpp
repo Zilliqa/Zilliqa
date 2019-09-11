@@ -157,8 +157,18 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  const auto& d_found = m_indexToBeDeleted.find(key);
-  if (d_found != m_indexToBeDeleted.end()) {
+  auto d_found = t_indexToBeDeleted.find(key);
+  if (d_found != t_indexToBeDeleted.end()) {
+    // ignore the deleted empty placeholder
+    if ((unsigned int)query.indices().size() == query.mapdepth()) {
+      foundVal = false;
+      return true;
+    }
+  }
+
+  d_found = m_indexToBeDeleted.find(key);
+  if (d_found != m_indexToBeDeleted.end() &&
+      t_stateDataMap.find(key) == t_stateDataMap.end()) {
     // ignore the deleted empty placeholder
     if ((unsigned int)query.indices().size() == query.mapdepth()) {
       foundVal = false;
@@ -270,8 +280,13 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   uint32_t counter = 0;
 
   for (const auto& entry : entries) {
+    isDeleted = t_indexToBeDeleted.find(entry.first);
+    if (isDeleted != t_indexToBeDeleted.end()) {
+      continue;
+    }
     isDeleted = m_indexToBeDeleted.find(entry.first);
-    if (isDeleted != m_indexToBeDeleted.end()) {
+    if (isDeleted != m_indexToBeDeleted.end() &&
+        t_stateDataMap.find(entry.first) == t_stateDataMap.end()) {
       continue;
     }
 
@@ -327,14 +342,14 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
   auto p = t_stateDataMap.lower_bound(prefix);
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
-    m_indexToBeDeleted.emplace(p->first);
+    t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
 
   p = m_stateDataMap.lower_bound(prefix);
   while (p != m_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
-    m_indexToBeDeleted.emplace(p->first);
+    t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
 
@@ -347,10 +362,7 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
     for (; it->Valid() &&
            it->key().ToString().compare(0, prefix.size(), prefix) == 0;
          it->Next()) {
-      if (m_indexToBeDeleted.find(it->key().ToString()) ==
-          m_indexToBeDeleted.end()) {
-        m_indexToBeDeleted.emplace(it->key().ToString());
-      }
+      t_indexToBeDeleted.emplace(it->key().ToString());
     }
   }
 }
@@ -361,7 +373,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from t: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
     return;
   }
 
@@ -370,7 +382,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from m: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
     return;
   }
 
@@ -378,7 +390,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from db: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
   }
 }
 
@@ -578,8 +590,20 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
     }
   }
 
+  if (temp) {
+    for (auto it = states.begin(); it != states.end();) {
+      if (t_indexToBeDeleted.find(it->first) != t_indexToBeDeleted.cend()) {
+        it = states.erase(it);
+      } else {
+        it++;
+      }
+    }
+  }
+
   for (auto it = states.begin(); it != states.end();) {
-    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend()) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend() &&
+        ((temp && t_stateDataMap.find(it->first) == t_stateDataMap.end()) ||
+         !temp)) {
       it = states.erase(it);
     } else {
       it++;
@@ -604,15 +628,23 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
     LOG_GENERAL(WARNING, "address provided is empty");
     return;
   }
-  auto p = t_stateDataMap.lower_bound(address.hex());
-  while (p != t_stateDataMap.end() &&
-         p->first.compare(0, address.hex().size(), address.hex()) == 0) {
-    t_states.emplace(p->first, p->second);
-    ++p;
-  }
 
-  if (!temp) {
-    p = m_stateDataMap.lower_bound(address.hex());
+  if (temp) {
+    auto p = t_stateDataMap.lower_bound(address.hex());
+    while (p != t_stateDataMap.end() &&
+           p->first.compare(0, address.hex().size(), address.hex()) == 0) {
+      t_states.emplace(p->first, p->second);
+      ++p;
+    }
+
+    auto r = t_indexToBeDeleted.lower_bound(address.hex());
+    while (r != t_indexToBeDeleted.end() &&
+           r->compare(0, address.hex().size(), address.hex()) == 0) {
+      toDeletedIndices.emplace_back(*r);
+      ++r;
+    }
+  } else {
+    auto p = m_stateDataMap.lower_bound(address.hex());
     while (p != m_stateDataMap.end() &&
            p->first.compare(0, address.hex().size(), address.hex()) == 0) {
       if (t_states.find(p->first) == t_states.end()) {
@@ -637,13 +669,13 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
         }
       }
     }
-  }
 
-  auto r = m_indexToBeDeleted.lower_bound(address.hex());
-  while (r != m_indexToBeDeleted.end() &&
-         r->compare(0, address.hex().size(), address.hex()) == 0) {
-    toDeletedIndices.emplace_back(*r);
-    ++r;
+    auto r = m_indexToBeDeleted.lower_bound(address.hex());
+    while (r != m_indexToBeDeleted.end() &&
+           r->compare(0, address.hex().size(), address.hex()) == 0) {
+      toDeletedIndices.emplace_back(*r);
+      ++r;
+    }
   }
 }
 
@@ -681,9 +713,9 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
     CleanEmptyMapPlaceholders(key);
   }
 
-  auto pos = m_indexToBeDeleted.find(key);
-  if (pos != m_indexToBeDeleted.end()) {
-    m_indexToBeDeleted.erase(pos);
+  auto pos = t_indexToBeDeleted.find(key);
+  if (pos != t_indexToBeDeleted.end()) {
+    t_indexToBeDeleted.erase(pos);
   }
 
   t_stateDataMap[key] = value;
@@ -835,24 +867,33 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
+      auto pos = t_indexToBeDeleted.find(state.first);
+      if (pos != t_indexToBeDeleted.end()) {
+        t_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& index : toDeleteIndices) {
-      m_indexToBeDeleted.emplace(index);
+      t_indexToBeDeleted.emplace(index);
     }
   } else {
     for (const auto& state : t_states) {
       if (revertible) {
         if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
           r_stateDataMap[state.first] = m_stateDataMap[state.first];
+          r_indexToBeDeleted.emplace(state.first, false);
         } else {
           r_stateDataMap[state.first] = {};
         }
       }
       m_stateDataMap[state.first] = state.second;
+      auto pos = m_indexToBeDeleted.find(state.first);
+      if (pos != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& toDelete : toDeleteIndices) {
       if (revertible) {
-        r_indexToBeDeleted.emplace(toDelete);
+        r_indexToBeDeleted.emplace(toDelete, true);
       }
       m_indexToBeDeleted.emplace(toDelete);
     }
@@ -888,9 +929,15 @@ void ContractStorage2::RevertContractStates() {
   }
 
   for (const auto& index : r_indexToBeDeleted) {
-    const auto& found = m_indexToBeDeleted.find(index);
-    if (found != m_indexToBeDeleted.end()) {
-      m_indexToBeDeleted.erase(found);
+    if (index.second) {
+      // revert newly added indexToBeDeleted
+      const auto& found = m_indexToBeDeleted.find(index.first);
+      if (found != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(found);
+      }
+    } else {
+      // revert newly deleted indexToBeDeleted
+      m_indexToBeDeleted.emplace(index.first);
     }
   }
 }
@@ -939,6 +986,7 @@ void ContractStorage2::InitTempState() {
   LOG_MARKER();
 
   t_stateDataMap.clear();
+  t_indexToBeDeleted.clear();
 }
 
 dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
@@ -990,6 +1038,7 @@ void ContractStorage2::Reset() {
     p_indexToBeDeleted.clear();
 
     t_stateDataMap.clear();
+    t_indexToBeDeleted.clear();
 
     r_stateDataMap.clear();
     r_indexToBeDeleted.clear();
