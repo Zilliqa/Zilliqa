@@ -597,7 +597,7 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
       } else {
         it++;
       }
-    }    
+    }
   }
 
   for (auto it = states.begin(); it != states.end();) {
