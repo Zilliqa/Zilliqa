@@ -723,8 +723,6 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       return false;
     }
 
-    Contract::ContractStorage2::GetContractStorage().InitTempState();
-
     // if lookup and loaded microblocks, then skip
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&

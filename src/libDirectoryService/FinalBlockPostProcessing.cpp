@@ -227,9 +227,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     };
     DetachedFunction(1, writeStateToDisk);
   } else {
-    // Contract storage
-    Contract::ContractStorage2::GetContractStorage().InitTempState();
-
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
                  CoinbaseReward::FINALBLOCK_REWARD,
