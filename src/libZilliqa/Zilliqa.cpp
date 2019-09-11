@@ -274,6 +274,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       case SyncType::RECOVERY_ALL_SYNC:
         LOG_GENERAL(INFO, "Recovery all nodes");
+        if (m_mediator.m_lookup->GetSyncType() == SyncType::RECOVERY_ALL_SYNC) {
+          m_lookup.SetSyncType(NO_SYNC);
+        }
         // When doing recovery, make sure to let other lookups know I'm back
         // online
         if (LOOKUP_NODE_MODE) {
