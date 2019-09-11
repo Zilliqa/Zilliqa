@@ -2054,7 +2054,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       vector<BlockHash> mbHashes;
 
       for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-        mbHashes.emplace_back(mbInfo.m_microBlockHash);
+        if (mbInfo.m_txnRootHash != TxnHash()) {
+          mbHashes.emplace_back(mbInfo.m_microBlockHash);
+        }
       }
 
       SendGetMicroBlockFromLookup(mbHashes);
@@ -3361,17 +3363,19 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    if (m_lookupServer) {
-      m_lookupServer->StopListening();
-      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
-    }
-
-    auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
-      StartSynchronization();
+    m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
     };
 
-    DetachedFunction(1, func);
+    DetachedFunction(1, func1);
+
+    auto func2 = [this]() -> void { StartSynchronization(); };
+
+    DetachedFunction(1, func2);
   }
 }
 
