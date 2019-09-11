@@ -41,6 +41,7 @@ int main(int argc, const char* argv[]) {
   Peer peer;
   string ignore_checker_str;
   string contract_address_output_dir;
+  string normal_address_output_dir;
 
   try {
     po::options_description desc("Options");
@@ -50,7 +51,8 @@ int main(int argc, const char* argv[]) {
         "whether ignore scilla checker result (true to ignore, default false)")(
         "contract_addresses,c", po::value<string>(&contract_address_output_dir),
         "indicate the path to output the contract addresses, no output if "
-        "empty");
+        "empty")("normal_addresses,n", po::value<string>(&normal_address_output_dir),
+        "indicate the path to output the contract addresses, no output if empty");
 
     po::variables_map vm;
     try {
@@ -90,7 +92,8 @@ int main(int argc, const char* argv[]) {
     LOG_GENERAL(INFO, "finished RetrieveStates");
 
     if (!retriever.MigrateContractStates(ignore_checker,
-                                         contract_address_output_dir)) {
+                                         contract_address_output_dir,
+                                         normal_address_output_dir)) {
       LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
       LOG_GENERAL(INFO, "Migrate contract data finished");
