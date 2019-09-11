@@ -863,6 +863,10 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
+      auto pos = t_indexToBeDeleted.find(state.first);
+      if (pos != t_indexToBeDeleted.end()) {
+        t_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& index : toDeleteIndices) {
       t_indexToBeDeleted.emplace(index);
@@ -872,15 +876,20 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
       if (revertible) {
         if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
           r_stateDataMap[state.first] = m_stateDataMap[state.first];
+          r_indexToBeDeleted.emplace(state.first, false);
         } else {
           r_stateDataMap[state.first] = {};
         }
       }
       m_stateDataMap[state.first] = state.second;
+      auto pos = m_indexToBeDeleted.find(state.first);
+      if (pos != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& toDelete : toDeleteIndices) {
       if (revertible) {
-        r_indexToBeDeleted.emplace(toDelete);
+        r_indexToBeDeleted.emplace(toDelete, true);
       }
       m_indexToBeDeleted.emplace(toDelete);
     }
@@ -916,9 +925,15 @@ void ContractStorage2::RevertContractStates() {
   }
 
   for (const auto& index : r_indexToBeDeleted) {
-    const auto& found = m_indexToBeDeleted.find(index);
-    if (found != m_indexToBeDeleted.end()) {
-      m_indexToBeDeleted.erase(found);
+    if (index.second) {
+      // revert newly added indexToBeDeleted
+      const auto& found = m_indexToBeDeleted.find(index.first);
+      if (found != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(found);
+      }
+    } else {
+      // revert newly deleted indexToBeDeleted
+      m_indexToBeDeleted.emplace(index.first);
     }
   }
 }
