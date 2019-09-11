@@ -62,6 +62,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   // Used for delete map index
   std::set<std::string> m_indexToBeDeleted;
+  std::set<std::string> t_indexToBeDeleted;
 
   mutable std::shared_timed_mutex m_codeMutex;
   mutable std::shared_timed_mutex m_initDataMutex;
