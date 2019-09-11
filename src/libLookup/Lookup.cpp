@@ -58,7 +58,7 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   m_syncType.store(SyncType::NO_SYNC);
-  vector<SyncType> ignorable_syncTypes = {NO_SYNC, RECOVERY_ALL_SYNC, DB_VERIF};
+  vector<SyncType> ignorable_syncTypes = {NO_SYNC, DB_VERIF};
   if (syncType >= SYNC_TYPE_COUNT) {
     LOG_GENERAL(FATAL, "Invalid SyncType");
   }
