@@ -58,14 +58,16 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   // Used for RevertCommitTemp
   std::unordered_map<std::string, bytes> r_stateDataMap;
-  std::set<std::string> r_indexToBeDeleted;
+  // value being true for newly added, false for newly deleted
+  std::unordered_map<std::string, bool> r_indexToBeDeleted;
 
   // Used for delete map index
   std::set<std::string> m_indexToBeDeleted;
+  std::set<std::string> t_indexToBeDeleted;
 
-  mutable std::shared_timed_mutex m_codeMutex;
-  mutable std::shared_timed_mutex m_initDataMutex;
-  mutable std::shared_timed_mutex m_stateDataMutex;
+  mutable std::mutex m_codeMutex;
+  mutable std::mutex m_initDataMutex;
+  mutable std::mutex m_stateDataMutex;
 
   void DeleteByPrefix(const std::string& prefix);
 
@@ -75,6 +77,10 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                        bool cleanEmpty = false);
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
+
+  dev::h256 GetContractStateHashCore(const dev::h160& address, bool temp);
+
+  void InitTempStateCore();
 
   ContractStorage2()
       : m_codeDB("contractCode"),
@@ -166,10 +172,11 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool CommitStateDB();
 
   /// Clean t_maps
-  void InitTempState();
+  void InitTempState(bool callFromExternal = false);
 
   /// Get the state hash of a contract account
-  dev::h256 GetContractStateHash(const dev::h160& address, bool temp);
+  dev::h256 GetContractStateHash(const dev::h160& address, bool temp,
+                                 bool callFromExternal = false);
 
   /// Clean the databases
   void Reset();

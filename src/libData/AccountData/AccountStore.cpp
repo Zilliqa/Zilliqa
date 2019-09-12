@@ -108,7 +108,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage2::GetContractStorage().InitTempState();
+  ContractStorage2::GetContractStorage().InitTempState(true);
 }
 
 void AccountStore::InitRevertibles() {
@@ -551,8 +551,19 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
-bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
+bool AccountStore::MigrateContractStates(
+    bool ignoreCheckerFailure, const string& contract_address_output_dir,
+    const string& normal_address_output_dir) {
   LOG_MARKER();
+
+  std::ofstream os_1;
+  std::ofstream os_2;
+  if (!contract_address_output_dir.empty()) {
+    os_1.open(contract_address_output_dir);
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.open(normal_address_output_dir);
+  }
 
   for (const auto& i : m_state) {
     Address address(i.first);
@@ -565,8 +576,14 @@ bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
     }
     if (account.isContract()) {
       account.SetAddress(address);
+      if (!contract_address_output_dir.empty()) {
+        os_1 << address.hex() << endl;
+      }
     } else {
       this->AddAccount(address, account);
+      if (!normal_address_output_dir.empty()) {
+        os_2 << address.hex() << endl;
+      }
       continue;
     }
 
@@ -833,6 +850,13 @@ bool AccountStore::MigrateContractStates(bool ignoreCheckerFailure) {
     Account* originalAccount = GetAccount(address);
     *originalAccount = account;
     this->AddAccount(address, account);
+  }
+
+  if (!contract_address_output_dir.empty()) {
+    os_1.close();
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.close();
   }
 
   /// repopulate trie and discard old persistence

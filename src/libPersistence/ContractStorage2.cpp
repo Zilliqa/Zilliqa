@@ -39,23 +39,23 @@ namespace Contract {
 
 bool ContractStorage2::PutContractCode(const dev::h160& address,
                                        const bytes& code) {
-  unique_lock<shared_timed_mutex> g(m_codeMutex);
+  lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.Insert(address.hex(), code) == 0;
 }
 
 bool ContractStorage2::PutContractCodeBatch(
     const unordered_map<string, string>& batch) {
-  unique_lock<shared_timed_mutex> g(m_codeMutex);
+  lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.BatchInsert(batch);
 }
 
 bytes ContractStorage2::GetContractCode(const dev::h160& address) {
-  shared_lock<shared_timed_mutex> g(m_codeMutex);
+  lock_guard<mutex> g(m_codeMutex);
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
 
 bool ContractStorage2::DeleteContractCode(const dev::h160& address) {
-  unique_lock<shared_timed_mutex> g(m_codeMutex);
+  lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }
 
@@ -63,23 +63,23 @@ bool ContractStorage2::DeleteContractCode(const dev::h160& address) {
 // ========================================
 bool ContractStorage2::PutInitData(const dev::h160& address,
                                    const bytes& initData) {
-  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  lock_guard<mutex> g(m_initDataMutex);
   return m_initDataDB.Insert(address.hex(), initData) == 0;
 }
 
 bool ContractStorage2::PutInitDataBatch(
     const unordered_map<string, string>& batch) {
-  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  lock_guard<mutex> g(m_initDataMutex);
   return m_initDataDB.BatchInsert(batch);
 }
 
 bytes ContractStorage2::GetInitData(const dev::h160& address) {
-  shared_lock<shared_timed_mutex> g(m_initDataMutex);
+  lock_guard<mutex> g(m_initDataMutex);
   return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
 }
 
 bool ContractStorage2::DeleteInitData(const dev::h160& address) {
-  unique_lock<shared_timed_mutex> g(m_initDataMutex);
+  lock_guard<mutex> g(m_initDataMutex);
   return m_initDataDB.DeleteKey(address.hex()) == 0;
 }
 // State
@@ -114,6 +114,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   if (LOG_SC) {
     LOG_MARKER();
   }
+
+  lock_guard<mutex> g(m_stateDataMutex);
 
   foundVal = true;
 
@@ -157,8 +159,18 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     return false;
   }
 
-  const auto& d_found = m_indexToBeDeleted.find(key);
-  if (d_found != m_indexToBeDeleted.end()) {
+  auto d_found = t_indexToBeDeleted.find(key);
+  if (d_found != t_indexToBeDeleted.end()) {
+    // ignore the deleted empty placeholder
+    if ((unsigned int)query.indices().size() == query.mapdepth()) {
+      foundVal = false;
+      return true;
+    }
+  }
+
+  d_found = m_indexToBeDeleted.find(key);
+  if (d_found != m_indexToBeDeleted.end() &&
+      t_stateDataMap.find(key) == t_stateDataMap.end()) {
     // ignore the deleted empty placeholder
     if ((unsigned int)query.indices().size() == query.mapdepth()) {
       foundVal = false;
@@ -270,8 +282,13 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   uint32_t counter = 0;
 
   for (const auto& entry : entries) {
+    isDeleted = t_indexToBeDeleted.find(entry.first);
+    if (isDeleted != t_indexToBeDeleted.end()) {
+      continue;
+    }
     isDeleted = m_indexToBeDeleted.find(entry.first);
-    if (isDeleted != m_indexToBeDeleted.end()) {
+    if (isDeleted != m_indexToBeDeleted.end() &&
+        t_stateDataMap.find(entry.first) == t_stateDataMap.end()) {
       continue;
     }
 
@@ -327,14 +344,14 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
   auto p = t_stateDataMap.lower_bound(prefix);
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
-    m_indexToBeDeleted.emplace(p->first);
+    t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
 
   p = m_stateDataMap.lower_bound(prefix);
   while (p != m_stateDataMap.end() &&
          p->first.compare(0, prefix.size(), prefix) == 0) {
-    m_indexToBeDeleted.emplace(p->first);
+    t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
 
@@ -347,10 +364,7 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
     for (; it->Valid() &&
            it->key().ToString().compare(0, prefix.size(), prefix) == 0;
          it->Next()) {
-      if (m_indexToBeDeleted.find(it->key().ToString()) ==
-          m_indexToBeDeleted.end()) {
-        m_indexToBeDeleted.emplace(it->key().ToString());
-      }
+      t_indexToBeDeleted.emplace(it->key().ToString());
     }
   }
 }
@@ -361,7 +375,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from t: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
     return;
   }
 
@@ -370,7 +384,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from m: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
     return;
   }
 
@@ -378,7 +392,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from db: " << index);
     }
-    m_indexToBeDeleted.emplace(index);
+    t_indexToBeDeleted.emplace(index);
   }
 }
 
@@ -461,6 +475,8 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
                                                  const string& vname,
                                                  const vector<string>& indices,
                                                  bool temp) {
+  lock_guard<mutex> g(m_stateDataMutex);
+
   std::map<std::string, bytes> states;
   FetchStateDataForContract(states, address, vname, indices, temp);
 
@@ -578,8 +594,20 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
     }
   }
 
+  if (temp) {
+    for (auto it = states.begin(); it != states.end();) {
+      if (t_indexToBeDeleted.find(it->first) != t_indexToBeDeleted.cend()) {
+        it = states.erase(it);
+      } else {
+        it++;
+      }
+    }
+  }
+
   for (auto it = states.begin(); it != states.end();) {
-    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend()) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend() &&
+        ((temp && t_stateDataMap.find(it->first) == t_stateDataMap.end()) ||
+         !temp)) {
       it = states.erase(it);
     } else {
       it++;
@@ -600,19 +628,30 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
     vector<std::string>& toDeletedIndices, bool temp) {
   LOG_MARKER();
+
+  lock_guard<mutex> g(m_stateDataMutex);
+
   if (address == dev::h160()) {
     LOG_GENERAL(WARNING, "address provided is empty");
     return;
   }
-  auto p = t_stateDataMap.lower_bound(address.hex());
-  while (p != t_stateDataMap.end() &&
-         p->first.compare(0, address.hex().size(), address.hex()) == 0) {
-    t_states.emplace(p->first, p->second);
-    ++p;
-  }
 
-  if (!temp) {
-    p = m_stateDataMap.lower_bound(address.hex());
+  if (temp) {
+    auto p = t_stateDataMap.lower_bound(address.hex());
+    while (p != t_stateDataMap.end() &&
+           p->first.compare(0, address.hex().size(), address.hex()) == 0) {
+      t_states.emplace(p->first, p->second);
+      ++p;
+    }
+
+    auto r = t_indexToBeDeleted.lower_bound(address.hex());
+    while (r != t_indexToBeDeleted.end() &&
+           r->compare(0, address.hex().size(), address.hex()) == 0) {
+      toDeletedIndices.emplace_back(*r);
+      ++r;
+    }
+  } else {
+    auto p = m_stateDataMap.lower_bound(address.hex());
     while (p != m_stateDataMap.end() &&
            p->first.compare(0, address.hex().size(), address.hex()) == 0) {
       if (t_states.find(p->first) == t_states.end()) {
@@ -637,13 +676,13 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
         }
       }
     }
-  }
 
-  auto r = m_indexToBeDeleted.lower_bound(address.hex());
-  while (r != m_indexToBeDeleted.end() &&
-         r->compare(0, address.hex().size(), address.hex()) == 0) {
-    toDeletedIndices.emplace_back(*r);
-    ++r;
+    auto r = m_indexToBeDeleted.lower_bound(address.hex());
+    while (r != m_indexToBeDeleted.end() &&
+           r->compare(0, address.hex().size(), address.hex()) == 0) {
+      toDeletedIndices.emplace_back(*r);
+      ++r;
+    }
   }
 }
 
@@ -681,9 +720,9 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
     CleanEmptyMapPlaceholders(key);
   }
 
-  auto pos = m_indexToBeDeleted.find(key);
-  if (pos != m_indexToBeDeleted.end()) {
-    m_indexToBeDeleted.erase(pos);
+  auto pos = t_indexToBeDeleted.find(key);
+  if (pos != t_indexToBeDeleted.end()) {
+    t_indexToBeDeleted.erase(pos);
   }
 
   t_stateDataMap[key] = value;
@@ -695,6 +734,8 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
   if (LOG_SC) {
     LOG_MARKER();
   }
+
+  lock_guard<mutex> g(m_stateDataMutex);
 
   if (q_offset > q.size()) {
     LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
@@ -832,27 +873,38 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     LOG_MARKER();
   }
 
+  lock_guard<mutex> g(m_stateDataMutex);
+
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
+      auto pos = t_indexToBeDeleted.find(state.first);
+      if (pos != t_indexToBeDeleted.end()) {
+        t_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& index : toDeleteIndices) {
-      m_indexToBeDeleted.emplace(index);
+      t_indexToBeDeleted.emplace(index);
     }
   } else {
     for (const auto& state : t_states) {
       if (revertible) {
         if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
           r_stateDataMap[state.first] = m_stateDataMap[state.first];
+          r_indexToBeDeleted.emplace(state.first, false);
         } else {
           r_stateDataMap[state.first] = {};
         }
       }
       m_stateDataMap[state.first] = state.second;
+      auto pos = m_indexToBeDeleted.find(state.first);
+      if (pos != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(pos);
+      }
     }
     for (const auto& toDelete : toDeleteIndices) {
       if (revertible) {
-        r_indexToBeDeleted.emplace(toDelete);
+        r_indexToBeDeleted.emplace(toDelete, true);
       }
       m_indexToBeDeleted.emplace(toDelete);
     }
@@ -863,21 +915,21 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
 
 void ContractStorage2::BufferCurrentState() {
   LOG_MARKER();
-  shared_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   p_stateDataMap = t_stateDataMap;
   p_indexToBeDeleted = m_indexToBeDeleted;
 }
 
 void ContractStorage2::RevertPrevState() {
   LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   t_stateDataMap = std::move(p_stateDataMap);
   m_indexToBeDeleted = std::move(p_indexToBeDeleted);
 }
 
 void ContractStorage2::RevertContractStates() {
   LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   for (const auto& data : r_stateDataMap) {
     if (data.second.empty()) {
@@ -888,23 +940,29 @@ void ContractStorage2::RevertContractStates() {
   }
 
   for (const auto& index : r_indexToBeDeleted) {
-    const auto& found = m_indexToBeDeleted.find(index);
-    if (found != m_indexToBeDeleted.end()) {
-      m_indexToBeDeleted.erase(found);
+    if (index.second) {
+      // revert newly added indexToBeDeleted
+      const auto& found = m_indexToBeDeleted.find(index.first);
+      if (found != m_indexToBeDeleted.end()) {
+        m_indexToBeDeleted.erase(found);
+      }
+    } else {
+      // revert newly deleted indexToBeDeleted
+      m_indexToBeDeleted.emplace(index.first);
     }
   }
 }
 
 void ContractStorage2::InitRevertibles() {
   LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   r_stateDataMap.clear();
   r_indexToBeDeleted.clear();
 }
 
 bool ContractStorage2::CommitStateDB() {
   LOG_MARKER();
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   // copy everything into m_stateXXDB;
   // Index
   unordered_map<string, std::string> batch;
@@ -935,18 +993,24 @@ bool ContractStorage2::CommitStateDB() {
   return true;
 }
 
-void ContractStorage2::InitTempState() {
-  LOG_MARKER();
-
+void ContractStorage2::InitTempStateCore() {
   t_stateDataMap.clear();
+  t_indexToBeDeleted.clear();
 }
 
-dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
-                                                 bool temp) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+void ContractStorage2::InitTempState(bool callFromExternal) {
+  LOG_MARKER();
 
+  if (callFromExternal) {
+    lock_guard<mutex> g(m_stateDataMutex);
+    InitTempStateCore();
+  } else {
+    InitTempStateCore();
+  }
+}
+
+dev::h256 ContractStorage2::GetContractStateHashCore(const dev::h160& address,
+                                                     bool temp) {
   if (address == Address()) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
@@ -973,23 +1037,39 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
   return ret;
 }
 
+dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& address,
+                                                 bool temp,
+                                                 bool callFromExternal) {
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
+
+  if (callFromExternal) {
+    lock_guard<mutex> g(m_stateDataMutex);
+    return GetContractStateHashCore(address, temp);
+  } else {
+    return GetContractStateHashCore(address, temp);
+  }
+}
+
 void ContractStorage2::Reset() {
   {
-    unique_lock<shared_timed_mutex> g(m_codeMutex);
+    lock_guard<mutex> g(m_codeMutex);
     m_codeDB.ResetDB();
   }
   {
-    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    lock_guard<mutex> g(m_initDataMutex);
     m_initDataDB.ResetDB();
   }
   {
-    unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+    lock_guard<mutex> g(m_stateDataMutex);
     m_stateDataDB.ResetDB();
 
     p_stateDataMap.clear();
     p_indexToBeDeleted.clear();
 
     t_stateDataMap.clear();
+    t_indexToBeDeleted.clear();
 
     r_stateDataMap.clear();
     r_indexToBeDeleted.clear();
@@ -1002,15 +1082,15 @@ void ContractStorage2::Reset() {
 bool ContractStorage2::RefreshAll() {
   bool ret;
   {
-    unique_lock<shared_timed_mutex> g(m_codeMutex);
+    lock_guard<mutex> g(m_codeMutex);
     ret = m_codeDB.RefreshDB();
   }
   if (ret) {
-    unique_lock<shared_timed_mutex> g(m_initDataMutex);
+    lock_guard<mutex> g(m_initDataMutex);
     ret = m_initDataDB.RefreshDB();
   }
   if (ret) {
-    unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+    lock_guard<mutex> g(m_stateDataMutex);
     ret = m_stateDataDB.RefreshDB();
   }
   return ret;
