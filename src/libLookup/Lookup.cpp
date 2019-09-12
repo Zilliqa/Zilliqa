@@ -3333,6 +3333,8 @@ void Lookup::RejoinAsNewLookup() {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
         this->CleanVariables();
+        m_mediator.m_node->CleanVariables();
+        m_mediator.m_ds->CleanVariables();
         while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
