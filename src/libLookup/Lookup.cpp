@@ -2108,10 +2108,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         if (FinishRejoinAsLookup()) {
           SetSyncType(SyncType::NO_SYNC);
 
-          if (m_lookupServer->StartListening()) {
-            LOG_GENERAL(INFO, "API Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "API Server couldn't start");
+          if (m_lookupServer) {
+            if (m_lookupServer->StartListening()) {
+              LOG_GENERAL(INFO, "API Server started to listen again");
+            } else {
+              LOG_GENERAL(WARNING, "API Server couldn't start");
+            }
           }
         }
       }
@@ -2139,10 +2141,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         SetSyncType(SyncType::NO_SYNC);
         m_isFirstLoop = true;
 
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
+        if (m_lookupServer) {
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
       }
       m_currDSExpired = false;
@@ -2389,10 +2393,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
 
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
+        if (m_lookupServer) {
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
       }
     }
@@ -2427,10 +2433,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
 
-      if (m_lookupServer->StartListening()) {
-        LOG_GENERAL(INFO, "API Server started to listen again");
-      } else {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
+      if (m_lookupServer) {
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
     m_currDSExpired = false;
