@@ -273,10 +273,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         m_lookup.StartSynchronization();
         break;
       case SyncType::RECOVERY_ALL_SYNC:
-        LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        LOG_GENERAL(INFO, "Recovery all nodes");
+        if (m_mediator.m_lookup->GetSyncType() == SyncType::RECOVERY_ALL_SYNC) {
+          m_lookup.SetSyncType(NO_SYNC);
+        }
         // When doing recovery, make sure to let other lookups know I'm back
         // online
         if (LOOKUP_NODE_MODE) {
+          m_lookup.SetSyncType(NO_SYNC);
           if (!m_mediator.m_lookup->GetMyLookupOnline(true)) {
             LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
           }
