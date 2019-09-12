@@ -634,7 +634,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       }
 
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
-      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+      m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
 
       do {
         m_mediator.m_lookup->GetTxBlockFromSeedNodes(
