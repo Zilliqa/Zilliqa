@@ -3339,10 +3339,9 @@ void Lookup::RejoinAsNewLookup() {
     DetachedFunction(1, func1);
 
     auto func2 = [this]() mutable -> void {
+      AccountStore::GetInstance().InitSoft();
       while (true) {
         this->CleanVariables();
-        m_mediator.m_node->CleanVariables();
-        m_mediator.m_ds->CleanVariables();
         while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
               WARNING,
