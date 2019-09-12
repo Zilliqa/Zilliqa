@@ -50,15 +50,15 @@ enum SyncType : unsigned int {
 
 ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
     : m_log(log),
-      m_logPath(boost::filesystem::current_path().string() + "/zilliqa/"),
-      m_curPath(boost::filesystem::current_path().string() + "/zilliqa/"),
+      m_logPath(boost::filesystem::current_path().string() + "/"),
+      m_curPath(boost::filesystem::current_path().string() + "/"),
       m_port(-1),
       m_recovery(0),
       m_nodeIndex(0),
       m_syncType(0),
       m_cseed(false) {
   if (ReadInputs(argc, argv) != SUCCESS) {
-    ZilliqaDaemon::LOG(m_log, "Failed to read inputs");
+    ZilliqaDaemon::LOG(m_log, "Failed to read inputs.");
     exit(EXIT_FAILURE);
   }
 
@@ -155,7 +155,7 @@ string ZilliqaDaemon::Execute(const string& cmd) {
 
 bool ZilliqaDaemon::DownloadPersistenceFromS3() {
   string output;
-  ZilliqaDaemon::LOG(m_log, "downloading persistence from S3");
+  ZilliqaDaemon::LOG(m_log, "downloading persistence from S3.");
   output = Execute("python " + m_curPath + download_incr_DB_script);
   return (output.find("Done!") != std::string::npos);
 }
@@ -241,7 +241,7 @@ void ZilliqaDaemon::StartNewProcess() {
   pid_t pid_parent = fork();
 
   if (pid_parent < 0) {
-    ZilliqaDaemon::LOG(m_log, "Failed to fork ");
+    ZilliqaDaemon::LOG(m_log, "Failed to fork.");
     exit(EXIT_FAILURE);
   }
 
@@ -313,7 +313,7 @@ void ZilliqaDaemon::StartScripts() {
     pid_t pid_parent = fork();
 
     if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork ");
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
       exit(EXIT_FAILURE);
     }
 
@@ -327,7 +327,7 @@ void ZilliqaDaemon::StartScripts() {
     pid_parent = fork();
 
     if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork ");
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
       exit(EXIT_FAILURE);
     }
 
@@ -344,7 +344,7 @@ void ZilliqaDaemon::StartScripts() {
     pid_t pid_parent = fork();
 
     if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork ");
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
       exit(EXIT_FAILURE);
     }
 
@@ -410,7 +410,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
     m_recovery = vm.count("recovery");
 
     if (vm.count("cseed")) {
-      ZilliqaDaemon::LOG(m_log, "Running Daemon for community seed node");
+      ZilliqaDaemon::LOG(m_log, "Running Daemon for community seed node.");
       m_cseed = true;
     }
   } catch (boost::program_options::required_option& e) {
@@ -430,23 +430,19 @@ int main(int argc, const char* argv[]) {
   pid_t pid_parent = fork();
 
   if (pid_parent < 0) {
-    ZilliqaDaemon::LOG(log, "Failed to fork ");
+    ZilliqaDaemon::LOG(log, "Failed to fork.");
     exit(EXIT_FAILURE);
   }
 
   if (pid_parent > 0) {
-    ZilliqaDaemon::LOG(log, "Started daemon successfully");
+    ZilliqaDaemon::LOG(log, "Started daemon successfully.");
     exit(EXIT_SUCCESS);
   }
 
   umask(0);
 
   if (setsid() < 0) {
-    ZilliqaDaemon::LOG(log, "Unable to set sid");
-    exit(EXIT_FAILURE);
-  }
-
-  if ((chdir("..")) < 0) {
+    ZilliqaDaemon::LOG(log, "Unable to set sid.");
     exit(EXIT_FAILURE);
   }
 
