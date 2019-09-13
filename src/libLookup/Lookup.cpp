@@ -502,7 +502,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                         (node.second != m_mediator.m_selfPeer);
                });
 
-  int index = RandomGenerator::GetRandomNumber(0, tmp.size() - 1);
+  int index = RandomGenerator::GetRandom<int>(0, tmp.size() - 1);
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
   Blacklist::GetInstance().Exclude(
@@ -944,7 +944,7 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   }
 
   auto index =
-      RandomGenerator::GetRandomNumber(0, notBlackListedSeedNodes.size() - 1);
+      RandomGenerator::GetRandom<int>(0, notBlackListedSeedNodes.size() - 1);
   LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }

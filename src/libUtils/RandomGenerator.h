@@ -25,7 +25,20 @@
 
 namespace RandomGenerator {
 
-int GetRandomNumber(const int& min, const int& max);
+static auto rng = [] {
+  std::mt19937 rng;
+  rng.seed(std::random_device()());
+  return rng;
+}();
+
+template <typename T,
+          template <typename>
+          class Distribution = std::uniform_int_distribution,
+          typename... Args>
+T GetRandom(Args&&... args) {
+  Distribution<T> dist(std::forward<Args>(args)...);
+  return dist(rng);
+}
 
 }  // namespace RandomGenerator
 
