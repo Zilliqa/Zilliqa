@@ -40,6 +40,15 @@ T GetRandom(Args&&... args) {
   return dist(rng);
 }
 
+// Get random integer from 0 to size - 1
+int GetRandomInt(const int& size) {
+  if (size > 0) {
+    return GetRandom<int>(0, size - 1);
+  } else {
+    return -1;
+  }
+}
+
 }  // namespace RandomGenerator
 
 #endif  // ZILLIQA_SRC_LIBUTILS_RANDOMGENERATOR_H_
