@@ -50,6 +50,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
+#include "libUtils/RandomGenerator.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
 
@@ -501,8 +502,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                         (node.second != m_mediator.m_selfPeer);
                });
 
-  int index = rand() % tmp.size();
-
+  int index = RandomGenerator::GetRandomNumber(0, tmp.size() - 1);
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
   Blacklist::GetInstance().Exclude(
@@ -943,7 +943,8 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
     return;
   }
 
-  auto index = rand() % notBlackListedSeedNodes.size();
+  auto index =
+      RandomGenerator::GetRandomNumber(0, notBlackListedSeedNodes.size() - 1);
   LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
