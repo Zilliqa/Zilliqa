@@ -29,4 +29,4 @@ int GetRandomNumber(const int& min, const int& max);
 
 }  // namespace RandomGenerator
 
-#endif  // ZILLIQA_SRC_LIBUTILS_IPCONVERTER_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_RANDOMGENERATOR_H_
