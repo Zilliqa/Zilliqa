@@ -15,6 +15,7 @@ add_subdirectory (Persistence)
 add_subdirectory (POW)
 add_subdirectory (RumorSpreading)
 add_subdirectory (Server)
+add_subdirectory (State)
 add_subdirectory (Utils)
 add_subdirectory (Zilliqa)
 

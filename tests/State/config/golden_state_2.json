@@ -1,0 +1,151 @@
+{
+   "_balance" : "0",
+   "admins" : [
+      "0xa11de7664f55f5bdf8544a9ac711691d01378b4c",
+      "0x76c858a5ea4552e78523cbcaacb58977fbf50b93",
+      "0x6261f4df0eabab544d2fb14a1016c0575d13fff3",
+      "0x021801104f9672bda71424d0bc8b1546b287adc2",
+      "0xdfa89866ae86632b36361d53b76c1373448c28fa"
+   ],
+   "approvals" : {},
+   "operators" : {},
+   "records" : {
+      "0x104139c364f97591259e0152417dfd65da1669815b1ac8c144029dc3ed8bfe00" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0x733ba17d066a8a4cd2b7d52921b7900ff299aa09"
+         ],
+         "constructor" : "Record"
+      },
+      "0x214935f24c1c2c169dc4f6d754cb8208e6d6367542c0985ac16ca8e7f85cadae" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xeaab8c82aa2fa99704b80b09c450c511ba0fbf74",
+            "0x17f0825142895e2d41ec0a208ef090181b118c14"
+         ],
+         "constructor" : "Record"
+      },
+      "0x248a685e21ce4ad90f1f8e1e5a245f9a4b7060023d445186bd6641732dca5ad4" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0x3e91a008304092a2e7dcf1bc39892e9e321f8e3acd6b4053355b59cbb2f1f368" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0x16044f6c0d08ddbca28835b9f52a5109c08f27e7"
+         ],
+         "constructor" : "Record"
+      },
+      "0x554b34f26cbbefe9f89e3f316b27b70bef8f7e0f0ec7c08fa991bf2f32f4866c" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0x954468d61d8f07ce4d9afe7b40613c80108f232c"
+         ],
+         "constructor" : "Record"
+      },
+      "0x576b2b00be8d763759a1d0851af1db41cd5c9c258cf745d96121a60d893216c7" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0x7dcd17ee9b1c7ecb2fcdda01bf1d4c79856d55bdbf611a67ca273c795ff9539e" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0x9915d0456b878862e822e2361da37232f626a2e47505c8795134a95d36138ed3" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdfa89866ae86632b36361d53b76c1373448c28fa",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0x9d78d26b14adf66ec5aabf8e523fec6fbda1c827f9e1a770c12596e8f54528af" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xa779034e97af477fdeb52fd2ed886f921eadca0cb0012abe533b19bddc175b21" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xad5aa6f1ade542b8174a8b10c56c8950b810dd01ead4f830a12a3e14a002b5dd" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0xc7499c2453c39fb6a75abe79389242dcdc237558"
+         ],
+         "constructor" : "Record"
+      },
+      "0xbf4ba8ea7824b9ed86dc4f348f67b471d09c320f2072216abf07585a4c9872d1" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xd32194c409837a71ad5f85d54e5c89c6d65a597208eda1574fce8f11b33aca15" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xd5bb83bb1b5dcfa01455c478ed3e5fa835bde26c09be5967e28bca5a4982a726" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xd8c9e4a6fc2e3f237ee76b08a0dd50ff44a48e541b73df55ad3355ab8681afc3" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            "0x0000000000000000000000000000000000000000"
+         ],
+         "constructor" : "Record"
+      },
+      "0xf0575c1c13626399ac6c456d03a4b85acca6868d5b79b8ee49f7e17500c87572" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0xa364329ac771c0aacc688b79c1c465d8b0b81ab1"
+         ],
+         "constructor" : "Record"
+      },
+      "0xff119710dbcd7ee3ae87e3bd4bbec0ee089b4adbbcb3b54846b7e737c75b2ded" : {
+         "argtypes" : [],
+         "arguments" : [
+            "0x108327102a9f1450e19185df501805353f5a32d9",
+            "0x55e7bdaf64001a154c65d438cd72b4bffcd08a95"
+         ],
+         "constructor" : "Record"
+      }
+   },
+   "registrar" : "0x0000000000000000000000000000000000000000"
+}
