@@ -3404,7 +3404,6 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
     if (fromLookup) {
       LOG_GENERAL(INFO, "Syncing from lookup ...");
       auto func2 = [this]() mutable -> void {
-        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
         StartSynchronization();
       };
       DetachedFunction(1, func2);
@@ -3412,7 +3411,6 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
       LOG_GENERAL(INFO, "Syncing from S3 ...");
       auto func2 = [this]() mutable -> void {
         while (true) {
-          m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
           this->CleanVariables();
           m_mediator.m_node->CleanUnavailableMicroBlocks();
           while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
