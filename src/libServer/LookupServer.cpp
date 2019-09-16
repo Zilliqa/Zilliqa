@@ -255,7 +255,7 @@ bool LookupServer::StartCollectorThread() {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
       txns.clear();
 
-      if (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC) {
+      if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
         LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
         continue;
       }
