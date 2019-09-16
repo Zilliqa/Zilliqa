@@ -50,6 +50,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
+#include "libUtils/RandomGenerator.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
 
@@ -58,7 +59,7 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   m_syncType.store(SyncType::NO_SYNC);
-  vector<SyncType> ignorable_syncTypes = {NO_SYNC, RECOVERY_ALL_SYNC, DB_VERIF};
+  vector<SyncType> ignorable_syncTypes = {NO_SYNC, DB_VERIF};
   if (syncType >= SYNC_TYPE_COUNT) {
     LOG_GENERAL(FATAL, "Invalid SyncType");
   }
@@ -501,8 +502,12 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                         (node.second != m_mediator.m_selfPeer);
                });
 
-  int index = rand() % tmp.size();
+  if (tmp.empty()) {
+    LOG_GENERAL(WARNING, "No other lookup to send message to!");
+    return;
+  }
 
+  int index = RandomGenerator::GetRandomInt(tmp.size());
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
   Blacklist::GetInstance().Exclude(
@@ -944,7 +949,7 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
     return;
   }
 
-  auto index = rand() % notBlackListedSeedNodes.size();
+  auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
   LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
@@ -2052,6 +2057,18 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
+    if (m_syncType == SyncType::LOOKUP_SYNC) {
+      vector<BlockHash> mbHashes;
+
+      for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
+        if (mbInfo.m_txnRootHash != TxnHash()) {
+          mbHashes.emplace_back(mbInfo.m_microBlockHash);
+        }
+      }
+      if (!mbHashes.empty()) {
+        SendGetMicroBlockFromLookup(mbHashes);
+      }
+    }
     m_mediator.m_node->AddBlock(txBlock);
     // Store Tx Block to disk
     bytes serializedTxBlock;
@@ -2099,6 +2116,25 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           INFO, m_mediator.m_currentEpochNum,
           "New node - At new DS epoch now, try getting state from lookup");
       GetStateFromSeedNodes();
+    } else if (m_syncType == SyncType::LOOKUP_SYNC) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Lookup node - Join back to network now.");
+
+      if (!m_currDSExpired) {
+        if (FinishRejoinAsLookup()) {
+          SetSyncType(SyncType::NO_SYNC);
+
+          if (m_lookupServer) {
+            if (m_lookupServer->StartListening()) {
+              LOG_GENERAL(INFO, "API Server started to listen again");
+            } else {
+              LOG_GENERAL(WARNING, "API Server couldn't start");
+            }
+          }
+        }
+      }
+
+      m_currDSExpired = false;
     } else if (m_syncType == SyncType::NEW_SYNC ||
                m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
@@ -2120,17 +2156,20 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         "Lookup / New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        if ((!ARCHIVAL_LOOKUP && FinishRejoinAsLookup()) || ARCHIVAL_LOOKUP) {
+        if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
           SetSyncType(SyncType::NO_SYNC);
-          if (m_lookupServer->StartListening()) {
-            LOG_GENERAL(INFO, "API Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "API Server couldn't start");
+
+          if (m_lookupServer) {
+            if (m_lookupServer->StartListening()) {
+              LOG_GENERAL(INFO, "API Server started to listen again");
+            } else {
+              LOG_GENERAL(WARNING, "API Server couldn't start");
+            }
           }
+          m_isFirstLoop = true;
         }
-        m_isFirstLoop = true;
+        m_currDSExpired = false;
       }
-      m_currDSExpired = false;
     }
   }
 
@@ -2410,10 +2449,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
 
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
+        if (m_lookupServer) {
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+          }
         }
       }
     }
@@ -2448,10 +2489,12 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
 
-      if (m_lookupServer->StartListening()) {
-        LOG_GENERAL(INFO, "API Server started to listen again");
-      } else {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
+      if (m_lookupServer) {
+        if (m_lookupServer->StartListening()) {
+          LOG_GENERAL(INFO, "API Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
       }
     }
     m_currDSExpired = false;
@@ -3349,23 +3392,29 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
+    };
+    DetachedFunction(1, func1);
 
     if (fromLookup) {
       LOG_GENERAL(INFO, "Syncing from lookup ...");
-      auto func = [this]() mutable -> void {
+      auto func2 = [this]() mutable -> void {
         m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
         StartSynchronization();
       };
-
-      DetachedFunction(1, func);
+      DetachedFunction(1, func2);
     } else {
       LOG_GENERAL(INFO, "Syncing from S3 ...");
-      auto func = [this]() mutable -> void {
+      auto func2 = [this]() mutable -> void {
         while (true) {
           m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
           this->CleanVariables();
+          m_mediator.m_node->CleanUnavailableMicroBlocks();
           while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
             LOG_GENERAL(
                 WARNING,
@@ -3387,7 +3436,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
         }
         InitSync();
       };
-      DetachedFunction(1, func);
+      DetachedFunction(1, func2);
     }
   }
 }
@@ -3403,17 +3452,19 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    if (m_lookupServer) {
-      m_lookupServer->StopListening();
-      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
-    }
-
-    auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
-      StartSynchronization();
+    m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
     };
 
-    DetachedFunction(1, func);
+    DetachedFunction(1, func1);
+
+    auto func2 = [this]() -> void { StartSynchronization(); };
+
+    DetachedFunction(1, func2);
   }
 }
 

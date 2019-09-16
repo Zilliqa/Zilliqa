@@ -1818,10 +1818,7 @@ bool Node::CleanVariables() {
   //     std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
   //     m_committedTransactions.clear();
   // }
-  {
-    std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
-    m_unavailableMicroBlocks.clear();
-  }
+  CleanUnavailableMicroBlocks();
   // On Lookup
   {
     std::lock_guard<mutex> lock(
@@ -1831,6 +1828,11 @@ bool Node::CleanVariables() {
   m_mediator.m_lookup->m_startedPoW = false;
 
   return true;
+}
+
+void Node::CleanUnavailableMicroBlocks() {
+  std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
+  m_unavailableMicroBlocks.clear();
 }
 
 void Node::SetMyshardId(uint32_t shardId) {

@@ -550,7 +550,11 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       if (!m_seedTxnBlksBuffer.empty()) {
         LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
         for (const auto& txnblk : m_seedTxnBlksBuffer) {
-          ProcessFinalBlockCore(txnblk, offset, Peer(), true);
+          if (!ProcessFinalBlockCore(txnblk, offset, Peer(), true)) {
+            // ignore bufferred final blocks because rejoin must have been
+            // already
+            break;
+          }
         }
         // clear the buffer since all buffered ones are checked and processed
         m_seedTxnBlksBuffer.clear();
@@ -751,11 +755,6 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       return false;
     }
 
-    // Contract storage
-    if (!Contract::ContractStorage2::GetContractStorage().CommitStateDB()) {
-      LOG_GENERAL(WARNING, "CommitStateDB failed");
-      return false;
-    }
     // if lookup and loaded microblocks, then skip
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&

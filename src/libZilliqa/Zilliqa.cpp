@@ -273,10 +273,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         m_lookup.StartSynchronization();
         break;
       case SyncType::RECOVERY_ALL_SYNC:
-        LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        LOG_GENERAL(INFO, "Recovery all nodes");
+        if (m_mediator.m_lookup->GetSyncType() == SyncType::RECOVERY_ALL_SYNC) {
+          m_lookup.SetSyncType(NO_SYNC);
+        }
         // When doing recovery, make sure to let other lookups know I'm back
         // online
         if (LOOKUP_NODE_MODE) {
+          m_lookup.SetSyncType(NO_SYNC);
           if (!m_mediator.m_lookup->GetMyLookupOnline(true)) {
             LOG_GENERAL(WARNING, "Failed to notify lookups I am back online");
           }
@@ -334,13 +338,19 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         LOG_GENERAL(WARNING, "m_lookupServer NULL");
       } else {
         m_lookup.SetLookupServer(m_lookupServer);
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started successfully");
-          if (ARCHIVAL_LOOKUP) {
-            m_lookupServer->StartCollectorThread();
+
+        if (m_lookup.GetSyncType() == SyncType::NO_SYNC) {
+          if (m_lookupServer->StartListening()) {
+            LOG_GENERAL(INFO, "API Server started successfully");
+            if (ARCHIVAL_LOOKUP) {
+              m_lookupServer->StartCollectorThread();
+            }
+          } else {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
           }
         } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
+          LOG_GENERAL(WARNING,
+                      "This lookup node not sync yet, don't start listen");
         }
       }
     }

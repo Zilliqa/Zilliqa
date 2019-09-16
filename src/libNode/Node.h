@@ -620,6 +620,8 @@ class Node : public Executable {
 
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
+  void CleanUnavailableMicroBlocks();
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
 
