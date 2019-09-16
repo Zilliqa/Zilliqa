@@ -59,7 +59,7 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   m_syncType.store(SyncType::NO_SYNC);
-  vector<SyncType> ignorable_syncTypes = {NO_SYNC, RECOVERY_ALL_SYNC, DB_VERIF};
+  vector<SyncType> ignorable_syncTypes = {NO_SYNC, DB_VERIF};
   if (syncType >= SYNC_TYPE_COUNT) {
     LOG_GENERAL(FATAL, "Invalid SyncType");
   }
@@ -2059,7 +2059,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       vector<BlockHash> mbHashes;
 
       for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-        mbHashes.emplace_back(mbInfo.m_microBlockHash);
+        if (mbInfo.m_txnRootHash != TxnHash()) {
+          mbHashes.emplace_back(mbInfo.m_microBlockHash);
+        }
       }
 
       SendGetMicroBlockFromLookup(mbHashes);
@@ -3331,12 +3333,18 @@ void Lookup::RejoinAsNewLookup() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    m_lookupServer->StopListening();
-    LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+    m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
+    };
 
-    auto func = [this]() mutable -> void {
+    DetachedFunction(1, func1);
+
+    auto func2 = [this]() mutable -> void {
       while (true) {
-        m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
         this->CleanVariables();
         while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
           LOG_GENERAL(
@@ -3359,7 +3367,7 @@ void Lookup::RejoinAsNewLookup() {
       }
       InitSync();
     };
-    DetachedFunction(1, func);
+    DetachedFunction(1, func2);
   }
 }
 
@@ -3374,17 +3382,19 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
 
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
-    if (m_lookupServer) {
-      m_lookupServer->StopListening();
-      LOG_GENERAL(INFO, "API Server stopped listen for syncing");
-    }
-
-    auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
-      StartSynchronization();
+    m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+    auto func1 = [this]() mutable -> void {
+      if (m_lookupServer) {
+        m_lookupServer->StopListening();
+        LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
     };
 
-    DetachedFunction(1, func);
+    DetachedFunction(1, func1);
+
+    auto func2 = [this]() -> void { StartSynchronization(); };
+
+    DetachedFunction(1, func2);
   }
 }
 
