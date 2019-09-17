@@ -191,7 +191,6 @@ include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
 include_directories(${PROTOBUF_INSTALL_DIR}/include)
-set(PROTOBUF_LIBRARY ${PROTOBUF_INSTALL_DIR}/lib)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 
