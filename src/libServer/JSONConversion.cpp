@@ -265,12 +265,13 @@ const vector<string> JSONConversion::convertJsonArrayToVector(
   vector<string> vec;
 
   for (const auto& ele : _json) {
+    ostringstream streamObj;
     if (!ele.isString()) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Every array value should be a string");
     }
-
-    vec.emplace_back(ele.asString());
+    streamObj << quoted(ele.asString());
+    vec.emplace_back(streamObj.str());
   }
   return vec;
 }
