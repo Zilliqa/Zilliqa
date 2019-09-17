@@ -2137,7 +2137,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       }
       m_currDSExpired = false;
     }
-  } else if (m_syncType == LOOKUP_SYNC ||
+  } else if (m_syncType == SyncType::LOOKUP_SYNC ||
              m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     LOG_EPOCH(
         INFO, m_mediator.m_currentEpochNum,
