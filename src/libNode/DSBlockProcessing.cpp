@@ -430,7 +430,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
             1) {
       if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
-        m_mediator.m_lookup->RejoinAsNewLookup();
+        // Rejoin from S3
+        m_mediator.m_lookup->RejoinAsNewLookup(false);
       }
     }
     return false;

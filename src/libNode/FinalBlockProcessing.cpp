@@ -101,11 +101,11 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 }
 
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                           const uint64_t& blocknum,
                                            bool& toSendTxnToLookup,
                                            bool skipShardIDCheck) {
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
+  uint64_t blockNum = finalBlock.GetHeader().GetBlockNum();
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
 
   // bool doRejoin = false;
@@ -117,12 +117,18 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
       if (skipShardIDCheck ||
           !(info.m_shardId == m_mediator.m_ds->m_shards.size() &&
             info.m_txnRootHash == TxnHash())) {
-        m_unavailableMicroBlocks[blocknum].push_back(
-            {info.m_microBlockHash, info.m_txnRootHash});
-        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
-                              << info.m_microBlockHash << " [TxnRootHash] "
-                              << info.m_txnRootHash << " shardID "
-                              << info.m_shardId);
+        auto& mbs = m_unavailableMicroBlocks[blockNum];
+        if (std::find_if(mbs.begin(), mbs.end(),
+                         [info](const std::pair<BlockHash, TxnHash>& e) {
+                           return e.first == info.m_microBlockHash;
+                         }) == mbs.end()) {
+          mbs.push_back({info.m_microBlockHash, info.m_txnRootHash});
+          LOG_GENERAL(
+              INFO,
+              "[TxBlk:" << blockNum << "] Add unavailable block [MbBlockHash] "
+                        << info.m_microBlockHash << " [TxnRootHash] "
+                        << info.m_txnRootHash << " shardID " << info.m_shardId);
+        }
       }
     } else {
       if (info.m_shardId == m_myshardId) {
@@ -531,7 +537,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !buffered) {
+  if (LOOKUP_NODE_MODE && !buffered) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       // Buffer the Final Block
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
@@ -613,13 +619,36 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   if (!m_mediator.CheckWhetherBlockIsLatest(
           dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
     LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
-    // Missed some final block, rejoin to get from lookup.
-    if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+
+    // Missed some ds block, rejoin
+    if (dsBlockNumber >
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       if (!LOOKUP_NODE_MODE) {
         RejoinAsNormal();
       } else if (ARCHIVAL_LOOKUP) {
-        m_mediator.m_lookup->RejoinAsNewLookup();
-      } else {
+        // Sync from S3
+        m_mediator.m_lookup->RejoinAsNewLookup(false);
+      } else  // Lookup
+      {
+        m_mediator.m_lookup->RejoinAsLookup();
+      }
+    }
+    // Missed some final block, rejoin
+    else if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+      if (!LOOKUP_NODE_MODE) {
+        RejoinAsNormal();
+      } else if (ARCHIVAL_LOOKUP) {
+        // Too many txblks ( and corresponding mb/txns) to be fetch from lookup.
+        // so sync from S3 instead
+        if (txBlock.GetHeader().GetBlockNum() - m_mediator.m_currentEpochNum >
+            NUM_FINAL_BLOCK_PER_POW) {
+          m_mediator.m_lookup->RejoinAsNewLookup(false);
+        } else {
+          // Sync from lookup
+          m_mediator.m_lookup->RejoinAsNewLookup(true);
+        }
+      } else  // Lookup
+      {
         m_mediator.m_lookup->RejoinAsLookup();
       }
     }
@@ -716,8 +745,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   DetachedFunction(1, resumeBlackList);
 
-  if (!LoadUnavailableMicroBlockHashes(
-          txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
+  if (!LoadUnavailableMicroBlockHashes(txBlock, toSendTxnToLookup)) {
     return false;
   }
 
@@ -869,9 +897,9 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
-    if (ARCHIVAL_LOOKUP)  // newlookup and level2lookup
+    if (LOOKUP_NODE_MODE)  // lookup, newlookup and level2lookup
     {
-      m_mediator.m_lookup->CheckAndFetchUnavailableMBs();
+      m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
     }
   }
 
@@ -1073,7 +1101,9 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
        entry.m_microBlock.GetHeader()
            .GetEpochNum()) || /* Buffer for syncing seed node */
       (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-       (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC))) {
+       m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
         .push_back(entry);

@@ -615,11 +615,12 @@ class Node : public Executable {
   std::string GetStateString() const;
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                       const uint64_t& blocknum,
                                        bool& toSendTxnToLookup,
                                        bool skipShardIDCheck = false);
 
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
+
+  void CleanUnavailableMicroBlocks();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

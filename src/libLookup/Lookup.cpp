@@ -934,7 +934,8 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend)) {
+      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
             Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
       }
@@ -1481,7 +1482,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
     LOG_GENERAL(WARNING,
                 "Requesting IP : "
-                    << ipAddr
+                    << from.GetPrintableIPAddress()
                     << " is not in whitelisted IP list. Ignore the request");
     return false;
   }
@@ -1732,11 +1733,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
 
   if ((!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) ||
-      (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC &&
+      (LOOKUP_NODE_MODE &&
+       (m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+        m_syncType == SyncType::LOOKUP_SYNC) &&
        m_dsInfoWaitingNotifying)) {
-    LOG_EPOCH(
-        INFO, m_mediator.m_currentEpochNum,
-        "Notifying ProcessSetStateFromSeed that DSInfo has been received");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Notifying that DSInfo has been received");
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
     m_fetchedDSInfo = true;
   }
@@ -2055,18 +2057,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
-    if (m_syncType == SyncType::LOOKUP_SYNC) {
-      vector<BlockHash> mbHashes;
-
-      for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-        if (mbInfo.m_txnRootHash != TxnHash()) {
-          mbHashes.emplace_back(mbInfo.m_microBlockHash);
-        }
-      }
-
-      SendGetMicroBlockFromLookup(mbHashes);
-    }
-
     m_mediator.m_node->AddBlock(txBlock);
     // Store Tx Block to disk
     bytes serializedTxBlock;
@@ -2077,23 +2067,30 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
-    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-        (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
+    if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+         m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
+        (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+         m_syncType == SyncType::LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
-          txBlock, txBlock.GetHeader().GetBlockNum(), placeholder,
-          true /*skip shardid check*/);
+          txBlock, placeholder, true /*skip shardid check*/);
     }
-  }
-
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-      (m_syncType == SyncType::NEW_LOOKUP_SYNC)) {
-    m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
   }
 
   m_mediator.m_currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   // To trigger m_isVacuousEpoch calculation
   m_mediator.IncreaseEpochNum();
+
+  if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+       m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       m_syncType == SyncType::LOOKUP_SYNC)) {
+    m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
+    // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
+    // all for last few txBlks.
+    FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
+    CheckAndFetchUnavailableMBs(false);
+  }
 
   m_mediator.m_consensusID =
       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW;
@@ -2140,28 +2137,68 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       }
       m_currDSExpired = false;
     }
-  } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "New lookup node - Already should have latest state by now.");
+  } else if (m_syncType == SyncType::LOOKUP_SYNC ||
+             m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    LOG_EPOCH(
+        INFO, m_mediator.m_currentEpochNum,
+        "Lookup / New lookup node - Already should have latest state by now.");
     if (GetDSInfo()) {
       if (!m_currDSExpired) {
-        SetSyncType(SyncType::NO_SYNC);
-        m_isFirstLoop = true;
+        if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
+          SetSyncType(SyncType::NO_SYNC);
 
-        if (m_lookupServer) {
-          if (m_lookupServer->StartListening()) {
-            LOG_GENERAL(INFO, "API Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "API Server couldn't start");
+          if (m_lookupServer) {
+            if (m_lookupServer->StartListening()) {
+              LOG_GENERAL(INFO, "API Server started to listen again");
+            } else {
+              LOG_GENERAL(WARNING, "API Server couldn't start");
+            }
           }
+          m_isFirstLoop = true;
         }
+        m_currDSExpired = false;
       }
-      m_currDSExpired = false;
     }
   }
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
+}
+
+void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
+  LOG_MARKER();
+  uint64_t upperLimit =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t lowerLimit = 1;
+
+  if (upperLimit > num) {
+    lowerLimit = upperLimit - num + 1;
+  }
+
+  for (auto& i = lowerLimit; i <= upperLimit; i++) {
+    TxBlock b = m_mediator.m_txBlockChain.GetBlock(i);
+    auto mbsinfo = b.GetMicroBlockInfos();
+    for (const auto& info : mbsinfo) {
+      MicroBlockSharedPtr mbptr;
+      if (!BlockStorage::GetBlockStorage().CheckMicroBlock(
+              info.m_microBlockHash) &&
+          info.m_txnRootHash != TxnHash()) {
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+        auto& mbs = m_mediator.m_node->GetUnavailableMicroBlocks()[i];
+        if (std::find_if(mbs.begin(), mbs.end(),
+                         [info](const std::pair<BlockHash, TxnHash>& e) {
+                           return e.first == info.m_microBlockHash;
+                         }) == mbs.end()) {
+          mbs.push_back({info.m_microBlockHash, info.m_txnRootHash});
+          LOG_GENERAL(INFO,
+                      "[TxBlk:" << i << "] Add unavailable block [MbBlockHash] "
+                                << info.m_microBlockHash << " [TxnRootHash] "
+                                << info.m_txnRootHash << " shardID "
+                                << info.m_shardId);
+        }
+      }
+    }
+  }
 }
 
 const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
@@ -2470,7 +2507,7 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
   if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
     LOG_GENERAL(WARNING,
                 "Requesting IP : "
-                    << ipAddr
+                    << from.GetPrintableIPAddress()
                     << " is not in whitelisted IP list. Ignore the request");
     return false;
   }
@@ -3144,18 +3181,28 @@ void Lookup::StartSynchronization() {
 
   LOG_MARKER();
 
-  auto func = [this]() -> void {
-    if (!ARCHIVAL_LOOKUP) {
+  if (ARCHIVAL_LOOKUP) {
+    auto func = [this]() -> void {
+      GetDSInfoFromSeedNodes();
+      while (GetSyncType() != SyncType::NO_SYNC) {
+        GetDSBlockFromSeedNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+      }
+    };
+    DetachedFunction(1, func);
+  } else {
+    auto func = [this]() -> void {
       GetMyLookupOffline();
-    }
-    GetDSInfoFromLookupNodes();
-    while (GetSyncType() != SyncType::NO_SYNC) {
-      GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
-      GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
-    }
-  };
-  DetachedFunction(1, func);
+      GetDSInfoFromLookupNodes();
+      while (GetSyncType() != SyncType::NO_SYNC) {
+        GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+      }
+    };
+    DetachedFunction(1, func);
+  }
 }
 
 bool Lookup::GetDSInfoLoop() {
@@ -3323,7 +3370,7 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
   return true;
 }
 
-void Lookup::RejoinAsNewLookup() {
+void Lookup::RejoinAsNewLookup(bool fromLookup) {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(WARNING,
                 "Lookup::RejoinAsNewLookup not expected to be called from "
@@ -3340,34 +3387,41 @@ void Lookup::RejoinAsNewLookup() {
         LOG_GENERAL(INFO, "API Server stopped listen for syncing");
       }
     };
-
     DetachedFunction(1, func1);
 
-    auto func2 = [this]() mutable -> void {
-      while (true) {
-        this->CleanVariables();
-        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-          LOG_GENERAL(
-              WARNING,
-              "Downloading persistence from S3 has failed. Will try again!");
+    if (fromLookup) {
+      LOG_GENERAL(INFO, "Syncing from lookup ...");
+      auto func2 = [this]() mutable -> void { StartSynchronization(); };
+      DetachedFunction(1, func2);
+    } else {
+      LOG_GENERAL(INFO, "Syncing from S3 ...");
+      auto func2 = [this]() mutable -> void {
+        while (true) {
+          this->CleanVariables();
+          m_mediator.m_node->CleanUnavailableMicroBlocks();
+          while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+            LOG_GENERAL(
+                WARNING,
+                "Downloading persistence from S3 has failed. Will try again!");
+            this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+          }
+          if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+            return;
+          }
+          if (!AccountStore::GetInstance().RefreshDB()) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+            return;
+          }
+          if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
+            break;
+          };
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
-          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
-          return;
-        }
-        if (!AccountStore::GetInstance().RefreshDB()) {
-          LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
-          return;
-        }
-        if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
-          break;
-        };
-        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
-      }
-      InitSync();
-    };
-    DetachedFunction(1, func2);
+        InitSync();
+      };
+      DetachedFunction(1, func2);
+    }
   }
 }
 
@@ -4330,7 +4384,7 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   return true;
 }
 
-void Lookup::CheckAndFetchUnavailableMBs() {
+void Lookup::CheckAndFetchUnavailableMBs(bool skipLatestTxBlk) {
   if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
@@ -4348,7 +4402,8 @@ void Lookup::CheckAndFetchUnavailableMBs() {
   }
 
   unsigned int maxMBSToBeFetched = MAX_FETCHMISSINGMBS_NUM;
-  auto main_func = [this, maxMBSToBeFetched]() mutable -> void {
+  auto main_func = [this, maxMBSToBeFetched,
+                    skipLatestTxBlk]() mutable -> void {
     m_startedFetchMissingMBsThread = true;
     std::lock_guard<mutex> lock(
         m_mediator.m_node->m_mutexUnavailableMicroBlocks);
@@ -4357,7 +4412,7 @@ void Lookup::CheckAndFetchUnavailableMBs() {
     bool limitReached = false;
     for (auto& m : unavailableMBs) {
       // skip mbs from latest final block
-      if (m.first == m_mediator.m_currentEpochNum - 1) {
+      if (skipLatestTxBlk && (m.first == m_mediator.m_currentEpochNum - 1)) {
         continue;
       }
       LOG_GENERAL(INFO, "Unavailable microblock bodies in finalblock "

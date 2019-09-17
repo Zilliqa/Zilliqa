@@ -199,6 +199,11 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   return true;
 }
 
+bool BlockStorage::CheckMicroBlock(const BlockHash& blockHash) {
+  shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+  return m_microBlockDB->Exists(blockHash);
+}
+
 bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
                                        const uint64_t hiEpochNum,
                                        const uint32_t loShardId,
@@ -453,12 +458,8 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
 }
 
 bool BlockStorage::CheckTxBody(const dev::h256& key) {
-  string bodyString;
-
-  {
-    shared_lock<shared_timed_mutex> g(m_mutexTxBody);
-    return m_txBodyDB->Exists(key);
-  }
+  shared_lock<shared_timed_mutex> g(m_mutexTxBody);
+  return m_txBodyDB->Exists(key);
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {

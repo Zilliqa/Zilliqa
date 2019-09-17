@@ -262,7 +262,7 @@ class Lookup : public Executable {
 
   // Rejoin the network as a newlookup node in case of failure happens in
   // protocol
-  void RejoinAsNewLookup();
+  void RejoinAsNewLookup(bool fromLookup = true);
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
@@ -372,7 +372,11 @@ class Lookup : public Executable {
                                const PubKey& pubKeyToVerify);
 
   /// Check and fetch unavailable microblocks
-  void CheckAndFetchUnavailableMBs();
+  void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
+
+  /// Find any unavailable mbs from last N txblks and add to
+  /// m_unavailableMicroBlocks
+  void FindMissingMBsForLastNTxBlks(const uint32_t& num);
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 

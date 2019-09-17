@@ -196,6 +196,7 @@ extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
 extern const unsigned int RETRY_REJOINING_TIMEOUT;
 extern const unsigned int RETRY_GETSTATEDELTAS_COUNT;
 extern const unsigned int MAX_FETCHMISSINGMBS_NUM;
+extern const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;
