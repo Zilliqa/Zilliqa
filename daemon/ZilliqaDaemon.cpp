@@ -272,15 +272,14 @@ void ZilliqaDaemon::StartNewProcess() {
         this_thread::sleep_for(chrono::seconds(10));
       }
 
-      strSyncType = std::to_string(NEW_LOOKUP_SYNC);
+      strSyncType = to_string(NEW_LOOKUP_SYNC);
     } else {
       /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
       /// to Zilliqa process being killed. Thus, we can use the variable
       /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      strSyncType =
-          bSuspend ? to_string(RECOVERY_ALL_SYNC) : to_string(m_syncType);
-      m_recovery =
-          (strSyncType == to_string(RECOVERY_ALL_SYNC)) ? 1 : m_recovery;
+      m_syncType = bSuspend ? RECOVERY_ALL_SYNC : m_syncType;
+      strSyncType = to_string(m_syncType);
+      m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
       ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
                                     ", set syncType = " + strSyncType +
                                     ", recovery = " + to_string(m_recovery));
@@ -368,8 +367,6 @@ void ZilliqaDaemon::KillProcess() {
     kill(pid, SIGTERM);
     ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
   }
-
-  m_syncType = 0;
 }
 
 int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
