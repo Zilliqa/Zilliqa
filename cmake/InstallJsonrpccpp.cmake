@@ -28,6 +28,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DHTTP_SERVER=On
                -DHTTP_CLIENT=On
                -DCOMPILE_TESTS=Off
+               -DREDIS_SERVER=NO
+               -DREDIS_CLIENT=NO
                -DTCP_SOCKET_SERVER=On
                -DCOMPILE_STUBGEN=Off
                -DCOMPILE_EXAMPLES=Off
@@ -44,8 +46,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 
 ExternalProject_Add(jsonrpc-project
     PREFIX src/depends/jsonrpc
-    URL https://github.com/cinemast/libjson-rpc-cpp/archive/v0.7.0.tar.gz
-    URL_HASH SHA256=669c2259909f11a8c196923a910f9a16a8225ecc14e6c30e2bcb712bab9097eb
+    URL https://github.com/cinemast/libjson-rpc-cpp/archive/v1.2.0.tar.gz
+    URL_HASH SHA256=485556bd27bd546c025d9f9a2f53e89b4460bf820fd5de847ede2539f7440091
     # On Windows it tries to install this dir. Create it to prevent failure.
     PATCH_COMMAND cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}
@@ -70,7 +72,7 @@ file(MAKE_DIRECTORY ${JSONRPC_INCLUDE_DIR})  # Must exist.
 
 add_library(jsonrpc::common STATIC IMPORTED)
 set_property(TARGET jsonrpc::common PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-common${CMAKE_STATIC_LIBRARY_SUFFIX})
-set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES ${JSONCPP_LINK_TARGETS})
+set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES ${JSONCPP_LINK_TARGETS} gcov)
 set_property(TARGET jsonrpc::common PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JSONRPC_INCLUDE_DIR} ${JSONCPP_INCLUDE_DIR})
 add_dependencies(jsonrpc::common jsonrpc-project)
 
