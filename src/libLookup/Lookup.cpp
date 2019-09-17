@@ -2057,18 +2057,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
 
-    if (m_syncType == SyncType::LOOKUP_SYNC) {
-      vector<BlockHash> mbHashes;
-
-      for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-        if (mbInfo.m_txnRootHash != TxnHash()) {
-          mbHashes.emplace_back(mbInfo.m_microBlockHash);
-        }
-      }
-      if (!mbHashes.empty()) {
-        SendGetMicroBlockFromLookup(mbHashes);
-      }
-    }
     m_mediator.m_node->AddBlock(txBlock);
     // Store Tx Block to disk
     bytes serializedTxBlock;
@@ -3403,9 +3391,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
 
     if (fromLookup) {
       LOG_GENERAL(INFO, "Syncing from lookup ...");
-      auto func2 = [this]() mutable -> void {
-        StartSynchronization();
-      };
+      auto func2 = [this]() mutable -> void { StartSynchronization(); };
       DetachedFunction(1, func2);
     } else {
       LOG_GENERAL(INFO, "Syncing from S3 ...");
