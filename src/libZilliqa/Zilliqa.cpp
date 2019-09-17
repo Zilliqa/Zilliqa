@@ -22,7 +22,7 @@
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "depends/safeserver/safehttpserver.h"
-#include "depends/safeserver/safetcpsocketserver.h"
+#include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -357,7 +357,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (ENABLE_STATUS_RPC) {
       m_statusServerConnector =
-          make_unique<SafeTcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+          make_unique<TcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
       m_statusServer =
           make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
       if (m_statusServer == nullptr) {
