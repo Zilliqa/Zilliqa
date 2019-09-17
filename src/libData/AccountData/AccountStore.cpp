@@ -18,7 +18,6 @@
 #include <leveldb/db.h>
 
 #include "AccountStore.h"
-#include "depends/safeserver/safetcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
