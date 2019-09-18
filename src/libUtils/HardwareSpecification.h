@@ -58,7 +58,7 @@ bool FetchValue(std::string sourceFile, std::string key, T& value) {
     }
     // Did not found the key
     LOG_GENERAL(WARNING, "Failed to fetch value for key : " << key)
-  } catch (std::exception e) {
+  } catch (std::exception& e) {
     LOG_GENERAL(WARNING, e.what());
     LOG_GENERAL(WARNING, "ERROR: Failed to fetch value for key : " << key);
   }
