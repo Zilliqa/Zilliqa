@@ -28,6 +28,7 @@
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
@@ -37,7 +38,8 @@ using namespace boost::multiprecision;
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
-#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION -2
+#define ERROR_UNHANDLED_EXCEPTION -3
 
 namespace po = boost::program_options;
 
@@ -172,6 +174,18 @@ int main(int argc, const char* argv[]) {
 
     if (vm.count("loadconfig")) {
       std::cout << "WARNING: loadconfig deprecated" << std::endl;
+    }
+
+    if (!LOOKUP_NODE_MODE &&
+        !HardwareSpecification::
+            CheckMinimumHardwareRequired()) {  // Check on min. required
+                                               // hardware spec for only miner
+                                               // node for now.
+      std::cerr << "ERROR: "
+                << "Miner node does not meet the minimum required hardware "
+                   "spec, application will now exit"
+                << std::endl;
+      return ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION;
     }
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
