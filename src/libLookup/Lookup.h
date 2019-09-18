@@ -426,6 +426,9 @@ class Lookup : public Executable {
   // Start PoW variables
   std::set<Peer> m_getStartPoWPeerSet;
   std::mutex m_mutexGetStartPoWPeerSet;
+
+  // For use by lookup for dispatching transactions
+  std::atomic<bool> m_sendAllSCToDS{};
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
