@@ -81,6 +81,15 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDifficultyI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleSendSCToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ToggleSendSCToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetSendSCToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetSendSCToDSI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -213,4 +222,22 @@ Json::Value StatusServer::IsTxnInMemPool(const string& tranID) {
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }
+}
+
+bool StatusServer::ToggleSendSCToDS() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  m_mediator.m_lookup->m_sendAllSCToDS =
+      !(m_mediator.m_lookup->m_sendAllSCToDS);
+  return m_mediator.m_lookup->m_sendAllSCToDS;
+}
+
+bool StatusServer::GetSendSCToDS() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  return m_mediator.m_lookup->m_sendAllSCToDS;
 }
