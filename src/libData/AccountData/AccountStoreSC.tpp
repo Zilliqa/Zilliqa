@@ -1168,7 +1168,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
 
     recipient = Address(_json["message"]["_recipient"].asString());
-    if (recipient == Address()) {
+    if (!recipient) {
       LOG_GENERAL(WARNING, "The recipient can't be null address");
       receipt.AddError(RECEIPT_IS_NULL);
       return false;

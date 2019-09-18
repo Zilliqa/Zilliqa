@@ -342,7 +342,7 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
-  if (fromAddr == Address()) {
+  if (!fromAddr) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
   }
