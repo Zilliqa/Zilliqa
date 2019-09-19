@@ -25,13 +25,15 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 
+namespace {
 // RAM specific
-#define MEMORYINFO_SOURCE_FILE "/proc/meminfo"
-#define TOTAL_MEMORY_KEY "MemTotal:"
-#define MINIMUM_REQ_RAM 4000000
+const std::string MEMORYINFO_SOURCE_FILE = "/proc/meminfo";
+const std::string TOTAL_MEMORY_KEY = "MemTotal:";
+const unsigned long MINIMUM_REQ_RAM = 4000000;
 
 // CPU specific
-#define MINIMUM_REQ_NUM_OF_CPU 2
+const unsigned int MINIMUM_REQ_NUM_OF_CPU = 2;
+}  // namespace
 
 /// Utility function to check if hardware spec of node meets the minimum
 /// required ones.
