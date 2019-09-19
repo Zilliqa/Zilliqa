@@ -1011,7 +1011,7 @@ void ContractStorage2::InitTempState(bool callFromExternal) {
 
 dev::h256 ContractStorage2::GetContractStateHashCore(const dev::h160& address,
                                                      bool temp) {
-  if (!address) {
+  if (IsNullAddress(address)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
   }

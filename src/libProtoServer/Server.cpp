@@ -196,12 +196,12 @@ CreateTransactionResponse Server::CreateTransaction(
     if (num_shards > 0) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
 
-      if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+      if (tx.GetData().empty() || IsNullAddress(tx.GetToAddr())) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret.set_info("Non-contract txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
-        } else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+        } else if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret.set_info("Contract Creation txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
@@ -700,7 +700,7 @@ StringResponse Server::GetContractAddressFromTransactionID(
     }
 
     const Transaction& tx = tptr->GetTransaction();
-    if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+    if (tx.GetData().empty() || IsNullAddress(tx.GetToAddr())) {
       ret.set_result("ID not a contract txn");
       return ret;
     }
