@@ -69,14 +69,10 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
   }
 
   ZilliqaDaemon::LOG(m_log, msg);
-  KillProcess();
   StartNewProcess();
-  StartScripts();
 }
 
-void ZilliqaDaemon::MonitorProcess() {
-  const string name = programName[0];
-
+void ZilliqaDaemon::MonitorProcess(const string& name) {
   if (m_pids[name].empty()) {
     ZilliqaDaemon::LOG(m_log, "Looking for new " + name + " process...");
     vector<pid_t> tmp = ZilliqaDaemon::GetProcIdByName(name);
@@ -235,6 +231,8 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
 }
 
 void ZilliqaDaemon::StartNewProcess() {
+  KillProcess();
+
   ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
   signal(SIGCHLD, SIG_IGN);
 
@@ -303,6 +301,8 @@ void ZilliqaDaemon::StartNewProcess() {
                    " \"");
     exit(0);
   }
+
+  StartScripts();
 }
 
 void ZilliqaDaemon::StartScripts() {
@@ -366,6 +366,64 @@ void ZilliqaDaemon::KillProcess() {
         m_log, "Killing " + name + " process before launching daemon...");
     kill(pid, SIGTERM);
     ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
+  }
+
+  KillScripts();
+}
+
+void ZilliqaDaemon::KillScripts() {
+  signal(SIGCHLD, SIG_IGN);
+
+  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
+    pid_t pid_parent = fork();
+
+    if (pid_parent < 0) {
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
+      string cmdToRun =
+          "ps axf | grep " + upload_incr_DB_script +
+          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      exit(0);
+    }
+
+    pid_parent = fork();
+
+    if (pid_parent < 0) {
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
+      string cmdToRun =
+          "ps axf | grep " + auto_backup_script +
+          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      exit(0);
+    }
+  }
+
+  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
+    pid_t pid_parent = fork();
+
+    if (pid_parent < 0) {
+      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
+      exit(EXIT_FAILURE);
+    }
+
+    if (pid_parent == 0) {
+      string cmdToRun =
+          "ps axf | grep " + upload_incr_DB_script +
+          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      exit(0);
+    }
   }
 }
 
@@ -450,8 +508,10 @@ int main(int argc, const char* argv[]) {
   ZilliqaDaemon daemon(argc, argv, log);
 
   while (1) {
-    daemon.MonitorProcess();
-    sleep(5);
+    for (const auto& name : programName) {
+      daemon.MonitorProcess(name);
+      sleep(5);
+    }
   }
 
   exit(EXIT_SUCCESS);

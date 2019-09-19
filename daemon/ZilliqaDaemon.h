@@ -45,7 +45,7 @@
 class ZilliqaDaemon {
  public:
   ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log);
-  void MonitorProcess();
+  void MonitorProcess(const std::string& name);
   static void LOG(std::ofstream& log, const std::string& msg);
 
  private:
@@ -65,6 +65,7 @@ class ZilliqaDaemon {
   void StartNewProcess();
   void StartScripts();
   void KillProcess();
+  void KillScripts();
   int ReadInputs(int argc, const char* argv[]);
 };
 
