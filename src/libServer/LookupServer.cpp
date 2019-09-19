@@ -342,7 +342,7 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
-  if (fromAddr == Address()) {
+  if (IsNullAddress(fromAddr)) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
   }
@@ -870,7 +870,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "Txn Hash not Present");
     }
     const Transaction& tx = tptr->GetTransaction();
-    if (tx.GetCode().empty() || tx.GetToAddr() != NullAddress) {
+    if (tx.GetCode().empty() || !IsNullAddress(tx.GetToAddr())) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "ID is not a contract txn");
     }

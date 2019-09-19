@@ -32,4 +32,6 @@ using AddressHashSet = std::unordered_set<Address>;
 
 const Address NullAddress;
 
+inline bool IsNullAddress(const Address& address) { return !address; }
+
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_

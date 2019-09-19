@@ -160,16 +160,16 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    if (!tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+    if (!tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
         tx.GetCode().empty()) {
       return CONTRACT_CALL;
     }
 
-    if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+    if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
       return CONTRACT_CREATION;
     }
 
-    if (tx.GetData().empty() && tx.GetToAddr() != NullAddress &&
+    if (tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
         tx.GetCode().empty()) {
       return NON_CONTRACT;
     }
