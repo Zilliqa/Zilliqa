@@ -41,7 +41,8 @@ const unsigned int MINIMUM_REQ_NUM_OF_CPU = 2;
 namespace HardwareSpecification {
 
 template <typename T>
-bool FetchValue(std::string sourceFile, std::string key, T& value) {
+bool FetchValue(const std::string& sourceFile, const std::string& key,
+                T& value) {
   std::string token;
   std::ifstream file(sourceFile);
   try {
