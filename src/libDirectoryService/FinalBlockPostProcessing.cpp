@@ -306,30 +306,16 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
 
-      LOG_STATE("[MIBLKSWAIT][" << setw(15) << left
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << "]["
-                                << m_mediator.m_txBlockChain.GetLastBlock()
-                                           .GetHeader()
-                                           .GetBlockNum() +
-                                       1
-                                << "] BEGIN");
+      if (m_mediator.m_node->m_myshardId == 0) {
+        LOG_GENERAL(INFO,
+                    "[No PoW needed] No other shards. So no other microblocks "
+                    "expected to be received");
+        m_stopRecvNewMBSubmission = true;
 
-      auto func1 = [this]() mutable -> void {
-        m_mediator.m_node->CommitTxnPacketBuffer();
-      };
-      DetachedFunction(1, func1);
-
-      CommitMBSubmissionMsgBuffer();
-
-      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleDSMicroBlockConsensus);
-      if (cv_scheduleDSMicroBlockConsensus.wait_for(
-              cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout: Didn't receive all Microblock. Proceeds "
-                    "without it");
-
+        RunConsensusOnFinalBlock();
+      } else {
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "[No PoW needed] Waiting for Microblock.");
         LOG_STATE("[MIBLKSWAIT]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
@@ -337,15 +323,40 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                              .GetHeader()
                              .GetBlockNum() +
                          1
-                  << "] TIMEOUT: Didn't receive all Microblock.");
+                  << "] BEGIN");
 
-        m_stopRecvNewMBSubmission = true;
+        auto func1 = [this]() mutable -> void {
+          m_mediator.m_node->CommitTxnPacketBuffer();
+        };
+        DetachedFunction(1, func1);
 
-        RunConsensusOnFinalBlock();
+        CommitMBSubmissionMsgBuffer();
+
+        std::unique_lock<std::mutex> cv_lk(
+            m_MutexScheduleDSMicroBlockConsensus);
+        if (cv_scheduleDSMicroBlockConsensus.wait_for(
+                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
+            std::cv_status::timeout) {
+          LOG_GENERAL(WARNING,
+                      "Timeout: Didn't receive all Microblock. Proceeds "
+                      "without it");
+
+          LOG_STATE("[MIBLKSWAIT]["
+                    << setw(15) << left
+                    << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                    << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum() +
+                           1
+                    << "] TIMEOUT: Didn't receive all Microblock.");
+
+          m_stopRecvNewMBSubmission = true;
+
+          RunConsensusOnFinalBlock();
+        }
       }
     }
   };
-
   DetachedFunction(1, func);
 }
 
