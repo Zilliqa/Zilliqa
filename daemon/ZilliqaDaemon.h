@@ -65,7 +65,6 @@ class ZilliqaDaemon {
   void StartNewProcess();
   void StartScripts();
   void KillProcess();
-  void KillScripts();
   int ReadInputs(int argc, const char* argv[]);
 };
 

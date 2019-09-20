@@ -317,75 +317,12 @@ void ZilliqaDaemon::StartScripts() {
     }
 
     if (pid_parent == 0) {
-      string cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
-
-    pid_parent = fork();
-
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
-
-    if (pid_parent == 0) {
-      string cmdToRun =
-          "python3 " + m_curPath + auto_backup_script + " -f 10 &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
-  }
-
-  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
-    pid_t pid_parent = fork();
-
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
-
-    if (pid_parent == 0) {
-      string cmdToRun =
-          "python3 " + m_curPath + upload_incr_DB_script + " --backup &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
-  }
-}
-
-void ZilliqaDaemon::KillProcess() {
-  const string name = programName[0];
-  vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(name);
-
-  for (const auto& pid : pids) {
-    ZilliqaDaemon::LOG(
-        m_log, "Killing " + name + " process before launching daemon...");
-    kill(pid, SIGTERM);
-    ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
-  }
-
-  KillScripts();
-}
-
-void ZilliqaDaemon::KillScripts() {
-  signal(SIGCHLD, SIG_IGN);
-
-  if (m_nodeType == "lookup" && 0 == m_nodeIndex) {
-    pid_t pid_parent = fork();
-
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
-
-    if (pid_parent == 0) {
       string cmdToRun =
           "ps axf | grep " + upload_incr_DB_script +
           " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " &";
       ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       exit(0);
@@ -404,6 +341,9 @@ void ZilliqaDaemon::KillScripts() {
           " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
       ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      cmdToRun = "python3 " + m_curPath + auto_backup_script + " -f 10 &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       exit(0);
     }
   }
@@ -422,8 +362,23 @@ void ZilliqaDaemon::KillScripts() {
           " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
       ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
+      cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " --backup &";
+      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
+      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       exit(0);
     }
+  }
+}
+
+void ZilliqaDaemon::KillProcess() {
+  const string name = programName[0];
+  vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(name);
+
+  for (const auto& pid : pids) {
+    ZilliqaDaemon::LOG(
+        m_log, "Killing " + name + " process before launching daemon...");
+    kill(pid, SIGTERM);
+    ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
   }
 }
 
@@ -504,14 +459,14 @@ int main(int argc, const char* argv[]) {
   close(STDIN_FILENO);
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
-
   ZilliqaDaemon daemon(argc, argv, log);
 
   while (1) {
     for (const auto& name : programName) {
       daemon.MonitorProcess(name);
-      sleep(5);
     }
+
+    sleep(5);
   }
 
   exit(EXIT_SUCCESS);
