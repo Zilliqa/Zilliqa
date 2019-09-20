@@ -342,9 +342,9 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
-  if (numShards == 0) {
+  /*if (numShards == 0) {
     return false;
-  }
+  }*/
 
   for (auto& addrStr : GENESIS_WALLETS) {
     bytes addrBytes;
