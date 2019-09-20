@@ -3948,10 +3948,12 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
         numShards = m_mediator.m_ds->GetNumShards();
+        /*
         if (numShards == 0) {
           this_thread::sleep_for(chrono::milliseconds(1000));
           continue;
         }
+        */
         SendTxnPacketToNodes(oldNumShards, numShards);
       }
       break;
