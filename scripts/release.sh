@@ -23,8 +23,8 @@
 privKeyFile=""
 pubKeyFile=""
 testnet_to_be_upgraded=""
-cluster_name="" # eg: dev.k8s.z7a.xyz
-release_bucket_name="zilliqa-release-data"
+cluster_name="" # eg: xjfqp.dev.z7a.xyz.k8s.local
+release_bucket_name="33cb0344-f847-4fe9-a982-4b409403bdf3"
 
 # [OPTIONAL] User configuration settings
 # If you want to release Zilliqa, please keep this variable "true"
@@ -269,7 +269,7 @@ cd -
     cp ${constantLookupFile} ${constantLookupFile}_lookup
     cp ${constantLevel2LookupFile} ${constantLevel2LookupFile}_level2lookup
     [ ! -z "$constantNewLookupFile" ] && cp ${constantNewLookupFile} ${constantNewLookupFile}_newlookup
-    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./scripts) auto_back_up.py -C $(realpath ./scripts) downloadIncrDB.py -C $(realpath ./scripts) download_and_verify.sh -C $(realpath ./scripts) fetchHistorical.py -C $(realpath ./scripts) fetchHistorical.sh -C $(realpath ./scripts) uploadIncrDB.py -C $(realpath ./scripts) automateBackup.py -C $(realpath ./tests/Zilliqa) daemon_restart.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
+    cmd="tar cfz ${testnet_to_be_upgraded}.tar.gz -C $(dirname ${pubKeyFile}) $(basename ${pubKeyFile}) -C $(realpath ./scripts) miner_info.py -C $(realpath ./scripts) auto_backup.py -C $(realpath ./scripts) download_incr_DB.py -C $(realpath ./scripts) download_and_verify.sh -C $(realpath ./scripts) upload_incr_DB.py -C $(realpath ./scripts) auto_Backup.py -C $(realpath ./${releaseDir}) $(basename ${versionFile}) -C $(dirname ${constantFile}) $(basename ${constantFile}) -C $(dirname ${constantLookupFile}) $(basename ${constantLookupFile})_lookup"
     if [ "$releaseZilliqa" = "true" ]; then
         cmd="${cmd} -C $(dirname ${Zilliqa_Deb}) ${zilliqaDebFile}"
         cmd="${cmd} -C $(dirname ${constantLevel2LookupFile}) $(basename ${constantLevel2LookupFile})_level2lookup"
@@ -278,26 +278,9 @@ cd -
     [ ! -z "${scillaPath}" ] && cmd="${cmd} -C $(realpath ./) ${Scilla_Deb}"
 
     $cmd
+    cd -
 
     #### Step 2 ####
     # upload to S3 the ${testnet_to_be_upgraded}.tar.gz
-    cat << EOF > UploadToS3Script.py
-#!/usr/bin/env python
-import boto3
-from boto3.s3.transfer import S3Transfer
-import sys
-
-BUCKET_NAME = '$release_bucket_name'
-
-transfer = boto3.client('s3')
-key = sys.argv[1]
-prefix_key="release/"+key
-print(key)
-transfer.upload_file(key, BUCKET_NAME, prefix_key,ExtraArgs={'ACL':'public-read'})
-print("Uploaded")
-
-EOF
-
-chmod 755 UploadToS3Script.py
-python ./UploadToS3Script.py "${testnet_to_be_upgraded}.tar.gz"
-echo "Done!"
+    aws s3 cp ${testnet_to_be_upgraded}.tar.gz s3://${release_bucket_name}/release/${testnet_to_be_upgraded}.tar.gz
+    echo "Done!"
