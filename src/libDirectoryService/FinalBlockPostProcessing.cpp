@@ -312,6 +312,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                     "expected to be received");
         m_stopRecvNewMBSubmission = true;
 
+        m_mediator.m_node->CommitTxnPacketBuffer();
+
         RunConsensusOnFinalBlock();
       } else {
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
