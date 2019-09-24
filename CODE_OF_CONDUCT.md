@@ -66,7 +66,7 @@ This code of conduct and its related procedures also applies to unacceptable beh
 
 ## 9. Contact info
 
-You can contact Zilliqa Research via the Zilliqa's [Discord chat](https://discord.gg/8tpGXrB).
+You can contact Zilliqa Research via the Zilliqa [Discord chat](https://discord.gg/8tpGXrB).
 
 ## 10. License and attribution
 
