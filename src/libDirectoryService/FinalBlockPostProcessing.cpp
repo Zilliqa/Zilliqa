@@ -312,7 +312,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                     "expected to be received");
         m_stopRecvNewMBSubmission = true;
 
-        m_mediator.m_node->CommitTxnPacketBuffer();
+        auto func1 = [this]() mutable -> void {
+          m_mediator.m_node->CommitTxnPacketBuffer();
+        };
+        DetachedFunction(1, func1);
 
         RunConsensusOnFinalBlock();
       } else {

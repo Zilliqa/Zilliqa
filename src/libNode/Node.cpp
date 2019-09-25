@@ -1392,7 +1392,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-       m_mediator.m_node->m_myshardId == 0 &&
+       m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
        m_mediator.m_ds->m_state ==
            DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
@@ -1406,16 +1406,17 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO,
-                string(fromLookup ? "Received txn from lookup"
-                                  : "Received not in the prepared state") +
-                    ", store to buffer");
-    LOG_STATE("[TXNPKTPROC]["
-              << std::setw(15) << std::left
-              << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-              << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
-              << "] RECVFROMLOOKUP");
+    LOG_GENERAL(INFO, string(fromLookup ? "Received txn packet from lookup"
+                                        : "Received not in the proper state") +
+                          ", store txn packet to buffer");
+    if (fromLookup) {
+      LOG_STATE("[TXNPKTPROC]["
+                << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+                << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
+                << "] RECVFROMLOOKUP");
+    }
     m_txnPacketBuffer.emplace_back(message2);
   } else {
     LOG_GENERAL(INFO,
