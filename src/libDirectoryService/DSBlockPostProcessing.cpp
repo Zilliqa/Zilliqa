@@ -437,10 +437,10 @@ void DirectoryService::StartFirstTxEpoch() {
           INFO,
           "No other shards. So no other microblocks expected to be received");
       m_stopRecvNewMBSubmission = true;
-      
+
       auto func1 = [this]() mutable -> void {
-          m_mediator.m_node->CommitTxnPacketBuffer();
-        };
+        m_mediator.m_node->CommitTxnPacketBuffer();
+      };
       DetachedFunction(1, func1);
 
       RunConsensusOnFinalBlock();
