@@ -1047,7 +1047,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
-  
+
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardBackup(m_microBlockGasLimit);
   }
