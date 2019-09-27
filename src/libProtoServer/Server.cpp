@@ -1152,83 +1152,80 @@ ProtoShardingStruct Server::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    /* */ if (num_shards == 0) {
+    if (num_shards == 0) {
       ret.set_error("No shards yet");
     } else {
-      * / for (unsigned int i = 0; i < num_shards; i++) {
+      for (unsigned int i = 0; i < num_shards; i++) {
         ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
       }
-      //}
     }
-    catch (exception& e) {
-      LOG_GENERAL(WARNING, e.what());
-      ret.set_error("Unable to process");
-    }
-
-    return ret;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_error("Unable to process");
   }
 
-  UIntResponse Server::GetNumTxnsTxEpoch() {
-    LOG_MARKER();
+  return ret;
+}
 
-    UIntResponse ret;
+UIntResponse Server::GetNumTxnsTxEpoch() {
+  LOG_MARKER();
 
-    try {
-      ret.set_result(
-          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
-    } catch (exception& e) {
-      LOG_GENERAL(WARNING, e.what());
-      ret.set_result(0);
-    }
+  UIntResponse ret;
 
-    return ret;
+  try {
+    ret.set_result(
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_result(0);
   }
 
-  StringResponse Server::GetNumTxnsDSEpoch() {
-    LOG_MARKER();
+  return ret;
+}
 
-    StringResponse ret;
+StringResponse Server::GetNumTxnsDSEpoch() {
+  LOG_MARKER();
 
-    try {
-      auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
-      auto latestTxBlockNum = latestTxBlock.GetBlockNum();
-      auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
+  StringResponse ret;
 
-      if (latestTxBlockNum > m_TxBlockCountSumPair.first) {
-        // Case where the DS Epoch is same
-        if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
-                .GetHeader()
-                .GetDSBlockNum() == latestDSBlockNum) {
-          for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
-               i--) {
-            m_TxBlockCountSumPair.second +=
-                m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
-          }
+  try {
+    auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
+    auto latestTxBlockNum = latestTxBlock.GetBlockNum();
+    auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
 
-        } else {  // Case if DS Epoch Changed
-          m_TxBlockCountSumPair.second = 0;
-
-          for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
-               i--) {
-            if (m_mediator.m_txBlockChain.GetBlock(i)
-                    .GetHeader()
-                    .GetDSBlockNum() < latestDSBlockNum) {
-              break;
-            }
-            m_TxBlockCountSumPair.second +=
-                m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
-          }
+    if (latestTxBlockNum > m_TxBlockCountSumPair.first) {
+      // Case where the DS Epoch is same
+      if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
+              .GetHeader()
+              .GetDSBlockNum() == latestDSBlockNum) {
+        for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first; i--) {
+          m_TxBlockCountSumPair.second +=
+              m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
         }
 
-        m_TxBlockCountSumPair.first = latestTxBlockNum;
+      } else {  // Case if DS Epoch Changed
+        m_TxBlockCountSumPair.second = 0;
+
+        for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first; i--) {
+          if (m_mediator.m_txBlockChain.GetBlock(i)
+                  .GetHeader()
+                  .GetDSBlockNum() < latestDSBlockNum) {
+            break;
+          }
+          m_TxBlockCountSumPair.second +=
+              m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+        }
       }
 
-      ret.set_result(m_TxBlockCountSumPair.second.str());
-
-    } catch (exception& e) {
-      LOG_GENERAL(WARNING, e.what());
-      ret.set_result("0");
+      m_TxBlockCountSumPair.first = latestTxBlockNum;
     }
 
-    return ret;
+    ret.set_result(m_TxBlockCountSumPair.second.str());
+
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_result("0");
   }
+
+  return ret;
+}

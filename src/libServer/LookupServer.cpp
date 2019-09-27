@@ -1371,13 +1371,13 @@ Json::Value LookupServer::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    /* if (num_shards == 0) {
+    if (num_shards == 0) {
       throw JsonRpcException(RPC_IN_WARMUP, "No shards yet");
-    } else {*/
-    for (unsigned int i = 0; i < num_shards; i++) {
-      _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
+    } else {
+      for (unsigned int i = 0; i < num_shards; i++) {
+        _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
+      }
     }
-    //}
     return _json;
 
   } catch (const JsonRpcException& je) {
