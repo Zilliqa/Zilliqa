@@ -1039,6 +1039,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_2
+
+  // No other shards exists, then allow additional time for txns distribution.
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+      m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+  }
+
+  m_mediator.m_node->m_txn_distribute_window_open = false;
+
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->ProcessTransactionWhenShardBackup(m_microBlockGasLimit);
   }
