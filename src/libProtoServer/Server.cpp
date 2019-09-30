@@ -1152,12 +1152,8 @@ ProtoShardingStruct Server::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    if (num_shards == 0) {
-      ret.set_error("No shards yet");
-    } else {
-      for (unsigned int i = 0; i < num_shards; i++) {
-        ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
-      }
+    for (unsigned int i = 0; i < num_shards; i++) {
+      ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
     }
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
