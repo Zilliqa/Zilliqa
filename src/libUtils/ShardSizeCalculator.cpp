@@ -59,7 +59,7 @@ void ShardSizeCalculator::GenerateShardCounts(
     const uint32_t shardSize, const uint32_t shardSizeToleranceLo,
     const uint32_t shardSizeToleranceHi, const uint32_t numNodesForSharding,
     vector<uint32_t>& shardCounts, bool logDetails) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (shardSizeToleranceLo >= shardSize) {
     LOG_GENERAL(
