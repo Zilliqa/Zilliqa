@@ -213,7 +213,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
       SetConsensusLeaderID(m_consensusMyID.load());
     } else {
-      DequeOfNode::iterator iterConsensusLeaderID =
+      auto iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
                m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
 

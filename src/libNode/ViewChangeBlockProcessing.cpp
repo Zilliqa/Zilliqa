@@ -229,6 +229,26 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
+  PairOfNode dsLeaderInfo =
+      make_pair(vcblock.GetHeader().GetCandidateLeaderPubKey(),
+                vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
+
+  auto iterDSLeaderID = find(m_mediator.m_DSCommittee->begin(),
+                             m_mediator.m_DSCommittee->end(), dsLeaderInfo);
+
+  if (iterDSLeaderID == m_mediator.m_DSCommittee->end()) {
+    LOG_GENERAL(WARNING, "Cannot find new DS leader in the ds committee "
+                             << dsLeaderInfo.second);
+    return false;
+  }
+
+  auto dsLeaderId = distance(m_mediator.m_DSCommittee->begin(), iterDSLeaderID);
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      dsLeaderId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return false;
+  }
+
   UpdateDSCommitteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE) {
