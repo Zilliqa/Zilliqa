@@ -101,6 +101,7 @@ void ShardCountTestMain(const uint32_t shardSize,
                   << shardSize + shardSizeToleranceHi << "] Nodes="
                   << numNodesForSharding << " Shards=[ " << shardsString.str()
                   << "] Unsharded=" << numNodesForSharding - totalSharded);
+    BOOST_CHECK(totalSharded <= numNodesForSharding);
   }
 }
 
