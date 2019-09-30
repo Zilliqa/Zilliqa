@@ -213,7 +213,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
       SetConsensusLeaderID(m_consensusMyID.load());
     } else {
-      DequeOfNode::iterator iterConsensusLeaderID =
+      auto iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
                m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
 
@@ -284,6 +284,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (!BlockStorage::GetBlockStorage().PutVCBlock(
           m_pendingVCBlock->GetBlockHash(), dst)) {
     LOG_GENERAL(WARNING, "Unable to put VC Block");
+    return;
+  }
+
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return;
   }
 
