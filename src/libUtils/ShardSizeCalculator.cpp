@@ -64,6 +64,7 @@ static void GenerateShardCountsCore(const vector<uint32_t>& shardSizeValues,
   if (numNodesForSharding < shardSizeValues[0]) {
     // Distribute these nodes among the existing shards
     if ((numNodesForSharding > 0) && (currentResult.size() > 0)) {
+      const uint32_t upperLimit = shardSizeValues[shardSizeValues.size() - 1];
       uint32_t toAddPerShard = numNodesForSharding / currentResult.size();
       if ((numNodesForSharding % currentResult.size()) > 0) {
         toAddPerShard++;
@@ -71,8 +72,7 @@ static void GenerateShardCountsCore(const vector<uint32_t>& shardSizeValues,
       for (auto& shardInCurrentResult : currentResult) {
         // Don't add more nodes than the max threshold
         uint32_t actualToAdd =
-            min(toAddPerShard, shardSizeValues[shardSizeValues.size() - 1] -
-                                   shardInCurrentResult);
+            min(toAddPerShard, upperLimit - shardInCurrentResult);
         actualToAdd = min(actualToAdd, numNodesForSharding);
         shardInCurrentResult += actualToAdd;
         numNodesForSharding -= actualToAdd;
