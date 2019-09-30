@@ -287,6 +287,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
+    return;
+  }
+
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
   // Broadcasting vcblock to lookup nodes iff view change does not occur before
   // ds block consensus. This is to be consistent with how normal node process
