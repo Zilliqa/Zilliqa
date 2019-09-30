@@ -31,8 +31,7 @@ class ShardSizeCalculator {
                                   const uint32_t shardSizeToleranceLo,
                                   const uint32_t shardSizeToleranceHi,
                                   const uint32_t numNodesForSharding,
-                                  std::vector<uint32_t>& shardCounts,
-                                  bool logDetails = true);
+                                  std::vector<uint32_t>& shardCounts);
 
   static uint32_t GetTrimmedShardCount(const uint32_t shardSize,
                                        const uint32_t shardSizeToleranceLo,
