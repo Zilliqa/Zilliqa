@@ -340,8 +340,6 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
     throw JsonRpcException(RPC_VERIFY_REJECTED, "Unable to verify transaction");
   }
 
-  unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
-
   if (IsNullAddress(fromAddr)) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
@@ -377,10 +375,6 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Nonce (" + to_string(tx.GetNonce()) +
                                ") lower than current (" +
                                to_string(sender->GetNonce()) + ")");
-  }
-
-  if (num_shards == 0) {
-    throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
   }
 
   return true;
@@ -1369,13 +1363,10 @@ Json::Value LookupServer::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    if (num_shards == 0) {
-      throw JsonRpcException(RPC_IN_WARMUP, "No shards yet");
-    } else {
-      for (unsigned int i = 0; i < num_shards; i++) {
-        _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
-      }
+    for (unsigned int i = 0; i < num_shards; i++) {
+      _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
     }
+
     return _json;
 
   } catch (const JsonRpcException& je) {

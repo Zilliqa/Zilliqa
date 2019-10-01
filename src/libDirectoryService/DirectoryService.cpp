@@ -740,7 +740,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
                   "run consensus.");
     }
 
-    RunConsensusOnDSBlock(isRejoin);
+    RunConsensusOnDSBlock();
   }
   // now that we already run DSBlock Consensus, lets clear the buffered pow
   // solutions. why not clear it at start of new ds epoch - becoz sometimes
