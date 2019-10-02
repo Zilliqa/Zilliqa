@@ -2184,6 +2184,41 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
+bool Node::RecalculateMyShardId() {
+  lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+  m_myshardId = -1;
+  uint32_t shardId = -1;
+  for (const auto& shard : m_mediator.m_ds->m_shards) {
+    shardId++;
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
+        m_myshardId = shardId;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool Node::ComposeAndSendWhitelistRequestToPeers() {
+  if (m_myShardMembers->empty()) {
+    LOG_GENERAL(WARNING, "I don't belong to any shard");
+    return false;
+  } else {
+    LOG_GENERAL(INFO, "Sending whitelist request to my peers");
+  }
+  VectorOfPeer myShardPeers;
+  {
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
+    for (const auto& member : *m_myShardMembers) {
+      myShardPeers.emplace_back(std::get<SHARD_NODE_PEER>(member));
+    }
+    bytes whitelistMsg;
+    P2PComm::GetInstance().SendBroadcastMessage(myShardPeers, whitelistMsg);
+  }
+  return true;
+}
+
 bool Node::Execute(const bytes& message, unsigned int offset,
                    const Peer& from) {
   // LOG_MARKER();

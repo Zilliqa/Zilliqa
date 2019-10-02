@@ -453,6 +453,12 @@ class Node : public Executable {
   /// Get this node shard ID
   uint32_t GetShardId() { return m_myshardId; };
 
+  /// Recalculate this node shardID
+  bool RecalculateMyShardId();
+
+  // Send whitelist message to peers
+  bool ComposeAndSendWhitelistRequestToPeers();
+
   /// Sets the value of m_state.
   void SetState(NodeState state);
 

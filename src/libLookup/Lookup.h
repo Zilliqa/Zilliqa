@@ -238,8 +238,7 @@ class Lookup : public Executable {
                                [[gnu::unused]] unsigned int offset,
                                [[gnu::unused]] const Peer& from);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
-  // UNUSED
-  bool GetShardFromLookup();
+
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
 

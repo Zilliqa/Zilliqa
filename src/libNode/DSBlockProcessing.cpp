@@ -224,7 +224,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
   if (!foundMe && !callByRetrieve) {
     LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
-    RejoinAsNormal();
+    this->StartSynchronization();
     return false;
   }
 

@@ -130,8 +130,7 @@ void Lookup::InitSync() {
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
     if (cv_shardStruct.wait_for(
-            cv_lk,
-            std::chrono::seconds(NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS)) ==
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
         std::cv_status::timeout) {
       LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
     } else {
@@ -1409,24 +1408,6 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
   return true;
 }
 
-// UNUSED
-bool Lookup::GetShardFromLookup() {
-  LOG_MARKER();
-
-  bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
-
-  if (!Messenger::SetLookupGetShardsFromSeed(
-          msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetShardsFromSeed failed.");
-    return false;
-  }
-
-  SendMessageToRandomLookupNode(msg);
-
-  return true;
-}
-
 bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   TxBlock txblk =
       m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetEpochNum());
@@ -2097,46 +2078,55 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   m_mediator.UpdateTxBlockRand();
 
-  if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
-      (m_syncType != SyncType::NEW_LOOKUP_SYNC)) {
-    if (m_syncType == SyncType::RECOVERY_ALL_SYNC) {
-      LOG_EPOCH(
-          INFO, m_mediator.m_currentEpochNum,
-          "New node - At new DS epoch now, try getting state from lookup");
-      GetStateFromSeedNodes();
-    } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Lookup node - Join back to network now.");
-
-      if (!m_currDSExpired) {
-        if (FinishRejoinAsLookup()) {
-          SetSyncType(SyncType::NO_SYNC);
-
-          if (m_lookupServer) {
-            if (m_lookupServer->StartListening()) {
-              LOG_GENERAL(INFO, "API Server started to listen again");
-            } else {
-              LOG_GENERAL(WARNING, "API Server couldn't start");
-            }
-          }
-        }
-      }
-
+  if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC) {
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
+      SetSyncType(SyncType::NO_SYNC);
+      m_isFirstLoop = true;
       m_currDSExpired = false;
-    } else if (m_syncType == SyncType::NEW_SYNC ||
-               m_syncType == SyncType::NORMAL_SYNC) {
       PrepareForStartPow();
-    } else if (m_syncType == SyncType::DS_SYNC ||
-               m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired &&
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
-              m_mediator.m_currentEpochNum) {
-        m_isFirstLoop = true;
-        SetSyncType(SyncType::NO_SYNC);
-        m_mediator.m_ds->FinishRejoinAsDS();
+    } else {
+      // Ask for the sharding structure from lookup
+      ComposeAndSendGetShardingStructureFromSeed();
+      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+      if (cv_shardStruct.wait_for(
+              cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(
+            WARNING,
+            "Didn't receive sharding structure! Try checking next epoch");
+      } else {
+        if (!m_mediator.m_node->RecalculateMyShardId()) {
+          LOG_GENERAL(INFO,
+                      "I was not in any shard in current ds epoch previously");
+        }
+        if (m_mediator.m_node->LoadShardingStructure()) {
+          if (!m_currDSExpired &&
+              m_mediator.m_dsBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetEpochNum() < m_mediator.m_currentEpochNum) {
+            m_isFirstLoop = true;
+            SetSyncType(SyncType::NO_SYNC);
+            // Send whitelist request to all peers.
+            m_mediator.m_node->ComposeAndSendWhitelistRequestToPeers();
+
+            m_mediator.m_node->StartFirstTxEpoch();
+          }
+        } else {
+          LOG_GENERAL(INFO, "Try next epoch");
+        }
+        m_currDSExpired = false;
       }
-      m_currDSExpired = false;
     }
+  } else if (m_syncType == SyncType::DS_SYNC ||
+             m_syncType == SyncType::GUARD_DS_SYNC) {
+    if (!m_currDSExpired &&
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+            m_mediator.m_currentEpochNum) {
+      m_isFirstLoop = true;
+      SetSyncType(SyncType::NO_SYNC);
+      m_mediator.m_ds->FinishRejoinAsDS();
+    }
+    m_currDSExpired = false;
   } else if (m_syncType == SyncType::LOOKUP_SYNC ||
              m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     LOG_EPOCH(
