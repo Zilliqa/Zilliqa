@@ -100,9 +100,9 @@ void Node::ProcessFallbackConsensusWhenDone() {
   m_pendingFallbackBlock->GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(),
                           m_pendingFallbackBlock->GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(message, 0, message.size(),
-                                              m_pendingFallbackBlock->GetCS2(),
-                                              *aggregatetdKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(),
+                                m_pendingFallbackBlock->GetCS2(),
+                                *aggregatetdKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

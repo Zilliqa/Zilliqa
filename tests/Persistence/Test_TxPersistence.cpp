@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
 TxBlock constructDummyTxBlock(int instanceNum) {
   // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
   return TxBlock(
       TxBlockHeader(1, 1, 1, instanceNum, TxBlockHashSet(), 5, pubKey1.second,

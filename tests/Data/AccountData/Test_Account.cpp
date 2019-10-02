@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   bytes code = {'h', 'e', 'l', 'l', 'o'};
 
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
 
   std::string invalidmessage = "[{\"vname\"]";
@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(testNonce) {
 
 BOOST_AUTO_TEST_CASE(testSerialize) {
   uint128_t CURRENT_BALANCE = TestUtils::DistUint128();
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
 
   Account acc1(CURRENT_BALANCE, 0);

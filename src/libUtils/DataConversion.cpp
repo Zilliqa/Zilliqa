@@ -92,8 +92,8 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
   return true;
 }
 
-bool DataConversion::SerializableToHexStr(const Serializable& input,
-                                          string& str) {
+template <class T>
+bool DataConversion::SerializableToHexStr(const T& input, string& str) {
   bytes tmp;
   input.Serialize(tmp, 0);
   try {
@@ -105,6 +105,13 @@ bool DataConversion::SerializableToHexStr(const Serializable& input,
   }
   return true;
 }
+
+template bool DataConversion::SerializableToHexStr<Serializable>(
+    const Serializable& input, string& str);
+template bool DataConversion::SerializableToHexStr<PubKey>(const PubKey& input,
+                                                           string& str);
+template bool DataConversion::SerializableToHexStr<Signature>(
+    const Signature& input, string& str);
 
 uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   if (hex_arr.size() == 0) {

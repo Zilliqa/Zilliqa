@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <array>
 #include <string>
 #include <vector>
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test1) {
     fromAddr.asArray().at(i) = i + 8;
   }
 
-  PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey sender = Schnorr::GenKeyPair();
   Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
   Signature sig = TestUtils::GetSignature(
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender);

@@ -20,8 +20,8 @@
 
 #include <tuple>
 
+#include <Schnorr.h>
 #include "Peer.h"
-#include "libCrypto/Schnorr.h"
 
 using VectorOfPeer = std::vector<Peer>;
 

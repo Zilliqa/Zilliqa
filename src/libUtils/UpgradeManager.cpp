@@ -16,12 +16,12 @@
  */
 
 #include "UpgradeManager.h"
+#include <MultiSig.h>
 #include <sys/wait.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
-#include "libCrypto/MultiSig.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
@@ -262,7 +262,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       }
       Signature sig(sigBytes, 0);
 
-      if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
+      if (!Schnorr::Verify(message, sig, pubKey)) {
         LOG_GENERAL(WARNING, "Unable to verify file");
         return false;
       }

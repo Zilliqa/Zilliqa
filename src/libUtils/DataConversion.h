@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include <Schnorr.h>
+
 #include "common/Serializable.h"
 #include "libUtils/Logger.h"
 
@@ -68,7 +70,8 @@ class DataConversion {
   }
 
   /// Converts a serializable object to alphanumeric hex string.
-  static bool SerializableToHexStr(const Serializable& input, std::string& str);
+  template <class T>
+  static bool SerializableToHexStr(const T& input, std::string& str);
 
   static inline const std::string CharArrayToString(const bytes& v) {
     return std::string(v.begin(), v.end());

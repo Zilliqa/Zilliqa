@@ -109,9 +109,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
   m_pendingVCBlock->GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), m_pendingVCBlock->GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(message, 0, message.size(),
-                                              m_pendingVCBlock->GetCS2(),
-                                              *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(),
+                                m_pendingVCBlock->GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

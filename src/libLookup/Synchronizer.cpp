@@ -17,10 +17,10 @@
 
 #include <vector>
 
+#include <Schnorr.h>
 #include "Synchronizer.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"

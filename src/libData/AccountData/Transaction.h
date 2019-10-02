@@ -20,11 +20,11 @@
 
 #include <array>
 
+#include <Schnorr.h>
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
-#include "libCrypto/Schnorr.h"
 
 using TxnHash = dev::h256;
 

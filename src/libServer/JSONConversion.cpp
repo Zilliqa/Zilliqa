@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
+#include <Schnorr.h>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"

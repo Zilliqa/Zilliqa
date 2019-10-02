@@ -43,6 +43,9 @@ endif()
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
+include(InstallSchnorr)
+include_directories(${SCHNORR_INCLUDE_DIR}/include)
+
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)

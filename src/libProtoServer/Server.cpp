@@ -18,10 +18,10 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <iostream>
 
+#include <Schnorr.h>
 #include "Server.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"

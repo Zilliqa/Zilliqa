@@ -148,8 +148,8 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   }
   dsblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), dsblock.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          message, 0, message.size(), dsblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(), dsblock.GetCS2(),
+                                *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

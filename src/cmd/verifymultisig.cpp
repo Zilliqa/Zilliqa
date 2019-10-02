@@ -19,8 +19,10 @@
 
 #include <boost/program_options.hpp>
 
-#include "libCrypto/MultiSig.h"
+#include <MultiSig.h>
 #include "libUtils/SWInfo.h"
+
+#include "libUtils/DataConversion.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
@@ -100,8 +102,7 @@ int main(int argc, const char* argv[]) {
     shared_ptr<Signature> sig(new Signature(signature, 0));
 
     /// Multi-sig verification
-    if (MultiSig::GetInstance().MultiSigVerify(message, *sig,
-                                               *aggregatedPubkey)) {
+    if (MultiSig::MultiSigVerify(message, *sig, *aggregatedPubkey)) {
       cout << "PASS" << endl;
     } else {
       cout << "FAIL" << endl;

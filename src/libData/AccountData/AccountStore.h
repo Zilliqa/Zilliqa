@@ -24,6 +24,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 
+#include <Schnorr.h>
 #include "Account.h"
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
@@ -35,7 +36,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
 

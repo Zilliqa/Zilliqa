@@ -26,10 +26,10 @@
 #include <set>
 #include <shared_mutex>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
