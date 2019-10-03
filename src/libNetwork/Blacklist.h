@@ -43,18 +43,22 @@ class Blacklist {
   void operator=(Blacklist const&) = delete;
 
   std::mutex m_mutexBlacklistIP;
-  std::unordered_map<uint128_t, bool> m_blacklistIP;
+  std::unordered_map<uint128_t, bool>
+      m_blacklistIP;  // IP <-> Strict/Relaxed
+                      // Strict -> Blacklisted for both sending and incoming msg
+                      // Relaxed -> Blacklisted for incoming msg onlyy
   std::set<uint128_t> m_excludedIP;
   std::atomic<bool> m_enabled;
 
  public:
   static Blacklist& GetInstance();
 
-  /// P2PComm may use this function
-  bool Exist(const uint128_t& ip);
+  /// P2PComm may use this function - whether exists in m_strictBlacklistIP or
+  /// m_relaxedBlacklistIP
+  bool Exist(const uint128_t& ip, const bool strict = true);
 
   /// P2PComm may use this function to blacklist certain non responding nodes
-  void Add(const uint128_t& ip);
+  void Add(const uint128_t& ip, const bool strict = true);
 
   /// P2PComm may use this function to remove a node form blacklist
   void Remove(const uint128_t& ip);
