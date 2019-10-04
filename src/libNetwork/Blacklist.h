@@ -46,8 +46,8 @@ class Blacklist {
   std::unordered_map<uint128_t, bool>
       m_blacklistIP;  // IP <-> Strict/Relaxed
                       // Strict -> Blacklisted for both sending and incoming msg
-                      // Relaxed -> Blacklisted for incoming msg onlyy
-  std::set<uint128_t> m_excludedIP;
+                      // Relaxed -> Blacklisted for incoming msg only
+  std::set<uint128_t> m_whitelistedIP;
   std::atomic<bool> m_enabled;
 
  public:
@@ -75,11 +75,11 @@ class Blacklist {
   /// Enable / disable blacklist
   void Enable(const bool enable);
 
-  /// Node to be excluded from blacklisting
-  bool Exclude(const uint128_t& ip);
+  /// Node to be whitelisted
+  bool Whitelist(const uint128_t& ip);
 
-  /// Remove node from exclusion list for blacklisting
-  bool RemoveExclude(const uint128_t& ip);
+  /// Remove node from whitelist
+  bool RemoveFromWhitelist(const uint128_t& ip);
 
   /// Check if given IP is a part of whitelisted ip
   bool IsWhitelistedIP(const uint128_t& ip);

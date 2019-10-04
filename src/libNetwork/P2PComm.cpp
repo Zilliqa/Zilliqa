@@ -137,7 +137,7 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << from.GetPrintableIPAddress()
-                               << " as strictly blacklist");
+                               << " as strictly blacklisted");
       Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
       return written_length;
     } else if (P2PComm::IsNodeNotRunning()) {
@@ -662,7 +662,7 @@ void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
                              << len << " being received."
                              << " Adding sending node "
                              << from.GetPrintableIPAddress()
-                             << " as strictly blacklist");
+                             << " as strictly blacklisted");
     Blacklist::GetInstance().Add(from.m_ipAddress);
     bufferevent_free(bev);
   }

@@ -56,14 +56,15 @@ void Blacklist::Add(const uint128_t& ip, const bool strict) {
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  if (m_excludedIP.end() == m_excludedIP.find(ip)) {
+  if (m_whitelistedIP.end() == m_whitelistedIP.find(ip)) {
     const auto& res = m_blacklistIP.emplace(ip, strict);
-    // already existed over-ride strictness i.e. false by true
+    // already existed, then over-ride strictness i.e. false by true
     if (!res.second && strict) {
       res.first->second = strict;
     }
   } else {
-    LOG_GENERAL(INFO, "Excluded " << IPConverter::ToStrFromNumericalIP(ip));
+    LOG_GENERAL(INFO,
+                "Whitelisted IP: " << IPConverter::ToStrFromNumericalIP(ip));
   }
 }
 
@@ -118,23 +119,23 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
-bool Blacklist::Exclude(const uint128_t& ip) {
+bool Blacklist::Whitelist(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return m_excludedIP.emplace(ip).second;
+  return m_whitelistedIP.emplace(ip).second;
 }
 
-bool Blacklist::RemoveExclude(const uint128_t& ip) {
+bool Blacklist::RemoveFromWhitelist(const uint128_t& ip) {
   if (!m_enabled) {
     return false;
   }
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return (m_excludedIP.erase(ip) > 0);
+  return (m_whitelistedIP.erase(ip) > 0);
 }
 
 bool Blacklist::IsWhitelistedIP(const uint128_t& ip) {
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return m_excludedIP.end() != m_excludedIP.find(ip);
+  return m_whitelistedIP.end() != m_whitelistedIP.find(ip);
 }
