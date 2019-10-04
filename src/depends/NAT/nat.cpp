@@ -27,7 +27,6 @@ using namespace std;
 namespace
 {
     const int DISCOVERY_TIME_OUT = 2000;
-    const int TTL  = 2;   
 }
 
 NAT::NAT()
