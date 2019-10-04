@@ -51,7 +51,9 @@ bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      T& serializable) {
   bytes tmp;
   copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
-  return serializable.Deserialize(tmp, 0) == 0;
+  return (std::is_same<T, Serializable>::value)
+             ? serializable.Deserialize(tmp, 0) == 0
+             : serializable.Deserialize(tmp, 0);
 }
 
 // Temporary function for use by data blocks
