@@ -1889,6 +1889,33 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
+bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
+    LOG_GENERAL(WARNING, "Message size for IP ADDRESS is too short");
+    return false;
+  }
+
+  PubKey senderPubKey;
+  uint128_t ipAddress;
+  if (!Messenger::GetNodeRemoveFromBlacklist(message, offset, senderPubKey,
+                                             ipAddress)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeRemoveFromBlacklist failed.");
+    return false;
+  }
+
+  if (from.GetIpAddress() != ipAddress) {
+    LOG_CHECK_FAIL("IP Address", Peer(ipAddress, 0).GetPrintableIPAddress(),
+                   from.GetPrintableIPAddress());
+    return false;
+  }
+
+  Blacklist::GetInstance().Remove(ipAddress);
+  return true;
+}
+
 bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
@@ -2193,21 +2220,20 @@ bool Node::Execute(const bytes& message, unsigned int offset,
   typedef bool (Node::*InstructionHandler)(const bytes&, unsigned int,
                                            const Peer&);
 
-  InstructionHandler ins_handlers[] = {
-      &Node::ProcessStartPoW,
-      &Node::ProcessVCDSBlocksMessage,
-      &Node::ProcessSubmitTransaction,
-      &Node::ProcessMicroBlockConsensus,
-      &Node::ProcessFinalBlock,
-      &Node::ProcessMBnForwardTransaction,
-      &Node::ProcessVCBlock,
-      &Node::ProcessDoRejoin,
-      &Node::ProcessTxnPacketFromLookup,
-      &Node::ProcessFallbackConsensus,
-      &Node::ProcessFallbackBlock,
-      &Node::ProcessProposeGasPrice,
-      &Node::ProcessDSGuardNetworkInfoUpdate,
-  };
+  InstructionHandler ins_handlers[] = {&Node::ProcessStartPoW,
+                                       &Node::ProcessVCDSBlocksMessage,
+                                       &Node::ProcessSubmitTransaction,
+                                       &Node::ProcessMicroBlockConsensus,
+                                       &Node::ProcessFinalBlock,
+                                       &Node::ProcessMBnForwardTransaction,
+                                       &Node::ProcessVCBlock,
+                                       &Node::ProcessDoRejoin,
+                                       &Node::ProcessTxnPacketFromLookup,
+                                       &Node::ProcessFallbackConsensus,
+                                       &Node::ProcessFallbackBlock,
+                                       &Node::ProcessProposeGasPrice,
+                                       &Node::ProcessDSGuardNetworkInfoUpdate,
+                                       &Node::ProcessRemoveNodeFromBlacklist};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
