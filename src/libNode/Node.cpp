@@ -1906,13 +1906,13 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
   {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    for (auto const& i : *m_mediator.m_DSCommittee) {
+    for (const auto& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
   } else {
     lock_guard<mutex> g(m_mutexShardMember);
-    for (auto& it : *m_myShardMembers) {
-      peerList.push_back(it.second);
+    for (const auto& i : *m_myShardMembers) {
+      peerList.push_back(i.second);
     }
   }
   P2PComm::GetInstance().SendMessage(peerList, message);
