@@ -366,7 +366,7 @@ class Messenger {
   static bool SetNodeMBnForwardTransaction(
       bytes& dst, const unsigned int offset, const MicroBlock& microBlock,
       const std::vector<TransactionWithReceipt>& txns,
-      const std::map<TxnHash, uint8_t>& hashCodeMap);
+      const std::unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap);
   static bool GetNodeMBnForwardTransaction(const bytes& src,
                                            const unsigned int offset,
                                            MBnForwardedTxnEntry& entry);

@@ -21,12 +21,13 @@
 #include "AccountStore.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
+#include "common/MempoolEnum.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 
 struct MBnForwardedTxnEntry {
   MicroBlock m_microBlock;
   std::vector<TransactionWithReceipt> m_transactions;
-  std::map<TxnHash, uint8_t> m_pendingTransactions;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_pendingTransactions;
 
   friend std::ostream& operator<<(std::ostream& os,
                                   const MBnForwardedTxnEntry& t);

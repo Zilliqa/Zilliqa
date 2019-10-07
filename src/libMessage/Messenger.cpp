@@ -4604,7 +4604,7 @@ bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
 bool Messenger::SetNodeMBnForwardTransaction(
     bytes& dst, const unsigned int offset, const MicroBlock& microBlock,
     const vector<TransactionWithReceipt>& txns,
-    const map<TxnHash, uint8_t>& hashCodeMap) {
+    const unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap) {
   LOG_MARKER();
 
   NodeMBnForwardTransaction result;
@@ -4673,7 +4673,8 @@ bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
                             (unsigned int)txhash.size);
     copy(codeHashPair.txnhash().begin(), codeHashPair.txnhash().begin() + size,
          txhash.asArray().begin());
-    entry.m_pendingTransactions.emplace(txhash, codeHashPair.code());
+    entry.m_pendingTransactions.emplace(
+        txhash, static_cast<PoolTxnStatus>(codeHashPair.code()));
   }
 
   LOG_GENERAL(INFO, entry << endl << " Txns: " << txnsCount);

@@ -462,7 +462,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
     }
   }
 
-  map<TxnHash, uint8_t> pendingTxns;  //[STATUS-ToDo]
+  auto pendingTxns = GetUnconfirmedTxns();
 
   // Transaction body sharing
   mb_txns_message = {MessageType::NODE,

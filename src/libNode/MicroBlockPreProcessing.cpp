@@ -766,6 +766,12 @@ PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
   return res->second;
 }
 
+unordered_map<TxnHash, PoolTxnStatus> Node::GetUnconfirmedTxns() const {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
+  return m_unconfirmedTxns;
+}
+
 void Node::UpdateBalanceForPreGeneratedAccounts() {
   LOG_MARKER();
   int counter = 0;
