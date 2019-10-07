@@ -2040,7 +2040,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveExclude(it->second.m_ipAddress);
+          Blacklist::GetInstance().RemoveFromWhitelist(it->second.m_ipAddress);
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2060,7 +2060,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
-        Blacklist::GetInstance().Exclude(
+        Blacklist::GetInstance().Whitelist(
             dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
         LOG_GENERAL(INFO,
                     "Added ds guard "
