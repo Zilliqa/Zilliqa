@@ -51,7 +51,7 @@ bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      T& serializable) {
   bytes tmp;
   copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
-  return (std::is_same<T, Serializable>::value)
+  return (std::is_base_of<Serializable, T>::value)
              ? serializable.Deserialize(tmp, 0) == 0
              : serializable.Deserialize(tmp, 0);
 }
@@ -1437,7 +1437,6 @@ bool ProtobufToDSBlockHeader(
 
   PubKey leaderPubKey;
   SWInfo swInfo;
-
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.swinfo(), swInfo);
