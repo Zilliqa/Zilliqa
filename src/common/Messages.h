@@ -57,6 +57,7 @@ enum NodeInstructionType : unsigned char {
   FALLBACKBLOCK = 0x0A,
   PROPOSEGASPRICE = 0x0B,
   DSGUARDNODENETWORKINFOUPDATE = 0x0C,
+  REMOVENODEFROMBLACKLIST = 0x0D
 };
 
 enum LookupInstructionType : unsigned char {

@@ -270,6 +270,11 @@ class Node : public Executable {
   bool ProcessDoRejoin(const bytes& message, unsigned int offset,
                        const Peer& from);
 
+  bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
+                                      const Peer& from);
+
+  void ComposeAndSendRemoveNodeFromBlacklist();
+
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);

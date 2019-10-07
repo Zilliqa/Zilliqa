@@ -1889,6 +1889,65 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
+void Node::ComposeAndSendRemoveNodeFromBlacklist() {
+  LOG_MARKER();
+  bytes message = {MessageType::NODE,
+                   NodeInstructionType::REMOVENODEFROMBLACKLIST};
+
+  if (!Messenger::SetNodeRemoveFromBlacklist(
+          message, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer.GetIpAddress())) {
+    LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
+    return;
+  }
+
+  // Send the peers
+  VectorOfPeer peerList;
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      peerList.push_back(i.second);
+    }
+  } else {
+    lock_guard<mutex> g(m_mutexShardMember);
+    for (const auto& i : *m_myShardMembers) {
+      peerList.push_back(i.second);
+    }
+  }
+  P2PComm::GetInstance().SendMessage(peerList, message);
+
+  // send to upper seeds
+  m_mediator.m_lookup->SendMessageToSeedNodes(message);
+}
+
+bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
+    LOG_GENERAL(WARNING, "Message size for IP ADDRESS is too short");
+    return false;
+  }
+
+  PubKey senderPubKey;
+  uint128_t ipAddress;
+  if (!Messenger::GetNodeRemoveFromBlacklist(message, offset, senderPubKey,
+                                             ipAddress)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeRemoveFromBlacklist failed.");
+    return false;
+  }
+
+  if (from.GetIpAddress() != ipAddress) {
+    LOG_CHECK_FAIL("IP Address", Peer(ipAddress, 0).GetPrintableIPAddress(),
+                   from.GetPrintableIPAddress());
+    return false;
+  }
+
+  Blacklist::GetInstance().Remove(ipAddress);
+  return true;
+}
+
 bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
@@ -2228,21 +2287,20 @@ bool Node::Execute(const bytes& message, unsigned int offset,
   typedef bool (Node::*InstructionHandler)(const bytes&, unsigned int,
                                            const Peer&);
 
-  InstructionHandler ins_handlers[] = {
-      &Node::ProcessStartPoW,
-      &Node::ProcessVCDSBlocksMessage,
-      &Node::ProcessSubmitTransaction,
-      &Node::ProcessMicroBlockConsensus,
-      &Node::ProcessFinalBlock,
-      &Node::ProcessMBnForwardTransaction,
-      &Node::ProcessVCBlock,
-      &Node::ProcessDoRejoin,
-      &Node::ProcessTxnPacketFromLookup,
-      &Node::ProcessFallbackConsensus,
-      &Node::ProcessFallbackBlock,
-      &Node::ProcessProposeGasPrice,
-      &Node::ProcessDSGuardNetworkInfoUpdate,
-  };
+  InstructionHandler ins_handlers[] = {&Node::ProcessStartPoW,
+                                       &Node::ProcessVCDSBlocksMessage,
+                                       &Node::ProcessSubmitTransaction,
+                                       &Node::ProcessMicroBlockConsensus,
+                                       &Node::ProcessFinalBlock,
+                                       &Node::ProcessMBnForwardTransaction,
+                                       &Node::ProcessVCBlock,
+                                       &Node::ProcessDoRejoin,
+                                       &Node::ProcessTxnPacketFromLookup,
+                                       &Node::ProcessFallbackConsensus,
+                                       &Node::ProcessFallbackBlock,
+                                       &Node::ProcessProposeGasPrice,
+                                       &Node::ProcessDSGuardNetworkInfoUpdate,
+                                       &Node::ProcessRemoveNodeFromBlacklist};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
