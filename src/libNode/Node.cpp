@@ -166,6 +166,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   LOG_MARKER();
 
   m_txn_distribute_window_open = false;
+  m_confirmedNotInNetwork = false;
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
@@ -2257,25 +2258,6 @@ bool Node::RecalculateMyShardId() {
     }
   }
   return false;
-}
-
-bool Node::ComposeAndSendWhitelistRequestToPeers() {
-  if (m_myShardMembers->empty()) {
-    LOG_GENERAL(WARNING, "I don't belong to any shard");
-    return false;
-  } else {
-    LOG_GENERAL(INFO, "Sending whitelist request to my peers");
-  }
-  VectorOfPeer myShardPeers;
-  {
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
-    for (const auto& member : *m_myShardMembers) {
-      myShardPeers.emplace_back(std::get<SHARD_NODE_PEER>(member));
-    }
-    bytes whitelistMsg;
-    P2PComm::GetInstance().SendBroadcastMessage(myShardPeers, whitelistMsg);
-  }
-  return true;
 }
 
 bool Node::Execute(const bytes& message, unsigned int offset,

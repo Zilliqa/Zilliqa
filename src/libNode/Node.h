@@ -273,8 +273,6 @@ class Node : public Executable {
   bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
                                       const Peer& from);
 
-  void ComposeAndSendRemoveNodeFromBlacklist();
-
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
@@ -435,6 +433,9 @@ class Node : public Executable {
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
 
+  // Is part of current sharding structure / dsCommittee
+  std::atomic<bool> m_confirmedNotInNetwork{};
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -461,8 +462,8 @@ class Node : public Executable {
   /// Recalculate this node shardID
   bool RecalculateMyShardId();
 
-  // Send whitelist message to peers
-  bool ComposeAndSendWhitelistRequestToPeers();
+  // Send whitelist message to peers and seeds
+  void ComposeAndSendRemoveNodeFromBlacklist();
 
   /// Sets the value of m_state.
   void SetState(NodeState state);

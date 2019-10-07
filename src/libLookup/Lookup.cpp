@@ -2083,38 +2083,41 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
       m_currDSExpired = false;
+      m_mediator.m_node->m_confirmedNotInNetwork = false;
       PrepareForStartPow();
     } else {
-      // Ask for the sharding structure from lookup
-      ComposeAndSendGetShardingStructureFromSeed();
-      std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-      if (cv_shardStruct.wait_for(
-              cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(
-            WARNING,
-            "Didn't receive sharding structure! Try checking next epoch");
-      } else {
-        if (!m_mediator.m_node->RecalculateMyShardId()) {
-          LOG_GENERAL(INFO,
-                      "I was not in any shard in current ds epoch previously");
-        }
-        if (m_mediator.m_node->LoadShardingStructure()) {
-          if (!m_currDSExpired &&
-              m_mediator.m_dsBlockChain.GetLastBlock()
-                      .GetHeader()
-                      .GetEpochNum() < m_mediator.m_currentEpochNum) {
-            m_isFirstLoop = true;
-            SetSyncType(SyncType::NO_SYNC);
-            // Send whitelist request to all peers.
-            m_mediator.m_node->ComposeAndSendWhitelistRequestToPeers();
-
-            m_mediator.m_node->StartFirstTxEpoch();
-          }
+      // check if already identified as not being part of any shard.
+      // If yes, just keep sycing until vacaous epoch. Don't proceed further.
+      if (!m_mediator.m_node->m_confirmedNotInNetwork) {
+        // Ask for the sharding structure from lookup
+        ComposeAndSendGetShardingStructureFromSeed();
+        std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+        if (cv_shardStruct.wait_for(
+                cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+            std::cv_status::timeout) {
+          LOG_GENERAL(
+              WARNING,
+              "Didn't receive sharding structure! Try checking next epoch");
         } else {
-          LOG_GENERAL(INFO, "Try next epoch");
+          if (!m_mediator.m_node->RecalculateMyShardId()) {
+            LOG_GENERAL(
+                INFO, "I was not in any shard in current ds epoch previously");
+            m_mediator.m_node->m_confirmedNotInNetwork = true;
+          } else if (m_mediator.m_node->LoadShardingStructure()) {
+            if (!m_currDSExpired &&
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetEpochNum() < m_mediator.m_currentEpochNum) {
+              m_isFirstLoop = true;
+              SetSyncType(SyncType::NO_SYNC);
+              // Send whitelist request to all peers and seeds.
+              m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist();
+
+              m_mediator.m_node->StartFirstTxEpoch();
+            }
+          }
+          m_currDSExpired = false;
         }
-        m_currDSExpired = false;
       }
     }
   } else if (m_syncType == SyncType::DS_SYNC ||
