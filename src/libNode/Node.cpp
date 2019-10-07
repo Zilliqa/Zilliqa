@@ -1889,7 +1889,7 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-void Node::ComposeAndSendRemoveNodeFromBlacklist(bool toSendSeed) {
+void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   LOG_MARKER();
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
@@ -1913,6 +1913,7 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist(bool toSendSeed) {
     lock_guard<mutex> g(m_mutexShardMember);
     for (auto& it : *m_myShardMembers) {
       peerList.push_back(it.second);
+    }
   }
   P2PComm::GetInstance().SendMessage(peerList, message);
 
