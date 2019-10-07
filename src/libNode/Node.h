@@ -273,6 +273,8 @@ class Node : public Executable {
   bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
                                       const Peer& from);
 
+  void ComposeAndSendRemoveNodeFromBlacklist(bool toSendSeed);
+
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);

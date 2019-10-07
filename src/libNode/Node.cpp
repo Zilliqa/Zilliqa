@@ -1889,6 +1889,37 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
+void Node::ComposeAndSendRemoveNodeFromBlacklist(bool toSendSeed) {
+  LOG_MARKER();
+  bytes message = {MessageType::NODE,
+                   NodeInstructionType::REMOVENODEFROMBLACKLIST};
+
+  if (!Messenger::SetNodeRemoveFromBlacklist(
+          message, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer.GetIpAddress())) {
+    LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
+    return;
+  }
+
+  // Send the peers
+  VectorOfPeer peerList;
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      peerList.push_back(i.second);
+    }
+  } else {
+    lock_guard<mutex> g(m_mutexShardMember);
+    for (auto& it : *m_myShardMembers) {
+      peerList.push_back(it.second);
+  }
+  P2PComm::GetInstance().SendMessage(peerList, message);
+
+  // send to upper seeds
+  m_mediator.m_lookup->SendMessageToSeedNodes(message);
+}
+
 bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
