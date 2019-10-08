@@ -3875,19 +3875,14 @@ void Lookup::RemoveSeedNodesFromBlackList() {
   }
 }
 
-bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::AddToTxnShardMap not expected to be called from "
-                "other than the LookUp node.");
-    return true;
-  }
-
-  lock_guard<mutex> g(m_txnShardMapMutex);
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
+                              TxnShardMap& txnShardMap,
+                              mutex& txnShardMapMutex) {
+  lock_guard<mutex> g(txnShardMapMutex);
 
   uint32_t size = 0;
 
-  for (const auto& x : m_txnShardMap) {
+  for (const auto& x : txnShardMap) {
     size += x.second.size();
   }
 
@@ -3897,19 +3892,30 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   }
 
   // case where txn already exist
-  if (find_if(m_txnShardMap[shardId].begin(), m_txnShardMap[shardId].end(),
+  if (find_if(txnShardMap[shardId].begin(), txnShardMap[shardId].end(),
               [tx](const Transaction& txn) {
                 return tx.GetTranID() == txn.GetTranID();
-              }) != m_txnShardMap[shardId].end()) {
+              }) != txnShardMap[shardId].end()) {
     LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
     return false;
   }
 
-  m_txnShardMap[shardId].push_back(tx);
+  txnShardMap[shardId].push_back(tx);
   LOG_GENERAL(INFO,
               "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
 
   return true;
+}
+
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::AddToTxnShardMap not expected to be called from "
+                "other than the LookUp node.");
+    return true;
+  }
+
+  return AddToTxnShardMap(tx, shardId, m_txnShardMap, m_txnShardMapMutex);
 }
 
 bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
