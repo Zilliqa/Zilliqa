@@ -402,25 +402,29 @@ void Node::ProcessTransactionWhenShardLeader(
         //                 << " Found " << t.GetNonce());
       }
       // if nonce correct, process it
-      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                     m_gasUsedTotal)) {
-          LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
-          break;
-        }
-        uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
-                                      txnFee)) {
-          LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
+      else {
+        if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+          gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
         }
-        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
-          LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
-          break;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
+          if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                       m_gasUsedTotal)) {
+            LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
+            break;
+          }
+          uint128_t txnFee;
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                        txnFee)) {
+            LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
+            continue;
+          }
+          if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
+            LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
+            break;
+          }
+          appendOne(t, tr);
         }
-        appendOne(t, tr);
-      } else {
-        // LOG_GENERAL(WARNING, "CheckCreatedTransaction failed");
       }
     } else {
       break;
@@ -626,23 +630,30 @@ void Node::ProcessTransactionWhenShardBackup(
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
       }
       // if nonce correct, process it
-      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                     m_gasUsedTotal)) {
-          LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
-          break;
-        }
-        uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
-                                      txnFee)) {
-          LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
+      else {
+        if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+          gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
         }
-        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
-          LOG_GENERAL(WARNING, "m_txnFees addition overflow!");
-          break;
+
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
+          if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                       m_gasUsedTotal)) {
+            LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
+            break;
+          }
+          uint128_t txnFee;
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                        txnFee)) {
+            LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
+            continue;
+          }
+          if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
+            LOG_GENERAL(WARNING, "m_txnFees addition overflow!");
+            break;
+          }
+          appendOne(t, tr);
         }
-        appendOne(t, tr);
       }
     } else {
       break;
