@@ -542,10 +542,10 @@ message NodeMBnForwardTransaction
 
     message Pair
     {
-        optional bytes txnhash          = 1;
-        optional uint32 code            = 2;
+        bytes txnhash          = 1;
+        uint32 code            = 2;
     }
-    required ProtoMicroBlock microblock = 1;
+    ProtoMicroBlock microblock          = 1;
     repeated ByteArray txnswithreceipt  = 2;
     repeated Pair hashcodepair          = 3;
 }
