@@ -386,7 +386,7 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
 Json::Value LookupServer::CreateTransaction(
     const Json::Value& _json, const unsigned int num_shards,
-    const uint128_t& gasPrice, CreateTransactionTargetFunc targetFunc) {
+    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {

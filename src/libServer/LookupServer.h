@@ -205,10 +205,9 @@ class LookupServer : public Server,
   }
 
   std::string GetNetworkId();
-  static Json::Value CreateTransaction(const Json::Value& _json,
-                                       const unsigned int num_shards,
-                                       const uint128_t& gasPrice,
-                                       CreateTransactionTargetFunc targetFunc);
+  static Json::Value CreateTransaction(
+      const Json::Value& _json, const unsigned int num_shards,
+      const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetDsBlock(const std::string& blockNum);
   Json::Value GetTxBlock(const std::string& blockNum);
