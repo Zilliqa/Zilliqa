@@ -316,37 +316,36 @@ bool LookupServer::StartCollectorThread() {
   return true;
 }
 
-bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                               const Account* sender) const {
+bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                 const Account* sender, const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "CHAIN_ID incorrect");
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "Code size is too large");
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Code size is too large");
   }
 
-  if (tx.GetGasPrice() <
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED,
+  if (tx.GetGasPrice() < gasPrice) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasPrice " + tx.GetGasPrice().convert_to<string>() +
                                " lower than minimum allowable " +
-                               m_mediator.m_dsBlockChain.GetLastBlock()
-                                   .GetHeader()
-                                   .GetGasPrice()
-                                   .convert_to<string>());
+                               gasPrice.convert_to<string>());
   }
-  if (!m_mediator.m_validator->VerifyTransaction(tx)) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "Unable to verify transaction");
+  if (!Validator::VerifyTransaction(tx)) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Unable to verify transaction");
   }
 
   if (IsNullAddress(fromAddr)) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
   }
 
   if (sender == nullptr) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "The sender of the txn has no balance");
   }
   const auto type = Transaction::GetTransactionType(tx);
@@ -354,7 +353,7 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   if (type == Transaction::ContractType::CONTRACT_CALL &&
       (tx.GetGasLimit() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
@@ -364,14 +363,14 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
            (tx.GetGasLimit() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for creating contract (" +
                                to_string(CONTRACT_CREATE_GAS) + ")");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Nonce (" + to_string(tx.GetNonce()) +
                                ") lower than current (" +
                                to_string(sender->GetNonce()) + ")");
@@ -380,7 +379,9 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
+Json::Value LookupServer::CreateTransaction(
+    const Json::Value& _json, const unsigned int num_shards,
+    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -399,11 +400,10 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
     const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-    if (!ValidateTxn(tx, fromAddr, sender)) {
+    if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
       return ret;
     }
 
-    const unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
     switch (Transaction::GetTransactionType(tx)) {
@@ -469,7 +469,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
-    if (!m_mediator.m_lookup->AddToTxnShardMap(tx, mapIndex)) {
+    if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");

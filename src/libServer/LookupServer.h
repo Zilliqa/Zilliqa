@@ -22,6 +22,9 @@
 
 class Mediator;
 
+typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
+    CreateTransactionTargetFunc;
+
 class LookupServer : public Server,
                      public jsonrpc::AbstractServer<LookupServer> {
   std::mutex m_mutexBlockTxPair;
@@ -38,6 +41,11 @@ class LookupServer : public Server,
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
 
+  CreateTransactionTargetFunc m_createTransactionTarget =
+      [this](const Transaction& tx, uint32_t shardId) -> bool {
+    return m_mediator.m_lookup->AddToTxnShardMap(tx, shardId);
+  };
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
@@ -49,7 +57,10 @@ class LookupServer : public Server,
   }
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
-    response = this->CreateTransaction(request[0u]);
+    response = CreateTransaction(
+        request[0u], m_mediator.m_lookup->GetShardPeers().size(),
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+        m_createTransactionTarget);
   }
   inline virtual void GetTransactionI(const Json::Value& request,
                                       Json::Value& response) {
@@ -194,7 +205,9 @@ class LookupServer : public Server,
   }
 
   std::string GetNetworkId();
-  Json::Value CreateTransaction(const Json::Value& _json);
+  static Json::Value CreateTransaction(
+      const Json::Value& _json, const unsigned int num_shards,
+      const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetDsBlock(const std::string& blockNum);
   Json::Value GetTxBlock(const std::string& blockNum);
@@ -222,8 +235,6 @@ class LookupServer : public Server,
   std::string GetNumTxnsTxEpoch();
 
   size_t GetNumTransactions(uint64_t blockNum);
-  bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                   const Account* sender) const;
   bool StartCollectorThread();
   std::string GetNodeState();
 

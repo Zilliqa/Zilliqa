@@ -29,6 +29,7 @@
 
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 
 /// Stores the NID_secp256k1 curve parameters for the elliptic curve scheme used
@@ -168,6 +169,8 @@ class PubKey : public Serializable {
     }
     return "0x" + output;
   }
+
+  Address GetAddressFromPubKey();
 };
 
 // hash for using PubKey
