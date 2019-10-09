@@ -256,8 +256,17 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
         return false;
       }
-      m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
-          DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
+
+      auto dsBlockNumStr =
+          DataConversion::CharArrayToString(latestActiveDSBlockNumVec);
+      try {
+        m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(dsBlockNumStr);
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Cannot convert invalid DS block number "
+                                 << dsBlockNumStr << ", exception "
+                                 << e.what());
+        return false;
+      }
     }
   } else {
     return false;

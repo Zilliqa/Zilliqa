@@ -772,6 +772,9 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
       root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
       root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
       std::to_string(available_gas);
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, cmdStr);
+  }
   return cmdStr;
 }
 
@@ -787,6 +790,9 @@ std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
       " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
       std::to_string(available_gas) + " -jsonerrors -balance " +
       balance.convert_to<std::string>();
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, cmdStr);
+  }
   return cmdStr;
 }
 
@@ -803,6 +809,9 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
       " -disable-pp-json" + " -disable-validate-json" +
       " -jsonerrors -balance " + balance.convert_to<std::string>();
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, cmdStr);
+  }
   return cmdStr;
 }
 

@@ -123,7 +123,6 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::atomic<bool> m_txn_distribute_window_open{};
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
@@ -429,6 +428,9 @@ class Node : public Executable {
 
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
+
+  // whether txns dist window open
+  std::atomic<bool> m_txn_distribute_window_open{};
 
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.

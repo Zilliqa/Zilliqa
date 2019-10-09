@@ -51,11 +51,10 @@ ExternalProject_Add(jsonrpc-project
     # On Windows it tries to install this dir. Create it to prevent failure.
     PATCH_COMMAND cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}
-    # Overwtire build and install commands to force Release build on MSVC.
+    # overwrite build and install commands to force Release build on MSVC.
     BUILD_COMMAND cmake --build <BINARY_DIR> --config Release
     INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install
 )
-
 
 
 # Create jsonrpc imported libraries
@@ -74,6 +73,8 @@ add_library(jsonrpc::common STATIC IMPORTED)
 set_property(TARGET jsonrpc::common PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-common${CMAKE_STATIC_LIBRARY_SUFFIX})
 set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES ${JSONCPP_LINK_TARGETS} gcov)
 set_property(TARGET jsonrpc::common PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JSONRPC_INCLUDE_DIR} ${JSONCPP_INCLUDE_DIR})
+link_libraries(--coverage)
+link_libraries(-lgcov)
 add_dependencies(jsonrpc::common jsonrpc-project)
 
 add_library(jsonrpc::client STATIC IMPORTED)

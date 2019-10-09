@@ -122,7 +122,7 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().Exclude(numIP)) {
+    if (!Blacklist::GetInstance().Whitelist(numIP)) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Could not add IP Address in exclusion list, already present");
@@ -147,7 +147,7 @@ bool StatusServer::RemoveFromBlacklistExclusion(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().RemoveExclude(numIP)) {
+    if (!Blacklist::GetInstance().RemoveFromWhitelist(numIP)) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Could not remove IP Address from exclusion list");
     }
