@@ -317,8 +317,7 @@ bool LookupServer::StartCollectorThread() {
 }
 
 bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                 const Account* sender, const unsigned int num_shards,
-                 const uint128_t& gasPrice) {
+                 const Account* sender, const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -401,7 +400,7 @@ Json::Value LookupServer::CreateTransaction(
     const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-    if (!ValidateTxn(tx, fromAddr, sender, num_shards, gasPrice)) {
+    if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
       return ret;
     }
 
