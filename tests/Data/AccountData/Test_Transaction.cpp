@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
                       "Address from public key converted not properly.");
 
-  BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
+  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx1),
                       "Signature not verified\n");
 
   BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Transaction2 data", data2, Logger::MAX_BYTES_TO_DISPLAY);
   BOOST_CHECK_MESSAGE(data2 == tx1.GetData(), "Data not converted properly");
 
-  BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx2),
+  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx2),
                       "Signature not verified\n");
 
   tx2.SetSignature(sign);

@@ -410,11 +410,15 @@ void DirectoryService::StartFirstTxEpoch() {
     // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
     m_mediator.m_node->m_myshardId = m_shards.size();
     m_mediator.m_node->m_justDidFallback = false;
-    m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
 
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);
+
+    auto func1 = [this]() mutable -> void {
+      m_mediator.m_node->CommitTxnPacketBuffer();
+    };
+    DetachedFunction(1, func1);
 
     LOG_STATE(
         "[MIBLKSWAIT]["
@@ -434,33 +438,41 @@ void DirectoryService::StartFirstTxEpoch() {
       // ReInitialize RumorManager for this epoch.
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
+    if (m_mediator.m_node->m_myshardId == 0) {
+      LOG_GENERAL(
+          INFO,
+          "No other shards. So no other microblocks expected to be received");
+      m_stopRecvNewMBSubmission = true;
 
-    auto func = [this]() mutable -> void {
-      // Check for state change. If it get stuck at microblock submission for
-      // too long, move on to finalblock without the microblock
-      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleDSMicroBlockConsensus);
-      if (cv_scheduleDSMicroBlockConsensus.wait_for(
-              cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout: Didn't receive all Microblock. Proceeds "
-                    "without it");
+      RunConsensusOnFinalBlock();
+    } else {
+      auto func = [this]() mutable -> void {
+        // Check for state change. If it get stuck at microblock submission for
+        // too long, move on to finalblock without the microblock
+        std::unique_lock<std::mutex> cv_lk(
+            m_MutexScheduleDSMicroBlockConsensus);
+        if (cv_scheduleDSMicroBlockConsensus.wait_for(
+                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
+            std::cv_status::timeout) {
+          LOG_GENERAL(WARNING,
+                      "Timeout: Didn't receive all Microblock. Proceeds "
+                      "without it");
 
-        LOG_STATE("[MIBLKSWAIT]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetBlockNum() +
-                         1
-                  << "] TIMEOUT: Didn't receive all Microblock.");
+          LOG_STATE("[MIBLKSWAIT]["
+                    << setw(15) << left
+                    << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                    << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum() +
+                           1
+                    << "] TIMEOUT: Didn't receive all Microblock.");
 
-        m_stopRecvNewMBSubmission = true;
-        RunConsensusOnFinalBlock();
-      }
-    };
-    DetachedFunction(1, func);
-
+          m_stopRecvNewMBSubmission = true;
+          RunConsensusOnFinalBlock();
+        }
+      };
+      DetachedFunction(1, func);
+    }
     // Otherwise, I am a drop out node.
   } else {
     // The oldest DS non-Byzantine committee member will be a shard node at this

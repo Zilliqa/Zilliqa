@@ -240,6 +240,23 @@ if (ADDRESS_SANITIZER)
     message(STATUS "ADDRESS SANITIZER enabled")
 endif()
 
+if (UNDEF_BEHAVIOR_SANITIZER)
+    add_compile_options(-fsanitize=undefined)
+    link_libraries(-fsanitize=undefined)
+    message(STATUS "UNDEFINED BEHAVIOR SANITIZER enabled")
+endif()
+
+if (LIBFUZZER_SANITIZER)
+    include(CodeCoverage)
+    link_libraries(--coverage)
+    link_libraries(-lgcov)
+    add_compile_options(-fsanitize=fuzzer,address,undefined)
+    add_compile_options(-fno-omit-frame-pointer)
+    link_libraries(-fsanitize=fuzzer,address,undefined)
+    message(STATUS "Libfuzzer with address and undefined behavior sanitizer enabled")
+endif()
+
+
 if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     if (NOT TESTS)
         message(FATAL_ERROR "TESTS is not ON")

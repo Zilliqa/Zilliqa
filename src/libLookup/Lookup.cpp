@@ -342,10 +342,6 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
-  if (numShards == 0) {
-    return false;
-  }
-
   for (auto& addrStr : GENESIS_WALLETS) {
     bytes addrBytes;
     if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
@@ -437,7 +433,7 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
     for (const auto& node : m_lookupNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Exclude(
+      Blacklist::GetInstance().Whitelist(
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
@@ -467,7 +463,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
 
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Exclude(
+      Blacklist::GetInstance().Whitelist(
           resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
@@ -510,7 +506,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
   int index = RandomGenerator::GetRandomInt(tmp.size());
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
-  Blacklist::GetInstance().Exclude(
+  Blacklist::GetInstance().Whitelist(
       resolved_ip);  // exclude this lookup ip from blacklisting
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
@@ -527,7 +523,7 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
     for (const auto& node : m_seedNodes) {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      Blacklist::GetInstance().Exclude(
+      Blacklist::GetInstance().Whitelist(
           resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -3876,19 +3872,14 @@ void Lookup::RemoveSeedNodesFromBlackList() {
   }
 }
 
-bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::AddToTxnShardMap not expected to be called from "
-                "other than the LookUp node.");
-    return true;
-  }
-
-  lock_guard<mutex> g(m_txnShardMapMutex);
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
+                              TxnShardMap& txnShardMap,
+                              mutex& txnShardMapMutex) {
+  lock_guard<mutex> g(txnShardMapMutex);
 
   uint32_t size = 0;
 
-  for (const auto& x : m_txnShardMap) {
+  for (const auto& x : txnShardMap) {
     size += x.second.size();
   }
 
@@ -3898,19 +3889,30 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   }
 
   // case where txn already exist
-  if (find_if(m_txnShardMap[shardId].begin(), m_txnShardMap[shardId].end(),
+  if (find_if(txnShardMap[shardId].begin(), txnShardMap[shardId].end(),
               [tx](const Transaction& txn) {
                 return tx.GetTranID() == txn.GetTranID();
-              }) != m_txnShardMap[shardId].end()) {
+              }) != txnShardMap[shardId].end()) {
     LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
     return false;
   }
 
-  m_txnShardMap[shardId].push_back(tx);
+  txnShardMap[shardId].push_back(tx);
   LOG_GENERAL(INFO,
               "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
 
   return true;
+}
+
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::AddToTxnShardMap not expected to be called from "
+                "other than the LookUp node.");
+    return true;
+  }
+
+  return AddToTxnShardMap(tx, shardId, m_txnShardMap, m_txnShardMapMutex);
 }
 
 bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
@@ -3949,10 +3951,6 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
         numShards = m_mediator.m_ds->GetNumShards();
-        if (numShards == 0) {
-          this_thread::sleep_for(chrono::milliseconds(1000));
-          continue;
-        }
         SendTxnPacketToNodes(oldNumShards, numShards);
       }
       break;

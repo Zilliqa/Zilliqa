@@ -132,8 +132,11 @@ class AccountStore
   /// Reset the reference to underlying leveldb
   bool RefreshDB();
 
+  /// Use the states in Temp State DB to refresh the state merkle trie
   bool UpdateStateTrieFromTempStateDB();
 
+  /// Clean, and use the states in either memory or temp state db to
+  /// update the state merkle trie
   bool RepopulateStateTrie(bool retrieveFromTrie = true);
 
   /// commit the in-memory states into persistent storage
@@ -144,6 +147,7 @@ class AccountStore
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
 
+  /// Get the instance of an account from AccountStoreTemp
   Account* GetAccountTemp(const Address& address);
 
   /// update account states in AccountStoreTemp
@@ -165,6 +169,7 @@ class AccountStore
   /// get the nonce of an account in AccountStoreTemp
   uint128_t GetNonceTemp(const Address& address);
 
+  /// Update the states balance due to coinbase changes to the AccountStoreTemp
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
                           const uint128_t& amount);

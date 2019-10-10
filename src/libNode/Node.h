@@ -123,7 +123,6 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::atomic<bool> m_txn_distribute_window_open{};
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
@@ -438,6 +437,9 @@ class Node : public Executable {
   // hold count of whitelist request for given ip
   std::mutex m_mutexWhitelistReqs;
   std::map<uint128_t, uint32_t> m_whitelistReqs;
+
+  // whether txns dist window open
+  std::atomic<bool> m_txn_distribute_window_open{};
 
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
