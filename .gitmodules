@@ -8,3 +8,6 @@
 	path = src/depends/protobuf
 	url = https://github.com/google/protobuf.git
 	branch = 3.9.x
+[submodule "src/depends/websocketpp"]
+	path = src/depends/websocketpp
+	url = git@github.com:zaphoyd/websocketpp
