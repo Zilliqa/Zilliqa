@@ -1829,6 +1829,11 @@ bool Node::CleanVariables() {
   }
   m_mediator.m_lookup->m_startedPoW = false;
 
+  {
+    lock_guard<mutex> g(m_mutexWhitelistReqs);
+    m_whitelistReqs.clear();
+  }
+
   return true;
 }
 
@@ -1894,9 +1899,12 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
+  uint64_t curDSEpochNo =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
   if (!Messenger::SetNodeRemoveFromBlacklist(
           message, MessageOffset::BODY, m_mediator.m_selfKey,
-          m_mediator.m_selfPeer.GetIpAddress())) {
+          m_mediator.m_selfPeer.GetIpAddress(), curDSEpochNo)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
     return;
   }
@@ -1921,9 +1929,35 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   m_mediator.m_lookup->SendMessageToSeedNodes(message);
 }
 
+bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
+  std::lock_guard<mutex> lock(m_mutexWhitelistReqs);
+  auto it = m_whitelistReqs.find(ipAddress);
+  if (it != m_whitelistReqs.end()) {
+    if (it->second >= MAX_WHITELISTREQ_LIMIT) {
+      LOG_GENERAL(WARNING, "WhitelistRequest sender "
+                               << Peer(ipAddress, 0).GetPrintableIPAddress()
+                               << " exceed max allowed request limit of "
+                               << MAX_WHITELISTREQ_LIMIT);
+      return false;
+    } else {
+      it->second++;
+    }
+  } else {
+    m_whitelistReqs.emplace(ipAddress, 1);
+  }
+  return true;
+}
+
 bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
+  if (!WhitelistReqsValidator(from.GetIpAddress())) {
+    // Blacklist - strict one - since too many whitelist request in current ds
+    // epoch.
+    Blacklist::GetInstance().Add(from.GetIpAddress());
+    return false;
+  }
+
   if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
     LOG_GENERAL(WARNING, "Message size for IP ADDRESS is too short");
     return false;
@@ -1931,10 +1965,16 @@ bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
 
   PubKey senderPubKey;
   uint128_t ipAddress;
+  uint64_t dsEpochNumber;
   if (!Messenger::GetNodeRemoveFromBlacklist(message, offset, senderPubKey,
-                                             ipAddress)) {
+                                             ipAddress, dsEpochNumber)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeRemoveFromBlacklist failed.");
+    return false;
+  }
+
+  if (dsEpochNumber != m_mediator.m_currentEpochNum) {
+    LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, m_mediator.m_currentEpochNum);
     return false;
   }
 

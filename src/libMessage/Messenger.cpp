@@ -8559,15 +8559,22 @@ bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
 bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& myKey,
-                                           const uint128_t& ipAddress) {
+                                           const uint128_t& ipAddress,
+                                           const uint64_t& dsEpochNumber) {
   NodeRemoveFromBlacklist result;
-
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-      ipAddress, *result.mutable_ipaddress());
+      ipAddress, *result.mutable_data()->mutable_ipaddress());
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+
   SerializableToProtobufByteArray(myKey.second, *result.mutable_pubkey());
 
-  bytes tmp(result.ipaddress().ByteSize());
-  result.ipaddress().SerializeToArray(tmp.data(), tmp.size());
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist.Data initialization failed");
+    return false;
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, myKey.first, myKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign NodeRemoveFromBlacklist");
@@ -8585,7 +8592,8 @@ bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
 bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
                                            const unsigned int offset,
                                            PubKey& senderPubKey,
-                                           uint128_t& ipAddress) {
+                                           uint128_t& ipAddress,
+                                           uint64_t& dsEpochNumber) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -8603,15 +8611,16 @@ bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.ipaddress().ByteSize());
-  result.ipaddress().SerializeToArray(tmp.data(), tmp.size());
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
                                      senderPubKey)) {
     LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist signature wrong");
     return false;
   }
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.ipaddress(),
-                                                     ipAddress);
 
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.data().ipaddress(),
+                                                     ipAddress);
+  dsEpochNumber = result.data().dsepochnumber();
   return true;
 }

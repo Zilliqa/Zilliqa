@@ -3484,6 +3484,10 @@ bool Lookup::CleanVariables() {
     m_nodesInNetwork.clear();
     l_nodesInNetwork.clear();
   }
+  {
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexWhitelistReqs);
+    m_mediator.m_node->m_whitelistReqs.clear();
+  }
 
   return true;
 }

@@ -435,6 +435,10 @@ class Node : public Executable {
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
 
+  // hold count of whitelist request for given ip
+  std::mutex m_mutexWhitelistReqs;
+  std::map<uint128_t, uint32_t> m_whitelistReqs;
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -626,6 +630,8 @@ class Node : public Executable {
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
   void CleanUnavailableMicroBlocks();
+
+  bool WhitelistReqsValidator(const uint128_t& ipAddress);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
