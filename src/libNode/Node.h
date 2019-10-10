@@ -123,7 +123,6 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::atomic<bool> m_txn_distribute_window_open{};
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
@@ -436,6 +435,13 @@ class Node : public Executable {
   // Is part of current sharding structure / dsCommittee
   std::atomic<bool> m_confirmedNotInNetwork{};
 
+  // hold count of whitelist request for given ip
+  std::mutex m_mutexWhitelistReqs;
+  std::map<uint128_t, uint32_t> m_whitelistReqs;
+
+  // whether txns dist window open
+  std::atomic<bool> m_txn_distribute_window_open{};
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -633,6 +639,10 @@ class Node : public Executable {
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
   void CleanUnavailableMicroBlocks();
+
+  bool WhitelistReqsValidator(const uint128_t& ipAddress);
+
+  void CleanWhitelistReqs();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

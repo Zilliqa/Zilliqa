@@ -351,6 +351,8 @@ const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
 const unsigned int MAX_PEER_CONNECTION{
     ReadConstantNumeric("MAX_PEER_CONNECTION", "node.p2pcomm.")};
+const unsigned int MAX_WHITELISTREQ_LIMIT{
+    ReadConstantNumeric("MAX_WHITELISTREQ_LIMIT", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==

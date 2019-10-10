@@ -35,9 +35,6 @@ class ValidatorBase {
   virtual ~ValidatorBase() {}
   virtual std::string name() const = 0;
 
-  /// Verifies the transaction w.r.t given pubKey and signature
-  virtual bool VerifyTransaction(const Transaction& tran) const = 0;
-
   virtual bool CheckCreatedTransaction(const Transaction& tx,
                                        TransactionReceipt& receipt) const = 0;
 
@@ -58,7 +55,8 @@ class Validator : public ValidatorBase {
   Validator(Mediator& mediator);
   ~Validator();
   std::string name() const override { return "Validator"; }
-  bool VerifyTransaction(const Transaction& tran) const override;
+
+  static bool VerifyTransaction(const Transaction& tran);
 
   bool CheckCreatedTransaction(const Transaction& tx,
                                TransactionReceipt& receipt) const override;

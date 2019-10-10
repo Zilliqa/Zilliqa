@@ -1064,7 +1064,12 @@ message SeedSetHistoricalDB
 // For removing sender from local blacklist
 message NodeRemoveFromBlacklist
 {
-    ByteArray ipAddress    = 1;
-    ByteArray pubkey       = 2;
-    ByteArray signature    = 3;
+    message Data
+    {
+        ByteArray ipAddress    = 1;
+        uint64 dsepochnumber   = 2;
+    }
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
 }

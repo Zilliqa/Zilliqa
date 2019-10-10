@@ -20,6 +20,7 @@
 #include <openssl/err.h>
 
 #include "Schnorr.h"
+#include "Sha2.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -195,3 +196,18 @@ bool PubKey::operator==(const PubKey& r) const {
 }
 
 bool PubKey::operator!=(const PubKey& r) const { return !(*this == r); }
+
+// ============================================================================
+// Utilitiy
+// ============================================================================
+
+Address PubKey::GetAddressFromPubKey() {
+  bytes addr_ser;
+  this->Serialize(addr_ser, 0);
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(addr_ser, 0, PUB_KEY_SIZE);
+  const bytes& tmp = sha2.Finalize();
+  Address ret;
+  copy(tmp.end() - ACC_ADDR_SIZE, tmp.end(), ret.asArray().begin());
+  return ret;
+}

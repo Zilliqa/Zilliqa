@@ -1388,32 +1388,38 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  bool isLookup = m_mediator.m_lookup->IsLookupNode(from) &&
-                  from.GetPrintableIPAddress() != "127.0.0.1";
+  bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
+                    from.GetPrintableIPAddress() != "127.0.0.1";
 
   bool properState =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+       m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
+       m_mediator.m_ds->m_state ==
+           DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
         m_state == MICROBLOCK_CONSENSUS));
 
-  if (isLookup || !properState) {
-    if ((epochNumber + (isLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
+  if (fromLookup || !properState) {
+    if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO, string(isLookup ? "Received txn from lookup"
-                                      : "Received not in the prepared state") +
-                          ", store to buffer");
-    LOG_STATE("[TXNPKTPROC]["
-              << std::setw(15) << std::left
-              << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-              << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
-              << "] RECVFROMLOOKUP");
+    LOG_GENERAL(INFO, string(fromLookup ? "Received txn packet from lookup"
+                                        : "Received not in the proper state") +
+                          ", store txn packet to buffer");
+    if (fromLookup) {
+      LOG_STATE("[TXNPKTPROC]["
+                << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+                << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
+                << "] RECVFROMLOOKUP");
+    }
     m_txnPacketBuffer.emplace_back(message2);
   } else {
     LOG_GENERAL(INFO,
@@ -1830,7 +1836,14 @@ bool Node::CleanVariables() {
   }
   m_mediator.m_lookup->m_startedPoW = false;
 
+  CleanWhitelistReqs();
+
   return true;
+}
+
+void Node::CleanWhitelistReqs() {
+  lock_guard<mutex> g(m_mutexWhitelistReqs);
+  m_whitelistReqs.clear();
 }
 
 void Node::CleanUnavailableMicroBlocks() {
@@ -1895,9 +1908,12 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
+  uint64_t curDSEpochNo =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
   if (!Messenger::SetNodeRemoveFromBlacklist(
           message, MessageOffset::BODY, m_mediator.m_selfKey,
-          m_mediator.m_selfPeer.GetIpAddress())) {
+          m_mediator.m_selfPeer.GetIpAddress(), curDSEpochNo)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
     return;
   }
@@ -1922,9 +1938,37 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
   m_mediator.m_lookup->SendMessageToSeedNodes(message);
 }
 
+bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
+  std::lock_guard<mutex> lock(m_mutexWhitelistReqs);
+  auto it = m_whitelistReqs.find(ipAddress);
+  if (it != m_whitelistReqs.end()) {
+    if (it->second >= MAX_WHITELISTREQ_LIMIT) {
+      LOG_GENERAL(WARNING, "WhitelistRequest sender "
+                               << Peer(ipAddress, 0).GetPrintableIPAddress()
+                               << " exceed max allowed request limit of "
+                               << MAX_WHITELISTREQ_LIMIT);
+      return false;
+    } else {
+      it->second++;
+    }
+  } else {
+    m_whitelistReqs.emplace(ipAddress, 1);
+  }
+  return true;
+}
+
 bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
+  LOG_MARKER();
+
+  if (!WhitelistReqsValidator(from.GetIpAddress())) {
+    // Blacklist - strict one - since too many whitelist request in current ds
+    // epoch.
+    Blacklist::GetInstance().Add(from.GetIpAddress());
+    return false;
+  }
+
   if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
     LOG_GENERAL(WARNING, "Message size for IP ADDRESS is too short");
     return false;
@@ -1932,10 +1976,16 @@ bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
 
   PubKey senderPubKey;
   uint128_t ipAddress;
+  uint64_t dsEpochNumber;
   if (!Messenger::GetNodeRemoveFromBlacklist(message, offset, senderPubKey,
-                                             ipAddress)) {
+                                             ipAddress, dsEpochNumber)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeRemoveFromBlacklist failed.");
+    return false;
+  }
+
+  if (dsEpochNumber != m_mediator.m_currentEpochNum) {
+    LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, m_mediator.m_currentEpochNum);
     return false;
   }
 
@@ -2094,7 +2144,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveExclude(it->second.m_ipAddress);
+          Blacklist::GetInstance().RemoveFromWhitelist(it->second.m_ipAddress);
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2114,7 +2164,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
-        Blacklist::GetInstance().Exclude(
+        Blacklist::GetInstance().Whitelist(
             dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
         LOG_GENERAL(INFO,
                     "Added ds guard "

@@ -621,7 +621,7 @@ class DirectoryService : public Executable {
   static uint8_t CalculateNodePriority(uint16_t reputation);
 
   /// PoW (DS block) consensus functions
-  void RunConsensusOnDSBlock(bool isRejoin = false);
+  void RunConsensusOnDSBlock();
   bool IsDSBlockVCState(unsigned char vcBlockState);
 
   // Sort the PoW submissions

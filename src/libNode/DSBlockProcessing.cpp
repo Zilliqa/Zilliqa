@@ -252,6 +252,8 @@ void Node::StartFirstTxEpoch() {
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
+  CleanWhitelistReqs();
+
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash = DataConversion::charArrTo16Bits(
@@ -651,6 +653,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     // Clear blacklist for lookup
     Blacklist::GetInstance().Clear();
     P2PComm::GetInstance().ClearPeerConnectionCount();
+
+    m_mediator.m_node->CleanWhitelistReqs();
 
     // Clear GetStartPow requesting peer list
     {

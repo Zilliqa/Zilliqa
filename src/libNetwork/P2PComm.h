@@ -130,6 +130,7 @@ class P2PComm {
   void InitializeRumorManager(const VectorOfNode& peers,
                               const std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
+  inline static bool IsNodeNotRunning();
   static void ClearPeerConnectionCount();
 
  private:
