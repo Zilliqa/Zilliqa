@@ -252,10 +252,7 @@ void Node::StartFirstTxEpoch() {
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
-  {
-    lock_guard<mutex> g(m_mutexWhitelistReqs);
-    m_whitelistReqs.clear();
-  }
+  CleanWhitelistReqs();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -657,10 +654,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     Blacklist::GetInstance().Clear();
     P2PComm::GetInstance().ClearPeerConnectionCount();
 
-    {
-      lock_guard<mutex> g(m_mediator.m_node->m_mutexWhitelistReqs);
-      m_mediator.m_node->m_whitelistReqs.clear();
-    }
+    m_mediator.m_node->CleanWhitelistReqs();
 
     // Clear GetStartPow requesting peer list
     {

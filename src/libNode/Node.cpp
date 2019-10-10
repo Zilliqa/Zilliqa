@@ -1829,12 +1829,14 @@ bool Node::CleanVariables() {
   }
   m_mediator.m_lookup->m_startedPoW = false;
 
-  {
-    lock_guard<mutex> g(m_mutexWhitelistReqs);
-    m_whitelistReqs.clear();
-  }
+  CleanWhitelistReqs();
 
   return true;
+}
+
+void Node::CleanWhitelistReqs() {
+  lock_guard<mutex> g(m_mutexWhitelistReqs);
+  m_whitelistReqs.clear();
 }
 
 void Node::CleanUnavailableMicroBlocks() {

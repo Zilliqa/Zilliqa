@@ -359,10 +359,7 @@ void DirectoryService::StartFirstTxEpoch() {
   Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
   P2PComm::ClearPeerConnectionCount();
 
-  {
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexWhitelistReqs);
-    m_mediator.m_node->m_whitelistReqs.clear();
-  }
+  m_mediator.m_node->CleanWhitelistReqs();
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();

@@ -633,6 +633,8 @@ class Node : public Executable {
 
   bool WhitelistReqsValidator(const uint128_t& ipAddress);
 
+  void CleanWhitelistReqs();
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
 
