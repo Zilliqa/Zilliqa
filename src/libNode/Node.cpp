@@ -1951,6 +1951,8 @@ bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
 bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
+  LOG_MARKER();
+
   if (!WhitelistReqsValidator(from.GetIpAddress())) {
     // Blacklist - strict one - since too many whitelist request in current ds
     // epoch.
