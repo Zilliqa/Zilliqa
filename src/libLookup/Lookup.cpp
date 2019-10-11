@@ -2104,6 +2104,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                 m_mediator.m_dsBlockChain.GetLastBlock()
                         .GetHeader()
                         .GetEpochNum() < m_mediator.m_currentEpochNum) {
+              GetDSInfo();
               m_isFirstLoop = true;
               SetSyncType(SyncType::NO_SYNC);
               // Send whitelist request to all peers.
