@@ -1994,9 +1994,15 @@ bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
     return false;
   }
 
-  if (dsEpochNumber != m_mediator.m_currentEpochNum) {
-    LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, m_mediator.m_currentEpochNum);
-    return false;
+  // No check on dsepoch if i am lookup. Node not yet synced won't have latest
+  // dsepoch.
+  if (!LOOKUP_NODE_MODE) {
+    uint64_t currentDSEpochNumber =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+    if (dsEpochNumber != currentDSEpochNumber) {
+      LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, currentDSEpochNumber);
+      return false;
+    }
   }
 
   if (from.GetIpAddress() != ipAddress) {
