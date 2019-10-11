@@ -86,9 +86,9 @@ void ShardCountTestMain(const uint32_t shardSize,
 
   for (uint32_t numNodesForSharding = nodeCountStart;
        numNodesForSharding <= nodeCountEnd; numNodesForSharding++) {
-    ShardSizeCalculator::GenerateShardCounts(
-        shardSize, shardSizeToleranceLo, shardSizeToleranceHi,
-        numNodesForSharding, shardCounts, false);
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeToleranceLo,
+                                             shardSizeToleranceHi,
+                                             numNodesForSharding, shardCounts);
     ostringstream shardsString;
     uint32_t totalSharded = 0;
     for (const auto& shard : shardCounts) {
@@ -101,6 +101,7 @@ void ShardCountTestMain(const uint32_t shardSize,
                   << shardSize + shardSizeToleranceHi << "] Nodes="
                   << numNodesForSharding << " Shards=[ " << shardsString.str()
                   << "] Unsharded=" << numNodesForSharding - totalSharded);
+    BOOST_CHECK(totalSharded <= numNodesForSharding);
   }
 }
 
@@ -134,7 +135,7 @@ BOOST_AUTO_TEST_CASE(test_shard_count_generation) {
   // ShardCountTestMain(600, 0, 0, 590, 610);
   // ShardCountTestMain(600, 100, 0, 490, 610);
   // ShardCountTestMain(600, 50, 50, 540, 660);
-  ShardCountTestMain(600, 100, 0, 590, 1810);
+  ShardCountTestMain(600, 100, 0, 490, 1810);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

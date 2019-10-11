@@ -32,7 +32,7 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 
 Validator::~Validator() {}
 
-bool Validator::VerifyTransaction(const Transaction& tran) const {
+bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 

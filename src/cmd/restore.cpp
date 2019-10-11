@@ -27,7 +27,6 @@
 
 using namespace std;
 
-constexpr int SUCCESSFUL = 0;
 constexpr int EPOCH_INVALID = -1;
 constexpr int PERSISTENCE_ERROR = -2;
 

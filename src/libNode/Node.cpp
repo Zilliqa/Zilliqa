@@ -1387,32 +1387,38 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  bool isLookup = m_mediator.m_lookup->IsLookupNode(from) &&
-                  from.GetPrintableIPAddress() != "127.0.0.1";
+  bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
+                    from.GetPrintableIPAddress() != "127.0.0.1";
 
   bool properState =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+      (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+       m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
+       m_mediator.m_ds->m_state ==
+           DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
         m_state == MICROBLOCK_CONSENSUS));
 
-  if (isLookup || !properState) {
-    if ((epochNumber + (isLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
+  if (fromLookup || !properState) {
+    if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO, string(isLookup ? "Received txn from lookup"
-                                      : "Received not in the prepared state") +
-                          ", store to buffer");
-    LOG_STATE("[TXNPKTPROC]["
-              << std::setw(15) << std::left
-              << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-              << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
-              << "] RECVFROMLOOKUP");
+    LOG_GENERAL(INFO, string(fromLookup ? "Received txn packet from lookup"
+                                        : "Received not in the proper state") +
+                          ", store txn packet to buffer");
+    if (fromLookup) {
+      LOG_STATE("[TXNPKTPROC]["
+                << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+                << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
+                << "] RECVFROMLOOKUP");
+    }
     m_txnPacketBuffer.emplace_back(message2);
   } else {
     LOG_GENERAL(INFO,
@@ -2034,7 +2040,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                     });
 
         if (it != m_mediator.m_DSCommittee->end()) {
-          Blacklist::GetInstance().RemoveExclude(it->second.m_ipAddress);
+          Blacklist::GetInstance().RemoveFromWhitelist(it->second.m_ipAddress);
           LOG_GENERAL(INFO, "Removed " << it->second.m_ipAddress
                                        << " from blacklist exclude list");
         }
@@ -2054,7 +2060,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                             << " new network info is "
                             << dsguardupdate.m_dsGuardNewNetworkInfo)
       if (GUARD_MODE) {
-        Blacklist::GetInstance().Exclude(
+        Blacklist::GetInstance().Whitelist(
             dsguardupdate.m_dsGuardNewNetworkInfo.m_ipAddress);
         LOG_GENERAL(INFO,
                     "Added ds guard "
