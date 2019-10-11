@@ -39,9 +39,8 @@ namespace ZilliqaMessage {
 class ByteArray;
 }
 
-template <class T>
 bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
-                                     T& serializable);
+                                     SerializableCrypto& serializable);
 
 class Messenger {
  public:

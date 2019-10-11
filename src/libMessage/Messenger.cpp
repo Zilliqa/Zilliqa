@@ -46,14 +46,18 @@ void SerializableToProtobufByteArray(const T& serializable,
   byteArray.set_data(tmp.data(), tmp.size());
 }
 
-template <class T>
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     T& serializable) {
+                                     Serializable& serializable) {
   bytes tmp;
   copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
-  return (std::is_base_of<Serializable, T>::value)
-             ? serializable.Deserialize(tmp, 0) == 0
-             : serializable.Deserialize(tmp, 0);
+  return serializable.Deserialize(tmp, 0) == 0;
+}
+
+bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
+                                     SerializableCrypto& serializable) {
+  bytes tmp;
+  copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
+  return serializable.Deserialize(tmp, 0);
 }
 
 // Temporary function for use by data blocks
