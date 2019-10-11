@@ -1051,6 +1051,12 @@ void Node::StartSynchronization() {
   LOG_MARKER();
 
   SetState(SYNC);
+
+  // Send whitelist request to seeds, in case it was blacklisted if was
+  // restarted.
+  ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
+  this_thread::sleep_for(chrono::seconds(5));
+
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
@@ -1903,7 +1909,7 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-void Node::ComposeAndSendRemoveNodeFromBlacklist() {
+void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   LOG_MARKER();
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
@@ -1918,24 +1924,28 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
     return;
   }
 
-  // Send the peers
-  VectorOfPeer peerList;
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      peerList.push_back(i.second);
+  if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
+    // Send the peers
+    VectorOfPeer peerList;
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        peerList.push_back(i.second);
+      }
+    } else {
+      lock_guard<mutex> g(m_mutexShardMember);
+      for (const auto& i : *m_myShardMembers) {
+        peerList.push_back(i.second);
+      }
     }
-  } else {
-    lock_guard<mutex> g(m_mutexShardMember);
-    for (const auto& i : *m_myShardMembers) {
-      peerList.push_back(i.second);
-    }
+    P2PComm::GetInstance().SendMessage(peerList, message);
   }
-  P2PComm::GetInstance().SendMessage(peerList, message);
 
-  // send to upper seeds
-  m_mediator.m_lookup->SendMessageToSeedNodes(message);
+  if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
+    // send to upper seeds
+    m_mediator.m_lookup->SendMessageToSeedNodes(message);
+  }
 }
 
 bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {

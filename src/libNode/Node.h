@@ -378,6 +378,8 @@ class Node : public Executable {
     SYNC
   };
 
+  enum RECEIVERTYPE : unsigned char { LOOKUP = 0x00, PEER, BOTH };
+
   // Proposed gas price
   uint128_t m_proposedGasPrice;
   std::mutex m_mutexGasPrice;
@@ -469,7 +471,8 @@ class Node : public Executable {
   bool RecalculateMyShardId();
 
   // Send whitelist message to peers and seeds
-  void ComposeAndSendRemoveNodeFromBlacklist();
+  void ComposeAndSendRemoveNodeFromBlacklist(
+      const RECEIVERTYPE receiver = BOTH);
 
   /// Sets the value of m_state.
   void SetState(NodeState state);

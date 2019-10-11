@@ -2106,8 +2106,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                         .GetEpochNum() < m_mediator.m_currentEpochNum) {
               m_isFirstLoop = true;
               SetSyncType(SyncType::NO_SYNC);
-              // Send whitelist request to all peers and seeds.
-              m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist();
+              // Send whitelist request to all peers.
+              m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(
+                  Node::PEER);
 
               m_mediator.m_node->StartFirstTxEpoch();
             }
