@@ -1055,7 +1055,8 @@ void Node::StartSynchronization() {
   // Send whitelist request to seeds, in case it was blacklisted if was
   // restarted.
   ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
-  this_thread::sleep_for(chrono::seconds(5));
+  this_thread::sleep_for(
+      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
 
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
