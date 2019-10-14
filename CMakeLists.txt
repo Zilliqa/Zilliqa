@@ -43,6 +43,9 @@ endif()
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
+include(InstallWebsocketpp)
+find_package(websocketpp CONFIG REQUIRED)
+
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
@@ -195,6 +198,8 @@ include_directories(${PROTOBUF_INSTALL_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 
 include_directories(${G3LOG_INCLUDE_DIR})
+
+include_directories(${WEBSOCKETPP_INCLUDE_DIR})
 
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
