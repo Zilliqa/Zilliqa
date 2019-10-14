@@ -269,6 +269,11 @@ class Node : public Executable {
   bool ProcessDoRejoin(const bytes& message, unsigned int offset,
                        const Peer& from);
 
+  bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
+                                      const Peer& from);
+
+  void ComposeAndSendRemoveNodeFromBlacklist();
+
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
@@ -428,6 +433,10 @@ class Node : public Executable {
 
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
+
+  // hold count of whitelist request for given ip
+  std::mutex m_mutexWhitelistReqs;
+  std::map<uint128_t, uint32_t> m_whitelistReqs;
 
   // whether txns dist window open
   std::atomic<bool> m_txn_distribute_window_open{};
@@ -623,6 +632,10 @@ class Node : public Executable {
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
   void CleanUnavailableMicroBlocks();
+
+  bool WhitelistReqsValidator(const uint128_t& ipAddress);
+
+  void CleanWhitelistReqs();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

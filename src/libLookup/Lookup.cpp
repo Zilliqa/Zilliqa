@@ -3480,6 +3480,7 @@ bool Lookup::CleanVariables() {
     m_nodesInNetwork.clear();
     l_nodesInNetwork.clear();
   }
+  m_mediator.m_node->CleanWhitelistReqs();
 
   return true;
 }

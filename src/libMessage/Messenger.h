@@ -874,5 +874,15 @@ class Messenger {
                                       const unsigned int offset,
                                       PubKey& archivalPubKey, uint32_t& code,
                                       std::string& path);
+
+  static bool SetNodeRemoveFromBlacklist(bytes& dst, const unsigned int offset,
+                                         const PairOfKey& myKey,
+                                         const uint128_t& ipAddress,
+                                         const uint64_t& dsEpochNumber);
+  static bool GetNodeRemoveFromBlacklist(const bytes& src,
+                                         const unsigned int offset,
+                                         PubKey& senderPubKey,
+                                         uint128_t& ipAddress,
+                                         uint64_t& dsEpochNumber);
 };
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
