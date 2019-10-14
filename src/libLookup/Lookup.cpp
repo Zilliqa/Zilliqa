@@ -1708,6 +1708,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
 
+  /*
   if ((!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) ||
       (LOOKUP_NODE_MODE &&
@@ -1719,6 +1720,13 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
     m_fetchedDSInfo = true;
   }
+  */
+
+  if (m_dsInfoWaitingNotifying && m_syncType != NO_SYNC) {
+    unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+    m_fetchedDSInfo = true;
+  }
+
   cv_dsInfoUpdate.notify_all();
   return true;
 }
