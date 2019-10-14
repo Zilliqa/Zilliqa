@@ -1722,7 +1722,9 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   }
   */
 
-  if (m_dsInfoWaitingNotifying && m_syncType != NO_SYNC) {
+  if (m_dsInfoWaitingNotifying &&
+      (m_syncType != NO_SYNC ||
+       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
     m_fetchedDSInfo = true;
   }
