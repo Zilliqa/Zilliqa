@@ -148,6 +148,7 @@
         <IP_TO_BIND>127.0.0.1</IP_TO_BIND>
         <ENABLE_STATUS_RPC>true</ENABLE_STATUS_RPC>
         <SCILLA_IPC_SOCKET_PATH>/tmp/zilliqa.sock</SCILLA_IPC_SOCKET_PATH>
+        <ENABLE_WEBSOCKET>false</ENABLE_WEBSOCKET>
         <WEBSOCKET_PORT>4401<WEBSOCKET_PORT>
     </jsonrpc>
     <network_composition>

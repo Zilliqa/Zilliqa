@@ -308,6 +308,8 @@ const unsigned int NUM_SHARD_PEER_TO_REVEAL{
     ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
 const std::string SCILLA_IPC_SOCKET_PATH{
     ReadConstantString("SCILLA_IPC_SOCKET_PATH", "node.jsonrpc.")};
+const bool ENABLE_WEBSOCKET{
+    ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") == "true"};
 const unsigned int WEBSOCKET_PORT{
     ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
 
