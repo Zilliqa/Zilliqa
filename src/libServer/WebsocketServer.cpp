@@ -15,10 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <json/json.h>
+
+#include "LookupServer.h"
 #include "WebsocketServer.h"
 
 #include "AddressChecksum.h"
+#include "JSONConversion.h"
+
 #include "libCrypto/Sha2.h"
+#include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -29,8 +36,6 @@ using namespace std;
 using namespace dev;
 
 namespace Websocket {
-
-pthread_rwlock_t WebsocketServer::m_websocketsLock = PTHREAD_RWLOCK_INITIALIZER;
 
 bool WebsocketServer::init() {
   // Initialising websocketserver
@@ -82,14 +87,32 @@ void WebsocketServer::stop() {
     return;
   }
 
-  // Close all existing websocket connections.
-  for (auto it = m_websockets.begin(); it != m_websockets.end(); ++it) {
-    websocketpp::lib::error_code ec;
-    m_server.close(it->second, websocketpp::close::status::normal,
-                   "Terminating connection...", ec);
-    if (ec) {
-      LOG_GENERAL(WARNING,
-                  "websocket stop_listening failed, error: " << ec.message());
+  {
+    // Close all existing websocket connections.
+    lock_guard<mutex> g(m_mutexTxBlockSockets);
+    for (auto it = m_txblock_websockets.begin();
+         it != m_txblock_websockets.end(); ++it) {
+      websocketpp::lib::error_code ec;
+      m_server.close(it->second, websocketpp::close::status::normal,
+                     "Terminating connection...", ec);
+      if (ec) {
+        LOG_GENERAL(WARNING, "websocket stop_listening (1) failed, error: "
+                                 << ec.message());
+      }
+    }
+  }
+
+  {
+    lock_guard<mutex> g(m_mutexEventLogSockets);
+    for (auto it = m_eventlog_websockets.begin();
+         it != m_eventlog_websockets.end(); ++it) {
+      websocketpp::lib::error_code ec;
+      m_server.close(it->second, websocketpp::close::status::normal,
+                     "Terminating connection...", ec);
+      if (ec) {
+        LOG_GENERAL(WARNING, "websocket stop_listening (2) failed, error: "
+                                 << ec.message());
+      }
     }
   }
 
@@ -99,8 +122,19 @@ void WebsocketServer::stop() {
 }
 
 void WebsocketServer::clean() {
-  m_websockets.clear();
-  m_elsockettracker.clean();
+  {
+    lock_guard<mutex> g(m_mutexTxBlockSockets);
+    m_txblock_websockets.clear();
+  }
+  {
+    lock_guard<mutex> g(m_mutexEventLogSockets);
+    m_eventlog_websockets.clear();
+    m_elsockettracker.clean();
+  }
+  {
+    lock_guard<mutex> g(m_mutexELDataBufferSockets);
+    m_eventLogDataBuffer.clear();
+  }
 }
 
 bool GetQueryEnum(const string& query, QUERY& q_enum) {
@@ -113,6 +147,62 @@ bool GetQueryEnum(const string& query, QUERY& q_enum) {
   }
 
   return true;
+}
+
+bool WebsocketServer::getWebsocket(const string& host, QUERY query,
+                                   connection_hdl& hdl) {
+  HostSocketMap::iterator it;
+  switch (query) {
+    case NEWBLOCK:
+      it = m_txblock_websockets.find(host);
+      if (it == m_txblock_websockets.end()) {
+        return false;
+      }
+      break;
+    case EVENTLOG:
+      it = m_eventlog_websockets.find(host);
+      if (it == m_eventlog_websockets.end()) {
+        return false;
+      }
+      break;
+  }
+
+  hdl = it->second;
+  return true;
+}
+
+void WebsocketServer::removeSocket(const std::string& host,
+                                   const std::string& query) {
+  LOG_GENERAL(INFO, "remove conn: " << host << "(" << query << ")");
+  QUERY q_enum;
+  if (!GetQueryEnum(query, q_enum)) {
+    LOG_GENERAL(WARNING, "GetQueryEnum failed");
+    return;
+  }
+
+  HostSocketMap::iterator it;
+  switch (q_enum) {
+    case NEWBLOCK: {
+      lock_guard<mutex> g(m_mutexTxBlockSockets);
+      it = m_txblock_websockets.find(host);
+      if (it != m_txblock_websockets.end()) {
+        m_txblock_websockets.erase(it);
+      }
+      break;
+    }
+    case EVENTLOG: {
+      {
+        lock_guard<mutex> g(m_mutexEventLogSockets);
+        m_eventlog_websockets.erase(host);
+        m_elsockettracker.remove(host);
+      }
+      {
+        lock_guard<mutex> g(m_mutexELDataBufferSockets);
+        m_eventLogDataBuffer.erase(host);
+      }
+      break;
+    }
+  }
 }
 
 bool WebsocketServer::on_validate(connection_hdl hdl) {
@@ -173,49 +263,27 @@ bool WebsocketServer::on_validate(connection_hdl hdl) {
     return false;
   }
 
-  if (pthread_rwlock_wrlock(&m_websocketsLock) != 0) {
-    LOG_GENERAL(WARNING, "Failed to write-lock websocketLock");
-    return false;
-  }
-
   QUERY q_enum;
   if (!GetQueryEnum(query, q_enum)) {
     LOG_GENERAL(WARNING, "GetQueryEnum failed");
     return false;
   }
 
-  m_websockets.insert(
-      std::pair<WebsocketInfo, connection_hdl>({host, q_enum}, hdl));
-  if (!el_addresses.empty()) {
-    m_elsockettracker.add(host, el_addresses);
-  }
-
-  if (pthread_rwlock_unlock(&m_websocketsLock) != 0) {
-    LOG_GENERAL(WARNING, "Failed to unlock websocketsLock");
-    return false;
+  switch (q_enum) {
+    case NEWBLOCK: {
+      lock_guard<mutex> g(m_mutexTxBlockSockets);
+      m_txblock_websockets.emplace(host, hdl);
+      break;
+    }
+    case EVENTLOG: {
+      lock_guard<mutex> g(m_mutexEventLogSockets);
+      m_eventlog_websockets.emplace(host, hdl);
+      m_elsockettracker.add(host, el_addresses);
+      break;
+    }
   }
 
   return true;
-}
-
-void WebsocketServer::removeSocket(const std::string& host,
-                                   const std::string& query) {
-  QUERY q_enum;
-  if (!GetQueryEnum(query, q_enum)) {
-    LOG_GENERAL(WARNING, "GetQueryEnum failed");
-    return;
-  }
-
-  WebsocketInfo t_wi{host, q_enum};
-  auto find = m_websockets.find(t_wi);
-  if (find != m_websockets.end()) {
-    LOG_GENERAL(INFO, "remove conn: " << find->first.m_host << "("
-                                      << to_string(find->first.m_query) << ")");
-    if (find->first.m_query == EVENTLOG) {
-      m_elsockettracker.remove(host);
-    }
-    m_websockets.erase(find);
-  }
 }
 
 void WebsocketServer::on_fail(connection_hdl hdl) {
@@ -259,6 +327,95 @@ bool WebsocketServer::closeSocket(connection_hdl hdl) {
   }
 
   return true;
+}
+
+bool WebsocketServer::SendTxBlock(const TxBlock& txblock) {
+  Json::Value json_txblock = JSONConversion::convertTxBlocktoJson(txblock);
+  Json::Value json_txnhashes = LookupServer::GetRecentTransactions();
+  Json::Value json_msg;
+  json_msg["TxBlock"] = json_txblock;
+  json_msg["TxHashes"] = json_txnhashes;
+
+  {
+    lock_guard<mutex> g(m_mutexTxBlockSockets);
+    for (auto it = m_txblock_websockets.begin();
+         it != m_txblock_websockets.end(); ++it) {
+      if (!sendData(it->second,
+                    JSONUtils::GetInstance().convertJsontoStr(json_msg))) {
+        LOG_GENERAL(WARNING, "sendData (txblock) failed for " << it->first);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
+  if (Transaction::GetTransactionType(twr.GetTransaction()) !=
+      Transaction::CONTRACT_CALL) {
+    return;
+  }
+
+  const auto& j_receipt = twr.GetTransactionReceipt().GetJsonValue();
+  if (!j_receipt["success"].asBool()) {
+    return;
+  }
+
+  if (!j_receipt.isMember("event_logs")) {
+    return;
+  }
+
+  if (j_receipt["event_logs"].type() != Json::arrayValue) {
+    return;
+  }
+
+  for (const auto& log : j_receipt["event_logs"]) {
+    if (!(log.isMember("_eventname") && log.isMember("address") &&
+          log.isMember("params"))) {
+      continue;
+    }
+    if (!(log["_eventname"].type() == Json::stringValue &&
+          log["address"].type() == Json::stringValue &&
+          log["params"].type() == Json::arrayValue)) {
+      continue;
+    }
+    Address addr(log["address"].asString());
+
+    auto find = m_elsockettracker.m_addr_host_map.find(addr);
+    if (find == m_elsockettracker.m_addr_host_map.end()) {
+      continue;
+    }
+    Json::Value j_eventlog;
+    j_eventlog["_eventname"] = log["_eventname"];
+    j_eventlog["params"] = log["params"];
+    for (const string& id : find->second) {
+      lock_guard<mutex> g(m_mutexELDataBufferSockets);
+      m_eventLogDataBuffer[id][addr].append(j_eventlog);
+    }
+  }
+}
+
+void WebsocketServer::SendOutEventLog() {
+  lock_guard<mutex> g(m_mutexELDataBufferSockets);
+  for (auto it = m_eventLogDataBuffer.begin(); it != m_eventLogDataBuffer.end();
+       ++it) {
+    connection_hdl hdl;
+    if (!getWebsocket(it->first, EVENTLOG, hdl)) {
+      continue;
+    }
+    Json::Value j_data;
+    for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it) {
+      Json::Value j_contract;
+      j_contract["address"] = it2->first.hex();
+      j_contract["event_logs"] = it2->second;
+      j_data.append(j_contract);
+    }
+    if (!sendData(hdl, JSONUtils::GetInstance().convertJsontoStr(j_data))) {
+      continue;
+    }
+  }
+  m_eventLogDataBuffer.clear();
 }
 
 }  // namespace Websocket

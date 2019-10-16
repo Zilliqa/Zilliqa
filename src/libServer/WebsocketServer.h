@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 
+#include <mutex>
 #include <set>
 #include <unordered_map>
 
@@ -26,34 +27,15 @@
 
 #include "depends/common/FixedHash.h"
 #include "libData/AccountData/Address.h"
+#include "libData/AccountData/TransactionReceipt.h"
+#include "libData/BlockData/Block.h"
+
+using HostSocketMap =
+    std::unordered_map<std::string, websocketpp::connection_hdl>;
 
 namespace Websocket {
 enum QUERY : unsigned int { NEWBLOCK, EVENTLOG };
-struct WebsocketInfo {
-  std::string m_host;
-  QUERY m_query;
 
-  bool operator==(const WebsocketInfo& info) const {
-    return std::tie(m_host, m_query) == std::tie(info.m_host, info.m_query);
-  }
-};
-}  // namespace Websocket
-
-// define its hash function in order to used as key in map
-namespace std {
-template <>
-struct hash<Websocket::WebsocketInfo> {
-  size_t operator()(Websocket::WebsocketInfo const& info) const noexcept {
-    std::size_t seed = 0;
-    boost::hash_combine(seed, info.m_host);
-    boost::hash_combine(seed, to_string(info.m_query));
-
-    return seed;
-  }
-};
-}  // namespace std
-
-namespace Websocket {
 struct EventLogSocketTracker {
   // for updating event log for client subscribed
   std::unordered_map<Address, std::set<std::string>> m_addr_host_map;
@@ -101,16 +83,29 @@ class WebsocketServer {
                        const std::string& data);
   static bool closeSocket(websocketpp::connection_hdl hdl);
 
+  // external interface
+  static bool SendTxBlock(const TxBlock& txblock);
+  static void ParseTxnEventLog(const TransactionWithReceipt& twr);
+  static void SendOutEventLog();
+
  private:
-  static bool getWebsocket(const WebsocketInfo& id,
+  static bool getWebsocket(const std::string& host, QUERY query,
                            websocketpp::connection_hdl& hdl);
   static void removeSocket(const std::string& host, const std::string& query);
 
   static websocketpp::server<websocketpp::config::asio> m_server;
-  static pthread_rwlock_t m_websocketsLock;
-  static std::unordered_map<WebsocketInfo, websocketpp::connection_hdl>
-      m_websockets;
+
+  static std::mutex m_mutexTxBlockSockets;
+  static HostSocketMap m_txblock_websockets;
+
+  static std::mutex m_mutexEventLogSockets;
+  static HostSocketMap m_eventlog_websockets;
   static EventLogSocketTracker m_elsockettracker;
+
+  static std::mutex m_mutexELDataBufferSockets;
+  static std::unordered_map<std::string,
+                            std::unordered_map<Address, Json::Value>>
+      m_eventLogDataBuffer;
   // ostream os;
 
   // callbacks
