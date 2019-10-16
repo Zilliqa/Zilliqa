@@ -10,7 +10,7 @@ message(STATUS "Building and installing websocketpp")
 
 # update submodule to the latest commit
 execute_process(
-    COMMAND git submodule update --init src/depends/websocketpp
+    COMMAND git submodule update --init --recursive --remote src/depends/websocketpp
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE WEBSOCKETPP_INSTALL_RET
     OUTPUT_FILE ${WEBSOCKETPP_INSTALL_LOG}
