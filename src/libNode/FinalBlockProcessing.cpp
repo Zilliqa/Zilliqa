@@ -40,6 +40,7 @@
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libServer/LookupServer.h"
+#include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -897,10 +898,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
-    if (LOOKUP_NODE_MODE)  // lookup, newlookup and level2lookup
-    {
-      m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
-    }
+    m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
   }
 
   FallbackTimerPulse();
@@ -1198,6 +1196,14 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
                           << entry.m_microBlock.GetHeader().GetEpochNum());
           return false;
         }
+      }
+
+      if (ENABLE_WEBSOCKET) {
+        // send tx block
+        
+        // attach txhashes if available
+        // feed the event log holder
+        // send event logs
       }
     }
   }
