@@ -276,6 +276,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         LOG_GENERAL(INFO, "Recovery all nodes");
         if (m_mediator.m_lookup->GetSyncType() == SyncType::RECOVERY_ALL_SYNC) {
           m_lookup.SetSyncType(NO_SYNC);
+          // Send whitelist request to all peers and seeds.
+          m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist();
         }
         // When doing recovery, make sure to let other lookups know I'm back
         // online

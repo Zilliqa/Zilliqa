@@ -43,6 +43,9 @@ endif()
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
+include(InstallWebsocketpp)
+find_package(websocketpp CONFIG REQUIRED)
+
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
@@ -198,6 +201,8 @@ include_directories(${PROTOBUF_INSTALL_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 
 include_directories(${G3LOG_INCLUDE_DIR})
+
+include_directories(${WEBSOCKETPP_INCLUDE_DIR})
 
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
