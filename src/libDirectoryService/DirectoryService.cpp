@@ -522,14 +522,29 @@ bool DirectoryService::FinishRejoinAsDS() {
   LOG_MARKER();
   {
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    m_consensusMyID = 0;
+    bool found = false;
+
     for (auto& i : *m_mediator.m_DSCommittee) {
       if (i.first == m_mediator.m_selfKey.second) {
         i.second = Peer();
+        found = true;
         LOG_GENERAL(INFO,
                     "Found current node to be inside ds committee. Setting it "
                     "to Peer()");
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "My node ID for this PoW consensus is " << m_consensusMyID);
         break;
       }
+      m_consensusMyID++;
+    }
+
+    if (!found) {
+      LOG_GENERAL(
+          WARNING,
+          "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+      m_mediator.m_node->RejoinAsNormal();
+      return false;
     }
 
     LOG_GENERAL(INFO, "DS committee");
@@ -593,30 +608,14 @@ bool DirectoryService::FinishRejoinAsDS() {
     return false;
   }
 
-  m_consensusMyID = 0;
-  bool found = false;
-
-  for (auto const& i : dsComm) {
-    if (i.first == m_mediator.m_selfKey.second) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "My node ID for this PoW consensus is " << m_consensusMyID);
-      found = true;
-      break;
-    }
-    m_consensusMyID++;
+  // Not vacaous
+  if (m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
+      0) {
+    StartFirstTxEpoch();
+  } else {  // vacaous epoch
+    StartNewDSEpochConsensus(false, true);
   }
 
-  if (!found) {
-    LOG_GENERAL(
-        WARNING,
-        "Unable to find myself in ds committee, Invoke Rejoin as Normal");
-    m_mediator.m_node->RejoinAsNormal();
-    return false;
-  }
-
-  // in case the recovery program is under different directory
-  LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
-  StartNewDSEpochConsensus(false, true);
   return true;
 }
 

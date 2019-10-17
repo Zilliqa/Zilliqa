@@ -392,7 +392,10 @@ void DirectoryService::StartFirstTxEpoch() {
       index++;
     }
 
-    m_mediator.m_node->ResetConsensusId();
+    // m_mediator.m_node->ResetConsensusId();
+    // If node was restarted consensusID needs to be calculated ( will not be 1)
+    m_mediator.m_consensusID =
+        (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
     // Check if I am the leader or backup of the shard
     m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
