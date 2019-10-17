@@ -8546,7 +8546,7 @@ bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, myKey.first, myKey.second, signature)) {
+  if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign NodeRemoveFromBlacklist");
     return false;
   }
@@ -8583,8 +8583,7 @@ bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
-  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     senderPubKey)) {
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist signature wrong");
     return false;
   }
