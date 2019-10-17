@@ -39,6 +39,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
+#include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
@@ -956,12 +957,24 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 }
 
 void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CommitForwardedTransactions not expected to be "
+                "called from Normal node.");
+    return true;
+  }
+
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
     LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
+    }
+
+    // feed the event log holder
+    if (ENABLE_WEBSOCKET) {
+      WebsocketServer::GetInstance().ParseTxnEventLog(twr);
     }
 
     // Store TxBody to disk
@@ -1199,11 +1212,15 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       }
 
       if (ENABLE_WEBSOCKET) {
-        // send tx block
-        
-        // attach txhashes if available
-        // feed the event log holder
+        // send tx block and attach txhashes
+        const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+        WebsocketServer::GetInstance().SendTxBlockAndTxHashes(
+            JSONConversion::convertTxBlocktoJson(txBlock),
+            LookupServer::GetTransactionsForTxBlock(
+                txBlock, m_mediator.m_lookup->m_historicalDB));
+
         // send event logs
+        WebsocketServer::GetInstance().SendOutEventLog();
       }
     }
   }
