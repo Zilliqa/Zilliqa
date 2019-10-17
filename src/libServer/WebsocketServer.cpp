@@ -15,10 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <json/json.h>
-
-#include "LookupServer.h"
 #include "WebsocketServer.h"
+#include "LookupServer.h"
 
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
@@ -35,7 +33,18 @@ using websocketpp::connection_hdl;
 using namespace std;
 using namespace dev;
 
-namespace Websocket {
+websocketpp::server<websocketpp::config::asio> WebsocketServer::m_server;
+
+mutex WebsocketServer::m_mutexTxBlockSockets;
+HostSocketMap WebsocketServer::m_txblock_websockets;
+
+mutex WebsocketServer::m_mutexEventLogSockets;
+HostSocketMap WebsocketServer::m_eventlog_websockets;
+EventLogSocketTracker WebsocketServer::m_elsockettracker;
+
+mutex WebsocketServer::m_mutexELDataBufferSockets;
+std::unordered_map<std::string, std::unordered_map<Address, Json::Value>>
+    WebsocketServer::m_eventLogDataBuffer;
 
 bool WebsocketServer::init() {
   // Initialising websocketserver
@@ -137,7 +146,7 @@ void WebsocketServer::clean() {
   }
 }
 
-bool GetQueryEnum(const string& query, QUERY& q_enum) {
+bool GetQueryEnum(const string& query, WEBSOCKETQUERY& q_enum) {
   if (query == "NewBlock") {
     q_enum = NEWBLOCK;
   } else if (query == "EventLog") {
@@ -149,7 +158,7 @@ bool GetQueryEnum(const string& query, QUERY& q_enum) {
   return true;
 }
 
-bool WebsocketServer::getWebsocket(const string& host, QUERY query,
+bool WebsocketServer::getWebsocket(const string& host, WEBSOCKETQUERY query,
                                    connection_hdl& hdl) {
   HostSocketMap::iterator it;
   switch (query) {
@@ -174,7 +183,7 @@ bool WebsocketServer::getWebsocket(const string& host, QUERY query,
 void WebsocketServer::removeSocket(const std::string& host,
                                    const std::string& query) {
   LOG_GENERAL(INFO, "remove conn: " << host << "(" << query << ")");
-  QUERY q_enum;
+  WEBSOCKETQUERY q_enum;
   if (!GetQueryEnum(query, q_enum)) {
     LOG_GENERAL(WARNING, "GetQueryEnum failed");
     return;
@@ -263,7 +272,7 @@ bool WebsocketServer::on_validate(connection_hdl hdl) {
     return false;
   }
 
-  QUERY q_enum;
+  WEBSOCKETQUERY q_enum;
   if (!GetQueryEnum(query, q_enum)) {
     LOG_GENERAL(WARNING, "GetQueryEnum failed");
     return false;
@@ -329,12 +338,11 @@ bool WebsocketServer::closeSocket(connection_hdl hdl) {
   return true;
 }
 
-bool WebsocketServer::SendTxBlock(const TxBlock& txblock) {
-  Json::Value json_txblock = JSONConversion::convertTxBlocktoJson(txblock);
-  Json::Value json_txnhashes = LookupServer::GetRecentTransactions();
+bool WebsocketServer::SendTxBlockAndTxHashes(const Json::Value& json_txblock,
+                                             const Json::Value& json_txhashes) {
   Json::Value json_msg;
   json_msg["TxBlock"] = json_txblock;
-  json_msg["TxHashes"] = json_txnhashes;
+  json_msg["TxHashes"] = json_txhashes;
 
   {
     lock_guard<mutex> g(m_mutexTxBlockSockets);
@@ -417,5 +425,3 @@ void WebsocketServer::SendOutEventLog() {
   }
   m_eventLogDataBuffer.clear();
 }
-
-}  // namespace Websocket

@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 
+#include <json/json.h>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -25,6 +26,7 @@
 #include "websocketpp/config/asio_no_tls.hpp"
 #include "websocketpp/server.hpp"
 
+#include "common/Constants.h"
 #include "depends/common/FixedHash.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -33,8 +35,7 @@
 using HostSocketMap =
     std::unordered_map<std::string, websocketpp::connection_hdl>;
 
-namespace Websocket {
-enum QUERY : unsigned int { NEWBLOCK, EVENTLOG };
+enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG };
 
 struct EventLogSocketTracker {
   // for updating event log for client subscribed
@@ -72,25 +73,42 @@ struct EventLogSocketTracker {
   }
 };
 
-class WebsocketServer {
+class WebsocketServer : public Singleton<WebsocketServer> {
  public:
-  static bool init();
-  static void run();
-  static void stop();
-  static void clean();
+  /// Returns the singleton AccountStore instance.
+  static WebsocketServer& GetInstance() {
+    static WebsocketServer ws;
+    return ws;
+  }
 
-  static bool sendData(websocketpp::connection_hdl hdl,
-                       const std::string& data);
-  static bool closeSocket(websocketpp::connection_hdl hdl);
+  void run();
+  void clean();
+
+  bool sendData(websocketpp::connection_hdl hdl, const std::string& data);
+  bool closeSocket(websocketpp::connection_hdl hdl);
 
   // external interface
-  static bool SendTxBlock(const TxBlock& txblock);
-  static void ParseTxnEventLog(const TransactionWithReceipt& twr);
-  static void SendOutEventLog();
+  bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
+                              const Json::Value& json_txhashes);
+  void ParseTxnEventLog(const TransactionWithReceipt& twr);
+  void SendOutEventLog();
 
  private:
-  static bool getWebsocket(const std::string& host, QUERY query,
-                           websocketpp::connection_hdl& hdl);
+  WebsocketServer() {
+    if (!init()) {
+      LOG_GENERAL(FATAL, "WebsocketServer init failed");
+      ENABLE_WEBSOCKET = false;
+      stop();
+      return;
+    }
+  }
+  ~WebsocketServer() { stop(); }
+
+  bool init();
+  void stop();
+
+  bool getWebsocket(const std::string& host, WEBSOCKETQUERY query,
+                    websocketpp::connection_hdl& hdl);
   static void removeSocket(const std::string& host, const std::string& query);
 
   static websocketpp::server<websocketpp::config::asio> m_server;
@@ -113,6 +131,5 @@ class WebsocketServer {
   static void on_fail(websocketpp::connection_hdl hdl);
   static void on_close(websocketpp::connection_hdl hdl);
 };
-}  // namespace Websocket
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_

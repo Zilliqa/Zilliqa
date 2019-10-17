@@ -1450,7 +1450,6 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   uint64_t txNum;
-  Json::Value _json = Json::arrayValue;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
   } catch (exception& e) {
@@ -1459,6 +1458,16 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
+  return GetTransactionsForTxBlock(txBlock,
+                                   m_mediator.m_lookup->m_historicalDB);
+}
+
+Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                                    bool historicalDB) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   // TODO
   // Workaround to identify dummy block as == comparator does not work on
   // empty object for TxBlock and TxBlockheader().
@@ -1469,8 +1478,9 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
   }
 
   auto microBlockInfos = txBlock.GetMicroBlockInfos();
-
+  Json::Value _json = Json::arrayValue;
   bool hasTransactions = false;
+
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
     _json[mbInfo.m_shardId] = Json::arrayValue;
@@ -1481,7 +1491,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      if (!m_mediator.m_lookup->m_historicalDB) {
+      if (!historicalDB) {
         throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
                      mbInfo.m_microBlockHash, mbptr)) {
