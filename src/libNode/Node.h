@@ -272,8 +272,6 @@ class Node : public Executable {
   bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
                                       const Peer& from);
 
-  void ComposeAndSendRemoveNodeFromBlacklist();
-
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
@@ -380,6 +378,8 @@ class Node : public Executable {
     SYNC
   };
 
+  enum RECEIVERTYPE : unsigned char { LOOKUP = 0x00, PEER, BOTH };
+
   // Proposed gas price
   uint128_t m_proposedGasPrice;
   std::mutex m_mutexGasPrice;
@@ -434,6 +434,9 @@ class Node : public Executable {
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
 
+  // Is part of current sharding structure / dsCommittee
+  std::atomic<bool> m_confirmedNotInNetwork{};
+
   // hold count of whitelist request for given ip
   std::mutex m_mutexWhitelistReqs;
   std::map<uint128_t, uint32_t> m_whitelistReqs;
@@ -463,6 +466,13 @@ class Node : public Executable {
 
   /// Get this node shard ID
   uint32_t GetShardId() { return m_myshardId; };
+
+  /// Recalculate this node shardID
+  bool RecalculateMyShardId();
+
+  // Send whitelist message to peers and seeds
+  void ComposeAndSendRemoveNodeFromBlacklist(
+      const RECEIVERTYPE receiver = BOTH);
 
   /// Sets the value of m_state.
   void SetState(NodeState state);

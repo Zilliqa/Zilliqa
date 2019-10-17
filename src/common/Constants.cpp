@@ -174,8 +174,8 @@ const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
     "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
-const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
-    "NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int GETSHARD_TIMEOUT_IN_SECONDS{
+    ReadConstantNumeric("GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
     "GETSTATEDELTAS_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int RETRY_REJOINING_TIMEOUT{
@@ -186,6 +186,8 @@ const unsigned int MAX_FETCHMISSINGMBS_NUM{
     ReadConstantNumeric("MAX_FETCHMISSINGMBS_NUM", "node.epoch_timing.")};
 const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(
     "LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS", "node.epoch_timing.")};
+const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
+    "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{

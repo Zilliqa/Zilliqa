@@ -224,7 +224,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
   if (!foundMe && !callByRetrieve) {
     LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
-    RejoinAsNormal();
+    this->StartSynchronization();
     return false;
   }
 
@@ -269,6 +269,10 @@ void Node::StartFirstTxEpoch() {
     m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
         lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
   }
+
+  // If node was restarted consensusID needs to be calculated ( will not be 1)
+  m_mediator.m_consensusID =
+      (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   // Check if I am the leader or backup of the shard
   if (m_mediator.m_selfKey.second ==

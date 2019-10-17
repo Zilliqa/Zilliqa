@@ -166,6 +166,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   LOG_MARKER();
 
   m_txn_distribute_window_open = false;
+  m_confirmedNotInNetwork = false;
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
@@ -1050,6 +1051,13 @@ void Node::StartSynchronization() {
   LOG_MARKER();
 
   SetState(SYNC);
+
+  // Send whitelist request to seeds, in case it was blacklisted if was
+  // restarted.
+  ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
+  this_thread::sleep_for(
+      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
@@ -1902,7 +1910,7 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-void Node::ComposeAndSendRemoveNodeFromBlacklist() {
+void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   LOG_MARKER();
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
@@ -1917,24 +1925,28 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist() {
     return;
   }
 
-  // Send the peers
-  VectorOfPeer peerList;
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      peerList.push_back(i.second);
+  if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
+    // Send the peers
+    VectorOfPeer peerList;
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        peerList.push_back(i.second);
+      }
+    } else {
+      lock_guard<mutex> g(m_mutexShardMember);
+      for (const auto& i : *m_myShardMembers) {
+        peerList.push_back(i.second);
+      }
     }
-  } else {
-    lock_guard<mutex> g(m_mutexShardMember);
-    for (const auto& i : *m_myShardMembers) {
-      peerList.push_back(i.second);
-    }
+    P2PComm::GetInstance().SendMessage(peerList, message);
   }
-  P2PComm::GetInstance().SendMessage(peerList, message);
 
-  // send to upper seeds
-  m_mediator.m_lookup->SendMessageToSeedNodes(message);
+  if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
+    // send to upper seeds
+    m_mediator.m_lookup->SendMessageToSeedNodes(message);
+  }
 }
 
 bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
@@ -1983,9 +1995,15 @@ bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
     return false;
   }
 
-  if (dsEpochNumber != m_mediator.m_currentEpochNum) {
-    LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, m_mediator.m_currentEpochNum);
-    return false;
+  // No check on dsepoch if i am lookup. Node not yet synced won't have latest
+  // dsepoch.
+  if (!LOOKUP_NODE_MODE) {
+    uint64_t currentDSEpochNumber =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+    if (dsEpochNumber != currentDSEpochNumber) {
+      LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, currentDSEpochNumber);
+      return false;
+    }
   }
 
   if (from.GetIpAddress() != ipAddress) {
@@ -2291,6 +2309,22 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
                           << std::get<SHARD_NODE_PEER>(kv));
   }
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
+}
+
+bool Node::RecalculateMyShardId() {
+  lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+  m_myshardId = -1;
+  uint32_t shardId = -1;
+  for (const auto& shard : m_mediator.m_ds->m_shards) {
+    shardId++;
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
+        m_myshardId = shardId;
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool Node::Execute(const bytes& message, unsigned int offset,
