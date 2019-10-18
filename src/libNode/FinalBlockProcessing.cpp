@@ -1214,10 +1214,15 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       if (ENABLE_WEBSOCKET) {
         // send tx block and attach txhashes
         const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+        Json::Value j_txnhashes;
+        try {
+          j_txnhashes = LookupServer::GetTransactionsForTxBlock(
+              txBlock, m_mediator.m_lookup->m_historicalDB);
+        } catch (...) {
+          j_txnhashes = Json::arrayValue;
+        }
         WebsocketServer::GetInstance().SendTxBlockAndTxHashes(
-            JSONConversion::convertTxBlocktoJson(txBlock),
-            LookupServer::GetTransactionsForTxBlock(
-                txBlock, m_mediator.m_lookup->m_historicalDB));
+            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
         // send event logs
         WebsocketServer::GetInstance().SendOutEventLog();

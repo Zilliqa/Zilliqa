@@ -75,6 +75,8 @@ bool WebsocketServer::init() {
     return false;
   }
 
+  // run, make it in a seperate thread
+
   return true;
 }
 
@@ -87,6 +89,7 @@ void WebsocketServer::run() {
 }
 
 void WebsocketServer::stop() {
+  LOG_MARKER();
   // stopping the Websocket listener and closing outstanding connection
   websocketpp::lib::error_code ec;
   m_server.stop_listening(ec);
@@ -215,6 +218,7 @@ void WebsocketServer::removeSocket(const std::string& host,
 }
 
 bool WebsocketServer::on_validate(connection_hdl hdl) {
+  LOG_MARKER();
   websocketpp::server<websocketpp::config::asio>::connection_ptr con =
       m_server.get_con_from_hdl(hdl);
   websocketpp::uri_ptr uri = con->get_uri();
@@ -296,6 +300,7 @@ bool WebsocketServer::on_validate(connection_hdl hdl) {
 }
 
 void WebsocketServer::on_fail(connection_hdl hdl) {
+  LOG_MARKER();
   websocketpp::server<websocketpp::config::asio>::connection_ptr con =
       m_server.get_con_from_hdl(hdl);
   websocketpp::lib::error_code ec = con->get_ec();
@@ -307,6 +312,7 @@ void WebsocketServer::on_fail(connection_hdl hdl) {
 }
 
 void WebsocketServer::on_close(connection_hdl hdl) {
+  LOG_MARKER();
   websocketpp::server<websocketpp::config::asio>::connection_ptr con =
       m_server.get_con_from_hdl(hdl);
   websocketpp::uri_ptr uri = con->get_uri();
@@ -316,6 +322,7 @@ void WebsocketServer::on_close(connection_hdl hdl) {
 }
 
 bool WebsocketServer::sendData(connection_hdl hdl, const string& data) {
+  LOG_MARKER();
   websocketpp::lib::error_code ec;
   m_server.send(hdl, data, websocketpp::frame::opcode::text, ec);
   if (ec) {
@@ -340,6 +347,7 @@ bool WebsocketServer::closeSocket(connection_hdl hdl) {
 
 bool WebsocketServer::SendTxBlockAndTxHashes(const Json::Value& json_txblock,
                                              const Json::Value& json_txhashes) {
+  LOG_MARKER();
   Json::Value json_msg;
   json_msg["TxBlock"] = json_txblock;
   json_msg["TxHashes"] = json_txhashes;
@@ -360,6 +368,7 @@ bool WebsocketServer::SendTxBlockAndTxHashes(const Json::Value& json_txblock,
 }
 
 void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
+  LOG_MARKER();
   if (Transaction::GetTransactionType(twr.GetTransaction()) !=
       Transaction::CONTRACT_CALL) {
     return;
@@ -405,6 +414,7 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
 }
 
 void WebsocketServer::SendOutEventLog() {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexELDataBufferSockets);
   for (auto it = m_eventLogDataBuffer.begin(); it != m_eventLogDataBuffer.end();
        ++it) {
