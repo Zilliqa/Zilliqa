@@ -961,7 +961,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     LOG_GENERAL(WARNING,
                 "Node::CommitForwardedTransactions not expected to be "
                 "called from Normal node.");
-    return true;
+    return;
   }
 
   LOG_MARKER();
