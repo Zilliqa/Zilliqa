@@ -2063,6 +2063,26 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
+
+    // If txblk not from vacaous epoch and is rejoining as ds node
+    if ((txBlock.GetHeader().GetBlockNum() + 1) % NUM_FINAL_BLOCK_PER_POW !=
+            0 &&
+        (m_syncType == SyncType::DS_SYNC ||
+         m_syncType == SyncType::GUARD_DS_SYNC)) {
+      // Coinbase
+      m_mediator.m_ds->SaveCoinbase(txBlock.GetB1(), txBlock.GetB2(),
+                                    CoinbaseReward::FINALBLOCK_REWARD,
+                                    txBlock.GetHeader().GetBlockNum());
+      m_mediator.m_ds->m_totalTxnFees += txBlock.GetHeader().GetRewards();
+
+      if (!BlockStorage::GetBlockStorage().PutEpochFin(
+              txBlock.GetHeader().GetBlockNum())) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
+                                 << m_mediator.m_currentEpochNum);
+        return;
+      }
+    }
+
     if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
          m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
         (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
