@@ -2072,8 +2072,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // Coinbase
       m_mediator.m_ds->SaveCoinbase(txBlock.GetB1(), txBlock.GetB2(),
                                     CoinbaseReward::FINALBLOCK_REWARD,
-                                    txBlock.GetHeader().GetBlockNum());
-      m_mediator.m_ds->m_totalTxnFees += txBlock.GetHeader().GetRewards();
+                                    txBlock.GetHeader().GetBlockNum() + 1);
 
       if (!BlockStorage::GetBlockStorage().PutEpochFin(
               txBlock.GetHeader().GetBlockNum())) {
