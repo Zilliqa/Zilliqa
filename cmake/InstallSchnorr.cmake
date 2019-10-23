@@ -1,9 +1,8 @@
 set(SCHNORR_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/Schnorr)
 set(SCHNORR_BINARY_DIR ${CMAKE_BINARY_DIR}/src/depends/Schnorr)
-set(SCHNORR_INSTALL_DIR ${CMAKE_BINARY_DIR}/Schnorr)
+set(SCHNORR_INSTALL_DIR ${CMAKE_BINARY_DIR})
 set(SCHNORR_INSTALL_LOG ${CMAKE_BINARY_DIR}/install_Schnorr.log)
 
-file(MAKE_DIRECTORY ${SCHNORR_INSTALL_DIR})
 file(MAKE_DIRECTORY ${SCHNORR_BINARY_DIR})
 
 message(STATUS "Building and installing Schnorr")
