@@ -204,6 +204,19 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return true;
   }
 
+  uint32_t shardId = microBlock.GetHeader().GetShardId();
+  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
+
+  // Check if we already received a validated microblock with the same shard id.
+  // Save on unnecessary-validation.
+  if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+              [shardId](const MicroBlock& mb) -> bool {
+                return mb.GetHeader().GetShardId() == shardId;
+              }) != microBlocksAtEpoch.end()) {
+    LOG_GENERAL(WARNING, "Duplicate microblock received for shard " << shardId);
+    return false;
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = microBlock.GetHeader().GetMyHash();
   if (temp_blockHash != microBlock.GetBlockHash()) {
@@ -236,7 +249,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  uint32_t shardId = microBlock.GetHeader().GetShardId();
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "shard_id " << shardId);
 
   const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
@@ -286,17 +298,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     LOG_GENERAL(WARNING,
                 "DS microblock consensus already started, ignore this "
                 "microblock submission");
-    return false;
-  }
-
-  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
-
-  // Check if we already received a validated microblock with the same shard id
-  if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
-              [shardId](const MicroBlock& mb) -> bool {
-                return mb.GetHeader().GetShardId() == shardId;
-              }) != microBlocksAtEpoch.end()) {
-    LOG_GENERAL(WARNING, "Duplicate microblock received for shard " << shardId);
     return false;
   }
 
