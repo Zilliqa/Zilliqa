@@ -2057,34 +2057,30 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     // Store Tx Block to disk
     bytes serializedTxBlock;
     txBlock.Serialize(serializedTxBlock, 0);
+    uint64_t blockNum = txBlock.GetHeader().GetBlockNum();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBlock(
-            txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBlock(blockNum,
+                                                    serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
 
     // If txblk not from vacaous epoch and is rejoining as ds node
-    if ((txBlock.GetHeader().GetBlockNum() + 1) % NUM_FINAL_BLOCK_PER_POW !=
-            0 &&
+    if ((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW != 0 &&
         (m_syncType == SyncType::DS_SYNC ||
          m_syncType == SyncType::GUARD_DS_SYNC)) {
       // Coinbase
+      uint128_t rewards = txBlock.GetHeader().GetRewards();
       LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
-                            << txBlock.GetHeader().GetBlockNum() << ", reward: "
-                            << txBlock.GetHeader().GetRewards());
+                            << blockNum << ", reward: " << rewards);
       m_mediator.m_ds->SaveCoinbase(txBlock.GetB1(), txBlock.GetB2(),
                                     CoinbaseReward::FINALBLOCK_REWARD,
-                                    txBlock.GetHeader().GetBlockNum() + 1);
+                                    blockNum + 1);
       // Need if it join immediately before vacaous. And will be used in
       // InitCoinbase in final blk consensus in vacaous epoch.
-      m_mediator.m_ds->m_totalTxnFees +=
-          m_mediator.m_txBlockChain.GetBlock(txBlock.GetHeader().GetBlockNum())
-              .GetHeader()
-              .GetRewards();
+      m_mediator.m_ds->m_totalTxnFees += rewards;
 
-      if (!BlockStorage::GetBlockStorage().PutEpochFin(
-              txBlock.GetHeader().GetBlockNum())) {
+      if (!BlockStorage::GetBlockStorage().PutEpochFin(blockNum)) {
         LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
                                  << m_mediator.m_currentEpochNum);
         return;
