@@ -31,37 +31,44 @@ Blacklist& Blacklist::GetInstance() {
 }
 
 /// P2PComm may use this function
-bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
+bool Blacklist::Exist(const uint128_t& ip, [[gnu::unused]] const bool strict) {
   if (!m_enabled) {
     return false;
   }
-
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  const auto& bl = m_blacklistIP.find(ip);
-  if (bl != m_blacklistIP.end()) {
-    if (strict) {
-      // always return exist when strict, must be checked while sending message
-      return true;
-    }
+  return (m_blacklistIP.end() != m_blacklistIP.find(ip) &&
+          (m_whitelistedIP.end() == m_whitelistedIP.find(ip)));
+  /*
+    lock_guard<mutex> g(m_mutexBlacklistIP);
+    const auto& bl = m_blacklistIP.find(ip);
+    if (bl != m_blacklistIP.end()) {
+      if (strict) {
+        // always return exist when strict, must be checked while sending
+    message return true;
+      }
 
-    return bl->second;
-  }
-  return false;
+      return bl->second;
+    }
+    return false;
+  */
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Add(const uint128_t& ip, const bool strict) {
+void Blacklist::Add(const uint128_t& ip, [[gnu::unused]] const bool strict) {
   if (!m_enabled) {
     return;
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
   if (m_whitelistedIP.end() == m_whitelistedIP.find(ip)) {
+    /*
     const auto& res = m_blacklistIP.emplace(ip, strict);
     // already existed, then over-ride strictness i.e. false by true
     if (!res.second && strict) {
       res.first->second = strict;
     }
+    */
+    m_blacklistIP.emplace(ip, true);
   } else {
     LOG_GENERAL(INFO,
                 "Whitelisted IP: " << IPConverter::ToStrFromNumericalIP(ip));
