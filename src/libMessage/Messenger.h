@@ -884,5 +884,19 @@ class Messenger {
                                          PubKey& senderPubKey,
                                          uint128_t& ipAddress,
                                          uint64_t& dsEpochNumber);
+
+  static bool GetLookupGetCosigsRewardsFromSeed(const bytes& src,
+                                           const unsigned int offset,
+                                           PubKey& senderPubKey,
+                                           uint64_t& txBlockNumber,
+                                           uint32_t& port);
+
+  static bool SetLookupSetCosigsRewardsFromSeed(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& myKey,
+                                           const uint64_t& txBlkNumber,
+                                           const std::vector<MicroBlock>& microblocks,
+                                           const TxBlock& txBlock,
+                                           const uint32_t& numberOfShards);
 };
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_

@@ -1073,3 +1073,37 @@ message NodeRemoveFromBlacklist
     ByteArray pubkey           = 2;
     ByteArray signature        = 3;
 }
+
+// Holds cosigs and rewards structure for specific shard of specific epoch
+message ProtoCosigsRewardsStructure
+{
+    uint64 epochnumber         = 1;  // Added in: v1.0, Deprecated in: N/A 
+    uint32 shardid             = 2;  // Added in: v1.0, Deprecated in: N/A
+    ProtoBlockBase blockbase   = 3;  // Added in: v1.0, Deprecated in: N/A
+    ByteArray rewards          = 4;  // Added in: v1.0, Deprecated in: N/A
+}
+
+// From DS node for fetching cosig/rewards from Lookup
+message LookupGetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        uint32 portno           = 1;
+        uint64 epochnumber      = 2;
+    }
+    Data data                   = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+// Lookup set cosigs/rewards for ds node
+message LookupSetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        repeated ProtoCosigsRewardsStructure cosigrewards  = 1;
+    }
+    repeated Data data                                     = 1;
+    ByteArray pubkey                                       = 2;
+    ByteArray signature                                    = 3;
+}
