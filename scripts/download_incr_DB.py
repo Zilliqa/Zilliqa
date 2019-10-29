@@ -80,16 +80,16 @@ def GetAllObjectsFromS3(url, folderName=""):
 			print("Empty response")
 			return 1
 		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
+		lastkey = ''
 		for key in tree[startInd:]:
 			key_url = key[0].text
 			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
-		
+			lastkey = key_url
 		istruncated=tree[4].text
 		if istruncated == 'true':
-			nextkey=list_of_keyurls[-1] 
-			MARKER=nextkey
+			MARKER=lastkey
 			print(istruncated)
 		else:
 			break
