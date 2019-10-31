@@ -32,44 +32,48 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 
-using HostSocketMap =
+typedef websocketpp::server<websocketpp::config::asio> websocketserver;
+
+using IpSocketMap =
     std::unordered_map<std::string, websocketpp::connection_hdl>;
 
 enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG };
 
+using EndpointQueryIndex = std::unordered_map<std::string, WEBSOCKETQUERY>;
+
 struct EventLogSocketTracker {
   // for updating event log for client subscribed
-  std::unordered_map<Address, std::set<std::string>> m_addr_host_map;
+  std::unordered_map<Address, std::set<std::string>> m_addr_ip_map;
   // for removing socket from m_eventlog_hdl_tracker
-  std::unordered_map<std::string, std::set<Address>> m_host_addr_map;
+  std::unordered_map<std::string, std::set<Address>> m_ip_addr_map;
 
-  void add(const std::string& host, const std::vector<Address>& addresses) {
-    for (const auto& addr : addresses) {
-      m_addr_host_map[addr].emplace(host);
-      m_host_addr_map[host].emplace(addr);
-    }
-  }
-
-  void remove(const std::string& host) {
-    auto iter_ha = m_host_addr_map.find(host);
-    if (iter_ha == m_host_addr_map.end()) {
+  void remove(const std::string& ip) {
+    auto iter_ha = m_ip_addr_map.find(ip);
+    if (iter_ha == m_ip_addr_map.end()) {
       return;
     }
     for (const auto& addr : iter_ha->second) {
-      auto iter_ah = m_addr_host_map.find(addr);
-      if (iter_ah != m_addr_host_map.end()) {
-        iter_ah->second.erase(host);
+      auto iter_ah = m_addr_ip_map.find(addr);
+      if (iter_ah != m_addr_ip_map.end()) {
+        iter_ah->second.erase(ip);
       }
       if (iter_ah->second.empty()) {
-        m_addr_host_map.erase(iter_ah);
+        m_addr_ip_map.erase(iter_ah);
       }
     }
-    m_host_addr_map.erase(iter_ha);
+    m_ip_addr_map.erase(iter_ha);
+  }
+
+  void update(const std::string& ip, const std::set<Address>& addresses) {
+    for (const auto& addr : addresses) {
+      m_addr_ip_map[addr].emplace(ip);
+    }
+    m_ip_addr_map[ip] = addresses;
   }
 
   void clean() {
-    m_addr_host_map.clear();
-    m_host_addr_map.clear();
+    m_addr_ip_map.clear();
+    m_ip_addr_map.clear();
   }
 };
 
@@ -81,11 +85,9 @@ class WebsocketServer : public Singleton<WebsocketServer> {
     return ws;
   }
 
-  void run();
   void clean();
 
   bool sendData(websocketpp::connection_hdl hdl, const std::string& data);
-  bool closeSocket(websocketpp::connection_hdl hdl);
 
   // external interface
   bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
@@ -95,8 +97,8 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
  private:
   WebsocketServer() {
-    if (!init()) {
-      LOG_GENERAL(FATAL, "WebsocketServer init failed");
+    if (!start()) {
+      LOG_GENERAL(FATAL, "WebsocketServer start failed");
       ENABLE_WEBSOCKET = false;
       stop();
       return;
@@ -104,30 +106,38 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   }
   ~WebsocketServer() { stop(); }
 
-  bool init();
+  bool start();
   void stop();
 
-  bool getWebsocket(const std::string& host, WEBSOCKETQUERY query,
+  bool getWebsocket(const std::string& ip, WEBSOCKETQUERY query,
                     websocketpp::connection_hdl& hdl);
-  static void removeSocket(const std::string& host, const std::string& query);
+  static void removeSocket(const std::string& remote);
+  static void removeSocket(const std::string& ip, WEBSOCKETQUERY q_enum);
 
-  static websocketpp::server<websocketpp::config::asio> m_server;
+  static bool closeSocket(websocketpp::connection_hdl hdl);
+
+  static websocketserver m_server;
+
+  static std::mutex m_mutexEqIndex;
+  static EndpointQueryIndex m_eqIndex;
 
   static std::mutex m_mutexTxBlockSockets;
-  static HostSocketMap m_txblock_websockets;
+  static IpSocketMap m_txblock_websockets;
 
   static std::mutex m_mutexEventLogSockets;
-  static HostSocketMap m_eventlog_websockets;
+  static IpSocketMap m_eventlog_websockets;
   static EventLogSocketTracker m_elsockettracker;
 
   static std::mutex m_mutexELDataBufferSockets;
   static std::unordered_map<std::string,
                             std::unordered_map<Address, Json::Value>>
       m_eventLogDataBuffer;
+  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
   // ostream os;
 
   // callbacks
-  static bool on_validate(websocketpp::connection_hdl hdl);
+  static void on_message(websocketpp::connection_hdl hdl,
+                         websocketserver::message_ptr msg);
   static void on_fail(websocketpp::connection_hdl hdl);
   static void on_close(websocketpp::connection_hdl hdl);
 };
