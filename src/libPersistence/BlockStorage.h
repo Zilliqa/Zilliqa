@@ -244,7 +244,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks);
 
   /// Retrieves all the TxBlocks
-  bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
+  bool GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks);
 
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);

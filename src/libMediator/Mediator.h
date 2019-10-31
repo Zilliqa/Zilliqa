@@ -48,7 +48,7 @@ class Mediator {
   Lookup* m_lookup;
 
   /// Pointer to the Validator instance.
-  ValidatorBase* m_validator;
+  Validator* m_validator;
 
   /// The transient DS blockchain.
   DSBlockChain m_dsBlockChain;
@@ -101,7 +101,7 @@ class Mediator {
 
   /// Sets the references to the subclass instances.
   void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
-                          ValidatorBase* validator);
+                          Validator* validator);
 
   /// Updates the DS blockchain random for PoW.
   void UpdateDSBlockRand(bool isGenesis = false);

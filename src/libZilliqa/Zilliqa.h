@@ -34,7 +34,7 @@ class Zilliqa {
   Mediator m_mediator;
   DirectoryService m_ds;
   Lookup m_lookup;
-  std::shared_ptr<ValidatorBase> m_validator;
+  std::shared_ptr<Validator> m_validator;
   Node m_n;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage

@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
       in_blocks.emplace_back(block);
     }
 
-    std::list<TxBlockSharedPtr> ref_blocks;
+    std::deque<TxBlockSharedPtr> ref_blocks;
     std::list<TxBlock> out_blocks;
     BOOST_CHECK_MESSAGE(
         BlockStorage::GetBlockStorage().GetAllTxBlocks(ref_blocks),
@@ -321,7 +321,8 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
       out_blocks.emplace_back(*i);
     }
     BOOST_CHECK_MESSAGE(
-        in_blocks == out_blocks,
+        (in_blocks.size() == out_blocks.size()) &&
+            equal(in_blocks.begin(), in_blocks.end(), out_blocks.begin()),
         "DSBlocks shouldn't change after writting to/ reading from disk");
   }
 }

@@ -351,18 +351,19 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
            std::get<BlockLinkIndex::INDEX>(b);
   });
 
-  std::list<TxBlockSharedPtr> txblocks;
-  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
+  std::deque<TxBlockSharedPtr> txBlocks;
+  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txBlocks)) {
     LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
     return false;
   }
 
-  txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
+  sort(txBlocks.begin(), txBlocks.end(),
+       [](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+       });
 
-  const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
-  const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
+  const auto& latestTxBlockNum = txBlocks.back()->GetHeader().GetBlockNum();
+  const auto& latestDSIndex = txBlocks.back()->GetHeader().GetDSBlockNum();
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -414,30 +415,27 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     return false;
   }
 
-  vector<TxBlock> txBlocks;
-
-  for (const auto& txblock : txblocks) {
-    txBlocks.emplace_back(*txblock);
-  }
-
   if (m_mediator.m_validator->CheckTxBlocks(
           txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
-      ValidatorBase::TxBlockValidationMsg::VALID) {
+      Validator::TxBlockValidationMsg::VALID) {
     LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
     return false;
   }
 
   bool result = true;
 
-  for (uint i = 1; i < txBlocks.size(); i++) {
-    if (fromIsolatedBinary && (i % 100 == 0)) {
-      cout << "On tx block " << txBlocks.at(i).GetHeader().GetBlockNum()
-           << endl;
+  auto validateTxBlock =
+      [result, fromIsolatedBinary](TxBlockSharedPtr txBlock) mutable -> void {
+    const uint64_t& blockNum = txBlock->GetHeader().GetBlockNum();
+    if (fromIsolatedBinary && (blockNum % 100 == 0)) {
+      cout << "On tx block " << blockNum << endl;
     }
-    auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
+
+    const auto& microblockInfos = txBlock->GetMicroBlockInfos();
+
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
-      LOG_GENERAL(INFO, "FB: " << txBlocks.at(i).GetHeader().GetBlockNum()
+      LOG_GENERAL(INFO, "FB: " << txBlock->GetHeader().GetBlockNum()
                                << " MB: " << mbInfo.m_shardId);
       /// Skip because empty microblocks are not stored
       if (mbInfo.m_txnRootHash == TxnHash()) {
@@ -446,7 +444,7 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
         if (LOOKUP_NODE_MODE) {
-          auto tranHashes = mbptr->GetTranHashes();
+          const auto& tranHashes = mbptr->GetTranHashes();
           for (const auto& tranHash : tranHashes) {
             TxBodySharedPtr tx;
             if (!BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
@@ -466,8 +464,27 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
         }
       }
     }
-    if (!result && !fromIsolatedBinary) {
-      break;
+  };
+
+  const unsigned int NUMTHREADS = 25;
+  unique_ptr<ThreadPool> validatePool(
+      new ThreadPool(NUMTHREADS, "ValidatePool"));
+  unsigned int count = 0;
+  while (!txBlocks.empty()) {
+    TxBlockSharedPtr txBlock = txBlocks.front();
+    txBlocks.pop_front();
+
+    validatePool->AddJob([validateTxBlock, txBlock]() mutable -> void {
+      validateTxBlock(txBlock);
+    });
+
+    if (++count == NUMTHREADS) {
+      validatePool->JoinAll();
+      count = 0;
+      if (!result && !fromIsolatedBinary) {
+        break;
+      }
+      validatePool.reset(new ThreadPool(NUMTHREADS, "ValidatePool"));
     }
   }
 
