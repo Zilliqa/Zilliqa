@@ -40,26 +40,35 @@ using websocketpp::lib::placeholders::_2;
 
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
-std::string msg;
+static std::string msg;
 
 // Handlers
 void on_open(client* c, websocketpp::connection_hdl hdl) {
-  c->send(hdl, msg, websocketpp::frame::opcode::text);
+  std::cout << "on_open" << endl;
   c->get_alog().write(websocketpp::log::alevel::app, "Send Message: " + msg);
+  websocketpp::lib::error_code ec;
+  c->send(hdl, msg, websocketpp::frame::opcode::text, ec);
+  if (ec) {
+    c->get_alog().write(websocketpp::log::alevel::app,
+                        "Send Error: " + ec.message());
+  }
 }
 
 void on_fail(client* c, websocketpp::connection_hdl hdl) {
+  std::cout << "on_fail" << endl;
   (void)hdl;
   c->get_alog().write(websocketpp::log::alevel::app, "Connection Failed");
 }
 
 void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr t_msg) {
+  std::cout << "on_message" << endl;
   (void)hdl;
   c->get_alog().write(websocketpp::log::alevel::app,
                       "Received Reply: " + t_msg->get_payload());
 }
 
 void on_close(client* c, websocketpp::connection_hdl hdl) {
+  std::cout << "on_close" << endl;
   (void)hdl;
   c->get_alog().write(websocketpp::log::alevel::app, "Connection Closed");
 }
@@ -122,13 +131,7 @@ int main(int argc, const char* argv[]) {
       }
 
       for (const auto& address : addresses_) {
-        string lower_case_addr;
-        if (!AddressChecksum::VerifyChecksumAddress(address, lower_case_addr)) {
-          std::cerr << "address checksum wrong " << address << endl;
-          std::cout << desc;
-          return ERROR_IN_COMMAND_LINE;
-        }
-        j_query["addresses"].append(lower_case_addr);
+        j_query["addresses"].append(address);
       }
     }
 
@@ -138,11 +141,13 @@ int main(int argc, const char* argv[]) {
 
     try {
       // set logging policy if needed
-      c.clear_access_channels(websocketpp::log::alevel::frame_header);
+      // c.clear_access_channels(websocketpp::log::alevel::frame_header);
+      c.set_access_channels(websocketpp::log::alevel::all);
       c.clear_access_channels(websocketpp::log::alevel::frame_payload);
 
       // Initialize ASIO
       c.init_asio();
+      // c.set_reuse_addr(true);
 
       // Register our handler
       c.set_open_handler(bind(&on_open, &c, ::_1));
@@ -154,10 +159,19 @@ int main(int argc, const char* argv[]) {
       // the event loop starts
       websocketpp::lib::error_code ec;
       client::connection_ptr con = c.get_connection(url_, ec);
+      if (ec) {
+        std::cerr << "could not create connection becasue: " << ec.message()
+                  << endl;
+        return 0;
+      }
+
+      // websocketpp::connection_hdl hdl = con->get_handle();
       c.connect(con);
 
+      // websocketpp::lib::thread asio_thread(&client::run, &c);
       // Start the ASIO io_service run loop
       c.run();
+      c.stop();
     } catch (const std::exception& e) {
       std::cerr << e.what() << std::endl << std::endl;
       return ERROR_UNHANDLED_EXCEPTION;
