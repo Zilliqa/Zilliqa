@@ -368,12 +368,16 @@ class Lookup : public Executable {
   bool ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
                               const Peer& from);
 
-  bool ProcessGetCosigRewardsFromSeed(const bytes& message, unsigned int offset, const Peer& from);
+  bool ProcessGetCosigsRewardsFromSeed(const bytes& message,
+                                       unsigned int offset, const Peer& from);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
 
   static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
+                               const PubKey& pubKeyToVerify);
+
+  static bool VerifySenderNode(const DequeOfNode& deqLookupNodes,
                                const PubKey& pubKeyToVerify);
 
   /// Check and fetch unavailable microblocks

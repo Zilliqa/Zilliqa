@@ -246,6 +246,10 @@ class DirectoryService : public Executable {
   bool ProcessNewDSGuardNetworkInfo(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
+  // Get cosig and rewards for given epoch
+  bool ProcessCosigsRewardsFromSeed(const bytes& message, unsigned int offset,
+                                    const Peer& from);
+
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
@@ -530,6 +534,9 @@ class DirectoryService : public Executable {
   std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
       m_lookupStoreForGuardNodeUpdate;
   std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
+
+  // For saving cosig and rewards
+  std::mutex m_mutexLookupStoreCosigRewards;
 
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;

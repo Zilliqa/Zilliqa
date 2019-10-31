@@ -1590,7 +1590,7 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
-bool Lookup::ProcessGetCosigRewardsFromSeed(
+bool Lookup::ProcessGetCosigsRewardsFromSeed(
     [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
@@ -1604,32 +1604,32 @@ bool Lookup::ProcessGetCosigRewardsFromSeed(
   // verify if sender is from know DS Committee
   uint128_t ipSenderAddr = from.m_ipAddress;
   bool isDSNode = false;
-  for( const auto &i : *m_mediator.m_DSCommittee)
-  {
-    if ( ipSenderAddr == m_mediator.m_selfKey.second.m_ipAdress) {
-            isDsNode = true;
-            break;
+  for (const auto& node : *m_mediator.m_DSCommittee) {
+    if (ipSenderAddr == node.second.m_ipAddress) {
+      isDSNode = true;
+      break;
     }
   }
-  if(!isDsNode){
-    LOG_GENERAL(WARNING,
-                "Requesting IP : "
-                    << from.GetPrintableIPAddress()
-                    << " is not in Present DS Committee list. Ignore the request");
+  if (!isDSNode) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in Present DS Committee list. Ignore the request");
     return false;
   }
 
   uint64_t blockNum;
-  uint32_t portNo = 0;;
+  uint32_t portNo = 0;
+  ;
   PubKey dsPubKey;
-  if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey, 
-                                                   blockNum, portNo)) {
+  if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey,
+                                                    blockNum, portNo)) {
     LOG_GENERAL(WARNING, "Failed to process");
     return false;
   }
 
-  if (!VerifySenderNode(
-          *m_mediator.m_DSCommittee, dsPubKey)) {
+  if (!VerifySenderNode(*m_mediator.m_DSCommittee, dsPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << dsPubKey << " is not in current ds committee list.");
@@ -1641,42 +1641,41 @@ bool Lookup::ProcessGetCosigRewardsFromSeed(
   Peer requestingNode(ipSenderAddr, portNo);
   vector<MicroBlock> retMicroBlocks;
 
-  TxBlockSharedPtr txblkPtr; 
-  for (const auto& mbhash : microBlockHashes) {
-    LOG_GENERAL(INFO, "[SendMB]"
-                          << "Request for microBlockHash " << mbhash);
-    int retryCount = 5;
-
-    while (retryCount-- > 0) {
-      if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
-        LOG_GENERAL(WARNING,
-                    "Failed to fetch tx block, retry... " << blockNum);
-        this_thread::sleep_for(chrono::seconds(1));
-        continue;
-      } else {
-        break;
-      }
+  TxBlockSharedPtr txblkPtr;
+  uint32_t retryCount = 5;
+  while (retryCount-- > 0) {
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
+      LOG_GENERAL(WARNING, "Failed to fetch tx block, retry... " << blockNum);
+      this_thread::sleep_for(chrono::seconds(1));
+      continue;
+    } else {
+      break;
     }
+  }
 
-    const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
-    std::vector<MicroBlock> microblocks;
-    for (const auto& mbInfo : microblockInfos) {
-      
-      MicroBlockSharedPtr mbptr;
-      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
-              mbInfo.m_microBlockHash, mbptr)) {
-        cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
-        return false;
-      }
-      microblocks.emplace_back(*mbptr);
+  if (retryCount <= 0) {
+    LOG_GENERAL(WARNING, "Failed to fetch tx block, giving up !");
+    return false;
+  }
+
+  const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
+  std::vector<MicroBlock> microblocks;
+  for (const auto& mbInfo : microblockInfos) {
+    MicroBlockSharedPtr mbptr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
+      return false;
     }
+    microblocks.emplace_back(*mbptr);
   }
 
   bytes retMsg = {MessageType::LOOKUP,
                   LookupInstructionType::SETCOSIGSREWARDSFROMSEED};
 
   if (!Messenger::SetLookupSetCosigsRewardsFromSeed(
-          retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum, microblocks, *txblock, m_mediator.m_ds->GetNumShards())) {
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum,
+          microblocks, *txblkPtr, m_mediator.m_ds->GetNumShards())) {
     LOG_GENERAL(WARNING, "Failed to Process ");
     return false;
   }
@@ -2155,6 +2154,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
          m_syncType == SyncType::LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, placeholder, true /*skip shardid check*/);
+    }
+
+    if (m_syncType == SyncType::DS_SYNC ||
+        m_syncType == SyncType::GUARD_DS_SYNC) {
+      // Compose And Send GetCosigRewards for this txBlk from seed
+      // TBD
     }
   }
 
@@ -4268,6 +4273,15 @@ bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
                              return node.first == pubKeyToVerify;
                            });
   return vecLookupNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqLookupNodes,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(deqLookupNodes.cbegin(), deqLookupNodes.cend(),
+                           [&pubKeyToVerify](const PairOfNode& node) {
+                             return node.first == pubKeyToVerify;
+                           });
+  return deqLookupNodes.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,

@@ -1078,7 +1078,7 @@ message NodeRemoveFromBlacklist
 message ProtoCosigsRewardsStructure
 {
     uint64 epochnumber         = 1;  // Added in: v1.0, Deprecated in: N/A 
-    uint32 shardid             = 2;  // Added in: v1.0, Deprecated in: N/A
+    int32 shardid              = 2;  // Added in: v1.0, Deprecated in: N/A
     ProtoBlockBase blockbase   = 3;  // Added in: v1.0, Deprecated in: N/A
     ByteArray rewards          = 4;  // Added in: v1.0, Deprecated in: N/A
 }
@@ -1101,9 +1101,9 @@ message LookupSetCosigsRewardsFromSeed
 {
     message Data
     {
-        repeated ProtoCosigsRewardsStructure cosigrewards  = 1;
+        repeated ProtoCosigsRewardsStructure cosigsrewards  = 1;
     }
-    repeated Data data                                     = 1;
-    ByteArray pubkey                                       = 2;
-    ByteArray signature                                    = 3;
+    Data data                                               = 1;
+    ByteArray pubkey                                        = 2;
+    ByteArray signature                                     = 3;
 }
