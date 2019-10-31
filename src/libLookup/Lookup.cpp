@@ -1621,7 +1621,6 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
 
   uint64_t blockNum;
   uint32_t portNo = 0;
-  ;
   PubKey dsPubKey;
   if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey,
                                                     blockNum, portNo)) {

@@ -1077,10 +1077,10 @@ message NodeRemoveFromBlacklist
 // Holds cosigs and rewards structure for specific shard of specific epoch
 message ProtoCosigsRewardsStructure
 {
-    uint64 epochnumber         = 1;  // Added in: v1.0, Deprecated in: N/A 
-    int32 shardid              = 2;  // Added in: v1.0, Deprecated in: N/A
-    ProtoBlockBase blockbase   = 3;  // Added in: v1.0, Deprecated in: N/A
-    ByteArray rewards          = 4;  // Added in: v1.0, Deprecated in: N/A
+    uint64 epochnumber         = 1;
+    int32 shardid              = 2;
+    ProtoBlockBase blockbase   = 3;
+    ByteArray rewards          = 4;
 }
 
 // From DS node for fetching cosig/rewards from Lookup
