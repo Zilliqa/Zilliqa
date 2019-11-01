@@ -238,8 +238,7 @@ class Lookup : public Executable {
                                [[gnu::unused]] unsigned int offset,
                                [[gnu::unused]] const Peer& from);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
-  // UNUSED
-  bool GetShardFromLookup();
+
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
 
@@ -427,6 +426,9 @@ class Lookup : public Executable {
   // Start PoW variables
   std::set<Peer> m_getStartPoWPeerSet;
   std::mutex m_mutexGetStartPoWPeerSet;
+
+  // For use by lookup for dispatching transactions
+  std::atomic<bool> m_sendAllSCToDS{};
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

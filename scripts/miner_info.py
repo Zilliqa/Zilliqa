@@ -114,6 +114,8 @@ def make_options_dictionary(options_dict):
 	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
 	options_dict["ds_difficulty"] = "GetPrevDSDifficulty"
 	options_dict["difficulty"] = "GetPrevDifficulty"
+	options_dict["set_sendsctods"] = "ToggleSendSCToDS"
+	options_dict["get_sendsctods"] = "GetSendSCToDS"
 
 
 def ProcessResponseCore(resp, param):

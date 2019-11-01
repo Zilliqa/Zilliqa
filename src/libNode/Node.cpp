@@ -166,6 +166,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   LOG_MARKER();
 
   m_txn_distribute_window_open = false;
+  m_confirmedNotInNetwork = false;
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
@@ -1050,6 +1051,13 @@ void Node::StartSynchronization() {
   LOG_MARKER();
 
   SetState(SYNC);
+
+  // Send whitelist request to seeds, in case it was blacklisted if was
+  // restarted.
+  ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
+  this_thread::sleep_for(
+      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
@@ -1835,7 +1843,14 @@ bool Node::CleanVariables() {
   }
   m_mediator.m_lookup->m_startedPoW = false;
 
+  CleanWhitelistReqs();
+
   return true;
+}
+
+void Node::CleanWhitelistReqs() {
+  lock_guard<mutex> g(m_mutexWhitelistReqs);
+  m_whitelistReqs.clear();
 }
 
 void Node::CleanUnavailableMicroBlocks() {
@@ -1893,6 +1908,112 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                         return node.second.GetIpAddress() ==
                                peerInfo.GetIpAddress();
                       }) != m_myShardMembers->end();
+}
+
+void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
+  LOG_MARKER();
+  bytes message = {MessageType::NODE,
+                   NodeInstructionType::REMOVENODEFROMBLACKLIST};
+
+  uint64_t curDSEpochNo =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
+  if (!Messenger::SetNodeRemoveFromBlacklist(
+          message, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer.GetIpAddress(), curDSEpochNo)) {
+    LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
+    return;
+  }
+
+  if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
+    // Send the peers
+    VectorOfPeer peerList;
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        peerList.push_back(i.second);
+      }
+    } else {
+      lock_guard<mutex> g(m_mutexShardMember);
+      for (const auto& i : *m_myShardMembers) {
+        peerList.push_back(i.second);
+      }
+    }
+    P2PComm::GetInstance().SendMessage(peerList, message);
+  }
+
+  if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
+    // send to upper seeds
+    m_mediator.m_lookup->SendMessageToSeedNodes(message);
+  }
+}
+
+bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
+  std::lock_guard<mutex> lock(m_mutexWhitelistReqs);
+  auto it = m_whitelistReqs.find(ipAddress);
+  if (it != m_whitelistReqs.end()) {
+    if (it->second >= MAX_WHITELISTREQ_LIMIT) {
+      LOG_GENERAL(WARNING, "WhitelistRequest sender "
+                               << Peer(ipAddress, 0).GetPrintableIPAddress()
+                               << " exceed max allowed request limit of "
+                               << MAX_WHITELISTREQ_LIMIT);
+      return false;
+    } else {
+      it->second++;
+    }
+  } else {
+    m_whitelistReqs.emplace(ipAddress, 1);
+  }
+  return true;
+}
+
+bool Node::ProcessRemoveNodeFromBlacklist(const bytes& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  LOG_MARKER();
+
+  if (!WhitelistReqsValidator(from.GetIpAddress())) {
+    // Blacklist - strict one - since too many whitelist request in current ds
+    // epoch.
+    Blacklist::GetInstance().Add(from.GetIpAddress());
+    return false;
+  }
+
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
+    LOG_GENERAL(WARNING, "Message size for IP ADDRESS is too short");
+    return false;
+  }
+
+  PubKey senderPubKey;
+  uint128_t ipAddress;
+  uint64_t dsEpochNumber;
+  if (!Messenger::GetNodeRemoveFromBlacklist(message, offset, senderPubKey,
+                                             ipAddress, dsEpochNumber)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetNodeRemoveFromBlacklist failed.");
+    return false;
+  }
+
+  // No check on dsepoch if i am lookup. Node not yet synced won't have latest
+  // dsepoch.
+  if (!LOOKUP_NODE_MODE) {
+    uint64_t currentDSEpochNumber =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+    if (dsEpochNumber != currentDSEpochNumber) {
+      LOG_CHECK_FAIL("DS Epoch", dsEpochNumber, currentDSEpochNumber);
+      return false;
+    }
+  }
+
+  if (from.GetIpAddress() != ipAddress) {
+    LOG_CHECK_FAIL("IP Address", Peer(ipAddress, 0).GetPrintableIPAddress(),
+                   from.GetPrintableIPAddress());
+    return false;
+  }
+
+  Blacklist::GetInstance().Remove(ipAddress);
+  return true;
 }
 
 bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
@@ -2190,6 +2311,22 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
+bool Node::RecalculateMyShardId() {
+  lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+  m_myshardId = -1;
+  uint32_t shardId = -1;
+  for (const auto& shard : m_mediator.m_ds->m_shards) {
+    shardId++;
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
+        m_myshardId = shardId;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool Node::Execute(const bytes& message, unsigned int offset,
                    const Peer& from) {
   // LOG_MARKER();
@@ -2199,21 +2336,20 @@ bool Node::Execute(const bytes& message, unsigned int offset,
   typedef bool (Node::*InstructionHandler)(const bytes&, unsigned int,
                                            const Peer&);
 
-  InstructionHandler ins_handlers[] = {
-      &Node::ProcessStartPoW,
-      &Node::ProcessVCDSBlocksMessage,
-      &Node::ProcessSubmitTransaction,
-      &Node::ProcessMicroBlockConsensus,
-      &Node::ProcessFinalBlock,
-      &Node::ProcessMBnForwardTransaction,
-      &Node::ProcessVCBlock,
-      &Node::ProcessDoRejoin,
-      &Node::ProcessTxnPacketFromLookup,
-      &Node::ProcessFallbackConsensus,
-      &Node::ProcessFallbackBlock,
-      &Node::ProcessProposeGasPrice,
-      &Node::ProcessDSGuardNetworkInfoUpdate,
-  };
+  InstructionHandler ins_handlers[] = {&Node::ProcessStartPoW,
+                                       &Node::ProcessVCDSBlocksMessage,
+                                       &Node::ProcessSubmitTransaction,
+                                       &Node::ProcessMicroBlockConsensus,
+                                       &Node::ProcessFinalBlock,
+                                       &Node::ProcessMBnForwardTransaction,
+                                       &Node::ProcessVCBlock,
+                                       &Node::ProcessDoRejoin,
+                                       &Node::ProcessTxnPacketFromLookup,
+                                       &Node::ProcessFallbackConsensus,
+                                       &Node::ProcessFallbackBlock,
+                                       &Node::ProcessProposeGasPrice,
+                                       &Node::ProcessDSGuardNetworkInfoUpdate,
+                                       &Node::ProcessRemoveNodeFromBlacklist};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

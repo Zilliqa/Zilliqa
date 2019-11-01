@@ -18,15 +18,14 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
-> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v5.0.0`)
+> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v5.1.1`)
 
 ## Zilliqa Mainnet
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer 1** | [**Link**](https://explorer.zilliqa.com/) |
-| **Block Explorer 2** | [**Link**](https://viewblock.io/zilliqa) |
+| **Block Explorer** | [**Link**](https://viewblock.io/zilliqa) |
 
 ## Developer Testnet
 
@@ -34,7 +33,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 |:---------|:-------|
 | **API URL** | `https://dev-api.zilliqa.com/` |
 | **Block Explorer** | [**Link**](https://dev-explorer.zilliqa.com) |
-| **Faucet/Wallet** | [**Link**](https://dev-wallet.zilliqa.com) |
+| **Faucet** | [**Link**](https://dev-wallet.zilliqa.com) |
 
 ## Available features
 
@@ -89,7 +88,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone git@github.com:Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tag/v4.8.0
+$ cd Zilliqa && git checkout tag/v5.1.0
 
 # build Zilliqa binary
 $ ./build.sh
