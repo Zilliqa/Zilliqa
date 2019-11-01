@@ -2080,9 +2080,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // InitCoinbase in final blk consensus in vacaous epoch.
       m_mediator.m_ds->m_totalTxnFees += rewards;
 
-      if (!BlockStorage::GetBlockStorage().PutEpochFin(blockNum)) {
-        LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
-                                 << m_mediator.m_currentEpochNum);
+      if (!BlockStorage::GetBlockStorage().PutEpochFin(blockNum + 1)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutEpochFin failed " << blockNum + 1);
         return;
       }
     }
