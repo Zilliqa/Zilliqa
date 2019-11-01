@@ -98,45 +98,45 @@ bool WebsocketServer::start() {
 void WebsocketServer::stop() {
   LOG_MARKER();
 
-  // stopping the Websocket listener and closing outstanding connection
-  websocketpp::lib::error_code ec;
-  m_server.stop_listening(ec);
-  if (ec) {
-    LOG_GENERAL(WARNING,
-                "websocket stop_listening failed, error: " << ec.message());
-    return;
-  }
-
-  {
-    // Close all existing websocket connections.
-    lock_guard<mutex> g(m_mutexTxBlockSockets);
-
-    for (auto& socket : m_txblock_websockets) {
-      websocketpp::lib::error_code ec;
-      m_server.close(socket.second, websocketpp::close::status::normal,
-                     "Terminating connection...", ec);
-      if (ec) {
-        LOG_GENERAL(WARNING, "websocket stop_listening (1) failed, error: "
-                                 << ec.message());
-      }
-    }
-  }
-
-  {
-    lock_guard<mutex> g(m_mutexEventLogSockets);
-
-    for (auto& socket : m_eventlog_websockets) {
-      websocketpp::lib::error_code ec;
-      m_server.close(socket.second, websocketpp::close::status::normal,
-                     "Terminating connection...", ec);
-      if (ec) {
-        LOG_GENERAL(WARNING, "websocket stop_listening (2) failed, error: "
-                                 << ec.message());
-      }
-    }
-  }
-
   try {
+    // stopping the Websocket listener and closing outstanding connection
+    websocketpp::lib::error_code ec;
+    m_server.stop_listening(ec);
+    if (ec) {
+      LOG_GENERAL(WARNING,
+                  "websocket stop_listening failed, error: " << ec.message());
+      return;
+    }
+
+    {
+      // Close all existing websocket connections.
+      lock_guard<mutex> g(m_mutexTxBlockSockets);
+
+      for (auto& socket : m_txblock_websockets) {
+        websocketpp::lib::error_code ec;
+        m_server.close(socket.second, websocketpp::close::status::normal,
+                       "Terminating connection...", ec);
+        if (ec) {
+          LOG_GENERAL(WARNING, "websocket stop_listening (1) failed, error: "
+                                   << ec.message());
+        }
+      }
+    }
+
+    {
+      lock_guard<mutex> g(m_mutexEventLogSockets);
+
+      for (auto& socket : m_eventlog_websockets) {
+        websocketpp::lib::error_code ec;
+        m_server.close(socket.second, websocketpp::close::status::normal,
+                       "Terminating connection...", ec);
+        if (ec) {
+          LOG_GENERAL(WARNING, "websocket stop_listening (2) failed, error: "
+                                   << ec.message());
+        }
+      }
+    }
+
     // Stop the end point
     m_server.stop();
     m_thread->join();
