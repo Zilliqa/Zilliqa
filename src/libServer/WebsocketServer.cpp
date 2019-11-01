@@ -112,13 +112,13 @@ void WebsocketServer::stop() {
     lock_guard<mutex> g(m_mutexTxBlockSockets);
 
     for (auto& socket : m_txblock_websockets) {
-	  websocketpp::lib::error_code ec;
+      websocketpp::lib::error_code ec;
       m_server.close(socket.second, websocketpp::close::status::normal,
                      "Terminating connection...", ec);
       if (ec) {
         LOG_GENERAL(WARNING, "websocket stop_listening (1) failed, error: "
                                  << ec.message());
-      }	
+      }
     }
   }
 
@@ -132,14 +132,14 @@ void WebsocketServer::stop() {
       if (ec) {
         LOG_GENERAL(WARNING, "websocket stop_listening (2) failed, error: "
                                  << ec.message());
-      }	
+      }
     }
   }
-  
+
   try {
-	  // Stop the end point
-	  m_server.stop();
-	  m_thread->join();
+    // Stop the end point
+    m_server.stop();
+    m_thread->join();
   } catch (websocketpp::exception const& e) {
     LOG_GENERAL(WARNING, "websocket stop failed, error: " << e.what());
   } catch (...) {
@@ -297,7 +297,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
   switch (q_enum) {
     case NEWBLOCK: {
       lock_guard<mutex> g(m_mutexTxBlockSockets);
-      m_txblock_websockets[ip] = std::move(hdl);
+      m_txblock_websockets[ip] = hdl;
       break;
     }
     case EVENTLOG: {
@@ -328,7 +328,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
       }
       {
         lock_guard<mutex> g2(m_mutexEventLogSockets);
-        m_eventlog_websockets[ip] = std::move(hdl);
+        m_eventlog_websockets[ip] = hdl;
       }
       {
         lock_guard<mutex> g(m_mutexEventLogSockets);

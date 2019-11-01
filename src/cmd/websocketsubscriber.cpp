@@ -60,7 +60,8 @@ void on_fail(client* c, websocketpp::connection_hdl hdl) {
   c->get_alog().write(websocketpp::log::alevel::app, "Connection Failed");
 }
 
-void on_message(client* c, websocketpp::connection_hdl hdl, const message_ptr& t_msg) {
+void on_message(client* c, websocketpp::connection_hdl hdl,
+                const message_ptr& t_msg) {
   std::cout << "on_message" << endl;
   (void)hdl;
   c->get_alog().write(websocketpp::log::alevel::app,

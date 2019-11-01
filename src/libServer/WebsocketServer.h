@@ -87,7 +87,8 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
   void clean();
 
-  bool sendData(const websocketpp::connection_hdl& hdl, const std::string& data);
+  bool sendData(const websocketpp::connection_hdl& hdl,
+                const std::string& data);
 
   // external interface
   bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
