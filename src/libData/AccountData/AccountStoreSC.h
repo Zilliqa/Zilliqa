@@ -94,6 +94,14 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// scilla IPC server
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
+  /// A set of contract account address pending for storageroot updating
+  std::set<Address> m_storageRootUpdateBuffer;
+
+  /// A set of contract account address pending for storageroot updating
+  /// for each transaction, will be added to the non-atomic one once
+  /// the transaction succeeded
+  std::set<Address> m_storageRootUpdateBufferAtomic;
+
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
@@ -192,6 +200,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   virtual void SetScillaIPCServer(
       std::shared_ptr<ScillaIPCServer> scillaIPCServer);
+
+  void ProcessStorageRootUpdateBuffer();
 };
 
 #include "AccountStoreAtomic.tpp"

@@ -431,6 +431,8 @@ void Node::ProcessTransactionWhenShardLeader(
     }
   }
 
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+
   cv_TxnProcFinished.notify_all();
   PutTxnsInTempDataBase(t_processedTransactions);
   if (ENABLE_TXNS_BACKUP) {
@@ -659,6 +661,8 @@ void Node::ProcessTransactionWhenShardBackup(
       break;
     }
   }
+
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
 
   cv_TxnProcFinished.notify_all();
 

@@ -396,6 +396,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       break;
     }
     case Transaction::CONTRACT_CALL: {
+      // reset the storageroot update buffer atomic per transaction
+      m_storageRootUpdateBufferAtomic.clear();
+
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -577,11 +580,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   receipt.SetResult(true);
   receipt.update();
 
-  if (Transaction::GetTransactionType(transaction) ==
-          Transaction::CONTRACT_CREATION ||
-      Transaction::GetTransactionType(transaction) ==
-          Transaction::CONTRACT_CALL) {
-    LOG_GENERAL(INFO, "Executing contract transaction finished");
+  switch (Transaction::GetTransactionType(transaction)) {
+    case Transaction::CONTRACT_CALL: {
+      /// since txn succeeded, commit the atomic buffer
+      m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                       m_storageRootUpdateBufferAtomic.end());
+    }
+    case Transaction::CONTRACT_CREATION: {
+      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      break;
+    }
+    default:
+      break;
   }
 
   return true;
@@ -1211,9 +1221,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  contractAccount->SetStorageRoot(
-      Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-          m_curContractAddr, true, true));
+  // contractAccount->SetStorageRoot(
+  //     Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+  //         m_curContractAddr, true, true));
+  m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
@@ -1335,6 +1346,19 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
   return this->IncreaseNonce(t_address);
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
+  for (const auto& addr : m_storageRootUpdateBuffer) {
+    Account* account = m_accountStoreAtomic->GetAccount(addr);
+    if (account == nullptr) {
+      continue;
+    }
+    account->SetStorageRoot(
+        Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+            addr, true, true));
+  }
 }
 
 template <class MAP>
