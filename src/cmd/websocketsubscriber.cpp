@@ -47,7 +47,7 @@ void on_open(client* c, websocketpp::connection_hdl hdl) {
   std::cout << "on_open" << endl;
   c->get_alog().write(websocketpp::log::alevel::app, "Send Message: " + msg);
   websocketpp::lib::error_code ec;
-  c->send(hdl, msg, websocketpp::frame::opcode::text, ec);
+  c->send(std::move(hdl), msg, websocketpp::frame::opcode::text, ec);
   if (ec) {
     c->get_alog().write(websocketpp::log::alevel::app,
                         "Send Error: " + ec.message());
@@ -60,7 +60,7 @@ void on_fail(client* c, websocketpp::connection_hdl hdl) {
   c->get_alog().write(websocketpp::log::alevel::app, "Connection Failed");
 }
 
-void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr t_msg) {
+void on_message(client* c, websocketpp::connection_hdl hdl, const message_ptr& t_msg) {
   std::cout << "on_message" << endl;
   (void)hdl;
   c->get_alog().write(websocketpp::log::alevel::app,

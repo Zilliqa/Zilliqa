@@ -97,6 +97,7 @@ bool WebsocketServer::start() {
 
 void WebsocketServer::stop() {
   LOG_MARKER();
+
   // stopping the Websocket listener and closing outstanding connection
   websocketpp::lib::error_code ec;
   m_server.stop_listening(ec);
@@ -109,35 +110,41 @@ void WebsocketServer::stop() {
   {
     // Close all existing websocket connections.
     lock_guard<mutex> g(m_mutexTxBlockSockets);
-    for (auto it = m_txblock_websockets.begin();
-         it != m_txblock_websockets.end(); it++) {
-      websocketpp::lib::error_code ec;
-      m_server.close(it->second, websocketpp::close::status::normal,
+
+    for (auto& socket : m_txblock_websockets) {
+	  websocketpp::lib::error_code ec;
+      m_server.close(socket.second, websocketpp::close::status::normal,
                      "Terminating connection...", ec);
       if (ec) {
         LOG_GENERAL(WARNING, "websocket stop_listening (1) failed, error: "
                                  << ec.message());
-      }
+      }	
     }
   }
 
   {
     lock_guard<mutex> g(m_mutexEventLogSockets);
-    for (auto it = m_eventlog_websockets.begin();
-         it != m_eventlog_websockets.end(); it++) {
+
+    for (auto& socket : m_eventlog_websockets) {
       websocketpp::lib::error_code ec;
-      m_server.close(it->second, websocketpp::close::status::normal,
+      m_server.close(socket.second, websocketpp::close::status::normal,
                      "Terminating connection...", ec);
       if (ec) {
         LOG_GENERAL(WARNING, "websocket stop_listening (2) failed, error: "
                                  << ec.message());
-      }
+      }	
     }
   }
-
-  // Stop the end point
-  m_server.stop();
-  m_thread->join();
+  
+  try {
+	  // Stop the end point
+	  m_server.stop();
+	  m_thread->join();
+  } catch (websocketpp::exception const& e) {
+    LOG_GENERAL(WARNING, "websocket stop failed, error: " << e.what());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "other exception");
+  }
   clean();
 }
 
@@ -246,8 +253,8 @@ void WebsocketServer::removeSocket(const std::string& remote) {
   removeSocket(ip, q_enum);
 }
 
-void WebsocketServer::on_message(connection_hdl hdl,
-                                 websocketserver::message_ptr msg) {
+void WebsocketServer::on_message(const connection_hdl& hdl,
+                                 const websocketserver::message_ptr& msg) {
   LOG_MARKER();
   websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
   string remote = con->get_remote_endpoint();
@@ -290,7 +297,7 @@ void WebsocketServer::on_message(connection_hdl hdl,
   switch (q_enum) {
     case NEWBLOCK: {
       lock_guard<mutex> g(m_mutexTxBlockSockets);
-      m_txblock_websockets[ip] = hdl;
+      m_txblock_websockets[ip] = std::move(hdl);
       break;
     }
     case EVENTLOG: {
@@ -321,7 +328,7 @@ void WebsocketServer::on_message(connection_hdl hdl,
       }
       {
         lock_guard<mutex> g2(m_mutexEventLogSockets);
-        m_eventlog_websockets[ip] = hdl;
+        m_eventlog_websockets[ip] = std::move(hdl);
       }
       {
         lock_guard<mutex> g(m_mutexEventLogSockets);
@@ -337,7 +344,7 @@ void WebsocketServer::on_message(connection_hdl hdl,
   }
 }
 
-void WebsocketServer::on_fail(connection_hdl hdl) {
+void WebsocketServer::on_fail(const connection_hdl& hdl) {
   LOG_MARKER();
   websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
   websocketpp::lib::error_code ec = con->get_ec();
@@ -349,7 +356,7 @@ void WebsocketServer::on_fail(connection_hdl hdl) {
   removeSocket(remote);
 }
 
-void WebsocketServer::on_close(connection_hdl hdl) {
+void WebsocketServer::on_close(const connection_hdl& hdl) {
   LOG_MARKER();
   websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
   string remote = con->get_remote_endpoint();
@@ -359,7 +366,7 @@ void WebsocketServer::on_close(connection_hdl hdl) {
   removeSocket(remote);
 }
 
-bool WebsocketServer::sendData(connection_hdl hdl, const string& data) {
+bool WebsocketServer::sendData(const connection_hdl& hdl, const string& data) {
   LOG_MARKER();
   websocketpp::lib::error_code ec;
   m_server.send(hdl, data, websocketpp::frame::opcode::text, ec);
@@ -371,7 +378,7 @@ bool WebsocketServer::sendData(connection_hdl hdl, const string& data) {
   return true;
 }
 
-bool WebsocketServer::closeSocket(connection_hdl hdl) {
+bool WebsocketServer::closeSocket(const connection_hdl& hdl) {
   string data = "Terminating connection...";
   websocketpp::lib::error_code ec;
   m_server.close(hdl, websocketpp::close::status::normal, data, ec);
@@ -394,12 +401,12 @@ bool WebsocketServer::SendTxBlockAndTxHashes(const Json::Value& json_txblock,
 
   {
     lock_guard<mutex> g(m_mutexTxBlockSockets);
-    for (auto it = m_txblock_websockets.begin();
-         it != m_txblock_websockets.end(); it++) {
-      if (!sendData(it->second,
+
+    for (auto& socket : m_txblock_websockets) {
+      if (!sendData(socket.second,
                     JSONUtils::GetInstance().convertJsontoStr(json_msg))) {
-        LOG_GENERAL(WARNING, "sendData (txblock) failed for " << it->first);
-        ipToRemove.emplace_back(it->first);
+        LOG_GENERAL(WARNING, "sendData (txblock) failed for " << socket.first);
+        ipToRemove.emplace_back(socket.first);
         return false;
       }
     }
@@ -465,21 +472,20 @@ void WebsocketServer::SendOutEventLog() {
   {
     lock_guard<mutex> g1(m_mutexELDataBufferSockets);
     lock_guard<mutex> g2(m_mutexEventLogSockets);
-    for (auto it = m_eventLogDataBuffer.begin();
-         it != m_eventLogDataBuffer.end(); it++) {
+    for (auto& buffer : m_eventLogDataBuffer) {
       connection_hdl hdl;
-      if (!getWebsocket(it->first, EVENTLOG, hdl)) {
+      if (!getWebsocket(buffer.first, EVENTLOG, hdl)) {
         continue;
       }
       Json::Value j_data;
-      for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+      for (auto& entry : buffer.second) {
         Json::Value j_contract;
-        j_contract["address"] = it2->first.hex();
-        j_contract["event_logs"] = it2->second;
+        j_contract["address"] = entry.first.hex();
+        j_contract["event_logs"] = entry.second;
         j_data.append(j_contract);
       }
       if (!sendData(hdl, JSONUtils::GetInstance().convertJsontoStr(j_data))) {
-        ipToRemove.emplace_back(it->first);
+        ipToRemove.emplace_back(buffer.first);
         continue;
       }
     }

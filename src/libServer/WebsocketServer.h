@@ -87,7 +87,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
   void clean();
 
-  bool sendData(websocketpp::connection_hdl hdl, const std::string& data);
+  bool sendData(const websocketpp::connection_hdl& hdl, const std::string& data);
 
   // external interface
   bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
@@ -114,7 +114,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   static void removeSocket(const std::string& remote);
   static void removeSocket(const std::string& ip, WEBSOCKETQUERY q_enum);
 
-  static bool closeSocket(websocketpp::connection_hdl hdl);
+  static bool closeSocket(const websocketpp::connection_hdl& hdl);
 
   static websocketserver m_server;
 
@@ -136,10 +136,10 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   // ostream os;
 
   // callbacks
-  static void on_message(websocketpp::connection_hdl hdl,
-                         websocketserver::message_ptr msg);
-  static void on_fail(websocketpp::connection_hdl hdl);
-  static void on_close(websocketpp::connection_hdl hdl);
+  static void on_message(const websocketpp::connection_hdl& hdl,
+                         const websocketserver::message_ptr& msg);
+  static void on_fail(const websocketpp::connection_hdl& hdl);
+  static void on_close(const websocketpp::connection_hdl& hdl);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
