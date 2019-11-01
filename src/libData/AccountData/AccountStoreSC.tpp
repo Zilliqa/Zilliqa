@@ -1350,8 +1350,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
+  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   for (const auto& addr : m_storageRootUpdateBuffer) {
-    Account* account = m_accountStoreAtomic->GetAccount(addr);
+    Account* account = this->GetAccount(addr);
     if (account == nullptr) {
       continue;
     }
