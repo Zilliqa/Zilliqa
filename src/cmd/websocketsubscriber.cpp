@@ -97,11 +97,11 @@ int main(int argc, const char* argv[]) {
         return SUCCESS;
       }
       po::notify(vm);
-    } catch (boost::program_options::required_option& e) {
+    } catch (const boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
       return ERROR_IN_COMMAND_LINE;
-    } catch (boost::program_options::error& e) {
+    } catch (const boost::program_options::error& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
@@ -176,14 +176,14 @@ int main(int argc, const char* argv[]) {
     } catch (const std::exception& e) {
       std::cerr << e.what() << std::endl << std::endl;
       return ERROR_UNHANDLED_EXCEPTION;
-    } catch (websocketpp::lib::error_code e) {
+    } catch (const websocketpp::lib::error_code& e) {
       std::cerr << e.message() << std::endl << std::endl;
       return ERROR_UNHANDLED_EXCEPTION;
     } catch (...) {
       std::cerr << "other exception" << std::endl << std::endl;
       return ERROR_UNHANDLED_EXCEPTION;
     }
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
     return ERROR_UNHANDLED_EXCEPTION;

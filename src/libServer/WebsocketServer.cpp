@@ -67,7 +67,7 @@ bool WebsocketServer::start() {
 
   try {
     m_server.listen(WEBSOCKET_PORT);
-  } catch (websocketpp::exception const& e) {
+  } catch (const websocketpp::exception& e) {
     // Websocket exception on listen.
     LOG_GENERAL(WARNING, "Websocket listen failed, error: " << e.what());
     return false;
@@ -84,7 +84,7 @@ bool WebsocketServer::start() {
   try {
     m_thread = websocketpp::lib::make_shared<websocketpp::lib::thread>(
         &websocketserver::run, &m_server);
-  } catch (websocketpp::exception const& e) {
+  } catch (const websocketpp::exception& e) {
     LOG_GENERAL(WARNING, "websocket run failed, error: " << e.what());
     return false;
   } catch (...) {
@@ -140,7 +140,7 @@ void WebsocketServer::stop() {
     // Stop the end point
     m_server.stop();
     m_thread->join();
-  } catch (websocketpp::exception const& e) {
+  } catch (const websocketpp::exception& e) {
     LOG_GENERAL(WARNING, "websocket stop failed, error: " << e.what());
   } catch (...) {
     LOG_GENERAL(WARNING, "other exception");
