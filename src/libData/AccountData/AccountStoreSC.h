@@ -198,9 +198,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
 
+  /// public interface to setup scilla ipc server
   virtual void SetScillaIPCServer(
       std::shared_ptr<ScillaIPCServer> scillaIPCServer);
 
+  /// public interface to invoke processing of the buffered storage root updating tasks
   void ProcessStorageRootUpdateBuffer();
 };
 
