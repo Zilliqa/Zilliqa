@@ -92,8 +92,8 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
   return true;
 }
 
-template <class T>
-bool DataConversion::SerializableToHexStr(const T& input, string& str) {
+bool DataConversion::SerializableToHexStr(const Serializable& input,
+                                          string& str) {
   bytes tmp;
   input.Serialize(tmp, 0);
   try {
@@ -106,12 +106,19 @@ bool DataConversion::SerializableToHexStr(const T& input, string& str) {
   return true;
 }
 
-template bool DataConversion::SerializableToHexStr<Serializable>(
-    const Serializable& input, string& str);
-template bool DataConversion::SerializableToHexStr<PubKey>(const PubKey& input,
-                                                           string& str);
-template bool DataConversion::SerializableToHexStr<Signature>(
-    const Signature& input, string& str);
+bool DataConversion::SerializableToHexStr(const SerializableCrypto& input,
+                                          string& str) {
+  bytes tmp;
+  input.Serialize(tmp, 0);
+  try {
+    str = "";
+    boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed SerializableToHexStr conversion");
+    return false;
+  }
+  return true;
+}
 
 uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   if (hex_arr.size() == 0) {
