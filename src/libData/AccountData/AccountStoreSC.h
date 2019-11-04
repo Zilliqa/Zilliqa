@@ -52,10 +52,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
 
+  /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
 
   /// the blocknum while executing each txn
-
   uint64_t m_curBlockNum{0};
 
   /// the current contract address for each hop of invoking

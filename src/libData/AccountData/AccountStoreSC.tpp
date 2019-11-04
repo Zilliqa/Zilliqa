@@ -1221,9 +1221,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  // contractAccount->SetStorageRoot(
-  //     Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-  //         m_curContractAddr, true, true));
   m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
