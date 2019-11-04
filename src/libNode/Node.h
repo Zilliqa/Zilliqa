@@ -202,6 +202,10 @@ class Node : public Executable {
   // internal calls from ProcessForwardTransaction
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
+  bool AddPendingTxn(
+      const std::unordered_map<TxnHash, PoolTxnStatus>& pendingTxns,
+      const uint64_t& currentEpoch);
+
   bool RemoveTxRootHashFromUnavailableMicroBlock(
       const MBnForwardedTxnEntry& entry);
 

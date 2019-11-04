@@ -1121,6 +1121,17 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   return ProcessMBnForwardTransactionCore(entry);
 }
 
+bool Node::AddPendingTxn(
+    const unordered_map<TxnHash, PoolTxnStatus>& pendingTxns,
+    const uint64_t& currentEpoch) {
+  (void)currentEpoch;
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  for (const auto& entry : pendingTxns) {
+    m_unconfirmedTxns.emplace(entry);
+  }
+  return true;
+}
+
 bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1146,6 +1157,8 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
     m_mediator.m_lookup->AddMicroBlockToStorage(entry.m_microBlock);
 
     CommitForwardedTransactions(entry);
+
+    AddPendingTxn(entry.m_pendingTransactions, m_mediator.m_currentEpochNum);
 
     if (isEveryMicroBlockAvailable) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
