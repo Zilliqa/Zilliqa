@@ -56,10 +56,6 @@ bool WebsocketServer::start() {
   // Initialising websocketserver
   m_server.init_asio();
 
-  // Set custom logger (ostream-based)
-  // server.get_alog().set_ostream(&os);
-  // server.get_elog().set_ostream(&os);
-
   // Register the message handlers.
   m_server.set_message_handler(&WebsocketServer::on_message);
   m_server.set_fail_handler(&WebsocketServer::on_fail);

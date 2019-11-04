@@ -85,18 +85,25 @@ class WebsocketServer : public Singleton<WebsocketServer> {
     return ws;
   }
 
+  /// clean in-memory data structures
   void clean();
 
+  /// Send string data to hdl connection
   bool sendData(const websocketpp::connection_hdl& hdl,
                 const std::string& data);
 
-  // external interface
+  /// Public interface for sending TxBlock and TxHashes
   bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
                               const Json::Value& json_txhashes);
+
+  /// Public interface to digest contract event from transaction receipts
   void ParseTxnEventLog(const TransactionWithReceipt& twr);
+
+  /// Public interface to send all digested contract events to subscriber
   void SendOutEventLog();
 
  private:
+  /// Singleton constructor and start service immediately
   WebsocketServer() {
     if (!start()) {
       LOG_GENERAL(FATAL, "WebsocketServer start failed");
@@ -105,38 +112,57 @@ class WebsocketServer : public Singleton<WebsocketServer> {
       return;
     }
   }
+
+  /// Singleton desctructor and stop service
   ~WebsocketServer() { stop(); }
 
+  /// Start websocket server
   bool start();
+
+  /// Stop websocket server
   void stop();
 
+  /// get connection_hdl with ip and WEBSOCKETQUERY
   bool getWebsocket(const std::string& ip, WEBSOCKETQUERY query,
                     websocketpp::connection_hdl& hdl);
+
+  /// remove a connection_hdl in memory via remote endpoint string
   static void removeSocket(const std::string& remote);
+
+  /// remove a connection_hdl in memory via endpoint ip and WEBSOCKETQUERY
   static void removeSocket(const std::string& ip, WEBSOCKETQUERY q_enum);
 
+  /// close a socket from connection_hdl
   static bool closeSocket(const websocketpp::connection_hdl& hdl);
 
+  /// websocketpp server instance
   static websocketserver m_server;
 
+  /// mapping endpoint to the WEBSOCKETQUERY
   static std::mutex m_mutexEqIndex;
   static EndpointQueryIndex m_eqIndex;
 
+  /// containing the connection_hdl for TxBlock subscriber
   static std::mutex m_mutexTxBlockSockets;
   static IpSocketMap m_txblock_websockets;
 
+  /// containing the connection_hdl for EventLog subscriber
   static std::mutex m_mutexEventLogSockets;
   static IpSocketMap m_eventlog_websockets;
+  /// a utility data structure for mapping address and subscriber of EventLog
+  /// regarding of new comer or quiting
   static EventLogSocketTracker m_elsockettracker;
 
+  /// a buffer for keeping the eventlog to send for each subscriber
   static std::mutex m_mutexELDataBufferSockets;
   static std::unordered_map<std::string,
                             std::unordered_map<Address, Json::Value>>
       m_eventLogDataBuffer;
-  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
-  // ostream os;
 
-  // callbacks
+  /// make run() detached in a new thread to avoid blocking
+  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
+
+  /// standard callbacks for websocket server instance
   static void on_message(const websocketpp::connection_hdl& hdl,
                          const websocketserver::message_ptr& msg);
   static void on_fail(const websocketpp::connection_hdl& hdl);
