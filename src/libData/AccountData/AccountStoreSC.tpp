@@ -1357,6 +1357,7 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
         Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
             addr, true, true));
   }
+  m_storageRootUpdateBuffer.clear();
 }
 
 template <class MAP>

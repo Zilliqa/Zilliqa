@@ -202,7 +202,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   virtual void SetScillaIPCServer(
       std::shared_ptr<ScillaIPCServer> scillaIPCServer);
 
-  /// public interface to invoke processing of the buffered storage root updating tasks
+  /// public interface to invoke processing of the buffered storage root
+  /// updating tasks
   void ProcessStorageRootUpdateBuffer();
 };
 
