@@ -374,11 +374,17 @@ class Lookup : public Executable {
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
 
-  static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
+  static bool VerifySenderNode(const VectorOfNode& vecNodes,
                                const PubKey& pubKeyToVerify);
 
-  static bool VerifySenderNode(const DequeOfNode& deqLookupNodes,
+  static bool VerifySenderNode(const VectorOfNode& vecNodes,
+                               const uint128_t& ipToVerify);
+
+  static bool VerifySenderNode(const DequeOfNode& deqNodes,
                                const PubKey& pubKeyToVerify);
+
+  static bool VerifySenderNode(const DequeOfNode& deqNodes,
+                               const uint128_t& ipToVerify);
 
   /// Check and fetch unavailable microblocks
   void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);

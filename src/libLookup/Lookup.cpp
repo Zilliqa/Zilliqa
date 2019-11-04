@@ -1602,21 +1602,17 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   }
 
   // verify if sender is from know DS Committee
-  uint128_t ipSenderAddr = from.m_ipAddress;
-  bool isDSNode = false;
-  for (const auto& node : *m_mediator.m_DSCommittee) {
-    if (ipSenderAddr == node.second.m_ipAddress) {
-      isDSNode = true;
-      break;
+  const uint128_t& ipSenderAddr = from.m_ipAddress;
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, ipSenderAddr)) {
+      LOG_GENERAL(
+          WARNING,
+          "Requesting IP : "
+              << from.GetPrintableIPAddress()
+              << " is not in Present DS Committee list. Ignore the request");
+      return false;
     }
-  }
-  if (!isDSNode) {
-    LOG_GENERAL(
-        WARNING,
-        "Requesting IP : "
-            << from.GetPrintableIPAddress()
-            << " is not in Present DS Committee list. Ignore the request");
-    return false;
   }
 
   uint64_t blockNum;
@@ -1628,11 +1624,25 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  if (!VerifySenderNode(*m_mediator.m_DSCommittee, dsPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << dsPubKey << " is not in current ds committee list.");
+  const uint64_t& currDsEpoch =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (blockNum < currDsEpoch) {
+    LOG_GENERAL(WARNING,
+                "Requested cosigs/rewards for txBlock that is beyond the "
+                "current DS epoch "
+                "(requested txblk  :"
+                    << blockNum << ", curr DS Epoch : " << currDsEpoch << ")");
     return false;
+  }
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, dsPubKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "The message sender pubkey: "
+                    << dsPubKey << " is not in current ds committee list.");
+      return false;
+    }
   }
 
   LOG_GENERAL(INFO, "Request for cosig/rewards for blockNum " << blockNum);
@@ -1646,13 +1656,12 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
       LOG_GENERAL(WARNING, "Failed to fetch tx block, retry... " << blockNum);
       this_thread::sleep_for(chrono::seconds(1));
-      continue;
     } else {
       break;
     }
   }
 
-  if (retryCount <= 0) {
+  if (retryCount == 0) {
     LOG_GENERAL(WARNING, "Failed to fetch tx block, giving up !");
     return false;
   }
@@ -4265,22 +4274,40 @@ bool Lookup::GetIsServer() {
   return m_isServer;
 }
 
-bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
                               const PubKey& pubKeyToVerify) {
-  auto iter = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
                            [&pubKeyToVerify](const PairOfNode& node) {
                              return node.first == pubKeyToVerify;
                            });
-  return vecLookupNodes.cend() != iter;
+  return vecNodes.cend() != iter;
 }
 
-bool Lookup::VerifySenderNode(const DequeOfNode& deqLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return vecNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
                               const PubKey& pubKeyToVerify) {
-  auto iter = std::find_if(deqLookupNodes.cbegin(), deqLookupNodes.cend(),
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
                            [&pubKeyToVerify](const PairOfNode& node) {
                              return node.first == pubKeyToVerify;
                            });
-  return deqLookupNodes.cend() != iter;
+  return deqNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return deqNodes.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
