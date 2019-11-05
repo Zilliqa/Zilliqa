@@ -9,7 +9,7 @@ list(REMOVE_ITEM MESSAGE_COMPILE_FLAGS -Wextra -Werror)
 message(STATUS "Message compile flags new = ${MESSAGE_COMPILE_FLAGS}")
 set_target_properties(Message PROPERTIES COMPILE_OPTIONS "${MESSAGE_COMPILE_FLAGS}")
 target_include_directories (Message PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src)
-target_link_libraries (Message PUBLIC protobuf AccountData Block BlockHeader MiningData Utils)
+target_link_libraries (Message PUBLIC protobuf AccountData Block BlockHeader MiningData Utils CoinbaseData)
 
 add_library (MessageSWInfo ${PROTO_HEADER} ${PROTO_SRC} MessengerSWInfo.cpp)
 #target_compile_options(MessageSWInfo PRIVATE "-Wno-unused-variable")
