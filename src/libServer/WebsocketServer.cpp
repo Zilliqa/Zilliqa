@@ -455,9 +455,9 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
     Json::Value j_eventlog;
     j_eventlog["_eventname"] = log["_eventname"];
     j_eventlog["params"] = log["params"];
-    for (const string& id : find->second) {
+    for (const string& ip : find->second) {
       lock_guard<mutex> g(m_mutexELDataBufferSockets);
-      m_eventLogDataBuffer[id][addr].append(j_eventlog);
+      m_eventLogDataBuffer[ip][addr].append(j_eventlog);
     }
   }
 }
