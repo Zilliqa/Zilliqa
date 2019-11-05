@@ -179,6 +179,11 @@ class AccountStore
     m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
   }
 
+  /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
+  void CleanStorageRootUpdateBufferTemp() {
+    m_accountStoreTemp->CleanStorageRootUpdateBuffer();
+  }
+
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account,

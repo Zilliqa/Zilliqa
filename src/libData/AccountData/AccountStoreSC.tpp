@@ -1347,16 +1347,24 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
-  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  for (const auto& addr : m_storageRootUpdateBuffer) {
-    Account* account = this->GetAccount(addr);
-    if (account == nullptr) {
-      continue;
+  {
+    std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+    for (const auto& addr : m_storageRootUpdateBuffer) {
+      Account* account = this->GetAccount(addr);
+      if (account == nullptr) {
+        continue;
+      }
+      account->SetStorageRoot(
+          Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
+              addr, true, true));
     }
-    account->SetStorageRoot(
-        Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-            addr, true, true));
   }
+  CleanStorageRootUpdateBuffer();
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::CleanStorageRootUpdateBuffer() {
+  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_storageRootUpdateBuffer.clear();
 }
 

@@ -320,6 +320,8 @@ void Node::ProcessTransactionWhenShardLeader(
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
+  AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
+
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
@@ -564,6 +566,8 @@ void Node::ProcessTransactionWhenShardBackup(
   m_txnFees = 0;
 
   vector<Transaction> gasLimitExceededTxnBuffer;
+
+  AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
 
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {

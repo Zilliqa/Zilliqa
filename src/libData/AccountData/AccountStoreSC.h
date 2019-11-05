@@ -205,6 +205,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// public interface to invoke processing of the buffered storage root
   /// updating tasks
   void ProcessStorageRootUpdateBuffer();
+
+  /// public interface to clean StorageRootUpdateBuffer
+  void CleanStorageRootUpdateBuffer();
 };
 
 #include "AccountStoreAtomic.tpp"
