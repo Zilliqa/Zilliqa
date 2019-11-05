@@ -2168,7 +2168,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     if (m_syncType == SyncType::DS_SYNC ||
         m_syncType == SyncType::GUARD_DS_SYNC) {
       // Compose And Send GetCosigRewards for this txBlk from seed
-      // TBD
+      ComposeAndSendGetCosigsRewardsFromSeed(txBlock.GetHeader().GetBlockNum());
     }
   }
 
@@ -3902,6 +3902,22 @@ void Lookup::ComposeAndSendGetShardingStructureFromSeed() {
     return;
   }
 
+  SendMessageToRandomSeedNode(message);
+}
+
+void Lookup::ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num) {
+  LOG_MARKER();
+  bytes message = {MessageType::LOOKUP,
+                   LookupInstructionType::GETCOSIGSREWARDSFROMSEED};
+
+  if (!Messenger::SetLookupGetCosigsRewardsFromSeed(
+          message, MessageOffset::BODY, block_num,
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_selfKey)) {
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetCosigsRewardsFromSeed");
+    return;
+  }
+  LOG_GENERAL(INFO,
+              "Sending req for cosigs/rewards of block num = " << block_num);
   SendMessageToRandomSeedNode(message);
 }
 
