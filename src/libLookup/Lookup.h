@@ -367,11 +367,24 @@ class Lookup : public Executable {
 
   bool ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
                               const Peer& from);
+
+  bool ProcessGetCosigsRewardsFromSeed(const bytes& message,
+                                       unsigned int offset, const Peer& from);
+
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
 
-  static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
+  static bool VerifySenderNode(const VectorOfNode& vecNodes,
                                const PubKey& pubKeyToVerify);
+
+  static bool VerifySenderNode(const VectorOfNode& vecNodes,
+                               const uint128_t& ipToVerify);
+
+  static bool VerifySenderNode(const DequeOfNode& deqNodes,
+                               const PubKey& pubKeyToVerify);
+
+  static bool VerifySenderNode(const DequeOfNode& deqNodes,
+                               const uint128_t& ipToVerify);
 
   /// Check and fetch unavailable microblocks
   void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
@@ -426,6 +439,9 @@ class Lookup : public Executable {
   // Start PoW variables
   std::set<Peer> m_getStartPoWPeerSet;
   std::mutex m_mutexGetStartPoWPeerSet;
+
+  // For use by lookup for dispatching transactions
+  std::atomic<bool> m_sendAllSCToDS{};
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

@@ -8624,3 +8624,210 @@ bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
   dsEpochNumber = result.data().dsepochnumber();
   return true;
 }
+
+bool Messenger::SetLookupGetCosigsRewardsFromSeed(bytes& dst,
+                                                  const unsigned int offset,
+                                                  const uint64_t txBlkNum,
+                                                  const uint32_t listenPort,
+                                                  const PairOfKey& keys) {
+  LOG_MARKER();
+
+  LookupGetCosigsRewardsFromSeed result;
+
+  result.mutable_data()->set_epochnumber(txBlkNum);
+  result.mutable_data()->set_portno(listenPort);
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetCosigsRewardsFromSeed.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign GetCosigsRewardsFromSeed message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetCosigsRewardsFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetCosigsRewardsFromSeed(const bytes& src,
+                                                  const unsigned int offset,
+                                                  PubKey& senderPubKey,
+                                                  uint64_t& txBlockNumber,
+                                                  uint32_t& port) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetCosigsRewardsFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     senderPubKey)) {
+    LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed signature wrong");
+    return false;
+  }
+
+  txBlockNumber = result.data().epochnumber();
+  port = result.data().portno();
+  return true;
+}
+
+bool Messenger::SetLookupSetCosigsRewardsFromSeed(
+    bytes& dst, const unsigned int offset, const PairOfKey& myKey,
+    const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,
+    const TxBlock& txBlock, const uint32_t& numberOfShards) {
+  LookupSetCosigsRewardsFromSeed result;
+
+  // For Non-DS Shard
+  for (const auto& mb : microblocks) {
+    if (mb.GetHeader().GetShardId() == numberOfShards) {
+      continue;  // use txBlk for ds shard
+    }
+    ProtoCosigsRewardsStructure* proto_CosigsRewardsStructure =
+        result.mutable_data()->add_cosigsrewards();
+
+    // txblock and shardid
+    proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber);
+    proto_CosigsRewardsStructure->set_shardid(mb.GetHeader().GetShardId());
+
+    ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+        proto_CosigsRewardsStructure->mutable_blockbase();
+
+    // cosigs
+    BlockBaseToProtobuf(mb, *protoBlockBase);
+
+    // rewards
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        mb.GetHeader().GetRewards(),
+        *proto_CosigsRewardsStructure->mutable_rewards());
+  }
+
+  // For DS Shard
+  ProtoCosigsRewardsStructure* proto_CosigsRewardsStructure =
+      result.mutable_data()->add_cosigsrewards();
+
+  // txblock and shardid
+  proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber);
+  proto_CosigsRewardsStructure->set_shardid(-1);
+
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      proto_CosigsRewardsStructure->mutable_blockbase();
+
+  // cosigs
+  BlockBaseToProtobuf(txBlock, *protoBlockBase);
+
+  // rewards
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      txBlock.GetHeader().GetRewards(),
+      *proto_CosigsRewardsStructure->mutable_rewards());
+
+  SerializableToProtobufByteArray(myKey.second, *result.mutable_pubkey());
+
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetCosigsRewardsFromSeed.Data initialization failed");
+    return false;
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, myKey.first, myKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign LookupSetCosigsRewardsFromSeed");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetCosigsRewardsFromSeed initialization failed");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetCosigsRewardsFromSeed(
+    const bytes& src, const unsigned int offset,
+    vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupSetCosigsRewardsFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetCosigsRewardsFromSeed initialization failed");
+    return false;
+  }
+
+  // First deserialize the fields needed just for signature check
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubkey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     senderPubkey)) {
+    LOG_GENERAL(WARNING, "LookupSetCosigsRewardsFromSeed signature wrong");
+    return false;
+  }
+
+  // Deserialize the remaining fields
+  int32_t shardId;
+  uint64_t txBlkNum;
+  uint128_t rewards;
+  cosigrewards.clear();
+
+  for (const auto& proto_cosigrewards : result.data().cosigsrewards()) {
+    txBlkNum = proto_cosigrewards.epochnumber();
+    shardId = proto_cosigrewards.shardid();
+    ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+        proto_cosigrewards.rewards(), rewards);
+    BlockBase cosiginfo;
+    if (ProtobufToBlockBase(proto_cosigrewards.blockbase(), cosiginfo)) {
+      return false;
+    }
+
+    cosigrewards.emplace_back(CoinbaseStruct(
+        txBlkNum, shardId, cosiginfo.GetB1(), cosiginfo.GetB2(), rewards));
+    LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
+                          << txBlkNum << ", shard " << shardId);
+  }
+
+  return true;
+}

@@ -73,6 +73,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
+  m_sendAllSCToDS = false;
 }
 
 Lookup::~Lookup() {}
@@ -1590,6 +1591,108 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
+bool Lookup::ProcessGetCosigsRewardsFromSeed(
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
+  // verify if sender is from know DS Committee
+  const uint128_t& ipSenderAddr = from.m_ipAddress;
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, ipSenderAddr)) {
+      LOG_GENERAL(
+          WARNING,
+          "Requesting IP : "
+              << from.GetPrintableIPAddress()
+              << " is not in Present DS Committee list. Ignore the request");
+      return false;
+    }
+  }
+
+  uint64_t blockNum;
+  uint32_t portNo = 0;
+  PubKey dsPubKey;
+  if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey,
+                                                    blockNum, portNo)) {
+    LOG_GENERAL(WARNING, "Failed to process");
+    return false;
+  }
+
+  const uint64_t& currDsEpoch =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (blockNum < currDsEpoch) {
+    LOG_GENERAL(WARNING,
+                "Requested cosigs/rewards for txBlock that is beyond the "
+                "current DS epoch "
+                "(requested txblk  :"
+                    << blockNum << ", curr DS Epoch : " << currDsEpoch << ")");
+    return false;
+  }
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, dsPubKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "The message sender pubkey: "
+                    << dsPubKey << " is not in current ds committee list.");
+      return false;
+    }
+  }
+
+  LOG_GENERAL(INFO, "Request for cosig/rewards for blockNum " << blockNum);
+
+  Peer requestingNode(ipSenderAddr, portNo);
+  vector<MicroBlock> retMicroBlocks;
+
+  TxBlockSharedPtr txblkPtr;
+  uint32_t retryCount = 5;
+  while (retryCount-- > 0) {
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
+      LOG_GENERAL(WARNING, "Failed to fetch tx block, retry... " << blockNum);
+      this_thread::sleep_for(chrono::seconds(1));
+    } else {
+      break;
+    }
+  }
+
+  if (retryCount == 0) {
+    LOG_GENERAL(WARNING, "Failed to fetch tx block, giving up !");
+    return false;
+  }
+
+  const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
+  std::vector<MicroBlock> microblocks;
+  for (const auto& mbInfo : microblockInfos) {
+    MicroBlockSharedPtr mbptr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
+      return false;
+    }
+    microblocks.emplace_back(*mbptr);
+  }
+
+  bytes retMsg = {MessageType::LOOKUP,
+                  LookupInstructionType::SETCOSIGSREWARDSFROMSEED};
+
+  if (!Messenger::SetLookupSetCosigsRewardsFromSeed(
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum,
+          microblocks, *txblkPtr, m_mediator.m_ds->GetNumShards())) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(requestingNode, retMsg);
+  return true;
+}
+
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   LOG_MARKER();
@@ -2060,6 +2163,12 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
          m_syncType == SyncType::LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, placeholder, true /*skip shardid check*/);
+    }
+
+    if (m_syncType == SyncType::DS_SYNC ||
+        m_syncType == SyncType::GUARD_DS_SYNC) {
+      // Compose And Send GetCosigRewards for this txBlk from seed
+      // TBD
     }
   }
 
@@ -4166,13 +4275,40 @@ bool Lookup::GetIsServer() {
   return m_isServer;
 }
 
-bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
                               const PubKey& pubKeyToVerify) {
-  auto iter = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
                            [&pubKeyToVerify](const PairOfNode& node) {
                              return node.first == pubKeyToVerify;
                            });
-  return vecLookupNodes.cend() != iter;
+  return vecNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return vecNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
+                           [&pubKeyToVerify](const PairOfNode& node) {
+                             return node.first == pubKeyToVerify;
+                           });
+  return deqNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return deqNodes.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
@@ -4202,10 +4338,26 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       return false;
     }
 
-    for (const auto& txn : txnsShard) {
-      unsigned int shard = txn.GetShardIndex(shard_size);
-      AddToTxnShardMap(txn, shard);
+    if (!m_sendAllSCToDS) {
+      for (const auto& txn : txnsShard) {
+        unsigned int shard = txn.GetShardIndex(shard_size);
+        AddToTxnShardMap(txn, shard);
+      }
+    } else {
+      LOG_GENERAL(INFO, "Sending all contracts to DS committee");
+      for (const auto& txn : txnsShard) {
+        const Transaction::ContractType txnType =
+            Transaction::GetTransactionType(txn);
+        if ((txnType == Transaction::ContractType::CONTRACT_CREATION) ||
+            (txnType == Transaction::ContractType::CONTRACT_CALL)) {
+          AddToTxnShardMap(txn, shard_size);
+        } else {
+          unsigned int shard = txn.GetShardIndex(shard_size);
+          AddToTxnShardMap(txn, shard);
+        }
+      }
     }
+
     for (const auto& txn : txnsDS) {
       AddToTxnShardMap(txn, shard_size);
     }
