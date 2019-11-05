@@ -174,6 +174,16 @@ class AccountStore
                           const Address& genesisAddress,
                           const uint128_t& amount);
 
+  /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
+  void ProcessStorageRootUpdateBufferTemp() {
+    m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
+  }
+
+  /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
+  void CleanStorageRootUpdateBufferTemp() {
+    m_accountStoreTemp->CleanStorageRootUpdateBuffer();
+  }
+
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account,
