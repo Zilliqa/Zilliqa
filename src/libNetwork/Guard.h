@@ -21,8 +21,8 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <Schnorr.h>
 #include "Peer.h"
-#include "libCrypto/Schnorr.h"
 #include "libMediator/Mediator.h"
 
 class Guard {

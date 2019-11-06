@@ -36,8 +36,7 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
-                                       tran.GetSenderPubKey());
+  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
@@ -235,9 +234,8 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
                           block.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(serializedHeader, 0,
-                                              serializedHeader.size(),
-                                              block.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(serializedHeader, 0, serializedHeader.size(),
+                                block.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

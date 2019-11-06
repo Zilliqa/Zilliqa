@@ -28,8 +28,8 @@
 #include <utility>
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Executable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"

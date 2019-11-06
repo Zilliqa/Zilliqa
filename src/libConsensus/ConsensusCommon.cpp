@@ -89,9 +89,8 @@ Signature ConsensusCommon::SignMessage(const bytes& msg, unsigned int offset,
   LOG_MARKER();
 
   Signature signature;
-  bool result =
-      Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
-                                  GetCommitteeMember(m_myID).first, signature);
+  bool result = Schnorr::Sign(msg, offset, size, m_myPrivKey,
+                              GetCommitteeMember(m_myID).first, signature);
   if (!result) {
     return Signature();
   }
@@ -103,8 +102,8 @@ bool ConsensusCommon::VerifyMessage(const bytes& msg, unsigned int offset,
                                     const Signature& toverify,
                                     uint16_t peer_id) {
   LOG_MARKER();
-  bool result = Schnorr::GetInstance().Verify(
-      msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
+  bool result = Schnorr::Verify(msg, offset, size, toverify,
+                                GetCommitteeMember(peer_id).first);
 
   if (!result) {
     LOG_GENERAL(WARNING, "Failed to verify msg from peer "

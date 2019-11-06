@@ -20,9 +20,9 @@
 
 #include <array>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
 // Hash for the committee that generated the block

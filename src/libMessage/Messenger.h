@@ -17,10 +17,10 @@
 #ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
+#include <Schnorr.h>
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
@@ -41,7 +41,7 @@ class ByteArray;
 }
 
 bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
-                                     Serializable& serializable);
+                                     SerializableCrypto& serializable);
 
 class Messenger {
  public:
@@ -726,7 +726,7 @@ class Messenger {
 
     ProtobufByteArrayToSerializable(consensus_message.signature(), signature);
 
-    if (!Schnorr::GetInstance().Verify(tmp, signature, senderPubKey)) {
+    if (!Schnorr::Verify(tmp, signature, senderPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
       return false;
     }

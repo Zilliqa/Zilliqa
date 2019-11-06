@@ -23,7 +23,7 @@
 
 #include <boost/program_options.hpp>
 
-#include "libCrypto/Schnorr.h"
+#include <Schnorr.h>
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    auto receiver = Schnorr::GetInstance().GenKeyPair();
+    auto receiver = Schnorr::GenKeyPair();
     auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
 
     std::string txn_path{TXN_PATH};

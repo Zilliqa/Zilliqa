@@ -25,9 +25,9 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <Schnorr.h>
 #include "Peer.h"
 #include "ShardStruct.h"
-#include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/RumorHolder.h"
 
 enum RRSMessageOffset : unsigned int {

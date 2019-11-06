@@ -21,7 +21,7 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genkeypair> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(genkeypair PUBLIC Crypto)
+target_link_libraries(genkeypair PUBLIC Schnorr Utils)
 
 add_executable(gentxn gentxn.cpp)
 add_custom_command(TARGET zilliqa
@@ -35,21 +35,21 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:signmultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(signmultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(signmultisig PUBLIC Crypto)
+target_link_libraries(signmultisig PUBLIC Schnorr Utils)
 
 add_executable(verifymultisig verifymultisig.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:verifymultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(verifymultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(verifymultisig PUBLIC Crypto)
+target_link_libraries(verifymultisig PUBLIC Schnorr Utils)
 
 add_executable(gensigninitialds gen_sign_initial_ds.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto)
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence g3logger)
+target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(gensigninitialds PUBLIC Utils Persistence Schnorr g3logger)
 
 
 add_executable(grepperf grepperf.cpp)
@@ -60,15 +60,15 @@ add_executable(getaddr GetAddressFromPubKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getaddr> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto)
-target_link_libraries(getaddr PUBLIC Crypto)
+target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
+target_link_libraries(getaddr PUBLIC Schnorr Utils crypto)
 
 add_executable(getpub GetPubKeyFromPrivKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto)
-target_link_libraries(getpub PUBLIC Crypto)
+target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
+target_link_libraries(getpub PUBLIC Schnorr Utils crypto)
 
 add_executable(validateDB validateDB.cpp)
 add_custom_command(TARGET zilliqa

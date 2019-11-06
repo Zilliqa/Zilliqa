@@ -18,11 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_FALLBACKBLOCKHEADER_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_FALLBACKBLOCKHEADER_H_
 
+#include <Schnorr.h>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libNetwork/ShardStruct.h"
 
 /// Stores information on the header part of the fallback block.

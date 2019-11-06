@@ -23,11 +23,12 @@
 
 #include <boost/program_options.hpp>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
+#include "libUtils/CryptoUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -87,7 +88,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    Address toAddr = key.GetAddressFromPubKey();
+    Address toAddr = CryptoUtils::GetAddressFromPubKey(key);
     cout << toAddr << endl;
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()

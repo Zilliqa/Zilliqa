@@ -32,8 +32,8 @@
 #include "depends/libDatabase/OverlayDB.h"
 #pragma GCC diagnostic pop
 
+#include <Schnorr.h>
 #include "depends/libTrie/TrieDB.h"
-#include "libCrypto/Schnorr.h"
 
 /// DB storing trie storage information for all accounts.
 // static OverlayDB contractStatesDB("contractStates");

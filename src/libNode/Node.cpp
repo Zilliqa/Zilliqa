@@ -26,6 +26,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <Schnorr.h>
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -34,7 +35,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -1196,7 +1196,7 @@ fromPubKey, size_t n)
     vector<Transaction> txns;
 
     // FIXME: it's a workaround to use the first genensis account
-    // auto receiver = Schnorr::GetInstance().GenKeyPair();
+    // auto receiver = Schnorr::GenKeyPair();
     // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
 
     // alternative 1: use first genesis address

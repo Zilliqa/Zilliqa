@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
 #define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
 
-#include "libCrypto/Schnorr.h"
+#include <Schnorr.h>
 #include "libData/BlockData/Block.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/Peer.h"

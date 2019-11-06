@@ -245,7 +245,7 @@ std::once_flag generateReceiverOnce;
 Address GenOneReceiver() {
   static Address receiverAddr;
   std::call_once(generateReceiverOnce, []() {
-    auto receiver = Schnorr::GetInstance().GenKeyPair();
+    auto receiver = Schnorr::GenKeyPair();
     receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
     LOG_GENERAL(INFO, "Generate testing transaction receiver " << receiverAddr);
   });
@@ -270,7 +270,7 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   // txn.SerializeWithoutSignature(buf, 0);
 
   // Signature sig;
-  // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+  // Schnorr::Sign(buf, fromPrivKey, fromPubKey, sig);
 
   // bytes sigBuf;
   // sig.Serialize(sigBuf, 0);

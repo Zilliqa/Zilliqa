@@ -20,6 +20,7 @@
 #include <functional>
 #include <thread>
 
+#include <Schnorr.h>
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -28,7 +29,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
