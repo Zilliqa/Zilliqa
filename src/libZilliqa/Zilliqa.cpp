@@ -337,7 +337,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookupServer =
           make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
-      (void)WebsocketServer::GetInstance();
+      if (ENABLE_WEBSOCKET) {
+        (void)WebsocketServer::GetInstance();
+      }
 
       if (m_lookupServer == nullptr) {
         LOG_GENERAL(WARNING, "m_lookupServer NULL");

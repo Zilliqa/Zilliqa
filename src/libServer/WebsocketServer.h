@@ -85,13 +85,6 @@ class WebsocketServer : public Singleton<WebsocketServer> {
     return ws;
   }
 
-  /// clean in-memory data structures
-  void clean();
-
-  /// Send string data to hdl connection
-  bool sendData(const websocketpp::connection_hdl& hdl,
-                const std::string& data);
-
   /// Public interface for sending TxBlock and TxHashes
   bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
                               const Json::Value& json_txhashes);
@@ -134,6 +127,13 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
   /// close a socket from connection_hdl
   static bool closeSocket(const websocketpp::connection_hdl& hdl);
+
+  /// clean in-memory data structures
+  void clean();
+
+  /// Send string data to hdl connection
+  bool sendData(const websocketpp::connection_hdl& hdl,
+                const std::string& data);
 
   /// websocketpp server instance
   static websocketserver m_server;

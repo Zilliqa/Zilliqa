@@ -84,9 +84,11 @@ int main(int argc, const char* argv[]) {
         "option,o", po::value<uint32_t>(&option_)->required(),
         "query option: 1 for NewBlock, 2 for EventLog")(
         "url,u", po::value<string>(&url_)->required(),
-        "url for zilliqa websocket server")(
+        "url for zilliqa websocket server, e.g. ws://localhost:4401")(
         "address,a", po::value<vector<string>>(&addresses_)->multitoken(),
-        "multiple address supported, divide with space");
+        "multiple address supported, divide with space, e.g. "
+        "0000000000000000000000000000000000000000 "
+        "1111111111111111111111111111111111111111");
 
     po::variables_map vm;
     try {
