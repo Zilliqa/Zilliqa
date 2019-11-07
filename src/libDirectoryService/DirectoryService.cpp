@@ -978,7 +978,7 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
   // invoke SaveCoinBase for each
   for (const auto& cogsrews : coinbaserewards) {
     SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
-                 cogsrews.GetBlockNumber() + 1);
+                 cogsrews.GetBlockNumber());
     if (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD) {
       m_totalTxnFees += cogsrews.GetRewards();
     }
