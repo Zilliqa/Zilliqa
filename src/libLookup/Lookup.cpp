@@ -1670,10 +1670,15 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
   std::vector<MicroBlock> microblocks;
   for (const auto& mbInfo : microblockInfos) {
+    if (mbInfo.m_shardId ==
+        m_mediator.m_ds->GetNumShards()) {  // ignore ds microblock
+      continue;
+    }
     MicroBlockSharedPtr mbptr;
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
+      LOG_GENERAL(WARNING,
+                  "Could not get MicroBlock " << mbInfo.m_microBlockHash);
       return false;
     }
     microblocks.emplace_back(*mbptr);
