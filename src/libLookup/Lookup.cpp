@@ -1679,8 +1679,8 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     microblocks.emplace_back(*mbptr);
   }
 
-  bytes retMsg = {MessageType::LOOKUP,
-                  LookupInstructionType::SETCOSIGSREWARDSFROMSEED};
+  bytes retMsg = {MessageType::DIRECTORY,
+                  DSInstructionType::SETCOSIGSREWARDSFROMSEED};
 
   if (!Messenger::SetLookupSetCosigsRewardsFromSeed(
           retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum,
@@ -3961,7 +3961,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
-      &Lookup::ProcessSetHistoricalDB};
+      &Lookup::ProcessSetHistoricalDB,
+      &Lookup::ProcessGetCosigsRewardsFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
