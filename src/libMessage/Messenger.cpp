@@ -8819,7 +8819,8 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         proto_cosigrewards.rewards(), rewards);
     BlockBase cosiginfo;
-    if (ProtobufToBlockBase(proto_cosigrewards.blockbase(), cosiginfo)) {
+    if (!ProtobufToBlockBase(proto_cosigrewards.blockbase(), cosiginfo)) {
+      LOG_GENERAL(WARNING, "ProtobufToBlockBase failed");
       return false;
     }
 
