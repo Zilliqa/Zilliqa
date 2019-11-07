@@ -8734,7 +8734,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
       result.mutable_data()->add_cosigsrewards();
 
   // txblock and shardid
-  proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber);
+  proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber + 1);
   proto_CosigsRewardsStructure->set_shardid(-1);
 
   ZilliqaMessage::ProtoBlockBase* protoBlockBase =
