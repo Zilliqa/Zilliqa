@@ -422,10 +422,13 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     return false;
   }
 
-  bool result = true;
+  shared_ptr<bool> result = make_shared<bool>(new bool(true));
 
-  auto validateTxBlock =
-      [result, fromIsolatedBinary](TxBlockSharedPtr txBlock) mutable -> void {
+  auto validateTxBlock = [&, result, fromIsolatedBinary](
+                             TxBlockSharedPtr txBlock) mutable -> void {
+    if (!*result && !fromIsolatedBinary) {
+      return;
+    }
     const uint64_t& blockNum = txBlock->GetHeader().GetBlockNum();
     if (fromIsolatedBinary && (blockNum % 100 == 0)) {
       cout << "On tx block " << blockNum << endl;
@@ -448,8 +451,10 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
           for (const auto& tranHash : tranHashes) {
             TxBodySharedPtr tx;
             if (!BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
-              LOG_GENERAL(WARNING, "Missing Tx: " << tranHash);
-              result = false;
+              LOG_GENERAL(WARNING, "FB: " << txBlock->GetHeader().GetBlockNum()
+                                          << " MB: " << mbInfo.m_shardId
+                                          << " Missing Tx: " << tranHash);
+              *result = false;
               if (!fromIsolatedBinary) {
                 break;
               }
@@ -457,8 +462,10 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
           }
         }
       } else {
-        LOG_GENERAL(WARNING, "Missing MB: " << mbInfo.m_microBlockHash);
-        result = false;
+        LOG_GENERAL(WARNING,
+                    "FB: " << txBlock->GetHeader().GetBlockNum()
+                           << " Missing MB: " << mbInfo.m_microBlockHash);
+        *result = false;
         if (!fromIsolatedBinary) {
           break;
         }
@@ -466,29 +473,31 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     }
   };
 
-  const unsigned int NUMTHREADS = 25;
-  unique_ptr<ThreadPool> validatePool(
-      new ThreadPool(NUMTHREADS, "ValidatePool"));
-  unsigned int count = 0;
+  const unsigned int NUMTHREADS = 10;
+  const int MAXJOBSLEFT = NUMTHREADS * 3;
+  ThreadPool validatePool(NUMTHREADS, "ValidatePool");
+
   while (!txBlocks.empty()) {
     TxBlockSharedPtr txBlock = txBlocks.front();
     txBlocks.pop_front();
 
-    validatePool->AddJob([validateTxBlock, txBlock]() mutable -> void {
+    validatePool.AddJob([validateTxBlock, txBlock]() mutable -> void {
       validateTxBlock(txBlock);
     });
 
-    if (++count == NUMTHREADS) {
-      validatePool->JoinAll();
-      count = 0;
-      if (!result && !fromIsolatedBinary) {
-        break;
-      }
-      validatePool.reset(new ThreadPool(NUMTHREADS, "ValidatePool"));
+    if (!*result && !fromIsolatedBinary) {
+      break;
+    }
+
+    while (validatePool.GetJobsLeft() > MAXJOBSLEFT) {
     }
   }
 
-  return result;
+  while (validatePool.GetJobsLeft() > 0) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+
+  return *result;
 }
 
 bool Node::ValidateDB() {
