@@ -822,17 +822,17 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
         coinbaseRewardeesTmp;
     m_mediator.m_ds->GetCoinbaseRewardees(coinbaseRewardeesTmp);
-    for (auto block_num =
+    for (auto blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
-         block_num <=
+         blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-         block_num++) {
-      const auto& it = coinbaseRewardeesTmp.find(block_num);
+         blockNum++) {
+      const auto& it = coinbaseRewardeesTmp.find(blockNum);
       if (it == coinbaseRewardeesTmp.end() ||
-          (it->second.size() == 1 &&
-           it->second.find(CoinbaseReward::FINALBLOCK_REWARD) ==
-               it->second.end()) /* i.e. have entry only for shard -1 */) {
-        m_mediator.m_lookup->ComposeAndSendGetCosigsRewardsFromSeed(block_num);
+          (it->second.size() < m_mediator.m_txBlockChain.GetBlock(blockNum)
+                                   .GetMicroBlockInfos()
+                                   .size())) {
+        m_mediator.m_lookup->ComposeAndSendGetCosigsRewardsFromSeed(blockNum);
         this_thread::sleep_for(chrono::milliseconds(100));
       }
     }
