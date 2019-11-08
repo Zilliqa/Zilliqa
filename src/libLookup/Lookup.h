@@ -152,8 +152,6 @@ class Lookup : public Executable {
 
   void ComposeAndSendGetShardingStructureFromSeed();
 
-  void ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num);
-
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
@@ -375,6 +373,8 @@ class Lookup : public Executable {
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
+
+  void ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num);
 
   static bool VerifySenderNode(const VectorOfNode& vecNodes,
                                const PubKey& pubKeyToVerify);

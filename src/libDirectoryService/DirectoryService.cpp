@@ -977,14 +977,21 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
 
   // invoke SaveCoinBase for each
   for (const auto& cogsrews : coinbaserewards) {
-    SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
-                 cogsrews.GetBlockNumber());
-    if (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD) {
+    if (SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
+                     cogsrews.GetBlockNumber()) &&
+        (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD)) {
       m_totalTxnFees += cogsrews.GetRewards();
     }
   }
 
   return true;
+}
+
+void DirectoryService::GetCoinbaseRewardees(
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+        coinbase_rewardees) {
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+  coinbase_rewardees = m_coinbaseRewardees;
 }
 
 bool DirectoryService::Execute(const bytes& message, unsigned int offset,

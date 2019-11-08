@@ -601,6 +601,10 @@ class DirectoryService : public Executable {
                         const std::vector<bool>& b2, const Container& shard,
                         const int32_t& shard_id, const uint64_t& epochNum);
 
+  void GetCoinbaseRewardees(
+      std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+          coinbase_rewardees);
+
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 

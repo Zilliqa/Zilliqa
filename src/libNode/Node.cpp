@@ -818,6 +818,24 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
                                       microBlock->GetHeader().GetEpochNum());
       }
     }
+    // failed to fetch mbs/coinbase info from local disk for any epoch
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
+        coinbaseRewardeesTmp;
+    m_mediator.m_ds->GetCoinbaseRewardees(coinbaseRewardeesTmp);
+    for (auto block_num =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+         block_num <=
+         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+         block_num++) {
+      const auto& it = coinbaseRewardeesTmp.find(block_num);
+      if (it == coinbaseRewardeesTmp.end() ||
+          (it->second.size() == 1 &&
+           it->second.find(CoinbaseReward::FINALBLOCK_REWARD) ==
+               it->second.end()) /* i.e. have entry only for shard -1 */) {
+        m_mediator.m_lookup->ComposeAndSendGetCosigsRewardsFromSeed(block_num);
+        this_thread::sleep_for(chrono::milliseconds(100));
+      }
+    }
   }
 
   bool res = false;
