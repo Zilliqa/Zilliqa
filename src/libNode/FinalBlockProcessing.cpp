@@ -421,8 +421,22 @@ void Node::CallActOnFinalblock() {
          [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
   lock_guard<mutex> g(m_mutexShardMember);
+  const auto size = m_myShardMembers->size();
+  BlockBase blockwcosigSender{};
+  if (m_microblock == nullptr) {
+    CoSignatures cosigs(size);
+    for (uint i = 0; i < size; i++) {
+      cosigs.m_B1[i] = true;
+      cosigs.m_B2[i] = true;
+    }
+
+    blockwcosigSender.SetCoSignatures(cosigs);
+  } else {
+    blockwcosigSender = *m_microblock;
+  }
+
   DataSender::GetInstance().SendDataToOthers(
-      *m_microblock, *m_myShardMembers, {}, {},
+      blockwcosigSender, *m_myShardMembers, {}, {},
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
       composeMBnForwardTxnMessageForSender, false, SendDataToLookupFuncDefault,
@@ -439,15 +453,19 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
 
   std::vector<TransactionWithReceipt> txns_to_send;
 
+  shared_ptr<MicroBlock> microblock_to_send;
+
   if (m_microblock == nullptr) {
-    return false;
+    microblock_to_send = make_shared<MicroBlock>(MicroBlock());
+  } else {
+    microblock_to_send = m_microblock;
   }
 
   const auto& blocknum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  {
-    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
+  if (m_microblock != nullptr) {
+    const vector<TxnHash>& tx_hashes = microblock_to_send->GetTranHashes();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     auto& processedTransactions = m_processedTransactions[blocknum];
     for (const auto& tx_hash : tx_hashes) {
@@ -469,8 +487,8 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
                      NodeInstructionType::MBNFORWARDTRANSACTION};
 
   if (!Messenger::SetNodeMBnForwardTransaction(
-          mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send,
-          pendingTxns)) {
+          mb_txns_message, MessageOffset::BODY, *microblock_to_send,
+          txns_to_send, pendingTxns)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeMBnForwardTransaction failed.");
     return false;
@@ -1057,6 +1075,12 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
     return false;
   }
 
+  // If the dummy microblock, means just contains pending txns
+  if (entry.m_microBlock == MicroBlock()) {
+    LOG_GENERAL(INFO, "Received message with just pending txns");
+    return true;
+  }
+
   // Verify Microblock agains forwarded txns
   // BlockHash
   BlockHash temp_blockHash = entry.m_microBlock.GetHeader().GetMyHash();
@@ -1143,6 +1167,11 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   LOG_GENERAL(INFO, entry);
+
+  if (entry.m_microBlock == MicroBlock()) {
+    AddPendingTxn(entry.m_pendingTransactions, m_mediator.m_currentEpochNum);
+    return true;
+  }
 
   {
     lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);

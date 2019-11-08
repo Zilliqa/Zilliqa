@@ -275,11 +275,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  if (m_mediator.m_node->m_microblock != nullptr &&
-      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-          TxnHash()) {
-    m_mediator.m_node->CallActOnFinalblock();
-  }
+  m_mediator.m_node->CallActOnFinalblock();
 
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitRevertibles();
