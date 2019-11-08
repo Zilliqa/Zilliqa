@@ -586,7 +586,7 @@ class DirectoryService : public Executable {
 
   /// Post processing after the DS node successfully synchronized with the
   /// network
-  bool FinishRejoinAsDS();
+  bool FinishRejoinAsDS(bool fetchShardingStruct = false);
 
   void RunConsensusOnFinalBlock();
 

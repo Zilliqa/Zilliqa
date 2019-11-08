@@ -122,9 +122,6 @@ class Lookup : public Executable {
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
-  std::mutex m_mutexShardStruct;
-  std::condition_variable cv_shardStruct;
-
   TxnShardMap m_txnShardMap;
 
   // Get StateDeltas from seed
@@ -149,8 +146,6 @@ class Lookup : public Executable {
   bytes ComposeGetLookupOnlineMessage();
 
   bytes ComposeGetOfflineLookupNodes();
-
-  void ComposeAndSendGetShardingStructureFromSeed();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);
@@ -188,6 +183,11 @@ class Lookup : public Executable {
 
   const std::vector<Transaction>& GetTxnFromShardMap(
       uint32_t index);  // Use m_txnShardMapMutex with this function
+
+  std::mutex m_mutexShardStruct;
+  std::condition_variable cv_shardStruct;
+
+  void ComposeAndSendGetShardingStructureFromSeed();
 
   bool IsLookupNode(const PubKey& pubKey) const;
 
