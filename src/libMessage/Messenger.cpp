@@ -8615,7 +8615,7 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(bytes& dst,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+  if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign GetCosigsRewardsFromSeed message");
     return false;
   }
@@ -8657,8 +8657,7 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
-  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     senderPubKey)) {
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed signature wrong");
     return false;
   }
@@ -8728,7 +8727,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, myKey.first, myKey.second, signature)) {
+  if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign LookupSetCosigsRewardsFromSeed");
     return false;
   }
@@ -8770,8 +8769,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   // Check signature
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
-  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     senderPubkey)) {
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubkey)) {
     LOG_GENERAL(WARNING, "LookupSetCosigsRewardsFromSeed signature wrong");
     return false;
   }
