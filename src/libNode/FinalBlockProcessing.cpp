@@ -713,6 +713,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   bool toSendTxnToLookup = false;
 
+  bool toSendPendingTxn = !(GetUnconfirmedTxns().empty());
+
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
@@ -888,7 +890,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   m_mediator.UpdateTxBlockRand();
 
   if (!LOOKUP_NODE_MODE) {
-    if (toSendTxnToLookup) {
+    if (toSendTxnToLookup || toSendPendingTxn) {
       CallActOnFinalblock();
     }
 
@@ -1047,7 +1049,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
 bool Node::ProcessMBnForwardTransaction(const bytes& message,
                                         unsigned int cur_offset,
-                                        [[gnu::unused]] const Peer& from) {
+                                        const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMBnForwardTransaction not expected to be "
@@ -1077,7 +1079,7 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
 
   // If the dummy microblock, means just contains pending txns
   if (entry.m_microBlock == MicroBlock()) {
-    LOG_GENERAL(INFO, "Received message with just pending txns");
+    LOG_GENERAL(INFO, "Received message with just pending txns from " << from);
     return true;
   }
 

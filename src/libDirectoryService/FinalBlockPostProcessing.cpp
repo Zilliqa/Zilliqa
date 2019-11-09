@@ -275,7 +275,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  m_mediator.m_node->CallActOnFinalblock();
+  bool toSendPendingTxn = !(m_mediator.m_node->GetUnconfirmedTxns().empty());
+
+  if ((m_mediator.m_node->m_microblock != nullptr &&
+       m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+           TxnHash()) ||
+      toSendPendingTxn) {
+    m_mediator.m_node->CallActOnFinalblock();
+  }
 
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitRevertibles();
