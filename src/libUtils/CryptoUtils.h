@@ -15,33 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
-#define ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
-
-#include <tuple>
+#ifndef ZILLIQA_SRC_LIBUTILS_CRYPTOUTILS_H_
+#define ZILLIQA_SRC_LIBUTILS_CRYPTOUTILS_H_
 
 #include <Schnorr.h>
-#include "Peer.h"
+#include "libCrypto/Sha2.h"
+#include "libData/AccountData/Address.h"
 
-using VectorOfPeer = std::vector<Peer>;
+namespace CryptoUtils {
+Address GetAddressFromPubKey(const PubKey& pubKey) {
+  bytes addr_ser;
+  pubKey.Serialize(addr_ser, 0);
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(addr_ser, 0, PUB_KEY_SIZE);
+  const bytes& tmp = sha2.Finalize();
+  Address ret;
+  copy(tmp.end() - ACC_ADDR_SIZE, tmp.end(), ret.asArray().begin());
+  return ret;
+}
+}  // namespace CryptoUtils
 
-enum ShardData {
-  SHARD_NODE_PUBKEY,
-  SHARD_NODE_PEER,
-  SHARD_NODE_REP,
-};
-
-using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
-using DequeOfShard = std::deque<Shard>;
-
-using PairOfNode = std::pair<PubKey, Peer>;
-
-using VectorOfNode = std::vector<PairOfNode>;
-using DequeOfNode = std::deque<PairOfNode>;
-
-enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG };
-
-using NodeMsg = std::tuple<PubKey, Peer, bytes>;
-using VectorOfNodeMsg = std::vector<NodeMsg>;
-
-#endif  // ZILLIQA_SRC_LIBNETWORK_SHARDSTRUCT_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_CRYPTOUTILS_H_

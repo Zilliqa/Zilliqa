@@ -9,12 +9,12 @@ endif(CMAKE_CONFIGURATION_TYPES)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable(Test_LookupNodeForDSBlock Test_LookupNodeForDSBlock.cpp)
 target_include_directories(Test_LookupNodeForDSBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_LookupNodeForDSBlock PUBLIC Crypto AccountData Message Network)
+target_link_libraries(Test_LookupNodeForDSBlock PUBLIC AccountData Message Network)
 add_test(NAME Test_LookupNodeForDSBlock COMMAND Test_LookupNodeForDSBlock)
 
 add_executable(Test_LookupNodeForTxBlock Test_LookupNodeForTxBlock.cpp)
 target_include_directories(Test_LookupNodeForTxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_LookupNodeForTxBlock PUBLIC Crypto AccountData Message Network)
+target_link_libraries(Test_LookupNodeForTxBlock PUBLIC AccountData Message Network)
 add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
 
 

@@ -50,7 +50,7 @@ add_test(NAME Test_Serializable COMMAND Test_Serializable)
 
 add_executable(Test_RootComputation Test_RootComputation.cpp)
 target_include_directories(Test_RootComputation PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_RootComputation LINK_PUBLIC Utils Crypto Common Database AccountData Message)
+target_link_libraries(Test_RootComputation LINK_PUBLIC Utils Common Database AccountData Message)
 add_test(NAME Test_RootComputation COMMAND Test_RootComputation)
 
 add_executable(Test_IPConverter Test_IPConverter.cpp)

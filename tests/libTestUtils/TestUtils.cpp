@@ -281,7 +281,7 @@ bytes GenerateRandomCharVector(size_t length) {
 Signature GetSignature(const bytes& data, const PairOfKey& keyPair) {
   Signature result;
 
-  Schnorr::GetInstance().Sign(data, keyPair.first, keyPair.second, result);
+  Schnorr::Sign(data, keyPair.first, keyPair.second, result);
   return result;
 }
 

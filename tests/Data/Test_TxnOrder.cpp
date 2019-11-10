@@ -15,14 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TxnOrderVerifier.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE transactiontest
@@ -68,8 +69,8 @@ decltype(auto) GenWithDummyValue(const PairOfKey& sender,
 BOOST_AUTO_TEST_CASE(GenTxn1000) {
   INIT_STDOUT_LOGGER();
   auto n = 100u;
-  auto sender = Schnorr::GetInstance().GenKeyPair();
-  auto receiver = Schnorr::GetInstance().GenKeyPair();
+  auto sender = Schnorr::GenKeyPair();
+  auto receiver = Schnorr::GenKeyPair();
 
   // LOG_GENERAL(INFO, "Generating " << n << " txns with multiple methods");
 

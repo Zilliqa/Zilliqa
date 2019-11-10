@@ -26,9 +26,9 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -968,7 +968,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
   // generate operator PairOfKeys
   for (unsigned int i = 0; i < numOperators; i++) {
-    PairOfKey oprtr = Schnorr::GetInstance().GenKeyPair();
+    PairOfKey oprtr = Schnorr::GenKeyPair();
     Address operatorAddr = Account::GetAddressFromPublicKey(oprtr.second);
     operators.emplace_back(oprtr);
     operatorAddrs.emplace_back(operatorAddr);

@@ -106,6 +106,20 @@ bool DataConversion::SerializableToHexStr(const Serializable& input,
   return true;
 }
 
+bool DataConversion::SerializableToHexStr(const SerializableCrypto& input,
+                                          string& str) {
+  bytes tmp;
+  input.Serialize(tmp, 0);
+  try {
+    str = "";
+    boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed SerializableToHexStr conversion");
+    return false;
+  }
+  return true;
+}
+
 uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   if (hex_arr.size() == 0) {
     return 0;

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <string>
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libDirectoryService/DSComposition.h"
 #include "libNetwork/ShardStruct.h"
@@ -51,12 +51,12 @@ struct F {
     BOOST_TEST_MESSAGE("setup fixture");
 
     // Generate the self key.
-    selfKeyPair = Schnorr::GetInstance().GenKeyPair();
+    selfKeyPair = Schnorr::GenKeyPair();
     selfPubKey = selfKeyPair.second;
 
     // Generate the DS Committee.
     for (int i = 0; i < COMMITTEE_SIZE; ++i) {
-      PairOfKey kp = Schnorr::GetInstance().GenKeyPair();
+      PairOfKey kp = Schnorr::GenKeyPair();
       PubKey pk = kp.second;
       Peer peer = Peer(LOCALHOST, BASE_PORT + i);
       PairOfNode entry = std::make_pair(pk, peer);
@@ -79,7 +79,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
   // Create the winners.
   std::map<PubKey, Peer> winners;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {
-    PairOfKey candidateKeyPair = Schnorr::GetInstance().GenKeyPair();
+    PairOfKey candidateKeyPair = Schnorr::GenKeyPair();
     PubKey candidatePubKey = candidateKeyPair.second;
     Peer candidatePeer = Peer(LOCALHOST, BASE_PORT + COMMITTEE_SIZE + i);
     winners[candidatePubKey] = candidatePeer;
@@ -89,7 +89,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
   std::vector<PubKey> removeDSNodePubkeys;
 
   // Construct the fake DS Block.
-  PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
@@ -144,7 +144,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
   std::vector<PubKey> removeDSNodePubkeys;
 
   // Construct the fake DS Block.
-  PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
@@ -190,7 +190,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
   // Create the winners.
   std::map<PubKey, Peer> winners;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {
-    PairOfKey candidateKeyPair = Schnorr::GetInstance().GenKeyPair();
+    PairOfKey candidateKeyPair = Schnorr::GenKeyPair();
     PubKey candidatePubKey = candidateKeyPair.second;
     Peer candidatePeer = Peer(LOCALHOST, BASE_PORT + COMMITTEE_SIZE + i);
     winners[candidatePubKey] = candidatePeer;
@@ -204,7 +204,7 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
   }
 
   // Construct the fake DS Block.
-  PairOfKey leaderKeyPair = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
