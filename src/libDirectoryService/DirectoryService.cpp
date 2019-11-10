@@ -608,10 +608,31 @@ bool DirectoryService::FinishRejoinAsDS() {
     return false;
   }
 
+  m_consensusMyID = 0;
+  bool found = false;
+
+  for (auto const& i : dsComm) {
+    if (i.first == m_mediator.m_selfKey.second) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "My node ID for this PoW consensus is " << m_consensusMyID);
+      found = true;
+      break;
+    }
+    m_consensusMyID++;
+  }
+
+  if (!found) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+    m_mediator.m_node->RejoinAsNormal();
+    return false;
+  }
+
   // Not vacaous
   if (m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
       0) {
-    StartFirstTxEpoch();
+    StartNextTxEpoch();
   } else {  // vacaous epoch
     StartNewDSEpochConsensus(false, true);
   }

@@ -334,6 +334,127 @@ void DirectoryService::UpdateDSCommitteeComposition() {
                                    m_mediator.m_dsBlockChain.GetLastBlock());
 }
 
+void DirectoryService::StartNextTxEpoch() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::StartNextTxEpoch not expected to be "
+                "called from LookUp node.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  {
+    lock_guard<mutex> g(m_mutexAllPOW);
+    m_allPoWs.clear();
+  }
+
+  // blacklist pop for ds nodes
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
+        *m_mediator.m_DSCommittee);
+  }
+  m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
+  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  P2PComm::ClearPeerConnectionCount();
+
+  m_mediator.m_node->CleanWhitelistReqs();
+
+  ClearDSPoWSolns();
+  ResetPoWSubmissionCounter();
+  m_viewChangeCounter = 0;
+
+  {
+    std::lock_guard<mutex> lock(m_mutexMicroBlocks);
+    m_microBlocks.clear();
+    m_missingMicroBlocks.clear();
+    m_microBlockStateDeltas.clear();
+  }
+
+  // m_mediator.m_node->ResetConsensusId();
+  // If node was restarted consensusID needs to be calculated ( will not be 1)
+  m_mediator.m_consensusID =
+      (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
+
+  // Check if I am the leader or backup of the shard
+  m_mediator.m_node->SetConsensusLeaderID(GetConsensusLeaderID());
+
+  if (GetConsensusMyID() == GetConsensusLeaderID()) {
+    m_mediator.m_node->m_isPrimary = true;
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard leader");
+  } else {
+    m_mediator.m_node->m_isPrimary = false;
+
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard backup");
+  }
+
+  // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
+  m_mediator.m_node->m_myshardId = m_shards.size();
+  m_mediator.m_node->m_justDidFallback = false;
+  m_stateDeltaFromShards.clear();
+
+  // Start sharding work
+  SetState(MICROBLOCK_SUBMISSION);
+
+  auto func1 = [this]() mutable -> void {
+    m_mediator.m_node->CommitTxnPacketBuffer();
+  };
+  DetachedFunction(1, func1);
+
+  LOG_STATE(
+      "[MIBLKSWAIT]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BEGIN");
+
+  m_stopRecvNewMBSubmission = false;
+
+  if (BROADCAST_GOSSIP_MODE) {
+    VectorOfNode peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
+
+    // ReInitialize RumorManager for this epoch.
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
+  }
+  if (m_mediator.m_node->m_myshardId == 0) {
+    LOG_GENERAL(
+        INFO,
+        "No other shards. So no other microblocks expected to be received");
+    m_stopRecvNewMBSubmission = true;
+
+    RunConsensusOnFinalBlock();
+  } else {
+    auto func = [this]() mutable -> void {
+      // Check for state change. If it get stuck at microblock submission for
+      // too long, move on to finalblock without the microblock
+      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleDSMicroBlockConsensus);
+      if (cv_scheduleDSMicroBlockConsensus.wait_for(
+              cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(WARNING,
+                    "Timeout: Didn't receive all Microblock. Proceeds "
+                    "without it");
+
+        LOG_STATE("[MIBLKSWAIT]["
+                  << setw(15) << left
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                  << m_mediator.m_txBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetBlockNum() +
+                         1
+                  << "] TIMEOUT: Didn't receive all Microblock.");
+
+        m_stopRecvNewMBSubmission = true;
+        RunConsensusOnFinalBlock();
+      }
+    };
+    DetachedFunction(1, func);
+  }
+}
+
 void DirectoryService::StartFirstTxEpoch() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

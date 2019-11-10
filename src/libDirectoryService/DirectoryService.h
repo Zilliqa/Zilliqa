@@ -613,6 +613,9 @@ class DirectoryService : public Executable {
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
 
+  /// Used by rejoined DS node
+  void StartNextTxEpoch();
+
   /// Begin next round of DS consensus
   void StartNewDSEpochConsensus(bool fromFallback = false,
                                 bool isRejoin = false);
