@@ -1670,17 +1670,22 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
   std::vector<MicroBlock> microblocks;
   for (const auto& mbInfo : microblockInfos) {
+    if (mbInfo.m_shardId ==
+        m_mediator.m_ds->GetNumShards()) {  // ignore ds microblock
+      continue;
+    }
     MicroBlockSharedPtr mbptr;
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
+      LOG_GENERAL(WARNING,
+                  "Could not get MicroBlock " << mbInfo.m_microBlockHash);
       return false;
     }
     microblocks.emplace_back(*mbptr);
   }
 
-  bytes retMsg = {MessageType::LOOKUP,
-                  LookupInstructionType::SETCOSIGSREWARDSFROMSEED};
+  bytes retMsg = {MessageType::DIRECTORY,
+                  DSInstructionType::SETCOSIGSREWARDSFROMSEED};
 
   if (!Messenger::SetLookupSetCosigsRewardsFromSeed(
           retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum,
@@ -2238,13 +2243,18 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       }
     }
   } else if (m_syncType == SyncType::DS_SYNC ||
-             m_syncType == SyncType::GUARD_DS_SYNC) {
+             /* Re-assigned DSGUARD-POD allowed to rejoin only in vacaous epoch
+                for now */
+             (m_syncType == SyncType::GUARD_DS_SYNC &&
+              m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
     if (!m_currDSExpired &&
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
             m_mediator.m_currentEpochNum) {
       m_isFirstLoop = true;
       SetSyncType(SyncType::NO_SYNC);
-      m_mediator.m_ds->FinishRejoinAsDS();
+
+      m_mediator.m_ds->FinishRejoinAsDS(lowBlockNum % NUM_FINAL_BLOCK_PER_POW ==
+                                        0);
     }
     m_currDSExpired = false;
   } else if (m_syncType == SyncType::LOOKUP_SYNC ||
@@ -3317,14 +3327,18 @@ void Lookup::StartSynchronization() {
 
 bool Lookup::GetDSInfoLoop() {
   unsigned int counter = 0;
-  {
+  // Allow over-writing ds committee because of corner case where node rejoined
+  // in first tx epoch of ds epoch Node had started rejoining from incr db which
+  // holds older ds comm at this point. So time to try fetching latest ds comm
+  // from lookup up in this case.
+  /*{
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (m_mediator.m_DSCommittee->size() > 0) {
       LOG_GENERAL(WARNING,
                   "DS comm already set, make sure you cleaned variables");
       return false;
     }
-  }
+  }*/
 
   while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
     GetDSInfoFromSeedNodes();
@@ -3961,7 +3975,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
-      &Lookup::ProcessSetHistoricalDB};
+      &Lookup::ProcessSetHistoricalDB,
+      &Lookup::ProcessGetCosigsRewardsFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

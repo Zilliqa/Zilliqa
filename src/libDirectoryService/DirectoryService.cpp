@@ -511,7 +511,7 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
   }
 }
 
-bool DirectoryService::FinishRejoinAsDS() {
+bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinishRejoinAsDS not expected to be "
@@ -629,6 +629,22 @@ bool DirectoryService::FinishRejoinAsDS() {
     return false;
   }
 
+  if (fetchShardingStruct) {
+    // Ask for the sharding structure from lookup
+    m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
+    std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+    if (m_mediator.m_lookup->cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
+      LOG_GENERAL(WARNING,
+                  "Didn't receive sharding structure! Try checking next epoch");
+    } else {
+      m_mediator.m_node->LoadShardingStructure(true);
+      m_mediator.m_ds->ProcessShardingStructure(
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+          m_mediator.m_ds->m_mapNodeReputation);
+    }
+  }
   // Not vacaous
   if (m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
       0) {
@@ -998,14 +1014,21 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
 
   // invoke SaveCoinBase for each
   for (const auto& cogsrews : coinbaserewards) {
-    SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
-                 cogsrews.GetBlockNumber());
-    if (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD) {
+    if (SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
+                     cogsrews.GetBlockNumber()) &&
+        (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD)) {
       m_totalTxnFees += cogsrews.GetRewards();
     }
   }
 
   return true;
+}
+
+void DirectoryService::GetCoinbaseRewardees(
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+        coinbase_rewardees) {
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+  coinbase_rewardees = m_coinbaseRewardees;
 }
 
 bool DirectoryService::Execute(const bytes& message, unsigned int offset,
