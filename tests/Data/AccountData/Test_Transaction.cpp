@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   Address toAddr;
 
   Mediator* m = nullptr;
-  unique_ptr<ValidatorBase> m_validator = make_unique<Validator>(*m);
+  unique_ptr<Validator> m_validator = make_unique<Validator>(*m);
 
   for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
     toAddr.asArray().at(i) = i + 4;

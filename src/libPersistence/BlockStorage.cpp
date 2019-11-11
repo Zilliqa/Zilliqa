@@ -565,7 +565,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   return true;
 }
 
-bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
+bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
