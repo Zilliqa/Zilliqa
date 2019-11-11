@@ -20,6 +20,7 @@
 #include <Schnorr.h>
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
+#include "common/MempoolEnum.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"

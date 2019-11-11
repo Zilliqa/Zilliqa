@@ -21,7 +21,6 @@
 #include "AccountStore.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
-#include "common/MempoolEnum.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 
 struct MBnForwardedTxnEntry {

@@ -164,9 +164,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
     }
   }
 
-  if (!foundMB) {
+  if (!foundMB && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(INFO, "My MB not in FB");
-    m_microblock = nullptr;
     PutProcessedInUnconfirmedTxns();
   }
 
@@ -450,26 +449,25 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
 
   std::vector<TransactionWithReceipt> txns_to_send;
 
-  shared_ptr<MicroBlock> microblock_to_send;
-
   if (m_microblock == nullptr) {
     return false;
   }
 
   const auto& blocknum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  const vector<TxnHash>& tx_hashes = microblock_to_send->GetTranHashes();
-  lock_guard<mutex> g(m_mutexProcessedTransactions);
-  auto& processedTransactions = m_processedTransactions[blocknum];
-  for (const auto& tx_hash : tx_hashes) {
-    const auto& txnIt = processedTransactions.find(tx_hash);
-    if (txnIt != processedTransactions.end()) {
-      txns_to_send.emplace_back(txnIt->second);
-    } else {
-      LOG_EPOCH(
-          WARNING, m_mediator.m_currentEpochNum,
-          "Failed trying to find txn " << tx_hash << " in processed txn list");
+  {
+    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
+    auto& processedTransactions = m_processedTransactions[blocknum];
+    for (const auto& tx_hash : tx_hashes) {
+      const auto& txnIt = processedTransactions.find(tx_hash);
+      if (txnIt != processedTransactions.end()) {
+        txns_to_send.emplace_back(txnIt->second);
+      } else {
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                  "Failed trying to find txn " << tx_hash
+                                               << " in processed txn list");
+      }
     }
   }
   // Transaction body sharing
@@ -477,8 +475,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
                      NodeInstructionType::MBNFORWARDTRANSACTION};
 
   if (!Messenger::SetNodeMBnForwardTransaction(
-          mb_txns_message, MessageOffset::BODY, *microblock_to_send,
-          txns_to_send)) {
+          mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeMBnForwardTransaction failed.");
     return false;
@@ -493,7 +490,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
 
   LOG_GENERAL(INFO, "[SendMBnTxn]"
                         << " Sending lookup :"
-                        << microblock_to_send->GetHeader().GetShardId()
+                        << m_microblock->GetHeader().GetShardId()
                         << " Epoch:" << m_mediator.m_currentEpochNum);
 
   return true;
