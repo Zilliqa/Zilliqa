@@ -2637,11 +2637,12 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return true;
   }
 
-  if (requestedNum > MICROBLOCK_GAS_LIMIT) {
-    LOG_GENERAL(WARNING, "No microblock can have more than "
-                             << MICROBLOCK_GAS_LIMIT
-                             << " missing txns. Looks suspicious so will "
-                                "ignore the message and blacklist sender");
+  if (requestedNum > max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)) {
+    LOG_GENERAL(WARNING,
+                "No microblock can have more than "
+                    << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
+                    << " missing txns. Looks suspicious so will "
+                       "ignore the message and blacklist sender");
     Blacklist::GetInstance().Add(from.GetIpAddress());
     return false;
   }
