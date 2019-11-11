@@ -2079,12 +2079,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // Need if it join immediately before vacaous. And will be used in
       // InitCoinbase in final blk consensus in vacaous epoch.
       m_mediator.m_ds->m_totalTxnFees += rewards;
-
-      if (!BlockStorage::GetBlockStorage().PutEpochFin(blockNum + 1)) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutEpochFin failed " << blockNum + 1);
-        return;
-      }
     }
 
     if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
