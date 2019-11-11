@@ -32,16 +32,17 @@ Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
 bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   LOG_MARKER();
-  std::list<TxBlockSharedPtr> blocks;
+  std::deque<TxBlockSharedPtr> blocks;
   std::vector<bytes> extraStateDeltas;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
     LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
     return false;
   }
 
-  blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
+  sort(blocks.begin(), blocks.end(),
+       [](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+       });
 
   unsigned int lastBlockNum = blocks.back()->GetHeader().GetBlockNum();
 

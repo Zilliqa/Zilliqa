@@ -128,6 +128,12 @@ class ThreadPool {
   /// anything else you might want to do
   std::vector<std::thread>& GetThreads() { return _threads; }
 
+  /// Returns the number of jobs in the queue
+  int GetJobsLeft() {
+    std::lock_guard<std::mutex> lock(_jobsLeftMutex);
+    return _jobsLeft;
+  }
+
  private:
   /**
    *  Take the next job in the queue and run it.

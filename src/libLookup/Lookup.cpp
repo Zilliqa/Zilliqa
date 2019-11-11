@@ -2016,7 +2016,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
-      case ValidatorBase::TxBlockValidationMsg::VALID:
+      case Validator::TxBlockValidationMsg::VALID:
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           LOG_GENERAL(INFO,
@@ -2027,11 +2027,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         CommitTxBlocks(txBlocks);
         break;
-      case ValidatorBase::TxBlockValidationMsg::INVALID:
+      case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Invalid blocks");
         break;
-      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+      case Validator::TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Saved to buffer");
         m_txBlockBuffer.clear();
@@ -3857,28 +3857,27 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
 void Lookup::CheckBufferTxBlocks() {
   if (!m_txBlockBuffer.empty()) {
-    ValidatorBase::TxBlockValidationMsg res =
-        m_mediator.m_validator->CheckTxBlocks(
-            m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-            m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    Validator::TxBlockValidationMsg res = m_mediator.m_validator->CheckTxBlocks(
+        m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+        m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
     switch (res) {
-      case ValidatorBase::TxBlockValidationMsg::VALID:
+      case Validator::TxBlockValidationMsg::VALID:
         CommitTxBlocks(m_txBlockBuffer);
         m_txBlockBuffer.clear();
         break;
-      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+      case Validator::TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(WARNING,
                     "Even after the recving latest ds info, the information "
                     "is stale ");
         break;
-      case ValidatorBase::TxBlockValidationMsg::INVALID:
+      case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(WARNING, "The blocks in buffer are invalid ");
         m_txBlockBuffer.clear();
         break;
       default:
         LOG_GENERAL(WARNING,
-                    "The return value of ValidatorBase::CheckTxBlocks does not "
+                    "The return value of Validator::CheckTxBlocks does not "
                     "match any type");
     }
   }
