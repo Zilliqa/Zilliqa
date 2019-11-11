@@ -252,6 +252,9 @@ class Node : public Executable {
   bool ProcessMBnForwardTransaction(const bytes& message,
                                     unsigned int cur_offset, const Peer& from);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
+
+  bool ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
+                         const Peer& from);
   bool ProcessTxnPacketFromLookup(const bytes& message, unsigned int offset,
                                   const Peer& from);
   bool ProcessTxnPacketFromLookupCore(const bytes& message,
@@ -494,6 +497,9 @@ class Node : public Executable {
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(bool fromIsolatedBinary = false);
+  void PutProcessedInUnconfirmedTxns();
+
+  bool SendPendingTxnToLookup();
 
   bool ValidateDB();
 

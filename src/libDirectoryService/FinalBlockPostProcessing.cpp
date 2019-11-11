@@ -279,9 +279,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   if ((m_mediator.m_node->m_microblock != nullptr &&
        m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-           TxnHash()) ||
-      toSendPendingTxn) {
+           TxnHash())) {
     m_mediator.m_node->CallActOnFinalblock();
+  }
+
+  if (toSendPendingTxn) {
+    m_mediator.m_node->SendPendingTxnToLookup();
   }
 
   AccountStore::GetInstance().InitTemp();

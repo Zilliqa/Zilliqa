@@ -27,7 +27,6 @@
 struct MBnForwardedTxnEntry {
   MicroBlock m_microBlock;
   std::vector<TransactionWithReceipt> m_transactions;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_pendingTransactions;
 
   friend std::ostream& operator<<(std::ostream& os,
                                   const MBnForwardedTxnEntry& t);

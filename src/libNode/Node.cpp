@@ -2375,7 +2375,8 @@ bool Node::Execute(const bytes& message, unsigned int offset,
                                        &Node::ProcessFallbackBlock,
                                        &Node::ProcessProposeGasPrice,
                                        &Node::ProcessDSGuardNetworkInfoUpdate,
-                                       &Node::ProcessRemoveNodeFromBlacklist};
+                                       &Node::ProcessRemoveNodeFromBlacklist,
+                                       &Node::ProcessPendingTxn};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
