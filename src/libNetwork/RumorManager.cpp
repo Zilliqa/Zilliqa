@@ -191,7 +191,7 @@ void RumorManager::SpreadBufferedRumors() {
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
   PubKey senderPubKey;
-  if (senderPubKey.Deserialize(message, 0) != 0) {
+  if (!senderPubKey.Deserialize(message, 0)) {
     return false;
   }
 
@@ -204,7 +204,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 
   // verify if signature matches the one in message.
   Signature toVerify;
-  if (toVerify.Deserialize(message, PUB_KEY_SIZE) != 0) {
+  if (!toVerify.Deserialize(message, PUB_KEY_SIZE)) {
     return false;
   }
 
@@ -373,7 +373,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
        SIGN_VERIFY_NONEMPTY_MSGTYP)) {
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
-    if (senderPubKey.Deserialize(message, 0) != 0) {
+    if (!senderPubKey.Deserialize(message, 0)) {
       return {false, {}};
     }
 
@@ -395,7 +395,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
 
     // verify if signature matches the one in message.
     Signature toVerify;
-    if (toVerify.Deserialize(message, PUB_KEY_SIZE) != 0) {
+    if (!toVerify.Deserialize(message, PUB_KEY_SIZE)) {
       return {false, {}};
     }
 

@@ -799,8 +799,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
 
   unsigned int ds_index = 0;
   for (const auto& ds : *dsCommittee) {
-    int pubKeySize = ds.first.Serialize(data, 0);
-    ds.second.Serialize(data, pubKeySize);
+    ds.first.Serialize(data, 0);
+    ds.second.Serialize(data, data.size());
 
     /// Store index as key, to guarantee the sequence of DS committee after
     /// retrieval Because first DS committee is DS leader
@@ -812,6 +812,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
 
     LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << ds.first << " "
                           << ds.second);
+
+    data.clear();
   }
 
   return true;
