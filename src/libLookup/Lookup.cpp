@@ -1798,7 +1798,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
           m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
       LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
       isVerif = false;
-      break;
+      m_mediator.m_DSCommittee->clear();
+      return false;
     }
   }
 

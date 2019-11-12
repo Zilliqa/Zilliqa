@@ -77,6 +77,12 @@ void DirectoryService::StartSynchronization(bool clean) {
     return;
   }
 
+  // Send whitelist request to seeds, in case it was blacklisted if was
+  // restarted.
+  m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(Node::LOOKUP);
+  this_thread::sleep_for(
+      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+
   auto func = [this]() -> void {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
@@ -90,7 +96,7 @@ void DirectoryService::StartSynchronization(bool clean) {
   };
 
   auto func2 = [this]() -> void {
-    if (!m_mediator.m_lookup->GetDSInfoLoop()) {
+    while (!m_mediator.m_lookup->GetDSInfoLoop()) {
       LOG_GENERAL(WARNING, "Unable to fetch DS info");
     }
   };
@@ -648,6 +654,8 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   // Not vacaous
   if (m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
       0) {
+    // Send whitelist request to all peers.
+    m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(Node::PEER);
     StartNextTxEpoch();
   } else {  // vacaous epoch
     StartNewDSEpochConsensus(false, true);
