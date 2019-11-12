@@ -810,6 +810,10 @@ void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC &&
+      ins_byte == DSInstructionType::SETCOSIGSREWARDSFROMSEED) {
+    return false;
+  }
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 

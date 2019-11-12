@@ -567,9 +567,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_blocklinkchain.SetBuiltDSComm(buildDSComm);
   }
 
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_DSCommittee->clear();
-  }
+  m_mediator.m_DSCommittee->clear();
 
   uint16_t ds_consensusLeaderID = 0;
 
