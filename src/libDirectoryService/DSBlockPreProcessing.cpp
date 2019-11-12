@@ -1396,7 +1396,10 @@ void DirectoryService::SaveDSPerformanceCore(
     dsMemberPerformance[member.first] = 0;
   }
 
-  uint64_t currentDsEpoch = currentEpochNum - numOfFinalBlock;
+  uint64_t currentDsEpoch = 0;
+  if (currentEpochNum >= numOfFinalBlock) {
+    currentDsEpoch = currentEpochNum - numOfFinalBlock;
+  }
   // Go through the coinbase rewardees and tally the number of co-sigs.
   // For each TX epoch,
   for (auto const& rewardees : coinbaseRewardees) {
