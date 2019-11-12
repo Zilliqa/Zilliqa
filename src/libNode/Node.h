@@ -126,9 +126,6 @@ class Node : public Executable {
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
-  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
-
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
@@ -410,6 +407,9 @@ class Node : public Executable {
 
   std::mutex m_mutexCVMicroBlockMissingTxn;
   std::condition_variable cv_MicroBlockMissingTxn;
+
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   // std::condition_variable m_cvNewRoundStarted;
   // std::mutex m_mutexNewRoundStarted;

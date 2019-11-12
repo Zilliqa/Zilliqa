@@ -2144,6 +2144,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       return;
     }
   }
+  if (LOOKUP_NODE_MODE) {
+    std::unique_lock<shared_timed_mutex> lock(
+        m_mediator.m_node->m_unconfirmedTxnsMutex);
+    m_mediator.m_node->m_unconfirmedTxns.clear();
+  }
 
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);

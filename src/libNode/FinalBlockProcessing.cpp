@@ -733,6 +733,10 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       }
     }
   }
+  if (LOOKUP_NODE_MODE) {
+    lock_guard<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
+  }
 
   if (!BlockStorage::GetBlockStorage().PutStateDelta(
           txBlock.GetHeader().GetBlockNum(), stateDelta)) {
@@ -1156,6 +1160,7 @@ bool Node::AddPendingTxn(
   }
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
   for (const auto& entry : pendingTxns) {
+    LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
     m_unconfirmedTxns.emplace(entry);
   }
   return true;
@@ -1172,12 +1177,14 @@ bool Node::SendPendingTxnToLookup() {
   }
 
   const auto pendingTxns = GetUnconfirmedTxns();
+  const auto& blocknum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   bytes pend_txns_message = {MessageType::NODE,
                              NodeInstructionType::PENDINGTXN};
   if (!Messenger::SetNodePendingTxn(pend_txns_message, MessageOffset::BODY,
-                                    m_mediator.m_currentEpochNum, pendingTxns,
-                                    m_myshardId, m_mediator.m_selfKey)) {
+                                    blocknum, pendingTxns, m_myshardId,
+                                    m_mediator.m_selfKey)) {
     LOG_GENERAL(WARNING, "Failed to set SetNodePendingTxn");
     return false;
   }
@@ -1231,10 +1238,6 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   LOG_GENERAL(INFO, "Recieved message from " << from << " for epoch "
                                              << epochNum << " and shard "
                                              << shardId);
-
-  for (const auto& hashCodePair : hashCodeMap) {
-    LOG_GENERAL(INFO, " " << hashCodePair.first << " " << hashCodePair.second);
-  }
 
   AddPendingTxn(hashCodeMap, epochNum);
 
@@ -1354,10 +1357,6 @@ void Node::CommitMBnForwardedTransactionBuffer() {
 
 void Node::CommitPendingTxnBuffer() {
   // Clear Pending txn
-  {
-    std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
-    m_unconfirmedTxns.clear();
-  }
   lock_guard<mutex> g(m_mutexPendingTxnBuffer);
 
   const auto& epochNum =
