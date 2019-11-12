@@ -4310,6 +4310,16 @@ bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
   return deqNodes.cend() != iter;
 }
 
+bool Lookup::VerifySenderNode(const Shard& shard,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(
+      shard.cbegin(), shard.cend(),
+      [&pubKeyToVerify](const tuple<PubKey, Peer, uint16_t>& node) {
+        return get<SHARD_NODE_PUBKEY>(node) == pubKeyToVerify;
+      });
+  return shard.cend() != iter;
+}
+
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
                                const Peer& from) {
   if (!LOOKUP_NODE_MODE) {

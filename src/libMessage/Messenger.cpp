@@ -4675,7 +4675,8 @@ bool Messenger::SetNodePendingTxn(
 
 bool Messenger::GetNodePendingTxn(
     const bytes& src, const unsigned offset, uint64_t& epochnum,
-    unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap, uint32_t& shardId) {
+    unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap, uint32_t& shardId,
+    PubKey& pubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4693,7 +4694,6 @@ bool Messenger::GetNodePendingTxn(
     return false;
   }
 
-  PubKey pubKey;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.data().pubkey(), pubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);

@@ -760,7 +760,8 @@ void Node::PutProcessedInUnconfirmedTxns() {
   uint count = 0;
 
   for (const auto& t : t_processedTransactions) {
-    m_unconfirmedTxns.emplace(t.first, PoolTxnStatus::PRESENT_GAS_EXCEEDED);
+    m_unconfirmedTxns.emplace(
+        t.first, PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED);
     count++;
   }
   LOG_GENERAL(INFO, "Count of txns " << count);

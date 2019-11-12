@@ -415,7 +415,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   }
 #endif  // DM_TEST_DM_LESSMB_ALL
 
-#if 1
+#if 0
   LOG_GENERAL(INFO, "[PNDNGAPI]");
   return false;
 #endif
