@@ -19,9 +19,9 @@
 #define ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 
 #include <json/json.h>
+#include <memory>
 #include <mutex>
 #include <set>
-#include <unordered_map>
 
 #include "websocketpp/config/asio_no_tls.hpp"
 #include "websocketpp/server.hpp"
@@ -34,50 +34,100 @@
 
 typedef websocketpp::server<websocketpp::config::asio> websocketserver;
 
-using IpSocketMap =
-    std::unordered_map<std::string, websocketpp::connection_hdl>;
+enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG, UNSUBSCRIBE };
 
-enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG };
+struct subscription {
+  std::set<WEBSOCKETQUERY> queries;
+  std::set<WEBSOCKETQUERY> unsubscribings;
 
-using EndpointQueryIndex = std::unordered_map<std::string, WEBSOCKETQUERY>;
+  void subscribe(WEBSOCKETQUERY query) { queries.emplace(query); }
 
-struct EventLogSocketTracker {
+  void unsubscribe_start(WEBSOCKETQUERY query) {
+    if (queries.find(query) != queries.end()) {
+      unsubscribings.emplace(query);
+    }
+  }
+
+  bool subscribed(WEBSOCKETQUERY query) {
+    return queries.find(query) != queries.end();
+  }
+
+  void unsubscribe_finish() {
+    for (auto unsubscribing : unsubscribings) {
+      queries.erase(unsubscribing);
+    }
+    unsubscribings.clear();
+  }
+};
+
+struct EventLogAddrHdlTracker {
   // for updating event log for client subscribed
-  std::unordered_map<Address, std::set<std::string>> m_addr_ip_map;
+  std::map<Address, std::set<websocketpp::connection_hdl,
+                             std::owner_less<websocketpp::connection_hdl>>>
+      m_addr_hdl_map;
   // for removing socket from m_eventlog_hdl_tracker
-  std::unordered_map<std::string, std::set<Address>> m_ip_addr_map;
+  std::map<websocketpp::connection_hdl, std::set<Address>,
+           std::owner_less<websocketpp::connection_hdl>>
+      m_hdl_addr_map;
 
-  void remove(const std::string& ip) {
-    auto iter_ha = m_ip_addr_map.find(ip);
-    if (iter_ha == m_ip_addr_map.end()) {
+  void remove(const websocketpp::connection_hdl& hdl) {
+    auto iter_hdl_addr = m_hdl_addr_map.find(hdl);
+    if (iter_hdl_addr == m_hdl_addr_map.end()) {
       return;
     }
-    for (const auto& addr : iter_ha->second) {
-      auto iter_ah = m_addr_ip_map.find(addr);
-      if (iter_ah != m_addr_ip_map.end()) {
-        iter_ah->second.erase(ip);
+    for (const auto& addr : iter_hdl_addr->second) {
+      auto iter_addr_hdl = m_addr_hdl_map.find(addr);
+      if (iter_addr_hdl != m_addr_hdl_map.end()) {
+        iter_addr_hdl->second.erase(hdl);
       }
-      if (iter_ah->second.empty()) {
-        m_addr_ip_map.erase(iter_ah);
+      if (iter_addr_hdl->second.empty()) {
+        m_addr_hdl_map.erase(iter_addr_hdl);
       }
     }
-    m_ip_addr_map.erase(iter_ha);
+    m_hdl_addr_map.erase(iter_hdl_addr);
   }
 
-  void update(const std::string& ip, const std::set<Address>& addresses) {
+  void update(const websocketpp::connection_hdl& hdl,
+              const std::set<Address>& addresses) {
     for (const auto& addr : addresses) {
-      m_addr_ip_map[addr].emplace(ip);
+      m_addr_hdl_map[addr].emplace(hdl);
     }
-    m_ip_addr_map[ip] = addresses;
+    m_hdl_addr_map[hdl] = addresses;
   }
 
-  void clean() {
-    m_addr_ip_map.clear();
-    m_ip_addr_map.clear();
+  void clear() {
+    m_addr_hdl_map.clear();
+    m_hdl_addr_map.clear();
   }
 };
 
 class WebsocketServer : public Singleton<WebsocketServer> {
+  /// websocketpp server instance
+  static websocketserver m_server;
+
+  static std::mutex m_mutexSubscriptions;
+  static std::map<websocketpp::connection_hdl, subscription,
+                  std::owner_less<websocketpp::connection_hdl>>
+      m_subscriptions;
+
+  /// a utility data structure for mapping address and subscriber of EventLog
+  /// regarding of new comer or quiting
+  static std::mutex m_mutexEventLogAddrHdlTracker;
+  static EventLogAddrHdlTracker m_eventLogAddrHdlTracker;
+
+  /// a buffer for keeping the eventlog to send for each subscriber
+  static std::mutex m_mutexEventLogDataBuffer;
+  static std::map<websocketpp::connection_hdl,
+                  std::unordered_map<Address, Json::Value>,
+                  std::owner_less<websocketpp::connection_hdl>>
+      m_eventLogDataBuffer;
+
+  /// make run() detached in a new thread to avoid blocking
+  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
+
+  std::mutex m_mutexTxnBlockNTxnHashes;
+  Json::Value m_jsonTxnBlockNTxnHashes;
+
  public:
   /// Returns the singleton AccountStore instance.
   static WebsocketServer& GetInstance() {
@@ -85,15 +135,15 @@ class WebsocketServer : public Singleton<WebsocketServer> {
     return ws;
   }
 
-  /// Public interface for sending TxBlock and TxHashes
-  bool SendTxBlockAndTxHashes(const Json::Value& json_txblock,
-                              const Json::Value& json_txhashes);
+  // /// Public interface for sending TxBlock and TxHashes
+  void PrepareTxBlockAndTxHashes(const Json::Value& json_txblock,
+                                 const Json::Value& json_txhashes);
 
   /// Public interface to digest contract event from transaction receipts
   void ParseTxnEventLog(const TransactionWithReceipt& twr);
 
-  /// Public interface to send all digested contract events to subscriber
-  void SendOutEventLog();
+  // /// Public interface to send all digested contract events to subscriber
+  void SendOutMessages();
 
  private:
   /// Singleton constructor and start service immediately
@@ -115,18 +165,9 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   /// Stop websocket server
   void stop();
 
-  /// get connection_hdl with ip and WEBSOCKETQUERY
-  bool getWebsocket(const std::string& ip, WEBSOCKETQUERY query,
-                    websocketpp::connection_hdl& hdl);
-
-  /// remove a connection_hdl in memory via remote endpoint string
-  static void removeSocket(const std::string& remote);
-
-  /// remove a connection_hdl in memory via endpoint ip and WEBSOCKETQUERY
-  static void removeSocket(const std::string& ip, WEBSOCKETQUERY q_enum);
-
   /// close a socket from connection_hdl
-  static bool closeSocket(const websocketpp::connection_hdl& hdl);
+  static void closeSocket(const websocketpp::connection_hdl& hdl,
+                          const std::string reason);
 
   /// clean in-memory data structures
   void clean();
@@ -134,33 +175,6 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   /// Send string data to hdl connection
   bool sendData(const websocketpp::connection_hdl& hdl,
                 const std::string& data);
-
-  /// websocketpp server instance
-  static websocketserver m_server;
-
-  /// mapping endpoint to the WEBSOCKETQUERY
-  static std::mutex m_mutexEqIndex;
-  static EndpointQueryIndex m_eqIndex;
-
-  /// containing the connection_hdl for TxBlock subscriber
-  static std::mutex m_mutexTxBlockSockets;
-  static IpSocketMap m_txblock_websockets;
-
-  /// containing the connection_hdl for EventLog subscriber
-  static std::mutex m_mutexEventLogSockets;
-  static IpSocketMap m_eventlog_websockets;
-  /// a utility data structure for mapping address and subscriber of EventLog
-  /// regarding of new comer or quiting
-  static EventLogSocketTracker m_elsockettracker;
-
-  /// a buffer for keeping the eventlog to send for each subscriber
-  static std::mutex m_mutexELDataBufferSockets;
-  static std::unordered_map<std::string,
-                            std::unordered_map<Address, Json::Value>>
-      m_eventLogDataBuffer;
-
-  /// make run() detached in a new thread to avoid blocking
-  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
 
   /// standard callbacks for websocket server instance
   static void on_message(const websocketpp::connection_hdl& hdl,

@@ -1221,11 +1221,11 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
         } catch (...) {
           j_txnhashes = Json::arrayValue;
         }
-        WebsocketServer::GetInstance().SendTxBlockAndTxHashes(
+        WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
             JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
         // send event logs
-        WebsocketServer::GetInstance().SendOutEventLog();
+        WebsocketServer::GetInstance().SendOutMessages();
       }
     }
   }
