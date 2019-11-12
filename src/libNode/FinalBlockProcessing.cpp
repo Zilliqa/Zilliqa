@@ -905,6 +905,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     uint32_t numShards = m_mediator.m_ds->GetNumShards();
 
     CommitMBnForwardedTransactionBuffer();
+    CommitPendingTxnBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
@@ -979,8 +980,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
-      unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-      m_unconfirmedTxns.erase(twr.GetTransaction().GetTranID());
     }
 
     // Store TxBody to disk
@@ -1138,9 +1137,22 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
 bool Node::AddPendingTxn(
     const unordered_map<TxnHash, PoolTxnStatus>& pendingTxns,
     const uint64_t& currentEpoch) {
-  if (currentEpoch < m_mediator.m_currentEpochNum) {
+  const auto& epochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (currentEpoch < epochNum) {
     LOG_GENERAL(WARNING, "PENDINGTXN sent of an older epoch " << currentEpoch);
     return false;
+  } else if (currentEpoch > epochNum || /* Buffer for syncing seed node */
+             (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() ==
+                  SyncType::NEW_LOOKUP_SYNC) ||
+             (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
+    lock_guard<mutex> g(m_mutexPendingTxnBuffer);
+    m_pendingTxnBuffer[currentEpoch].push_back(pendingTxns);
+    LOG_GENERAL(INFO, "Buffer PENDINGTXN for epoch " << currentEpoch);
+    return true;
   }
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
   for (const auto& entry : pendingTxns) {
@@ -1338,4 +1350,26 @@ void Node::CommitMBnForwardedTransactionBuffer() {
     }
     it = m_mbnForwardedTxnBuffer.erase(it);
   }
+}
+
+void Node::CommitPendingTxnBuffer() {
+  // Clear Pending txn
+  {
+    std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
+  }
+  lock_guard<mutex> g(m_mutexPendingTxnBuffer);
+
+  const auto& epochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  auto itr = m_pendingTxnBuffer.find(epochNum);
+
+  if (itr != m_pendingTxnBuffer.end()) {
+    for (const auto& entry : itr->second) {
+      AddPendingTxn(entry, epochNum);
+    }
+  }
+
+  m_pendingTxnBuffer.clear();
 }

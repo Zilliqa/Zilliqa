@@ -1587,7 +1587,6 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
       // Transaction already present in database means confirmed
       _json["confirmed"] = true;
       _json["code"] = PoolTxnStatus::NOT_PRESENT;
-      ;
       _json["info"] = "Txn already processed and confirmed";
       return _json;
     }

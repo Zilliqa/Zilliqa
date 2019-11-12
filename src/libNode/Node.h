@@ -149,6 +149,11 @@ class Node : public Executable {
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
       m_mbnForwardedTxnBuffer;
 
+  std::mutex m_mutexPendingTxnBuffer;
+  std::unordered_map<uint64_t,
+                     std::vector<std::unordered_map<TxnHash, PoolTxnStatus>>>
+      m_pendingTxnBuffer;
+
   std::mutex m_mutexTxnPacketBuffer;
   std::vector<bytes> m_txnPacketBuffer;
 
@@ -539,6 +544,8 @@ class Node : public Executable {
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
+
+  void CommitPendingTxnBuffer();
 
   void ProcessTransactionWhenShardLeader(
       const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
