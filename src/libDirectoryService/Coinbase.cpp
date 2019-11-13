@@ -145,7 +145,7 @@ void DirectoryService::InitCoinbase() {
 
   // cleanup - entries from older ds epoch
   uint64_t currentDsEpoch =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   for (auto it = m_coinbaseRewardees.begin(), ite = m_coinbaseRewardees.end();
        it != ite;) {
     if (it->first < currentDsEpoch)
