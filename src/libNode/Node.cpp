@@ -824,6 +824,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Save coin base for micro block, from last DS epoch to current TX epoch
   if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
                SyncType::RECOVERY_ALL_SYNC == syncType)) {
+    m_mediator.m_ds->SetState(DirectoryService::DirState::SYNC);
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),

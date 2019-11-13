@@ -453,7 +453,8 @@ class DirectoryService : public Executable {
     FINALBLOCK_CONSENSUS,
     VIEWCHANGE_CONSENSUS_PREP,
     VIEWCHANGE_CONSENSUS,
-    ERROR
+    ERROR,
+    SYNC
   };
 
   enum SUBMITMICROBLOCKTYPE : unsigned char {

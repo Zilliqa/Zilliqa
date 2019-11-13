@@ -810,7 +810,8 @@ void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
-  if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC &&
+  if ((m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC ||
+       m_state == SYNC) &&
       ins_byte == DSInstructionType::SETCOSIGSREWARDSFROMSEED) {
     return false;
   }
@@ -1103,7 +1104,8 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings = {
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS),
-    MAKE_LITERAL_PAIR(ERROR)};
+    MAKE_LITERAL_PAIR(ERROR),
+    MAKE_LITERAL_PAIR(SYNC)};
 
 string DirectoryService::GetStateString() const {
   return (DirStateStrings.find(m_state) == DirStateStrings.end())
