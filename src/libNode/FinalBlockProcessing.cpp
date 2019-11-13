@@ -1138,26 +1138,32 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   return ProcessMBnForwardTransactionCore(entry);
 }
 
-bool Node::AddPendingTxn(
-    const unordered_map<TxnHash, PoolTxnStatus>& pendingTxns,
-    const uint64_t& currentEpoch) {
-  const auto& epochNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  if (currentEpoch < epochNum) {
-    LOG_GENERAL(WARNING, "PENDINGTXN sent of an older epoch " << currentEpoch);
-    return false;
-  } else if (currentEpoch > epochNum || /* Buffer for syncing seed node */
-             (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-              m_mediator.m_lookup->GetSyncType() ==
-                  SyncType::NEW_LOOKUP_SYNC) ||
-             (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
-              m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
-    lock_guard<mutex> g(m_mutexPendingTxnBuffer);
-    m_pendingTxnBuffer[currentEpoch].push_back(pendingTxns);
-    LOG_GENERAL(INFO, "Buffer PENDINGTXN for epoch " << currentEpoch);
-    return true;
+bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+                         uint32_t shardId) {
+  uint size;
+  {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    size = m_mediator.m_ds->m_shards.size();
   }
+  if (shardId > size) {
+    LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
+    return false;
+  } else if (shardId == size) {
+    // DS Committee
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
+      LOG_GENERAL(WARNING, "Could not find pubkey in ds committee");
+      return false;
+    }
+  } else {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
+                                  pubkey)) {
+      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
+      return false;
+    }
+  }
+
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
   for (const auto& entry : pendingTxns) {
     LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
@@ -1196,7 +1202,7 @@ bool Node::SendPendingTxnToLookup() {
 }
 
 bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
-                             const Peer& from) {
+                             [[gnu::unused]] const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Node::ProcessPendingTxn called from Normal node");
     return false;
@@ -1211,35 +1217,26 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
     LOG_GENERAL(WARNING, "Failed to set GetNodePendingTxn");
     return false;
   }
-  uint size;
-  {
-    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    size = m_mediator.m_ds->m_shards.size();
-  }
-  if (shardId > size) {
-    LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
+  const auto& currentEpochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (currentEpochNum > epochNum) {
+    LOG_GENERAL(WARNING, "PENDINGTXN sent of an older epoch " << epochNum);
     return false;
-  } else if (shardId == size) {
-    // DS Committee
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
-      LOG_GENERAL(WARNING, "Could not find pubkey in ds committee");
-      return false;
-    }
-  } else {
-    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
-                                  pubkey)) {
-      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
-      return false;
-    }
+  } else if (currentEpochNum < epochNum || /* Buffer for syncing seed node */
+             (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() ==
+                  SyncType::NEW_LOOKUP_SYNC) ||
+             (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
+    lock_guard<mutex> g(m_mutexPendingTxnBuffer);
+    m_pendingTxnBuffer[epochNum].emplace_back(hashCodeMap, pubkey, shardId);
+    LOG_GENERAL(INFO, "Buffer PENDINGTXN for epoch " << epochNum);
+    return true;
   }
-
-  LOG_GENERAL(INFO, "Recieved message from " << from << " for epoch "
-                                             << epochNum << " and shard "
-                                             << shardId);
-
-  AddPendingTxn(hashCodeMap, epochNum);
+  LOG_GENERAL(INFO, "Recieved message for epoch " << epochNum << " and shard "
+                                                  << shardId);
+  AddPendingTxn(hashCodeMap, pubkey, shardId);
 
   return true;
 }
@@ -1366,7 +1363,9 @@ void Node::CommitPendingTxnBuffer() {
 
   if (itr != m_pendingTxnBuffer.end()) {
     for (const auto& entry : itr->second) {
-      AddPendingTxn(entry, epochNum);
+      AddPendingTxn(get<PendingData::HASH_CODE_MAP>(entry),
+                    get<PendingData::PUBKEY>(entry),
+                    get<PendingData::SHARD_ID>(entry));
     }
   }
 

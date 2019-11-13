@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
 #define ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
 
+#include "depends/common/FixedHash.h"
+
 enum PoolTxnStatus : uint8_t {
   NOT_PRESENT = 0,
   PRESENT_NONCE_HIGH,
@@ -25,5 +27,9 @@ enum PoolTxnStatus : uint8_t {
   PRESENT_VALID_CONSENSUS_NOT_REACHED,
   ERROR
 };
+using TxnHash = dev::h256;
+using HashCodeMap = std::unordered_map<TxnHash, PoolTxnStatus>;
+
+enum PendingData { HASH_CODE_MAP, PUBKEY, SHARD_ID };
 
 #endif  // ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_

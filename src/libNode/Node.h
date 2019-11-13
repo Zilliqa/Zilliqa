@@ -148,7 +148,7 @@ class Node : public Executable {
 
   std::mutex m_mutexPendingTxnBuffer;
   std::unordered_map<uint64_t,
-                     std::vector<std::unordered_map<TxnHash, PoolTxnStatus>>>
+                     std::vector<std::tuple<HashCodeMap, PubKey, uint32_t>>>
       m_pendingTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
@@ -204,9 +204,8 @@ class Node : public Executable {
   // internal calls from ProcessForwardTransaction
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
-  bool AddPendingTxn(
-      const std::unordered_map<TxnHash, PoolTxnStatus>& pendingTxns,
-      const uint64_t& currentEpoch);
+  bool AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+                     uint32_t shardId);
 
   bool RemoveTxRootHashFromUnavailableMicroBlock(
       const MBnForwardedTxnEntry& entry);
