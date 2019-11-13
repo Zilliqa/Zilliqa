@@ -394,6 +394,12 @@ void DirectoryService::StartNextTxEpoch() {
   m_mediator.m_node->m_justDidFallback = false;
   m_stateDeltaFromShards.clear();
 
+  // if this happens to be first tx epoch of current ds epoch after ds syncing.
+  if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
+    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+    m_coinbaseRewardees.clear();
+  }
+
   // Start sharding work
   SetState(MICROBLOCK_SUBMISSION);
 
