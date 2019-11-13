@@ -1,6 +1,0 @@
-filebeat.prospectors:
-- input_type: log
-  paths:
-    - /home/ubuntu/zilliqa-test/state-00001-log.txt
-output.logstash:
-  hosts: ["localhost:5043"]
