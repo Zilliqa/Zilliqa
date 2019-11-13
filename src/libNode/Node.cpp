@@ -856,7 +856,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       if (it == coinbaseRewardeesTmp.end() ||
           (it->second.size() < m_mediator.m_txBlockChain.GetBlock(blockNum)
                                    .GetMicroBlockInfos()
-                                   .size())) {
+                                   .size()) -
+              1) {
         m_mediator.m_lookup->ComposeAndSendGetCosigsRewardsFromSeed(blockNum);
         this_thread::sleep_for(chrono::milliseconds(100));
       }
