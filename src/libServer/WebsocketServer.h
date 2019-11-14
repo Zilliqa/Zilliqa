@@ -167,7 +167,8 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
   /// close a socket from connection_hdl
   static void closeSocket(const websocketpp::connection_hdl& hdl,
-                          const std::string reason);
+                          const std::string reason,
+                          const websocketpp::close::status::value& close_status);
 
   /// clean in-memory data structures
   void clean();

@@ -203,7 +203,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
 
   string response;
 
-  if (query.empty() &&
+  if (!query.empty() &&
       JSONUtils::GetInstance().convertStrtoJson(query, j_query) &&
       j_query.isObject() && j_query.isMember("query") &&
       j_query["query"].isString() &&
@@ -216,7 +216,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
       }
       case EVENTLOG: {
         if (j_query.isMember("addresses") && j_query["addresses"].isArray() &&
-            j_query["addresses"].empty()) {
+            !j_query["addresses"].empty()) {
           set<Address> el_addresses;
           for (const auto& address : j_query["addresses"]) {
             Address addr(address.asString());
@@ -229,6 +229,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
           if (el_addresses.empty()) {
             response = "no contract found in list";
           } else {
+          	LOG_GENERAL(INFO, "uwu 1");
             {
               lock_guard<mutex> g(m_mutexSubscriptions);
               m_subscriptions[hdl].subscribe(EVENTLOG);
@@ -247,7 +248,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
         WEBSOCKETQUERY t_enum;
         if (j_query.isMember("type") &&
             GetQueryEnum(j_query["type"].asString(), t_enum) &&
-            t_enum == UNSUBSCRIBE) {
+            t_enum != UNSUBSCRIBE) {
           lock_guard<mutex> g(m_mutexSubscriptions);
           m_subscriptions[hdl].unsubscribe_start(t_enum);
         } else {
@@ -258,6 +259,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
       default:
         break;
     }
+    response = query;
   } else {
     response = "invalid query field";
   }
@@ -271,17 +273,15 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
 }
 
 void WebsocketServer::on_fail(const connection_hdl& hdl) {
-  LOG_MARKER();
   websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
   websocketpp::lib::error_code ec = con->get_ec();
   LOG_GENERAL(WARNING, "websocket connection failed, error: " << ec.message());
 
-  closeSocket(hdl, "connection failure");
+  closeSocket(hdl, "connection failure", websocketpp::close::status::force_tcp_drop);
 }
 
 void WebsocketServer::on_close(const connection_hdl& hdl) {
-  LOG_MARKER();
-  closeSocket(hdl, "connection closed");
+  closeSocket(hdl, "connection closed", websocketpp::close::status::going_away);
 }
 
 void WebsocketServer::PrepareTxBlockAndTxHashes(
@@ -343,10 +343,11 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
 }
 
 void WebsocketServer::closeSocket(const connection_hdl& hdl,
-                                  const std::string reason) {
+                                  const std::string reason,
+                                  const websocketpp::close::status::value& close_status) {
   string data = "Terminating connection due to " + reason;
   websocketpp::lib::error_code ec;
-  m_server.close(hdl, websocketpp::close::status::normal, data, ec);
+  m_server.close(hdl, close_status, data, ec);
   if (ec) {
     LOG_GENERAL(WARNING, "websocket close failed, error: " << ec.message());
   }
@@ -360,7 +361,7 @@ void WebsocketServer::closeSocket(const connection_hdl& hdl,
       lock_guard<mutex> g3(m_mutexEventLogDataBuffer);
       m_eventLogAddrHdlTracker.remove(hdl);
     }
-    m_subscriptions.erase(hdl);
+    m_subscriptions.erase(find);
   }
 }
 
@@ -371,6 +372,11 @@ void WebsocketServer::SendOutMessages() {
 
   {
     lock_guard<mutex> g1(m_mutexSubscriptions);
+    
+    if (m_subscriptions.empty()) {
+    	return;
+    }
+
     lock_guard<mutex> g2(m_mutexTxnBlockNTxnHashes);
     lock_guard<mutex> g3(m_mutexEventLogDataBuffer);
 
@@ -381,9 +387,11 @@ void WebsocketServer::SendOutMessages() {
         Json::Value notification;
         notification["type"] = "notification";
 
+        // SUBSCRIBE
         for (const auto& query : it->second.queries) {
           Json::Value value;
           value["query"] = GetQueryString(query);
+          bool valid_query = true;
           switch (query) {
             case NEWBLOCK: {
               value["value"] = m_jsonTxnBlockNTxnHashes;
@@ -392,43 +400,54 @@ void WebsocketServer::SendOutMessages() {
             case EVENTLOG: {
               Json::Value j_eventlogs;
               auto buffer = m_eventLogDataBuffer.find(it->first);
-              for (const auto& entry : buffer->second) {
-                Json::Value j_contract;
-                j_contract["address"] = entry.first.hex();
-                j_contract["event_logs"] = entry.second;
-                j_eventlogs.append(j_contract);
+              if (buffer != m_eventLogDataBuffer.end()) {
+	              for (const auto& entry : buffer->second) {
+	                Json::Value j_contract;
+	                j_contract["address"] = entry.first.hex();
+	                j_contract["event_logs"] = entry.second;
+	                j_eventlogs.append(j_contract);
+	              }
+	              value["value"] = std::move(j_eventlogs);
               }
-              value["value"] = std::move(j_eventlogs);
-              break;
-            }
-            case UNSUBSCRIBE: {
-              Json::Value j_unsubscripings;
-              for (const auto& unsubscriping : it->second.unsubscribings) {
-                j_unsubscripings.append(GetQueryString(unsubscriping));
-              }
-              value["value"] = std::move(j_unsubscripings);
-              it->second.unsubscribe_finish();
               break;
             }
             default:
+	            valid_query = false;
               break;
           }
+          if (!valid_query) {
+          	continue;
+          }
           notification["values"].append(std::move(value));
+        }
+
+        // UNSUBSCRIBE
+        if (!it->second.unsubscribings.empty()) {
+          Json::Value value;
+          value["query"] = GetQueryString(UNSUBSCRIBE);
+          Json::Value j_unsubscripings;
+          for (const auto& unsubscriping : it->second.unsubscribings) {
+            j_unsubscripings.append(GetQueryString(unsubscriping));
+          }
+          value["value"] = std::move(j_unsubscripings);
+          notification["values"].append(std::move(value));
+
+          it->second.unsubscribe_finish();
         }
 
         if (!sendData(it->first, JSONUtils::GetInstance().convertJsontoStr(
                                      notification))) {
           hdlToRemove.push_back({std::move(it->first), "unable to send data"});
         }
-
-        ++it;
       }
+
+     	++it;
     }
 
     m_eventLogDataBuffer.clear();
   }
 
   for (const auto& pair : hdlToRemove) {
-    closeSocket(pair.first, pair.second);
+    closeSocket(pair.first, pair.second, websocketpp::close::status::normal);
   }
 }

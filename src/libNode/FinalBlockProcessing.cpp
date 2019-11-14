@@ -1162,11 +1162,15 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       if (m_isVacuousEpochBuffer) {
         // Check is states updated
         uint64_t epochNum;
-        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
-                epochNum)) {
-          LOG_GENERAL(WARNING,
-                      "BlockStorage::GetLatestEpochStateusUpdated failed");
-          return false;
+        if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() == 1) {
+          epochNum = 1;
+        } else {
+          if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
+                  epochNum)) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::GetLatestEpochStateusUpdated failed");
+            return false;
+          }
         }
         if (AccountStore::GetInstance().GetPrevRootHash() ==
             m_mediator.m_txBlockChain.GetLastBlock()
