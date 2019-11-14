@@ -262,7 +262,7 @@ bool ConsensusLeader::StartConsensusSubsets() {
   // Shuffle the peer list so we don't always send challenges in same sequence
   random_shuffle(peerInfo.begin(), peerInfo.end());
 
-  P2PComm::GetInstance().SendMessage(peerInfo, challenge);
+  P2PComm::GetInstance().SendMessage(peerInfo, challenge, true);
 
   return true;
 }
@@ -484,7 +484,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
       peerInfo.push_back(i.second);
     }
 
-    P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg);
+    P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg, true);
     auto main_func = [this]() mutable -> void {
       if (m_shardCommitFailureHandlerFunc != nullptr) {
         m_shardCommitFailureHandlerFunc(m_commitFailureMap);
@@ -720,7 +720,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
-        P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+        P2PComm::GetInstance().SendMessage(peerInfo, collectivesig, true);
       }
 
       if ((m_state == COLLECTIVESIG_DONE) && (m_numOfSubsets > 1)) {
@@ -935,7 +935,7 @@ bool ConsensusLeader::StartConsensus(
       peer.push_back(i.second);
     }
 
-    P2PComm::GetInstance().SendMessage(peer, announcement_message);
+    P2PComm::GetInstance().SendMessage(peer, announcement_message, true);
   }
 
   if (m_numOfSubsets > 1) {
