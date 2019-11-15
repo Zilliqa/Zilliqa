@@ -1655,7 +1655,8 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   uint32_t retryCount = 5;
   while (retryCount-- > 0) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
-      LOG_GENERAL(WARNING, "Failed to fetch tx block, retry... " << blockNum);
+      LOG_GENERAL(WARNING,
+                  "Failed to fetch tx block " << blockNum << " , retry... ");
       this_thread::sleep_for(chrono::seconds(1));
     } else {
       break;
@@ -1675,10 +1676,20 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
       continue;
     }
     MicroBlockSharedPtr mbptr;
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
-                                                       mbptr)) {
-      LOG_GENERAL(WARNING,
-                  "Could not get MicroBlock " << mbInfo.m_microBlockHash);
+    retryCount = 5;
+    while (retryCount-- > 0) {
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
+              mbInfo.m_microBlockHash, mbptr)) {
+        LOG_GENERAL(WARNING, "Could not get MicroBlock "
+                                 << mbInfo.m_microBlockHash << ", retry..");
+        this_thread::sleep_for(chrono::seconds(1));
+      } else {
+        break;
+      }
+    }
+    if (retryCount == 0) {
+      LOG_GENERAL(WARNING, "Failed to fetch MicroBlock "
+                               << mbInfo.m_microBlockHash << " , giving up !");
       return false;
     }
     microblocks.emplace_back(*mbptr);
@@ -1791,21 +1802,17 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  bool isVerif = true;
-
   for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
     if (!(dsNodes.at(i).first ==
           m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
       LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
-      isVerif = false;
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
       m_mediator.m_DSCommittee->clear();
       return false;
     }
   }
 
-  if (isVerif) {
-    LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
-  }
+  LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
 
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
   *m_mediator.m_DSCommittee = move(dsNodes);
