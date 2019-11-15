@@ -51,7 +51,7 @@ class SendJob {
   unsigned char m_startbyte{};
   bytes m_message;
   bytes m_hash;
-  bool m_allowSendToRelaxedBlacklist;
+  bool m_allowSendToRelaxedBlacklist{};
 
   static void SendMessageCore(const Peer& peer, const bytes& message,
                               unsigned char startbyte, const bytes& hash);
