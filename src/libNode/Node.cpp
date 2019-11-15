@@ -736,8 +736,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+  /// However, if the last tx block is one from vacaous epoch, its already too
+  /// late and coinbase info is of no use. so skip saving coinbase
+  if (bDS &&
+      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+        SyncType::RECOVERY_ALL_SYNC == syncType) &&
+      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
+              NUM_FINAL_BLOCK_PER_POW !=
+          0) {
     for (uint64_t blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
@@ -822,8 +828,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+  /// However, if the last tx block is one from vacaous epoch, its already too
+  /// late and coinbase info is of no use. so skip saving coinbase
+  if (bDS &&
+      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+        SyncType::RECOVERY_ALL_SYNC == syncType) &&
+      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
+              NUM_FINAL_BLOCK_PER_POW !=
+          0) {
     m_mediator.m_ds->SetState(DirectoryService::DirState::SYNC);
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
