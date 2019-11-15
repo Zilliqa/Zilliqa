@@ -406,13 +406,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   }
 #endif  // DM_TEST_DM_LESSMB_ONE
 
-#ifdef DM_TEST_DM_LESSMB_ALL
-  if (m_mediator.m_ds->m_mode == BACKUP_DS) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Letting all of the backups refuse some Microblock submission "
-              "(DM_TEST_DM_LESSMB_ALL)");
-    return false;
-  }
+#if 1
+  return false;
 #endif  // DM_TEST_DM_LESSMB_ALL
 
 #ifdef DM_TEST_DM_MOREMB_HALF

@@ -404,6 +404,8 @@ Json::Value LookupServer::CreateTransaction(
 
     const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+    const Account* toAccount =
+        AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
     if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
       return ret;
@@ -416,6 +418,14 @@ Json::Value LookupServer::CreateTransaction(
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
+        if (toAccount != nullptr) {
+          if (toAccount->isContract()) {
+            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                                   "Contract account won't accept normal txn");
+            return false;
+          }
+        }
+
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
@@ -433,14 +443,12 @@ Json::Value LookupServer::CreateTransaction(
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        const Account* account =
-            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-        if (account == nullptr) {
+        if (toAccount == nullptr) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
         }
 
-        else if (!account->isContract()) {
+        else if (!toAccount->isContract()) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                  "Non - contract address called");
         }
