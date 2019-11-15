@@ -945,6 +945,49 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   }
 }
 
+bool DirectoryService::ProcessCosigsRewardsFromSeed(
+    const bytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessCosigRewardsFromSeed not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
+  lock_guard<mutex> g(m_mutexLookupStoreCosigRewards);
+
+  PubKey lookupPubKey;
+  vector<CoinbaseStruct> coinbaserewards;
+  if (!Messenger::GetLookupSetCosigsRewardsFromSeed(
+          message, offset, coinbaserewards, lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetCosigsRewardsFromSeed failed.");
+    return false;
+  }
+
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  // invoke SaveCoinBase for each
+  for (const auto& cogsrews : coinbaserewards) {
+    SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
+                 cogsrews.GetBlockNumber());
+    if (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD) {
+      m_totalTxnFees += cogsrews.GetRewards();
+    }
+  }
+
+  return true;
+}
+
 bool DirectoryService::Execute(const bytes& message, unsigned int offset,
                                const Peer& from) {
   // LOG_MARKER();
@@ -965,7 +1008,8 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
                        &DirectoryService::ProcessViewChangeConsensus,
                        &DirectoryService::ProcessGetDSTxBlockMessage,
                        &DirectoryService::ProcessPoWPacketSubmission,
-                       &DirectoryService::ProcessNewDSGuardNetworkInfo});
+                       &DirectoryService::ProcessNewDSGuardNetworkInfo,
+                       &DirectoryService::ProcessCosigsRewardsFromSeed});
 
   const unsigned char ins_byte = message.at(offset);
 

@@ -19,8 +19,10 @@
 
 #include <boost/program_options.hpp>
 
-#include "libCrypto/MultiSig.h"
+#include <MultiSig.h>
 #include "libUtils/SWInfo.h"
+
+#include "libUtils/DataConversion.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1

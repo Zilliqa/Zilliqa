@@ -17,10 +17,10 @@
 
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libTestUtils/TestUtils.h"

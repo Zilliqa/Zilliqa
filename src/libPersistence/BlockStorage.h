@@ -23,10 +23,10 @@
 #include <shared_mutex>
 #include <vector>
 
+#include <Schnorr.h>
 #include "ContractStorage.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 
@@ -244,7 +244,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks);
 
   /// Retrieves all the TxBlocks
-  bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
+  bool GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks);
 
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);

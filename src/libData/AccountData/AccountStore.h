@@ -24,6 +24,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 
+#include <Schnorr.h>
 #include "Account.h"
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
@@ -35,7 +36,6 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
 
@@ -173,6 +173,16 @@ class AccountStore
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
                           const uint128_t& amount);
+
+  /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
+  void ProcessStorageRootUpdateBufferTemp() {
+    m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
+  }
+
+  /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
+  void CleanStorageRootUpdateBufferTemp() {
+    m_accountStoreTemp->CleanStorageRootUpdateBuffer();
+  }
 
   /// used in deserialization
   void AddAccountDuringDeserialization(const Address& address,

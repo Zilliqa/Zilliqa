@@ -245,7 +245,7 @@ std::once_flag generateReceiverOnce;
 Address GenOneReceiver() {
   static Address receiverAddr;
   std::call_once(generateReceiverOnce, []() {
-    auto receiver = Schnorr::GetInstance().GenKeyPair();
+    auto receiver = Schnorr::GenKeyPair();
     receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
     LOG_GENERAL(INFO, "Generate testing transaction receiver " << receiverAddr);
   });
@@ -270,7 +270,7 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   // txn.SerializeWithoutSignature(buf, 0);
 
   // Signature sig;
-  // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+  // Schnorr::Sign(buf, fromPrivKey, fromPubKey, sig);
 
   // bytes sigBuf;
   // sig.Serialize(sigBuf, 0);
@@ -1591,6 +1591,108 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
+bool Lookup::ProcessGetCosigsRewardsFromSeed(
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
+  // verify if sender is from know DS Committee
+  const uint128_t& ipSenderAddr = from.m_ipAddress;
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, ipSenderAddr)) {
+      LOG_GENERAL(
+          WARNING,
+          "Requesting IP : "
+              << from.GetPrintableIPAddress()
+              << " is not in Present DS Committee list. Ignore the request");
+      return false;
+    }
+  }
+
+  uint64_t blockNum;
+  uint32_t portNo = 0;
+  PubKey dsPubKey;
+  if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey,
+                                                    blockNum, portNo)) {
+    LOG_GENERAL(WARNING, "Failed to process");
+    return false;
+  }
+
+  const uint64_t& currDsEpoch =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (blockNum < currDsEpoch) {
+    LOG_GENERAL(WARNING,
+                "Requested cosigs/rewards for txBlock that is beyond the "
+                "current DS epoch "
+                "(requested txblk  :"
+                    << blockNum << ", curr DS Epoch : " << currDsEpoch << ")");
+    return false;
+  }
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!VerifySenderNode(*m_mediator.m_DSCommittee, dsPubKey)) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "The message sender pubkey: "
+                    << dsPubKey << " is not in current ds committee list.");
+      return false;
+    }
+  }
+
+  LOG_GENERAL(INFO, "Request for cosig/rewards for blockNum " << blockNum);
+
+  Peer requestingNode(ipSenderAddr, portNo);
+  vector<MicroBlock> retMicroBlocks;
+
+  TxBlockSharedPtr txblkPtr;
+  uint32_t retryCount = 5;
+  while (retryCount-- > 0) {
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
+      LOG_GENERAL(WARNING, "Failed to fetch tx block, retry... " << blockNum);
+      this_thread::sleep_for(chrono::seconds(1));
+    } else {
+      break;
+    }
+  }
+
+  if (retryCount == 0) {
+    LOG_GENERAL(WARNING, "Failed to fetch tx block, giving up !");
+    return false;
+  }
+
+  const auto& microblockInfos = txblkPtr->GetMicroBlockInfos();
+  std::vector<MicroBlock> microblocks;
+  for (const auto& mbInfo : microblockInfos) {
+    MicroBlockSharedPtr mbptr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      cout << "Could not get MicroBlock " << mbInfo.m_microBlockHash << endl;
+      return false;
+    }
+    microblocks.emplace_back(*mbptr);
+  }
+
+  bytes retMsg = {MessageType::LOOKUP,
+                  LookupInstructionType::SETCOSIGSREWARDSFROMSEED};
+
+  if (!Messenger::SetLookupSetCosigsRewardsFromSeed(
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey, blockNum,
+          microblocks, *txblkPtr, m_mediator.m_ds->GetNumShards())) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(requestingNode, retMsg);
+  return true;
+}
+
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   LOG_MARKER();
@@ -1909,7 +2011,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
-      case ValidatorBase::TxBlockValidationMsg::VALID:
+      case Validator::TxBlockValidationMsg::VALID:
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           LOG_GENERAL(INFO,
@@ -1920,11 +2022,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         CommitTxBlocks(txBlocks);
         break;
-      case ValidatorBase::TxBlockValidationMsg::INVALID:
+      case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Invalid blocks");
         break;
-      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+      case Validator::TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Saved to buffer");
         m_txBlockBuffer.clear();
@@ -2049,18 +2151,42 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     // Store Tx Block to disk
     bytes serializedTxBlock;
     txBlock.Serialize(serializedTxBlock, 0);
+    uint64_t blockNum = txBlock.GetHeader().GetBlockNum();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBlock(
-            txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBlock(blockNum,
+                                                    serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return;
     }
+
+    // If txblk not from vacaous epoch and is rejoining as ds node
+    if ((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW != 0 &&
+        (m_syncType == SyncType::DS_SYNC ||
+         m_syncType == SyncType::GUARD_DS_SYNC)) {
+      // Coinbase
+      uint128_t rewards = txBlock.GetHeader().GetRewards();
+      LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
+                            << blockNum << ", reward: " << rewards);
+      m_mediator.m_ds->SaveCoinbase(txBlock.GetB1(), txBlock.GetB2(),
+                                    CoinbaseReward::FINALBLOCK_REWARD,
+                                    blockNum + 1);
+      // Need if it join immediately before vacaous. And will be used in
+      // InitCoinbase in final blk consensus in vacaous epoch.
+      m_mediator.m_ds->m_totalTxnFees += rewards;
+    }
+
     if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
          m_syncType == SyncType::NEW_LOOKUP_SYNC) ||
         (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
          m_syncType == SyncType::LOOKUP_SYNC)) {
       m_mediator.m_node->LoadUnavailableMicroBlockHashes(
           txBlock, placeholder, true /*skip shardid check*/);
+    }
+
+    if (m_syncType == SyncType::DS_SYNC ||
+        m_syncType == SyncType::GUARD_DS_SYNC) {
+      // Compose And Send GetCosigRewards for this txBlk from seed
+      // TBD
     }
   }
 
@@ -3735,28 +3861,27 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
 void Lookup::CheckBufferTxBlocks() {
   if (!m_txBlockBuffer.empty()) {
-    ValidatorBase::TxBlockValidationMsg res =
-        m_mediator.m_validator->CheckTxBlocks(
-            m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-            m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    Validator::TxBlockValidationMsg res = m_mediator.m_validator->CheckTxBlocks(
+        m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+        m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
     switch (res) {
-      case ValidatorBase::TxBlockValidationMsg::VALID:
+      case Validator::TxBlockValidationMsg::VALID:
         CommitTxBlocks(m_txBlockBuffer);
         m_txBlockBuffer.clear();
         break;
-      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+      case Validator::TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(WARNING,
                     "Even after the recving latest ds info, the information "
                     "is stale ");
         break;
-      case ValidatorBase::TxBlockValidationMsg::INVALID:
+      case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(WARNING, "The blocks in buffer are invalid ");
         m_txBlockBuffer.clear();
         break;
       default:
         LOG_GENERAL(WARNING,
-                    "The return value of ValidatorBase::CheckTxBlocks does not "
+                    "The return value of Validator::CheckTxBlocks does not "
                     "match any type");
     }
   }
@@ -4167,13 +4292,40 @@ bool Lookup::GetIsServer() {
   return m_isServer;
 }
 
-bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
                               const PubKey& pubKeyToVerify) {
-  auto iter = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
                            [&pubKeyToVerify](const PairOfNode& node) {
                              return node.first == pubKeyToVerify;
                            });
-  return vecLookupNodes.cend() != iter;
+  return vecNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const VectorOfNode& vecNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(vecNodes.cbegin(), vecNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return vecNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
+                           [&pubKeyToVerify](const PairOfNode& node) {
+                             return node.first == pubKeyToVerify;
+                           });
+  return deqNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
+                              const uint128_t& ipToVerify) {
+  auto iter = std::find_if(deqNodes.cbegin(), deqNodes.cend(),
+                           [&ipToVerify](const PairOfNode& node) {
+                             return node.second.m_ipAddress == ipToVerify;
+                           });
+  return deqNodes.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,

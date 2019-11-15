@@ -325,8 +325,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
   // Aggregate keys
   PubKey aggregated_key = AggregateKeys(m_responseMap);
 
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          m_messageToCosign, m_collectiveSig, aggregated_key)) {
+  if (!MultiSig::MultiSigVerify(m_messageToCosign, m_collectiveSig,
+                                aggregated_key)) {
     LOG_GENERAL(WARNING, "Collective signature verification failed");
     m_state = ERROR;
     return false;

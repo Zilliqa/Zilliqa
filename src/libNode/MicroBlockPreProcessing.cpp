@@ -320,6 +320,8 @@ void Node::ProcessTransactionWhenShardLeader(
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
+  AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
+
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
@@ -430,6 +432,8 @@ void Node::ProcessTransactionWhenShardLeader(
       break;
     }
   }
+
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
 
   cv_TxnProcFinished.notify_all();
   PutTxnsInTempDataBase(t_processedTransactions);
@@ -563,6 +567,8 @@ void Node::ProcessTransactionWhenShardBackup(
 
   vector<Transaction> gasLimitExceededTxnBuffer;
 
+  AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
+
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
       break;
@@ -659,6 +665,8 @@ void Node::ProcessTransactionWhenShardBackup(
       break;
     }
   }
+
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
 
   cv_TxnProcFinished.notify_all();
 

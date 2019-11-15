@@ -36,8 +36,7 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
-                                       tran.GetSenderPubKey());
+  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
@@ -235,9 +234,8 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
                           block.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(serializedHeader, 0,
-                                              serializedHeader.size(),
-                                              block.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(serializedHeader, 0, serializedHeader.size(),
+                                block.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -456,8 +454,9 @@ bool Validator::CheckDirBlocks(
   return ret;
 }
 
-ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
-    const vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
+template <class Container>
+Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
+    const Container& txBlocks, const DequeOfNode& dsComm,
     const BlockLink& latestBlockLink) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
@@ -470,7 +469,8 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
     latestDSIndex--;
   }
 
-  const TxBlock& latestTxBlock = txBlocks.back();
+  const TxBlock& latestTxBlock =
+      GetBlockFromContainer(txBlocks, txBlocks.size() - 1);
 
   if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
     if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
@@ -500,16 +500,29 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
   unsigned int sIndex = txBlocks.size() - 2;
 
   for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
-    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
-      LOG_GENERAL(WARNING,
-                  "Prev hash "
-                      << prevBlockHash << " and hash of blocknum "
-                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
+    if (prevBlockHash !=
+        GetBlockFromContainer(txBlocks, sIndex).GetHeader().GetMyHash()) {
+      LOG_GENERAL(WARNING, "Prev hash "
+                               << prevBlockHash << " and hash of blocknum "
+                               << GetBlockFromContainer(txBlocks, sIndex)
+                                      .GetHeader()
+                                      .GetBlockNum());
       return TxBlockValidationMsg::INVALID;
     }
-    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
+    prevBlockHash =
+        GetBlockFromContainer(txBlocks, sIndex).GetHeader().GetPrevHash();
     sIndex--;
   }
 
   return TxBlockValidationMsg::VALID;
 }
+
+template Validator::TxBlockValidationMsg
+Validator::CheckTxBlocks<std::vector<TxBlock>>(
+    const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
+    const BlockLink& latestBlockLink);
+
+template Validator::TxBlockValidationMsg
+Validator::CheckTxBlocks<std::deque<TxBlockSharedPtr>>(
+    const std::deque<TxBlockSharedPtr>& txBlocks, const DequeOfNode& dsComm,
+    const BlockLink& latestBlockLink);

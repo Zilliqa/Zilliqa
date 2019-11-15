@@ -52,10 +52,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
 
+  /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
 
   /// the blocknum while executing each txn
-
   uint64_t m_curBlockNum{0};
 
   /// the current contract address for each hop of invoking
@@ -93,6 +93,14 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// scilla IPC server
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+
+  /// A set of contract account address pending for storageroot updating
+  std::set<Address> m_storageRootUpdateBuffer;
+
+  /// A set of contract account address pending for storageroot updating
+  /// for each transaction, will be added to the non-atomic one once
+  /// the transaction succeeded
+  std::set<Address> m_storageRootUpdateBufferAtomic;
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -190,8 +198,16 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
 
+  /// public interface to setup scilla ipc server
   virtual void SetScillaIPCServer(
       std::shared_ptr<ScillaIPCServer> scillaIPCServer);
+
+  /// public interface to invoke processing of the buffered storage root
+  /// updating tasks
+  void ProcessStorageRootUpdateBuffer();
+
+  /// public interface to clean StorageRootUpdateBuffer
+  void CleanStorageRootUpdateBuffer();
 };
 
 #include "AccountStoreAtomic.tpp"

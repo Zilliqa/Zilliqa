@@ -795,8 +795,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
   subset.collectiveSig = AggregateSign(subset.challenge, aggregated_response);
 
   // Verify the collective signature
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          m_messageToCosign, subset.collectiveSig, aggregated_key)) {
+  if (!MultiSig::MultiSigVerify(m_messageToCosign, subset.collectiveSig,
+                                aggregated_key)) {
     LOG_GENERAL(WARNING, "MultiSigVerify failed");
     SetStateSubset(subsetID, ERROR);
     return false;

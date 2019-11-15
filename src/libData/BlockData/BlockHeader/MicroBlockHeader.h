@@ -20,11 +20,11 @@
 
 #include <array>
 
+#include <Schnorr.h>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 
 /// Stores information on the header part of the microblock.
 class MicroBlockHeader : public BlockHeaderBase {

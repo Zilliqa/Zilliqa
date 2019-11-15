@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 //       "(root hash != empty hash)!");
 
 //   // Populate the account store
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 //   Account account1(1, 11);
 //   AccountStore::GetInstance().AddAccount(address1, account1);
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 //   LOG_MARKER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   BOOST_CHECK_MESSAGE(
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 //   ============================================================
 //   */
 
-//   PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey2 = Schnorr::GenKeyPair().second;
 //   Address address2 = Account::GetAddressFromPublicKey(pubKey2);
 
 //   AccountStore::GetInstance().AddAccount(pubKey2, account2);
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 //   ============================================================
 //   */
 
-//   PubKey pubKey3 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey3 = Schnorr::GenKeyPair().second;
 //   Address address3 = Account::GetAddressFromPublicKey(pubKey3);
 
 //   Account account3(3, 33);
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 //   LOG_MARKER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 //   LOG_MARKER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
@@ -316,13 +316,13 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 //   LOG_MARKER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
 //   AccountStore::GetInstance().AddAccount(address1, account1);
 
-//   PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey2 = Schnorr::GenKeyPair().second;
 //   Address address2 = Account::GetAddressFromPublicKey(pubKey2);
 
 //   Account account2(0, 1);
@@ -358,7 +358,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 //   LOG_MARKER();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
@@ -486,7 +486,7 @@ void RunCFContract(
   LOG_MARKER();
 
   uint64_t nonce = 0;
-  PairOfKey owner = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey owner = Schnorr::GenKeyPair();
   PubKey ownerPubKey = owner.second;
   Address ownerAddr = Account::GetAddressFromPublicKey(ownerPubKey);
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {20000000000, nonce});
@@ -684,7 +684,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 
   AccountStore::GetInstance().Init();
 
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
   Account account1(21, 211);
@@ -753,7 +753,7 @@ BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
 
 //   AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
@@ -823,7 +823,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible) {
 
   AccountStore::GetInstance().Init();
 
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
   Account account1(21, 211);
@@ -917,7 +917,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible2) {
 
   AccountStore::GetInstance().Init();
 
-  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
   Account account1(21, 211);
@@ -952,7 +952,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible2) {
 
 //   AccountStore::GetInstance().Init();
 
-//   PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
 //   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
 //   Account account1(21, 211);
@@ -1028,7 +1028,7 @@ BOOST_AUTO_TEST_CASE(commitRevertible2) {
 //     std::vector<Address> addresses;
 //     int num_address = 10000;
 //     for (auto i = 0; i < num_address; i++) {
-//       PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+//       PubKey pubKey = Schnorr::GenKeyPair().second;
 //       Address address = Account::GetAddressFromPublicKey(pubKey);
 
 //       Account account(21, 211);

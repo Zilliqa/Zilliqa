@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 
+#include <Schnorr.h>
 #include "Account.h"
 #include "Address.h"
 #include "Transaction.h"
@@ -25,7 +26,6 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
-#include "libCrypto/Schnorr.h"
 
 template <class MAP>
 class AccountStoreBase : public SerializableDataBlock {

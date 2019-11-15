@@ -17,13 +17,14 @@
 #ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
+#include <Schnorr.h>
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
@@ -40,7 +41,7 @@ class ByteArray;
 }
 
 bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
-                                     Serializable& serializable);
+                                     SerializableCrypto& serializable);
 
 class Messenger {
  public:
@@ -725,7 +726,7 @@ class Messenger {
 
     ProtobufByteArrayToSerializable(consensus_message.signature(), signature);
 
-    if (!Schnorr::GetInstance().Verify(tmp, signature, senderPubKey)) {
+    if (!Schnorr::Verify(tmp, signature, senderPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
       return false;
     }
@@ -884,5 +885,26 @@ class Messenger {
                                          PubKey& senderPubKey,
                                          uint128_t& ipAddress,
                                          uint64_t& dsEpochNumber);
+
+  static bool SetLookupGetCosigsRewardsFromSeed(bytes& dst,
+                                                const unsigned int offset,
+                                                const uint64_t txBlkNum,
+                                                const uint32_t listenPort,
+                                                const PairOfKey& keys);
+
+  static bool GetLookupGetCosigsRewardsFromSeed(const bytes& src,
+                                                const unsigned int offset,
+                                                PubKey& senderPubKey,
+                                                uint64_t& txBlockNumber,
+                                                uint32_t& port);
+
+  static bool SetLookupSetCosigsRewardsFromSeed(
+      bytes& dst, const unsigned int offset, const PairOfKey& myKey,
+      const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,
+      const TxBlock& txBlock, const uint32_t& numberOfShards);
+
+  static bool GetLookupSetCosigsRewardsFromSeed(
+      const bytes& src, const unsigned int offset,
+      std::vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey);
 };
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_

@@ -26,10 +26,10 @@
 #include <set>
 #include <shared_mutex>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
@@ -244,6 +244,10 @@ class DirectoryService : public Executable {
   bool ProcessGetDSTxBlockMessage(const bytes& message, unsigned int offset,
                                   const Peer& from);
   bool ProcessNewDSGuardNetworkInfo(const bytes& message, unsigned int offset,
+                                    const Peer& from);
+
+  // Get cosig and rewards for given epoch
+  bool ProcessCosigsRewardsFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
   // To block certain types of incoming message for certain states
@@ -530,6 +534,9 @@ class DirectoryService : public Executable {
   std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
       m_lookupStoreForGuardNodeUpdate;
   std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
+
+  // For saving cosig and rewards
+  std::mutex m_mutexLookupStoreCosigRewards;
 
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;

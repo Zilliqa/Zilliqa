@@ -18,10 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCK_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_FALLBACKBLOCK_H_
 
+#include <Schnorr.h>
 #include "BlockBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/FallbackBlockHeader.h"
 #include "libNetwork/Peer.h"

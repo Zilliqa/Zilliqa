@@ -73,7 +73,7 @@ bool RollBackDSComm(const BlockLink& lastBlockLink,
 }
 
 bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
-                                     const list<TxBlockSharedPtr>& blocks) {
+                                     const deque<TxBlockSharedPtr>& blocks) {
   if ((lastBlockNum + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
       0) {
@@ -245,15 +245,16 @@ int main(int argc, char* argv[]) {
            std::get<BlockLinkIndex::INDEX>(b);
   });
 
-  std::list<TxBlockSharedPtr> txblocks;
+  std::deque<TxBlockSharedPtr> txblocks;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
     cout << "Failed to get TxBlocks" << endl;
     return PERSISTENCE_ERROR;
   }
 
-  txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
+  sort(txblocks.begin(), txblocks.end(),
+       [](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+       });
 
   const auto latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
   const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();

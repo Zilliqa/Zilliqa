@@ -17,13 +17,13 @@
 
 #include <chrono>
 
+#include <Schnorr.h>
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "depends/safeserver/safehttpserver.h"
 #include "jsonrpccpp/server/connectors/tcpsocketserver.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Guard.h"
