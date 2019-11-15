@@ -372,6 +372,29 @@ void DirectoryService::StartNextTxEpoch() {
     m_microBlockStateDeltas.clear();
   }
 
+  // update my shardmembers ( dsCommittee since this is ds node)
+  {
+    lock(m_mediator.m_node->m_mutexShardMember, m_mediator.m_mutexDSCommittee);
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember, adopt_lock);
+    lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee, adopt_lock);
+
+    m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "DS shard:");
+
+    unsigned int index = 0;
+    for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
+      if (i.second == Peer()) {
+        m_mediator.m_node->SetConsensusMyID(index);
+      }
+
+      LOG_GENERAL(INFO, "[" << PAD(index, 3, ' ') << "] " << i.first << " "
+                            << i.second);
+
+      index++;
+    }
+  }
+
   // m_mediator.m_node->ResetConsensusId();
   // If node was restarted consensusID needs to be calculated ( will not be 1)
   m_mediator.m_consensusID =
