@@ -87,11 +87,10 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   *mediator.m_DSCommittee = dummy_ds_comm;
   dummyDS.m_shards = dummy_shards;
   DSBlock lastBlock =
-      DSBlock(TestUtils::createDSBlockHeader(0), CoSignatures());
+      DSBlock(TestUtils::createDSBlockHeader(1), CoSignatures());
   mediator.m_dsBlockChain.AddBlock(lastBlock);
 
-  const uint num_test_epoch =
-      1;  // Can be changed to NUM_FINAL_BLOCK_PER_POW for proper testing
+  const uint num_test_epoch = NUM_FINAL_BLOCK_PER_POW;
 
   for (uint i = 0; i < num_test_epoch; i++) {
     uint j = 0;
