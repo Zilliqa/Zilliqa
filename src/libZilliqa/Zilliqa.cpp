@@ -240,6 +240,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                   "Newly joining node is identified as part of DS Committee. "
                   "Trigerring syncing as ds node");
       syncType = DS_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
     }
 
     switch (syncType) {
