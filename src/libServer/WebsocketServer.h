@@ -36,7 +36,7 @@ typedef websocketpp::server<websocketpp::config::asio> websocketserver;
 
 enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG, UNSUBSCRIBE };
 
-struct subscription {
+struct Subscription {
   std::set<WEBSOCKETQUERY> queries;
   std::set<WEBSOCKETQUERY> unsubscribings;
 
@@ -106,7 +106,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   static websocketserver m_server;
 
   static std::mutex m_mutexSubscriptions;
-  static std::map<websocketpp::connection_hdl, subscription,
+  static std::map<websocketpp::connection_hdl, Subscription,
                   std::owner_less<websocketpp::connection_hdl>>
       m_subscriptions;
 
@@ -167,7 +167,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
 
   /// close a socket from connection_hdl
   static void closeSocket(
-      const websocketpp::connection_hdl& hdl, const std::string reason,
+      const websocketpp::connection_hdl& hdl, const std::string& reason,
       const websocketpp::close::status::value& close_status);
 
   /// clean in-memory data structures

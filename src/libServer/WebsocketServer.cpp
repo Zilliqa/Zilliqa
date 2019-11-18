@@ -37,7 +37,7 @@ using namespace dev;
 websocketserver WebsocketServer::m_server;
 
 std::mutex WebsocketServer::m_mutexSubscriptions;
-std::map<websocketpp::connection_hdl, subscription,
+std::map<websocketpp::connection_hdl, Subscription,
          std::owner_less<connection_hdl>>
     WebsocketServer::m_subscriptions;
 
@@ -344,7 +344,7 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
 }
 
 void WebsocketServer::closeSocket(
-    const connection_hdl& hdl, const std::string reason,
+    const connection_hdl& hdl, const std::string& reason,
     const websocketpp::close::status::value& close_status) {
   string data = "Terminating connection due to " + reason;
   websocketpp::lib::error_code ec;
@@ -383,7 +383,7 @@ void WebsocketServer::SendOutMessages() {
 
     for (auto it = m_subscriptions.begin(); it != m_subscriptions.end();) {
       if (it->second.queries.empty()) {
-        hdlToRemove.push_back({std::move(it->first), "no subscription"});
+        hdlToRemove.push_back({it->first, "no subscription"});
       } else {
         Json::Value notification;
         notification["type"] = "Notification";
@@ -419,7 +419,7 @@ void WebsocketServer::SendOutMessages() {
           if (!valid_query) {
             continue;
           }
-          notification["values"].append(std::move(value));
+          notification["values"].append(value);
         }
 
         // UNSUBSCRIBE
@@ -431,14 +431,14 @@ void WebsocketServer::SendOutMessages() {
             j_unsubscripings.append(GetQueryString(unsubscriping));
           }
           value["value"] = std::move(j_unsubscripings);
-          notification["values"].append(std::move(value));
+          notification["values"].append(value);
 
           it->second.unsubscribe_finish();
         }
 
         if (!sendData(it->first, JSONUtils::GetInstance().convertJsontoStr(
                                      notification))) {
-          hdlToRemove.push_back({std::move(it->first), "unable to send data"});
+          hdlToRemove.push_back({it->first, "unable to send data"});
         }
       }
 
