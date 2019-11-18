@@ -4666,7 +4666,7 @@ bool Messenger::SetNodePendingTxn(
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "PMHello initialization failed");
+    LOG_GENERAL(WARNING, "NodePendingTxn initialization failed");
     return false;
   }
 
@@ -4690,7 +4690,7 @@ bool Messenger::GetNodePendingTxn(
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized() || !result.data().IsInitialized()) {
-    LOG_GENERAL(WARNING, "PMHello initialization failed");
+    LOG_GENERAL(WARNING, "NodePendingTxn initialization failed");
     return false;
   }
 
@@ -4702,7 +4702,7 @@ bool Messenger::GetNodePendingTxn(
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
-    LOG_GENERAL(WARNING, "PMHello signature wrong");
+    LOG_GENERAL(WARNING, "NodePendingTxn signature wrong");
     return false;
   }
 

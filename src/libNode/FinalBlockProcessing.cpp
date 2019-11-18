@@ -700,7 +700,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   bool toSendTxnToLookup = false;
 
-  bool toSendPendingTxn = !(GetUnconfirmedTxns().empty());
+  const bool& toSendPendingTxn = !(IsUnconfirmedTxnEmpty());
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
@@ -734,8 +734,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     }
   }
   if (LOOKUP_NODE_MODE) {
-    lock_guard<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-    m_unconfirmedTxns.clear();
+    ClearUnconfirmedTxn();
   }
 
   if (!BlockStorage::GetBlockStorage().PutStateDelta(

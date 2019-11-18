@@ -786,6 +786,12 @@ unordered_map<TxnHash, PoolTxnStatus> Node::GetUnconfirmedTxns() const {
   return m_unconfirmedTxns;
 }
 
+bool Node::IsUnconfirmedTxnEmpty() const {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
+  return m_unconfirmedTxns.empty();
+}
+
 void Node::UpdateBalanceForPreGeneratedAccounts() {
   LOG_MARKER();
   int counter = 0;

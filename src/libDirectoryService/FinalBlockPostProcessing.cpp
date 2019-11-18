@@ -275,7 +275,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  bool toSendPendingTxn = !(m_mediator.m_node->GetUnconfirmedTxns().empty());
+  const bool& toSendPendingTxn = !(m_mediator.m_node->IsUnconfirmedTxnEmpty());
 
   if ((m_mediator.m_node->m_microblock != nullptr &&
        m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=

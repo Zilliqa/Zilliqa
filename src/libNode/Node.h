@@ -141,6 +141,8 @@ class Node : public Executable {
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
   //     m_committedTransactions;
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   std::mutex m_mutexMBnForwardedTxnBuffer;
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
@@ -407,9 +409,6 @@ class Node : public Executable {
   std::mutex m_mutexCVMicroBlockMissingTxn;
   std::condition_variable cv_MicroBlockMissingTxn;
 
-  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
-
   // std::condition_variable m_cvNewRoundStarted;
   // std::mutex m_mutexNewRoundStarted;
   // bool m_newRoundStarted = false;
@@ -664,6 +663,10 @@ class Node : public Executable {
   bool WhitelistReqsValidator(const uint128_t& ipAddress);
 
   void CleanWhitelistReqs();
+
+  void ClearUnconfirmedTxn();
+
+  bool IsUnconfirmedTxnEmpty() const;
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

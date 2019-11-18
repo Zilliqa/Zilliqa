@@ -2145,9 +2145,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     }
   }
   if (LOOKUP_NODE_MODE) {
-    std::unique_lock<shared_timed_mutex> lock(
-        m_mediator.m_node->m_unconfirmedTxnsMutex);
-    m_mediator.m_node->m_unconfirmedTxns.clear();
+    m_mediator.m_node->ClearUnconfirmedTxn();
   }
 
   for (const auto& txBlock : txBlocks) {
