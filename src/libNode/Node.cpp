@@ -197,6 +197,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
       return true;
     }
 
+    runInitializeGenesisBlocks = false;
+
     /// When non-rejoin mode, call wake-up or recovery
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
