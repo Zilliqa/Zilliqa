@@ -540,9 +540,18 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   bool bDS = false;
   for (auto& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
-      i.second = Peer();
-      bDS = true;
-      break;
+      if (syncType == NEW_SYNC &&
+          i.second != m_mediator.m_selfPeer) {  // IP of restarted ds node has
+                                                // to be same as in committee
+        LOG_GENERAL(WARNING,
+                    "Seems different IP-Port is used by this ds node after "
+                    "being restarted!")
+        break;
+      } else {
+        i.second = Peer();
+        bDS = true;
+        break;
+      }
     }
   }
 
