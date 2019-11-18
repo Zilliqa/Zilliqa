@@ -812,9 +812,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
     // Send whitelist request to seeds, in case it was blacklisted if was
     // restarted.
-    ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
-    this_thread::sleep_for(
-        chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+    if (!Guard::GetInstance().IsNodeInDSGuardList(
+            m_mediator.m_selfKey.second)) {
+      ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
+      this_thread::sleep_for(
+          chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+    }
 
     // failed to fetch mbs/coinbase info from local disk for any epoch
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
