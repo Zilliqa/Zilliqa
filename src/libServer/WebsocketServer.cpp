@@ -229,7 +229,7 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
           if (el_addresses.empty()) {
             response = "no contract found in list";
           } else {
-          	LOG_GENERAL(INFO, "uwu 1");
+            LOG_GENERAL(INFO, "uwu 1");
             {
               lock_guard<mutex> g(m_mutexSubscriptions);
               m_subscriptions[hdl].subscribe(EVENTLOG);
@@ -277,7 +277,8 @@ void WebsocketServer::on_fail(const connection_hdl& hdl) {
   websocketpp::lib::error_code ec = con->get_ec();
   LOG_GENERAL(WARNING, "websocket connection failed, error: " << ec.message());
 
-  closeSocket(hdl, "connection failure", websocketpp::close::status::force_tcp_drop);
+  closeSocket(hdl, "connection failure",
+              websocketpp::close::status::force_tcp_drop);
 }
 
 void WebsocketServer::on_close(const connection_hdl& hdl) {
@@ -342,9 +343,9 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
   }
 }
 
-void WebsocketServer::closeSocket(const connection_hdl& hdl,
-                                  const std::string reason,
-                                  const websocketpp::close::status::value& close_status) {
+void WebsocketServer::closeSocket(
+    const connection_hdl& hdl, const std::string reason,
+    const websocketpp::close::status::value& close_status) {
   string data = "Terminating connection due to " + reason;
   websocketpp::lib::error_code ec;
   m_server.close(hdl, close_status, data, ec);
@@ -372,9 +373,9 @@ void WebsocketServer::SendOutMessages() {
 
   {
     lock_guard<mutex> g1(m_mutexSubscriptions);
-    
+
     if (m_subscriptions.empty()) {
-    	return;
+      return;
     }
 
     lock_guard<mutex> g2(m_mutexTxnBlockNTxnHashes);
@@ -401,22 +402,22 @@ void WebsocketServer::SendOutMessages() {
               Json::Value j_eventlogs;
               auto buffer = m_eventLogDataBuffer.find(it->first);
               if (buffer != m_eventLogDataBuffer.end()) {
-	              for (const auto& entry : buffer->second) {
-	                Json::Value j_contract;
-	                j_contract["address"] = entry.first.hex();
-	                j_contract["event_logs"] = entry.second;
-	                j_eventlogs.append(j_contract);
-	              }
-	              value["value"] = std::move(j_eventlogs);
+                for (const auto& entry : buffer->second) {
+                  Json::Value j_contract;
+                  j_contract["address"] = entry.first.hex();
+                  j_contract["event_logs"] = entry.second;
+                  j_eventlogs.append(j_contract);
+                }
+                value["value"] = std::move(j_eventlogs);
               }
               break;
             }
             default:
-	            valid_query = false;
+              valid_query = false;
               break;
           }
           if (!valid_query) {
-          	continue;
+            continue;
           }
           notification["values"].append(std::move(value));
         }
@@ -441,7 +442,7 @@ void WebsocketServer::SendOutMessages() {
         }
       }
 
-     	++it;
+      ++it;
     }
 
     m_eventLogDataBuffer.clear();

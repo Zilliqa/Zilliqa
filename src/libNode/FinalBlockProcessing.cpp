@@ -1162,7 +1162,9 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       if (m_isVacuousEpochBuffer) {
         // Check is states updated
         uint64_t epochNum;
-        if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() == 1) {
+        if (m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum() == 1) {
           epochNum = 1;
         } else {
           if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
