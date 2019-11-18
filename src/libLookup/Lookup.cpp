@@ -3336,9 +3336,9 @@ void Lookup::StartSynchronization() {
 bool Lookup::GetDSInfoLoop() {
   unsigned int counter = 0;
   // Allow over-writing ds committee because of corner case where node rejoined
-  // in first tx epoch of ds epoch Node had started rejoining from incr db which
-  // holds older ds comm at this point. So time to try fetching latest ds comm
-  // from lookup up in this case.
+  // in first tx epoch of ds epoch. Node can get started rejoining from incr db
+  // which holds older ds comm at this point. So time to try fetching and
+  // over-wriiting ds comm from lookup up in this case.
   /*{
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (m_mediator.m_DSCommittee->size() > 0) {

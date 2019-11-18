@@ -395,7 +395,6 @@ void DirectoryService::StartNextTxEpoch() {
     }
   }
 
-  // m_mediator.m_node->ResetConsensusId();
   // If node was restarted consensusID needs to be calculated ( will not be 1)
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
@@ -412,7 +411,6 @@ void DirectoryService::StartNextTxEpoch() {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am DS shard backup");
   }
 
-  // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
   m_mediator.m_node->m_myshardId = m_shards.size();
   m_mediator.m_node->m_justDidFallback = false;
   m_stateDeltaFromShards.clear();
