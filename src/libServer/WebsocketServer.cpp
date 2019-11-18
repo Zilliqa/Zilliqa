@@ -386,7 +386,7 @@ void WebsocketServer::SendOutMessages() {
         hdlToRemove.push_back({std::move(it->first), "no subscription"});
       } else {
         Json::Value notification;
-        notification["type"] = "notification";
+        notification["type"] = "Notification";
 
         // SUBSCRIBE
         for (const auto& query : it->second.queries) {
