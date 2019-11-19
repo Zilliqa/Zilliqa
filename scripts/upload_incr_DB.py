@@ -366,9 +366,9 @@ def main():
 					continue
 
 			if ( (lastBlockNum == 0 and blockNum > -1) or 
-				 (blockNum >= lastBlockNum + NUM_TXBLOCK) or
-			     ((blockNum > lastBlockNum) and
-				 (((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) or blockNum % NUM_FINAL_BLOCK_PER_POW == 0)) ):
+				(blockNum >= lastBlockNum + NUM_TXBLOCK) or
+				((blockNum > lastBlockNum) and
+				(((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) or blockNum % NUM_FINAL_BLOCK_PER_POW == 0)) ):
 				# try syncing every N txn blks or if its vacaous epoch or if its first txblk of new ds epoch
 					logging.info("TxBlk: " + str(blockNum))
 					SetLock()
