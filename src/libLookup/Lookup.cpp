@@ -4074,6 +4074,8 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
     LOG_GENERAL(WARNING,
                 "The last TxnBatchThread hasn't finished, discard this time");
     return;
+  } else if (m_stopTxnSending) {
+    LOG_GENERAL(WARNING, "Txn Batch thread stopped, skipping");
   }
 
   auto main_func = [this, oldNumShards]() mutable -> void {

@@ -68,6 +68,22 @@ class StatusServer : public Server,
     response = this->GetSendSCToDS();
   }
 
+  inline virtual void ClearMemPoolI(const Json::Value& request,
+                                    Json::Value& response) {
+    (void)request;
+    response = this->ClearMemPool();
+  }
+  inline virtual void ToggleStopTxnSendingI(const Json::Value& request,
+                                            Json::Value& response) {
+    (void)request;
+    response = this->ToggleStopTxnSending();
+  }
+  inline virtual void GetStopTxnSendingI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->GetStopTxnSending();
+  }
+
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
   bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
@@ -77,6 +93,9 @@ class StatusServer : public Server,
   Json::Value GetDSCommittee();
   bool ToggleSendSCToDS();
   bool GetSendSCToDS();
+  bool ClearMemPool();
+  bool ToggleStopTxnSending();
+  bool GetStopTxnSending();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_

@@ -411,6 +411,8 @@ class Lookup : public Executable {
 
   bool m_historicalDB = false;
 
+  bool m_stopTxnSending = false;
+
   bool m_fetchedLatestDSBlock = false;
   std::mutex m_mutexLatestDSBlockUpdation;
   std::condition_variable cv_latestDSBlock;

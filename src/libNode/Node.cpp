@@ -278,6 +278,14 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   return true;
 }
 
+bool Node::ClearMemPool() {
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+  t_createdTxns.clear();
+  m_createdTxns.clear();
+  return true;
+}
+
 void Node::Init() {
   // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there
   // will be 1 less mini epoch only for the first DS epoch. Hence, we have to

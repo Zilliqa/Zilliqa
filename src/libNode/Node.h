@@ -647,6 +647,8 @@ class Node : public Executable {
 
   void CleanWhitelistReqs();
 
+  bool ClearMemPool();
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
 

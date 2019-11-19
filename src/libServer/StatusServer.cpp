@@ -90,6 +90,18 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetSendSCToDS", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetSendSCToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ClearMemPool", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ClearMemPoolI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleStopTxnSending", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ToggleStopTxnSendingI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetStopTxnSending", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetStopTxnSendingI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -240,4 +252,31 @@ bool StatusServer::GetSendSCToDS() {
                            "Not to be queried on non-lookup or seed");
   }
   return m_mediator.m_lookup->m_sendAllSCToDS;
+}
+
+bool StatusServer::ClearMemPool() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on a lookup node");
+  }
+
+  return m_mediator.m_node->ClearMemPool();
+}
+
+bool StatusServer::ToggleStopTxnSending() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  m_mediator.m_lookup->m_stopTxnSending =
+      !(m_mediator.m_lookup->m_stopTxnSending);
+  return m_mediator.m_lookup->m_stopTxnSending;
+}
+
+bool StatusServer::GetStopTxnSending() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  return m_mediator.m_lookup->m_stopTxnSending;
 }
