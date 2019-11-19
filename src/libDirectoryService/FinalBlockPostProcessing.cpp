@@ -277,9 +277,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   const bool& toSendPendingTxn = !(m_mediator.m_node->IsUnconfirmedTxnEmpty());
 
-  if (m_mediator.m_node->m_microblock != nullptr &&
-      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-          TxnHash()) {
+  if ((m_mediator.m_node->m_microblock != nullptr &&
+       m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+           TxnHash())) {
     m_mediator.m_node->CallActOnFinalblock();
   }
 

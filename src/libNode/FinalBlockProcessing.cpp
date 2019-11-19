@@ -1177,7 +1177,7 @@ bool Node::SendPendingTxnToLookup() {
     return false;
   }
 
-  if (m_consensusMyID > 5 && !m_isPrimary) {
+  if (m_consensusMyID > NUM_SHARE_PENDING_TXNS && !m_isPrimary) {
     return false;
   }
 
