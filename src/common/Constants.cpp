@@ -144,7 +144,7 @@ const unsigned int POW_PACKET_SENDERS{
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadConstantNumeric("TX_SHARING_CLUSTER_SIZE", "node.data_sharing.")};
 const unsigned int NUM_SHARE_PENDING_TXNS{
-    (ReadConstantNumeric("NUM_SHARE_PENDING_TXNS", "node.data_sharing"))};
+    (ReadConstantNumeric("NUM_SHARE_PENDING_TXNS", "node.data_sharing."))};
 
 // Dispatcher constants
 const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
