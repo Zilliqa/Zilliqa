@@ -812,9 +812,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
     // Send whitelist request to seeds, in case it was blacklisted if was
     // restarted.
-    if (!Guard::GetInstance().IsNodeInDSGuardList(
-            m_mediator.m_selfKey.second)) {
-      ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
+    if (ComposeAndSendRemoveNodeFromBlacklist(LOOKUP)) {
       this_thread::sleep_for(
           chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
     }
@@ -1136,9 +1134,10 @@ void Node::StartSynchronization() {
 
   // Send whitelist request to seeds, in case it was blacklisted if was
   // restarted.
-  ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
-  this_thread::sleep_for(
-      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+  if (ComposeAndSendRemoveNodeFromBlacklist(LOOKUP)) {
+    this_thread::sleep_for(
+        chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+  }
 
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
@@ -1992,8 +1991,14 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
+bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   LOG_MARKER();
+  if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second) ||
+      Guard::GetInstance().IsNodeInShardGuardList(
+          m_mediator.m_selfKey.second)) {
+    LOG_GENERAL(INFO, "I am a guard node. So skipping sending...");
+    return false;
+  }
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
@@ -2004,7 +2009,7 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
           message, MessageOffset::BODY, m_mediator.m_selfKey,
           m_mediator.m_selfPeer.GetIpAddress(), curDSEpochNo)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
-    return;
+    return false;
   }
 
   if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
@@ -2029,6 +2034,7 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     // send to upper seeds
     m_mediator.m_lookup->SendMessageToSeedNodes(message);
   }
+  return true;
 }
 
 bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {

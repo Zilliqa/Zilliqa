@@ -1398,7 +1398,7 @@ void DirectoryService::SaveDSPerformanceCore(
 
   uint64_t firstTxEpoch = 0;
   if (currentEpochNum >= numOfFinalBlock) {
-    firstTxEpoch = (currentEpochNum / numOfFinalBlock) * numOfFinalBlock;
+    firstTxEpoch = (currentEpochNum / numOfFinalBlock - 1) * numOfFinalBlock;
   }
   // Go through the coinbase rewardees and tally the number of co-sigs.
   // For each TX epoch,
