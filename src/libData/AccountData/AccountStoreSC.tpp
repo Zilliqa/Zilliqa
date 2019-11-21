@@ -1149,200 +1149,200 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   bool ret = false;
 
+  if (_json["message"].type() != Json::arrayValue) {
+    LOG_GENERAL(INFO, "message is not in array value");
+    return false;
+  }
+
   // If output message is null
-  if (_json["message"].isNull()) {
+  if (_json["message"].empty()) {
     LOG_GENERAL(INFO,
-                "null message in scilla output when invoking a "
+                "empty message in scilla output when invoking a "
                 "contract, transaction finished");
     ret = true;
-  } else if (!_json["message"].isObject()) {
-    LOG_GENERAL(WARNING,
-                "not null but not object message value in scilla output");
-    return false;
   }
 
   Address recipient;
   Account* account = nullptr;
 
   if (!ret) {
-    // Non-null messages must have few mandatory fields.
-    if (!_json["message"].isMember("_tag") ||
-        !_json["message"].isMember("_amount") ||
-        !_json["message"].isMember("params") ||
-        !_json["message"].isMember("_recipient")) {
-      LOG_GENERAL(
-          WARNING,
-          "The message in the json output of this contract is corrupted");
-      receipt.AddError(MESSAGE_CORRUPTED);
-      return false;
-    }
-
-    try {
-      m_curAmount = boost::lexical_cast<uint128_t>(
-          _json["message"]["_amount"].asString());
-    } catch (...) {
-      LOG_GENERAL(WARNING, "_amount " << _json["message"]["_amount"].asString()
-                                      << " is not numeric");
-      return false;
-    }
-
-    recipient = Address(_json["message"]["_recipient"].asString());
-    if (IsNullAddress(recipient)) {
-      LOG_GENERAL(WARNING, "The recipient can't be null address");
-      receipt.AddError(RECEIPT_IS_NULL);
-      return false;
-    }
-
-    account = m_accountStoreAtomic->GetAccount(recipient);
-
-    if (account == nullptr) {
-      AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
-      account = m_accountStoreAtomic->GetAccount(recipient);
-    }
-
-    // Recipient is non-contract
-    if (!account->isContract()) {
-      LOG_GENERAL(INFO, "The recipient is non-contract");
-      if (!TransferBalanceAtomic(m_curContractAddr, recipient, m_curAmount)) {
-        receipt.AddError(BALANCE_TRANSFER_FAILED);
+    for (const auto& msg : _json["message"]) {
+      // Non-null messages must have few mandatory fields.
+      if (!msg.isMember("_tag") || !msg.isMember("_amount") ||
+          !msg.isMember("params") || !msg.isMember("_recipient")) {
+        LOG_GENERAL(
+            WARNING,
+            "The message in the json output of this contract is corrupted");
+        receipt.AddError(MESSAGE_CORRUPTED);
         return false;
-      } else {
+      }
+
+      try {
+        m_curAmount = boost::lexical_cast<uint128_t>(msg["_amount"].asString());
+      } catch (...) {
+        LOG_GENERAL(WARNING, "_amount " << msg["_amount"].asString()
+                                        << " is not numeric");
+        return false;
+      }
+
+      recipient = Address(msg["_recipient"].asString());
+      if (IsNullAddress(recipient)) {
+        LOG_GENERAL(WARNING, "The recipient can't be null address");
+        receipt.AddError(RECEIPT_IS_NULL);
+        return false;
+      }
+
+      account = m_accountStoreAtomic->GetAccount(recipient);
+
+      if (account == nullptr) {
+        AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
+        account = m_accountStoreAtomic->GetAccount(recipient);
+      }
+
+      // Recipient is non-contract
+      if (!account->isContract()) {
+        LOG_GENERAL(INFO, "The recipient is non-contract");
+        if (!TransferBalanceAtomic(m_curContractAddr, recipient, m_curAmount)) {
+          receipt.AddError(BALANCE_TRANSFER_FAILED);
+          return false;
+        } else {
+          ret = true;
+        }
+      }
+
+      // Recipient is contract
+      // _tag field is empty
+      if (msg["_tag"].asString().empty()) {
+        LOG_GENERAL(INFO,
+                    "_tag in the scilla output is empty when invoking a "
+                    "contract, transaction finished");
         ret = true;
       }
-    }
 
-    // Recipient is contract
-    // _tag field is empty
-    if (_json["message"]["_tag"].asString().empty()) {
-      LOG_GENERAL(INFO,
-                  "_tag in the scilla output is empty when invoking a "
-                  "contract, transaction finished");
-      ret = true;
-    }
-  }
+      m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
 
-  m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(DEBUG,
+                    "LDB Write (microseconds) = " << r_timer_end(tpStart));
+        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
+      }
 
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tpStart));
-    LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
-  }
+      if (ret) {
+        // return true;
+        continue;
+      }
 
-  if (ret) {
-    return true;
-  }
+      LOG_GENERAL(INFO, "Call another contract");
+      // receipt.AddDepth();
 
-  ++m_curDepth;
+      // check whether the recipient contract is in the same shard with the
+      // current contract
+      if (!m_curIsDS &&
+          (Transaction::GetShardIndex(m_curContractAddr, m_curNumShards) !=
+           Transaction::GetShardIndex(recipient, m_curNumShards))) {
+        LOG_GENERAL(WARNING,
+                    "another contract doesn't belong to the same shard with "
+                    "current contract");
+        receipt.AddError(CHAIN_CALL_DIFF_SHARD);
+        return false;
+      }
 
-  if (m_curDepth > MAX_CONTRACT_DEPTH) {
-    LOG_GENERAL(WARNING,
-                "maximum contract depth reached, cannot call another contract");
-    receipt.AddError(MAX_DEPTH_REACHED);
-    return false;
-  }
+      Json::Value input_message;
+      input_message["_sender"] = "0x" + m_curContractAddr.hex();
+      input_message["_amount"] = msg["_amount"];
+      input_message["_tag"] = msg["_tag"];
+      input_message["params"] = msg["params"];
 
-  LOG_GENERAL(INFO, "Call another contract");
-  receipt.AddDepth();
+      if (account != nullptr) {
+        if (!ExportCallContractFiles(*account, input_message)) {
+          LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+          receipt.AddError(PREPARATION_FAILED);
+          return false;
+        }
+      }
 
-  // check whether the recipient contract is in the same shard with the current
-  // contract
-  if (!m_curIsDS &&
-      (Transaction::GetShardIndex(m_curContractAddr, m_curNumShards) !=
-       Transaction::GetShardIndex(recipient, m_curNumShards))) {
-    LOG_GENERAL(WARNING,
-                "another contract doesn't belong to the same shard with "
-                "current contract");
-    receipt.AddError(CHAIN_CALL_DIFF_SHARD);
-    return false;
-  }
+      // prepare IPC with the recipient contract address
+      m_scillaIPCServer->setContractAddress(recipient);
+      std::string runnerPrint;
+      bool result = true;
+      int pid = -1;
+      auto func = [this, &runnerPrint, &result, &pid, gasRemained, &receipt,
+                   &recipient]() mutable -> void {
+        try {
+          if (!SysCommand::ExecuteCmd(
+                  SysCommand::WITH_OUTPUT_PID,
+                  GetCallContractCmdStr(m_root_w_version, gasRemained,
+                                        this->GetBalance(recipient)),
+                  runnerPrint, pid)) {
+            LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                     m_root_w_version, gasRemained,
+                                     this->GetBalance(recipient)));
+            receipt.AddError(EXECUTE_CMD_FAILED);
+            result = false;
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(
+              WARNING,
+              "Exception caught in ParseCallContractJsonOutput: " << e.what());
+          result = false;
+        }
+        cv_callContract.notify_all();
+      };
 
-  Json::Value input_message;
-  input_message["_sender"] = "0x" + m_curContractAddr.hex();
-  input_message["_amount"] = _json["message"]["_amount"];
-  input_message["_tag"] = _json["message"]["_tag"];
-  input_message["params"] = _json["message"]["params"];
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        tpStart = r_timer_start();
+      }
 
-  if (account != nullptr) {
-    if (!ExportCallContractFiles(*account, input_message)) {
-      LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
-      receipt.AddError(PREPARATION_FAILED);
-      return false;
-    }
-  }
+      DetachedFunction(1, func);
 
-  // prepare IPC with the recipient contract address
-  m_scillaIPCServer->setContractAddress(recipient);
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
 
-  std::string runnerPrint;
-  bool result = true;
-  int pid = -1;
-  auto func = [this, &runnerPrint, &result, &pid, gasRemained, &receipt,
-               &recipient]() mutable -> void {
-    try {
-      if (!SysCommand::ExecuteCmd(
-              SysCommand::WITH_OUTPUT_PID,
-              GetCallContractCmdStr(m_root_w_version, gasRemained,
-                                    this->GetBalance(recipient)),
-              runnerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                 m_root_w_version, gasRemained,
-                                 this->GetBalance(recipient)));
-        receipt.AddError(EXECUTE_CMD_FAILED);
+      if (m_txnProcessTimeout) {
+        LOG_GENERAL(
+            WARNING,
+            "Txn processing timeout! Interrupt current contract call, pid: "
+                << pid);
+        try {
+          if (pid >= 0) {
+            kill(pid, SIGKILL);
+          }
+        } catch (const std::exception& e) {
+          LOG_GENERAL(WARNING,
+                      "Exception caught when calling kill pid: " << e.what());
+        }
+        receipt.AddError(EXECUTE_CMD_TIMEOUT);
         result = false;
       }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception caught in ParseCallContractJsonOutput: "
-                               << e.what());
-      result = false;
-    }
-    cv_callContract.notify_all();
-  };
 
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    tpStart = r_timer_start();
-  }
-
-  DetachedFunction(1, func);
-
-  {
-    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-    cv_callContract.wait(lk);
-  }
-
-  if (m_txnProcessTimeout) {
-    LOG_GENERAL(WARNING,
-                "Txn processing timeout! Interrupt current contract call, pid: "
-                    << pid);
-    try {
-      if (pid >= 0) {
-        kill(pid, SIGKILL);
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
+                                       << r_timer_end(tpStart)
+                                       << " microseconds");
       }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught when calling kill pid: " << e.what());
+
+      if (!result) {
+        return false;
+      }
+
+      Address t_address = m_curContractAddr;
+      m_curSenderAddr = m_curContractAddr;
+      m_curContractAddr = recipient;
+      if (!ParseCallContract(gasRemained, runnerPrint, receipt)) {
+        LOG_GENERAL(WARNING, "ParseCallContract failed of calling contract: "
+                                 << recipient);
+        return false;
+      }
+
+      if (!this->IncreaseNonce(t_address)) {
+        return false;
+      }
     }
-    receipt.AddError(EXECUTE_CMD_TIMEOUT);
-    result = false;
   }
 
-  if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
-                                   << r_timer_end(tpStart) << " microseconds");
-  }
-
-  if (!result) {
-    return false;
-  }
-
-  Address t_address = m_curContractAddr;
-  m_curSenderAddr = m_curContractAddr;
-  m_curContractAddr = recipient;
-  if (!ParseCallContract(gasRemained, runnerPrint, receipt)) {
-    LOG_GENERAL(WARNING,
-                "ParseCallContract failed of calling contract: " << recipient);
-    return false;
-  }
-  return this->IncreaseNonce(t_address);
+  return true;
 }
 
 template <class MAP>

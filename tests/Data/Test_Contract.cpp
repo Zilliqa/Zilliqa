@@ -69,6 +69,108 @@ void setup() {
   priv3.Deserialize(priv3bytes, 0);
 }
 
+BOOST_AUTO_TEST_CASE(salarybot) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  PairOfKey employee1 = Schnorr::GenKeyPair();
+  PairOfKey employee2 = Schnorr::GenKeyPair();
+  PairOfKey employee3 = Schnorr::GenKeyPair();
+
+  Address ownerAddr, employee1Addr, employee2Addr, employee3Addr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  employee1Addr = Account::GetAddressFromPublicKey(employee1.second);
+  employee2Addr = Account::GetAddressFromPublicKey(employee2.second);
+  employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
+
+  std::vector<ScillaTestUtil::ScillaTest> tests;
+
+  for (unsigned int i = 0; i <= 5; i++) {
+    ScillaTestUtil::ScillaTest test;
+    BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "salarybot", i),
+                        "Unable to fetch test salarybot_" << i << ".");
+
+    test.message["_sender"] = "0x" + ownerAddr.hex();
+
+    tests.emplace_back(test);
+  }
+
+  tests[1].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+  tests[2].message["params"][0]["value"] = "0x" + employee2Addr.hex();
+  tests[3].message["params"][0]["value"] = "0x" + employee3Addr.hex();
+  tests[4].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+
+  for (const auto& test : tests) {
+    LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
+                          test.message));
+  }
+
+  // Replace owner address in init.json
+  for (auto& it : tests[0].init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
+
+  bool deployed = false;
+
+  for (unsigned int i = 0; i < tests.size();) {
+    bool deploy = i == 0 && !deployed;
+
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tests[i].blockchain);
+    std::string initStr =
+        JSONUtils::GetInstance().convertJsontoStr(tests[i].init);
+    bytes data;
+    uint64_t amount = 0;
+    Address recipient;
+    bytes code;
+    if (deploy) {
+      data = bytes(initStr.begin(), initStr.end());
+      recipient = Address();
+      code = tests[i].code;
+      deployed = true;
+    } else {
+      amount = ScillaTestUtil::PrepareMessageData(tests[i].message, data);
+      recipient = contrAddr;
+      i++;
+    }
+
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient, owner,
+                   amount, PRECISION_MIN_VALUE, 20000, code, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
+    nonce++;
+  }
+
+  Account* e2 = AccountStore::GetInstance().GetAccountTemp(employee2Addr);
+  Account* e3 = AccountStore::GetInstance().GetAccountTemp(employee3Addr);
+
+  BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
+                      "employee2 or 3 are not existing");
+
+  BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
+                      "multi message failed");
+}
+
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   INIT_STDOUT_LOGGER();
