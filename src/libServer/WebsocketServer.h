@@ -180,7 +180,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
   /// standard callbacks for websocket server instance
   static void on_message(const websocketpp::connection_hdl& hdl,
                          const websocketserver::message_ptr& msg);
-  static void on_fail(const websocketpp::connection_hdl& hdl);
+  // static void on_fail(const websocketpp::connection_hdl& hdl);
   static void on_close(const websocketpp::connection_hdl& hdl);
 };
 

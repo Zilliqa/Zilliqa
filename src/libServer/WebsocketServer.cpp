@@ -57,7 +57,7 @@ bool WebsocketServer::start() {
 
   // Register the message handlers.
   m_server.set_message_handler(&WebsocketServer::on_message);
-  m_server.set_fail_handler(&WebsocketServer::on_fail);
+  // m_server.set_fail_handler(&WebsocketServer::on_fail);
   m_server.set_close_handler(&WebsocketServer::on_close);
 
   try {
@@ -270,15 +270,6 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
     LOG_GENERAL(WARNING, "websocket send failed, error: " << ec.message());
     return;
   }
-}
-
-void WebsocketServer::on_fail(const connection_hdl& hdl) {
-  websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
-  websocketpp::lib::error_code ec = con->get_ec();
-  LOG_GENERAL(WARNING, "websocket connection failed, error: " << ec.message());
-
-  closeSocket(hdl, "connection failure",
-              websocketpp::close::status::force_tcp_drop);
 }
 
 void WebsocketServer::on_close(const connection_hdl& hdl) {
