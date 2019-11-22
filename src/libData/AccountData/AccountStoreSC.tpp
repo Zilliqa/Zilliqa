@@ -432,7 +432,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       m_curSenderAddr = fromAddr;
-      m_curDepth = 0;
 
       Account* toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
@@ -1233,7 +1232,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       LOG_GENERAL(INFO, "Call another contract");
-      // receipt.AddDepth();
+      receipt.AddDepth();
 
       // check whether the recipient contract is in the same shard with the
       // current contract
