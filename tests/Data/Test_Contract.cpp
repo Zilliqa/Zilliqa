@@ -69,6 +69,100 @@ void setup() {
   priv3.Deserialize(priv3bytes, 0);
 }
 
+BOOST_AUTO_TEST_CASE(loopytreecall) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  LOG_GENERAL(INFO, "loopy-tree-call started")
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+  uint64_t nonce;
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  LOG_GENERAL(INFO, "Owner Address: " << ownerAddr);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {200000000000000000, nonce});
+
+  contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr0: " << contrAddr0);
+  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  LOG_GENERAL(INFO, "contrAddr1: " << contrAddr1);
+  contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce + 2);
+  LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2);
+  contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce + 3);
+  LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3);
+  contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce + 4);
+  LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
+
+  ScillaTestUtil::ScillaTest test;
+  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call", 1),
+                      "Unable to fetch test loopy-tree-call_" << 1 << ".");
+
+  test.message["_sender"] = "0x" + ownerAddr.hex();
+
+  Json::Value other_instances;
+  other_instances.append("0x" + contrAddr1.hex());
+  other_instances.append("0x" + contrAddr2.hex());
+  other_instances.append("0x" + contrAddr3.hex());
+  other_instances.append("0x" + contrAddr4.hex());
+  test.message["params"][1]["value"] = other_instances;
+
+  LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
+                        test.message));
+
+  // Replace owner address in init.json
+  for (auto& it : test.init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(test.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(test.init);
+
+  // deploy contracts
+  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
+  bytes data = bytes(initStr.begin(), initStr.end());
+
+  for (unsigned int i = 0; i < 5; i++) {
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
+                   0, PRECISION_MIN_VALUE, 20000, test.code, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
+        tr);
+    nonce++;
+  }
+
+  // call contract 0
+  {
+    bytes data;
+    uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
+
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0, owner,
+                   amount, PRECISION_MIN_VALUE, 2000000, {}, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
+        tr);
+
+    LOG_GENERAL(INFO, "tr: " << tr.GetString());
+
+    nonce++;
+  }
+
+  LOG_GENERAL(INFO, "loopy-tree-call ended");
+}
+
 BOOST_AUTO_TEST_CASE(salarybot) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
