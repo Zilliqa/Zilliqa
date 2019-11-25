@@ -33,7 +33,7 @@ from logging import handlers
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
-NUM_TXBLOCK = 1
+NUM_TXBLOCK = 2
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
 TESTNET_NAME= "TEST_NET_NAME"
@@ -365,8 +365,11 @@ def main():
 					time.sleep(1)
 					continue
 
-			if ( (lastBlockNum == 0 and blockNum > -1) or (blockNum >= lastBlockNum + NUM_TXBLOCK)):
-				# try syncing every N txn blks or if its vacaous epoch
+			if ( (lastBlockNum == 0 and blockNum > -1) or 
+				(blockNum >= lastBlockNum + NUM_TXBLOCK) or
+				((blockNum > lastBlockNum) and
+				(((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) or blockNum % NUM_FINAL_BLOCK_PER_POW == 0)) ):
+				# try syncing every N txn blks or if its vacaous epoch or if its first txblk of new ds epoch
 					logging.info("TxBlk: " + str(blockNum))
 					SetLock()
 					# create temp copy of local persistence
