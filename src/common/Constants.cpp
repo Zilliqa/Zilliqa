@@ -202,8 +202,10 @@ const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
 
 // Gas constants
-const unsigned int MICROBLOCK_GAS_LIMIT{
-    ReadConstantNumeric("MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadConstantNumeric("CONTRACT_CREATE_GAS", "node.gas.")};
 const unsigned int CONTRACT_INVOKE_GAS{

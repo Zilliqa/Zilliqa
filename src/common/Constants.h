@@ -207,7 +207,8 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 
 // Gas constants
-extern const unsigned int MICROBLOCK_GAS_LIMIT;
+extern const unsigned int DS_MICROBLOCK_GAS_LIMIT;
+extern const unsigned int SHARD_MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;

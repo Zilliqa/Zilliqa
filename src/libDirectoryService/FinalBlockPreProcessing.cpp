@@ -1139,8 +1139,8 @@ void DirectoryService::CalculateCurrentDSMBGasLimit() {
       }
       LOG_GENERAL(INFO,
                   "m_microBlockGasLimit: "
-                      << m_microBlockGasLimit << " MICROBLOCK_GAS_LIMIT: "
-                      << MICROBLOCK_GAS_LIMIT << " vccounter: "
+                      << m_microBlockGasLimit << " DS_MICROBLOCK_GAS_LIMIT: "
+                      << DS_MICROBLOCK_GAS_LIMIT << " vccounter: "
                       << prevVCBlockptr->GetHeader().GetViewChangeCounter());
     }
   }
@@ -1191,7 +1191,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     LOG_GENERAL(INFO, "RunConsensusOnFinalBlock ");
     PrepareRunConsensusOnFinalBlockNormal();
 
-    m_microBlockGasLimit = MICROBLOCK_GAS_LIMIT;
+    m_microBlockGasLimit = DS_MICROBLOCK_GAS_LIMIT;
     // checking whether process transaction
     if (m_mediator.ToProcessTransaction()) {
       CalculateCurrentDSMBGasLimit();
