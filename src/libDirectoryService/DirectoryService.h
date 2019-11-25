@@ -547,7 +547,7 @@ class DirectoryService : public Executable {
   std::atomic<bool> m_forceMulticast{};
 
   /// microblock_gas_limit to be adjusted due to vc
-  uint64_t m_microBlockGasLimit = MICROBLOCK_GAS_LIMIT;
+  uint64_t m_microBlockGasLimit = DS_MICROBLOCK_GAS_LIMIT;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.

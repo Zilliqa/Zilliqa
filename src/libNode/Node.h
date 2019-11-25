@@ -545,15 +545,12 @@ class Node : public Executable {
 
   void CommitPendingTxnBuffer();
 
-  void ProcessTransactionWhenShardLeader(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  void ProcessTransactionWhenShardBackup(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool ComposeMicroBlock(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool CheckMicroBlockValidity(
-      bytes& errorMsg,
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit);
+  void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit);
+  bool ComposeMicroBlock(const uint64_t& microblock_gas_limit);
+  bool CheckMicroBlockValidity(bytes& errorMsg,
+                               const uint64_t& microblock_gas_limit);
+
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
                          const Peer& from);
 
