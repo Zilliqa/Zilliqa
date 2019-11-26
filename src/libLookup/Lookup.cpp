@@ -4595,8 +4595,7 @@ void Lookup::CheckAndFetchUnavailableMBs(bool skipLatestTxBlk) {
       // Delete missing mbs from unavailable list which has no txns
       auto& mbs = m.second;
       mbs.erase(std::remove_if(mbs.begin(), mbs.end(),
-                               [](const std::pair<BlockHash, TxnHash> e) {
-                                 MicroBlockSharedPtr mbptr;
+                               [](const std::pair<BlockHash, TxnHash>& e) {
                                  return e.second == TxnHash();
                                }),
                 mbs.end());
