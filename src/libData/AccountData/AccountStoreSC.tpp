@@ -269,18 +269,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         std::string runnerPrint;
 
         pid = -1;
-        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
-                      &fromAddr]() mutable -> void {
+        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
+                      &receipt]() mutable -> void {
           try {
             if (!SysCommand::ExecuteCmd(
                     SysCommand::WITH_OUTPUT_PID,
-                    GetCreateContractCmdStr(m_root_w_version, gasRemained,
-                                            this->GetBalance(fromAddr)),
+                    GetCreateContractCmdStr(m_root_w_version, gasRemained, 0),
                     runnerPrint, pid)) {
               LOG_GENERAL(WARNING,
                           "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                              m_root_w_version, gasRemained,
-                              this->GetBalance(fromAddr)));
+                              m_root_w_version, gasRemained, 0));
               receipt.AddError(EXECUTE_CMD_FAILED);
               ret = false;
             }
@@ -471,16 +469,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       int pid = -1;
 
       auto func = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
-                   &fromAddr]() mutable -> void {
+                   &toAddr]() mutable -> void {
         try {
           if (!SysCommand::ExecuteCmd(
                   SysCommand::WITH_OUTPUT_PID,
                   GetCallContractCmdStr(m_root_w_version, gasRemained,
-                                        this->GetBalance(fromAddr)),
+                                        this->GetBalance(toAddr)),
                   runnerPrint, pid)) {
             LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
                                      m_root_w_version, gasRemained,
-                                     this->GetBalance(fromAddr)));
+                                     this->GetBalance(toAddr)));
             receipt.AddError(EXECUTE_CMD_FAILED);
             ret = false;
           }
@@ -1158,6 +1156,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(INFO,
                 "empty message in scilla output when invoking a "
                 "contract, transaction finished");
+    m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
     ret = true;
   }
 
@@ -1346,6 +1345,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
+  LOG_MARKER();
   {
     std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
     for (const auto& addr : m_storageRootUpdateBuffer) {

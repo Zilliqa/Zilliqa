@@ -454,6 +454,8 @@ void RunTransaction(const PairOfKey& sender, unsigned int major_index,
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
   nonce++;
 
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+
   LOG_GENERAL(INFO, "tr" << std::to_string(major_index) << "_"
                          << std::to_string(minor_index)
                          << " processing finished");
