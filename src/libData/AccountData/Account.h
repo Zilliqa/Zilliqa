@@ -38,8 +38,6 @@
 /// DB storing trie storage information for all accounts.
 // static OverlayDB contractStatesDB("contractStates");
 
-static uint32_t scilla_version_place_holder;
-
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
@@ -167,23 +165,6 @@ class Account : public AccountBase {
   bool SetInitData(const bytes& initData);
 
   const bytes GetInitData() const;
-
-  /// Used in data migration, will deprecate after that
-  std::string GetRawStorage(const dev::h256& k_hash, bool temp) const;
-
-  /// Used in data migration, will deprecate after that
-  std::vector<dev::h256> GetStorageKeyHashes(bool temp = false) const;
-
-  /// deprecated after data migration
-  Json::Value GetInitJson(bool temp = false) const;
-
-  /// deprecated after data migration
-  Json::Value GetStateJson(bool temp = false) const;
-
-  /// deprecated after data migration
-  bool GetStorageJson(
-      std::pair<Json::Value, Json::Value>& roots, bool temp = false,
-      uint32_t& scilla_version = scilla_version_place_holder) const;
 
   bool GetScillaVersion(uint32_t& scilla_version);
 

@@ -516,8 +516,8 @@ const unsigned int LOOKUP_REWARD_IN_PERCENT{
     ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadConstantNumeric("MAX_CODE_SIZE_IN_BYTES", "node.transactions.")};
-const unsigned int MAX_CONTRACT_DEPTH{
-    ReadConstantNumeric("MAX_CONTRACT_DEPTH", "node.transactions.")};
+const unsigned int MAX_CONTRACT_EDGES{
+    ReadConstantNumeric("MAX_CONTRACT_EDGES", "node.transactions.")};
 const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
     "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(

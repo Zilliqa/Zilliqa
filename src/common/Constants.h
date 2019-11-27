@@ -371,7 +371,7 @@ extern const uint128_t TOTAL_GENESIS_TOKEN;
 extern const unsigned int BASE_REWARD_IN_PERCENT;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
-extern const unsigned int MAX_CONTRACT_DEPTH;
+extern const unsigned int MAX_CONTRACT_EDGES;
 extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;

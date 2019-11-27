@@ -83,6 +83,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the interpreter path for each hop of invoking
   std::string m_root_w_version;
 
+  /// the depth of chain call while executing the current txn
+  unsigned int m_curDepth{0};
+
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;
   std::condition_variable cv_callContract;

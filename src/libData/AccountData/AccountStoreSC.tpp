@@ -430,6 +430,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       m_curSenderAddr = fromAddr;
+      m_curEdges = 0;
 
       Account* toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
@@ -1165,6 +1166,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   if (!ret) {
     for (const auto& msg : _json["message"]) {
+      LOG_GENERAL(INFO, "Process new message");
       // Non-null messages must have few mandatory fields.
       if (!msg.isMember("_tag") || !msg.isMember("_amount") ||
           !msg.isMember("params") || !msg.isMember("_recipient")) {
@@ -1230,8 +1232,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         continue;
       }
 
-      LOG_GENERAL(INFO, "Call another contract");
+      LOG_GENERAL(INFO, "Call another contract in chain");
       receipt.AddDepth();
+      ++m_curEdges;
 
       // check whether the recipient contract is in the same shard with the
       // current contract
@@ -1242,6 +1245,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                     "another contract doesn't belong to the same shard with "
                     "current contract");
         receipt.AddError(CHAIN_CALL_DIFF_SHARD);
+        return false;
+      }
+
+      if (m_curEdges > MAX_CONTRACT_EDGES) {
+        LOG_GENERAL(WARNING, "maximum contract edges reached, cannot call another contract");
+        receipt.AddError(MAX_EDGES_REACHED);
         return false;
       }
 
