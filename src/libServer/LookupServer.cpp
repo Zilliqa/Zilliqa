@@ -1579,8 +1579,9 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
 }
 
 Json::Value LookupServer::GetPendingTxn(const string& tranID) {
-  if (LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
   }
   try {
     if (tranID.size() != TRAN_HASH_SIZE * 2) {
