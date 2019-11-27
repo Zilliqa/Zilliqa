@@ -831,7 +831,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   m_txn_distribute_window_open = false;
 
   if (m_mediator.ToProcessTransaction()) {
-    ProcessTransactionWhenShardLeader();
+    ProcessTransactionWhenShardLeader(SHARD_MICROBLOCK_GAS_LIMIT);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;
@@ -839,7 +839,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   // composed microblock stored in m_microblock
-  if (!ComposeMicroBlock()) {
+  if (!ComposeMicroBlock(SHARD_MICROBLOCK_GAS_LIMIT)) {
     LOG_GENERAL(WARNING, "Unable to create microblock");
     return false;
   }
@@ -929,7 +929,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-    ProcessTransactionWhenShardBackup();
+    ProcessTransactionWhenShardBackup(SHARD_MICROBLOCK_GAS_LIMIT);
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -1417,7 +1417,7 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!CheckMicroBlockValidity(errorMsg)) {
+  if (!CheckMicroBlockValidity(errorMsg, SHARD_MICROBLOCK_GAS_LIMIT)) {
     m_microblock = nullptr;
     LOG_GENERAL(WARNING, "CheckMicroBlockValidity failed");
     return false;

@@ -326,7 +326,7 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
             ConsensusCommon::INITIAL);
 
         auto reprocessconsensus = [this, message, offset, from]() {
-          ProcessTransactionWhenShardBackup();
+          ProcessTransactionWhenShardBackup(SHARD_MICROBLOCK_GAS_LIMIT);
           ProcessMicroBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, reprocessconsensus);
