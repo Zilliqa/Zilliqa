@@ -50,7 +50,8 @@ enum ReceiptError : unsigned int {
   PREPARATION_FAILED,
   NO_OUTPUT,
   OUTPUT_ILLEGAL,
-  MAP_DEPTH_MISSING
+  MAP_DEPTH_MISSING,
+  GAS_NOT_SUFFICIENT
 };
 
 class TransactionReceipt : public SerializableDataBlock {

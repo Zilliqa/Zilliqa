@@ -171,6 +171,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         validToTransferBalance = false;
       }
 
+      // deduct scilla checker invoke gas
+      if (gasRemained < SCILLA_CHECKER_INVOKE_GAS) {
+        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla checker");
+        return false;
+      } else {
+        gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
+      }
+
       // generate address for new contract account
       toAddr =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
@@ -222,6 +230,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddress(toAddr);
 
+      // ************************************************************************
       // Undergo scilla checker
       bool ret_checker = true;
       std::string checkerPrint;
@@ -262,73 +271,88 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         toAccount->UpdateStates(toAddr, t_map_depth_map, {}, true);
       }
 
+      // *************************************************************************
       // Undergo scilla runner
       bool ret = true;
 
       if (ret_checker) {
-        std::string runnerPrint;
-
-        pid = -1;
-        auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
-                      &receipt]() mutable -> void {
-          try {
-            if (!SysCommand::ExecuteCmd(
-                    SysCommand::WITH_OUTPUT_PID,
-                    GetCreateContractCmdStr(m_root_w_version, gasRemained, 0),
-                    runnerPrint, pid)) {
-              LOG_GENERAL(WARNING,
-                          "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                              m_root_w_version, gasRemained, 0));
-              receipt.AddError(EXECUTE_CMD_FAILED);
-              ret = false;
-            }
-          } catch (const std::exception& e) {
-            LOG_GENERAL(
-                WARNING,
-                "Exception caught in SysCommand::ExecuteCmd (2): " << e.what());
-            ret = false;
-          }
-
-          cv_callContract.notify_all();
-        };
-        DetachedFunction(1, func2);
-
-        {
-          std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-          cv_callContract.wait(lk);
+        // deduct scilla runner invoke gas
+        if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+          LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
+          receipt.AddError(GAS_NOT_SUFFICIENT);
+          ret = false;
+        } else {
+          gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
         }
 
-        try {
-          if (m_txnProcessTimeout) {
-            LOG_GENERAL(WARNING,
-                        "Txn processing timeout! Interrupt current contract "
-                        "deployment, pid: "
-                            << pid);
-            if (pid >= 0) {
-              kill(pid, SIGKILL);
+        if (ret) {
+          std::string runnerPrint;
+
+          pid = -1;
+          auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
+                        &receipt]() mutable -> void {
+            try {
+              if (!SysCommand::ExecuteCmd(
+                      SysCommand::WITH_OUTPUT_PID,
+                      GetCreateContractCmdStr(m_root_w_version, gasRemained, 0),
+                      runnerPrint, pid)) {
+                LOG_GENERAL(WARNING,
+                            "ExecuteCmd failed: " << GetCreateContractCmdStr(
+                                m_root_w_version, gasRemained, 0));
+                receipt.AddError(EXECUTE_CMD_FAILED);
+                ret = false;
+              }
+            } catch (const std::exception& e) {
+              LOG_GENERAL(WARNING,
+                          "Exception caught in SysCommand::ExecuteCmd (2): "
+                              << e.what());
+              ret = false;
             }
 
-            receipt.AddError(EXECUTE_CMD_TIMEOUT);
-            ret = false;
+            cv_callContract.notify_all();
+          };
+          DetachedFunction(1, func2);
+
+          {
+            std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+            cv_callContract.wait(lk);
           }
 
-          if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+          try {
+            if (m_txnProcessTimeout) {
+              LOG_GENERAL(WARNING,
+                          "Txn processing timeout! Interrupt current contract "
+                          "deployment, pid: "
+                              << pid);
+              if (pid >= 0) {
+                kill(pid, SIGKILL);
+              }
+
+              receipt.AddError(EXECUTE_CMD_TIMEOUT);
+              ret = false;
+            }
+
+            if (ret &&
+                !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+              ret = false;
+            }
+            if (!ret) {
+              gasRemained = std::min(
+                  transaction.GetGasLimit() - createGasPenalty, gasRemained);
+            }
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING,
+                        "Exception caught in create account (2): " << e.what());
             ret = false;
           }
-          if (!ret) {
-            gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
-                                   gasRemained);
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(WARNING,
-                      "Exception caught in create account (2): " << e.what());
-          ret = false;
         }
       } else {
         gasRemained =
             std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
       }
 
+      // *************************************************************************
+      // Summary
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
@@ -427,6 +451,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                  << ") in the txn, "
                                     "rejected");
         return false;
+      }
+
+      // deduct scilla checker invoke gas
+      if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
+        return false;
+      } else {
+        gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
       }
 
       m_curSenderAddr = fromAddr;
@@ -1236,6 +1268,15 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       receipt.AddDepth();
       ++m_curEdges;
 
+      // deduct scilla runner invoke gas
+      if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
+        receipt.AddError(GAS_NOT_SUFFICIENT);
+        return false;
+      } else {
+        gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+      }
+
       // check whether the recipient contract is in the same shard with the
       // current contract
       if (!m_curIsDS &&
@@ -1249,7 +1290,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       if (m_curEdges > MAX_CONTRACT_EDGES) {
-        LOG_GENERAL(WARNING, "maximum contract edges reached, cannot call another contract");
+        LOG_GENERAL(
+            WARNING,
+            "maximum contract edges reached, cannot call another contract");
         receipt.AddError(MAX_EDGES_REACHED);
         return false;
       }
