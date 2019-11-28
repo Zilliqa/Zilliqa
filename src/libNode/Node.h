@@ -481,7 +481,7 @@ class Node : public Executable {
   bool RecalculateMyShardId();
 
   // Send whitelist message to peers and seeds
-  void ComposeAndSendRemoveNodeFromBlacklist(
+  bool ComposeAndSendRemoveNodeFromBlacklist(
       const RECEIVERTYPE receiver = BOTH);
 
   /// Sets the value of m_state.

@@ -197,65 +197,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
       return true;
     }
 
-    m_mediator.m_currentEpochNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    m_mediator.IncreaseEpochNum();
-
-    if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
-      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-    }
-
-    m_consensusLeaderID = 0;
     runInitializeGenesisBlocks = false;
-    m_mediator.UpdateDSBlockRand();
-    m_mediator.UpdateTxBlockRand();
-    m_mediator.m_ds->m_mode = DirectoryService::IDLE;
-
-    for (const auto& ds : *m_mediator.m_DSCommittee) {
-      if (ds.first == m_mediator.m_selfKey.second) {
-        m_mediator.m_ds->SetConsensusMyID(0);
-
-        for (auto const& i : *m_mediator.m_DSCommittee) {
-          if (i.first == m_mediator.m_selfKey.second) {
-            LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                      "My node ID for this PoW consensus is "
-                          << m_mediator.m_ds->GetConsensusMyID());
-            break;
-          }
-
-          m_mediator.m_ds->IncrementConsensusMyID();
-        }
-
-        m_consensusMyID = m_mediator.m_ds->GetConsensusMyID();
-
-        if (m_mediator.m_DSCommittee
-                ->at(m_mediator.m_ds->GetConsensusLeaderID())
-                .first == m_mediator.m_selfKey.second) {
-          m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-          LOG_GENERAL(INFO, "Set as DS leader: "
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << ":"
-                                << m_mediator.m_selfPeer.m_listenPortHost);
-          LOG_STATE("[IDENT][" << std::setw(15) << std::left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][" << m_mediator.m_currentEpochNum
-                               << "] DSLD");
-        } else {
-          m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
-          LOG_GENERAL(INFO, "Set as DS backup: "
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << ":"
-                                << m_mediator.m_selfPeer.m_listenPortHost);
-          LOG_STATE("[IDENT][" << std::setw(15) << std::left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->GetConsensusMyID()
-                               << "] DSBK");
-        }
-
-        break;
-      }
-    }
 
     /// When non-rejoin mode, call wake-up or recovery
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
@@ -572,9 +514,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_blocklinkchain.SetBuiltDSComm(buildDSComm);
   }
 
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_DSCommittee->clear();
-  }
+  m_mediator.m_DSCommittee->clear();
 
   uint16_t ds_consensusLeaderID = 0;
 
@@ -607,9 +547,18 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   bool bDS = false;
   for (auto& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
-      i.second = Peer();
-      bDS = true;
-      break;
+      if (syncType == NEW_SYNC &&
+          i.second != m_mediator.m_selfPeer) {  // IP of restarted ds node has
+                                                // to be same as in committee
+        LOG_GENERAL(WARNING,
+                    "Seems different IP-Port is used by this ds node after "
+                    "being restarted!")
+        break;
+      } else {
+        i.second = Peer();
+        bDS = true;
+        break;
+      }
     }
   }
 
@@ -656,7 +605,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(false);
   }
 
-  if (SyncType::NEW_SYNC == syncType || SyncType::NEW_LOOKUP_SYNC == syncType ||
+  if (/* new node not part of ds committee */ (SyncType::NEW_SYNC == syncType &&
+                                               !bDS) ||
+      SyncType::NEW_LOOKUP_SYNC == syncType ||
       (rejoiningAfterRecover &&
        (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {
     return true;
@@ -664,7 +615,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   /// Retrieve lacked Tx blocks from lookup nodes
   if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
-      SyncType::RECOVERY_ALL_SYNC != syncType) {
+      SyncType::RECOVERY_ALL_SYNC != syncType &&
+      SyncType::NEW_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
@@ -743,8 +695,14 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+  /// However, if the last tx block is one from vacaous epoch, its already too
+  /// late and coinbase info is of no use. so skip saving coinbase
+  if (bDS &&
+      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+        SyncType::RECOVERY_ALL_SYNC == syncType) &&
+      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
+              NUM_FINAL_BLOCK_PER_POW !=
+          0) {
     for (uint64_t blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
@@ -829,8 +787,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+  /// However, if the last tx block is one from vacaous epoch, its already too
+  /// late and coinbase info is of no use. so skip saving coinbase
+  if (bDS &&
+      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+        SyncType::RECOVERY_ALL_SYNC == syncType) &&
+      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
+              NUM_FINAL_BLOCK_PER_POW !=
+          0) {
+    m_mediator.m_ds->SetState(DirectoryService::DirState::SYNC);
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
@@ -849,6 +814,33 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
                                       microBlock->GetHeader().GetEpochNum());
       }
     }
+
+    // Send whitelist request to seeds, in case it was blacklisted if was
+    // restarted.
+    if (ComposeAndSendRemoveNodeFromBlacklist(LOOKUP)) {
+      this_thread::sleep_for(
+          chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+    }
+
+    // failed to fetch mbs/coinbase info from local disk for any epoch
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
+        coinbaseRewardeesTmp;
+    m_mediator.m_ds->GetCoinbaseRewardees(coinbaseRewardeesTmp);
+    for (auto blockNum =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+         blockNum <=
+         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+         blockNum++) {
+      const auto& it = coinbaseRewardeesTmp.find(blockNum);
+      if (it == coinbaseRewardeesTmp.end() ||
+          (it->second.size() < m_mediator.m_txBlockChain.GetBlock(blockNum)
+                                       .GetMicroBlockInfos()
+                                       .size() -
+                                   1)) {
+        m_mediator.m_lookup->ComposeAndSendGetCosigsRewardsFromSeed(blockNum);
+        this_thread::sleep_for(chrono::milliseconds(100));
+      }
+    }
   }
 
   bool res = false;
@@ -862,6 +854,68 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         LOG_GENERAL(INFO, "RetrieveHistory Success");
         m_mediator.m_isRetrievedHistory = true;
         res = true;
+      }
+    }
+  }
+
+  if ((bDS && SyncType::NEW_SYNC == syncType) ||
+      SyncType::RECOVERY_ALL_SYNC == syncType) {
+    m_mediator.m_currentEpochNum =
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    m_mediator.IncreaseEpochNum();
+
+    if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
+      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+    }
+
+    m_consensusLeaderID = 0;
+    m_mediator.UpdateDSBlockRand();
+    m_mediator.UpdateTxBlockRand();
+    m_mediator.m_ds->m_mode = DirectoryService::IDLE;
+
+    for (const auto& ds : *m_mediator.m_DSCommittee) {
+      if (ds.first == m_mediator.m_selfKey.second) {
+        m_mediator.m_ds->SetConsensusMyID(0);
+
+        for (auto const& i : *m_mediator.m_DSCommittee) {
+          if (i.first == m_mediator.m_selfKey.second) {
+            LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                      "My node ID for this PoW consensus is "
+                          << m_mediator.m_ds->GetConsensusMyID());
+            break;
+          }
+
+          m_mediator.m_ds->IncrementConsensusMyID();
+        }
+
+        m_consensusMyID = m_mediator.m_ds->GetConsensusMyID();
+
+        if (m_mediator.m_DSCommittee
+                ->at(m_mediator.m_ds->GetConsensusLeaderID())
+                .first == m_mediator.m_selfKey.second) {
+          m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+          LOG_GENERAL(INFO, "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << m_mediator.m_currentEpochNum
+                               << "] DSLD");
+        } else {
+          m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+          LOG_GENERAL(INFO, "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << std::setw(6) << std::left
+                               << m_mediator.m_ds->GetConsensusMyID()
+                               << "] DSBK");
+        }
+
+        break;
       }
     }
   }
@@ -1085,9 +1139,10 @@ void Node::StartSynchronization() {
 
   // Send whitelist request to seeds, in case it was blacklisted if was
   // restarted.
-  ComposeAndSendRemoveNodeFromBlacklist(LOOKUP);
-  this_thread::sleep_for(
-      chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+  if (ComposeAndSendRemoveNodeFromBlacklist(LOOKUP)) {
+    this_thread::sleep_for(
+        chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+  }
 
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
@@ -1941,8 +1996,14 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
+bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   LOG_MARKER();
+  if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second) ||
+      Guard::GetInstance().IsNodeInShardGuardList(
+          m_mediator.m_selfKey.second)) {
+    LOG_GENERAL(INFO, "I am a guard node. So skipping sending...");
+    return false;
+  }
   bytes message = {MessageType::NODE,
                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
@@ -1953,7 +2014,7 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
           message, MessageOffset::BODY, m_mediator.m_selfKey,
           m_mediator.m_selfPeer.GetIpAddress(), curDSEpochNo)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeRemoveFromBlacklist");
-    return;
+    return false;
   }
 
   if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
@@ -1978,6 +2039,7 @@ void Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     // send to upper seeds
     m_mediator.m_lookup->SendMessageToSeedNodes(message);
   }
+  return true;
 }
 
 bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {

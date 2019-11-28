@@ -453,7 +453,8 @@ class DirectoryService : public Executable {
     FINALBLOCK_CONSENSUS,
     VIEWCHANGE_CONSENSUS_PREP,
     VIEWCHANGE_CONSENSUS,
-    ERROR
+    ERROR,
+    SYNC
   };
 
   enum SUBMITMICROBLOCKTYPE : unsigned char {
@@ -586,7 +587,7 @@ class DirectoryService : public Executable {
 
   /// Post processing after the DS node successfully synchronized with the
   /// network
-  bool FinishRejoinAsDS();
+  bool FinishRejoinAsDS(bool fetchShardingStruct = false);
 
   void RunConsensusOnFinalBlock();
 
@@ -601,6 +602,10 @@ class DirectoryService : public Executable {
                         const std::vector<bool>& b2, const Container& shard,
                         const int32_t& shard_id, const uint64_t& epochNum);
 
+  void GetCoinbaseRewardees(
+      std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+          coinbase_rewardees);
+
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
@@ -612,6 +617,9 @@ class DirectoryService : public Executable {
 
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
+
+  /// Used by rejoined DS node
+  void StartNextTxEpoch();
 
   /// Begin next round of DS consensus
   void StartNewDSEpochConsensus(bool fromFallback = false,

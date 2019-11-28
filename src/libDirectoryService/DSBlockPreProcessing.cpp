@@ -1396,11 +1396,19 @@ void DirectoryService::SaveDSPerformanceCore(
     dsMemberPerformance[member.first] = 0;
   }
 
+  uint64_t firstTxEpoch = 0;
+  if (currentEpochNum >= numOfFinalBlock) {
+    firstTxEpoch = (currentEpochNum / numOfFinalBlock - 1) * numOfFinalBlock;
+  }
   // Go through the coinbase rewardees and tally the number of co-sigs.
   // For each TX epoch,
-  for (auto const& epochNum : coinbaseRewardees) {
+  for (auto const& rewardees : coinbaseRewardees) {
+    // if rewardees not from current ds epoch, ignore them
+    if (rewardees.first < firstTxEpoch) {
+      continue;
+    }
     // Find the DS Shard.
-    for (auto const& shard : epochNum.second) {
+    for (auto const& shard : rewardees.second) {
       if (shard.first == finalblockRewardID) {
         // Find the rewards that belong to the DS Shard.
         for (auto const& pubkey : shard.second) {
