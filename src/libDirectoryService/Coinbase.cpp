@@ -152,8 +152,8 @@ void DirectoryService::InitCoinbase() {
       (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() - 1) *
       NUM_FINAL_BLOCK_PER_POW;
 
-  for (auto it = m_coinbaseRewardees.begin(), ite = m_coinbaseRewardees.end();
-       it != ite;) {
+  auto it = m_coinbaseRewardees.begin();
+  while (it != m_coinbaseRewardees.end()) {
     if (it->first < firstTxEpoch)
       it = m_coinbaseRewardees.erase(it);
     else

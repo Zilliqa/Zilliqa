@@ -57,6 +57,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+const uint32_t MAX_FETCH_BLOCK_RETRIES = 5;
+
 Lookup::Lookup(Mediator& mediator, SyncType syncType) : m_mediator(mediator) {
   m_syncType.store(SyncType::NO_SYNC);
   vector<SyncType> ignorable_syncTypes = {NO_SYNC, DB_VERIF};
@@ -1652,7 +1654,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   vector<MicroBlock> retMicroBlocks;
 
   TxBlockSharedPtr txblkPtr;
-  uint32_t retryCount = 5;
+  uint32_t retryCount = MAX_FETCH_BLOCK_RETRIES;
   while (retryCount-- > 0) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
       LOG_GENERAL(WARNING,
@@ -1676,7 +1678,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
       continue;
     }
     MicroBlockSharedPtr mbptr;
-    retryCount = 5;
+    retryCount = MAX_FETCH_BLOCK_RETRIES;
     while (retryCount-- > 0) {
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
               mbInfo.m_microBlockHash, mbptr)) {
