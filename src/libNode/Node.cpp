@@ -1999,7 +1999,7 @@ bool Node::IsShardNode(const Peer& peerInfo) {
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::StartSynchronization not "
+                "Node::ComposeAndSendRemoveNodeFromBlacklist not "
                 "expected to be called from LookUp node.");
     return false;
   }
