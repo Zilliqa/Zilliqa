@@ -4629,6 +4629,99 @@ bool Messenger::SetNodeMBnForwardTransaction(
   return SerializeToArray(result, dst, offset);
 }
 
+bool Messenger::SetNodePendingTxn(
+    bytes& dst, const unsigned offset, const uint64_t& epochnum,
+    const unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap,
+    const uint32_t shardId, const PairOfKey& key) {
+  LOG_MARKER();
+
+  NodePendingTxn result;
+
+  SerializableToProtobufByteArray(key.second,
+                                  *result.mutable_data()->mutable_pubkey());
+  result.mutable_data()->set_epochnumber(epochnum);
+  result.mutable_data()->set_shardid(shardId);
+
+  for (const auto& hashCodePair : hashCodeMap) {
+    auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
+    protoHashCodePair->set_txnhash(hashCodePair.first.data(),
+                                   hashCodePair.first.size);
+    protoHashCodePair->set_code(hashCodePair.second);
+  }
+
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodePendingTxn.Data initialization failed");
+    return false;
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::Sign(tmp, key.first, key.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign NodePendingTxn");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodePendingTxn initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodePendingTxn(
+    const bytes& src, const unsigned offset, uint64_t& epochnum,
+    unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap, uint32_t& shardId,
+    PubKey& pubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodePendingTxn result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodePendingTxn initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.data().pubkey(), pubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "NodePendingTxn signature wrong");
+    return false;
+  }
+
+  for (const auto& codeHashPair : result.data().hashcodepair()) {
+    TxnHash txhash;
+    unsigned int size = min((unsigned int)codeHashPair.txnhash().size(),
+                            (unsigned int)txhash.size);
+    copy(codeHashPair.txnhash().begin(), codeHashPair.txnhash().begin() + size,
+         txhash.asArray().begin());
+    hashCodeMap.emplace(txhash,
+                        static_cast<PoolTxnStatus>(codeHashPair.code()));
+  }
+
+  epochnum = result.data().epochnumber();
+  shardId = result.data().shardid();
+
+  return true;
+}
+
 bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
                                              const unsigned int offset,
                                              MBnForwardedTxnEntry& entry) {

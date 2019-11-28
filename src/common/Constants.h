@@ -173,6 +173,7 @@ extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 extern const unsigned int POW_PACKET_SENDERS;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
+extern const unsigned int NUM_SHARE_PENDING_TXNS;
 
 // Dispatcher constants
 extern const bool USE_REMOTE_TXN_CREATOR;

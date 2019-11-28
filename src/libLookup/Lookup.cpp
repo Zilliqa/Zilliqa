@@ -88,6 +88,7 @@ void Lookup::InitAsNewJoiner() {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
   }
+
   AccountStore::GetInstance().Init();
 
   Synchronizer tempSyncer;
@@ -2143,6 +2144,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       return;
     }
   }
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_node->ClearUnconfirmedTxn();
+  }
 
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
@@ -2200,6 +2204,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
        m_syncType == SyncType::LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
+    m_mediator.m_node->CommitPendingTxnBuffer();
     // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
     // all for last few txBlks.
     FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
@@ -4327,6 +4332,16 @@ bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
                              return node.second.m_ipAddress == ipToVerify;
                            });
   return deqNodes.cend() != iter;
+}
+
+bool Lookup::VerifySenderNode(const Shard& shard,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(
+      shard.cbegin(), shard.cend(),
+      [&pubKeyToVerify](const tuple<PubKey, Peer, uint16_t>& node) {
+        return get<SHARD_NODE_PUBKEY>(node) == pubKeyToVerify;
+      });
+  return shard.cend() != iter;
 }
 
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,

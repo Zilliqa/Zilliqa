@@ -204,6 +204,11 @@ class LookupServer : public Server,
     response = this->GetTotalCoinSupply();
   }
 
+  inline virtual void GetPendingTxnI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetPendingTxn(request[0u].asString());
+  }
+
   std::string GetNetworkId();
   static Json::Value CreateTransaction(
       const Json::Value& _json, const unsigned int num_shards,
@@ -242,7 +247,7 @@ class LookupServer : public Server,
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
-
+  Json::Value GetPendingTxn(const std::string& tranID);
   Json::Value GetSmartContractState(
       const std::string& address, const std::string& vname = "",
       const Json::Value& indices = Json::arrayValue);

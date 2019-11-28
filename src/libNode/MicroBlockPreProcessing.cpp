@@ -748,9 +748,23 @@ void Node::ReinstateMemPool(
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
     t_createdTxns.insert(t);
+    LOG_GENERAL(INFO, "PendingAPI " << t.GetTranID());
     m_unconfirmedTxns.emplace(t.GetTranID(),
                               PoolTxnStatus::PRESENT_GAS_EXCEEDED);
   }
+}
+
+void Node::PutProcessedInUnconfirmedTxns() {
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
+  uint count = 0;
+
+  for (const auto& t : t_processedTransactions) {
+    m_unconfirmedTxns.emplace(
+        t.first, PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED);
+    count++;
+  }
+  LOG_GENERAL(INFO, "Count of txns " << count);
 }
 
 PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
@@ -764,6 +778,18 @@ PoolTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
     return PoolTxnStatus::NOT_PRESENT;
   }
   return res->second;
+}
+
+unordered_map<TxnHash, PoolTxnStatus> Node::GetUnconfirmedTxns() const {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
+  return m_unconfirmedTxns;
+}
+
+bool Node::IsUnconfirmedTxnEmpty() const {
+  shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+
+  return m_unconfirmedTxns.empty();
 }
 
 void Node::UpdateBalanceForPreGeneratedAccounts() {
