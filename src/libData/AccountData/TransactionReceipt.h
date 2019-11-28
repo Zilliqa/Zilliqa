@@ -72,6 +72,7 @@ class TransactionReceipt : public SerializableDataBlock {
   void SetCumGas(const uint64_t& cumGas);
   void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
+  void CleanEntry();
   const std::string& GetString() const { return m_tranReceiptStr; }
   void SetString(const std::string& tranReceiptStr);
   const uint64_t& GetCumGas() const { return m_cumGas; }

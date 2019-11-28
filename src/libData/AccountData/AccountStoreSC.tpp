@@ -583,6 +583,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
       if (!ret) {
         receipt.SetResult(false);
+        receipt.CleanEntry();
         receipt.update();
 
         if (!this->IncreaseNonce(fromAddr)) {

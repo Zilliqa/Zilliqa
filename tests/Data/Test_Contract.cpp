@@ -69,102 +69,99 @@ void setup() {
   priv3.Deserialize(priv3bytes, 0);
 }
 
-// BOOST_AUTO_TEST_CASE(loopytreecall) {
-//   INIT_STDOUT_LOGGER();
-//   LOG_MARKER();
+BOOST_AUTO_TEST_CASE(loopytreecall) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
-//   LOG_GENERAL(INFO, "loopy-tree-call started")
+  LOG_GENERAL(INFO, "loopy-tree-call started")
 
-//   PairOfKey owner = Schnorr::GenKeyPair();
-//   Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3,
-//   contrAddr4; uint64_t nonce;
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+  uint64_t nonce;
 
-//   if (SCILLA_ROOT.empty()) {
-//     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-//     return;
-//   }
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-//   LOG_GENERAL(INFO, "Owner Address: " << ownerAddr);
-//   AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-//                                              {200000000000000000, nonce});
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  LOG_GENERAL(INFO, "Owner Address: " << ownerAddr);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {200000000000000000, nonce});
 
-//   contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce);
-//   LOG_GENERAL(INFO, "contrAddr0: " << contrAddr0);
-//   contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce + 1);
-//   LOG_GENERAL(INFO, "contrAddr1: " << contrAddr1);
-//   contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce + 2);
-//   LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2);
-//   contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce + 3);
-//   LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3);
-//   contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce + 4);
-//   LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
+  contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "contrAddr0: " << contrAddr0);
+  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  LOG_GENERAL(INFO, "contrAddr1: " << contrAddr1);
+  contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce + 2);
+  LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2);
+  contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce + 3);
+  LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3);
+  contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce + 4);
+  LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
 
-//   ScillaTestUtil::ScillaTest test;
-//   BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call",
-//   1),
-//                       "Unable to fetch test loopy-tree-call_" << 1 << ".");
+  ScillaTestUtil::ScillaTest test;
+  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call", 1),
+                      "Unable to fetch test loopy-tree-call_" << 1 << ".");
 
-//   test.message["_sender"] = "0x" + ownerAddr.hex();
+  test.message["_sender"] = "0x" + ownerAddr.hex();
 
-//   Json::Value other_instances;
-//   other_instances.append("0x" + contrAddr1.hex());
-//   other_instances.append("0x" + contrAddr2.hex());
-//   other_instances.append("0x" + contrAddr3.hex());
-//   other_instances.append("0x" + contrAddr4.hex());
-//   test.message["params"][1]["value"] = other_instances;
+  Json::Value other_instances;
+  other_instances.append("0x" + contrAddr1.hex());
+  other_instances.append("0x" + contrAddr2.hex());
+  other_instances.append("0x" + contrAddr3.hex());
+  other_instances.append("0x" + contrAddr4.hex());
+  test.message["params"][1]["value"] = other_instances;
 
-//   LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
-//                         test.message));
+  LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
+                        test.message));
 
-//   // Replace owner address in init.json
-//   for (auto& it : test.init) {
-//     if (it["vname"] == "owner") {
-//       it["value"] = "0x" + ownerAddr.hex();
-//     }
-//   }
+  // Replace owner address in init.json
+  for (auto& it : test.init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
+  }
 
-//   // and remove _creation_block (automatic insertion later).
-//   ScillaTestUtil::RemoveCreationBlockFromInit(test.init);
-//   ScillaTestUtil::RemoveThisAddressFromInit(test.init);
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(test.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(test.init);
 
-//   // deploy contracts
-//   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
-//   bytes data = bytes(initStr.begin(), initStr.end());
+  // deploy contracts
+  std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
+  bytes data = bytes(initStr.begin(), initStr.end());
 
-//   for (unsigned int i = 0; i < 5; i++) {
-//     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(),
-//     owner,
-//                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
-//     TransactionReceipt tr;
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-//         tr);
-//     nonce++;
-//   }
+  for (unsigned int i = 0; i < 5; i++) {
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
+                   0, PRECISION_MIN_VALUE, 20000, test.code, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
+        tr);
+    nonce++;
+  }
 
-//   // call contract 0
-//   {
-//     bytes data;
-//     uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
+  // call contract 0
+  {
+    bytes data;
+    uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
 
-//     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0,
-//     owner,
-//                    amount, PRECISION_MIN_VALUE, 2000000, {}, data);
-//     TransactionReceipt tr;
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-//         tr);
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0, owner,
+                   amount, PRECISION_MIN_VALUE, 2000000, {}, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
+        tr);
 
-//     LOG_GENERAL(INFO, "tr: " << tr.GetString());
+    LOG_GENERAL(INFO, "tr: " << tr.GetString());
 
-//     nonce++;
-//   }
+    nonce++;
+  }
 
-//   LOG_GENERAL(INFO, "loopy-tree-call ended");
-// }
+  LOG_GENERAL(INFO, "loopy-tree-call ended");
+}
 
 // BOOST_AUTO_TEST_CASE(salarybot) {
 //   INIT_STDOUT_LOGGER();
@@ -295,9 +292,12 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   donor1Addr = Account::GetAddressFromPublicKey(donor1.second);
   donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
-  AccountStore::GetInstance().AddAccountTemp(donor1Addr, {2000000, nonce});
-  AccountStore::GetInstance().AddAccountTemp(donor2Addr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(donor1Addr,
+                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(donor2Addr,
+                                             {2000000000000000, nonce});
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
   bytes data(initStr.begin(), initStr.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, t1.code, data);
+                  0, PRECISION_MIN_VALUE, 50000, t1.code, data);
   TransactionReceipt tr0;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
   Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
 
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr1;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1)) {
     nonce++;
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
       ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
-                  amount2, PRECISION_MIN_VALUE, 5000, {}, dataDonate2);
+                  amount2, PRECISION_MIN_VALUE, 50000, {}, dataDonate2);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2,
                                                      tr2)) {
@@ -415,7 +415,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Let's try donor1 donating again, it shouldn't have an impact.
   // Execute message_3, the unsuccessful Donate transaction.
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3)) {
     nonce++;
@@ -455,7 +455,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t amount4 = ScillaTestUtil::PrepareMessageData(t4.message, data4);
 
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
-                  amount4, PRECISION_MIN_VALUE, 5000, {}, data4);
+                  amount4, PRECISION_MIN_VALUE, 50000, {}, data4);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum4, 1, true, tx4,
                                                      tr4)) {
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t amount5 = ScillaTestUtil::PrepareMessageData(t5.message, data5);
 
   Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
-                  amount5, PRECISION_MIN_VALUE, 5000, {}, data5);
+                  amount5, PRECISION_MIN_VALUE, 50000, {}, data5);
   TransactionReceipt tr5;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum5, 1, true, tx5,
                                                      tr5)) {
@@ -545,7 +545,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, nonce});
 
   pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
   pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -571,7 +572,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
       JSONUtils::GetInstance().convertJsontoStr(t0ping.init);
   bytes dataPing(initStrPing.begin(), initStrPing.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, t0ping.code, dataPing);
+                  0, PRECISION_MIN_VALUE, 50000, t0ping.code, dataPing);
   TransactionReceipt tr0;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx0, tr0);
   Account* accountPing = AccountStore::GetInstance().GetAccountTemp(pingAddr);
@@ -596,7 +597,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
       JSONUtils::GetInstance().convertJsontoStr(t0pong.init);
   bytes dataPong(initStrPong.begin(), initStrPong.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, t0pong.code, dataPong);
+                  0, PRECISION_MIN_VALUE, 50000, t0pong.code, dataPong);
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx1, tr1);
   Account* accountPong = AccountStore::GetInstance().GetAccountTemp(pongAddr);
@@ -620,7 +621,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx2,
                                                      tr2)) {
@@ -636,7 +637,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
   amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx3,
                                                      tr3)) {
@@ -656,7 +657,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   ScillaTestUtil::PrepareMessageData(t1ping.message, data);
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx4,
                                                      tr4)) {
@@ -706,7 +707,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, nonce});
 
   aAddr = Account::GetAddressForContract(ownerAddr, nonce);
   bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -733,7 +735,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
       JSONUtils::GetInstance().convertJsontoStr(tContrA.init);
   bytes dataA(initStrA.begin(), initStrA.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, tContrA.code, dataA);
+                  0, PRECISION_MIN_VALUE, 50000, tContrA.code, dataA);
   TransactionReceipt tr0;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0);
   Account* accountA = AccountStore::GetInstance().GetAccountTemp(aAddr);
@@ -755,7 +757,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
       JSONUtils::GetInstance().convertJsontoStr(tContrB.init);
   bytes dataB(initStrB.begin(), initStrB.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, tContrB.code, dataB);
+                  0, PRECISION_MIN_VALUE, 50000, tContrB.code, dataB);
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
   Account* accountB = AccountStore::GetInstance().GetAccountTemp(bAddr);
@@ -777,7 +779,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
       JSONUtils::GetInstance().convertJsontoStr(tContrC.init);
   bytes dataC(initStrC.begin(), initStrC.end());
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
-                  0, PRECISION_MIN_VALUE, 5000, tContrC.code, dataC);
+                  0, PRECISION_MIN_VALUE, 50000, tContrC.code, dataC);
   TransactionReceipt tr2;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2);
   Account* accountC = AccountStore::GetInstance().GetAccountTemp(cAddr);
@@ -802,21 +804,21 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 
     // Fund contrA
     Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
-                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundA;
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA,
                                                    trFundA);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
-                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundB;
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundB,
                                                    trFundB);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
-                        100, PRECISION_MIN_VALUE, 5000, {}, m_data);
+                        100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundC;
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundC,
                                                    trFundC);
@@ -835,7 +837,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   }
   uint64_t amount = ScillaTestUtil::PrepareMessageData(tContrA.message, data);
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
-                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
+                  amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3)) {
     nonce++;
@@ -882,19 +884,6 @@ bool mapHandler([[gnu::unused]] const std::string& index, const Json::Value& s,
     }
   }
 
-  // if (!s.isMember("key") || s.isMember("val")) {
-  //   return false;
-  // }
-  // std::string t_index = index + "." + s["key"].asString();
-  // if (s["val"] == Json::arrayValue) {
-  //   for (const auto& v : s["val"]) {
-  //     mapHandler(t_index, v, state_entries);
-  //   }
-  // } else {
-  //   state_entries.emplace(
-  //       t_index, DataConversion::StringToCharArray(
-  //                    JSONUtils::GetInstance().convertJsontoStr(s["val"])));
-  // }
   return true;
 }
 
