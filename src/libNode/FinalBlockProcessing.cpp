@@ -39,7 +39,9 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
+#include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
+#include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -916,10 +918,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
-    if (LOOKUP_NODE_MODE)  // lookup, newlookup and level2lookup
-    {
-      m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
-    }
+    m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
   }
 
   FallbackTimerPulse();
@@ -977,12 +976,24 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 }
 
 void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CommitForwardedTransactions not expected to be "
+                "called from Normal node.");
+    return;
+  }
+
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
     LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
+    }
+
+    // feed the event log holder
+    if (ENABLE_WEBSOCKET) {
+      WebsocketServer::GetInstance().ParseTxnEventLog(twr);
     }
 
     // Store TxBody to disk
@@ -1273,11 +1284,17 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       if (m_isVacuousEpochBuffer) {
         // Check is states updated
         uint64_t epochNum;
-        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
-                epochNum)) {
-          LOG_GENERAL(WARNING,
-                      "BlockStorage::GetLatestEpochStateusUpdated failed");
-          return false;
+        if (m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum() == 1) {
+          epochNum = 1;
+        } else {
+          if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
+                  epochNum)) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::GetLatestEpochStateusUpdated failed");
+            return false;
+          }
         }
         if (AccountStore::GetInstance().GetPrevRootHash() ==
             m_mediator.m_txBlockChain.GetLastBlock()
@@ -1320,6 +1337,23 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
                           << entry.m_microBlock.GetHeader().GetEpochNum());
           return false;
         }
+      }
+
+      if (ENABLE_WEBSOCKET) {
+        // send tx block and attach txhashes
+        const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+        Json::Value j_txnhashes;
+        try {
+          j_txnhashes = LookupServer::GetTransactionsForTxBlock(
+              txBlock, m_mediator.m_lookup->m_historicalDB);
+        } catch (...) {
+          j_txnhashes = Json::arrayValue;
+        }
+        WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+        // send event logs
+        WebsocketServer::GetInstance().SendOutMessages();
       }
     }
   }

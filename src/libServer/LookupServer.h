@@ -46,6 +46,8 @@ class LookupServer : public Server,
     return m_mediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
+  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
@@ -234,7 +236,7 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
-  Json::Value GetRecentTransactions();
+  static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
@@ -253,7 +255,9 @@ class LookupServer : public Server,
       const Json::Value& indices = Json::arrayValue);
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
-  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
+
+  static Json::Value GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                               bool historicalDB);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
