@@ -143,6 +143,8 @@ const unsigned int POW_PACKET_SENDERS{
     ReadConstantNumeric("POW_PACKET_SENDERS", "node.data_sharing.")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadConstantNumeric("TX_SHARING_CLUSTER_SIZE", "node.data_sharing.")};
+const unsigned int NUM_SHARE_PENDING_TXNS{
+    (ReadConstantNumeric("NUM_SHARE_PENDING_TXNS", "node.data_sharing."))};
 
 // Dispatcher constants
 const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
@@ -202,8 +204,10 @@ const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
 
 // Gas constants
-const unsigned int MICROBLOCK_GAS_LIMIT{
-    ReadConstantNumeric("MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadConstantNumeric("CONTRACT_CREATE_GAS", "node.gas.")};
 const unsigned int CONTRACT_INVOKE_GAS{
@@ -310,6 +314,10 @@ const unsigned int NUM_SHARD_PEER_TO_REVEAL{
     ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
 const std::string SCILLA_IPC_SOCKET_PATH{
     ReadConstantString("SCILLA_IPC_SOCKET_PATH", "node.jsonrpc.")};
+bool ENABLE_WEBSOCKET{ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") ==
+                      "true"};
+const unsigned int WEBSOCKET_PORT{
+    ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{

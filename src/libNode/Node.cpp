@@ -500,6 +500,11 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   return *result;
 }
 
+void Node::ClearUnconfirmedTxn() {
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  m_unconfirmedTxns.clear();
+}
+
 bool Node::ValidateDB() {
   const string lookupIp = "127.0.0.1";
   const unsigned int port = SEED_PORT;
@@ -2375,7 +2380,8 @@ bool Node::Execute(const bytes& message, unsigned int offset,
                                        &Node::ProcessFallbackBlock,
                                        &Node::ProcessProposeGasPrice,
                                        &Node::ProcessDSGuardNetworkInfoUpdate,
-                                       &Node::ProcessRemoveNodeFromBlacklist};
+                                       &Node::ProcessRemoveNodeFromBlacklist,
+                                       &Node::ProcessPendingTxn};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

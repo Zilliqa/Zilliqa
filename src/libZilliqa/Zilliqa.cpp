@@ -28,6 +28,7 @@
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Guard.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -335,6 +336,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
       m_lookupServer =
           make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
+
+      if (ENABLE_WEBSOCKET) {
+        (void)WebsocketServer::GetInstance();
+      }
 
       if (m_lookupServer == nullptr) {
         LOG_GENERAL(WARNING, "m_lookupServer NULL");

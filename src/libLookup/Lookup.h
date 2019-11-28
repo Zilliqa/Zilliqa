@@ -386,6 +386,9 @@ class Lookup : public Executable {
   static bool VerifySenderNode(const DequeOfNode& deqNodes,
                                const uint128_t& ipToVerify);
 
+  static bool VerifySenderNode(const Shard& shard,
+                               const PubKey& pubKeyToVerify);
+
   /// Check and fetch unavailable microblocks
   void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
 

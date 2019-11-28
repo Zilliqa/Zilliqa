@@ -339,7 +339,8 @@ void SendJobPeers<T>::DoSend() {
     const Peer& peer = m_peers.at(*curr);
 
     /// TBD: Update the container dynamically when blacklist is updated
-    if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
+    if (Blacklist::GetInstance().Exist(peer.m_ipAddress,
+                                       !m_allowSendToRelaxedBlacklist)) {
       LOG_GENERAL(INFO, peer << " is blacklisted - blocking all messages");
       continue;
     }
@@ -799,6 +800,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -807,7 +809,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
-                          const unsigned char& startByteType) {
+                          const unsigned char& startByteType,
+                          const bool bAllowSendToRelaxedBlacklist) {
   // LOG_MARKER();
 
   if (peers.empty()) {
@@ -821,6 +824,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = bAllowSendToRelaxedBlacklist;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -839,6 +843,7 @@ void P2PComm::SendMessage(const Peer& peer, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -864,6 +869,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
   job->m_hash = sha256.Finalize();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   bytes hashCopy(job->m_hash);
 
@@ -894,6 +900,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
   job->m_hash = sha256.Finalize();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   bytes hashCopy(job->m_hash);
 

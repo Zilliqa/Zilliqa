@@ -126,9 +126,6 @@ class Node : public Executable {
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
-  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
-
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
@@ -144,10 +141,17 @@ class Node : public Executable {
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
   //     m_committedTransactions;
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   std::mutex m_mutexMBnForwardedTxnBuffer;
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
       m_mbnForwardedTxnBuffer;
+
+  std::mutex m_mutexPendingTxnBuffer;
+  std::unordered_map<uint64_t,
+                     std::vector<std::tuple<HashCodeMap, PubKey, uint32_t>>>
+      m_pendingTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
   std::vector<bytes> m_txnPacketBuffer;
@@ -202,6 +206,9 @@ class Node : public Executable {
   // internal calls from ProcessForwardTransaction
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
+  bool AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+                     uint32_t shardId);
+
   bool RemoveTxRootHashFromUnavailableMicroBlock(
       const MBnForwardedTxnEntry& entry);
 
@@ -248,6 +255,9 @@ class Node : public Executable {
   bool ProcessMBnForwardTransaction(const bytes& message,
                                     unsigned int cur_offset, const Peer& from);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
+
+  bool ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
+                         const Peer& from);
   bool ProcessTxnPacketFromLookup(const bytes& message, unsigned int offset,
                                   const Peer& from);
   bool ProcessTxnPacketFromLookupCore(const bytes& message,
@@ -490,6 +500,9 @@ class Node : public Executable {
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(bool fromIsolatedBinary = false);
+  void PutProcessedInUnconfirmedTxns();
+
+  bool SendPendingTxnToLookup();
 
   bool ValidateDB();
 
@@ -530,15 +543,14 @@ class Node : public Executable {
 
   void CallActOnFinalblock();
 
-  void ProcessTransactionWhenShardLeader(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  void ProcessTransactionWhenShardBackup(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool ComposeMicroBlock(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool CheckMicroBlockValidity(
-      bytes& errorMsg,
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  void CommitPendingTxnBuffer();
+
+  void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit);
+  void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit);
+  bool ComposeMicroBlock(const uint64_t& microblock_gas_limit);
+  bool CheckMicroBlockValidity(bytes& errorMsg,
+                               const uint64_t& microblock_gas_limit);
+
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
                          const Peer& from);
 
@@ -618,6 +630,8 @@ class Node : public Executable {
 
   PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
 
+  std::unordered_map<TxnHash, PoolTxnStatus> GetUnconfirmedTxns() const;
+
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
@@ -646,6 +660,10 @@ class Node : public Executable {
   bool WhitelistReqsValidator(const uint128_t& ipAddress);
 
   void CleanWhitelistReqs();
+
+  void ClearUnconfirmedTxn();
+
+  bool IsUnconfirmedTxnEmpty() const;
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

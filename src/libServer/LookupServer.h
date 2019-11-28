@@ -46,6 +46,8 @@ class LookupServer : public Server,
     return m_mediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
+  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
@@ -204,6 +206,11 @@ class LookupServer : public Server,
     response = this->GetTotalCoinSupply();
   }
 
+  inline virtual void GetPendingTxnI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetPendingTxn(request[0u].asString());
+  }
+
   std::string GetNetworkId();
   static Json::Value CreateTransaction(
       const Json::Value& _json, const unsigned int num_shards,
@@ -229,7 +236,7 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
-  Json::Value GetRecentTransactions();
+  static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
@@ -242,13 +249,15 @@ class LookupServer : public Server,
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
-
+  Json::Value GetPendingTxn(const std::string& tranID);
   Json::Value GetSmartContractState(
       const std::string& address, const std::string& vname = "",
       const Json::Value& indices = Json::arrayValue);
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
-  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
+
+  static Json::Value GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                               bool historicalDB);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

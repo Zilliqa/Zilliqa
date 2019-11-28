@@ -173,6 +173,7 @@ extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 extern const unsigned int POW_PACKET_SENDERS;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
+extern const unsigned int NUM_SHARE_PENDING_TXNS;
 
 // Dispatcher constants
 extern const bool USE_REMOTE_TXN_CREATOR;
@@ -207,7 +208,8 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 
 // Gas constants
-extern const unsigned int MICROBLOCK_GAS_LIMIT;
+extern const unsigned int DS_MICROBLOCK_GAS_LIMIT;
+extern const unsigned int SHARD_MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
@@ -266,6 +268,8 @@ extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STATUS_RPC;  //
 extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
 extern const std::string SCILLA_IPC_SOCKET_PATH;
+extern bool ENABLE_WEBSOCKET;
+extern const unsigned int WEBSOCKET_PORT;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

@@ -20,6 +20,7 @@
 #include <Schnorr.h>
 #include <boost/variant.hpp>
 #include "common/BaseType.h"
+#include "common/MempoolEnum.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
@@ -369,6 +370,15 @@ class Messenger {
   static bool GetNodeMBnForwardTransaction(const bytes& src,
                                            const unsigned int offset,
                                            MBnForwardedTxnEntry& entry);
+  static bool GetNodePendingTxn(
+      const bytes& src, const unsigned offset, uint64_t& epochnum,
+      std::unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap,
+      uint32_t& shardId, PubKey& pubKey);
+
+  static bool SetNodePendingTxn(
+      bytes& dst, const unsigned offset, const uint64_t& epochnum,
+      const std::unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap,
+      const uint32_t shardId, const PairOfKey& key);
 
   static bool SetNodeForwardTxnBlock(
       bytes& dst, const unsigned int offset, const uint64_t& epochNumber,

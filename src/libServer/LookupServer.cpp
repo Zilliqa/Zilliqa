@@ -217,6 +217,11 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetPendingTxn", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetPendingTxnI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -399,6 +404,8 @@ Json::Value LookupServer::CreateTransaction(
 
     const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+    const Account* toAccount =
+        AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
     if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
       return ret;
@@ -411,6 +418,14 @@ Json::Value LookupServer::CreateTransaction(
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
+        if (toAccount != nullptr) {
+          if (toAccount->isContract()) {
+            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                                   "Contract account won't accept normal txn");
+            return false;
+          }
+        }
+
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
@@ -428,14 +443,12 @@ Json::Value LookupServer::CreateTransaction(
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        const Account* account =
-            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-        if (account == nullptr) {
+        if (toAccount == nullptr) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
         }
 
-        else if (!account->isContract()) {
+        else if (!toAccount->isContract()) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                  "Non - contract address called");
         }
@@ -1450,7 +1463,6 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   uint64_t txNum;
-  Json::Value _json = Json::arrayValue;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
   } catch (exception& e) {
@@ -1459,6 +1471,16 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
+  return GetTransactionsForTxBlock(txBlock,
+                                   m_mediator.m_lookup->m_historicalDB);
+}
+
+Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                                    bool historicalDB) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   // TODO
   // Workaround to identify dummy block as == comparator does not work on
   // empty object for TxBlock and TxBlockheader().
@@ -1469,8 +1491,9 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
   }
 
   auto microBlockInfos = txBlock.GetMicroBlockInfos();
-
+  Json::Value _json = Json::arrayValue;
   bool hasTransactions = false;
+
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
     _json[mbInfo.m_shardId] = Json::arrayValue;
@@ -1481,7 +1504,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      if (!m_mediator.m_lookup->m_historicalDB) {
+      if (!historicalDB) {
         throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
                      mbInfo.m_microBlockHash, mbptr)) {
@@ -1562,5 +1585,62 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+Json::Value LookupServer::GetPendingTxn(const string& tranID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  try {
+    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    TxnHash tranHash(tranID);
+    Json::Value _json;
+
+    if (BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
+      // Transaction already present in database means confirmed
+      _json["confirmed"] = true;
+      _json["code"] = PoolTxnStatus::NOT_PRESENT;
+      _json["info"] = "Txn already processed and confirmed";
+      return _json;
+    }
+
+    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
+      case PoolTxnStatus::NOT_PRESENT:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::NOT_PRESENT;
+        _json["info"] = "Txn not pending";
+        return _json;
+      case PoolTxnStatus::PRESENT_NONCE_HIGH:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
+        _json["info"] = "Nonce too high";
+        return _json;
+      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
+        _json["info"] = "Could not fit in as microblock gas limit reached";
+        return _json;
+      case PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED;
+        _json["info"] = "Transaction valid but consensus not reached";
+        return _json;
+      case PoolTxnStatus::ERROR:
+        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
   }
 }

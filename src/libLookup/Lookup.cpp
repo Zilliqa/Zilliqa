@@ -88,6 +88,7 @@ void Lookup::InitAsNewJoiner() {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
   }
+
   AccountStore::GetInstance().Init();
 
   Synchronizer tempSyncer;
@@ -2143,6 +2144,9 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       return;
     }
   }
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_node->ClearUnconfirmedTxn();
+  }
 
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
@@ -2200,6 +2204,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
        m_syncType == SyncType::LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
+    m_mediator.m_node->CommitPendingTxnBuffer();
     // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
     // all for last few txBlks.
     FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
@@ -2655,11 +2660,12 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
     return true;
   }
 
-  if (requestedNum > MICROBLOCK_GAS_LIMIT) {
-    LOG_GENERAL(WARNING, "No microblock can have more than "
-                             << MICROBLOCK_GAS_LIMIT
-                             << " missing txns. Looks suspicious so will "
-                                "ignore the message and blacklist sender");
+  if (requestedNum > max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)) {
+    LOG_GENERAL(WARNING,
+                "No microblock can have more than "
+                    << max(DS_MICROBLOCK_GAS_LIMIT, SHARD_MICROBLOCK_GAS_LIMIT)
+                    << " missing txns. Looks suspicious so will "
+                       "ignore the message and blacklist sender");
     Blacklist::GetInstance().Add(from.GetIpAddress());
     return false;
   }
@@ -4328,6 +4334,16 @@ bool Lookup::VerifySenderNode(const DequeOfNode& deqNodes,
   return deqNodes.cend() != iter;
 }
 
+bool Lookup::VerifySenderNode(const Shard& shard,
+                              const PubKey& pubKeyToVerify) {
+  auto iter = std::find_if(
+      shard.cbegin(), shard.cend(),
+      [&pubKeyToVerify](const tuple<PubKey, Peer, uint16_t>& node) {
+        return get<SHARD_NODE_PUBKEY>(node) == pubKeyToVerify;
+      });
+  return shard.cend() != iter;
+}
+
 bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
                                const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
@@ -4594,8 +4610,7 @@ void Lookup::CheckAndFetchUnavailableMBs(bool skipLatestTxBlk) {
       // Delete missing mbs from unavailable list which has no txns
       auto& mbs = m.second;
       mbs.erase(std::remove_if(mbs.begin(), mbs.end(),
-                               [](const std::pair<BlockHash, TxnHash> e) {
-                                 MicroBlockSharedPtr mbptr;
+                               [](const std::pair<BlockHash, TxnHash>& e) {
                                  return e.second == TxnHash();
                                }),
                 mbs.end());

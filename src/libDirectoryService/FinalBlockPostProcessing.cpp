@@ -275,10 +275,16 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
 
-  if (m_mediator.m_node->m_microblock != nullptr &&
-      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
-          TxnHash()) {
+  const bool& toSendPendingTxn = !(m_mediator.m_node->IsUnconfirmedTxnEmpty());
+
+  if ((m_mediator.m_node->m_microblock != nullptr &&
+       m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+           TxnHash())) {
     m_mediator.m_node->CallActOnFinalblock();
+  }
+
+  if (toSendPendingTxn) {
+    m_mediator.m_node->SendPendingTxnToLookup();
   }
 
   AccountStore::GetInstance().InitTemp();
@@ -592,7 +598,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
                                  // microblocks
           PrepareRunConsensusOnFinalBlockNormal();
           if (!m_mediator.GetIsVacuousEpoch()) {
-            m_mediator.m_node->ProcessTransactionWhenShardBackup();
+            m_mediator.m_node->ProcessTransactionWhenShardBackup(
+                m_microBlockGasLimit);
           }
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
@@ -621,7 +628,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         auto reprocessconsensus = [this, message, offset, from]() {
           RemoveDSMicroBlock();  // Remove DS microblock from my list of
                                  // microblocks
-          m_mediator.m_node->ProcessTransactionWhenShardBackup();
+          m_mediator.m_node->ProcessTransactionWhenShardBackup(
+              m_microBlockGasLimit);
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, reprocessconsensus);
