@@ -84,7 +84,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::string m_root_w_version;
 
   /// the depth of chain call while executing the current txn
-  unsigned int m_curDepth{0};
+  unsigned int m_curEdges{0};
 
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;
@@ -183,8 +183,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  bytes& map_depth_datam,
-                                  uint64_t& gasRemained);
+                                  bytes& map_depth_data, uint64_t& gasRemained);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,

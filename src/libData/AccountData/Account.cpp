@@ -193,16 +193,6 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-string Account::GetRawStorage(const h256& k_hash, bool temp) const {
-  if (!isContract()) {
-    // LOG_GENERAL(WARNING,
-    //             "Not contract account, why call Account::GetRawStorage!");
-    return "";
-  }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
-                                                                    temp);
-}
-
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
                                   uint32_t& scilla_version) {
@@ -256,29 +246,6 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
-/// deprecated after data migration
-Json::Value Account::GetInitJson(bool temp) const {
-  if (!isContract()) {
-    return Json::arrayValue;
-  }
-
-  pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots, temp)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
-    return Json::arrayValue;
-  }
-  return roots.first;
-}
-
-vector<h256> Account::GetStorageKeyHashes(bool temp) const {
-  if (!isContract()) {
-    return {};
-  }
-
-  return ContractStorage::GetContractStorage().GetContractStateIndexes(
-      m_address, temp);
-}
-
 void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
                                std::vector<std::string>& toDeleteIndices,
                                bool temp) const {
@@ -295,51 +262,6 @@ void Account::UpdateStates(const Address& addr,
   if (!m_address) {
     SetAddress(addr);
   }
-}
-
-/// deprecated after data migration
-Json::Value Account::GetStateJson(bool temp) const {
-  if (!isContract()) {
-    return Json::arrayValue;
-  }
-
-  pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots, temp)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
-    return Json::arrayValue;
-  }
-  return roots.second;
-}
-
-/// deprecated after data migration
-bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
-                             uint32_t& scilla_version) const {
-  if (!isContract()) {
-    LOG_GENERAL(WARNING,
-                "Not contract account, why call Account::GetStorageJson!");
-    return false;
-  }
-
-  // Init, Other
-  if (!ContractStorage::GetContractStorage().GetContractStateJson(
-          m_address, roots, scilla_version, temp)) {
-    LOG_GENERAL(WARNING, "ContractStorage::GetContractStateJson failed");
-    return false;
-  }
-
-  try {
-    Json::Value balance;
-    balance["vname"] = "_balance";
-    balance["type"] = "Uint128";
-    balance["value"] = GetBalance().convert_to<string>();
-    roots.second.append(balance);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-    return false;
-  }
-  // LOG_GENERAL(INFO, "States: " << root);
-
-  return true;
 }
 
 bool Account::FetchStateJson(Json::Value& root, const string& vname,

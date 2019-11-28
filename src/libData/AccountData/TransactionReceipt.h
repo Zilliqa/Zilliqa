@@ -45,12 +45,13 @@ enum ReceiptError : unsigned int {
   LOG_ENTRY_INSTALL_FAILED,
   MESSAGE_CORRUPTED,
   RECEIPT_IS_NULL,
-  MAX_DEPTH_REACHED,
+  MAX_EDGES_REACHED,
   CHAIN_CALL_DIFF_SHARD,
   PREPARATION_FAILED,
   NO_OUTPUT,
   OUTPUT_ILLEGAL,
-  MAP_DEPTH_MISSING
+  MAP_DEPTH_MISSING,
+  GAS_NOT_SUFFICIENT
 };
 
 class TransactionReceipt : public SerializableDataBlock {
@@ -71,6 +72,7 @@ class TransactionReceipt : public SerializableDataBlock {
   void SetCumGas(const uint64_t& cumGas);
   void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
+  void CleanEntry();
   const std::string& GetString() const { return m_tranReceiptStr; }
   void SetString(const std::string& tranReceiptStr);
   const uint64_t& GetCumGas() const { return m_cumGas; }

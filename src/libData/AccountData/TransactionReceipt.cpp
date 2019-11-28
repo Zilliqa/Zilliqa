@@ -99,6 +99,10 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
+void TransactionReceipt::CleanEntry() {
+  m_tranReceiptObj.removeMember("event_logs");
+}
+
 void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
@@ -109,12 +113,10 @@ void TransactionReceipt::clear() {
 
 void TransactionReceipt::InstallError() {
   Json::Value errorObj;
-  unsigned int depth = 0;
-  for (const auto& e : m_errorObj) {
-    if (!e.empty()) {
-      errorObj[to_string(depth)] = e;
+  for (const auto& e : m_errorObj.getMemberNames()) {
+    if (!m_errorObj[e].empty()) {
+      errorObj[e] = m_errorObj[e];
     }
-    depth++;
   }
   if (!errorObj.empty()) {
     m_tranReceiptObj["errors"] = errorObj;
