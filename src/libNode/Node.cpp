@@ -2005,10 +2005,8 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
   }
 
   LOG_MARKER();
-  if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second) ||
-      Guard::GetInstance().IsNodeInShardGuardList(
-          m_mediator.m_selfKey.second)) {
-    LOG_GENERAL(INFO, "I am a guard node. So skipping sending...");
+  if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
+    LOG_GENERAL(INFO, "I am a ds guard node. So skipping sending...");
     return false;
   }
   bytes message = {MessageType::NODE,
