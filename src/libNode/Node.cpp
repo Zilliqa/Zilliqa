@@ -1997,6 +1997,13 @@ bool Node::IsShardNode(const Peer& peerInfo) {
 }
 
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::ComposeAndSendRemoveNodeFromBlacklist not "
+                "expected to be called from LookUp node.");
+    return false;
+  }
+
   LOG_MARKER();
   if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second) ||
       Guard::GetInstance().IsNodeInShardGuardList(
@@ -2023,13 +2030,17 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node
     {
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        peerList.push_back(i.second);
+      if (m_mediator.m_DSCommittee != nullptr) {
+        for (const auto& i : *m_mediator.m_DSCommittee) {
+          peerList.push_back(i.second);
+        }
       }
     } else {
       lock_guard<mutex> g(m_mutexShardMember);
-      for (const auto& i : *m_myShardMembers) {
-        peerList.push_back(i.second);
+      if (m_myShardMembers != nullptr) {
+        for (const auto& i : *m_myShardMembers) {
+          peerList.push_back(i.second);
+        }
       }
     }
     P2PComm::GetInstance().SendMessage(peerList, message);
