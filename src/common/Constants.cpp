@@ -355,8 +355,6 @@ const unsigned int MIN_READ_WATERMARK_IN_BYTES{
     ReadConstantNumeric("MIN_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 const unsigned int MAX_READ_WATERMARK_IN_BYTES{
     ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
-const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
-    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
 const unsigned int MAX_PEER_CONNECTION{
