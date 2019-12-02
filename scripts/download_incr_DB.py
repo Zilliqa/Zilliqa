@@ -32,7 +32,7 @@ STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
-TESTNET_NAME= 'TEST_NET_NAME'
+TESTNET_NAME= 'TESTNET_NAME'
 MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8 
 
@@ -219,9 +219,8 @@ def run():
 			continue
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
-	exit(0)
-
-if __name__ == "__main__":
+	return True
+def start():
 	if len(sys.argv) >= 2:
 		if os.path.isabs(sys.argv[1]):
 			STORAGE_PATH = sys.argv[1]
@@ -232,4 +231,8 @@ if __name__ == "__main__":
 		if len(sys.argv) == 3 and sys.argv[2] == "false":
 			Exclude_txnBodies = False
 			Exclude_microBlocks = False
-	run()
+	return run()
+
+if __name__ == "__main__":
+	return start()
+	

@@ -45,11 +45,11 @@
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
+#include "libPythonRunner/PythonRunner.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/SysCommand.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libValidator/Validator.h"
@@ -151,14 +151,9 @@ Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
-  string output;
-  // TBD - find better way to capture the exit status of command
   string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
-  SysCommand::ExecuteCmdWithOutput(boost::filesystem::current_path().string() +
-                                       "/" + "download_incr_DB.py " +
-                                       STORAGE_PATH + "/ " + excludembtxns,
-                                   output);
-  return (output.find("Done!") != std::string::npos);
+  return PythonRunner::RunPyFunc("download_incr_DB", "start",
+                                 {STORAGE_PATH + "/", excludembtxns});
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
