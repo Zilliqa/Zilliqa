@@ -291,7 +291,6 @@ extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
 extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
-extern const unsigned int CONNECTION_TIMEOUT_IN_SECONDS;
 extern const unsigned int BLACKLIST_NUM_TO_POP;
 extern const unsigned int MAX_PEER_CONNECTION;
 extern const unsigned int MAX_WHITELISTREQ_LIMIT;
