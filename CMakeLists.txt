@@ -49,10 +49,6 @@ find_package(websocketpp CONFIG REQUIRED)
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
-
-set(Python_ADDITIONAL_VERSIONS 3.2)
-
-
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options python-py35 REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)

@@ -32,7 +32,7 @@ STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
-TESTNET_NAME= 'TESTNET_NAME'
+TESTNET_NAME= 'TEST_NET_NAME'
 MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8 
 
@@ -234,5 +234,5 @@ def start():
 	return run()
 
 if __name__ == "__main__":
-	return start()
+	start()
 	
