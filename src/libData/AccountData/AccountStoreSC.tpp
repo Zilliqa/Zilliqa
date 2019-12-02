@@ -1002,7 +1002,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("message") || !_json.isMember("events")) {
+  if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Contract creation failed");
       receipt.AddError(CREATE_CONTRACT_FAILED);
@@ -1013,7 +1013,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
 
-  if (_json["message"].type() == Json::nullValue &&
+  if (_json["messages"].type() == Json::nullValue &&
       _json["states"].type() == Json::arrayValue &&
       _json["events"].type() == Json::arrayValue) {
     return true;
@@ -1125,7 +1125,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("message") || !_json.isMember("events")) {
+  if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
       receipt.AddError(CALL_CONTRACT_FAILED);
@@ -1180,13 +1180,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   bool ret = false;
 
-  if (_json["message"].type() != Json::arrayValue) {
-    LOG_GENERAL(INFO, "message is not in array value");
+  if (_json["messages"].type() != Json::arrayValue) {
+    LOG_GENERAL(INFO, "messages is not in array value");
     return false;
   }
 
   // If output message is null
-  if (_json["message"].empty()) {
+  if (_json["messages"].empty()) {
     LOG_GENERAL(INFO,
                 "empty message in scilla output when invoking a "
                 "contract, transaction finished");
@@ -1198,7 +1198,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   Account* account = nullptr;
 
   if (!ret) {
-    for (const auto& msg : _json["message"]) {
+    for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
       // Non-null messages must have few mandatory fields.
       if (!msg.isMember("_tag") || !msg.isMember("_amount") ||
