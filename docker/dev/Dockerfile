@@ -33,6 +33,7 @@ RUN apt-get update \
     libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
+    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
