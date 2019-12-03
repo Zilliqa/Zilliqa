@@ -49,6 +49,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
   LOG_MARKER();
   try {
     setenv("PYTHONPATH", ".", 1);
+    Py_Initialize();
 
     const int argc = params.size() + 1;
     wchar_t** _argv = (wchar_t**)PyMem_Malloc(sizeof(wchar_t*) * argc);
@@ -63,7 +64,6 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
       _argv[i] = arg;
     }
 
-    Py_Initialize();
     PySys_SetArgv(argc, _argv);
 
     LOG_GENERAL(INFO, "Inside py runner " << file);
@@ -95,6 +95,8 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     Py_Finalize();
     return false;
   }
+
+  return true;
 }
 
 boost::python::list PythonRunner::VectorToPyList(const vector<string>& str) {
