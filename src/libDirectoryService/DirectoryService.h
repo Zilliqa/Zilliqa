@@ -542,6 +542,9 @@ class DirectoryService : public Executable {
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
 
+  // Indicate if its dsguard and its pod got restarted.
+  bool m_dsguardPodDelete = false;
+
   // GetShards
   uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard
