@@ -307,6 +307,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         // downloads and sync from the persistence of incremental db and
         // and rejoins the network as ds guard member
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        m_ds.m_dsguardPodDelete = true;
         m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
