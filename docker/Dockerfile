@@ -35,7 +35,7 @@ RUN apt-get update \
     libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
-    python-dev \
+    python3-dev \
     libjsoncpp-dev \
     libjsonrpccpp-dev \
     libleveldb-dev \
