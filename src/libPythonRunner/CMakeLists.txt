@@ -1,4 +1,4 @@
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs 3 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 add_library(PythonRunner PythonRunner.cpp)
