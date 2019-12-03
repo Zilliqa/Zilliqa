@@ -46,6 +46,7 @@ std::string handle_pyerror() {
 
 bool PythonRunner::RunPyFunc(const string& file, const string& func,
                              const vector<string>& params) {
+  LOG_MARKER();
   try {
     setenv("PYTHONPATH", ".", 1);
 
@@ -65,6 +66,8 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     Py_Initialize();
     PySys_SetArgv(argc, _argv);
 
+    LOG_GENERAL(INFO, "Inside py runner " << file);
+
     object main = import("__main__");
     object global(main.attr("__dict__"));
 
@@ -76,9 +79,12 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
 
     return extract<bool>(ret);
 
+    Py_Finalize();
+
   }
 
   catch (const error_already_set&) {
+    LOG_GENERAL(INFO, "Py Exception");
     PyErr_Print();
     if (PyErr_Occurred()) {
       auto msg = handle_pyerror();
@@ -86,11 +92,9 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     }
     handle_exception();
     PyErr_Clear();
-
+    Py_Finalize();
     return false;
   }
-
-  return true;
 }
 
 boost::python::list PythonRunner::VectorToPyList(const vector<string>& str) {
