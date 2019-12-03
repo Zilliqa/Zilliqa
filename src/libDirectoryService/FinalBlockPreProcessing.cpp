@@ -1023,7 +1023,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return true;
   }
 
-#ifdef VC_TEST_VC_PRECHECK_2
+#if 1
   uint64_t dsCurBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   uint64_t txCurBlockNum =
