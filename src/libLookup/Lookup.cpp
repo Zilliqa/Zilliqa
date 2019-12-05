@@ -1385,7 +1385,8 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
+  if (!(VerifySenderNode(GetLookupNodesStatic(), lookupPubKey) ||
+        VerifySenderNode(GetSeedNodes(), lookupPubKey))) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
