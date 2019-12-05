@@ -86,7 +86,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
 
   catch (const error_already_set&) {
     LOG_GENERAL(INFO, "Py Exception");
-    PyErr_Print();
+    // PyErr_Print();
     if (PyErr_Occurred()) {
       LOG_GENERAL(INFO, "Inside");
       auto msg = handle_pyerror();
