@@ -111,6 +111,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
+  if (tx.GetGasLimit() >
+      (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
+           ? SHARD_MICROBLOCK_GAS_LIMIT
+           : DS_MICROBLOCK_GAS_LIMIT)) {
+    LOG_GENERAL(WARNING, "Txn gas limit too high");
+    return false;
+  }
+
   if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     return false;

@@ -460,6 +460,11 @@ Json::Value LookupServer::CreateTransaction(
           sendToDs = _json["priority"].asBool();
         }
         if ((to_shard == shard) && !sendToDs) {
+          if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(
+                RPC_INVALID_PARAMETER,
+                "txn gas limit exceeding shard maximum limit");
+          }
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
           }
@@ -467,6 +472,10 @@ Json::Value LookupServer::CreateTransaction(
               "Contract Txn, Shards Match of the sender "
               "and reciever";
         } else {
+          if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(RPC_INVALID_PARAMETER,
+                                   "txn gas limit exceeding ds maximum limit");
+          }
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
           } else {
