@@ -99,7 +99,7 @@ sys.stderr = catchOutErr\n\
 
     LOG_GENERAL(INFO, "Py Output: \n" << out);
 
-    //Py_Finalize();
+    // Py_Finalize();
 
     return extract<bool>(ret);
 
@@ -115,7 +115,7 @@ sys.stderr = catchOutErr\n\
     }
     handle_exception();
     PyErr_Clear();
-    //Py_Finalize();
+    // Py_Finalize();
     return false;
   }
 
