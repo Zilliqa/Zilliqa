@@ -65,6 +65,18 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
       _argv[i] = arg;
     }
 
+    std::string stdOutErr =
+        "import sys\n\
+class CatchOutErr:\n\
+    def __init__(self):\n\
+        self.value = ''\n\
+    def write(self, txt):\n\
+        self.value += txt\n\
+catchOutErr = CatchOutErr()\n\
+sys.stdout = catchOutErr\n\
+sys.stderr = catchOutErr\n\
+";
+
     PySys_SetArgv(argc, _argv);
 
     LOG_GENERAL(INFO, "Inside py runner " << file);
@@ -72,15 +84,24 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     object main = import("__main__");
     object global(main.attr("__dict__"));
 
+    PyRun_SimpleString(stdOutErr.c_str());
+
     object module = import(file.c_str());
 
     object exec = module.attr(func.c_str());
 
     object ret = exec();
 
-    return extract<bool>(ret);
+    PyObject* catcher = PyObject_GetAttrString(main.ptr(), "catchOutErr");
+    PyObject* output = PyObject_GetAttrString(catcher, "value");
 
-    Py_Finalize();
+    const string& out = extract<string>(output);
+
+    LOG_GENERAL(INFO, "Py Output: \n" << out);
+
+    //Py_Finalize();
+
+    return extract<bool>(ret);
 
   }
 
@@ -94,7 +115,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     }
     handle_exception();
     PyErr_Clear();
-    Py_Finalize();
+    //Py_Finalize();
     return false;
   }
 
