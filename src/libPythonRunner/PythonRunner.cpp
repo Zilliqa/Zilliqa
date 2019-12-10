@@ -53,13 +53,13 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     Py_Initialize();
 
     const int argc = params.size() + 1;
-    const auto& fullFileName = file + ".py";
+    // const auto& fullFileName = file + ".py";
     wchar_t** _argv = (wchar_t**)PyMem_Malloc(sizeof(wchar_t*) * argc);
     for (int i = 0; i < argc; i++) {
       wchar_t* arg;
       if (i == 0) {
         // case for basename of program
-        arg = Py_DecodeLocale(fullFileName.c_str(), NULL);
+        arg = Py_DecodeLocale("", NULL);
       } else {
         arg = Py_DecodeLocale(params[i - 1].c_str(), NULL);
       }
@@ -78,7 +78,7 @@ sys.stdout = catchOutErr\n\
 sys.stderr = catchOutErr\n\
 ";
 
-    PySys_SetArgvEx(argc, _argv, 0);
+    PySys_SetArgvEx(argc, _argv, 1);
 
     LOG_GENERAL(INFO, "Inside py runner " << file);
 
