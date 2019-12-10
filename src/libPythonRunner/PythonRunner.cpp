@@ -48,9 +48,10 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
                              const vector<string>& params) {
   LOG_MARKER();
   try {
-    // /const auto& currPath = boost::filesystem::current_path().string();
     setenv("PYTHONPATH", ".", 1);
     Py_Initialize();
+
+    const auto currPath = boost::filesystem::current_path();
 
     const int argc = params.size() + 1;
     // const auto& fullFileName = file + ".py";
@@ -100,7 +101,9 @@ sys.stderr = catchOutErr\n\
 
     LOG_GENERAL(INFO, "Py Output: \n" << out);
 
-    sleep(1);
+    // change back to original incase Py script modified it
+
+    boost::filesystem::current_path(currPath);
 
     return extract<bool>(ret);
 
