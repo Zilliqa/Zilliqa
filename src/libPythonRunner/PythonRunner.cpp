@@ -48,8 +48,8 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
                              const vector<string>& params) {
   LOG_MARKER();
   try {
-    const auto& currPath = boost::filesystem::current_path().string();
-    setenv("PYTHONPATH", currPath.c_str(), 1);
+    // /const auto& currPath = boost::filesystem::current_path().string();
+    setenv("PYTHONPATH", ".", 1);
     Py_Initialize();
 
     const int argc = params.size() + 1;
@@ -96,7 +96,7 @@ sys.stderr = catchOutErr\n\
     PyObject* catcher = PyObject_GetAttrString(main.ptr(), "catchOutErr");
     PyObject* output = PyObject_GetAttrString(catcher, "value");
 
-    const string& out = extract<string>(output);
+    const string out = extract<string>(output);
 
     LOG_GENERAL(INFO, "Py Output: \n" << out);
 
