@@ -48,7 +48,8 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
                              const vector<string>& params) {
   LOG_MARKER();
   try {
-    setenv("PYTHONPATH", ".", 1);
+    const auto& currPath = boost::filesystem::current_path().string();
+    setenv("PYTHONPATH", currPath.c_str(), 1);
     Py_Initialize();
 
     const int argc = params.size() + 1;
@@ -77,7 +78,7 @@ sys.stdout = catchOutErr\n\
 sys.stderr = catchOutErr\n\
 ";
 
-    PySys_SetArgv(argc, _argv);
+    PySys_SetArgvEx(argc, _argv, 0);
 
     LOG_GENERAL(INFO, "Inside py runner " << file);
 
@@ -98,6 +99,8 @@ sys.stderr = catchOutErr\n\
     const string& out = extract<string>(output);
 
     LOG_GENERAL(INFO, "Py Output: \n" << out);
+
+    sleep(1);
 
     return extract<bool>(ret);
 
