@@ -50,8 +50,8 @@ RUN apt-get update \
     python-pip \
     python3-dev \
     python3-pip \
-    pip3 install requests clint \
     libsecp256k1-dev \
+    && pip3 install requests clint \
     && rm -rf /var/lib/apt/lists/*
 
 # Intentionally left blank unless specific commit is provided in commandline
