@@ -118,10 +118,11 @@ class Account : public AccountBase {
   bytes m_initDataCache;
   Address m_address;  // used by contract account only
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
+  bool m_is_library = false;
 
   bool PrepareInitDataJson(const bytes& initData, const Address& addr,
                            const uint64_t& blockNum, Json::Value& root,
-                           uint32_t& scilla_version);
+                           uint32_t& scilla_version, bool& is_library);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -138,7 +139,7 @@ class Account : public AccountBase {
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum,
-                    uint32_t& scilla_version);
+                    uint32_t& scilla_version, bool& is_library);
 
   bool SetImmutable(const bytes& code, const bytes& initData);
 

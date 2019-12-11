@@ -351,6 +351,8 @@ extern const std::string INPUT_BLOCKCHAIN_JSON;
 extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
+extern const std::string CONTRACT_FILE_EXTENSION;
+extern const std::string LIBRARY_FILE_EXTENSION;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
 extern const bool LOG_SC;

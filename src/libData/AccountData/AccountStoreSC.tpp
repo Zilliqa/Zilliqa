@@ -51,16 +51,18 @@ template <class MAP>
 void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
                                               bool& ret_checker, int& pid,
                                               const uint64_t& gasRemained,
-                                              TransactionReceipt& receipt) {
-  auto func1 = [this, &checkerPrint, &ret_checker, &pid, &gasRemained,
-                &receipt]() mutable -> void {
+                                              TransactionReceipt& receipt,
+                                              bool is_library) {
+  auto func1 = [this, &checkerPrint, &ret_checker, &pid, &gasRemained, &receipt,
+                &is_library]() mutable -> void {
     try {
       if (!SysCommand::ExecuteCmd(
               SysCommand::WITH_OUTPUT_PID,
-              GetContractCheckerCmdStr(m_root_w_version, gasRemained),
+              GetContractCheckerCmdStr(m_root_w_version, is_library,
+                                       gasRemained),
               checkerPrint, pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetContractCheckerCmdStr(
-                                 m_root_w_version, gasRemained));
+                                 m_root_w_version, is_library, gasRemained));
         receipt.AddError(EXECUTE_CMD_FAILED);
         ret_checker = false;
       }
@@ -196,19 +198,21 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       bool init = true;
 
+      bool is_library;
       try {
         // Initiate the contract account, including setting the contract code
         // store the immutable states
         uint32_t scilla_version;
         if (!toAccount->InitContract(transaction.GetCode(),
                                      transaction.GetData(), toAddr, blockNum,
-                                     scilla_version)) {
+                                     scilla_version, is_library)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
 
         m_curBlockNum = blockNum;
-        if (init && !ExportCreateContractFiles(*toAccount, scilla_version)) {
+        if (init && !ExportCreateContractFiles(*toAccount, scilla_version,
+                                               is_library)) {
           LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
           init = false;
         }
@@ -236,7 +240,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string checkerPrint;
 
       int pid = -1;
-      InvokeScillaChecker(checkerPrint, ret_checker, pid, gasRemained, receipt);
+      InvokeScillaChecker(checkerPrint, ret_checker, pid, gasRemained, receipt,
+                          is_library);
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(
@@ -289,16 +294,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           std::string runnerPrint;
 
           pid = -1;
-          auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained,
-                        &receipt]() mutable -> void {
+          auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
+                        &is_library]() mutable -> void {
             try {
               if (!SysCommand::ExecuteCmd(
                       SysCommand::WITH_OUTPUT_PID,
-                      GetCreateContractCmdStr(m_root_w_version, gasRemained, 0),
+                      GetCreateContractCmdStr(m_root_w_version, is_library,
+                                              gasRemained, 0),
                       runnerPrint, pid)) {
                 LOG_GENERAL(WARNING,
                             "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                                m_root_w_version, gasRemained, 0));
+                                m_root_w_version, is_library, gasRemained, 0));
                 receipt.AddError(EXECUTE_CMD_FAILED);
                 ret = false;
               }
@@ -643,7 +649,7 @@ Json::Value AccountStoreSC<MAP>::GetBlockStateJson(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCreateContractFiles(
-    const Account& contract, const uint32_t& scilla_version) {
+    const Account& contract, const uint32_t& scilla_version, bool is_library) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -660,17 +666,26 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
 
   try {
     // Scilla code
-    std::ofstream os(INPUT_CODE);
+    std::ofstream os(INPUT_CODE + (is_library ? LIBRARY_FILE_EXTENSION
+                                              : CONTRACT_FILE_EXTENSION));
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
     os.open(INIT_JSON);
-    os << DataConversion::CharArrayToString(contract.GetInitData());
+    os << is_library
+        ? ""
+        : DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 
     // Block Json
-    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                             GetBlockStateJson(m_curBlockNum));
+    if (is_library) {
+      os.open(INPUT_BLOCKCHAIN_JSON);
+      os << "";
+      os.close();
+    } else {
+      JSONUtils::GetInstance().writeJsontoFile(
+          INPUT_BLOCKCHAIN_JSON, GetBlockStateJson(m_curBlockNum));
+    }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
@@ -708,7 +723,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
 
   try {
     // Scilla code
-    std::ofstream os(INPUT_CODE);
+    std::ofstream os(INPUT_CODE + CONTRACT_FILE_EXTENSION);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -807,12 +822,14 @@ bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
-    const std::string& root_w_version, const uint64_t& available_gas) {
+    const std::string& root_w_version, bool is_library,
+    const uint64_t& available_gas) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
-      std::to_string(available_gas);
+      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE +
+      (is_library ? LIBRARY_FILE_EXTENSION : CONTRACT_FILE_EXTENSION) +
+      " -gaslimit " + std::to_string(available_gas);
   if (LOG_SC) {
     LOG_GENERAL(INFO, cmdStr);
   }
@@ -821,13 +838,15 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
-    const std::string& root_w_version, const uint64_t& available_gas,
+    const std::string& root_w_version, bool is_library,
+    const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
       root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
       " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
       INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      (is_library ? LIBRARY_FILE_EXTENSION : CONTRACT_FILE_EXTENSION) +
       " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
       std::to_string(available_gas) + " -jsonerrors -balance " +
       balance.convert_to<std::string>();
@@ -846,10 +865,11 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
       " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
-      OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) +
-      " -disable-pp-json" + " -disable-validate-json" +
-      " -jsonerrors -balance " + balance.convert_to<std::string>();
+      OUTPUT_JSON + " -i " + INPUT_CODE + CONTRACT_FILE_EXTENSION +
+      " -libdir " + root_w_version + '/' + SCILLA_LIB + " -gaslimit " +
+      std::to_string(available_gas) + " -disable-pp-json" +
+      " -disable-validate-json" + " -jsonerrors -balance " +
+      balance.convert_to<std::string>();
   if (LOG_SC) {
     LOG_GENERAL(INFO, cmdStr);
   }

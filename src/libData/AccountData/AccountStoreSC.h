@@ -134,10 +134,12 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
   /// get the command for invoking the scilla_checker while deploying
   std::string GetContractCheckerCmdStr(const std::string& root_w_version,
+                                       bool is_library,
                                        const uint64_t& available_gas);
   /// get the command for invoking the scilla_runner while deploying
   std::string GetCreateContractCmdStr(
-      const std::string& root_w_version, const uint64_t& available_gas,
+      const std::string& root_w_version, bool is_library,
+      const uint64_t& available_gas,
       const boost::multiprecision::uint128_t& balance);
   /// get the command for invoking the scilla_runner while calling
   std::string GetCallContractCmdStr(
@@ -172,12 +174,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(const Account& contract,
-                                 const uint32_t& scilla_version);
+                                 const uint32_t& scilla_version,
+                                 bool is_library);
 
   /// capsulate and expose in protected for using by data migartion
   void InvokeScillaChecker(std::string& checkerPrint, bool& ret_checker,
                            int& pid, const uint64_t& gasRemained,
-                           TransactionReceipt& receipt);
+                           TransactionReceipt& receipt, bool is_library);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

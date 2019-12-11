@@ -138,7 +138,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum,
-                           uint32_t& scilla_version) {
+                           uint32_t& scilla_version, bool& is_library) {
   LOG_MARKER();
   if (isContract()) {
     LOG_GENERAL(WARNING, "Already Initialized");
@@ -147,7 +147,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
 
   Json::Value initDataJson;
   if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson,
-                           scilla_version)) {
+                           scilla_version, is_library)) {
     LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
   }
@@ -195,7 +195,7 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
-                                  uint32_t& scilla_version) {
+                                  uint32_t& scilla_version, bool& is_library) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
@@ -207,20 +207,51 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   }
 
   bool found_scilla_version = false;
+  bool found_is_library = false;
+
   for (const auto& entry : root) {
     if (entry.isMember("vname") && entry.isMember("type") &&
-        entry.isMember("value") && entry["vname"] == "_scilla_version" &&
-        entry["type"] == "Uint32") {
-      try {
-        m_scilla_version =
-            boost::lexical_cast<uint32_t>(entry["value"].asString());
-        scilla_version = m_scilla_version;
-        found_scilla_version = true;
-      } catch (...) {
-        LOG_GENERAL(WARNING,
-                    "invalid value for _scilla_version " << entry["value"]);
+        entry.isMember("value")) {
+      if (entry["vname"] == "_scilla_version" && entry["type"] == "Uint32") {
+        if (found_scilla_version) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_scilla_version\"");
+          return false;
+        }
+        try {
+          m_scilla_version =
+              boost::lexical_cast<uint32_t>(entry["value"].asString());
+          scilla_version = m_scilla_version;
+          found_scilla_version = true;
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "invalid value for _scilla_version " << entry["value"]);
+          return false;
+        }
+        // break;
+        if (found_is_library) {
+          break;
+        }
       }
-      break;
+
+      if (entry["vname"] == "_library" && entry["type"] == "Bool") {
+        if (found_is_library) {
+          LOG_GENERAL(INFO, "Got multiple field of \"_library\"");
+          return false;
+        }
+        if (entry["value"].isMember("constructor") &&
+            entry["value"]["constructor"].asString() == "True") {
+          m_is_library = true;
+        }
+        is_library = m_is_library;
+        found_is_library = true;
+        if (found_scilla_version) {
+          break;
+        }
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Wrong data format spotted in init_data: "
+                               << DataConversion::CharArrayToString(initData));
+      return false;
     }
   }
 
