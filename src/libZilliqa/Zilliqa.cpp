@@ -197,6 +197,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           "Downloading persistence from S3 has failed. Will try again!");
       this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
     }
+    if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+      LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+    }
+    if (!AccountStore::GetInstance().RefreshDB()) {
+      LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+    }
   }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
