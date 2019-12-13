@@ -227,7 +227,6 @@ def calculate_multipart_etag(source_path, chunk_size):
 def run():
 	while (True):
 		try:
-			restartAgain = False
 			currTxBlk = -1
 			if(UploadLock() == False):
 				currTxBlk = GetCurrentTxBlkNum()
