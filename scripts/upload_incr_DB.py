@@ -155,7 +155,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			t.type = tarfile.DIRTYPE
 			tf.addfile(t)
 			tf.close()
-			bashCommand = "aws s3 cp persistence_"+str(blockNum)+".tar.gz"+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence_"+str(blockNum)+".tar.gz"
+			bashCommand = "aws s3 cp persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence_"+str(blockNum)+".tar.gz"
 			process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 			output, error = process.communicate()
 			print("DUMMY upload: persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced")
@@ -173,7 +173,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 					print(x)
 					tf.add(x,arcname="persistence_"+str(blockNum)+"/"+ x.split("persistence/",1)[1]) 
 				tf.close()
-				bashCommand = "aws s3 cp persistence_"+str(blockNum)+".tar.gz"+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence_"+str(blockNum)+".tar.gz"
+				bashCommand = "aws s3 cp persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence_"+str(blockNum)+".tar.gz"
 				process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 				output, error = process.communicate()
 				print("Persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced without state/stateroot/txBodies/txBodiesTmp/microblocks/contractCode/contractStateData/contractStateIndex")

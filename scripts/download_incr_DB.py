@@ -251,8 +251,9 @@ def run():
 					# new base persistence already. So start again :(
 					continue					
 				#get diff of persistence and stadedeltas for newly mined txblocks
-				while(currTxBlk < newTxBlkNum):
-					lst.append(++currTxBlk)
+				while(currTxBlk <= newTxBlkNum):
+					lst.append(currTxBlk)
+					currTxBlk += 1
 				GetPersistenceDiffFromS3(lst)
 				GetStateDeltaFromS3(lst)
 			break
