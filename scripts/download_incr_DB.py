@@ -52,12 +52,41 @@ def UploadLock():
 		return True
 	return False
 
+def GetCurrentTxBlkNum():
+	response = requests.get(PERSISTENCE_SNAPSHOT_URL+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True)
+	print response.text
+	return int(response.text.strip())
+
 def GetEntirePersistenceFromS3():
 	CleanupDir(STORAGE_PATH + "/persistence")
 	CreateAndChangeDir(STORAGE_PATH)
 	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
 
+def GetPersistenceDiffFromS3(txnBlkList):
+	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
+	for key in txnBlkList:
+		filename = "persistence_"+key
+		print("Fetching persistence diff for block = " + key)
+		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+		ExtractAllGzippedObjects()	
+		shutil.copytree(filename, STORAGE_PATH+"/persistence")
+		shutil.rmtree(filename)
+	os.chdir(STORAGE_PATH)
+	shutil.rmtree(STORAGE_PATH+'/persistenceDiff')
+
+def GetStateDeltaFromS3(txnBlkList):
+	if txnBlkList:
+		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3'):
+		for key in txnBlkList:
+				filename = "stateDelta_"+key
+				print("Fetching statedelta for block = " + key)
+				GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+	else
+		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
+		GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
+	ExtractAllGzippedObjects()
+	os.chdir(STORAGE_PATH)
 
 def GetStateDeltaFromS3():
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
@@ -198,18 +227,35 @@ def calculate_multipart_etag(source_path, chunk_size):
 def run():
 	while (True):
 		try:
+			restartAgain = False
+			currTxBlk = -1
 			if(UploadLock() == False):
+				currTxBlk = GetCurrentTxBlkNum()
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:
-				continue
-
-			if(UploadLock() == True):
-				print("Upload has been triggered. Downloading StateDelta now can cause inconsistent data. will restart again..")
+				time.sleep(1)
 				continue
 
 			print("Started downloading State-Delta")
 			GetStateDeltaFromS3()
+
+			newTxBlk = GetCurrentTxBlkNum()
+			if(currTxBlk < newTxBlk):
+				# To get new files from S3 if new files where uploaded in meantime
+				while(UploadLock() == True):
+					time.sleep(1)
+			else:
+				break
+			if(currTxBlk < newTxBlk):
+				if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
+					# new base persistence already. So start again :(
+					continue					
+				#get diff of persistence and stadedeltas for newly mined txblocks
+				while(currTxBlk < newTxBlkNum):
+					lst.append(++currTxBlk)
+				GetPersistenceDiffFromS3(lst)
+				GetStateDeltaFromS3(lst)
 			break
 
 		except Exception as e:
