@@ -1385,7 +1385,8 @@ bool Lookup::ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodesStatic(), lookupPubKey)) {
+  if (!(VerifySenderNode(GetLookupNodesStatic(), lookupPubKey) ||
+        VerifySenderNode(GetSeedNodes(), lookupPubKey))) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -2275,10 +2276,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         }
       }
     }
-  } else if (m_syncType == SyncType::DS_SYNC ||
-             /* Re-assigned DSGUARD-POD allowed to rejoin only in vacaous epoch
-                for now */
-             (m_syncType == SyncType::GUARD_DS_SYNC &&
+  } else if ((m_syncType == SyncType::DS_SYNC ||
+              m_syncType == SyncType::GUARD_DS_SYNC) &&
+             (!m_mediator.m_ds->m_dsguardPodDelete ||
+              /* Re-assigned DSGUARD-POD allowed to rejoin only in vacaous epoch
+                 for now */
               m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
     if (!m_currDSExpired &&
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <

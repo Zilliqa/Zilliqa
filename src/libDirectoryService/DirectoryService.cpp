@@ -574,6 +574,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
     LOG_GENERAL(
         INFO,
         "Sent ds guard network information update to lookup and ds committee")
+    m_dsguardPodDelete = false;
   }
 
   m_mode = BACKUP_DS;

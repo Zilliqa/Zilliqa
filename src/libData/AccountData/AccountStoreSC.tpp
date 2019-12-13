@@ -1199,7 +1199,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   if (!ret) {
     Address curContractAddr = m_curContractAddr;
-
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
       // Non-null messages must have few mandatory fields.
