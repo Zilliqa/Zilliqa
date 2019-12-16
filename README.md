@@ -78,7 +78,7 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libcurl4-openssl-dev libboost-program-options-dev gawk
+        libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev gawk
     ```
 
 ## Build from Source Code
