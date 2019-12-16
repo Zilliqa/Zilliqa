@@ -26,6 +26,7 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Lock
 import hashlib
+from distutils.dir_util import copy_tree
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -34,7 +35,9 @@ CHUNK_SIZE = 4096
 EXPEC_LEN = 2
 TESTNET_NAME= 'TEST_NET_NAME'
 MAX_WORKER_JOBS = 50
-S3_MULTIPART_CHUNK_SIZE_IN_MB = 8 
+S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
+NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
+NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
@@ -48,7 +51,7 @@ def getURL():
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
-	if response.status_code == 200:GetCurrentTxBlkNum
+	if response.status_code == 200:
 		return True
 	return False
 
@@ -61,6 +64,7 @@ def GetCurrentTxBlkNum():
 
 def GetEntirePersistenceFromS3():
 	CleanupDir(STORAGE_PATH + "/persistence")
+	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
 	CreateAndChangeDir(STORAGE_PATH)
 	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
@@ -68,12 +72,13 @@ def GetEntirePersistenceFromS3():
 def GetPersistenceDiffFromS3(txnBlkList):
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
 	for key in txnBlkList:
-		filename = "diff_persistence_"+key
-		print("Fetching persistence diff for block = " + key)
+		filename = "diff_persistence_"+str(key)
+		print("Fetching persistence diff for block = " + str(key))
 		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
-		ExtractAllGzippedObjects()	
-		shutil.copytree(filename, STORAGE_PATH+"/persistence")
-		shutil.rmtree(filename)
+		if os.path.exists(filename) :
+			ExtractAllGzippedObjects()
+			copy_tree(filename, STORAGE_PATH+"/persistence/")
+			shutil.rmtree(filename)
 	os.chdir(STORAGE_PATH)
 	shutil.rmtree(STORAGE_PATH+'/persistenceDiff')
 
@@ -81,8 +86,8 @@ def GetStateDeltaFromS3(txnBlkList):
 	if txnBlkList:
 		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		for key in txnBlkList:
-				filename = "stateDelta_"+key
-				print("Fetching statedelta for block = " + key)
+				filename = "stateDelta_"+str(key)
+				print("Fetching statedelta for block = " + str(key)
 				GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
 	else:
 		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
@@ -135,6 +140,8 @@ def GetPersistenceKey(key_url):
 	retry_counter = 0
 	while True:
 		response = requests.get(key_url, stream=True)
+		if response.status_code != 200:
+			break
 		filename = key_url.replace(key_url[:key_url.index(TESTNET_NAME+"/")+len(TESTNET_NAME+"/")],"").strip()
 
 		dirname = os.path.dirname(filename).strip()
@@ -240,7 +247,7 @@ def run():
 
 			print("Started downloading State-Delta")
 			GetStateDeltaFromS3()
-
+			#time.sleep(30) // uncomment it for test purpose.
 			newTxBlk = GetCurrentTxBlkNum()
 			if(currTxBlk < newTxBlk):
 				# To get new files from S3 if new files where uploaded in meantime
@@ -253,8 +260,9 @@ def run():
 					# new base persistence already. So start again :(
 					continue					
 				#get diff of persistence and stadedeltas for newly mined txblocks
-				while(currTxBlk <= newTxBlkNum):
-					lst.append(currTxBlk)
+				lst = []
+				while(currTxBlk < newTxBlk):
+					lst.append(currTxBlk+1)
 					currTxBlk += 1
 				GetPersistenceDiffFromS3(lst)
 				GetStateDeltaFromS3(lst)
