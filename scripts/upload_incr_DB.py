@@ -141,11 +141,13 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			CleanS3StateDeltas()
 			CleanS3PersistenceDiffs() # exclude state/stateroot/txBodies/txBodiesTmp/microblocks
 
-	elif (result == 0): # if has state delta diff, we still need to sync persistence/stateDelta so that next time for next blocknum we can get statedelta diff correctly
-		# Find the persistence diff and upload diff except for state, statedelta, stateroot, txBodies, txBodiesTmp, contractCode, contractStateData, contractStateIndex, microblocks
+	elif (result == 0):
+		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
 		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
-		process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		diff_output, error = process.communicate()
+		logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
+
 		str_diff_output = diff_output.decode("utf-8")
 		print(str_diff_output)
 		if re.match(r'^\s*$', str_diff_output):
@@ -162,28 +164,25 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			os.remove("persistence_"+str(blockNum)+".tar.gz")
 		else:
 			str_diff_output = str_diff_output.strip()
-			splitted = str_diff_output.split('\n')
+			splitted = str_diff_output.split('\n'):
 			result=[]
 			if(len(splitted) > 0):
 				for x in splitted:
-						result.append(x.split(' ')[2])
+					tok = x.split(' ');
+					# skip deleted files
+					if(len(tok) >= 3 and tok[1] == "upload:"): 
+						result.append(tok[2])
 
-				tf = tarfile.open("persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
-				for x in result:
-					print(x)
-					tf.add(x,arcname="persistence_"+str(blockNum)+"/"+ x.split("persistence/",1)[1]) 
-				tf.close()
-				bashCommand = "aws s3 cp persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence_"+str(blockNum)+".tar.gz"
-				process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-				output, error = process.communicate()
-				print("Persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced without state/stateroot/txBodies/txBodiesTmp/microblocks/contractCode/contractStateData/contractStateIndex")
-				os.remove("persistence_"+str(blockNum)+".tar.gz")
-
-		# we still need to sync persistence except for state, stateroot, txBodies, txBodiesTmp, contractCode, contractStateData, contractStateIndex, microblocks so that next time for next blocknum we can get statedelta diff and persistence diff correctly
-		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
-		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		output, error = process.communicate()
-		logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
+			tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
+			for x in result:
+				print(x)
+				tf.add(x,arcname="diff_persistence_"+str(blockNum)+"/"+ x.split("persistence/",1)[1]) 
+			tf.close()
+			bashCommand = "aws s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
+			process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+			output, error = process.communicate()
+			print("Persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced without state/stateroot/contractCode/contractStateData/contractStateIndex")
+			os.remove("diff_persistence_"+str(blockNum)+".tar.gz")
 	else:
 		logging.info("Not supposed to upload state now!")
 

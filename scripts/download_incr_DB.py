@@ -48,14 +48,16 @@ def getURL():
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
-	if response.status_code == 200:
+	if response.status_code == 200:GetCurrentTxBlkNum
 		return True
 	return False
 
 def GetCurrentTxBlkNum():
-	response = requests.get(PERSISTENCE_SNAPSHOT_URL+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True)
-	print response.text
-	return int(response.text.strip())
+	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True)
+	if response.status_code == 200:
+		return int(response.text.strip())
+	else:
+		return -1
 
 def GetEntirePersistenceFromS3():
 	CleanupDir(STORAGE_PATH + "/persistence")
@@ -66,7 +68,7 @@ def GetEntirePersistenceFromS3():
 def GetPersistenceDiffFromS3(txnBlkList):
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
 	for key in txnBlkList:
-		filename = "persistence_"+key
+		filename = "diff_persistence_"+key
 		print("Fetching persistence diff for block = " + key)
 		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
 		ExtractAllGzippedObjects()	
@@ -77,12 +79,12 @@ def GetPersistenceDiffFromS3(txnBlkList):
 
 def GetStateDeltaFromS3(txnBlkList):
 	if txnBlkList:
-		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3'):
+		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		for key in txnBlkList:
 				filename = "stateDelta_"+key
 				print("Fetching statedelta for block = " + key)
 				GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
-	else
+	else:
 		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
