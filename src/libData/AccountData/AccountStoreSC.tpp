@@ -625,6 +625,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       break;
   }
 
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+  }
+
   return true;
 }
 
