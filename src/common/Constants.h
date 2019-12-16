@@ -38,13 +38,9 @@ const unsigned int UINT128_SIZE = 16;
 const unsigned int INT256_SIZE = 32;
 
 // Cryptographic sizes
-const unsigned int PRIV_KEY_SIZE = 32;
 const unsigned int PUB_KEY_SIZE = 33;
 const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
 const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
-const unsigned int COMMIT_SECRET_SIZE = 32;
-const unsigned int COMMIT_POINT_HASH_SIZE = 32;
-const unsigned int COMMIT_POINT_SIZE = 33;
 const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
