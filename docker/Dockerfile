@@ -32,8 +32,10 @@ RUN apt-get update \
     libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
+    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
+    python3-dev \
     libjsoncpp-dev \
     libjsonrpccpp-dev \
     libleveldb-dev \
@@ -46,10 +48,13 @@ RUN apt-get update \
     pkg-config \
     python \
     python-pip \
+    python3-setuptools \
+    python3-pip \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
-    && pip install request requests clint futures
+    && pip install request requests clint futures \
+    && pip3 install request requests clint futures 
 
 ARG ZILLIQA_VERSION=v6.0.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git

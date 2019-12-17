@@ -191,6 +191,21 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
   }
 
+  if (SyncType::NEW_LOOKUP_SYNC == syncType || SyncType::NEW_SYNC == syncType) {
+    while (!m_n.DownloadPersistenceFromS3()) {
+      LOG_GENERAL(
+          WARNING,
+          "Downloading persistence from S3 has failed. Will try again!");
+      this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+    }
+    if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+      LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+    }
+    if (!AccountStore::GetInstance().RefreshDB()) {
+      LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+    }
+  }
+
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     LogSelfNodeInfo(key, peer);
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {

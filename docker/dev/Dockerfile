@@ -33,6 +33,7 @@ RUN apt-get update \
     libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
+    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
@@ -47,7 +48,11 @@ RUN apt-get update \
     pkg-config \
     python \
     python-pip \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
     libsecp256k1-dev \
+    && pip3 install requests clint \
     && rm -rf /var/lib/apt/lists/*
 
 # Intentionally left blank unless specific commit is provided in commandline
