@@ -64,7 +64,7 @@ def GetCurrentTxBlkNum():
 
 def GetEntirePersistenceFromS3():
 	CleanupDir(STORAGE_PATH + "/persistence")
-	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
+	CleanupDir(STORAGE_PATH+'/persistenceDiff')
 	CreateAndChangeDir(STORAGE_PATH)
 	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
@@ -80,7 +80,7 @@ def GetPersistenceDiffFromS3(txnBlkList):
 			copy_tree(filename, STORAGE_PATH+"/persistence/")
 			shutil.rmtree(filename)
 	os.chdir(STORAGE_PATH)
-	shutil.rmtree(STORAGE_PATH+'/persistenceDiff')
+	CleanupDir(STORAGE_PATH+'/persistenceDiff')
 
 def GetStateDeltaDiffFromS3(txnBlkList):
 	if txnBlkList:
