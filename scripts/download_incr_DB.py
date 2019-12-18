@@ -87,7 +87,7 @@ def GetStateDeltaFromS3(txnBlkList):
 		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		for key in txnBlkList:
 			filename = "stateDelta_"+str(key)
-			print("Fetching statedelta for block = " + str(key)
+			print("Fetching statedelta for block = " + str(key))
 			GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
 	else:
 		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
