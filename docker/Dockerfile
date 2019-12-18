@@ -54,7 +54,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
     && pip install request requests clint futures \
-    && pip3 install request requests clint futures 
+    && pip3 install requests clint futures 
 
 ARG ZILLIQA_VERSION=v6.0.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
