@@ -82,7 +82,7 @@ def GetPersistenceDiffFromS3(txnBlkList):
 	os.chdir(STORAGE_PATH)
 	shutil.rmtree(STORAGE_PATH+'/persistenceDiff')
 
-def GetStateDeltaFromS3(txnBlkList):
+def GetStateDeltaDiffFromS3(txnBlkList):
 	if txnBlkList:
 		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		for key in txnBlkList:
@@ -119,7 +119,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 		lastkey = ''
 		for key in tree[startInd:]:
 			key_url = key[0].text
-			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url)):
+			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url) and not ("diff_persistence" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
 			lastkey = key_url
@@ -265,7 +265,7 @@ def run():
 					lst.append(currTxBlk+1)
 					currTxBlk += 1
 				GetPersistenceDiffFromS3(lst)
-				GetStateDeltaFromS3(lst)
+				GetStateDeltaDiffFromS3(lst)
 			break
 
 		except Exception as e:
