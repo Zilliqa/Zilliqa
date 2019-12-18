@@ -54,7 +54,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
     && pip install request requests clint futures \
-    && pip3 install request requests clint futures
+    && pip3 install request requests clint future
 
 ############################### CUDA Installation ##############################
 # taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/base/Dockerfile
