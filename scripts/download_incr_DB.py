@@ -75,7 +75,7 @@ def GetPersistenceDiffFromS3(txnBlkList):
 		filename = "diff_persistence_"+str(key)
 		print("Fetching persistence diff for block = " + str(key))
 		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
-		if os.path.exists(filename) :
+		if os.path.exists(filename+".tar.gz") :
 			ExtractAllGzippedObjects()
 			copy_tree(filename, STORAGE_PATH+"/persistence/")
 			shutil.rmtree(filename)
