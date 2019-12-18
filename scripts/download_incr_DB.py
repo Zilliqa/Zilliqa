@@ -239,6 +239,9 @@ def run():
 			currTxBlk = -1
 			if(UploadLock() == False):
 				currTxBlk = GetCurrentTxBlkNum()
+				if(currTxBlk < 0): # wait until current txblk is known
+					time.sleep(1)
+					continue
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:

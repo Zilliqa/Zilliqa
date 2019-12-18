@@ -139,8 +139,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 		# clear the state-delta bucket now.
 		if(lastBlockNum != 0):
 			CleanS3StateDeltas()
-			CleanS3PersistenceDiffs() # exclude state/stateroot/txBodies/txBodiesTmp/microblocks
-
+			CleanS3PersistenceDiffs()
 	elif (result == 0):
 		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
 		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
@@ -168,7 +167,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 				for x in splitted:
 					tok = x.split(' ')
 					# skip deleted files
-					if(len(tok) >= 3 and tok[0] == "upload:"): 
+					if(len(tok) >= 3 and tok[0] == "upload:"):
 						result.append(tok[1])
 
 			tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
@@ -424,7 +423,8 @@ def main():
 					logging.info("TxBlk: " + str(blockNum))
 					SetLock()
 					# write current txBlkNum to file
-					SetCurrentTxBlkNum(str(blockNum))					# create temp copy of local persistence
+					SetCurrentTxBlkNum(str(blockNum))
+					# create temp copy of local persistence
 					CreateTempPersistence()
 					# upload/sync the temporary copied persistence with S3
 					SyncLocalToS3Persistence(blockNum,lastBlockNum)
