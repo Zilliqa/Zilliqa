@@ -166,6 +166,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
 
+  // We no longer use DB_VERIF for persistence checking
+#if 0
   if (syncType == SyncType::DB_VERIF) {
     m_mediator.m_dsBlockChain.Reset();
     m_mediator.m_txBlockChain.Reset();
@@ -178,6 +180,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
 
     return true;
   }
+#endif
 
   if (toRetrieveHistory) {
     if (!StartRetrieveHistory(syncType, rejoiningAfterRecover)) {
