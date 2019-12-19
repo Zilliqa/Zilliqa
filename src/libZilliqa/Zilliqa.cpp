@@ -326,10 +326,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
+        LOG_GENERAL(FATAL, "Use of deprecated syncType=DB_VERIF");
+#if 0
         LOG_GENERAL(INFO, "Intitialize DB verification");
         m_n.ValidateDB();
         std::this_thread::sleep_for(std::chrono::seconds(10));
         raise(SIGKILL);
+#endif
         break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
