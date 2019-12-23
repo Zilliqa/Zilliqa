@@ -172,7 +172,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   }
 
-  if(SyncType::NEW_SYNC == syncType){
+  if (SyncType::NEW_SYNC == syncType) {
     // Setting it earliest before even p2pcomm is instantiated
     m_n.m_runFromLate = true;
   }
