@@ -258,17 +258,16 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if(currTxBlk < newTxBlk):
-				if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
-					# new base persistence already. So start again :(
-					continue					
-				#get diff of persistence and stadedeltas for newly mined txblocks
-				lst = []
-				while(currTxBlk < newTxBlk):
-					lst.append(currTxBlk+1)
-					currTxBlk += 1
-				GetPersistenceDiffFromS3(lst)
-				GetStateDeltaDiffFromS3(lst)
+			if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
+				# new base persistence already. So start again :(
+				continue					
+			#get diff of persistence and stadedeltas for newly mined txblocks
+			lst = []
+			while(currTxBlk < newTxBlk):
+				lst.append(currTxBlk+1)
+				currTxBlk += 1
+			GetPersistenceDiffFromS3(lst)
+			GetStateDeltaDiffFromS3(lst)
 			break
 
 		except Exception as e:

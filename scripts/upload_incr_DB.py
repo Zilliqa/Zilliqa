@@ -147,7 +147,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 		str_diff_output, error = process.communicate()
 		logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
 
-		if re.match(r'^\s*$', str_diff_output):
+		if re.match(r'^\s*$', str_diff_output): # if output of sync command is either empty or just whitespaces
 			print("No persistence diff, interesting...")
 			tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
 			t = tarfile.TarInfo("diff_persistence_"+str(blockNum))
