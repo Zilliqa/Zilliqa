@@ -52,6 +52,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
     Py_Initialize();
 
     const auto currPath = boost::filesystem::current_path();
+    const auto fileName = file + ".py";
 
     const int argc = params.size() + 1;
     // const auto& fullFileName = file + ".py";
@@ -60,7 +61,7 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
       wchar_t* arg;
       if (i == 0) {
         // case for basename of program
-        arg = Py_DecodeLocale("", NULL);
+        arg = Py_DecodeLocale(fileName.c_str(), NULL);
       } else {
         arg = Py_DecodeLocale(params[i - 1].c_str(), NULL);
       }
@@ -79,7 +80,7 @@ sys.stdout = catchOutErr\n\
 sys.stderr = catchOutErr\n\
 ";
 
-    PySys_SetArgvEx(argc, _argv, 1);
+    PySys_SetArgvEx(argc, _argv, 0);
 
     LOG_GENERAL(INFO, "Inside py runner " << file);
 
