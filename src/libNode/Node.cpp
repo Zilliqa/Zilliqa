@@ -285,6 +285,21 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   const uint64_t latestTxBlockNum = latestTxBlock->GetHeader().GetBlockNum();
   const uint64_t latestDSIndex = latestTxBlock->GetHeader().GetDSBlockNum();
 
+  auto getTime = []() -> string {
+    auto cur_time_t =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream ss;
+    ss << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T");
+    return ss.str();
+  };
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Latest Tx block = " << latestTxBlockNum
+         << endl;
+    cout << "[" << getTime() << "] Latest DS block = " << latestDSIndex << endl;
+    cout << "[" << getTime() << "] Loading dir blocks" << endl;
+  }
+
   // Load all dir blocks (until latestTxBlockNum) from blocklink chain
   std::list<BlockLink> blocklinks;
   if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
@@ -343,6 +358,10 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     }
   }
 
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Checking dir blocks" << endl;
+  }
+
   // Check the dir blocks
   DequeOfNode dsComm;
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
@@ -351,6 +370,10 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
     LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
     return false;
+  }
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Checking Tx blocks" << endl;
   }
 
   // Check the latest Tx Block
@@ -395,8 +418,8 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     if (!*result && !fromIsolatedBinary) {
       return;
     }
-    if (fromIsolatedBinary && (blockNum % 100 == 0)) {
-      LOG_GENERAL(INFO, "On Tx block " << blockNum);
+    if (fromIsolatedBinary && (blockNum % 1000 == 0)) {
+      cout << "[" << getTime() << "] On Tx block " << blockNum << endl;
     }
 
     // Fetch the block
@@ -488,6 +511,10 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
 
   while (validatePool.GetJobsLeft() > 0) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Done" << endl;
   }
 
   return *result;
