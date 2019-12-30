@@ -117,12 +117,19 @@ class Account : public AccountBase {
   bytes m_codeCache;
   bytes m_initDataCache;
   Address m_address;  // used by contract account only
+  Json::Value m_initDataJson = Json::nullValue;
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
   bool m_is_library = false;
+  std::vector<std::pair<std::string, Address>> m_extlibs;
 
-  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
-                           const uint64_t& blockNum, Json::Value& root,
-                           uint32_t& scilla_version, bool& is_library);
+  bool PrepareInitDataJson(
+      const bytes& initData, const Address& addr, const uint64_t& blockNum,
+      Json::Value& root, uint32_t& scilla_version, bool& is_library,
+      std::vector<std::pair<std::string, Address>>& extlibs);
+
+  bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
+                     bool& is_library,
+                     std::vector<std::pair<std::string, Address>>& extlibs);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -136,10 +143,15 @@ class Account : public AccountBase {
   Account(const uint128_t& balance, const uint64_t& nonce,
           const uint32_t& version = ACCOUNT_VERSION);
 
+  bool GetIsLibrary(bool& is_library);
+
+  bool GetScillaVersion(uint32_t& scilla_version);
+
+  bool GetExternalLibs(std::vector<std::pair<std::string, Address>>& extlibs);
+
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
-                    const Address& addr, const uint64_t& blockNum,
-                    uint32_t& scilla_version, bool& is_library);
+                    const Address& addr, const uint64_t& blockNum);
 
   bool SetImmutable(const bytes& code, const bytes& initData);
 
@@ -167,7 +179,12 @@ class Account : public AccountBase {
 
   const bytes GetInitData() const;
 
-  bool GetScillaVersion(uint32_t& scilla_version);
+  bool GetContractAuxiliaries(
+      bool& is_library, uint32_t& scilla_version,
+      std::vector<std::pair<std::string, Address>>& extlibs);
+
+  // includes scilla_version, is_library, and extlibs
+  bool RetrieveContractAuxiliaries();
 
   /// !temp represents getting whole states
   void GetUpdatedStates(std::map<std::string, bytes>& t_states,
