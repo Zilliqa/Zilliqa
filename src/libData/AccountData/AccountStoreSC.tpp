@@ -698,6 +698,12 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
           std::map<std::string, std::string>& extlibs_exports) -> bool {
     // export extlibs
     for (const auto& lib : extlibs) {
+      /// Check whether there are caches
+      std::string file_path = lib.second.hex() + '/' + lib.first;
+      if (boost::filesystem::exists(file_path)) {
+        continue;
+      }
+
       Account* libAcc = this->GetAccount(lib.second);
       if (libAcc == nullptr) {
         LOG_GENERAL(WARNING, "libAcc: " << lib.second << " is not existing");
@@ -730,7 +736,7 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
         return false;
       }
       extlibs_exports.emplace(
-          lib.first, DataConversion::CharArrayToString(libAcc->GetCode()));
+          file_path, DataConversion::CharArrayToString(libAcc->GetCode()));
 
       if (!extlibsExporter(ext_extlibs, extlibs_exports)) {
         return false;
@@ -750,11 +756,11 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  // boost::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
-  }
+  // if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
+  // boost::filesystem::create_directories("./" + SCILLA_LOG);
+  // }
 
   if (!PrepareRootPathWVersion(scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
@@ -805,11 +811,11 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   std::chrono::system_clock::time_point tpStart;
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
-  boost::filesystem::create_directories("./" + SCILLA_FILES);
+  // boost::filesystem::create_directories("./" + SCILLA_FILES);
 
-  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-    boost::filesystem::create_directories("./" + SCILLA_LOG);
-  }
+  // if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
+  // boost::filesystem::create_directories("./" + SCILLA_LOG);
+  // }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
