@@ -486,6 +486,9 @@ const string CONTRACT_FILE_EXTENSION{
 const string LIBRARY_FILE_EXTENSION{
     SCILLA_FILES + '/' +
     ReadConstantString("LIBRARY_FILE_EXTENSION", "node.smart_contract.")};
+const string EXTLIB_FOLDER{
+    SCILLA_FILES + '/' +
+    ReadConstantString("EXTLIB_FOLDER", "node.smart_contract.")};
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
