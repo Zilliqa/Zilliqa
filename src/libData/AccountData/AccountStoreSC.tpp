@@ -698,16 +698,16 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
           std::map<std::string, std::string>& extlibs_exports) -> bool {
     // export extlibs
     for (const auto& lib : extlibs) {
-      /// Check whether there are caches
-      std::string file_path = lib.second.hex() + '/' + lib.first;
-      if (boost::filesystem::exists(file_path)) {
-        continue;
-      }
-
       Account* libAcc = this->GetAccount(lib.second);
       if (libAcc == nullptr) {
         LOG_GENERAL(WARNING, "libAcc: " << lib.second << " is not existing");
         return false;
+      }
+
+      /// Check whether there are caches
+      std::string file_path = lib.second.hex() + '/' + lib.first;
+      if (boost::filesystem::exists(file_path)) {
+        continue;
       }
 
       uint32_t ext_scilla_version;
@@ -725,6 +725,7 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
         LOG_GENERAL(WARNING, "libAcc: " << lib.second << " is not library");
         return false;
       }
+
       if (ext_scilla_version != scilla_version) {
         LOG_GENERAL(WARNING,
                     "libAcc: " << lib.second << " scilla version mismatch");
@@ -732,9 +733,9 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
       }
 
       if (extlibs_exports.find(lib.first) != extlibs_exports.end()) {
-        LOG_GENERAL(WARNING, "Loopy reference detected");
-        return false;
+        continue;
       }
+
       extlibs_exports.emplace(
           file_path, DataConversion::CharArrayToString(libAcc->GetCode()));
 
