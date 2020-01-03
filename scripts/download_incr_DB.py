@@ -219,9 +219,8 @@ def run():
 			continue
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
-	exit(0)
-
-if __name__ == "__main__":
+	return True
+def start():
 	if len(sys.argv) >= 2:
 		if os.path.isabs(sys.argv[1]):
 			STORAGE_PATH = sys.argv[1]
@@ -232,4 +231,8 @@ if __name__ == "__main__":
 		if len(sys.argv) == 3 and sys.argv[2] == "false":
 			Exclude_txnBodies = False
 			Exclude_microBlocks = False
-	run()
+	return run()
+
+if __name__ == "__main__":
+	start()
+	

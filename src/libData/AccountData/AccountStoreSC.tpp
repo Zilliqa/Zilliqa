@@ -668,6 +668,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       break;
   }
 
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+  }
+
   return true;
 }
 
@@ -1353,6 +1357,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   Account* account = nullptr;
 
   if (!ret) {
+    Address curContractAddr = m_curContractAddr;
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
       // Non-null messages must have few mandatory fields.
@@ -1390,7 +1395,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       // Recipient is non-contract
       if (!account->isContract()) {
         LOG_GENERAL(INFO, "The recipient is non-contract");
-        if (!TransferBalanceAtomic(m_curContractAddr, recipient, m_curAmount)) {
+        if (!TransferBalanceAtomic(curContractAddr, recipient, m_curAmount)) {
           receipt.AddError(BALANCE_TRANSFER_FAILED);
           return false;
         } else {
@@ -1407,7 +1412,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         ret = true;
       }
 
-      m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
+      m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
@@ -1436,7 +1441,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       // check whether the recipient contract is in the same shard with the
       // current contract
       if (!m_curIsDS &&
-          (Transaction::GetShardIndex(m_curContractAddr, m_curNumShards) !=
+          (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
            Transaction::GetShardIndex(recipient, m_curNumShards))) {
         LOG_GENERAL(WARNING,
                     "another contract doesn't belong to the same shard with "
@@ -1454,7 +1459,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       Json::Value input_message;
-      input_message["_sender"] = "0x" + m_curContractAddr.hex();
+      input_message["_sender"] = "0x" + curContractAddr.hex();
       input_message["_amount"] = msg["_amount"];
       input_message["_tag"] = msg["_tag"];
       input_message["params"] = msg["params"];
@@ -1569,8 +1574,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      Address t_address = m_curContractAddr;
-      m_curSenderAddr = m_curContractAddr;
+      m_curSenderAddr = curContractAddr;
       m_curContractAddr = recipient;
       if (!ParseCallContract(gasRemained, runnerPrint, receipt,
                              scilla_version)) {
@@ -1579,7 +1583,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      if (!this->IncreaseNonce(t_address)) {
+      if (!this->IncreaseNonce(curContractAddr)) {
         return false;
       }
     }

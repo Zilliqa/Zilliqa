@@ -172,6 +172,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   }
 
+  if (SyncType::NEW_SYNC == syncType) {
+    // Setting it earliest before even p2pcomm is instantiated
+    m_n.m_runFromLate = true;
+  }
+
   P2PComm::GetInstance().SetSelfPeer(peer);
   P2PComm::GetInstance().SetSelfKey(key);
 
@@ -188,6 +193,21 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     } else if (Guard::GetInstance().IsNodeInShardGuardList(
                    m_mediator.m_selfKey.second)) {
       LOG_GENERAL(INFO, "Current node is a shard guard");
+    }
+  }
+
+  if (SyncType::NEW_LOOKUP_SYNC == syncType || SyncType::NEW_SYNC == syncType) {
+    while (!m_n.DownloadPersistenceFromS3()) {
+      LOG_GENERAL(
+          WARNING,
+          "Downloading persistence from S3 has failed. Will try again!");
+      this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+    }
+    if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+      LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+    }
+    if (!AccountStore::GetInstance().RefreshDB()) {
+      LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
     }
   }
 
@@ -311,10 +331,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
+        LOG_GENERAL(FATAL, "Use of deprecated syncType=DB_VERIF");
+#if 0
         LOG_GENERAL(INFO, "Intitialize DB verification");
         m_n.ValidateDB();
         std::this_thread::sleep_for(std::chrono::seconds(10));
         raise(SIGKILL);
+#endif
         break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
