@@ -120,16 +120,15 @@ class Account : public AccountBase {
   Json::Value m_initDataJson = Json::nullValue;
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
   bool m_is_library = false;
-  std::vector<std::pair<std::string, Address>> m_extlibs;
+  std::vector<Address> m_extlibs;
 
-  bool PrepareInitDataJson(
-      const bytes& initData, const Address& addr, const uint64_t& blockNum,
-      Json::Value& root, uint32_t& scilla_version, bool& is_library,
-      std::vector<std::pair<std::string, Address>>& extlibs);
+  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
+                           const uint64_t& blockNum, Json::Value& root,
+                           uint32_t& scilla_version, bool& is_library,
+                           std::vector<Address>& extlibs);
 
   bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
-                     bool& is_library,
-                     std::vector<std::pair<std::string, Address>>& extlibs);
+                     bool& is_library, std::vector<Address>& extlibs);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -147,7 +146,7 @@ class Account : public AccountBase {
 
   bool GetScillaVersion(uint32_t& scilla_version);
 
-  bool GetExternalLibs(std::vector<std::pair<std::string, Address>>& extlibs);
+  bool GetExternalLibs(std::vector<Address>& extlibs);
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
@@ -179,9 +178,8 @@ class Account : public AccountBase {
 
   const bytes GetInitData() const;
 
-  bool GetContractAuxiliaries(
-      bool& is_library, uint32_t& scilla_version,
-      std::vector<std::pair<std::string, Address>>& extlibs);
+  bool GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
+                              std::vector<Address>& extlibs);
 
   // includes scilla_version, is_library, and extlibs
   bool RetrieveContractAuxiliaries();

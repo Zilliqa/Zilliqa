@@ -190,8 +190,7 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
 }
 
 bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
-                            bool& is_library,
-                            vector<pair<string, Address>>& extlibs) {
+                            bool& is_library, vector<Address>& extlibs) {
   is_library = false;
   extlibs.clear();
 
@@ -252,14 +251,27 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
           if (lib_entry.isMember("arguments") &&
               entry["arguments"].type() == Json::arrayValue &&
               entry["arguments"].size() == 2) {
-            if (entry["arguments"][1].asString().find("0x") ==
-                std::string::npos) {
-              LOG_GENERAL(WARNING, "Didn't find the address for an extlib");
+            bool foundAddr = false;
+            for (const auto& arg : entry["arguments"]) {
+              if (arg.asString().size() != ((ACC_ADDR_SIZE * 2) + 2) &&
+                  arg.asString().find("0x")) {
+                try {
+                  Address addr(arg.asString());
+                  extlibs.emplace_back(addr);
+                  foundAddr = true;
+                  break;
+                } catch (...) {
+                  continue;
+                }
+              }
+            }
+
+            if (!foundAddr) {
+              LOG_GENERAL(WARNING, "Didn't find address for extlib");
               return false;
             }
 
-            extlibs.push_back({entry["arguments"][0].asString(),
-                               Address(entry["arguments"][1].asString())});
+            break;
           }
         }
 
@@ -286,7 +298,7 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
                                   uint32_t& scilla_version, bool& is_library,
-                                  vector<pair<string, Address>>& extlibs) {
+                                  vector<Address>& extlibs) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
@@ -462,8 +474,7 @@ bool Account::GetScillaVersion(uint32_t& scilla_version) {
   return true;
 }
 
-bool Account::GetExternalLibs(
-    std::vector<std::pair<std::string, Address>>& extlibs) {
+bool Account::GetExternalLibs(std::vector<Address>& extlibs) {
   if (!isContract()) {
     return false;
   }
@@ -478,9 +489,8 @@ bool Account::GetExternalLibs(
   return true;
 }
 
-bool Account::GetContractAuxiliaries(
-    bool& is_library, uint32_t& scilla_version,
-    std::vector<std::pair<std::string, Address>>& extlibs) {
+bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
+                                     std::vector<Address>& extlibs) {
   if (!isContract()) {
     return false;
   }
