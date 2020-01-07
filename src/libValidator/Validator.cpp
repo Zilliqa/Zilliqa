@@ -462,9 +462,8 @@ bool Validator::CheckDirBlocks(
   return ret;
 }
 
-template <class Container>
 Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
-    const Container& txBlocks, const DequeOfNode& dsComm,
+    const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
     const BlockLink& latestBlockLink) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
@@ -477,8 +476,7 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
     latestDSIndex--;
   }
 
-  const TxBlock& latestTxBlock =
-      GetBlockFromContainer(txBlocks, txBlocks.size() - 1);
+  const TxBlock& latestTxBlock = txBlocks.back();
 
   if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
     if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
@@ -508,29 +506,16 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
   unsigned int sIndex = txBlocks.size() - 2;
 
   for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
-    if (prevBlockHash !=
-        GetBlockFromContainer(txBlocks, sIndex).GetHeader().GetMyHash()) {
-      LOG_GENERAL(WARNING, "Prev hash "
-                               << prevBlockHash << " and hash of blocknum "
-                               << GetBlockFromContainer(txBlocks, sIndex)
-                                      .GetHeader()
-                                      .GetBlockNum());
+    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
+      LOG_GENERAL(WARNING,
+                  "Prev hash "
+                      << prevBlockHash << " and hash of blocknum "
+                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
       return TxBlockValidationMsg::INVALID;
     }
-    prevBlockHash =
-        GetBlockFromContainer(txBlocks, sIndex).GetHeader().GetPrevHash();
+    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
     sIndex--;
   }
 
   return TxBlockValidationMsg::VALID;
 }
-
-template Validator::TxBlockValidationMsg
-Validator::CheckTxBlocks<std::vector<TxBlock>>(
-    const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
-    const BlockLink& latestBlockLink);
-
-template Validator::TxBlockValidationMsg
-Validator::CheckTxBlocks<std::deque<TxBlockSharedPtr>>(
-    const std::deque<TxBlockSharedPtr>& txBlocks, const DequeOfNode& dsComm,
-    const BlockLink& latestBlockLink);

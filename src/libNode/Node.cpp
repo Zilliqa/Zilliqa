@@ -275,11 +275,32 @@ void Node::AddGenesisInfo(SyncType syncType) {
 }
 
 bool Node::CheckIntegrity(bool fromIsolatedBinary) {
-  DequeOfNode dsComm;
-
-  for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
-    dsComm.emplace_back(dsKey, Peer());
+  // Retrieve the latest Tx block from storage
+  TxBlockSharedPtr latestTxBlock;
+  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
+    return false;
   }
+
+  const uint64_t latestTxBlockNum = latestTxBlock->GetHeader().GetBlockNum();
+  const uint64_t latestDSIndex = latestTxBlock->GetHeader().GetDSBlockNum();
+
+  auto getTime = []() -> string {
+    auto cur_time_t =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream ss;
+    ss << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T");
+    return ss.str();
+  };
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Latest Tx block = " << latestTxBlockNum
+         << endl;
+    cout << "[" << getTime() << "] Latest DS block = " << latestDSIndex << endl;
+    cout << "[" << getTime() << "] Loading dir blocks" << endl;
+  }
+
+  // Load all dir blocks (until latestTxBlockNum) from blocklink chain
   std::list<BlockLink> blocklinks;
   if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
     LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
@@ -290,20 +311,6 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     return std::get<BlockLinkIndex::INDEX>(a) <
            std::get<BlockLinkIndex::INDEX>(b);
   });
-
-  std::deque<TxBlockSharedPtr> txBlocks;
-  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txBlocks)) {
-    LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
-    return false;
-  }
-
-  sort(txBlocks.begin(), txBlocks.end(),
-       [](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-       });
-
-  const auto& latestTxBlockNum = txBlocks.back()->GetHeader().GetBlockNum();
-  const auto& latestDSIndex = txBlocks.back()->GetHeader().GetDSBlockNum();
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -350,42 +357,110 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       dirBlocks.emplace_back(*fallbackwshardingstruct);
     }
   }
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Checking dir blocks" << endl;
+  }
+
+  // Check the dir blocks
+  DequeOfNode dsComm;
+  for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
+    dsComm.emplace_back(dsKey, Peer());
+  }
   if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
     LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
     return false;
   }
 
-  if (m_mediator.m_validator->CheckTxBlocks(
-          txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
-      Validator::TxBlockValidationMsg::VALID) {
-    LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Checking Tx blocks" << endl;
+  }
+
+  // Check the latest Tx Block
+  uint64_t latestDSIndexInBlockLink = get<BlockLinkIndex::DSINDEX>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  if (get<BlockLinkIndex::BLOCKTYPE>(
+          m_mediator.m_blocklinkchain.GetLatestBlockLink()) != BlockType::DS) {
+    if (latestDSIndexInBlockLink == 0) {
+      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
+      return false;
+    }
+    latestDSIndexInBlockLink--;
+  }
+  if (latestTxBlock->GetHeader().GetDSBlockNum() != latestDSIndexInBlockLink) {
+    if (latestDSIndexInBlockLink > latestTxBlock->GetHeader().GetDSBlockNum()) {
+      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
+                               << latestDSIndexInBlockLink << " "
+                               << latestTxBlock->GetHeader().GetDSBlockNum());
+      return false;
+    }
+
+    LOG_GENERAL(
+        WARNING,
+        "The latest DS index does not match that of the latest Tx Block DS num"
+            << latestTxBlock->GetHeader().GetDSBlockNum() << " "
+            << latestDSIndexInBlockLink);
     return false;
   }
 
+  if (!m_mediator.m_validator->CheckBlockCosignature(*latestTxBlock, dsComm)) {
+    LOG_GENERAL(WARNING, "CheckBlockCosignature failed");
+    return false;
+  }
+
+  // Check the other Tx blocks
   shared_ptr<bool> result = make_shared<bool>(new bool(true));
 
-  auto validateTxBlock = [&, result, fromIsolatedBinary](
-                             TxBlockSharedPtr txBlock) mutable -> void {
+  // This lambda performs all the checks on one Tx block
+  auto validateOneTxBlock =
+      [&, result, fromIsolatedBinary](uint64_t blockNum) mutable -> void {
+    // Abort checking if overall result is false already
     if (!*result && !fromIsolatedBinary) {
       return;
     }
-    const uint64_t& blockNum = txBlock->GetHeader().GetBlockNum();
-    if (fromIsolatedBinary && (blockNum % 100 == 0)) {
-      cout << "On tx block " << blockNum << endl;
+    if (fromIsolatedBinary && (blockNum % 1000 == 0)) {
+      cout << "[" << getTime() << "] On Tx block " << blockNum << endl;
     }
 
-    const auto& microblockInfos = txBlock->GetMicroBlockInfos();
+    // Fetch the block
+    TxBlockSharedPtr txBlock;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlock)) {
+      LOG_GENERAL(WARNING, "Missing FB: " << blockNum);
+      *result = false;
+      return;
+    }
 
+    // Check that prevHash field == hash of previous Tx block
+    if (blockNum > 0) {
+      TxBlockSharedPtr txBlockPrev;
+      if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum - 1,
+                                                      txBlockPrev)) {
+        LOG_GENERAL(WARNING, "Missing FB: " << blockNum - 1);
+        *result = false;
+        return;
+      }
+      const BlockHash& prevHash = txBlock->GetHeader().GetPrevHash();
+      const BlockHash& prevBlockHash = txBlockPrev->GetHeader().GetMyHash();
+      if (prevHash != prevBlockHash) {
+        LOG_CHECK_FAIL("Prev hash", prevHash, prevBlockHash);
+        *result = false;
+        return;
+      }
+    }
+
+    // Check the microblocks
+    const auto& microblockInfos = txBlock->GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
       LOG_GENERAL(INFO, "FB: " << txBlock->GetHeader().GetBlockNum()
                                << " MB: " << mbInfo.m_shardId);
-      /// Skip because empty microblocks are not stored
+      // Skip because empty microblocks are not stored
       if (mbInfo.m_txnRootHash == TxnHash()) {
         continue;
       }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
+        // Check the transactions
         if (LOOKUP_NODE_MODE) {
           const auto& tranHashes = mbptr->GetTranHashes();
           for (const auto& tranHash : tranHashes) {
@@ -417,12 +492,11 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
   const int MAXJOBSLEFT = NUMTHREADS * 3;
   ThreadPool validatePool(NUMTHREADS, "ValidatePool");
 
-  while (!txBlocks.empty()) {
-    TxBlockSharedPtr txBlock = txBlocks.front();
-    txBlocks.pop_front();
+  uint64_t blockNum = 0;
 
-    validatePool.AddJob([validateTxBlock, txBlock]() mutable -> void {
-      validateTxBlock(txBlock);
+  while (blockNum <= latestTxBlockNum) {
+    validatePool.AddJob([validateOneTxBlock, blockNum]() mutable -> void {
+      validateOneTxBlock(blockNum);
     });
 
     if (!*result && !fromIsolatedBinary) {
@@ -431,10 +505,16 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
 
     while (validatePool.GetJobsLeft() > MAXJOBSLEFT) {
     }
+
+    blockNum++;
   }
 
   while (validatePool.GetJobsLeft() > 0) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+
+  if (fromIsolatedBinary) {
+    cout << "[" << getTime() << "] Done" << endl;
   }
 
   return *result;
