@@ -435,6 +435,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               toAddr, true, true));
 
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+
+      if (is_library) {
+        m_newLibrariesCreated.emplace_back(toAddr);
+      }
+
       break;
     }
     case Transaction::CONTRACT_CALL: {
@@ -1672,4 +1677,13 @@ void AccountStoreSC<MAP>::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();
   m_scillaIPCServer = std::move(scillaIPCServer);
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
+  for (const auto& addr : m_newLibrariesCreated) {
+    boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
+    boost::filesystem::remove(addr.hex() + LIBRARY_INIT_EXTENSION);
+  }
+  m_newLibrariesCreated.clear();
 }

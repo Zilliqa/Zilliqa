@@ -102,6 +102,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the transaction succeeded
   std::set<Address> m_storageRootUpdateBufferAtomic;
 
+  std::vector<Address> m_newLibrariesCreated;
+
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
@@ -225,6 +227,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// public interface to clean StorageRootUpdateBuffer
   void CleanStorageRootUpdateBuffer();
+
+  /// Clean cache of newly created contracts in this epoch
+  void CleanNewLibrariesCache();
 };
 
 #include "AccountStoreAtomic.tpp"
