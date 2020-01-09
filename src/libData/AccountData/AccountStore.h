@@ -148,6 +148,7 @@ class AccountStore
   bool RetrieveFromDisk();
 
   /// Get the instance of an account from AccountStoreTemp
+  /// [[[WARNING]]] Test utility function, don't use in core protocol
   Account* GetAccountTemp(const Address& address);
 
   /// update account states in AccountStoreTemp
@@ -158,11 +159,13 @@ class AccountStore
 
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {
+    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->AddAccount(address, account);
   }
 
   /// increase balance for account in AccountStoreTemp
   bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
+    std::lock_guard<std::mutex> g(m_mutexDelta);
     return m_accountStoreTemp->IncreaseBalance(address, delta);
   }
 
@@ -176,12 +179,19 @@ class AccountStore
 
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void ProcessStorageRootUpdateBufferTemp() {
+    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
   }
 
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void CleanStorageRootUpdateBufferTemp() {
+    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->CleanStorageRootUpdateBuffer();
+  }
+
+  void CleanNewLibrariesCacheTemp() {
+    std::lock_guard<std::mutex> g(m_mutexDelta);
+    m_accountStoreTemp->CleanNewLibrariesCache();
   }
 
   /// used in deserialization

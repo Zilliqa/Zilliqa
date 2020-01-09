@@ -434,6 +434,7 @@ void Node::ProcessTransactionWhenShardLeader(
   }
 
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+  AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
   cv_TxnProcFinished.notify_all();
   PutTxnsInTempDataBase(t_processedTransactions);
@@ -667,6 +668,7 @@ void Node::ProcessTransactionWhenShardBackup(
   }
 
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+  AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
   cv_TxnProcFinished.notify_all();
 

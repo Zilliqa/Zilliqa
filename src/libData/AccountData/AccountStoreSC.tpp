@@ -45,6 +45,8 @@ void AccountStoreSC<MAP>::Init() {
   m_curGasLimit = 0;
   m_curGasPrice = 0;
   m_txnProcessTimeout = false;
+
+  boost::filesystem::remove_all(EXTLIB_FOLDER);
 }
 
 template <class MAP>

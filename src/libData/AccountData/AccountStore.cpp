@@ -78,6 +78,7 @@ void AccountStore::Init() {
 
 void AccountStore::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+  lock_guard<mutex> g(m_mutexDelta);
   m_accountStoreTemp->SetScillaIPCServer(scillaIPCServer);
 }
 
