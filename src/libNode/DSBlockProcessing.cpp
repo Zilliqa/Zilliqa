@@ -208,7 +208,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
                                      std::get<SHARD_NODE_PEER>(shardNode));
 
       // Zero out my IP to avoid sending to myself
-      if (m_mediator.m_selfPeer == m_myShardMembers->back().second) {
+      if (m_mediator.m_selfKey.second == m_myShardMembers->back().first) {
         m_consensusMyID = index;  // Set my ID
         m_myShardMembers->back().second = Peer();
         foundMe = true;
