@@ -58,7 +58,8 @@ uint64_t ScillaTestUtil::GetFileSize(const std::string &filename) {
 // Get ScillaTest for contract "name" and test numbered "i".
 // "version" is used only if ENABLE_SCILLA_MULTI_VERSION is set.
 bool ScillaTestUtil::GetScillaTest(ScillaTest &t, const std::string &contrName,
-                                   unsigned int i, const std::string &version) {
+                                   unsigned int i, const std::string &version,
+                                   bool isLibrary) {
   if (SCILLA_ROOT.empty()) {
     return false;
   }
@@ -68,11 +69,11 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, const std::string &contrName,
   if (ENABLE_SCILLA_MULTI_VERSION) {
     testDir = SCILLA_ROOT + "/" + version + "/tests/runner/" + contrName;
     scillaSourceFile = SCILLA_ROOT + "/" + version + "/tests/contracts/" +
-                       contrName + ".scilla";
+                       contrName + (isLibrary ? ".scillib" : ".scilla");
   } else {
     testDir = SCILLA_ROOT + "/tests/runner/" + contrName;
-    scillaSourceFile =
-        SCILLA_ROOT + "/tests/contracts/" + contrName + ".scilla";
+    scillaSourceFile = SCILLA_ROOT + "/tests/contracts/" + contrName +
+                       (isLibrary ? ".scillib" : ".scilla");
   }
 
   LOG_GENERAL(INFO, "ScillaTestUtil::testDir: " << testDir << "\n");
@@ -92,12 +93,18 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, const std::string &contrName,
   std::string is(std::to_string(i));
 
   // Get all JSONs
-  return !(
-      !ParseJsonFile(t.init, testDir + "/init.json") ||
-      !ParseJsonFile(t.state, testDir + "/state_" + is + ".json") ||
-      !ParseJsonFile(t.blockchain, testDir + "/blockchain_" + is + ".json") ||
-      !ParseJsonFile(t.expOutput, testDir + "/output_" + is + ".json") ||
-      !ParseJsonFile(t.message, testDir + "/message_" + is + ".json"));
+  return isLibrary
+             ? (ParseJsonFile(t.init, testDir + "/init.json") &&
+                ParseJsonFile(t.blockchain,
+                              testDir + "/blockchain_" + is + ".json") &&
+                ParseJsonFile(t.expOutput, testDir + "/init_output.json"))
+             : (ParseJsonFile(t.init, testDir + "/init.json") &&
+                ParseJsonFile(t.state, testDir + "/state_" + is + ".json") &&
+                ParseJsonFile(t.blockchain,
+                              testDir + "/blockchain_" + is + ".json") &&
+                ParseJsonFile(t.expOutput,
+                              testDir + "/output_" + is + ".json") &&
+                ParseJsonFile(t.message, testDir + "/message_" + is + ".json"));
 }
 
 // Get _balance from output state of interpreter, from OUTPUT_JSON.

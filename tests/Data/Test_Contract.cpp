@@ -269,6 +269,165 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
 //                       "multi message failed");
 // }
 
+// Scilla Library
+BOOST_AUTO_TEST_CASE(testScillaLibrary) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, libAddr1, libAddr2, contrAddr1;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, nonce});
+
+  /* ------------------------------------------------------------------- */
+  // Deploying the library 1
+  libAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Library 1 address: " << libAddr1);
+
+  ScillaTestUtil::ScillaTest t1;
+  string t1_name = "0x986556789012345678901234567890123456abcd";
+  if (!ScillaTestUtil::GetScillaTest(t1, t1_name, 1, "0", true)) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to fetch test 0x986556789012345678901234567890123456abcd.");
+    return;
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t1.init);
+
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
+
+  // Transaction to deploy library contract
+  std::string initStr1 = JSONUtils::GetInstance().convertJsontoStr(t1.init);
+  bytes data1(initStr1.begin(), initStr1.end());
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, t1.code, data1);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1);
+  Account* account1 = AccountStore::GetInstance().GetAccountTemp(libAddr1);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(account1 != nullptr,
+                      "Error with creation of contract account");
+  nonce++;
+
+  /* ------------------------------------------------------------------- */
+  // Deploying the library 2
+  libAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Library 2 address: " << libAddr2);
+
+  ScillaTestUtil::ScillaTest t2;
+  std::string t2_name = "0x111256789012345678901234567890123456abef";
+  if (!ScillaTestUtil::GetScillaTest(t2, t2_name, 1, "0", true)) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to fetch test 0x111256789012345678901234567890123456abef.");
+    return;
+  }
+
+  // Modify _extlibs
+  for (auto& it : t2.init) {
+    if (it["vname"] == "_extlibs") {
+      for (auto& v : it["value"]) {
+        for (auto& a : v["arguments"]) {
+          if (a.asString() == t1_name) {
+            a = "0x" + libAddr1.hex();
+          }
+        }
+      }
+    }
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(t2.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t2.init);
+
+  uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
+
+  // Transaction to deploy library contract
+  std::string initStr2 = JSONUtils::GetInstance().convertJsontoStr(t2.init);
+  bytes data2(initStr2.begin(), initStr2.end());
+  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, t2.code, data2);
+  TransactionReceipt tr2;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2);
+  Account* account2 = AccountStore::GetInstance().GetAccountTemp(libAddr2);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(account2 != nullptr,
+                      "Error with creation of contract account");
+  nonce++;
+
+  /* ------------------------------------------------------------------- */
+  // deploying contract
+  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Contract address: " << contrAddr1);
+
+  ScillaTestUtil::ScillaTest t3;
+  if (!ScillaTestUtil::GetScillaTest(t2, "import-test-lib", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test import-test-lib");
+    return;
+  }
+
+  // Modify _extlibs
+  for (auto& it : t3.init) {
+    if (it["vname"] == "_extlibs") {
+      for (auto& v : it["value"]) {
+        for (auto& a : v["arguments"]) {
+          if (a.asString() == t2_name) {
+            a = "0x" + libAddr2.hex();
+          }
+        }
+      }
+    }
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(t3.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t3.init);
+
+  uint64_t bnum3 = ScillaTestUtil::GetBlockNumberFromJson(t3.blockchain);
+
+  // Transaction to deploy contract
+  std::string initStr3 = JSONUtils::GetInstance().convertJsontoStr(t3.init);
+  bytes data3(initStr3.begin(), initStr3.end());
+  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, t3.code, data3);
+  TransactionReceipt tr3;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum3, 1, true, tx3, tr3);
+  Account* account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(account3 != nullptr,
+                      "Error with creation of contract account");
+  nonce++;
+
+  /* ------------------------------------------------------------------- */
+  // Execute message_1, the Donate transaction.
+  bytes dataHi;
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataHi);
+
+  Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
+                  amount, PRECISION_MIN_VALUE, 50000, {}, dataHi);
+  TransactionReceipt tr4;
+  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx4, tr4)) {
+    nonce++;
+  }
+
+  // check receipt for events
+  LOG_GENERAL(INFO, "receipt after processing: " << tr4.GetString());
+}
+
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   INIT_STDOUT_LOGGER();
