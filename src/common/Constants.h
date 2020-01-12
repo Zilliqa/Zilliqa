@@ -368,6 +368,7 @@ extern const bool UPDATE_PREGENED_ACCOUNTS;
 extern const unsigned int NUM_ACCOUNTS_PREGENERATE;
 extern const unsigned int PREGEN_ACCOUNT_TIMES;
 extern const std::string PREGENED_ACCOUNTS_FILE;
+extern const bool LOG_PARAMETERS;
 
 // Transaction constants
 extern const uint128_t TOTAL_COINBASE_REWARD;

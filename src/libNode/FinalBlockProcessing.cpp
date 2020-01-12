@@ -16,6 +16,7 @@
  */
 
 #include <array>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <chrono>
 #include <functional>
 #include <limits>
@@ -623,6 +624,25 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                        << txBlock.GetHeader().GetBlockNum() << "] FRST");
 
+  if (LOOKUP_NODE_MODE && LOG_PARAMETERS) {
+    LOG_STATE("[FBSIZE] Size: " << message.size() << " BlockNum: "
+                                << txBlock.GetHeader().GetBlockNum());
+
+    uint64_t timeDiff = txBlock.GetTimestamp() -
+                        m_mediator.m_txBlockChain.GetLastBlock().GetTimestamp();
+
+    const double oneMillion = 1000000.0;
+
+    cpp_dec_float_50 td_float(timeDiff);
+    cpp_dec_float_50 numTxns(txBlock.GetHeader().GetNumTxs());
+    td_float = td_float / oneMillion;
+
+    LOG_STATE("[FBTIME] " << td_float);
+    LOG_STATE("[FBTPS] " << numTxns / timeDiff);
+
+    LOG_STATE("[FBGAS] " << txBlock.GetHeader().GetGasUsed());
+  }
+
   // Verify the co-signature
   if (!VerifyFinalBlockCoSignature(txBlock)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -984,6 +1004,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPUT]"
+              << "BGN")
+  }
 
   for (const auto& twr : entry.m_transactions) {
     LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
@@ -1008,6 +1032,10 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPUT]"
+              << "DONE [" << entry.m_transactions.size() << "]");
+  }
 }
 
 void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
@@ -1126,6 +1154,13 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
       << "] RECVD MB & TXN BODIES #"
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
+
+  if (LOOKUP_NODE_MODE && LOG_PARAMETERS) {
+    LOG_STATE("[MBPCKT] Size:"
+              << message.size()
+              << " epoch: " << entry.m_microBlock.GetHeader().GetEpochNum()
+              << " shard:" << entry.m_microBlock.GetHeader().GetShardId());
+  }
 
   if ((m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
        entry.m_microBlock.GetHeader()
