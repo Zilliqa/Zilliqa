@@ -284,7 +284,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   return txn;
 }
 
-bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
+bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
+                          vector<Transaction>& DSTxn) {
   vector<Transaction> txns;
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
@@ -312,7 +313,7 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
       continue;
     }
 
-    copy(txns.begin(), txns.end(), back_inserter(txn));
+    copy(txns.begin(), txns.end(), back_inserter(shardTxn));
 
     LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
                           << nonce + num_txn << " of Addr " << addr.hex());
@@ -325,9 +326,9 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
       continue;
     }
 
-    copy(txns.begin(), txns.end(), back_inserter(txn));
+    copy(txns.begin(), txns.end(), back_inserter(DSTxn));
   }
-  return !txn.empty();
+  return !(shardTxn.empty() || DSTxn.empty());
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn,
@@ -4256,8 +4257,9 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
   }
 
   txnShardMap[shardId].push_back(tx);
-  LOG_GENERAL(INFO,
-              "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
+  LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
+                                 << shardId << " of fromAddr "
+                                 << tx.GetSenderAddr());
 
   return true;
 }
@@ -4610,6 +4612,8 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
         }
       }
     }
+
+    LOG_GENERAL(INFO, "Size of DS txns " << txnsDS.size());
 
     for (const auto& txn : txnsDS) {
       AddToTxnShardMap(txn, shard_size);

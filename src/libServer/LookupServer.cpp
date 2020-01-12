@@ -258,29 +258,41 @@ bool LookupServer::StartCollectorThread() {
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
-    vector<Transaction> txns;
+    vector<Transaction> txnsShard;
+    vector<Transaction> txnsDS;
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
-      txns.clear();
+      txnsShard.clear();
+      txnsDS.clear();
 
       if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
         LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
         continue;
       }
 
-      if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
-                                        NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
+      if (USE_REMOTE_TXN_CREATOR &&
+          !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT,
+                                             txnsShard, txnsDS)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
       }
 
-      if (!txns.empty()) {
-        for (const auto& tx : txns) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+      if (!txnsShard.empty()) {
+        for (const auto& tx : txnsShard) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
         }
+        LOG_GENERAL(INFO, "Size of txns to shard: " << txnsShard.size());
       }
-      // LOG_GENERAL(INFO, "Size of txns " << txns.size());
+
+      if (!txnsDS.empty()) {
+        for (const auto& tx : txnsDS) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_DS);
+        }
+        LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
+      }
 
       bool hasTxn = false;
 
