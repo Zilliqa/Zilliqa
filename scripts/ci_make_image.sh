@@ -40,7 +40,8 @@ set -e
 docker --version
 aws --version
 
-commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
+commit=${COMMIT:-${TRAVIS_COMMIT}}
+commit=$(git rev-parse --short=7 ${COMMIT})
 test_extra_cmake_args=${TEST_EXTRA_CMAKE_ARGS}
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2

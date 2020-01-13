@@ -1,5 +1,5 @@
 
-.PHONY: all ci k8s ubuntu-1804 release release-cuda
+.PHONY: all release release-cuda
 
 # build the default zilliqa docker image same as the one on Docker Hub
 all: release release-cuda
@@ -24,21 +24,10 @@ check-commit:
 		exit 1; \
 	fi
 
-get-scilla:
-	docker pull zilliqa/scilla:latest
-
-# build zilliqa docker image for CI usage
-ci:
-	docker build -f dev/Dockerfile.ci -t zilliqa-ci .
-
-# test build on Ubuntu 18.04
-ubuntu-1804: check-commit
-	docker build -f dev/Dockerfile --build-arg COMMIT=$(commit) --build-arg BASE=ubuntu:18.04 .
-
 # build zilliqa docker image for Kubernetes usage
 k8s: check-commit
-	cat dev/Dockerfile dev/Dockerfile.k8s | docker build -t zilliqa:$(commit) \
-		--build-arg COMMIT=$(commit) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -
+	docker build -t zilliqa:$(commit) -f Dockerfile \
+		--build-arg COMMIT=$(commit) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" .
 
 # build release version docker image for public usage
 release:
