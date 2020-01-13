@@ -503,6 +503,12 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     return false;
   }
 
+  // During RECOVERY_ALL_SYNC, the ipMapping.xml should be removed only after
+  // first DS epoch has passed, because if RejoinAsNormal is triggered during
+  // the first DS epoch, the ipMapping.xml will be needed again to map the DS
+  // committee to the correct IP addresses.
+  RemoveIpMapping();
+
   LogReceivedDSBlockDetails(dsblock);
 
   // Add to block chain and Store the DS block to disk.
