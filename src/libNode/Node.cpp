@@ -1031,8 +1031,6 @@ void Node::RemoveIpMapping() {
     } else {
       LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " cannot be removed!");
     }
-  } else {
-    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
   }
 }
 
