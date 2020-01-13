@@ -57,15 +57,15 @@ class StatusServer : public Server,
     (void)request;
     response = this->GetDSCommittee();
   }
-  inline virtual void ToggleSendSCToDSI(const Json::Value& request,
-                                        Json::Value& response) {
+  inline virtual void ToggleSendSCCallsToDSI(const Json::Value& request,
+                                             Json::Value& response) {
     (void)request;
-    response = this->ToggleSendSCToDS();
+    response = this->ToggleSendSCCallsToDS();
   }
-  inline virtual void GetSendSCToDSI(const Json::Value& request,
-                                     Json::Value& response) {
+  inline virtual void GetSendSCCallsToDSI(const Json::Value& request,
+                                          Json::Value& response) {
     (void)request;
-    response = this->GetSendSCToDS();
+    response = this->GetSendSCCallsToDS();
   }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
@@ -75,8 +75,8 @@ class StatusServer : public Server,
   std::string GetLatestEpochStatesUpdated();
   std::string GetEpochFin();
   Json::Value GetDSCommittee();
-  bool ToggleSendSCToDS();
-  bool GetSendSCToDS();
+  bool ToggleSendSCCallsToDS();
+  bool GetSendSCCallsToDS();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
