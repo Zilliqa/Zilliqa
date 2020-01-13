@@ -1657,7 +1657,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
 
   TxBlockSharedPtr txblkPtr;
   int retryCount = MAX_FETCH_BLOCK_RETRIES;
-  while (retryCount-- > 0) {
+  while (retryCount > 0) {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txblkPtr)) {
       LOG_GENERAL(WARNING,
                   "Failed to fetch tx block " << blockNum << " , retry... ");
@@ -1665,6 +1665,8 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     } else {
       break;
     }
+
+    --retryCount;
   }
 
   if (retryCount == 0) {
@@ -1681,7 +1683,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     }
     MicroBlockSharedPtr mbptr;
     retryCount = MAX_FETCH_BLOCK_RETRIES;
-    while (retryCount-- > 0) {
+    while (retryCount > 0) {
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
               mbInfo.m_microBlockHash, mbptr)) {
         LOG_GENERAL(WARNING, "Could not get MicroBlock "
@@ -1690,6 +1692,8 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
       } else {
         break;
       }
+
+      --retryCount;
     }
     if (retryCount == 0) {
       LOG_GENERAL(WARNING, "Failed to fetch MicroBlock "
