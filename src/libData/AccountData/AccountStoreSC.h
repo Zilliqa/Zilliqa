@@ -108,7 +108,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint,
-                           TransactionReceipt& receipt);
+                           TransactionReceipt& receipt, bool is_library);
   /// convert the interpreter output into parsable json object for deployment
   bool ParseCreateContractOutput(Json::Value& jsonOutput,
                                  const std::string& runnerPrint,
@@ -116,7 +116,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for deployment
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
                                      uint64_t& gasRemained,
-                                     TransactionReceipt& receipt);
+                                     TransactionReceipt& receipt,
+                                     bool is_library);
 
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
@@ -203,7 +204,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  bytes& map_depth_data, uint64_t& gasRemained);
+                                  bytes& map_depth_data, uint64_t& gasRemained,
+                                  bool is_library = false);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,

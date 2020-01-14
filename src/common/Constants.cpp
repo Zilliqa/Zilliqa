@@ -481,7 +481,6 @@ const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
 const string CONTRACT_FILE_EXTENSION{
-    SCILLA_FILES + '/' +
     ReadConstantString("CONTRACT_FILE_EXTENSION", "node.smart_contract.")};
 const string LIBRARY_CODE_EXTENSION{
     ReadConstantString("LIBRARY_CODE_EXTENSION", "node.smart_contract.")};

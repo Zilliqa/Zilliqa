@@ -47,6 +47,7 @@ void AccountStoreSC<MAP>::Init() {
   m_txnProcessTimeout = false;
 
   boost::filesystem::remove_all(EXTLIB_FOLDER);
+  boost::filesystem::create_directories(EXTLIB_FOLDER);
 }
 
 template <class MAP>
@@ -279,11 +280,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (ret_checker &&
           !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
-                                      gasRemained)) {
+                                      gasRemained, is_library)) {
         ret_checker = false;
       }
 
-      if (ret_checker) {
+      if (ret_checker && !is_library) {
         std::map<std::string, bytes> t_map_depth_map;
         t_map_depth_map.emplace(
             Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
@@ -354,8 +355,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               ret = false;
             }
 
-            if (ret &&
-                !ParseCreateContract(gasRemained, runnerPrint, receipt)) {
+            if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
+                                            is_library)) {
               ret = false;
             }
             if (!ret) {
@@ -698,6 +699,7 @@ template <class MAP>
 bool AccountStoreSC<MAP>::PopulateExtlibsExports(
     uint32_t scilla_version, const std::vector<Address>& extlibs,
     std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
+  LOG_MARKER();
   std::function<bool(const std::vector<Address>&,
                      std::map<Address, std::pair<std::string, std::string>>&)>
       extlibsExporter;
@@ -772,11 +774,11 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
-  // boost::filesystem::create_directories("./" + SCILLA_FILES);
+  boost::filesystem::create_directories("./" + SCILLA_FILES);
 
-  // if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-  // boost::filesystem::create_directories("./" + SCILLA_LOG);
-  // }
+  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
+    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  }
 
   if (!PrepareRootPathWVersion(scilla_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
@@ -791,13 +793,12 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     os.close();
 
     os.open(INIT_JSON);
-    os << is_library
-        ? ""
-        : DataConversion::CharArrayToString(contract.GetInitData());
+    os << DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 
     for (const auto extlib_export : extlibs_exports) {
-      std::string code_path = EXTLIB_FOLDER + '/' + extlib_export.first.hex() +
+      std::string code_path = EXTLIB_FOLDER + '/' + "0x" +
+                              extlib_export.first.hex() +
                               LIBRARY_CODE_EXTENSION;
       boost::filesystem::remove(code_path);
 
@@ -805,7 +806,8 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
       os << extlib_export.second.first;
       os.close();
 
-      std::string init_path = EXTLIB_FOLDER + '/' + extlib_export.first.hex() +
+      std::string init_path = EXTLIB_FOLDER + '/' + "0x" +
+                              extlib_export.first.hex() +
                               LIBRARY_INIT_EXTENSION;
       boost::filesystem::remove(init_path);
 
@@ -815,14 +817,8 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     }
 
     // Block Json
-    if (is_library) {
-      os.open(INPUT_BLOCKCHAIN_JSON);
-      os << "";
-      os.close();
-    } else {
-      JSONUtils::GetInstance().writeJsontoFile(
-          INPUT_BLOCKCHAIN_JSON, GetBlockStateJson(m_curBlockNum));
-    }
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                             GetBlockStateJson(m_curBlockNum));
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
@@ -840,11 +836,11 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   std::chrono::system_clock::time_point tpStart;
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
-  // boost::filesystem::create_directories("./" + SCILLA_FILES);
+  boost::filesystem::create_directories("./" + SCILLA_FILES);
 
-  // if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
-  // boost::filesystem::create_directories("./" + SCILLA_LOG);
-  // }
+  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
+    boost::filesystem::create_directories("./" + SCILLA_LOG);
+  }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -871,7 +867,8 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     os.close();
 
     for (const auto extlib_export : extlibs_exports) {
-      std::string code_path = EXTLIB_FOLDER + '/' + extlib_export.first.hex() +
+      std::string code_path = EXTLIB_FOLDER + '/' + "0x" +
+                              extlib_export.first.hex() +
                               LIBRARY_CODE_EXTENSION;
       boost::filesystem::remove(code_path);
 
@@ -879,7 +876,8 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
       os << extlib_export.second.first;
       os.close();
 
-      std::string init_path = EXTLIB_FOLDER + '/' + extlib_export.first.hex() +
+      std::string init_path = EXTLIB_FOLDER + '/' + "0x" +
+                              extlib_export.first.hex() +
                               LIBRARY_INIT_EXTENSION;
       boost::filesystem::remove(init_path);
 
@@ -982,9 +980,9 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const uint64_t& available_gas) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + ":" + EXTLIB_FOLDER + " " +
-      INPUT_CODE +
+      root_w_version + '/' + SCILLA_CHECKER + " -init " + INIT_JSON +
+      " -contractinfo -libdir " + root_w_version + '/' + SCILLA_LIB + ":" +
+      EXTLIB_FOLDER + " " + INPUT_CODE +
       (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
       " -gaslimit " + std::to_string(available_gas);
 
@@ -1039,7 +1037,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const std::string& checkerPrint, TransactionReceipt& receipt,
-    bytes& map_depth_data, uint64_t& gasRemained) {
+    bytes& map_depth_data, uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 
   Json::Value root;
@@ -1072,27 +1070,29 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     }
     LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-    if (!root.isMember("contract_info")) {
-      receipt.AddError(CHECKER_FAILED);
-      return false;
-    }
+    if (!is_library) {
+      if (!root.isMember("contract_info")) {
+        receipt.AddError(CHECKER_FAILED);
+        return false;
+      }
 
-    Json::Value map_depth_json;
-    if (root["contract_info"].isMember("fields")) {
-      for (const auto& field : root["contract_info"]["fields"]) {
-        if (field.isMember("vname") && field.isMember("depth") &&
-            field["depth"].isNumeric()) {
-          map_depth_json[field["vname"].asString()] = field["depth"].asInt();
+      Json::Value map_depth_json;
+      if (root["contract_info"].isMember("fields")) {
+        for (const auto& field : root["contract_info"]["fields"]) {
+          if (field.isMember("vname") && field.isMember("depth") &&
+              field["depth"].isNumeric()) {
+            map_depth_json[field["vname"].asString()] = field["depth"].asInt();
+          }
         }
       }
-    }
 
-    if (map_depth_json.empty()) {
-      map_depth_json = Json::objectValue;
-    }
+      if (map_depth_json.empty()) {
+        map_depth_json = Json::objectValue;
+      }
 
-    map_depth_data = DataConversion::StringToCharArray(
-        JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+      map_depth_data = DataConversion::StringToCharArray(
+          JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+    }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
                                               << checkerPrint);
@@ -1105,12 +1105,14 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
                                               const std::string& runnerPrint,
-                                              TransactionReceipt& receipt) {
+                                              TransactionReceipt& receipt,
+                                              bool is_library) {
   Json::Value jsonOutput;
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt);
+  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt,
+                                       is_library);
 }
 
 template <class MAP>
@@ -1158,7 +1160,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt) {
+    TransactionReceipt& receipt, bool is_library) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -1182,28 +1184,32 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  if (!_json.isMember("messages") || !_json.isMember("events")) {
-    if (_json.isMember("errors")) {
-      LOG_GENERAL(WARNING, "Contract creation failed");
-      receipt.AddError(CREATE_CONTRACT_FAILED);
-    } else {
-      LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
-      receipt.AddError(OUTPUT_ILLEGAL);
+  if (!is_library) {
+    if (!_json.isMember("messages") || !_json.isMember("events")) {
+      if (_json.isMember("errors")) {
+        LOG_GENERAL(WARNING, "Contract creation failed");
+        receipt.AddError(CREATE_CONTRACT_FAILED);
+      } else {
+        LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+        receipt.AddError(OUTPUT_ILLEGAL);
+      }
+      return false;
     }
+
+    if (_json["messages"].type() == Json::nullValue &&
+        _json["states"].type() == Json::arrayValue &&
+        _json["events"].type() == Json::arrayValue) {
+      return true;
+    }
+
+    LOG_GENERAL(WARNING,
+                "Didn't get desired json output from the interpreter for "
+                "create contract");
+    receipt.AddError(OUTPUT_ILLEGAL);
     return false;
   }
 
-  if (_json["messages"].type() == Json::nullValue &&
-      _json["states"].type() == Json::arrayValue &&
-      _json["events"].type() == Json::arrayValue) {
-    return true;
-  }
-
-  LOG_GENERAL(WARNING,
-              "Didn't get desired json output from the interpreter for "
-              "create contract");
-  receipt.AddError(OUTPUT_ILLEGAL);
-  return false;
+  return true;
 }
 
 template <class MAP>

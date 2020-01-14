@@ -150,7 +150,9 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     return false;
   }
 
-  if (!SetImmutable(code, initData)) {
+  if (!SetImmutable(code, DataConversion::StringToCharArray(
+                              JSONUtils::GetInstance().convertJsontoStr(
+                                  m_initDataJson)))) {
     LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
@@ -200,7 +202,8 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
   for (const auto& entry : root) {
     if (entry.isMember("vname") && entry.isMember("type") &&
         entry.isMember("value")) {
-      if (entry["vname"] == "_scilla_version" && entry["type"] == "Uint32") {
+      if (entry["vname"].asString() == "_scilla_version" &&
+          entry["type"].asString() == "Uint32") {
         if (found_scilla_version) {
           LOG_GENERAL(WARNING, "Got multiple field of \"_scilla_version\"");
           return false;
@@ -220,7 +223,8 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
         }
       }
 
-      if (entry["vname"] == "_library" && entry["type"] == "Bool") {
+      if (entry["vname"].asString() == "_library" &&
+          entry["type"].asString() == "Bool") {
         if (found_library) {
           LOG_GENERAL(WARNING, "Got multiple field of \"_library\"");
           return false;
@@ -235,8 +239,7 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
         }
       }
 
-      if (entry["vname"] == "_extlibs" &&
-          entry["type"] == "List(Pair String ByStr20)") {
+      if (entry["vname"].asString() == "_extlibs") {
         if (found_extlibs) {
           LOG_GENERAL(WARNING, "Got multiple field of \"_extlibs\"");
           return false;
@@ -249,12 +252,12 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
 
         for (const auto& lib_entry : entry["value"]) {
           if (lib_entry.isMember("arguments") &&
-              entry["arguments"].type() == Json::arrayValue &&
-              entry["arguments"].size() == 2) {
+              lib_entry["arguments"].type() == Json::arrayValue &&
+              lib_entry["arguments"].size() == 2) {
             bool foundAddr = false;
-            for (const auto& arg : entry["arguments"]) {
-              if (arg.asString().size() != ((ACC_ADDR_SIZE * 2) + 2) &&
-                  arg.asString().find("0x")) {
+            for (const auto& arg : lib_entry["arguments"]) {
+              if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
+                  arg.asString().find("0x") != std::string::npos) {
                 try {
                   Address addr(arg.asString());
                   extlibs.emplace_back(addr);
