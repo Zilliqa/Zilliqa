@@ -49,8 +49,6 @@
 using namespace boost::multiprecision;
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(contracttest)
-
 PrivKey priv1, priv2, priv3, priv4;
 
 void setup() {
@@ -69,6 +67,8 @@ void setup() {
   priv3.Deserialize(priv3bytes, 0);
 }
 
+BOOST_AUTO_TEST_SUITE(contracttest)
+
 BOOST_AUTO_TEST_CASE(loopytreecall) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "loopy-tree-call started")
 
   PairOfKey owner = Schnorr::GenKeyPair();
-  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3, contrAddr4;
-  uint64_t nonce;
+  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3,
+  contrAddr4; uint64_t nonce;
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -103,7 +103,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
 
   ScillaTestUtil::ScillaTest test;
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call", 1),
+  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call",
+  1),
                       "Unable to fetch test loopy-tree-call_" << 1 << ".");
 
   test.message["_sender"] = "0x" + ownerAddr.hex();
@@ -134,7 +135,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   bytes data = bytes(initStr.begin(), initStr.end());
 
   for (unsigned int i = 0; i < 5; i++) {
-    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(),
+    owner,
                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
     TransactionReceipt tr;
     AccountStore::GetInstance().UpdateAccountsTemp(
@@ -148,7 +150,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
     bytes data;
     uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
 
-    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0, owner,
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0,
+    owner,
                    amount, PRECISION_MIN_VALUE, 2000000, {}, data);
     TransactionReceipt tr;
     AccountStore::GetInstance().UpdateAccountsTemp(
@@ -358,6 +361,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   // Transaction to deploy library contract
   std::string initStr2 = JSONUtils::GetInstance().convertJsontoStr(t2.init);
+  LOG_GENERAL(INFO, "initStr2: " << initStr2);
   bytes data2(initStr2.begin(), initStr2.end());
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t2.code, data2);
@@ -375,7 +379,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   LOG_GENERAL(INFO, "Contract address: " << contrAddr1);
 
   ScillaTestUtil::ScillaTest t3;
-  if (!ScillaTestUtil::GetScillaTest(t2, "import-test-lib", 1)) {
+  if (!ScillaTestUtil::GetScillaTest(t3, "import-test-lib", 1)) {
     LOG_GENERAL(WARNING, "Unable to fetch test import-test-lib");
     return;
   }
@@ -413,9 +417,9 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   nonce++;
 
   /* ------------------------------------------------------------------- */
-  // Execute message_1, the Donate transaction.
+  // Execute message_1.
   bytes dataHi;
-  uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataHi);
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t3.message, dataHi);
 
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataHi);
