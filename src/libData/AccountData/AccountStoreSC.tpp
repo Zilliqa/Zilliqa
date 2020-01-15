@@ -867,6 +867,15 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     bytes& map_depth_data, uint64_t& gasRemained) {
   LOG_MARKER();
 
+  LOG_GENERAL(
+      INFO,
+      "Output: " << std::endl
+                 << (checkerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                         ? checkerPrint.substr(
+                               0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                               "\n ... "
+                         : checkerPrint));
+
   Json::Value root;
   try {
     if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
@@ -963,15 +972,13 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
               std::istreambuf_iterator<char>()};
   }
 
-  if (LOG_SC) {
-    LOG_GENERAL(
-        INFO,
-        "Output: " << std::endl
-                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                                 "\n ... "
-                           : outStr));
-  }
+  LOG_GENERAL(
+      INFO,
+      "Output: " << std::endl
+                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                               "\n ... "
+                         : outStr));
 
   if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
@@ -1070,15 +1077,14 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
       outStr = {std::istreambuf_iterator<char>(in),
                 std::istreambuf_iterator<char>()};
     }
-    if (LOG_SC) {
-      LOG_GENERAL(
-          INFO, "Output: " << std::endl
-                           << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                                   ? outStr.substr(
-                                         0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                                         "\n ... "
-                                   : outStr));
-    }
+
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : outStr));
 
     if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
       receipt.AddError(JSON_OUTPUT_CORRUPTED);
