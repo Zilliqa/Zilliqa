@@ -99,6 +99,14 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
+void TransactionReceipt::AddTransition(const Json::Value& transition) {
+  m_tranReceiptObj["transitions"].append(transition);
+}
+
+void TransactionReceipt::RemoveAllTransitions() {
+  m_tranReceiptObj.removeMember("transitions");
+}
+
 void TransactionReceipt::CleanEntry() {
   m_tranReceiptObj.removeMember("event_logs");
 }
@@ -129,8 +137,7 @@ void TransactionReceipt::update() {
     return;
   }
   InstallError();
-  m_tranReceiptStr =
-      JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
+  m_tranReceiptStr = JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
 }
 
 /// Implements the Serialize function inherited from Serializable.
