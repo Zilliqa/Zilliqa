@@ -795,7 +795,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     os << DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 
-    for (const auto extlib_export : extlibs_exports) {
+    for (const auto& extlib_export : extlibs_exports) {
       std::string code_path = EXTLIB_FOLDER + '/' + "0x" +
                               extlib_export.first.hex() +
                               LIBRARY_CODE_EXTENSION;
@@ -864,7 +864,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     os << DataConversion::CharArrayToString(contract.GetInitData());
     os.close();
 
-    for (const auto extlib_export : extlibs_exports) {
+    for (const auto& extlib_export : extlibs_exports) {
       std::string code_path = EXTLIB_FOLDER + '/' + "0x" +
                               extlib_export.first.hex() +
                               LIBRARY_CODE_EXTENSION;
