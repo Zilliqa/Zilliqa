@@ -722,8 +722,7 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
       /// Check whether there are caches
       std::string code_path =
           EXTLIB_FOLDER + '/' + libAddr.hex() + LIBRARY_CODE_EXTENSION;
-      std::string json_path =
-          EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
+      std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
       if (boost::filesystem::exists(code_path) &&
           boost::filesystem::exists(json_path)) {
         continue;
@@ -806,9 +805,8 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
       os << extlib_export.second.first;
       os.close();
 
-      std::string init_path = EXTLIB_FOLDER + '/' + "0x" +
-                              extlib_export.first.hex() +
-                              ".json";
+      std::string init_path =
+          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
       boost::filesystem::remove(init_path);
 
       os.open(init_path);
@@ -876,9 +874,8 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
       os << extlib_export.second.first;
       os.close();
 
-      std::string init_path = EXTLIB_FOLDER + '/' + "0x" +
-                              extlib_export.first.hex() +
-                              ".json";
+      std::string init_path =
+          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
       boost::filesystem::remove(init_path);
 
       os.open(init_path);

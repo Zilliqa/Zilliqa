@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <openssl/rand.h>
+#include <boost/filesystem.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -76,8 +77,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "loopy-tree-call started")
 
   PairOfKey owner = Schnorr::GenKeyPair();
-  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3,
-  contrAddr4; uint64_t nonce;
+  Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+  uint64_t nonce;
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -103,8 +104,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
 
   ScillaTestUtil::ScillaTest test;
-  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call",
-  1),
+  BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "loopy-tree-call", 1),
                       "Unable to fetch test loopy-tree-call_" << 1 << ".");
 
   test.message["_sender"] = "0x" + ownerAddr.hex();
@@ -135,8 +135,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   bytes data = bytes(initStr.begin(), initStr.end());
 
   for (unsigned int i = 0; i < 5; i++) {
-    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(),
-    owner,
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
     TransactionReceipt tr;
     AccountStore::GetInstance().UpdateAccountsTemp(
@@ -150,8 +149,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
     bytes data;
     uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
 
-    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0,
-    owner,
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0, owner,
                    amount, PRECISION_MIN_VALUE, 2000000, {}, data);
     TransactionReceipt tr;
     AccountStore::GetInstance().UpdateAccountsTemp(
@@ -373,6 +371,18 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
                       "Error with creation of contract account");
   nonce++;
 
+  // Check whether cache of library 1 exists
+  BOOST_CHECK_MESSAGE(
+      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" + libAddr1.hex() +
+                                LIBRARY_CODE_EXTENSION),
+      "libAddr1 cache not exists for libAddr2 deployment");
+  AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+  // Check whether cache of library 1 exists
+  BOOST_CHECK_MESSAGE(
+      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" +libAddr1.hex() +
+                                LIBRARY_CODE_EXTENSION),
+      "libAddr1 cache still exists for libAddr2 deployment after cache clean");
+
   /* ------------------------------------------------------------------- */
   // deploying contract
   contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
@@ -415,6 +425,14 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   BOOST_CHECK_MESSAGE(account3 != nullptr,
                       "Error with creation of contract account");
   nonce++;
+
+  // Check whether cache of library 1/2 exists
+  BOOST_CHECK_MESSAGE(
+      boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" +libAddr1.hex() +
+                                LIBRARY_CODE_EXTENSION) &&
+          boost::filesystem::exists(EXTLIB_FOLDER + '/' + "0x" +libAddr2.hex() +
+                                    LIBRARY_CODE_EXTENSION),
+      "libAddr1/2 cache not exists for contAddr1 deployment");
 
   /* ------------------------------------------------------------------- */
   // Execute message_1.
