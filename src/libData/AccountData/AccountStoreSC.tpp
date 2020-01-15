@@ -553,6 +553,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt)) {
         Contract::ContractStorage2::GetContractStorage().RevertPrevState();
+        receipt.RemoveAllTransitions();
         ret = false;
       }
       if (!ret) {
@@ -1258,6 +1259,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
+      receipt.AddTransition(msg);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
