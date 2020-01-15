@@ -137,7 +137,8 @@ void TransactionReceipt::update() {
     return;
   }
   InstallError();
-  m_tranReceiptStr = JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
+  m_tranReceiptStr =
+      JSONUtils::GetInstance().convertJsontoStr(m_tranReceiptObj);
 }
 
 /// Implements the Serialize function inherited from Serializable.
