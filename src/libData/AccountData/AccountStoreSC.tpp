@@ -1265,7 +1265,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
-      receipt.AddTransition(msg);
+      receipt.AddTransition(m_curContractAddr, msg);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
