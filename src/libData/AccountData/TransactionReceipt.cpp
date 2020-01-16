@@ -99,8 +99,12 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
-void TransactionReceipt::AddTransition(const Json::Value& transition) {
-  m_tranReceiptObj["transitions"].append(transition);
+void TransactionReceipt::AddTransition(const Address& addr,
+                                       const Json::Value& transition) {
+  Json::Value _json;
+  _json["addr"] = addr.hex();
+  _json["msg"] = transition;
+  m_tranReceiptObj["transitions"].append(_json);
 }
 
 void TransactionReceipt::RemoveAllTransitions() {
