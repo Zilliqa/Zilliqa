@@ -102,7 +102,7 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
 void TransactionReceipt::AddTransition(const Address& addr,
                                        const Json::Value& transition) {
   Json::Value _json;
-  _json["addr"] = addr.hex();
+  _json["addr"] = "0x" + addr.hex();
   _json["msg"] = transition;
   m_tranReceiptObj["transitions"].append(_json);
 }
