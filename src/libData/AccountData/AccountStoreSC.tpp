@@ -551,7 +551,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                << r_timer_end(tpStart) << " microseconds");
       }
 
-      if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt)) {
+      uint32_t tree_depth = 0;
+
+      if (ret &&
+          !ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth)) {
         Contract::ContractStorage2::GetContractStorage().RevertPrevState();
         receipt.RemoveAllTransitions();
         ret = false;
@@ -1041,12 +1044,14 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                             const std::string& runnerPrint,
-                                            TransactionReceipt& receipt) {
+                                            TransactionReceipt& receipt,
+                                            uint32_t tree_depth) {
   Json::Value jsonOutput;
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
-  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt);
+  return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt,
+                                     tree_depth);
 }
 
 template <class MAP>
@@ -1106,7 +1111,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt) {
+    TransactionReceipt& receipt, uint32_t tree_depth) {
   // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1266,7 +1271,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
-      receipt.AddTransition(curContractAddr, msg);
+      receipt.AddTransition(curContractAddr, msg, tree_depth);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
@@ -1280,7 +1285,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       LOG_GENERAL(INFO, "Call another contract in chain");
-      receipt.AddDepth();
+      receipt.AddEdge();
       ++m_curEdges;
 
       // deduct scilla runner invoke gas
@@ -1394,7 +1399,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       m_curSenderAddr = curContractAddr;
       m_curContractAddr = recipient;
-      if (!ParseCallContract(gasRemained, runnerPrint, receipt)) {
+      if (!ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth++)) {
         LOG_GENERAL(WARNING, "ParseCallContract failed of calling contract: "
                                  << recipient);
         return false;

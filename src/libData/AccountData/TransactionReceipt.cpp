@@ -24,7 +24,7 @@ using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() {
   update();
-  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+  m_errorObj[to_string(m_edge)] = Json::arrayValue;
 }
 
 bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
@@ -66,15 +66,15 @@ void TransactionReceipt::SetResult(const bool& result) {
   }
 }
 
-void TransactionReceipt::AddDepth() {
+void TransactionReceipt::AddEdge() {
   LOG_MARKER();
-  m_depth++;
-  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+  m_edge++;
+  m_errorObj[to_string(m_edge)] = Json::arrayValue;
 }
 
 void TransactionReceipt::AddError(const unsigned int& errCode) {
   LOG_GENERAL(INFO, "AddError: " << errCode);
-  m_errorObj[to_string(m_depth)].append(errCode);
+  m_errorObj[to_string(m_edge)].append(errCode);
 }
 
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
@@ -100,10 +100,12 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
 }
 
 void TransactionReceipt::AddTransition(const Address& addr,
-                                       const Json::Value& transition) {
+                                       const Json::Value& transition,
+                                       uint32_t tree_depth) {
   Json::Value _json;
   _json["addr"] = "0x" + addr.hex();
   _json["msg"] = transition;
+  _json["depth"] = tree_depth;
   m_tranReceiptObj["transitions"].append(_json);
 }
 
@@ -119,7 +121,7 @@ void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
   m_errorObj.clear();
-  m_depth = 0;
+  m_edge = 0;
   update();
 }
 

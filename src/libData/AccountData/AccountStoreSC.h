@@ -119,7 +119,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
   bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
-                         TransactionReceipt& receipt);
+                         TransactionReceipt& receipt, uint32_t tree_depth);
   /// convert the interpreter output into parsable json object for calling
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint,
@@ -127,7 +127,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// parse the output from interpreter for calling and update states
   bool ParseCallContractJsonOutput(const Json::Value& _json,
                                    uint64_t& gasRemained,
-                                   TransactionReceipt& receipt);
+                                   TransactionReceipt& receipt,
+                                   uint32_t tree_depth);
 
   /// Utility functions
   /// get the json format file for the current blocknum
