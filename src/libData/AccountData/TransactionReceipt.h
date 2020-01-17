@@ -117,6 +117,7 @@ class TransactionWithReceipt : public SerializableDataBlock {
 
     SHA2<HashType::HASH_VARIANT_256> sha2;
     for (const auto& tr : txrs) {
+      LOG_GENERAL(INFO, "receipt: " << tr.GetTransactionReceipt().GetString());
       sha2.Update(DataConversion::StringToCharArray(
           tr.GetTransactionReceipt().GetString()));
     }
