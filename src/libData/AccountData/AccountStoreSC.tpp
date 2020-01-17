@@ -1209,6 +1209,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   Account* account = nullptr;
 
   if (!ret) {
+    // Buffer the Addr for current caller
     Address curContractAddr = m_curContractAddr;
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
@@ -1265,7 +1266,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
-      receipt.AddTransition(m_curContractAddr, msg);
+      receipt.AddTransition(curContractAddr, msg);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
