@@ -1399,7 +1399,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       m_curSenderAddr = curContractAddr;
       m_curContractAddr = recipient;
-      if (!ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth + 1)) {
+      if (!ParseCallContract(gasRemained, runnerPrint, receipt,
+                             tree_depth + 1)) {
         LOG_GENERAL(WARNING, "ParseCallContract failed of calling contract: "
                                  << recipient);
         return false;
