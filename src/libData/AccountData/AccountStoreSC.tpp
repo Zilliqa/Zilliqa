@@ -818,8 +818,9 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
+      root_w_version + '/' + SCILLA_CHECKER +
+      " -contractinfo -jsonerrors -libdir " + root_w_version + '/' +
+      SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
       std::to_string(available_gas);
   if (LOG_SC) {
     LOG_GENERAL(INFO, cmdStr);
