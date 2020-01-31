@@ -818,8 +818,9 @@ std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
     const std::string& root_w_version, const uint64_t& available_gas) {
   std::string cmdStr =
       // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_CHECKER + " -contractinfo -libdir " +
-      root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
+      root_w_version + '/' + SCILLA_CHECKER +
+      " -contractinfo -jsonerrors -libdir " + root_w_version + '/' +
+      SCILLA_LIB + " " + INPUT_CODE + " -gaslimit " +
       std::to_string(available_gas);
   if (LOG_SC) {
     LOG_GENERAL(INFO, cmdStr);
@@ -1179,7 +1180,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  std::vector<Contract::StateEntry> state_entries;
   try {
     for (const auto& e : _json["events"]) {
       LogEntry entry;
@@ -1218,6 +1218,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     Address curContractAddr = m_curContractAddr;
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
+
+      // a buffer for `ret` flag to be reset per loop
+      bool t_ret = ret;
+
       // Non-null messages must have few mandatory fields.
       if (!msg.isMember("_tag") || !msg.isMember("_amount") ||
           !msg.isMember("params") || !msg.isMember("_recipient")) {
@@ -1257,7 +1261,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
           receipt.AddError(BALANCE_TRANSFER_FAILED);
           return false;
         } else {
-          ret = true;
+          t_ret = true;
         }
       }
 
@@ -1267,7 +1271,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         LOG_GENERAL(INFO,
                     "_tag in the scilla output is empty when invoking a "
                     "contract, transaction finished");
-        ret = true;
+        t_ret = true;
       }
 
       m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
@@ -1279,7 +1283,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
       }
 
-      if (ret) {
+      if (t_ret) {
         // return true;
         continue;
       }
