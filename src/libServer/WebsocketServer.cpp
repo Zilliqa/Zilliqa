@@ -219,17 +219,21 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
             !j_query["addresses"].empty()) {
           set<Address> el_addresses;
           for (const auto& address : j_query["addresses"]) {
-            Address addr(address.asString());
-            Account* acc = AccountStore::GetInstance().GetAccount(addr);
-            if (acc == nullptr || !acc->isContract()) {
-              continue;
+            try {
+              Address addr(address.asString());
+              Account* acc = AccountStore::GetInstance().GetAccount(addr);
+              if (acc == nullptr || !acc->isContract()) {
+                continue;
+              }
+              el_addresses.emplace(addr);
+            } catch (...) {
+              response = "invalid address";
+              break;
             }
-            el_addresses.emplace(addr);
           }
           if (el_addresses.empty()) {
             response = "no contract found in list";
           } else {
-            LOG_GENERAL(INFO, "uwu 1");
             {
               lock_guard<mutex> g(m_mutexSubscriptions);
               m_subscriptions[hdl].subscribe(EVENTLOG);
@@ -317,19 +321,23 @@ void WebsocketServer::ParseTxnEventLog(const TransactionWithReceipt& twr) {
           log["params"].type() == Json::arrayValue)) {
       continue;
     }
-    Address addr(log["address"].asString());
 
-    lock_guard<mutex> g(m_mutexEventLogAddrHdlTracker);
-    auto find = m_eventLogAddrHdlTracker.m_addr_hdl_map.find(addr);
-    if (find == m_eventLogAddrHdlTracker.m_addr_hdl_map.end()) {
+    try {
+      Address addr(log["address"].asString());
+      lock_guard<mutex> g(m_mutexEventLogAddrHdlTracker);
+      auto find = m_eventLogAddrHdlTracker.m_addr_hdl_map.find(addr);
+      if (find == m_eventLogAddrHdlTracker.m_addr_hdl_map.end()) {
+        continue;
+      }
+      Json::Value j_eventlog;
+      j_eventlog["_eventname"] = log["_eventname"];
+      j_eventlog["params"] = log["params"];
+      for (const connection_hdl& hdl : find->second) {
+        lock_guard<mutex> g(m_mutexEventLogDataBuffer);
+        m_eventLogDataBuffer[hdl][addr].append(j_eventlog);
+      }
+    } catch (...) {
       continue;
-    }
-    Json::Value j_eventlog;
-    j_eventlog["_eventname"] = log["_eventname"];
-    j_eventlog["params"] = log["params"];
-    for (const connection_hdl& hdl : find->second) {
-      lock_guard<mutex> g(m_mutexEventLogDataBuffer);
-      m_eventLogDataBuffer[hdl][addr].append(j_eventlog);
     }
   }
 }
