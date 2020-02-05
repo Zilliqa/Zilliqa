@@ -279,6 +279,8 @@ def run():
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 	return True
 def start():
+	global Exclude_txnBodies
+	global Exclude_microBlocks
 	if len(sys.argv) >= 2:
 		if os.path.isabs(sys.argv[1]):
 			STORAGE_PATH = sys.argv[1]
