@@ -281,6 +281,7 @@ def run():
 def start():
 	global Exclude_txnBodies
 	global Exclude_microBlocks
+	global STORAGE_PATH
 	if len(sys.argv) >= 2:
 		if os.path.isabs(sys.argv[1]):
 			STORAGE_PATH = sys.argv[1]
