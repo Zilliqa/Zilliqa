@@ -281,6 +281,12 @@ void Node::InitiatePoW() {
     return;
   }
 
+  if (m_mediator.m_disablePoW) {
+    LOG_GENERAL(INFO, "Skipping PoW");
+    m_mediator.m_disablePoW = false;
+    return;
+  }
+
   SetState(POW_SUBMISSION);
   POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
