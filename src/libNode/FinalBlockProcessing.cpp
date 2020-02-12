@@ -285,7 +285,6 @@ void Node::InitiatePoW() {
 
   if (m_mediator.m_disablePoW) {
     LOG_GENERAL(INFO, "Skipping PoW");
-    m_mediator.m_disablePoW = false;
     return;
   }
 
