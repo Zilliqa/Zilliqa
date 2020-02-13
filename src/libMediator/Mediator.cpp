@@ -45,7 +45,8 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_txBlockRand({{0}}),
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
-      m_curSWInfo() {
+      m_curSWInfo(),
+      m_disablePoW(false) {
   SetupLogLevel();
 }
 

@@ -90,6 +90,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetSendSCCallsToDS", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetSendSCCallsToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::DisablePoWI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -240,4 +244,12 @@ bool StatusServer::GetSendSCCallsToDS() {
                            "Not to be queried on non-lookup or seed");
   }
   return m_mediator.m_lookup->m_sendSCCallsToDS;
+}
+
+bool StatusServer::DisablePoW() {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+  m_mediator.m_disablePoW = true;
+  return true;
 }

@@ -116,6 +116,7 @@ def make_options_dictionary(options_dict):
 	options_dict["difficulty"] = "GetPrevDifficulty"
 	options_dict["set_sendsccallstods"] = "ToggleSendSCCallsToDS"
 	options_dict["get_sendsccallstods"] = "GetSendSCCallsToDS"
+	options_dict["disable_pow"] = "DisablePoW"
 
 
 def ProcessResponseCore(resp, param):
