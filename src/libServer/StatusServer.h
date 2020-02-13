@@ -67,6 +67,11 @@ class StatusServer : public Server,
     (void)request;
     response = this->GetSendSCCallsToDS();
   }
+  inline virtual void DisablePoWI(const Json::Value& request,
+                                  Json::Value& response) {
+    (void)request;
+    response = this->DisablePoW();
+  }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
@@ -77,6 +82,7 @@ class StatusServer : public Server,
   Json::Value GetDSCommittee();
   bool ToggleSendSCCallsToDS();
   bool GetSendSCCallsToDS();
+  bool DisablePoW();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
