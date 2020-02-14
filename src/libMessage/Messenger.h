@@ -19,6 +19,7 @@
 
 #include <Schnorr.h>
 #include <boost/variant.hpp>
+#include <map>
 #include "common/BaseType.h"
 #include "common/MempoolEnum.h"
 #include "common/Serializable.h"
@@ -27,6 +28,7 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
+#include "libData/MiningData/MinerInfo.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
@@ -475,12 +477,11 @@ class Messenger {
   static bool SetLookupGetDSBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
-                                          const uint32_t listenPort);
-  static bool GetLookupGetDSBlockFromSeed(const bytes& src,
-                                          const unsigned int offset,
-                                          uint64_t& lowBlockNum,
-                                          uint64_t& highBlockNum,
-                                          uint32_t& listenPort);
+                                          const uint32_t listenPort,
+                                          const bool includeMinerInfo);
+  static bool GetLookupGetDSBlockFromSeed(
+      const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+      uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo);
   static bool SetLookupSetDSBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
@@ -492,6 +493,14 @@ class Messenger {
                                           uint64_t& highBlockNum,
                                           PubKey& lookupPubKey,
                                           std::vector<DSBlock>& dsBlocks);
+  static bool SetLookupSetMinerInfoFromSeed(
+      bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+      const std::map<uint64_t, std::pair<MinerInfoDSComm, MinerInfoShards>>&
+          minerInfoPerDS);
+  static bool GetLookupSetMinerInfoFromSeed(
+      const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
+      std::map<uint64_t, std::pair<MinerInfoDSComm, MinerInfoShards>>&
+          minerInfoPerDS);
   static bool SetLookupGetTxBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
@@ -683,11 +692,13 @@ class Messenger {
   static bool SetLookupGetDirectoryBlocksFromSeed(bytes& dst,
                                                   const unsigned int offset,
                                                   const uint32_t portNo,
-                                                  const uint64_t& indexNum);
+                                                  const uint64_t& indexNum,
+                                                  const bool includeMinerInfo);
   static bool GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
                                                   const unsigned int offset,
                                                   uint32_t& portNo,
-                                                  uint64_t& indexNum);
+                                                  uint64_t& indexNum,
+                                                  bool& includeMinerInfo);
 
   static bool SetLookupSetDirectoryBlocksFromSeed(
       bytes& dst, const unsigned int offset,
@@ -916,5 +927,15 @@ class Messenger {
   static bool GetLookupSetCosigsRewardsFromSeed(
       const bytes& src, const unsigned int offset,
       std::vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey);
+
+  static bool SetMinerInfoDSComm(bytes& dst, const unsigned int offset,
+                                 const MinerInfoDSComm& minerInfo);
+  static bool GetMinerInfoDSComm(const bytes& src, const unsigned int offset,
+                                 MinerInfoDSComm& minerInfo);
+
+  static bool SetMinerInfoShards(bytes& dst, const unsigned int offset,
+                                 const MinerInfoShards& minerInfo);
+  static bool GetMinerInfoShards(const bytes& src, const unsigned int offset,
+                                 MinerInfoShards& minerInfo);
 };
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_

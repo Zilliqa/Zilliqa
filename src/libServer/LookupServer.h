@@ -199,16 +199,18 @@ class LookupServer : public Server,
                                        Json::Value& response) {
     response = this->GetShardMembers(request[0u].asUInt());
   }
-
   inline virtual void GetTotalCoinSupplyI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
     response = this->GetTotalCoinSupply();
   }
-
   inline virtual void GetPendingTxnI(const Json::Value& request,
                                      Json::Value& response) {
     response = this->GetPendingTxn(request[0u].asString());
+  }
+  inline virtual void GetMinerInfoI(const Json::Value& request,
+                                    Json::Value& response) {
+    response = this->GetMinerInfo(request[0u].asString());
   }
 
   std::string GetNetworkId();
@@ -258,6 +260,8 @@ class LookupServer : public Server,
 
   static Json::Value GetTransactionsForTxBlock(const TxBlock& txBlock,
                                                bool historicalDB);
+
+  Json::Value GetMinerInfo(const std::string& blockNum);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

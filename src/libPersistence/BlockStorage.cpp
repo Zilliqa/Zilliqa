@@ -367,6 +367,14 @@ bool BlockStorage::ReleaseDB() {
     unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
     m_blockLinkDB.reset();
   }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+    m_minerInfoDSCommDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+    m_minerInfoShardsDB.reset();
+  }
   return true;
 }
 
@@ -1237,6 +1245,90 @@ bool BlockStorage::DeleteDiagnosticDataCoinbase(const uint64_t& dsBlockNum) {
   return result;
 }
 
+bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
+                                      const MinerInfoDSComm& entry) {
+  LOG_MARKER();
+
+  bytes data;
+
+  if (!Messenger::SetMinerInfoDSComm(data, 0, entry)) {
+    LOG_GENERAL(WARNING, "Messenger::SetMinerInfoDSComm failed");
+    return false;
+  }
+
+  unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+
+  if (0 != m_minerInfoDSCommDB->Insert(dsBlockNum, data)) {
+    LOG_GENERAL(WARNING, "Failed to store miner info");
+    return false;
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
+                                      MinerInfoDSComm& entry) {
+  LOG_MARKER();
+  bool found = false;
+
+  string dataStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+    dataStr = m_minerInfoDSCommDB->Lookup(dsBlockNum, found);
+  }
+  if (found) {
+    if (!Messenger::GetMinerInfoDSComm(bytes(dataStr.begin(), dataStr.end()), 0,
+                                       entry)) {
+      LOG_GENERAL(WARNING, "Messenger::GetMinerInfoDSComm failed");
+      found = false;
+    }
+  }
+
+  return found;
+}
+
+bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
+                                      const MinerInfoShards& entry) {
+  LOG_MARKER();
+
+  bytes data;
+
+  if (!Messenger::SetMinerInfoShards(data, 0, entry)) {
+    LOG_GENERAL(WARNING, "Messenger::SetMinerInfoShards failed");
+    return false;
+  }
+
+  unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+
+  if (0 != m_minerInfoShardsDB->Insert(dsBlockNum, data)) {
+    LOG_GENERAL(WARNING, "Failed to store miner info");
+    return false;
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
+                                      MinerInfoShards& entry) {
+  LOG_MARKER();
+  bool found = false;
+
+  string dataStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+    dataStr = m_minerInfoShardsDB->Lookup(dsBlockNum, found);
+  }
+  if (found) {
+    if (!Messenger::GetMinerInfoShards(bytes(dataStr.begin(), dataStr.end()), 0,
+                                       entry)) {
+      LOG_GENERAL(WARNING, "Messenger::GetMinerInfoShards failed");
+      found = false;
+    }
+  }
+
+  return found;
+}
+
 bool BlockStorage::ResetDB(DBTYPE type) {
   LOG_MARKER();
   bool ret = false;
@@ -1330,6 +1422,16 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     case PROCESSED_TEMP: {
       unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
       ret = m_processedTxnTmpDB->ResetDB();
+      break;
+    }
+    case MINER_INFO_DSCOMM: {
+      unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+      ret = m_minerInfoDSCommDB->ResetDB();
+      break;
+    }
+    case MINER_INFO_SHARDS: {
+      unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+      ret = m_minerInfoShardsDB->ResetDB();
       break;
     }
   }
@@ -1434,6 +1536,16 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_processedTxnTmpDB->RefreshDB();
       break;
     }
+    case MINER_INFO_DSCOMM: {
+      unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+      ret = m_minerInfoDSCommDB->RefreshDB();
+      break;
+    }
+    case MINER_INFO_SHARDS: {
+      unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+      ret = m_minerInfoShardsDB->RefreshDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Refresh DB " << type << " failed");
@@ -1529,6 +1641,16 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_processedTxnTmpDB->GetDBName());
       break;
     }
+    case MINER_INFO_DSCOMM: {
+      shared_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+      ret.push_back(m_minerInfoDSCommDB->GetDBName());
+      break;
+    }
+    case MINER_INFO_SHARDS: {
+      shared_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+      ret.push_back(m_minerInfoShardsDB->GetDBName());
+      break;
+    }
   }
 
   return ret;
@@ -1552,7 +1674,8 @@ bool BlockStorage::ResetAll() {
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
+           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
+           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS);
   }
 }
 
@@ -1577,6 +1700,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
            RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
            RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
+           RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
            Contract::ContractStorage2::GetContractStorage().RefreshAll();
   }
 }

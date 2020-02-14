@@ -22,6 +22,14 @@ using namespace std;
 void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
                                       DequeOfNode& dsComm,
                                       const DSBlock& dsblock) {
+  MinerInfoDSComm dummy;
+  UpdateDSCommitteeCompositionCore(selfKeyPub, dsComm, dsblock, dummy);
+}
+
+void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
+                                      DequeOfNode& dsComm,
+                                      const DSBlock& dsblock,
+                                      MinerInfoDSComm& minerInfo) {
   LOG_MARKER();
 
   // Get the map of all pow winners from the DS Block
@@ -99,12 +107,32 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
   LOG_GENERAL(INFO, "Total non-performant nodes re-shuffled: " << NumLosers);
   LOG_GENERAL(INFO, "Nodes expiring due to old age: " << NumExpiring);
 
+  const bool bStoreDSCommittee =
+      (dsblock.GetHeader().GetBlockNum() % STORE_DS_COMMITTEE_INTERVAL) == 0;
+  if (LOOKUP_NODE_MODE) {
+    minerInfo.m_dsNodes.clear();
+    minerInfo.m_dsNodesEjected.clear();
+  }
+
   // Remove one node for every winner, maintaining the size of the DS Committee.
   for (uint32_t i = 0; i < NumWinners; ++i) {
     // One item is always removed every winner, with removal priority given to
     // 'loser' candidates before expiring nodes.
     LOG_GENERAL(INFO,
                 "Node dropped from DS Committee: " << dsComm.back().first);
+
+    if (LOOKUP_NODE_MODE && !bStoreDSCommittee) {
+      minerInfo.m_dsNodesEjected.emplace_back(dsComm.back().first);
+    }
+
     dsComm.pop_back();
+  }
+
+  if (LOOKUP_NODE_MODE && bStoreDSCommittee) {
+    for (const auto& dsnode : dsComm) {
+      if (!Guard::GetInstance().IsNodeInDSGuardList(dsnode.first)) {
+        minerInfo.m_dsNodes.emplace_back(dsnode.first);
+      }
+    }
   }
 }
