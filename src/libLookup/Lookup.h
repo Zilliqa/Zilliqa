@@ -446,7 +446,7 @@ class Lookup : public Executable {
   std::mutex m_mutexGetStartPoWPeerSet;
 
   // For use by lookup for dispatching transactions
-  std::atomic<bool> m_sendAllSCToDS{};
+  std::atomic<bool> m_sendSCCallsToDS{};
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_

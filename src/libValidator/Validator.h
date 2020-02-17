@@ -54,22 +54,10 @@ class Validator {
       DequeOfNode& newDSComm);
 
   // TxBlocks must be in increasing order or it will fail
-  template <class Container>
-  TxBlockValidationMsg CheckTxBlocks(const Container& txBlocks,
+  TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
                                      const DequeOfNode& dsComm,
                                      const BlockLink& latestBlockLink);
   Mediator& m_mediator;
-
- private:
-  const TxBlock& GetBlockFromContainer(const std::vector<TxBlock>& txBlocks,
-                                       unsigned int index) const {
-    return txBlocks.at(index);
-  }
-  const TxBlock& GetBlockFromContainer(
-      const std::deque<std::shared_ptr<TxBlock>>& txBlocks,
-      unsigned int index) const {
-    return *txBlocks.at(index);
-  }
 };
 
 #endif  // ZILLIQA_SRC_LIBVALIDATOR_VALIDATOR_H_

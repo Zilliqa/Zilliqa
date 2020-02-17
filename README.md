@@ -89,7 +89,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone git@github.com:Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tag/v6.0.0
+$ cd Zilliqa && git checkout tag/v6.1.0
 
 # build Zilliqa binary
 $ ./build.sh
@@ -121,7 +121,7 @@ $ git checkout master
 
 |          | Link(s) |
 |:---------|:-------|
-| **Development discussion (discord)** | <a href="https://discord.gg/8tpGXrB" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
+| **Development discussion (discord)** | <a href="https://discord.gg/XMRE9tt" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | https://bugcrowd.com/zilliqa |

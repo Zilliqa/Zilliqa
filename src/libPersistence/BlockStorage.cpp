@@ -26,6 +26,7 @@
 
 #include <leveldb/db.h>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "BlockStorage.h"
 #include "common/Constants.h"
@@ -438,6 +439,24 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
       new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
+}
+
+bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
+  uint64_t latestTxBlockNum = 0;
+
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    leveldb::Iterator* it =
+        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
+      if (blockNum > latestTxBlockNum) {
+        latestTxBlockNum = blockNum;
+      }
+    }
+  }
+
+  return GetTxBlock(latestTxBlockNum, block);
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {

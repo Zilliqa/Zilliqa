@@ -50,12 +50,13 @@ class BlockChain {
   }
 
   /// Returns the last stored block.
-  T GetLastBlock() {
+  const T& GetLastBlock() {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
     try {
       return m_blocks.back();
     } catch (...) {
-      return T();
+      static T defaultBlock;
+      return defaultBlock;
     }
   }
 
@@ -68,9 +69,7 @@ class BlockChain {
       LOG_GENERAL(WARNING,
                   "BlockNum too high " << blockNum << " Dummy block used");
       return T();
-    }
-
-    else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+    } else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
       return GetBlockFromPersistentStorage(blockNum);
     }
 
@@ -84,6 +83,7 @@ class BlockChain {
     }
     return m_blocks[blockNum];
   }
+
   /// Adds a block to the chain.
   int AddBlock(const T& block) {
     uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
@@ -120,7 +120,7 @@ class BlockChain {
 
 class DSBlockChain : public BlockChain<DSBlock> {
  public:
-  DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
+  DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) override {
     DSBlockSharedPtr block;
     if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block)) {
       LOG_GENERAL(WARNING, "BlockNum not in persistent storage "
@@ -133,7 +133,7 @@ class DSBlockChain : public BlockChain<DSBlock> {
 
 class TxBlockChain : public BlockChain<TxBlock> {
  public:
-  TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
+  TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) override {
     TxBlockSharedPtr block;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block)) {
       LOG_GENERAL(WARNING, "BlockNum not in persistent storage "
@@ -147,7 +147,7 @@ class TxBlockChain : public BlockChain<TxBlock> {
 class VCBlockChain : public BlockChain<VCBlock> {
  public:
   VCBlock GetBlockFromPersistentStorage([
-      [gnu::unused]] const uint64_t& blockNum) {
+      [gnu::unused]] const uint64_t& blockNum) override {
     throw "vc block persistent storage not supported";
   }
 };
@@ -155,7 +155,7 @@ class VCBlockChain : public BlockChain<VCBlock> {
 class FallbackBlockChain : public BlockChain<FallbackBlock> {
  public:
   FallbackBlock GetBlockFromPersistentStorage([
-      [gnu::unused]] const uint64_t& blockNum) {
+      [gnu::unused]] const uint64_t& blockNum) override {
     throw "fallback block persistent storage not supported";
   }
 };

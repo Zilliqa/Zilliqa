@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 void setDepth(TransactionReceipt& tr, uint8_t depth) {
   for (int i = 0; i < depth; i++) {
-    tr.AddDepth();
+    tr.AddEdge();
   }
 }
 

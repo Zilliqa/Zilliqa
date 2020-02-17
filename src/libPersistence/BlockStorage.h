@@ -190,6 +190,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
+  bool GetLatestTxBlock(TxBlockSharedPtr& block);
+
   bool CheckTxBody(const dev::h256& key);
 
   bool ReleaseDB();

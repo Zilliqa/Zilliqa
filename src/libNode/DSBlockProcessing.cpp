@@ -208,7 +208,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
                                      std::get<SHARD_NODE_PEER>(shardNode));
 
       // Zero out my IP to avoid sending to myself
-      if (m_mediator.m_selfPeer == m_myShardMembers->back().second) {
+      if (m_mediator.m_selfKey.second == m_myShardMembers->back().first) {
         m_consensusMyID = index;  // Set my ID
         m_myShardMembers->back().second = Peer();
         foundMe = true;
@@ -502,6 +502,12 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
     return false;
   }
+
+  // During RECOVERY_ALL_SYNC, the ipMapping.xml should be removed only after
+  // first DS epoch has passed, because if RejoinAsNormal is triggered during
+  // the first DS epoch, the ipMapping.xml will be needed again to map the DS
+  // committee to the correct IP addresses.
+  RemoveIpMapping();
 
   LogReceivedDSBlockDetails(dsblock);
 

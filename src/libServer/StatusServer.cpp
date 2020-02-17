@@ -83,13 +83,17 @@ StatusServer::StatusServer(Mediator& mediator,
       &Server::GetPrevDifficultyI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("ToggleSendSCToDS", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("ToggleSendSCCallsToDS", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &StatusServer::ToggleSendSCToDSI);
+      &StatusServer::ToggleSendSCCallsToDSI);
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetSendSCToDS", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("GetSendSCCallsToDS", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &StatusServer::GetSendSCToDSI);
+      &StatusServer::GetSendSCCallsToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::DisablePoWI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -224,20 +228,28 @@ Json::Value StatusServer::IsTxnInMemPool(const string& tranID) {
   }
 }
 
-bool StatusServer::ToggleSendSCToDS() {
+bool StatusServer::ToggleSendSCCallsToDS() {
   if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
     throw JsonRpcException(RPC_INVALID_REQUEST,
                            "Not to be queried on non-lookup or seed");
   }
-  m_mediator.m_lookup->m_sendAllSCToDS =
-      !(m_mediator.m_lookup->m_sendAllSCToDS);
-  return m_mediator.m_lookup->m_sendAllSCToDS;
+  m_mediator.m_lookup->m_sendSCCallsToDS =
+      !(m_mediator.m_lookup->m_sendSCCallsToDS);
+  return m_mediator.m_lookup->m_sendSCCallsToDS;
 }
 
-bool StatusServer::GetSendSCToDS() {
+bool StatusServer::GetSendSCCallsToDS() {
   if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
     throw JsonRpcException(RPC_INVALID_REQUEST,
                            "Not to be queried on non-lookup or seed");
   }
-  return m_mediator.m_lookup->m_sendAllSCToDS;
+  return m_mediator.m_lookup->m_sendSCCallsToDS;
+}
+
+bool StatusServer::DisablePoW() {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+  m_mediator.m_disablePoW = true;
+  return true;
 }
