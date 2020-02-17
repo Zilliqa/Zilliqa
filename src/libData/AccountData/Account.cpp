@@ -264,6 +264,8 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                   foundAddr = true;
                   break;
                 } catch (...) {
+                  LOG_GENERAL(WARNING, "invalid to convert string to address: "
+                                           << arg.asString());
                   continue;
                 }
               }
@@ -291,7 +293,7 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
   }
 
   if (!found_scilla_version) {
-    LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
+    LOG_GENERAL(WARNING, "scilla_version not found in init data");
     return false;
   }
 
@@ -313,7 +315,7 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   }
 
   if (!ParseInitData(root, scilla_version, is_library, extlibs)) {
-    LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
+    LOG_GENERAL(WARNING, "ParseInitData failed");
     return false;
   }
 
@@ -447,51 +449,6 @@ const bytes Account::GetCode() const {
   return m_codeCache;
 }
 
-bool Account::GetIsLibrary(bool& is_library) {
-  if (!isContract()) {
-    return false;
-  }
-
-  if (m_initDataJson == Json::nullValue) {
-    if (!RetrieveContractAuxiliaries()) {
-      LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
-      return false;
-    }
-  }
-  is_library = m_is_library;
-  return true;
-}
-
-bool Account::GetScillaVersion(uint32_t& scilla_version) {
-  if (!isContract()) {
-    return false;
-  }
-
-  if (m_initDataJson == Json::nullValue) {
-    if (!RetrieveContractAuxiliaries()) {
-      LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
-      return false;
-    }
-  }
-  scilla_version = m_scilla_version;
-  return true;
-}
-
-bool Account::GetExternalLibs(std::vector<Address>& extlibs) {
-  if (!isContract()) {
-    return false;
-  }
-
-  if (m_initDataJson == Json::nullValue) {
-    if (!RetrieveContractAuxiliaries()) {
-      LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
-      return false;
-    }
-  }
-  extlibs = m_extlibs;
-  return true;
-}
-
 bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                                      std::vector<Address>& extlibs) {
   if (!isContract()) {
@@ -512,7 +469,7 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
 
 bool Account::RetrieveContractAuxiliaries() {
   if (!isContract()) {
-    LOG_GENERAL(WARNING, "Not a contract why call GetScillaVersion");
+    LOG_GENERAL(WARNING, "Not a contract");
     return false;
   }
 

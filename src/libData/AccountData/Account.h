@@ -142,12 +142,6 @@ class Account : public AccountBase {
   Account(const uint128_t& balance, const uint64_t& nonce,
           const uint32_t& version = ACCOUNT_VERSION);
 
-  bool GetIsLibrary(bool& is_library);
-
-  bool GetScillaVersion(uint32_t& scilla_version);
-
-  bool GetExternalLibs(std::vector<Address>& extlibs);
-
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum);

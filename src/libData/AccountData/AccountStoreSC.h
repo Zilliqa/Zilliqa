@@ -154,6 +154,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// updating m_root_w_version
   bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
+  /// export files that ExportCreateContractFiles and ExportContractFiles
+  /// both needs
+  void ExportCommonFiles(
+      std::ofstream& os, const Account& contract,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
+
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
   bool ExportContractFiles(

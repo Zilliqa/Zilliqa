@@ -718,7 +718,7 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
 
       Account* libAcc = this->GetAccount(libAddr);
       if (libAcc == nullptr) {
-        LOG_GENERAL(WARNING, "libAcc: " << libAddr << " is not existing");
+        LOG_GENERAL(WARNING, "libAcc: " << libAddr << " does not exist");
         return false;
       }
 
@@ -794,38 +794,51 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
-    os.open(INIT_JSON);
-    os << DataConversion::CharArrayToString(contract.GetInitData());
-    os.close();
-
-    for (const auto& extlib_export : extlibs_exports) {
-      std::string code_path =
-          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
-      code_path += LIBRARY_CODE_EXTENSION;
-      boost::filesystem::remove(code_path);
-
-      os.open(code_path);
-      os << extlib_export.second.first;
-      os.close();
-
-      std::string init_path =
-          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-      boost::filesystem::remove(init_path);
-
-      os.open(init_path);
-      os << extlib_export.second.second;
-      os.close();
-    }
-
-    // Block Json
-    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                             GetBlockStateJson(m_curBlockNum));
+    ExportCommonFiles(os, contract, extlibs_exports);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
 
   return true;
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::ExportCommonFiles(
+    std::ofstream& os, const Account& contract,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
+  os.open(INIT_JSON);
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO, "init data to export: "
+                  << DataConversion::CharArrayToString(contract.GetInitData()));
+  }
+  os << DataConversion::CharArrayToString(contract.GetInitData());
+  os.close();
+
+  for (const auto& extlib_export : extlibs_exports) {
+    std::string code_path =
+        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
+    code_path += LIBRARY_CODE_EXTENSION;
+    boost::filesystem::remove(code_path);
+
+    os.open(code_path);
+    os << extlib_export.second.first;
+    os.close();
+
+    std::string init_path =
+        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
+    boost::filesystem::remove(init_path);
+
+    os.open(init_path);
+    os << extlib_export.second.second;
+    os.close();
+  }
+
+  // Block Json
+  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                                           GetBlockStateJson(m_curBlockNum));
 }
 
 template <class MAP>
@@ -858,37 +871,8 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
-    os.open(INIT_JSON);
-    if (LOG_SC) {
-      LOG_GENERAL(INFO,
-                  "init data to export: " << DataConversion::CharArrayToString(
-                      contract.GetInitData()));
-    }
-    os << DataConversion::CharArrayToString(contract.GetInitData());
-    os.close();
+    ExportCommonFiles(os, contract, extlibs_exports);
 
-    for (const auto& extlib_export : extlibs_exports) {
-      std::string code_path =
-          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
-      code_path += LIBRARY_CODE_EXTENSION;
-      boost::filesystem::remove(code_path);
-
-      os.open(code_path);
-      os << extlib_export.second.first;
-      os.close();
-
-      std::string init_path =
-          EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-      boost::filesystem::remove(init_path);
-
-      os.open(init_path);
-      os << extlib_export.second.second;
-      os.close();
-    }
-
-    // Block Json
-    JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                             GetBlockStateJson(m_curBlockNum));
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
     }
