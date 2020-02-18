@@ -480,6 +480,12 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+const string CONTRACT_FILE_EXTENSION{
+    ReadConstantString("CONTRACT_FILE_EXTENSION", "node.smart_contract.")};
+const string LIBRARY_CODE_EXTENSION{
+    ReadConstantString("LIBRARY_CODE_EXTENSION", "node.smart_contract.")};
+const string EXTLIB_FOLDER{
+    ReadConstantString("EXTLIB_FOLDER", "node.smart_contract.")};
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};

@@ -51,7 +51,11 @@ enum ReceiptError : unsigned int {
   NO_OUTPUT,
   OUTPUT_ILLEGAL,
   MAP_DEPTH_MISSING,
-  GAS_NOT_SUFFICIENT
+  GAS_NOT_SUFFICIENT,
+  INTERNAL_ERROR,
+  LIBRARY_AS_RECIPIENT,
+  VERSION_INCONSISTENT,
+  LIBRARY_EXTRACTION_FAILED
 };
 
 class TransactionReceipt : public SerializableDataBlock {

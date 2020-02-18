@@ -117,11 +117,18 @@ class Account : public AccountBase {
   bytes m_codeCache;
   bytes m_initDataCache;
   Address m_address;  // used by contract account only
+  Json::Value m_initDataJson = Json::nullValue;
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
+  bool m_is_library = false;
+  std::vector<Address> m_extlibs;
 
   bool PrepareInitDataJson(const bytes& initData, const Address& addr,
                            const uint64_t& blockNum, Json::Value& root,
-                           uint32_t& scilla_version);
+                           uint32_t& scilla_version, bool& is_library,
+                           std::vector<Address>& extlibs);
+
+  bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
+                     bool& is_library, std::vector<Address>& extlibs);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -137,8 +144,7 @@ class Account : public AccountBase {
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
-                    const Address& addr, const uint64_t& blockNum,
-                    uint32_t& scilla_version);
+                    const Address& addr, const uint64_t& blockNum);
 
   bool SetImmutable(const bytes& code, const bytes& initData);
 
@@ -166,7 +172,11 @@ class Account : public AccountBase {
 
   const bytes GetInitData() const;
 
-  bool GetScillaVersion(uint32_t& scilla_version);
+  bool GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
+                              std::vector<Address>& extlibs);
+
+  // includes scilla_version, is_library, and extlibs
+  bool RetrieveContractAuxiliaries();
 
   /// !temp represents getting whole states
   void GetUpdatedStates(std::map<std::string, bytes>& t_states,
