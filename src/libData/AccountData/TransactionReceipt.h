@@ -78,6 +78,8 @@ class TransactionReceipt : public SerializableDataBlock {
   void AddEntry(const LogEntry& entry);
   void AddTransition(const Address& addr, const Json::Value& transition,
                      uint32_t tree_depth);
+  void AddAccepted(bool accepted);
+  bool AddAcceptedForLastTransition(bool accepted);
   void RemoveAllTransitions();
   void CleanEntry();
   const std::string& GetString() const { return m_tranReceiptStr; }

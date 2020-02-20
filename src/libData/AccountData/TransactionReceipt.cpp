@@ -109,6 +109,20 @@ void TransactionReceipt::AddTransition(const Address& addr,
   m_tranReceiptObj["transitions"].append(_json);
 }
 
+void TransactionReceipt::AddAccepted(bool accepted) {
+  m_tranReceiptObj["accepted"] = accepted;
+}
+
+bool TransactionReceipt::AddAcceptedForLastTransition(bool accepted) {
+  LOG_MARKER();
+  if (m_tranReceiptObj["transitions"].empty()) {
+    return false;
+  }
+  m_tranReceiptObj["transitions"][(m_tranReceiptObj["transitions"].size() - 1)]
+                  ["accepted"] = accepted;
+  return true;
+}
+
 void TransactionReceipt::RemoveAllTransitions() {
   m_tranReceiptObj.removeMember("transitions");
 }

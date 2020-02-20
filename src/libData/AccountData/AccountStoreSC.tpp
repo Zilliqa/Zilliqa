@@ -1325,7 +1325,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  if (_json["_accepted"].asString() == "true") {
+  bool accepted = (_json["_accepted"].asString() == "true");
+  if (accepted) {
     // LOG_GENERAL(INFO, "Contract accept amount transfer");
     if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                m_curAmount)) {
@@ -1335,6 +1336,16 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   } else {
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
+  }
+
+  if (tree_depth == 0) {
+    // first call in a txn
+    receipt.AddAccepted(accepted);
+  } else {
+    if (!receipt.AddAcceptedForLastTransition(accepted)) {
+      LOG_GENERAL(WARNING, "AddAcceptedForLastTransition failed");
+      return false;
+    }
   }
 
   Account* contractAccount =
