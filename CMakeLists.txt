@@ -49,7 +49,18 @@ find_package(websocketpp CONFIG REQUIRED)
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options python-py35 REQUIRED)
+find_package(PythonLibs REQUIRED)
+
+string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
+list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
+list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
+list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
+
+set(PY_COMP_SUFFIX "python-py${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
+
+message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
+
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
