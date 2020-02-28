@@ -620,6 +620,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       /// since txn succeeded, commit the atomic buffer
       m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                        m_storageRootUpdateBufferAtomic.end());
+      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      break;
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Executing contract transaction finished");
