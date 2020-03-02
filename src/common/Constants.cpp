@@ -305,9 +305,13 @@ const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
 // RPC Constants
 const unsigned int LOOKUP_RPC_PORT{
     ReadConstantNumeric("LOOKUP_RPC_PORT", "node.jsonrpc.")};
+const unsigned int STAKING_RPC_PORT{
+    ReadConstantNumeric("STAKING_RPC_PORT", "node.jsonrpc.")};
 const unsigned int STATUS_RPC_PORT{
     ReadConstantNumeric("STATUS_RPC_PORT", "node.jsonrpc.")};
 const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
+const bool ENABLE_STAKING_RPC{
+    ReadConstantString("ENABLE_STAKING_RPC", "node.jsonrpc.") == "true"};
 const bool ENABLE_STATUS_RPC{
     ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
 const unsigned int NUM_SHARD_PEER_TO_REVEAL{

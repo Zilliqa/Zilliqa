@@ -413,6 +413,28 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         }
       }
     }
+
+    if (ENABLE_STAKING_RPC) {
+      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT);
+      m_stakingServer =
+          make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
+
+      if (m_stakingServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_stakingServer NULL");
+      } else {
+        m_lookup.SetStakingServer(m_stakingServer);
+        if (m_lookup.GetSyncType() == SyncType::NO_SYNC) {
+          if (m_stakingServer->StartListening()) {
+            LOG_GENERAL(INFO, "Staking Server started successfully");
+          } else {
+            LOG_GENERAL(WARNING, "Staking Server couldn't start");
+          }
+        } else {
+          LOG_GENERAL(WARNING,
+                      "This lookup node not sync yet, don't start listen");
+        }
+      }
+    }
   };
   DetachedFunction(1, func);
 }

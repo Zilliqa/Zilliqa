@@ -47,6 +47,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LookupServer.h"
+#include "libServer/StakingServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -2314,6 +2315,14 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
             }
           }
           m_isFirstLoop = true;
+
+          if (m_stakingServer) {
+            if (m_stakingServer->StartListening()) {
+              LOG_GENERAL(INFO, "Staking Server started to listen again");
+            } else {
+              LOG_GENERAL(WARNING, "Staking Server couldn't start");
+            }
+          }
         }
         m_currDSExpired = false;
       }
@@ -2603,6 +2612,14 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
             LOG_GENERAL(WARNING, "API Server couldn't start");
           }
         }
+
+        if (m_stakingServer) {
+          if (m_stakingServer->StartListening()) {
+            LOG_GENERAL(INFO, "Staking Server started to listen again");
+          } else {
+            LOG_GENERAL(WARNING, "Staking Server couldn't start");
+          }
+        }
       }
     }
     m_currDSExpired = false;
@@ -2641,6 +2658,14 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
           LOG_GENERAL(INFO, "API Server started to listen again");
         } else {
           LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
+      }
+
+      if (m_stakingServer) {
+        if (m_stakingServer->StartListening()) {
+          LOG_GENERAL(INFO, "Staking Server started to listen again");
+        } else {
+          LOG_GENERAL(WARNING, "Staking Server couldn't start");
         }
       }
     }
@@ -3550,6 +3575,10 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
         m_lookupServer->StopListening();
         LOG_GENERAL(INFO, "API Server stopped listen for syncing");
       }
+      if (m_stakingServer) {
+        m_stakingServer->StopListening();
+        LOG_GENERAL(INFO, "Staking Server stopped listen for syncing");
+      }
     };
     DetachedFunction(1, func1);
 
@@ -3605,6 +3634,10 @@ void Lookup::RejoinAsLookup() {
       if (m_lookupServer) {
         m_lookupServer->StopListening();
         LOG_GENERAL(INFO, "API Server stopped listen for syncing");
+      }
+      if (m_stakingServer) {
+        m_stakingServer->StopListening();
+        LOG_GENERAL(INFO, "Staking Server stopped listen for syncing");
       }
     };
 
