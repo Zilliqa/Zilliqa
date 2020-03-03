@@ -76,7 +76,8 @@ int main(int argc, const char* argv[]) {
         "recovery,r", "Runs in recovery mode if set")(
         "logpath,g", po::value<string>(&logpath),
         "customized log path, could be relative path (e.g., \"./logs/\"), or "
-        "absolute path (e.g., \"/usr/local/test/logs/\")");
+        "absolute path (e.g., \"/usr/local/test/logs/\")")(
+        "version,v", "Displays the Zilliqa version information");
 
     po::variables_map vm;
     try {
@@ -89,6 +90,12 @@ int main(int argc, const char* argv[]) {
         cout << desc << endl;
         return SUCCESS;
       }
+
+      if (vm.count("version")) {
+        cout << VERSION_TAG << endl;
+        return SUCCESS;
+      }
+
       po::notify(vm);
 
       try {
