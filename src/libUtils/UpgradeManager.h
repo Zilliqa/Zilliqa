@@ -45,6 +45,7 @@ class UpgradeManager {
                            const char* releaseUrl = nullptr);
 
   bool LoadInitialDS(std::vector<PubKey>& initialDSCommittee);
+  void CleanInitialDS();
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_

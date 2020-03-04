@@ -73,8 +73,6 @@ UpgradeManager::UpgradeManager() {
     LOG_GENERAL(WARNING, "curl initialization fail!");
     curl_global_cleanup();
   }
-
-  boost::filesystem::create_directories(DOWNLOAD_FOLDER);
 }
 
 UpgradeManager::~UpgradeManager() {
@@ -197,6 +195,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
   curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
+  boost::filesystem::create_directories(DOWNLOAD_FOLDER);
   unique_ptr<FILE, decltype(&fclose)> fp(fopen(fileName.data(), "wb"), &fclose);
 
   if (!fp) {
@@ -285,4 +284,8 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
     LOG_GENERAL(WARNING, e.what());
     return false;
   }
+}
+
+void UpgradeManager::CleanInitialDS() {
+  boost::filesystem::remove(DOWNLOAD_FOLDER);
 }
