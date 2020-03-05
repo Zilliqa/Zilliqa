@@ -804,13 +804,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       return false;
     }
     auto writeStateToDisk = [this]() -> void {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
-              LOOKUP_NODE_MODE && ENABLE_REPOPULATE &&
-              (m_mediator.m_dsBlockChain.GetLastBlock()
-                       .GetHeader()
-                       .GetBlockNum() %
-                   REPOPULATE_STATE_PER_N_DS ==
-               REPOPULATE_STATE_IN_DS))) {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {

@@ -46,7 +46,6 @@ namespace dev
         bool exists(h256 const& _h) const;
         void insert(h256 const& _h, bytesConstRef _v);
         bool kill(h256 const& _h);
-        void purge();
 
         bytes lookupAux(h256 const& _h) const;
         void removeAux(h256 const& _h);
@@ -62,6 +61,11 @@ namespace dev
         std::unordered_map<h256, std::pair<bytes, bool>> m_aux;
 
         mutable bool m_enforceRefs = false;
+
+        /// remove nodes if counter drop to 0 and collect their keys
+        /// set calledWithMutex to false if you *really* know what you are doing
+        void purge(std::vector<h256>& purged, bool calledWithMutex = true);
+        void purgeMain(std::vector<h256>& purged);
     };
 
     class EnforceRefs

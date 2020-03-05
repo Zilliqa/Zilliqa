@@ -2579,16 +2579,10 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
       }
       m_prevStateRootHashTemp = AccountStore::GetInstance().GetStateRootHash();
     }
+
     if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
-      if (ENABLE_REPOPULATE && ((txBlkNum + 1) % (NUM_FINAL_BLOCK_PER_POW *
-                                                  REPOPULATE_STATE_PER_N_DS) ==
-                                REPOPULATE_STATE_IN_DS)) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk(true)) {
-          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(true) failed");
-          return false;
-        }
-      } else if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk(false)) {
+      if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
           LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(false) failed");
           return false;
         }

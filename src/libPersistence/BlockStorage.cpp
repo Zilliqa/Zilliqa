@@ -462,6 +462,7 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
         latestTxBlockNum = blockNum;
       }
     }
+    delete it;
   }
 
   return GetTxBlock(latestTxBlockNum, block);
@@ -1168,6 +1169,7 @@ void BlockStorage::GetDiagnosticDataNodes(
 
     index++;
   }
+  delete it;
 }
 
 void BlockStorage::GetDiagnosticDataCoinbase(
@@ -1215,6 +1217,7 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
     index++;
   }
+  delete it;
 }
 
 unsigned int BlockStorage::GetDiagnosticDataNodesCount() {

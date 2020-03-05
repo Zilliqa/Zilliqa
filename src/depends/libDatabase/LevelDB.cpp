@@ -40,16 +40,16 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
         return;
     }
 
-    leveldb::Options options;
-    options.max_open_files = 256;
-    options.create_if_missing = true;
+    m_options.max_open_files = 256;
+    m_options.create_if_missing = true;
 
     leveldb::DB* db;
     leveldb::Status status;
 
     if(m_subdirectory.empty())
     {
-        status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        m_open_db_path = path + "/" + this->m_dbName;
+        status = leveldb::DB::Open(m_options, m_open_db_path, &db);
         LOG_GENERAL(INFO, path + "/" + this->m_dbName);
     }
     else
@@ -58,8 +58,9 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
         {
             boost::filesystem::create_directories(path + "/" + this->m_subdirectory);
         }
-        status = leveldb::DB::Open(options, 
-            path + "/" + this->m_subdirectory + "/" + this->m_dbName,
+        m_open_db_path = path + "/" + this->m_subdirectory + "/" + this->m_dbName;
+        status = leveldb::DB::Open(m_options, 
+            m_open_db_path,
             &db);
         LOG_GENERAL(INFO, path + "/" + this->m_subdirectory + "/" + this->m_dbName);
     }
@@ -77,9 +78,8 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
 
-    leveldb::Options options;
-    options.max_open_files = 256;
-    options.create_if_missing = true;
+    m_options.max_open_files = 256;
+    m_options.create_if_missing = true;
 
     leveldb::DB* db;
     leveldb::Status status;
@@ -94,13 +94,28 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
         boost::filesystem::create_directories(db_path);
     }
 
-    status = leveldb::DB::Open(options, db_path + "/" + this->m_dbName, &db);
+    m_open_db_path = db_path + "/" + this->m_dbName;
+    status = leveldb::DB::Open(m_options, m_open_db_path, &db);
     if(!status.ok())
     {
         // throw exception();
         LOG_GENERAL(WARNING, "LevelDB status is not OK.");
     }
 
+    m_db.reset(db);
+}
+
+void LevelDB::Reopen() {
+    LOG_MARKER();
+    m_db.reset();
+    leveldb::DB* db;
+    leveldb::Status status;
+
+    status = leveldb::DB::Open(m_options, m_open_db_path, &db);
+    if (!status.ok())
+    {
+        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+    }
     m_db.reset(db);
 }
 
@@ -212,6 +227,7 @@ int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,
 
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
@@ -227,6 +243,7 @@ int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,
 
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
@@ -243,6 +260,7 @@ int LevelDB::Insert(const leveldb::Slice & key, dev::bytesConstRef value)
     leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, ldb::Slice(value));
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
@@ -256,6 +274,7 @@ int LevelDB::Insert(const dev::h256 & key, const string & value)
                                   ldb::Slice(value.data(), value.size()));
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
@@ -269,6 +288,7 @@ int LevelDB::Insert(const dev::h256 & key, const vector<unsigned char> & body)
                                                                                  body.size())));
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
@@ -278,32 +298,31 @@ int LevelDB::Insert(const dev::h256 & key, const vector<unsigned char> & body)
 int LevelDB::Insert(const leveldb::Slice & key, const leveldb::Slice & value)
 {
     leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, value);
+    
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
         return -1;
     }
 
     return 0;
 }
 
-int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                         std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux)
+bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
+                          const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux)
 {
     ldb::WriteBatch batch;
 
-    for (const auto & i: m_main)
-    {
-        if (i.second.second)
-        {
+    for (const auto & i: m_main) {
+        if (i.second.second) {
+            // LOG_GENERAL(INFO, "addkey: " << i.first.hex() << " counter: " << i.second.second);
             batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
     }
 
-    for (const auto & i: m_aux)
-    {
-        if (i.second.second)
-        {
+    for (const auto & i: m_aux) {
+        if (i.second.second) {
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
@@ -312,20 +331,19 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
 
     ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
 
-    if (!s.ok())
-    {
-        return -1;
+    if (!s.ok()) {
+        LOG_GENERAL(WARNING, "[BatchInsert] Status: " << s.ToString());
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 bool LevelDB::BatchInsert(const std::unordered_map<std::string, std::string>& kv_map)
 {
     ldb::WriteBatch batch;
 
-    for (const auto & i: kv_map)
-    {
+    for (const auto & i: kv_map) {
         if (!i.second.empty()) {
             batch.Put(leveldb::Slice(i.first),
                       leveldb::Slice(i.second));
@@ -334,8 +352,24 @@ bool LevelDB::BatchInsert(const std::unordered_map<std::string, std::string>& kv
 
     ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
 
-    if (!s.ok())
-    {
+    if (!s.ok()) {
+        LOG_GENERAL(WARNING, "[BatchInsert] Status: " << s.ToString());
+        return false;
+    }
+
+    return true;
+}
+
+bool LevelDB::BatchDelete(const std::vector<dev::h256>& toDelete) {
+    ldb::WriteBatch batch;
+    for (const auto& i : toDelete) {
+        batch.Delete(leveldb::Slice(i.hex()));
+    }
+
+    ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
+
+    if (!s.ok()) {
+        LOG_GENERAL(WARNING, "[BatchDelete] Status: " << s.ToString());
         return false;
     }
 
@@ -362,9 +396,11 @@ bool LevelDB::Exists(const std::string & key) const
 
 int LevelDB::DeleteKey(const dev::h256 & key)
 {
+    // LOG_GENERAL(INFO, "delete: " << key.hex());
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -376,6 +412,7 @@ int LevelDB::DeleteKey(const boost::multiprecision::uint256_t & blockNum)
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(blockNum.convert_to<string>()));
     if (!s.ok())
     {
+        LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -387,6 +424,7 @@ int LevelDB::DeleteKey(const std::string & key)
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key));
     if(!s.ok())
     {
+        LOG_GENERAL(WARNING, "[DeleteKey] Status: " << s.ToString());
         return -1;
     }
 
@@ -447,7 +485,7 @@ int LevelDB::DeleteDBForNormalNode()
         leveldb::Options());
     if (!s.ok())
     {
-        LOG_GENERAL(INFO, "[DeleteDB] Status: " << s.ToString());
+        LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -495,7 +533,7 @@ int LevelDB::DeleteDBForLookupNode()
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options());
     if (!s.ok())
     {
-        LOG_GENERAL(INFO, "[DeleteDB] Status: " << s.ToString());
+        LOG_GENERAL(WARNING, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -520,6 +558,7 @@ bool LevelDB::ResetDBForLookupNode()
         {
             // throw exception();
             LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+            return false;
         }
 
         m_db.reset(db);
