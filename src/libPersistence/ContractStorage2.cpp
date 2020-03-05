@@ -249,7 +249,9 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     ++p;
   }
 
-  auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it(
+      m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+
   it->Seek({key});
   if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
@@ -355,7 +357,9 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
     ++p;
   }
 
-  auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it(
+      m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+
   it->Seek({prefix});
   if (!it->Valid() ||
       it->key().ToString().compare(0, prefix.size(), prefix) != 0) {
@@ -580,7 +584,9 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
     ++p;
   }
 
-  auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it(
+      m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+
   it->Seek({key});
   if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
     // no entry
@@ -662,7 +668,9 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
       ++p;
     }
 
-    auto it = m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+    std::unique_ptr<leveldb::Iterator> it(
+        m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+
     it->Seek({address.hex()});
     if (!it->Valid() || it->key().ToString().compare(0, address.hex().size(),
                                                      address.hex()) != 0) {

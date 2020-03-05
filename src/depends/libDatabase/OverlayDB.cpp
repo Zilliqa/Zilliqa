@@ -42,14 +42,27 @@ namespace dev
 		return m_levelDB.RefreshDB();
 	}
 
-	void OverlayDB::commit()
+	bool OverlayDB::commit()
 	{
+		LOG_MARKER();
 	// #if DEV_GUARDED_DB
 	// 		DEV_READ_GUARDED(x_this)
 	// #endif
 		{
 			shared_lock<shared_timed_mutex> lock(x_this);
-			m_levelDB.BatchInsert(m_main, m_aux);
+
+			/// delete removed nodes in both mem and disk
+			std::vector<h256> purged;
+			purge(purged, false);
+			m_levelDB.BatchDelete(purged);
+
+			/// add newly created nodes in disk
+			if (!m_levelDB.BatchInsert(m_main, m_aux)) {
+				LOG_GENERAL(WARNING, "BatchInsert failed");
+				return false;
+			}
+			/// clean temp files in leveldb
+			m_levelDB.Reopen();
 		}
 			
 	// #if DEV_GUARDED_DB
@@ -60,6 +73,8 @@ namespace dev
 			m_aux.clear();
 			m_main.clear();
 		}
+
+		return true;
 	}
 
 	bytes OverlayDB::lookupAux(h256 const& _h) const
