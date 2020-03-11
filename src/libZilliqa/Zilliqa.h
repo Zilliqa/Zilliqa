@@ -26,6 +26,7 @@
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
+#include "libServer/StakingServer.h"
 #include "libServer/StatusServer.h"
 #include "libUtils/ThreadPool.h"
 
@@ -40,10 +41,12 @@ class Zilliqa {
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  std::unique_ptr<StatusServer> m_statusServer;
   std::shared_ptr<LookupServer> m_lookupServer;
-  std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
+  std::shared_ptr<StakingServer> m_stakingServer;
+  std::unique_ptr<StatusServer> m_statusServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
