@@ -402,7 +402,8 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
       "Specifies node index")("recovery,r", "Runs in recovery mode if set")(
       "logpath,g", po::value<string>(&m_logPath),
       "customized log path, could be relative path (e.g., \"./logs/\"), or "
-      "absolute path (e.g., \"/usr/local/test/logs/\")");
+      "absolute path (e.g., \"/usr/local/test/logs/\")")(
+      "cseed,c", "Runs as cummunity seed node if set");
 
   po::variables_map vm;
 
