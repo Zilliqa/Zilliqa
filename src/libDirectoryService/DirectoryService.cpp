@@ -856,6 +856,9 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   m_mediator.m_lookup->SendMessageToLookupNodesSerial(
       updatedsguardidentitymessage);
 
+  // Send to all upper seed nodes
+  m_mediator.m_lookup->SendMessageToSeedNodes(updatedsguardidentitymessage);
+
   vector<Peer> peerInfo;
   {
     // Multicast to all DS committee
