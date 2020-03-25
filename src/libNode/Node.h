@@ -363,8 +363,6 @@ class Node : public Executable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
-  void RemoveIpMapping();
-
   void WakeupAtDSEpoch();
 
   void WakeupAtTxEpoch();
@@ -664,6 +662,8 @@ class Node : public Executable {
   void ClearUnconfirmedTxn();
 
   bool IsUnconfirmedTxnEmpty() const;
+
+  void RemoveIpMapping();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

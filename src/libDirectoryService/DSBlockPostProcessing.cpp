@@ -824,6 +824,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   StartFirstTxEpoch();
+
+  // Reached here, so already at new ds epoch now and safe to remove
+  // ipMapping.xml
+  m_mediator.m_node->RemoveIpMapping();
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
