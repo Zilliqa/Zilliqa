@@ -69,19 +69,12 @@ class BlockChain {
       LOG_GENERAL(WARNING,
                   "BlockNum too high " << blockNum << " Dummy block used");
       return T();
-    } else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+    } else if (blockNum + m_blocks.capacity() < m_blocks.size() ||
+               m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum) {
       return GetBlockFromPersistentStorage(blockNum);
+    } else {
+      return m_blocks[blockNum];
     }
-
-    if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum) {
-      LOG_GENERAL(WARNING,
-                  "BlockNum : " << blockNum << " != GetBlockNum() : "
-                                << m_blocks[blockNum].GetHeader().GetBlockNum()
-                                << ", a dummy block will be used and abnormal "
-                                   "behavior may happen!");
-      return T();
-    }
-    return m_blocks[blockNum];
   }
 
   /// Adds a block to the chain.
