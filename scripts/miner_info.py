@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (C) 2019 Zilliqa
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#!/usr/bin/python
 import json
 import requests
 import os, time
@@ -41,13 +40,12 @@ def recvall(sock):
 	BUFF_SIZE = 4096 # 4 KiB
 	data = ""
 	while True:
-		part = str(sock.recv(BUFF_SIZE))
-		data += part
+		part = sock.recv(BUFF_SIZE)
+		data += part.decode()
 		if len(part) < BUFF_SIZE:
 			# either 0 or end of data
 			break
 	return data
-
 
 def gen_payload_batch(params, methodName):
 	req = []
@@ -58,20 +56,19 @@ def gen_payload_batch(params, methodName):
 		count = count + 1
 	return req
 
-
 def send_packet_tcp(data, host, port):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
 		sock.connect((host, port))
-		sock.sendall(data+"\n")
+		data = data + "\n"
+		sock.sendall(data.encode())
 		received = recvall(sock)
 	except socket.error:
-		print "Socket error"
+		print("Socket error")
 		sock.close()
 		return None
 	sock.close()
 	return received
-
 
 def get_response(params, methodName, host, port, batch):
 	
@@ -80,17 +77,15 @@ def get_response(params, methodName, host, port, batch):
 	else:
 		data = json.dumps(gen_payload_batch(params, methodName))
 	if DEBUG_MODE:
-		print "Request:\n\t"+data
+		print("Request:\n\t"+data)
 	recv = send_packet_tcp(data, host, port)
 	if not recv:
 		return None
 	response = json.loads(recv)
 
 	if DEBUG_MODE:
-		print "Response:\n\t"+recv
+		print("Response:\n\t"+recv)
 	return response
-
-
 
 def parse_arguments(options):
 	parser = argparse.ArgumentParser()
@@ -118,54 +113,47 @@ def make_options_dictionary(options_dict):
 	options_dict["get_sendsccallstods"] = "GetSendSCCallsToDS"
 	options_dict["disable_pow"] = "DisablePoW"
 
-
 def ProcessResponseCore(resp, param):
 	if param:
-		print "Parameter: "+str(param)+"\t:",
+		print("Parameter: "+str(param)+"\t:")
 	try:
-		print resp["result"]
+		print(resp["result"])
 	except KeyError:
-		print resp["error"]	
+		print(resp["error"]	)
 
 def ProcessResponse(resp, params, batch):
 	if not batch:
 		ProcessResponseCore(resp, params)
 	else:
-#Assuming the params are in same order as thier starting from 1,2..
+		#Assuming the params are in same order as thier starting from 1,2..
 		for i in resp:
 			try:
 				param = params[int(i["id"])-1]
 				ProcessResponseCore(i, param)
 			except KeyError:
-				print "Could not find id: "+i["id"]
-			
+				print("Could not find id: "+i["id"])
 
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
 	option_param_required = ["checktxn","whitelist_add","whitelist_remove"]
 	global DEBUG_MODE
-	args = parse_arguments(options_dictionary.keys())
+	args = parse_arguments(sorted(options_dictionary.keys()))
 	DEBUG_MODE = args.debug
 	batch = False
 
 	if args.option in option_param_required:
 		if len(args.params) == 0:
-			print "Error: Params cannot be empty"
+			print("Error: Params cannot be empty")
 			return 1
 		batch = True
 
 	response = get_response(args.params, options_dictionary[args.option], args.address, args.port, batch)
 	
 	if response == None:
-		print "Could not get result"
+		print("Could not get result")
 	else:
 		ProcessResponse(response,args.params, batch)
 
-	
-
 if __name__ == '__main__':
 	main()
-
-	
-
