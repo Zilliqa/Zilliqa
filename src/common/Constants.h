@@ -266,6 +266,8 @@ extern const bool ENABLE_STAKING_RPC;
 extern const bool ENABLE_STATUS_RPC;
 extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
 extern const std::string SCILLA_IPC_SOCKET_PATH;
+extern const std::string SCILLA_SERVER_SOCKET_PATH;
+extern const std::string SCILLA_SERVER_BINARY;
 extern bool ENABLE_WEBSOCKET;
 extern const unsigned int WEBSOCKET_PORT;
 

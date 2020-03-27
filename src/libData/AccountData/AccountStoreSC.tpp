@@ -19,11 +19,14 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 
+#include "ScillaClient.h"
+
 #include "libPersistence/ContractStorage2.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 // 5mb
@@ -51,37 +54,102 @@ void AccountStoreSC<MAP>::Init() {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::InvokeScillaChecker(std::string& checkerPrint,
-                                              bool& ret_checker, int& pid,
-                                              const uint64_t& gasRemained,
-                                              TransactionReceipt& receipt,
-                                              bool is_library) {
-  auto func1 = [this, &checkerPrint, &ret_checker, &pid, &gasRemained, &receipt,
-                &is_library]() mutable -> void {
-    try {
-      if (!SysCommand::ExecuteCmd(
-              SysCommand::WITH_OUTPUT_PID,
-              GetContractCheckerCmdStr(m_root_w_version, is_library,
-                                       gasRemained),
-              checkerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetContractCheckerCmdStr(
-                                 m_root_w_version, is_library, gasRemained));
-        receipt.AddError(EXECUTE_CMD_FAILED);
-        ret_checker = false;
+void AccountStoreSC<MAP>::InvokeInterpreter(
+    INVOKE_TYPE invoke_type, std::string& interprinterPrint,
+    const uint32_t& version, bool is_library, const uint64_t& available_gas,
+    const boost::multiprecision::uint128_t& balance, bool& ret,
+    TransactionReceipt& receipt) {
+  int pid = -1;
+
+  auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
+                &available_gas, &balance, &ret, &pid,
+                &receipt]() mutable -> void {
+    bool called = true;
+    switch (invoke_type) {
+      case CHECKER:
+        if (!ScillaClient::GetInstance().CallChecker(
+                version,
+                ScillaUtils::GetContractCheckerJson(m_root_w_version,
+                                                    is_library, available_gas),
+                interprinterPrint)) {
+          called = false;
+        }
+        break;
+      case RUNNER_CREATE:
+        if (!ScillaClient::GetInstance().CallRunner(
+                version,
+                ScillaUtils::GetCreateContractJson(m_root_w_version, is_library,
+                                                   available_gas, balance),
+                interprinterPrint)) {
+          called = false;
+        }
+        break;
+      case RUNNER_CALL:
+        if (!ScillaClient::GetInstance().CallRunner(
+                version,
+                ScillaUtils::GetCallContractJson(m_root_w_version,
+                                                 available_gas, balance),
+                interprinterPrint)) {
+          called = false;
+        }
+        break;
+    }
+
+    if (!called) {
+      std::string cmdStr;
+      switch (invoke_type) {
+        case CHECKER:
+          cmdStr = ScillaUtils::GetContractCheckerCmdStr(
+              m_root_w_version, is_library, available_gas);
+          break;
+        case RUNNER_CREATE:
+          cmdStr = ScillaUtils::GetCreateContractCmdStr(
+              m_root_w_version, is_library, available_gas, balance);
+          break;
+        case RUNNER_CALL:
+          cmdStr = ScillaUtils::GetCallContractCmdStr(m_root_w_version,
+                                                      available_gas, balance);
+          break;
       }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (1): "
-                               << e.what());
-      ret_checker = false;
+
+      try {
+        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID, cmdStr,
+                                    interprinterPrint, pid)) {
+          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+          receipt.AddError(EXECUTE_CMD_FAILED);
+          ret = false;
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (2): "
+                                 << e.what());
+        ret = false;
+      }
     }
 
     cv_callContract.notify_all();
   };
-  DetachedFunction(1, func1);
+  DetachedFunction(1, func2);
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     cv_callContract.wait(lk);
+  }
+
+  if (m_txnProcessTimeout) {
+    LOG_GENERAL(WARNING,
+                "Txn processing timeout! Interrupt current contract "
+                "deployment, pid: "
+                    << pid);
+    try {
+      if (pid >= 0) {
+        kill(pid, SIGKILL);
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
+    }
+
+    receipt.AddError(EXECUTE_CMD_TIMEOUT);
+    ret = false;
   }
 }
 
@@ -203,6 +271,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       bool is_library;
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
+      uint32_t scilla_version;
 
       try {
         // Initiate the contract account, including setting the contract code
@@ -213,7 +282,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           init = false;
         }
 
-        uint32_t scilla_version;
         std::vector<Address> extlibs;
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
@@ -222,7 +290,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
 
         if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
-          LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
+          LOG_GENERAL(WARNING, "ScillaUtils::PopulateExtLibsExports failed");
           return false;
         }
 
@@ -256,26 +324,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       bool ret_checker = true;
       std::string checkerPrint;
 
-      int pid = -1;
-      InvokeScillaChecker(checkerPrint, ret_checker, pid, gasRemained, receipt,
-                          is_library);
+      InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
+                        gasRemained, 0, ret_checker, receipt);
 
-      if (m_txnProcessTimeout) {
-        LOG_GENERAL(
-            WARNING,
-            "Txn processing timeout! Interrupt current contract check, pid: "
-                << pid);
-        try {
-          if (pid >= 0) {
-            kill(pid, SIGKILL);
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
-        }
-        receipt.AddError(EXECUTE_CMD_TIMEOUT);
-        ret_checker = false;
-      }
-
+      // parse checker output
       bytes map_depth_data;
 
       if (ret_checker &&
@@ -310,51 +362,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (ret) {
           std::string runnerPrint;
 
-          pid = -1;
-          auto func2 = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
-                        &is_library, &extlibs_exports]() mutable -> void {
-            try {
-              if (!SysCommand::ExecuteCmd(
-                      SysCommand::WITH_OUTPUT_PID,
-                      GetCreateContractCmdStr(m_root_w_version, is_library,
-                                              gasRemained, 0),
-                      runnerPrint, pid)) {
-                LOG_GENERAL(WARNING,
-                            "ExecuteCmd failed: " << GetCreateContractCmdStr(
-                                m_root_w_version, is_library, gasRemained, 0));
-                receipt.AddError(EXECUTE_CMD_FAILED);
-                ret = false;
-              }
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING,
-                          "Exception caught in SysCommand::ExecuteCmd (2): "
-                              << e.what());
-              ret = false;
-            }
+          // invoke scilla runner
+          InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
+                            is_library, gasRemained, amount, ret, receipt);
 
-            cv_callContract.notify_all();
-          };
-          DetachedFunction(1, func2);
-
-          {
-            std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-            cv_callContract.wait(lk);
-          }
-
+          // parse runner output
           try {
-            if (m_txnProcessTimeout) {
-              LOG_GENERAL(WARNING,
-                          "Txn processing timeout! Interrupt current contract "
-                          "deployment, pid: "
-                              << pid);
-              if (pid >= 0) {
-                kill(pid, SIGKILL);
-              }
-
-              receipt.AddError(EXECUTE_CMD_TIMEOUT);
-              ret = false;
-            }
-
             if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
                                             is_library)) {
               ret = false;
@@ -546,55 +559,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddress(toAddr);
 
+      Contract::ContractStorage2::GetContractStorage().BufferCurrentState();
+
       std::string runnerPrint;
       bool ret = true;
-      int pid = -1;
 
-      auto func = [this, &runnerPrint, &ret, &pid, gasRemained, &receipt,
-                   &toAddr, &extlibs_exports]() mutable -> void {
-        try {
-          if (!SysCommand::ExecuteCmd(
-                  SysCommand::WITH_OUTPUT_PID,
-                  GetCallContractCmdStr(m_root_w_version, gasRemained,
-                                        this->GetBalance(toAddr)),
-                  runnerPrint, pid)) {
-            LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                     m_root_w_version, gasRemained,
-                                     this->GetBalance(toAddr)));
-            receipt.AddError(EXECUTE_CMD_FAILED);
-            ret = false;
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(WARNING,
-                      "Exception caught in call account (1): " << e.what());
-          ret = false;
-        }
-        cv_callContract.notify_all();
-      };
+      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
+                        gasRemained, this->GetBalance(toAddr), ret, receipt);
 
-      Contract::ContractStorage2::GetContractStorage().BufferCurrentState();
-      DetachedFunction(1, func);
-
-      {
-        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-        cv_callContract.wait(lk);
-      }
-
-      if (m_txnProcessTimeout) {
-        LOG_GENERAL(
-            WARNING,
-            "Txn processing timeout! Interrupt current contract call, pid: "
-                << pid);
-        try {
-          if (pid >= 0) {
-            kill(pid, SIGKILL);
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
-        }
-        receipt.AddError(EXECUTE_CMD_TIMEOUT);
-        ret = false;
-      }
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed root transition in "
                                << r_timer_end(tpStart) << " microseconds");
@@ -688,19 +660,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 }
 
 template <class MAP>
-Json::Value AccountStoreSC<MAP>::GetBlockStateJson(
-    const uint64_t& BlockNum) const {
-  Json::Value root;
-  Json::Value blockItem;
-  blockItem["vname"] = "BLOCKNUMBER";
-  blockItem["type"] = "BNum";
-  blockItem["value"] = std::to_string(BlockNum);
-  root.append(blockItem);
-
-  return root;
-}
-
-template <class MAP>
 bool AccountStoreSC<MAP>::PopulateExtlibsExports(
     uint32_t scilla_version, const std::vector<Address>& extlibs,
     std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
@@ -784,7 +743,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     boost::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
-  if (!PrepareRootPathWVersion(scilla_version)) {
+  if (!ScillaUtils::PrepareRootPathWVersion(scilla_version, m_root_w_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
     return false;
   }
@@ -839,8 +798,8 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
   }
 
   // Block Json
-  JSONUtils::GetInstance().writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                                           GetBlockStateJson(m_curBlockNum));
+  JSONUtils::GetInstance().writeJsontoFile(
+      INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(m_curBlockNum));
 }
 
 template <class MAP>
@@ -862,7 +821,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     tpStart = r_timer_start();
   }
 
-  if (!PrepareRootPathWVersion(scilla_version)) {
+  if (!ScillaUtils::PrepareRootPathWVersion(scilla_version, m_root_w_version)) {
     LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
     return false;
   }
@@ -941,83 +900,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   }
 
   return true;
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
-    const uint32_t& scilla_version) {
-  m_root_w_version = SCILLA_ROOT;
-  if (ENABLE_SCILLA_MULTI_VERSION) {
-    m_root_w_version += '/' + std::to_string(scilla_version);
-  }
-
-  if (!boost::filesystem::exists(m_root_w_version)) {
-    LOG_GENERAL(WARNING, "Folder for desired version (" << m_root_w_version
-                                                        << ") doesn't exists");
-    return false;
-  }
-
-  return true;
-}
-
-template <class MAP>
-std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
-    const std::string& root_w_version, bool is_library,
-    const uint64_t& available_gas) {
-  std::string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_CHECKER + " -init " + INIT_JSON +
-      " -contractinfo -jsonerrors -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER + " " + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
-      " -gaslimit " + std::to_string(available_gas);
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
-}
-
-template <class MAP>
-std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
-    const std::string& root_w_version, bool is_library,
-    const uint64_t& available_gas,
-    const boost::multiprecision::uint128_t& balance) {
-  std::string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
-      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
-      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors -balance " +
-      balance.convert_to<std::string>() + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER;
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
-}
-
-template <class MAP>
-std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
-    const std::string& root_w_version, const uint64_t& available_gas,
-    const boost::multiprecision::uint128_t& balance) {
-  std::string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
-      INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
-      OUTPUT_JSON + " -i " + INPUT_CODE + CONTRACT_FILE_EXTENSION +
-      " -gaslimit " + std::to_string(available_gas) + " -disable-pp-json" +
-      " -disable-validate-json" + " -jsonerrors -balance " +
-      balance.convert_to<std::string>() + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER;
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
 }
 
 template <class MAP>
@@ -1145,6 +1027,16 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 
   if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
+
+    // // detect is Scilla Server running
+    // if (outStr.find(SCILLA_SERVER_SOCKET_PATH + (ENABLE_SCILLA_MULTI_VERSION
+    // ? ("." + ) : "") != std::string::npos) {
+    //   if (!ScillaClient::GetInstance().OpenServer()) {
+    //     LOG_GENERAL(WARNING, "Failed to reopen Scilla Server");
+    //     m_scillaClient.reset();
+    //   }
+    // }
+
     return false;
   }
   return true;
@@ -1550,57 +1442,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       m_scillaIPCServer->setContractAddress(recipient);
       std::string runnerPrint;
       bool result = true;
-      int pid = -1;
-      auto func = [this, &runnerPrint, &result, &pid, gasRemained, &receipt,
-                   &recipient]() mutable -> void {
-        try {
-          if (!SysCommand::ExecuteCmd(
-                  SysCommand::WITH_OUTPUT_PID,
-                  GetCallContractCmdStr(m_root_w_version, gasRemained,
-                                        this->GetBalance(recipient)),
-                  runnerPrint, pid)) {
-            LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
-                                     m_root_w_version, gasRemained,
-                                     this->GetBalance(recipient)));
-            receipt.AddError(EXECUTE_CMD_FAILED);
-            result = false;
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(
-              WARNING,
-              "Exception caught in ParseCallContractJsonOutput: " << e.what());
-          result = false;
-        }
-        cv_callContract.notify_all();
-      };
 
-      if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        tpStart = r_timer_start();
-      }
-
-      DetachedFunction(1, func);
-
-      {
-        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-        cv_callContract.wait(lk);
-      }
-
-      if (m_txnProcessTimeout) {
-        LOG_GENERAL(
-            WARNING,
-            "Txn processing timeout! Interrupt current contract call, pid: "
-                << pid);
-        try {
-          if (pid >= 0) {
-            kill(pid, SIGKILL);
-          }
-        } catch (const std::exception& e) {
-          LOG_GENERAL(WARNING,
-                      "Exception caught when calling kill pid: " << e.what());
-        }
-        receipt.AddError(EXECUTE_CMD_TIMEOUT);
-        result = false;
-      }
+      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
+                        gasRemained, this->GetBalance(recipient), result,
+                        receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
@@ -1692,9 +1537,9 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 
 template <class MAP>
 void AccountStoreSC<MAP>::SetScillaIPCServer(
-    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+    std::unique_ptr<ScillaIPCServer>& scillaIPCServer) {
   LOG_MARKER();
-  m_scillaIPCServer = std::move(scillaIPCServer);
+  m_scillaIPCServer.swap(scillaIPCServer);
 }
 
 template <class MAP>

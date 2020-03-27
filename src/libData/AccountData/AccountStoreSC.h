@@ -48,6 +48,8 @@ class AccountStoreAtomic
 
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
+  enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL };
+
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
@@ -91,8 +93,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::condition_variable cv_callContract;
   std::atomic<bool> m_txnProcessTimeout;
 
-  /// scilla IPC server
-  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+  /// Scilla IPC server
+  std::unique_ptr<ScillaIPCServer> m_scillaIPCServer;
 
   /// A set of contract account address pending for storageroot updating
   std::set<Address> m_storageRootUpdateBuffer;
@@ -134,25 +136,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                    TransactionReceipt& receipt,
                                    uint32_t tree_depth,
                                    uint32_t pre_scilla_version);
-
-  /// Utility functions
-  /// get the json format file for the current blocknum
-  Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-  /// get the command for invoking the scilla_checker while deploying
-  std::string GetContractCheckerCmdStr(const std::string& root_w_version,
-                                       bool is_library,
-                                       const uint64_t& available_gas);
-  /// get the command for invoking the scilla_runner while deploying
-  std::string GetCreateContractCmdStr(
-      const std::string& root_w_version, bool is_library,
-      const uint64_t& available_gas,
-      const boost::multiprecision::uint128_t& balance);
-  /// get the command for invoking the scilla_runner while calling
-  std::string GetCallContractCmdStr(
-      const std::string& root_w_version, const uint64_t& available_gas,
-      const boost::multiprecision::uint128_t& balance);
-  /// updating m_root_w_version
-  bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
   /// export files that ExportCreateContractFiles and ExportContractFiles
   /// both needs
@@ -204,10 +187,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_export);
 
-  /// capsulate and expose in protected for using by data migartion
-  void InvokeScillaChecker(std::string& checkerPrint, bool& ret_checker,
-                           int& pid, const uint64_t& gasRemained,
-                           TransactionReceipt& receipt, bool is_library);
+  /// invoke scilla interpreter
+  void InvokeInterpreter(INVOKE_TYPE invoke_type,
+                         std::string& interprinterPrint,
+                         const uint32_t& version, bool is_library,
+                         const uint64_t& available_gas,
+                         const boost::multiprecision::uint128_t& balance,
+                         bool& ret, TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -229,8 +215,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   void NotifyTimeout();
 
   /// public interface to setup scilla ipc server
-  virtual void SetScillaIPCServer(
-      std::shared_ptr<ScillaIPCServer> scillaIPCServer);
+  void SetScillaIPCServer(std::unique_ptr<ScillaIPCServer>& scillaIPCServer);
 
   /// public interface to invoke processing of the buffered storage root
   /// updating tasks
