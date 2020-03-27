@@ -89,7 +89,8 @@ class AccountStore
   /// buffer for the raw bytes of state delta serialized
   bytes m_stateDeltaSerialized;
 
-  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+  /// Scilla IPC server related
+  std::unique_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
 
   AccountStore();
@@ -121,10 +122,6 @@ class AccountStore
 
   /// empty everything including the persistent storage for account states
   void Init() override;
-
-  /// make sure it's called only after Init() was called
-  void SetScillaIPCServer(
-      std::shared_ptr<ScillaIPCServer> scillaIPCServer) override;
 
   /// empty states data in memory
   void InitSoft();

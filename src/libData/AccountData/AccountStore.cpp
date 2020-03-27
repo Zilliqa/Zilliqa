@@ -37,18 +37,18 @@ using namespace Contract;
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
 
-  /// Scilla IPC Server
   if (ENABLE_SC) {
-    /// remove previous file path
+    /// Scilla IPC Server
+    /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServerConnector =
         make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
-        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+        make_unique<ScillaIPCServer>(*m_scillaIPCServerConnector);
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {
-      SetScillaIPCServer(m_scillaIPCServer);
+      m_accountStoreTemp->SetScillaIPCServer(m_scillaIPCServer);
       if (m_scillaIPCServer->StartListening()) {
         LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
       } else {
@@ -74,12 +74,6 @@ void AccountStore::Init() {
 
   ContractStorage2::GetContractStorage().Reset();
   m_db.ResetDB();
-}
-
-void AccountStore::SetScillaIPCServer(
-    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
-  lock_guard<mutex> g(m_mutexDelta);
-  m_accountStoreTemp->SetScillaIPCServer(scillaIPCServer);
 }
 
 void AccountStore::InitSoft() {
