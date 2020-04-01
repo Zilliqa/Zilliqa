@@ -328,6 +328,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "CHAIN_ID incorrect");
   }
 
+  if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Transaction Version incorrect");
+  }
+
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
