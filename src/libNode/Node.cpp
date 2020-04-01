@@ -312,6 +312,8 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
            std::get<BlockLinkIndex::INDEX>(b);
   });
 
+  bool firstMinerInfoFound = false;
+
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
   for (const auto& blocklink : blocklinks) {
@@ -333,6 +335,35 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
         break;
       }
       dirBlocks.emplace_back(*dsblock);
+
+      if (fromIsolatedBinary) {
+        // Once the first miner info data is found, every subsequent DS block
+        // should also have one
+        MinerInfoDSComm dummyDSComm;
+        const bool hasMinerInfoDSComm =
+            BlockStorage::GetBlockStorage().GetMinerInfoDSComm(blockNum,
+                                                               dummyDSComm);
+        if (!firstMinerInfoFound) {
+          firstMinerInfoFound = hasMinerInfoDSComm;
+          if (firstMinerInfoFound) {
+            LOG_GENERAL(INFO, "First miner info at DS=" << blockNum);
+          }
+        }
+        if (firstMinerInfoFound) {
+          MinerInfoShards dummyShards;
+          const bool hasMinerInfoShards =
+              BlockStorage::GetBlockStorage().GetMinerInfoShards(blockNum,
+                                                                 dummyShards);
+          // Don't use "missing" in log messages below because we use that
+          // keyword for filtering missing Tx blocks and microblocks
+          if (!hasMinerInfoDSComm) {
+            LOG_GENERAL(WARNING, "No MinerInfoDSComm at DS=" << blockNum);
+          }
+          if (!hasMinerInfoShards) {
+            LOG_GENERAL(WARNING, "No MinerInfoShards at DS=" << blockNum);
+          }
+        }
+      }
 
     } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
       auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
