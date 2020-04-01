@@ -126,7 +126,8 @@ void Lookup::InitSync() {
       LOG_GENERAL(INFO,
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
       ComposeAndSendGetDirectoryBlocksFromSeed(
-          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1, true,
+          LOOKUP_NODE_MODE);
       GetTxBlockFromSeedNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
@@ -590,7 +591,8 @@ bool Lookup::GetStateFromSeedNodes() {
 }
 
 bytes Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
-                                       uint64_t highBlockNum) {
+                                       uint64_t highBlockNum,
+                                       const bool includeMinerInfo) {
   LOG_MARKER();
 
   bytes getDSBlockMessage = {MessageType::LOOKUP,
@@ -598,7 +600,7 @@ bytes Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(
           getDSBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
+          m_mediator.m_selfPeer.m_listenPortHost, includeMinerInfo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetDSBlockFromSeed failed.");
     return {};
@@ -612,21 +614,23 @@ bytes Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
 bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
-                                       uint64_t highBlockNum) {
+                                       uint64_t highBlockNum,
+                                       const bool includeMinerInfo) {
   LOG_MARKER();
   SendMessageToRandomLookupNode(
-      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
+      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum, includeMinerInfo));
   return true;
 }
 
 bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
-                                     uint64_t highBlockNum) {
+                                     uint64_t highBlockNum,
+                                     const bool includeMinerInfo) {
   LOG_MARKER();
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "ComposeGetDSBlockMessage for blocks " << lowBlockNum << " to "
                                                    << highBlockNum);
   SendMessageToRandomSeedNode(
-      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
+      ComposeGetDSBlockMessage(lowBlockNum, highBlockNum, includeMinerInfo));
   return true;
 }
 
@@ -972,9 +976,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
+  bool includeMinerInfo = false;
 
   if (!Messenger::GetLookupGetDSBlockFromSeed(message, offset, lowBlockNum,
-                                              highBlockNum, portNo)) {
+                                              highBlockNum, portNo,
+                                              includeMinerInfo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupGetDSBlockFromSeed failed.");
     return false;
@@ -987,12 +993,12 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
 
-  bytes dsBlockMessage = {MessageType::LOOKUP,
-                          LookupInstructionType::SETDSBLOCKFROMSEED};
+  bytes returnMsg = {MessageType::LOOKUP,
+                     LookupInstructionType::SETDSBLOCKFROMSEED};
 
-  if (!Messenger::SetLookupSetDSBlockFromSeed(
-          dsBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-          m_mediator.m_selfKey, dsBlocks)) {
+  if (!Messenger::SetLookupSetDSBlockFromSeed(returnMsg, MessageOffset::BODY,
+                                              lowBlockNum, highBlockNum,
+                                              m_mediator.m_selfKey, dsBlocks)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupSetDSBlockFromSeed failed.");
     return false;
@@ -1000,7 +1006,51 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
+  P2PComm::GetInstance().SendMessage(requestingNode, returnMsg);
+
+  // Send minerInfo as a separate message since it is not critical information
+  if (includeMinerInfo) {
+    LOG_GENERAL(INFO, "Miner info requested");
+    map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>> minerInfoPerDS;
+    for (const auto& dsBlock : dsBlocks) {
+      const uint64_t dsBlockNum = dsBlock.GetHeader().GetBlockNum();
+      MinerInfoDSComm minerInfoDSComm;
+      MinerInfoShards minerInfoShards;
+      if (!BlockStorage::GetBlockStorage().GetMinerInfoDSComm(
+              dsBlockNum, minerInfoDSComm)) {
+        LOG_GENERAL(WARNING,
+                    "GetMinerInfoDSComm failed for block " << dsBlockNum);
+        continue;
+      }
+      if (!BlockStorage::GetBlockStorage().GetMinerInfoShards(
+              dsBlockNum, minerInfoShards)) {
+        LOG_GENERAL(WARNING,
+                    "GetMinerInfoShards failed for block " << dsBlockNum);
+        continue;
+      }
+      minerInfoPerDS.emplace(dsBlockNum,
+                             make_pair(minerInfoDSComm, minerInfoShards));
+      LOG_GENERAL(INFO, "Added info for " << dsBlockNum);
+    }
+
+    if (minerInfoPerDS.size() > 0) {
+      // Ok to reuse returnMsg at this point
+      returnMsg = {MessageType::LOOKUP,
+                   LookupInstructionType::SETMINERINFOFROMSEED};
+      if (!Messenger::SetLookupSetMinerInfoFromSeed(
+              returnMsg, MessageOffset::BODY, m_mediator.m_selfKey,
+              minerInfoPerDS)) {
+        LOG_GENERAL(WARNING,
+                    "Messenger::SetLookupSetMinerInfoFromSeed failed.");
+        return false;
+      }
+
+      P2PComm::GetInstance().SendMessage(requestingNode, returnMsg);
+      LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
+    } else {
+      LOG_GENERAL(INFO, "No miner info sent");
+    }
+  }
 
   return true;
 }
@@ -1877,7 +1927,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
   if (!Messenger::GetLookupSetDSBlockFromSeed(
           message, offset, lowBlockNum, highBlockNum, lookupPubKey, dsBlocks)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetDSBlockFromSeed failed.");
+              "Messenger::GetLookupSetDSBlockFromSeed failed.");
     return false;
   }
 
@@ -1948,6 +1998,49 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
         }
         m_mediator.UpdateDSBlockRand();
       }
+    }
+  }
+
+  return true;
+}
+
+bool Lookup::ProcessSetMinerInfoFromSeed(const bytes& message,
+                                         unsigned int offset,
+                                         [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return false;
+  }
+
+  map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>> minerInfoPerDS;
+  PubKey lookupPubKey;
+  if (!Messenger::GetLookupSetMinerInfoFromSeed(message, offset, lookupPubKey,
+                                                minerInfoPerDS)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetMinerInfoFromSeed failed.");
+    return false;
+  }
+
+  if (!VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  for (const auto& dsBlockAndMinerInfo : minerInfoPerDS) {
+    if (!BlockStorage::GetBlockStorage().PutMinerInfoDSComm(
+            dsBlockAndMinerInfo.first, dsBlockAndMinerInfo.second.first)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutMinerInfoDSComm failed");
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().PutMinerInfoShards(
+            dsBlockAndMinerInfo.first, dsBlockAndMinerInfo.second.second)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutMinerInfoShards failed");
+      continue;
     }
   }
 
@@ -3370,7 +3463,8 @@ void Lookup::StartSynchronization() {
     auto func = [this]() -> void {
       GetDSInfoFromSeedNodes();
       while (GetSyncType() != SyncType::NO_SYNC) {
-        GetDSBlockFromSeedNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetDSBlockFromSeedNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0,
+                                true);
         GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
         this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
       }
@@ -3381,7 +3475,8 @@ void Lookup::StartSynchronization() {
       GetMyLookupOffline();
       GetDSInfoFromLookupNodes();
       while (GetSyncType() != SyncType::NO_SYNC) {
-        GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
+        GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0,
+                                  true);
         GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
         this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
       }
@@ -3705,7 +3800,8 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETTXNFROMLOOKUP &&
           ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED &&
           ins_byte != LookupInstructionType::SETSTATEDELTASFROMSEED &&
-          ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED);
+          ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED &&
+          ins_byte != LookupInstructionType::SETMINERINFOFROMSEED);
 }
 
 bytes Lookup::ComposeGetOfflineLookupNodes() {
@@ -3767,8 +3863,9 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
 
   uint64_t index_num;
   uint32_t portNo;
-  if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
-                                                      index_num)) {
+  bool includeMinerInfo;
+  if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(
+          message, offset, portNo, index_num, includeMinerInfo)) {
     LOG_GENERAL(WARNING,
                 "Messenger::GetLookupGetDirectoryBlocksFromSeed failed");
     return false;
@@ -3820,6 +3917,55 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   }
 
   P2PComm::GetInstance().SendMessage(peer, msg);
+
+  // Send minerInfo as a separate message since it is not critical information
+  if (includeMinerInfo) {
+    LOG_GENERAL(INFO, "Miner info requested");
+    map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>> minerInfoPerDS;
+    for (uint64_t i = index_num;
+         i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
+      BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(i);
+      if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
+        MinerInfoDSComm minerInfoDSComm;
+        MinerInfoShards minerInfoShards;
+        uint64_t dsBlockNum =
+            m_mediator.m_dsBlockChain.GetBlock(get<BlockLinkIndex::DSINDEX>(b))
+                .GetHeader()
+                .GetBlockNum();
+        if (!BlockStorage::GetBlockStorage().GetMinerInfoDSComm(
+                dsBlockNum, minerInfoDSComm)) {
+          LOG_GENERAL(WARNING,
+                      "GetMinerInfoDSComm failed for block " << dsBlockNum);
+          continue;
+        }
+        if (!BlockStorage::GetBlockStorage().GetMinerInfoShards(
+                dsBlockNum, minerInfoShards)) {
+          LOG_GENERAL(WARNING,
+                      "GetMinerInfoShards failed for block " << dsBlockNum);
+          continue;
+        }
+        minerInfoPerDS.emplace(dsBlockNum,
+                               make_pair(minerInfoDSComm, minerInfoShards));
+        LOG_GENERAL(INFO, "Added info for " << dsBlockNum);
+      }
+    }
+
+    if (minerInfoPerDS.size() > 0) {
+      // Ok to reuse msg at this point
+      msg = {MessageType::LOOKUP, LookupInstructionType::SETMINERINFOFROMSEED};
+      if (!Messenger::SetLookupSetMinerInfoFromSeed(
+              msg, MessageOffset::BODY, m_mediator.m_selfKey, minerInfoPerDS)) {
+        LOG_GENERAL(WARNING,
+                    "Messenger::SetLookupSetMinerInfoFromSeed failed.");
+        return false;
+      }
+
+      P2PComm::GetInstance().SendMessage(peer, msg);
+      LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
+    } else {
+      LOG_GENERAL(INFO, "No miner info sent");
+    }
+  }
 
   return true;
 }
@@ -3956,15 +4102,15 @@ void Lookup::CheckBufferTxBlocks() {
   }
 }
 
-void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
-                                                      bool toSendSeed) {
+void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
+    const uint64_t& index_num, bool toSendSeed, const bool includeMinerInfo) {
   LOG_MARKER();
   bytes message = {MessageType::LOOKUP,
                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
 
   if (!Messenger::SetLookupGetDirectoryBlocksFromSeed(
           message, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost,
-          index_num)) {
+          index_num, includeMinerInfo)) {
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
     return;
   }
@@ -4048,7 +4194,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
       &Lookup::ProcessSetHistoricalDB,
-      &Lookup::ProcessGetCosigsRewardsFromSeed};
+      &Lookup::ProcessGetCosigsRewardsFromSeed,
+      &Lookup::ProcessSetMinerInfoFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

@@ -516,6 +516,8 @@ class Node : public Executable {
 
   void UpdateDSCommitteeComposition(DequeOfNode& dsComm,
                                     const DSBlock& dsblock);
+  void UpdateDSCommitteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock,
+                                    MinerInfoDSComm& minerInfo);
 
   void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
                                       const PubKey& leaderPubKey,

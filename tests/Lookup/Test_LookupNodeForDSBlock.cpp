@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
                              LookupInstructionType::GETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(
-          getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000)) {
+          getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000, false)) {
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetDSBlockFromSeed failed.");
   } else {
     P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage);

@@ -29,6 +29,7 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libData/MiningData/MinerInfo.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
@@ -102,6 +103,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// used for historical data
   std::shared_ptr<LevelDB> m_txnHistoricalDB;
   std::shared_ptr<LevelDB> m_MBHistoricalDB;
+  /// used for miner nodes (DS committee) retrieval
+  std::shared_ptr<LevelDB> m_minerInfoDSCommDB;
+  /// used for miner nodes (shards) retrieval
+  std::shared_ptr<LevelDB> m_minerInfoShardsDB;
 
   BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -126,6 +131,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
+      m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
+      m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     }
   };
   ~BlockStorage() = default;
@@ -151,6 +158,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     DIAGNOSTIC_COINBASE,
     STATE_ROOT,
     PROCESSED_TEMP,
+    MINER_INFO_DSCOMM,
+    MINER_INFO_SHARDS,
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -344,6 +353,20 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Delete the requested diagnostic data entry from the db (coinbase rewards)
   bool DeleteDiagnosticDataCoinbase(const uint64_t& dsBlockNum);
 
+  /// Adds miner info (DS committee) to storage
+  bool PutMinerInfoDSComm(const uint64_t& dsBlockNum,
+                          const MinerInfoDSComm& entry);
+
+  /// Retrieves the requested miner info (DS committee)
+  bool GetMinerInfoDSComm(const uint64_t& dsBlockNum, MinerInfoDSComm& entry);
+
+  /// Adds miner info (shards) to storage
+  bool PutMinerInfoShards(const uint64_t& dsBlockNum,
+                          const MinerInfoShards& entry);
+
+  /// Retrieves the requested miner info (shards)
+  bool GetMinerInfoShards(const uint64_t& dsBlockNum, MinerInfoShards& entry);
+
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
@@ -378,6 +401,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexTxnHistorical;
   mutable std::shared_timed_mutex m_mutexMBHistorical;
   mutable std::shared_timed_mutex m_mutexProcessTx;
+  mutable std::shared_timed_mutex m_mutexMinerInfoDSComm;
+  mutable std::shared_timed_mutex m_mutexMinerInfoShards;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;
