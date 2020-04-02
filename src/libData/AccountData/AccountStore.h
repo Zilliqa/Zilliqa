@@ -135,12 +135,9 @@ class AccountStore
   /// Use the states in Temp State DB to refresh the state merkle trie
   bool UpdateStateTrieFromTempStateDB();
 
-  /// Clean, and use the states in either memory or temp state db to
-  /// update the state merkle trie
-  bool RepopulateStateTrie(bool retrieveFromTrie = true);
-
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk(bool repopulate = false, bool retrieveFromTrie = true);
+  bool MoveUpdatesToDisk();
+
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
   void DiscardUnsavedUpdates();

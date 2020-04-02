@@ -1017,80 +1017,98 @@ BOOST_AUTO_TEST_CASE(commitRevertible2) {
 //   }
 // }
 
-// BOOST_AUTO_TEST_CASE(DiskOperation2) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(DiskOperation2) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   std::vector<std::vector<Address>> list_addresses;
+  std::vector<std::vector<Address>> list_addresses;
 
-//   for (auto i = 0; i < 1; i++) {
-//     std::vector<Address> addresses;
-//     int num_address = 10000;
-//     for (auto i = 0; i < num_address; i++) {
-//       PubKey pubKey = Schnorr::GenKeyPair().second;
-//       Address address = Account::GetAddressFromPublicKey(pubKey);
+  for (auto i = 0; i < 1; i++) {
+    std::vector<Address> addresses;
+    int num_address = 1000;
+    for (auto i = 0; i < num_address; i++) {
+      PubKey pubKey = Schnorr::GenKeyPair().second;
+      Address address = Account::GetAddressFromPublicKey(pubKey);
 
-//       Account account(21, 211);
-//       AccountStore::GetInstance().AddAccountTemp(address, account);
-//       addresses.push_back(address);
+      Account account(21, 211);
+      // AccountStore::GetInstance().AddAccountTemp(address, account);
+      addresses.push_back(address);
 
-//       if ((i % (num_address / 10)) == 0) {
-//         LOG_GENERAL(INFO, i << " Added");
-//       }
-//     }
+      if ((i % (num_address / 10)) == 0) {
+        LOG_GENERAL(INFO, i << " Added");
+      }
+    }
 
-//     list_addresses.push_back(addresses);
+    list_addresses.push_back(addresses);
 
-//     LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 1");
-//     AccountStore::GetInstance().UpdateStateTrieAll();
-//     AccountStore::GetInstance().MoveUpdatesToDisk();
+    LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 1");
+    AccountStore::GetInstance().UpdateStateTrieAll();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
 
-//     std::string output;
-//     if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state", output))
-//     {
-//       LOG_GENERAL(INFO, "Num of AddAccount: "
-//                             << list_addresses.size() * addresses.size()
-//                             << ", size of state db: " << output);
-//     }
+    std::string output;
+    if (SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state", output)) {
+      std::string log_size;
+      SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state/LOG",
+                                       log_size);
+      std::string manifest_size;
+      SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state/MANIFEST*",
+                                       manifest_size);
 
-//     for (auto i = 0; i < 2; i++) {
-//       AccountStore::GetInstance().InitSoft();
-//       AccountStore::GetInstance().RetrieveFromDisk();
+      LOG_GENERAL(INFO, "Num of AddAccount: "
+                            << list_addresses.size() * addresses.size()
+                            << ", size: " << std::endl
+                            << "state: " << output << "LOG: " << log_size
+                            << "MANIFEST:" << manifest_size);
+    }
 
-//       for (const auto& addr : addresses) {
-//         AccountStore::GetInstance().IncreaseBalance(addr, 1);
-//       }
+    for (auto i = 0; i < 10; i++) {
+      AccountStore::GetInstance().InitSoft();
+      AccountStore::GetInstance().RetrieveFromDisk();
 
-//       LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 2_" << (i + 1));
-//       AccountStore::GetInstance().UpdateStateTrieAll();
-//       AccountStore::GetInstance().MoveUpdatesToDisk();
+      for (const auto& addr : addresses) {
+        AccountStore::GetInstance().IncreaseBalance(addr, 1);
+      }
 
-//       output.clear();
-//       if (SysCommand::ExecuteCmdWithOutput("du -hs persistence/state",
-//                                            output)) {
-//         LOG_GENERAL(INFO,
-//                     "After IncreaseBalance, size of state db: " << output);
-//       }
-//     }
-//   }
+      LOG_GENERAL(INFO, "Start UpdateStateTrieAll() 2_" << (i + 1));
+      AccountStore::GetInstance().UpdateStateTrieAll();
+      AccountStore::GetInstance().MoveUpdatesToDisk();
 
-//   AccountStore::GetInstance().InitSoft();
-//   AccountStore::GetInstance().RetrieveFromDisk();
+      output.clear();
+      if (SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state",
+                                           output)) {
+        std::string log_size;
+        SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state/LOG",
+                                         log_size);
+        std::string manifest_size;
+        SysCommand::ExecuteCmdWithOutput("du -hsb persistence/state/MANIFEST*",
+                                         manifest_size);
 
-//   int num_errors = 0;
+        LOG_GENERAL(INFO, "Num of AddAccount: "
+                              << list_addresses.size() * addresses.size()
+                              << ", size: " << std::endl
+                              << "state: " << output << "LOG: " << log_size
+                              << "MANIFEST:" << manifest_size);
+      }
+    }
+  }
 
-//   for (const auto& addresses : list_addresses) {
-//     for (const auto& address : addresses) {
-//       if (AccountStore::GetInstance().GetBalance(address) == 0) {
-//         num_errors++;
-//       }
-//     }
-//   }
+  AccountStore::GetInstance().InitSoft();
+  AccountStore::GetInstance().RetrieveFromDisk();
 
-//   BOOST_CHECK_EQUAL(0, num_errors);
-// }
+  int num_errors = 0;
+
+  for (const auto& addresses : list_addresses) {
+    for (const auto& address : addresses) {
+      if (AccountStore::GetInstance().GetBalance(address) == 0) {
+        num_errors++;
+      }
+    }
+  }
+
+  BOOST_CHECK_EQUAL(0, num_errors);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

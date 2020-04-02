@@ -218,7 +218,7 @@ bool AccountStore::MoveRootToDisk(const h256& root) {
   return true;
 }
 
-bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
+bool AccountStore::MoveUpdatesToDisk() {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -277,12 +277,10 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
   }
 
   try {
-    if (repopulate && !RepopulateStateTrie(retrieveFromTrie)) {
-      LOG_GENERAL(WARNING, "RepopulateStateTrie failed");
-      return false;
-    }
     lock_guard<mutex> g(m_mutexTrie);
-    m_state.db()->commit();
+    if (!m_state.db()->commit()) {
+      LOG_GENERAL(WARNING, "LevelDB commit failed");
+    }
     if (!MoveRootToDisk(m_state.root())) {
       LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_state.root().hex());
       return false;
@@ -299,74 +297,6 @@ bool AccountStore::MoveUpdatesToDisk(bool repopulate, bool retrieveFromTrie) {
   return true;
 }
 
-bool AccountStore::RepopulateStateTrie(bool retrieveFromTrie) {
-  LOG_MARKER();
-
-  unsigned int counter = 0;
-  bool batched_once = false;
-
-  if (retrieveFromTrie) {
-    lock_guard<mutex> g(m_mutexTrie);
-    for (const auto& i : m_state) {
-      counter++;
-
-      if (counter >= ACCOUNT_IO_BATCH_SIZE) {
-        // Write into db
-        if (!BlockStorage::GetBlockStorage().PutTempState(
-                *this->m_addressToAccount)) {
-          LOG_GENERAL(WARNING, "PutTempState failed");
-          return false;
-        } else {
-          // this->m_addressToAccount->clear();
-          counter = 0;
-          batched_once = true;
-        }
-      }
-
-      Address address(i.first);
-
-      if (!batched_once) {
-        if (this->m_addressToAccount->find(address) !=
-            this->m_addressToAccount->end()) {
-          continue;
-        }
-      }
-
-      Account account;
-      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
-                                   0)) {
-        LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-        continue;
-      }
-      if (account.isContract()) {
-        account.SetAddress(address);
-      }
-
-      this->m_addressToAccount->insert({address, account});
-    }
-  }
-
-  if (!this->m_addressToAccount->empty()) {
-    if (!BlockStorage::GetBlockStorage().PutTempState(
-            *(this->m_addressToAccount))) {
-      LOG_GENERAL(WARNING, "PutTempState failed");
-      return false;
-    } else {
-      this->m_addressToAccount->clear();
-      batched_once = true;
-    }
-  }
-
-  m_db.ResetDB();
-  InitTrie();
-
-  if (batched_once) {
-    return UpdateStateTrieFromTempStateDB();
-  } else {
-    return UpdateStateTrieAll();
-  }
-}
-
 bool AccountStore::UpdateStateTrieFromTempStateDB() {
   LOG_MARKER();
 
@@ -376,12 +306,15 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
     vector<StateSharedPtr> states;
     if (!BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states)) {
       LOG_GENERAL(WARNING, "GetTempStateInBatch failed");
+      delete iter;
       return false;
     }
     for (const auto& state : states) {
       UpdateStateTrie(state->first, state->second);
     }
   }
+
+  delete iter;
 
   if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE)) {
     LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TEMP_STATE) failed");
