@@ -15,8 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <iostream>
-#include "libCrypto/Schnorr.h"
+
+#include "common/Constants.h"
+#include "common/Serializable.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
@@ -39,7 +43,7 @@ void Print(const bytes& payload) {
 }
 
 int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[]) {
-  PairOfKey keypair = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey keypair = Schnorr::GenKeyPair();
 
   bytes privkey, pubkey;
   keypair.first.Serialize(privkey, 0);

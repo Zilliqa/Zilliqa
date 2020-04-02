@@ -1,7 +1,6 @@
-add_executable(ZilliqaDaemon ZilliqaDaemon.cpp)
-add_executable(ZilliqaDaemon_AWS ZilliqaDaemon_AWS.cpp)
+add_executable(zilliqad ZilliqaDaemon.cpp)
 
-target_link_libraries (ZilliqaDaemon_AWS Boost::program_options)
+target_link_libraries (zilliqad Boost::program_options Boost::filesystem -s)
 
 file(COPY run.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY run_local.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

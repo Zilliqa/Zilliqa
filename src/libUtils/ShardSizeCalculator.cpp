@@ -55,12 +55,70 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes) {
   return result[index];
 }
 
+static void GenerateShardCountsCore(const vector<uint32_t>& shardSizeValues,
+                                    uint32_t numNodesForSharding,
+                                    vector<uint32_t>& currentResult,
+                                    vector<uint32_t>& bestResult,
+                                    uint32_t& leastWaste) {
+  // If number of remaining unsharded nodes is less than minimum threshold
+  if (numNodesForSharding < shardSizeValues[0]) {
+    // Distribute these nodes among the existing shards
+    if ((numNodesForSharding > 0) && (currentResult.size() > 0)) {
+      const uint32_t upperLimit = shardSizeValues[shardSizeValues.size() - 1];
+      uint32_t toAddPerShard = numNodesForSharding / currentResult.size();
+      if ((numNodesForSharding % currentResult.size()) > 0) {
+        toAddPerShard++;
+      }
+      for (auto& shardInCurrentResult : currentResult) {
+        // Don't add more nodes than the max threshold
+        uint32_t actualToAdd =
+            min(toAddPerShard, upperLimit - shardInCurrentResult);
+        actualToAdd = min(actualToAdd, numNodesForSharding);
+        shardInCurrentResult += actualToAdd;
+        numNodesForSharding -= actualToAdd;
+      }
+    }
+
+    // If we don't have a best result yet, this one is the best for now
+    if (bestResult.empty()) {
+      bestResult = currentResult;
+      leastWaste = numNodesForSharding;
+    }
+    // If we have a best result already from a previous recursion
+    else {
+      // If this current result is as good as the best one, but achieves it with
+      // fewer shards
+      if ((numNodesForSharding == leastWaste) &&
+          (bestResult.size() > currentResult.size())) {
+        bestResult = currentResult;
+      }
+      // If this current result is better than the best one
+      else if (numNodesForSharding < leastWaste) {
+        bestResult = currentResult;
+        leastWaste = numNodesForSharding;
+      }
+    }
+  }
+  // If number of remaining unsharded nodes is still more than minimum threshold
+  else {
+    // Recursively try adding another shard with the 3 values (low threshold,
+    // shard size, high threshold)
+    for (const auto& value : shardSizeValues) {
+      if (numNodesForSharding < value) {
+        break;
+      }
+      currentResult.push_back(value);
+      GenerateShardCountsCore(shardSizeValues, numNodesForSharding - value,
+                              currentResult, bestResult, leastWaste);
+      currentResult.pop_back();
+    }
+  }
+}
+
 void ShardSizeCalculator::GenerateShardCounts(
     const uint32_t shardSize, const uint32_t shardSizeToleranceLo,
     const uint32_t shardSizeToleranceHi, const uint32_t numNodesForSharding,
-    vector<uint32_t>& shardCounts, bool logDetails) {
-  LOG_MARKER();
-
+    vector<uint32_t>& shardCounts) {
   if (shardSizeToleranceLo >= shardSize) {
     LOG_GENERAL(
         WARNING,
@@ -70,71 +128,20 @@ void ShardSizeCalculator::GenerateShardCounts(
   const uint32_t shard_threshold_lo = shardSize - shardSizeToleranceLo;
   const uint32_t shard_threshold_hi = shardSize + shardSizeToleranceHi;
 
-  if (logDetails) {
-    LOG_GENERAL(INFO, "Default shard size          = " << shardSize);
-    LOG_GENERAL(INFO, "Minimum allowed shard size  = " << shard_threshold_lo);
-    LOG_GENERAL(INFO, "Maximum allowed shard size  = " << shard_threshold_hi);
-  }
-
   // Abort if total number of nodes is below shard_threshold_lo
   if (numNodesForSharding < shard_threshold_lo) {
-    if (logDetails) {
-      LOG_GENERAL(WARNING, "Number of PoWs for sharding ("
-                               << numNodesForSharding
-                               << ") is not enough for even one shard.");
-    }
+    LOG_GENERAL(WARNING, "Number of PoWs for sharding ("
+                             << numNodesForSharding
+                             << ") is not enough for even one shard.");
     return;
   }
 
-  // Get the number of full shards that can be formed
-  const uint32_t numOfCompleteShards = numNodesForSharding / shardSize;
-
-  if (numOfCompleteShards == 0) {
-    // If can't form one full shard, set first shard count to 0
-    shardCounts.resize(1);
-    shardCounts.at(0) = 0;
-  } else {
-    // If can form one or more full shards, set shard count to shardSize
-    shardCounts.resize(numOfCompleteShards);
-    fill(shardCounts.begin(), shardCounts.end(), shardSize);
-  }
-
-  // Get the remaining count of unsharded nodes
-  uint32_t numUnshardedNodes =
-      numNodesForSharding - (numOfCompleteShards * shardSize);
-
-  if (numUnshardedNodes == numNodesForSharding) {
-    // Remaining count = original node count -> set first shard count to
-    // remaining count
-    shardCounts.at(0) = numUnshardedNodes;
-  } else if ((numUnshardedNodes < shard_threshold_lo) &&
-             (shard_threshold_hi > 0)) {
-    // If remaining count is less than shard_threshold_lo, distribute among the
-    // shards
-    for (auto& shardCount : shardCounts) {
-      // Add just enough nodes to each shard such that we don't go over
-      // shard_threshold_hi
-      const uint32_t nodesToAdd =
-          min(shard_threshold_hi - shardCount, numUnshardedNodes);
-      shardCount += nodesToAdd;
-      numUnshardedNodes -= nodesToAdd;
-
-      if (numUnshardedNodes == 0) {
-        break;
-      }
-    }
-  } else {
-    // If remaining count is greater than or equal to shard_threshold_lo, allow
-    // formation of another shard
-    shardCounts.emplace_back(numUnshardedNodes);
-  }
-
-  if (logDetails) {
-    LOG_GENERAL(INFO, "Final computed shard sizes:");
-    for (unsigned int i = 0; i < shardCounts.size(); i++) {
-      LOG_GENERAL(INFO, "Shard " << i << " = " << shardCounts.at(i));
-    }
-  }
+  const vector<uint32_t> shardSizeValues = {shard_threshold_lo, shardSize,
+                                            shard_threshold_hi};
+  vector<uint32_t> currentResult;
+  uint32_t leastWaste = numNodesForSharding;
+  GenerateShardCountsCore(shardSizeValues, numNodesForSharding, currentResult,
+                          shardCounts, leastWaste);
 }
 
 uint32_t ShardSizeCalculator::GetTrimmedShardCount(
@@ -145,7 +152,7 @@ uint32_t ShardSizeCalculator::GetTrimmedShardCount(
   vector<uint32_t> shardCounts;
 
   GenerateShardCounts(shardSize, shardSizeToleranceLo, shardSizeToleranceHi,
-                      numNodesForSharding, shardCounts, false);
+                      numNodesForSharding, shardCounts);
 
   if (shardCounts.empty()) {
     return numNodesForSharding;

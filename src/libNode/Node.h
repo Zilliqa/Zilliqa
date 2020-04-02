@@ -123,12 +123,8 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::atomic<bool> m_txn_distribute_window_open{};
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-
-  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   std::vector<TxnHash> m_expectedTranOrdering;
   std::mutex m_mutexProcessedTransactions;
@@ -145,10 +141,17 @@ class Node : public Executable {
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
   //     m_committedTransactions;
+  std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
+  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
 
   std::mutex m_mutexMBnForwardedTxnBuffer;
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
       m_mbnForwardedTxnBuffer;
+
+  std::mutex m_mutexPendingTxnBuffer;
+  std::unordered_map<uint64_t,
+                     std::vector<std::tuple<HashCodeMap, PubKey, uint32_t>>>
+      m_pendingTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
   std::vector<bytes> m_txnPacketBuffer;
@@ -203,6 +206,9 @@ class Node : public Executable {
   // internal calls from ProcessForwardTransaction
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
+  bool AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+                     uint32_t shardId);
+
   bool RemoveTxRootHashFromUnavailableMicroBlock(
       const MBnForwardedTxnEntry& entry);
 
@@ -249,6 +255,9 @@ class Node : public Executable {
   bool ProcessMBnForwardTransaction(const bytes& message,
                                     unsigned int cur_offset, const Peer& from);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
+
+  bool ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
+                         const Peer& from);
   bool ProcessTxnPacketFromLookup(const bytes& message, unsigned int offset,
                                   const Peer& from);
   bool ProcessTxnPacketFromLookupCore(const bytes& message,
@@ -269,6 +278,9 @@ class Node : public Executable {
                                 const Peer& from);
   bool ProcessDoRejoin(const bytes& message, unsigned int offset,
                        const Peer& from);
+
+  bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
+                                      const Peer& from);
 
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
@@ -376,6 +388,8 @@ class Node : public Executable {
     SYNC
   };
 
+  enum RECEIVERTYPE : unsigned char { LOOKUP = 0x00, PEER, BOTH };
+
   // Proposed gas price
   uint128_t m_proposedGasPrice;
   std::mutex m_mutexGasPrice;
@@ -430,6 +444,16 @@ class Node : public Executable {
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
 
+  // Is part of current sharding structure / dsCommittee
+  std::atomic<bool> m_confirmedNotInNetwork{};
+
+  // hold count of whitelist request for given ip
+  std::mutex m_mutexWhitelistReqs;
+  std::map<uint128_t, uint32_t> m_whitelistReqs;
+
+  // whether txns dist window open
+  std::atomic<bool> m_txn_distribute_window_open{};
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -453,6 +477,13 @@ class Node : public Executable {
   /// Get this node shard ID
   uint32_t GetShardId() { return m_myshardId; };
 
+  /// Recalculate this node shardID
+  bool RecalculateMyShardId();
+
+  // Send whitelist message to peers and seeds
+  bool ComposeAndSendRemoveNodeFromBlacklist(
+      const RECEIVERTYPE receiver = BOTH);
+
   /// Sets the value of m_state.
   void SetState(NodeState state);
 
@@ -469,6 +500,9 @@ class Node : public Executable {
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(bool fromIsolatedBinary = false);
+  void PutProcessedInUnconfirmedTxns();
+
+  bool SendPendingTxnToLookup();
 
   bool ValidateDB();
 
@@ -509,15 +543,14 @@ class Node : public Executable {
 
   void CallActOnFinalblock();
 
-  void ProcessTransactionWhenShardLeader(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  void ProcessTransactionWhenShardBackup(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool ComposeMicroBlock(
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
-  bool CheckMicroBlockValidity(
-      bytes& errorMsg,
-      const uint64_t& microblock_gas_limit = MICROBLOCK_GAS_LIMIT);
+  void CommitPendingTxnBuffer();
+
+  void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit);
+  void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit);
+  bool ComposeMicroBlock(const uint64_t& microblock_gas_limit);
+  bool CheckMicroBlockValidity(bytes& errorMsg,
+                               const uint64_t& microblock_gas_limit);
+
   bool OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
                          const Peer& from);
 
@@ -597,6 +630,8 @@ class Node : public Executable {
 
   PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
 
+  std::unordered_map<TxnHash, PoolTxnStatus> GetUnconfirmedTxns() const;
+
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
@@ -621,6 +656,14 @@ class Node : public Executable {
   UnavailableMicroBlockList& GetUnavailableMicroBlocks();
 
   void CleanUnavailableMicroBlocks();
+
+  bool WhitelistReqsValidator(const uint128_t& ipAddress);
+
+  void CleanWhitelistReqs();
+
+  void ClearUnconfirmedTxn();
+
+  bool IsUnconfirmedTxnEmpty() const;
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

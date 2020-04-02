@@ -57,18 +57,17 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
   std::map<PubKey, Peer> powDSWinners;
   for (int i = 0; i < 3; i++) {
-    powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
+    powDSWinners[Schnorr::GenKeyPair().second] = Peer();
   }
 
   std::vector<PubKey> removeDSNodePubkeys;
   removeDSNodePubkeys.reserve(2);
   for (int i = 0; i < 2; i++) {
-    removeDSNodePubkeys.emplace_back(
-        Schnorr::GetInstance().GenKeyPair().second);
+    removeDSNodePubkeys.emplace_back(Schnorr::GenKeyPair().second);
   }
 
   return DSBlock(DSBlockHeader(50, 20, pubKey1.second, blocknum, 0,

@@ -40,6 +40,14 @@ do
         CMAKE_EXTRA_OPTIONS="-DADDRESS_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with AddressSanitizer"
     ;;
+    undef)
+        CMAKE_EXTRA_OPTIONS="-DUNDEF_BEHAVIOR_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with UndefinedBehaviorSanitizer"
+    ;;
+    fuzzer)
+        CMAKE_EXTRA_OPTIONS="-DLIBFUZZER=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with libfuzzer"
+    ;;
     style)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_format_fix=1

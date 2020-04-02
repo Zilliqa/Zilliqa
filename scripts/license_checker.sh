@@ -19,7 +19,6 @@
 banner_file=$(mktemp)
 
 cat <<EOF > $banner_file
-Copyright (C) 2019 Zilliqa
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,8 +75,8 @@ do
     filename=$(basename $file)
     ext="${filename##*.}"
     case "$ext" in
-        cpp|hpp|tpp|h|c) check_license $file 1 3 ;;
-        py|sh) check_license $file 1 2 ;;
+        cpp|hpp|tpp|h|c) check_license $file 2 3 ;;
+        py|sh) check_license $file 2 2 ;;
         *) echo unsupported format;;
     esac
 done

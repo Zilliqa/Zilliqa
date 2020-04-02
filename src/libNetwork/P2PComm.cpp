@@ -137,8 +137,15 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << from.GetPrintableIPAddress()
-                               << " to blacklist");
-      Blacklist::GetInstance().Add(from.m_ipAddress);
+                               << " as strictly blacklisted");
+      Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
+      return written_length;
+    } else if (P2PComm::IsNodeNotRunning()) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << from.GetPrintableIPAddress()
+                               << " as relaxed blacklisted");
+      Blacklist::GetInstance().Add(from.m_ipAddress, false);  // relaxed
       return written_length;
     }
 
@@ -214,8 +221,14 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << errno << " (" << std::strerror(errno)
                                  << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " to blacklist");
+                                 << " as strictly blacklisted");
         Blacklist::GetInstance().Add(peer.m_ipAddress);
+      } else if (P2PComm::IsNodeNotRunning()) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << peer.GetPrintableIPAddress()
+                                 << " as relaxed blacklisted");
+        Blacklist::GetInstance().Add(peer.m_ipAddress, false);
       }
 
       return false;
@@ -275,17 +288,6 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
                               unsigned char startbyte, const bytes& hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
-    // comment this since we already check this in SendMessageSocketCore() and
-    // also add to blacklist
-    /*if (P2PComm::IsHostHavingNetworkIssue()) {
-      LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << " (" << std::strerror(errno)
-                               << "). Adding " << peer.GetPrintableIPAddress()
-                               << " to blacklist");
-      Blacklist::GetInstance().Add(peer.m_ipAddress);
-      return;
-    }*/
-
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
       return;
     }
@@ -337,7 +339,8 @@ void SendJobPeers<T>::DoSend() {
     const Peer& peer = m_peers.at(*curr);
 
     /// TBD: Update the container dynamically when blacklist is updated
-    if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
+    if (Blacklist::GetInstance().Exist(peer.m_ipAddress,
+                                       !m_allowSendToRelaxedBlacklist)) {
       LOG_GENERAL(INFO, peer << " is blacklisted - blocking all messages");
       continue;
     }
@@ -618,11 +621,11 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   } else if (startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
-      LOG_GENERAL(WARNING, "Gossip message received [Size:"
-                               << message.size()
-                               << "] is unexpectedly large [ >"
-                               << MAX_GOSSIP_MSG_SIZE_IN_BYTES
-                               << " ]. Will be blacklisting the sender");
+      LOG_GENERAL(WARNING,
+                  "Gossip message received [Size:"
+                      << message.size() << "] is unexpectedly large [ >"
+                      << MAX_GOSSIP_MSG_SIZE_IN_BYTES
+                      << " ]. Will be strictly blacklisting the sender");
       Blacklist::GetInstance().Add(
           from.m_ipAddress);  // so we dont spend cost sending any data to this
                               // sender as well.
@@ -660,7 +663,7 @@ void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
                              << len << " being received."
                              << " Adding sending node "
                              << from.GetPrintableIPAddress()
-                             << " to blacklist");
+                             << " as strictly blacklisted");
     Blacklist::GetInstance().Add(from.m_ipAddress);
     bufferevent_free(bev);
   }
@@ -675,7 +678,8 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   LOG_GENERAL(DEBUG, "Incoming message from " << from);
-  if (Blacklist::GetInstance().Exist(from.m_ipAddress)) {
+  if (Blacklist::GetInstance().Exist(from.m_ipAddress,
+                                     false /* for incoming message */)) {
     LOG_GENERAL(INFO, "The node "
                           << from
                           << " is in black list, block all message from it.");
@@ -725,8 +729,11 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
 }
 
 inline bool P2PComm::IsHostHavingNetworkIssue() {
-  return (errno == EHOSTUNREACH || errno == EHOSTDOWN || errno == ETIMEDOUT ||
-          errno == ECONNREFUSED);
+  return (errno == EHOSTUNREACH || errno == ETIMEDOUT);
+}
+
+inline bool P2PComm::IsNodeNotRunning() {
+  return (errno == EHOSTDOWN || errno == ECONNREFUSED);
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host,
@@ -793,6 +800,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -801,7 +809,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
-                          const unsigned char& startByteType) {
+                          const unsigned char& startByteType,
+                          const bool bAllowSendToRelaxedBlacklist) {
   // LOG_MARKER();
 
   if (peers.empty()) {
@@ -815,6 +824,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = bAllowSendToRelaxedBlacklist;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -833,6 +843,7 @@ void P2PComm::SendMessage(const Peer& peer, const bytes& message,
   job->m_startbyte = startByteType;
   job->m_message = message;
   job->m_hash.clear();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -858,6 +869,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
   job->m_hash = sha256.Finalize();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   bytes hashCopy(job->m_hash);
 
@@ -888,6 +900,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
   job->m_hash = sha256.Finalize();
+  job->m_allowSendToRelaxedBlacklist = false;
 
   bytes hashCopy(job->m_hash);
 
@@ -965,8 +978,8 @@ Signature P2PComm::SignMessage(const bytes& message) {
   // LOG_MARKER();
 
   Signature signature;
-  bool result = Schnorr::GetInstance().Sign(
-      message, 0, message.size(), m_selfKey.first, m_selfKey.second, signature);
+  bool result = Schnorr::Sign(message, 0, message.size(), m_selfKey.first,
+                              m_selfKey.second, signature);
   if (!result) {
     return Signature();
   }
@@ -976,8 +989,7 @@ Signature P2PComm::SignMessage(const bytes& message) {
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
   // LOG_MARKER();
-  bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                              toverify, pubKey);
+  bool result = Schnorr::Verify(message, 0, message.size(), toverify, pubKey);
 
   if (!result) {
     LOG_GENERAL(INFO, "Failed to verify message. Pubkey: " << pubKey);

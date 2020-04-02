@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   Peer submitterPeerInput = Peer();
   PairOfKey keypair = TestUtils::GenerateRandomKeyPair();
   bytes message = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
-  PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey sender = Schnorr::GenKeyPair();
   Signature signatureInput = TestUtils::GetSignature(message, keypair);
   bytes message2 = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
   Signature signature2 = TestUtils::GetSignature(message, keypair);

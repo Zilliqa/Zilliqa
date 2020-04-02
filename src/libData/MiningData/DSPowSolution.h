@@ -20,8 +20,8 @@
 
 #include <array>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
-#include "libCrypto/Schnorr.h"
 #include "libNetwork/Peer.h"
 
 /// Stores information on a single pow solution.

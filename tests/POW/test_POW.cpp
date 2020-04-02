@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   auto peer = TestUtils::GenerateRandomPeer();
-  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto keyPair = Schnorr::GenKeyPair();
   auto pubKey = keyPair.second;
 
   // Light client mine and verify

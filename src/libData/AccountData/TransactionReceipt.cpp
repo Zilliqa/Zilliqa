@@ -24,7 +24,7 @@ using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() {
   update();
-  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+  m_errorObj[to_string(m_edge)] = Json::arrayValue;
 }
 
 bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
@@ -66,15 +66,15 @@ void TransactionReceipt::SetResult(const bool& result) {
   }
 }
 
-void TransactionReceipt::AddDepth() {
+void TransactionReceipt::AddEdge() {
   LOG_MARKER();
-  m_depth++;
-  m_errorObj[to_string(m_depth)] = Json::arrayValue;
+  m_edge++;
+  m_errorObj[to_string(m_edge)] = Json::arrayValue;
 }
 
 void TransactionReceipt::AddError(const unsigned int& errCode) {
   LOG_GENERAL(INFO, "AddError: " << errCode);
-  m_errorObj[to_string(m_depth)].append(errCode);
+  m_errorObj[to_string(m_edge)].append(errCode);
 }
 
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
@@ -99,22 +99,52 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
+void TransactionReceipt::AddTransition(const Address& addr,
+                                       const Json::Value& transition,
+                                       uint32_t tree_depth) {
+  Json::Value _json;
+  _json["addr"] = "0x" + addr.hex();
+  _json["msg"] = transition;
+  _json["depth"] = tree_depth;
+  m_tranReceiptObj["transitions"].append(_json);
+}
+
+void TransactionReceipt::AddAccepted(bool accepted) {
+  m_tranReceiptObj["accepted"] = accepted;
+}
+
+bool TransactionReceipt::AddAcceptedForLastTransition(bool accepted) {
+  LOG_MARKER();
+  if (m_tranReceiptObj["transitions"].empty()) {
+    return false;
+  }
+  m_tranReceiptObj["transitions"][(m_tranReceiptObj["transitions"].size() - 1)]
+                  ["accepted"] = accepted;
+  return true;
+}
+
+void TransactionReceipt::RemoveAllTransitions() {
+  m_tranReceiptObj.removeMember("transitions");
+}
+
+void TransactionReceipt::CleanEntry() {
+  m_tranReceiptObj.removeMember("event_logs");
+}
+
 void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
   m_errorObj.clear();
-  m_depth = 0;
+  m_edge = 0;
   update();
 }
 
 void TransactionReceipt::InstallError() {
   Json::Value errorObj;
-  unsigned int depth = 0;
-  for (const auto& e : m_errorObj) {
-    if (!e.empty()) {
-      errorObj[to_string(depth)] = e;
+  for (const auto& e : m_errorObj.getMemberNames()) {
+    if (!m_errorObj[e].empty()) {
+      errorObj[e] = m_errorObj[e];
     }
-    depth++;
   }
   if (!errorObj.empty()) {
     m_tranReceiptObj["errors"] = errorObj;

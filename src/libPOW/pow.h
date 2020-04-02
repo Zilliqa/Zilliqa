@@ -34,7 +34,7 @@
 #include "depends/common/Miner.h"
 #include "depends/libethash/include/ethash/ethash.hpp"
 //#include "ethash/ethash.hpp"
-#include "libCrypto/Schnorr.h"
+#include <Schnorr.h>
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 

@@ -18,15 +18,14 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
-> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v5.0.0`)
+> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v6.1.2`)
 
 ## Zilliqa Mainnet
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer 1** | [**Link**](https://explorer.zilliqa.com/) |
-| **Block Explorer 2** | [**Link**](https://viewblock.io/zilliqa) |
+| **Block Explorer** | [**Link**](https://viewblock.io/zilliqa) |
 
 ## Developer Testnet
 
@@ -34,7 +33,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 |:---------|:-------|
 | **API URL** | `https://dev-api.zilliqa.com/` |
 | **Block Explorer** | [**Link**](https://dev-explorer.zilliqa.com) |
-| **Faucet/Wallet** | [**Link**](https://dev-wallet.zilliqa.com) |
+| **Faucet** | [**Link**](https://dev-wallet.zilliqa.com) |
 
 ## Available features
 
@@ -79,7 +78,8 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libcurl4-openssl-dev libboost-program-options-dev gawk
+        libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev \
+        python3-setuptools python3-pip gawk
     ```
 
 ## Build from Source Code
@@ -88,8 +88,8 @@ Build Zilliqa from the source:
 
 ```shell
 # download the lastest stable Zilliqa source code
-$ git clone git@github.com:Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tag/v4.8.0
+$ git clone https://github.com/Zilliqa/Zilliqa.git
+$ cd Zilliqa && git checkout tag/v6.1.2
 
 # build Zilliqa binary
 $ ./build.sh
@@ -121,7 +121,7 @@ $ git checkout master
 
 |          | Link(s) |
 |:---------|:-------|
-| **Development discussion** | <a href="https://gitter.im/Zilliqa/" target="_blank"><img src="http://img.shields.io/badge/chat-on%20gitter-077a8f.svg" /></a> |
+| **Development discussion (discord)** | <a href="https://discord.gg/XMRE9tt" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | https://bugcrowd.com/zilliqa |

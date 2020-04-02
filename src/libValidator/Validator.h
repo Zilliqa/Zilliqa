@@ -29,41 +29,19 @@
 
 class Mediator;
 
-class ValidatorBase {
+class Validator {
  public:
   enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID };
-  virtual ~ValidatorBase() {}
-  virtual std::string name() const = 0;
-
-  /// Verifies the transaction w.r.t given pubKey and signature
-  virtual bool VerifyTransaction(const Transaction& tran) const = 0;
-
-  virtual bool CheckCreatedTransaction(const Transaction& tx,
-                                       TransactionReceipt& receipt) const = 0;
-
-  virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
-
-  virtual bool CheckDirBlocks(
-      const std::vector<boost::variant<
-          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
-      const DequeOfNode& initDsComm, const uint64_t& index_num,
-      DequeOfNode& newDSComm) = 0;
-  virtual TxBlockValidationMsg CheckTxBlocks(
-      const std::vector<TxBlock>& txblocks, const DequeOfNode& dsComm,
-      const BlockLink& latestBlockLink) = 0;
-};
-
-class Validator : public ValidatorBase {
- public:
   Validator(Mediator& mediator);
   ~Validator();
-  std::string name() const override { return "Validator"; }
-  bool VerifyTransaction(const Transaction& tran) const override;
+  std::string name() const { return "Validator"; }
+
+  static bool VerifyTransaction(const Transaction& tran);
 
   bool CheckCreatedTransaction(const Transaction& tx,
-                               TransactionReceipt& receipt) const override;
+                               TransactionReceipt& receipt) const;
 
-  bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
+  bool CheckCreatedTransactionFromLookup(const Transaction& tx);
 
   template <class Container, class DirectoryBlock>
   bool CheckBlockCosignature(const DirectoryBlock& block,
@@ -73,11 +51,12 @@ class Validator : public ValidatorBase {
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
       const DequeOfNode& initDsComm, const uint64_t& index_num,
-      DequeOfNode& newDSComm) override;
+      DequeOfNode& newDSComm);
+
   // TxBlocks must be in increasing order or it will fail
   TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
                                      const DequeOfNode& dsComm,
-                                     const BlockLink& latestBlockLink) override;
+                                     const BlockLink& latestBlockLink);
   Mediator& m_mediator;
 };
 

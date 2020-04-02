@@ -109,9 +109,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
   m_pendingVCBlock->GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), m_pendingVCBlock->GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(message, 0, message.size(),
-                                              m_pendingVCBlock->GetCS2(),
-                                              *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(),
+                                m_pendingVCBlock->GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -213,7 +212,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
       SetConsensusLeaderID(m_consensusMyID.load());
     } else {
-      DequeOfNode::iterator iterConsensusLeaderID =
+      auto iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
                m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
 
@@ -284,6 +283,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (!BlockStorage::GetBlockStorage().PutVCBlock(
           m_pendingVCBlock->GetBlockHash(), dst)) {
     LOG_GENERAL(WARNING, "Unable to put VC Block");
+    return;
+  }
+
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      GetConsensusLeaderID())) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return;
   }
 

@@ -17,17 +17,18 @@
 
 #include <chrono>
 
+#include <Schnorr.h>
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "depends/safeserver/safehttpserver.h"
 #include "jsonrpccpp/server/connectors/tcpsocketserver.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Guard.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -171,6 +172,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   }
 
+  if (SyncType::NEW_SYNC == syncType) {
+    // Setting it earliest before even p2pcomm is instantiated
+    m_n.m_runFromLate = true;
+  }
+
   P2PComm::GetInstance().SetSelfPeer(peer);
   P2PComm::GetInstance().SetSelfKey(key);
 
@@ -187,6 +193,21 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     } else if (Guard::GetInstance().IsNodeInShardGuardList(
                    m_mediator.m_selfKey.second)) {
       LOG_GENERAL(INFO, "Current node is a shard guard");
+    }
+  }
+
+  if (SyncType::NEW_LOOKUP_SYNC == syncType || SyncType::NEW_SYNC == syncType) {
+    while (!m_n.DownloadPersistenceFromS3()) {
+      LOG_GENERAL(
+          WARNING,
+          "Downloading persistence from S3 has failed. Will try again!");
+      this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+    }
+    if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+      LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+    }
+    if (!AccountStore::GetInstance().RefreshDB()) {
+      LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
     }
   }
 
@@ -233,6 +254,16 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       }
     }
 
+    // If new node identifed as ds node, change syncType to DS_SYNC
+    if (syncType == NEW_SYNC &&
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+      LOG_GENERAL(INFO,
+                  "Newly joining node is identified as part of DS Committee. "
+                  "Trigerring syncing as ds node");
+      syncType = DS_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
+    }
+
     switch (syncType) {
       case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
@@ -276,6 +307,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         LOG_GENERAL(INFO, "Recovery all nodes");
         if (m_mediator.m_lookup->GetSyncType() == SyncType::RECOVERY_ALL_SYNC) {
           m_lookup.SetSyncType(NO_SYNC);
+          // Send whitelist request to all peers and seeds.
+          if (!LOOKUP_NODE_MODE) {
+            m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist();
+          }
         }
         // When doing recovery, make sure to let other lookups know I'm back
         // online
@@ -292,13 +327,17 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         // downloads and sync from the persistence of incremental db and
         // and rejoins the network as ds guard member
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        m_ds.m_dsguardPodDelete = true;
         m_ds.RejoinAsDS(false);
         break;
       case SyncType::DB_VERIF:
+        LOG_GENERAL(FATAL, "Use of deprecated syncType=DB_VERIF");
+#if 0
         LOG_GENERAL(INFO, "Intitialize DB verification");
         m_n.ValidateDB();
         std::this_thread::sleep_for(std::chrono::seconds(10));
         raise(SIGKILL);
+#endif
         break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
@@ -334,6 +373,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookupServer =
           make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
+      if (ENABLE_WEBSOCKET) {
+        (void)WebsocketServer::GetInstance();
+      }
+
       if (m_lookupServer == nullptr) {
         LOG_GENERAL(WARNING, "m_lookupServer NULL");
       } else {
@@ -367,6 +410,28 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           LOG_GENERAL(INFO, "Status Server started successfully");
         } else {
           LOG_GENERAL(WARNING, "Status Server couldn't start");
+        }
+      }
+    }
+
+    if (ENABLE_STAKING_RPC) {
+      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT);
+      m_stakingServer =
+          make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
+
+      if (m_stakingServer == nullptr) {
+        LOG_GENERAL(WARNING, "m_stakingServer NULL");
+      } else {
+        m_lookup.SetStakingServer(m_stakingServer);
+        if (m_lookup.GetSyncType() == SyncType::NO_SYNC) {
+          if (m_stakingServer->StartListening()) {
+            LOG_GENERAL(INFO, "Staking Server started successfully");
+          } else {
+            LOG_GENERAL(WARNING, "Staking Server couldn't start");
+          }
+        } else {
+          LOG_GENERAL(WARNING,
+                      "This lookup node not sync yet, don't start listen");
         }
       }
     }

@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#include "libCrypto/MultiSig.h"
+#include <MultiSig.h>
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/TimeLockedFunction.h"
 

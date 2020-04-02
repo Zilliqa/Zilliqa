@@ -50,7 +50,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
       }
     }
 
-    Blacklist::GetInstance().Exclude(
+    Blacklist::GetInstance().Whitelist(
         resolved_ip);  // exclude this lookup ip from blacklisting
     Peer tmp(resolved_ip, node.second.GetListenPortHost());
     LOG_GENERAL(INFO, "Sending to lookup " << tmp);

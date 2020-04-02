@@ -40,7 +40,8 @@ enum DSInstructionType : unsigned char {
   VIEWCHANGECONSENSUS = 0x05,
   VCPUSHLATESTDSTXBLOCK = 0x06,
   POWPACKETSUBMISSION = 0x07,
-  NEWDSGUARDIDENTITY = 0x08
+  NEWDSGUARDIDENTITY = 0x08,
+  SETCOSIGSREWARDSFROMSEED = 0x09,
 };
 
 enum NodeInstructionType : unsigned char {
@@ -57,6 +58,8 @@ enum NodeInstructionType : unsigned char {
   FALLBACKBLOCK = 0x0A,
   PROPOSEGASPRICE = 0x0B,
   DSGUARDNODENETWORKINFOUPDATE = 0x0C,
+  REMOVENODEFROMBLACKLIST = 0x0D,
+  PENDINGTXN = 0x0E
 };
 
 enum LookupInstructionType : unsigned char {
@@ -90,7 +93,8 @@ enum LookupInstructionType : unsigned char {
   VCGETLATESTDSTXBLOCK = 0x1B,
   FORWARDTXN = 0x1C,
   GETGUARDNODENETWORKINFOUPDATE = 0x1D,
-  SETHISTORICALDB = 0x1E
+  SETHISTORICALDB = 0x1E,
+  GETCOSIGSREWARDSFROMSEED = 0x1F
 };
 
 enum TxSharingMode : unsigned char {

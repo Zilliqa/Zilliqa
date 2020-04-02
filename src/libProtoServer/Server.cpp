@@ -18,10 +18,10 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <iostream>
 
+#include <Schnorr.h>
 #include "Server.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -196,12 +196,12 @@ CreateTransactionResponse Server::CreateTransaction(
     if (num_shards > 0) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
 
-      if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+      if (tx.GetData().empty() || IsNullAddress(tx.GetToAddr())) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret.set_info("Non-contract txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
-        } else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
+        } else if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret.set_info("Contract Creation txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
@@ -700,7 +700,7 @@ StringResponse Server::GetContractAddressFromTransactionID(
     }
 
     const Transaction& tx = tptr->GetTransaction();
-    if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+    if (tx.GetData().empty() || IsNullAddress(tx.GetToAddr())) {
       ret.set_result("ID not a contract txn");
       return ret;
     }
@@ -1152,14 +1152,9 @@ ProtoShardingStruct Server::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    if (num_shards == 0) {
-      ret.set_error("No shards yet");
-    } else {
-      for (unsigned int i = 0; i < num_shards; i++) {
-        ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
-      }
+    for (unsigned int i = 0; i < num_shards; i++) {
+      ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
     }
-
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
     ret.set_error("Unable to process");

@@ -137,24 +137,22 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
     : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
-                           const Address& addr, const uint64_t& blockNum,
-                           uint32_t& scilla_version) {
+                           const Address& addr, const uint64_t& blockNum) {
   LOG_MARKER();
   if (isContract()) {
     LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }
 
-  Json::Value initDataJson;
-  if (!PrepareInitDataJson(initData, addr, blockNum, initDataJson,
-                           scilla_version)) {
+  if (!PrepareInitDataJson(initData, addr, blockNum, m_initDataJson,
+                           m_scilla_version, m_is_library, m_extlibs)) {
     LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
   }
 
-  if (!SetImmutable(
-          code, DataConversion::StringToCharArray(
-                    JSONUtils::GetInstance().convertJsontoStr(initDataJson)))) {
+  if (!SetImmutable(code, DataConversion::StringToCharArray(
+                              JSONUtils::GetInstance().convertJsontoStr(
+                                  m_initDataJson)))) {
     LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
@@ -193,19 +191,119 @@ bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
   return AccountBase::Deserialize(src, offset);
 }
 
-string Account::GetRawStorage(const h256& k_hash, bool temp) const {
-  if (!isContract()) {
-    // LOG_GENERAL(WARNING,
-    //             "Not contract account, why call Account::GetRawStorage!");
-    return "";
+bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
+                            bool& is_library, vector<Address>& extlibs) {
+  is_library = false;
+  extlibs.clear();
+
+  bool found_scilla_version = false;
+  bool found_library = false;
+  bool found_extlibs = false;
+  for (const auto& entry : root) {
+    if (entry.isMember("vname") && entry.isMember("type") &&
+        entry.isMember("value")) {
+      if (entry["vname"].asString() == "_scilla_version" &&
+          entry["type"].asString() == "Uint32") {
+        if (found_scilla_version) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_scilla_version\"");
+          return false;
+        }
+        try {
+          scilla_version =
+              boost::lexical_cast<uint32_t>(entry["value"].asString());
+          found_scilla_version = true;
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "invalid value for _scilla_version " << entry["value"]);
+          return false;
+        }
+        // break;
+        if (found_library && found_extlibs) {
+          break;
+        }
+      }
+
+      if (entry["vname"].asString() == "_library" &&
+          entry["type"].asString() == "Bool") {
+        if (found_library) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_library\"");
+          return false;
+        }
+        if (entry["value"].isMember("constructor") &&
+            entry["value"]["constructor"] == "True") {
+          is_library = true;
+        }
+        found_library = true;
+        if (found_scilla_version && found_extlibs) {
+          break;
+        }
+      }
+
+      if (entry["vname"].asString() == "_extlibs") {
+        if (found_extlibs) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_extlibs\"");
+          return false;
+        }
+
+        if (entry["value"].type() != Json::arrayValue) {
+          LOG_GENERAL(WARNING, "entry value is not array type");
+          return false;
+        }
+
+        for (const auto& lib_entry : entry["value"]) {
+          if (lib_entry.isMember("arguments") &&
+              lib_entry["arguments"].type() == Json::arrayValue &&
+              lib_entry["arguments"].size() == 2) {
+            bool foundAddr = false;
+            for (const auto& arg : lib_entry["arguments"]) {
+              if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
+                  arg.asString().find("0x") != std::string::npos) {
+                try {
+                  Address addr(arg.asString());
+                  extlibs.emplace_back(addr);
+                  foundAddr = true;
+                  break;
+                } catch (...) {
+                  LOG_GENERAL(WARNING, "invalid to convert string to address: "
+                                           << arg.asString());
+                  continue;
+                }
+              }
+            }
+
+            if (!foundAddr) {
+              LOG_GENERAL(WARNING, "Didn't find address for extlib");
+              return false;
+            }
+
+            break;
+          }
+        }
+
+        found_extlibs = true;
+
+        if (found_scilla_version && found_library) {
+          break;
+        }
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Wrong data format spotted");
+      return false;
+    }
   }
-  return ContractStorage::GetContractStorage().GetContractStateData(k_hash,
-                                                                    temp);
+
+  if (!found_scilla_version) {
+    LOG_GENERAL(WARNING, "scilla_version not found in init data");
+    return false;
+  }
+
+  return true;
 }
 
 bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
-                                  uint32_t& scilla_version) {
+                                  uint32_t& scilla_version, bool& is_library,
+                                  vector<Address>& extlibs) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
@@ -216,26 +314,8 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
     return false;
   }
 
-  bool found_scilla_version = false;
-  for (const auto& entry : root) {
-    if (entry.isMember("vname") && entry.isMember("type") &&
-        entry.isMember("value") && entry["vname"] == "_scilla_version" &&
-        entry["type"] == "Uint32") {
-      try {
-        m_scilla_version =
-            boost::lexical_cast<uint32_t>(entry["value"].asString());
-        scilla_version = m_scilla_version;
-        found_scilla_version = true;
-      } catch (...) {
-        LOG_GENERAL(WARNING,
-                    "invalid value for _scilla_version " << entry["value"]);
-      }
-      break;
-    }
-  }
-
-  if (!found_scilla_version) {
-    LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
+  if (!ParseInitData(root, scilla_version, is_library, extlibs)) {
+    LOG_GENERAL(WARNING, "ParseInitData failed");
     return false;
   }
 
@@ -256,29 +336,6 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
-/// deprecated after data migration
-Json::Value Account::GetInitJson(bool temp) const {
-  if (!isContract()) {
-    return Json::arrayValue;
-  }
-
-  pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots, temp)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
-    return Json::arrayValue;
-  }
-  return roots.first;
-}
-
-vector<h256> Account::GetStorageKeyHashes(bool temp) const {
-  if (!isContract()) {
-    return {};
-  }
-
-  return ContractStorage::GetContractStorage().GetContractStateIndexes(
-      m_address, temp);
-}
-
 void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
                                std::vector<std::string>& toDeleteIndices,
                                bool temp) const {
@@ -295,51 +352,6 @@ void Account::UpdateStates(const Address& addr,
   if (!m_address) {
     SetAddress(addr);
   }
-}
-
-/// deprecated after data migration
-Json::Value Account::GetStateJson(bool temp) const {
-  if (!isContract()) {
-    return Json::arrayValue;
-  }
-
-  pair<Json::Value, Json::Value> roots;
-  if (!GetStorageJson(roots, temp)) {
-    LOG_GENERAL(WARNING, "GetStorageJson failed");
-    return Json::arrayValue;
-  }
-  return roots.second;
-}
-
-/// deprecated after data migration
-bool Account::GetStorageJson(pair<Json::Value, Json::Value>& roots, bool temp,
-                             uint32_t& scilla_version) const {
-  if (!isContract()) {
-    LOG_GENERAL(WARNING,
-                "Not contract account, why call Account::GetStorageJson!");
-    return false;
-  }
-
-  // Init, Other
-  if (!ContractStorage::GetContractStorage().GetContractStateJson(
-          m_address, roots, scilla_version, temp)) {
-    LOG_GENERAL(WARNING, "ContractStorage::GetContractStateJson failed");
-    return false;
-  }
-
-  try {
-    Json::Value balance;
-    balance["vname"] = "_balance";
-    balance["type"] = "Uint128";
-    balance["value"] = GetBalance().convert_to<string>();
-    roots.second.append(balance);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
-    return false;
-  }
-  // LOG_GENERAL(INFO, "States: " << root);
-
-  return true;
 }
 
 bool Account::FetchStateJson(Json::Value& root, const string& vname,
@@ -437,47 +449,41 @@ const bytes Account::GetCode() const {
   return m_codeCache;
 }
 
-bool Account::GetScillaVersion(uint32_t& scilla_version) {
+bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
+                                     std::vector<Address>& extlibs) {
   if (!isContract()) {
-    LOG_GENERAL(WARNING, "Not a contract why call GetScillaVersion");
     return false;
   }
 
-  // Be careful is m_scilla_version changed to other data type
-  if (m_scilla_version == (uint32_t)-1) {
-    Json::Value root;
-    bytes initData = GetInitData();
-    if (!JSONUtils::GetInstance().convertStrtoJson(
-            DataConversion::CharArrayToString(initData), root)) {
-      LOG_GENERAL(WARNING, "Convert InitData to Json failed"
-                               << endl
-                               << DataConversion::CharArrayToString(initData));
-      return false;
-    }
-    bool found_scilla_version = false;
-    for (const auto& entry : root) {
-      if (entry.isMember("vname") && entry.isMember("type") &&
-          entry.isMember("value") && entry["vname"] == "_scilla_version" &&
-          entry["type"] == "Uint32") {
-        try {
-          m_scilla_version =
-              boost::lexical_cast<uint32_t>(entry["value"].asString());
-          found_scilla_version = true;
-        } catch (...) {
-          LOG_GENERAL(WARNING,
-                      "invalid value for _scilal_version " << entry["value"]);
-        }
-        break;
-      }
-    }
-
-    if (!found_scilla_version) {
-      LOG_GENERAL(WARNING, "Didn't found scilla_version in init data");
+  if (m_initDataJson == Json::nullValue) {
+    if (!RetrieveContractAuxiliaries()) {
+      LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
       return false;
     }
   }
+  is_library = m_is_library;
   scilla_version = m_scilla_version;
+  extlibs = m_extlibs;
   return true;
+}
+
+bool Account::RetrieveContractAuxiliaries() {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING, "Not a contract");
+    return false;
+  }
+
+  bytes initData = GetInitData();
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          DataConversion::CharArrayToString(initData), m_initDataJson)) {
+    LOG_GENERAL(WARNING, "Convert InitData to Json failed"
+                             << endl
+                             << DataConversion::CharArrayToString(initData));
+    return false;
+  }
+
+  return ParseInitData(m_initDataJson, m_scilla_version, m_is_library,
+                       m_extlibs);
 }
 
 bool Account::SetInitData(const bytes& initData) {

@@ -77,6 +77,13 @@ void DirectoryService::StartSynchronization(bool clean) {
     return;
   }
 
+  // Send whitelist request to seeds, in case it was blacklisted if was
+  // restarted.
+  if (m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(Node::LOOKUP)) {
+    this_thread::sleep_for(
+        chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+  }
+
   auto func = [this]() -> void {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
@@ -90,7 +97,7 @@ void DirectoryService::StartSynchronization(bool clean) {
   };
 
   auto func2 = [this]() -> void {
-    if (!m_mediator.m_lookup->GetDSInfoLoop()) {
+    while (!m_mediator.m_lookup->GetDSInfoLoop()) {
       LOG_GENERAL(WARNING, "Unable to fetch DS info");
     }
   };
@@ -511,7 +518,7 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
   }
 }
 
-bool DirectoryService::FinishRejoinAsDS() {
+bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinishRejoinAsDS not expected to be "
@@ -522,14 +529,29 @@ bool DirectoryService::FinishRejoinAsDS() {
   LOG_MARKER();
   {
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    m_consensusMyID = 0;
+    bool found = false;
+
     for (auto& i : *m_mediator.m_DSCommittee) {
       if (i.first == m_mediator.m_selfKey.second) {
         i.second = Peer();
+        found = true;
         LOG_GENERAL(INFO,
                     "Found current node to be inside ds committee. Setting it "
                     "to Peer()");
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                  "My node ID for this PoW consensus is " << m_consensusMyID);
         break;
       }
+      m_consensusMyID++;
+    }
+
+    if (!found) {
+      LOG_GENERAL(
+          WARNING,
+          "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+      m_mediator.m_node->RejoinAsNormal();
+      return false;
     }
 
     LOG_GENERAL(INFO, "DS committee");
@@ -552,6 +574,7 @@ bool DirectoryService::FinishRejoinAsDS() {
     LOG_GENERAL(
         INFO,
         "Sent ds guard network information update to lookup and ds committee")
+    m_dsguardPodDelete = false;
   }
 
   m_mode = BACKUP_DS;
@@ -614,9 +637,32 @@ bool DirectoryService::FinishRejoinAsDS() {
     return false;
   }
 
-  // in case the recovery program is under different directory
-  LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
-  StartNewDSEpochConsensus(false, true);
+  if (fetchShardingStruct) {
+    // Ask for the sharding structure from lookup
+    m_mediator.m_lookup->ComposeAndSendGetShardingStructureFromSeed();
+    std::unique_lock<std::mutex> cv_lk(m_mediator.m_lookup->m_mutexShardStruct);
+    if (m_mediator.m_lookup->cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
+      LOG_GENERAL(WARNING,
+                  "Didn't receive sharding structure! Try checking next epoch");
+    } else {
+      m_mediator.m_node->LoadShardingStructure(true);
+      m_mediator.m_ds->ProcessShardingStructure(
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+          m_mediator.m_ds->m_mapNodeReputation);
+    }
+  }
+  // Not vacaous
+  if (m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
+      0) {
+    // Send whitelist request to all peers.
+    m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(Node::PEER);
+    StartNextTxEpoch();
+  } else {  // vacaous epoch
+    StartNewDSEpochConsensus(false, true);
+  }
+
   return true;
 }
 
@@ -740,7 +786,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
                   "run consensus.");
     }
 
-    RunConsensusOnDSBlock(isRejoin);
+    RunConsensusOnDSBlock();
   }
   // now that we already run DSBlock Consensus, lets clear the buffered pow
   // solutions. why not clear it at start of new ds epoch - becoz sometimes
@@ -766,6 +812,11 @@ void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
+  if ((m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC ||
+       m_state == SYNC) &&
+      ins_byte == DSInstructionType::SETCOSIGSREWARDSFROMSEED) {
+    return false;
+  }
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
@@ -887,7 +938,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
 
-        Blacklist::GetInstance().RemoveExclude(
+        Blacklist::GetInstance().RemoveFromWhitelist(
             m_mediator.m_DSCommittee->at(indexOfDSGuard).second.m_ipAddress);
         LOG_GENERAL(INFO,
                     "Removed "
@@ -902,7 +953,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
             dsGuardNewNetworkInfo;
 
         if (GUARD_MODE) {
-          Blacklist::GetInstance().Exclude(dsGuardNewNetworkInfo.m_ipAddress);
+          Blacklist::GetInstance().Whitelist(dsGuardNewNetworkInfo.m_ipAddress);
           LOG_GENERAL(INFO, "Added ds guard " << dsGuardNewNetworkInfo
                                               << " to blacklist exclude list");
         }
@@ -945,6 +996,56 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   }
 }
 
+bool DirectoryService::ProcessCosigsRewardsFromSeed(
+    const bytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessCosigRewardsFromSeed not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
+  lock_guard<mutex> g(m_mutexLookupStoreCosigRewards);
+
+  PubKey lookupPubKey;
+  vector<CoinbaseStruct> coinbaserewards;
+  if (!Messenger::GetLookupSetCosigsRewardsFromSeed(
+          message, offset, coinbaserewards, lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetCosigsRewardsFromSeed failed.");
+    return false;
+  }
+
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  // invoke SaveCoinBase for each
+  for (const auto& cogsrews : coinbaserewards) {
+    if (SaveCoinbase(cogsrews.GetB1(), cogsrews.GetB2(), cogsrews.GetShardId(),
+                     cogsrews.GetBlockNumber()) &&
+        (cogsrews.GetShardId() == CoinbaseReward::FINALBLOCK_REWARD)) {
+      m_totalTxnFees += cogsrews.GetRewards();
+    }
+  }
+
+  return true;
+}
+
+void DirectoryService::GetCoinbaseRewardees(
+    std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+        coinbase_rewardees) {
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+  coinbase_rewardees = m_coinbaseRewardees;
+}
+
 bool DirectoryService::Execute(const bytes& message, unsigned int offset,
                                const Peer& from) {
   // LOG_MARKER();
@@ -965,7 +1066,8 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
                        &DirectoryService::ProcessViewChangeConsensus,
                        &DirectoryService::ProcessGetDSTxBlockMessage,
                        &DirectoryService::ProcessPoWPacketSubmission,
-                       &DirectoryService::ProcessNewDSGuardNetworkInfo});
+                       &DirectoryService::ProcessNewDSGuardNetworkInfo,
+                       &DirectoryService::ProcessCosigsRewardsFromSeed});
 
   const unsigned char ins_byte = message.at(offset);
 
@@ -1004,7 +1106,8 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings = {
     MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS_PREP),
     MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS),
-    MAKE_LITERAL_PAIR(ERROR)};
+    MAKE_LITERAL_PAIR(ERROR),
+    MAKE_LITERAL_PAIR(SYNC)};
 
 string DirectoryService::GetStateString() const {
   return (DirStateStrings.find(m_state) == DirStateStrings.end())

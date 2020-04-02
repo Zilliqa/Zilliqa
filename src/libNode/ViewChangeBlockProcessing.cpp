@@ -87,8 +87,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   }
   vcblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), vcblock.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          message, 0, message.size(), vcblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(), vcblock.GetCS2(),
+                                *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -226,6 +226,26 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                   dst)) {
     LOG_GENERAL(WARNING, "Failed to store VC Block");
+    return false;
+  }
+
+  PairOfNode dsLeaderInfo =
+      make_pair(vcblock.GetHeader().GetCandidateLeaderPubKey(),
+                vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
+
+  auto iterDSLeaderID = find(m_mediator.m_DSCommittee->begin(),
+                             m_mediator.m_DSCommittee->end(), dsLeaderInfo);
+
+  if (iterDSLeaderID == m_mediator.m_DSCommittee->end()) {
+    LOG_GENERAL(WARNING, "Cannot find new DS leader in the ds committee "
+                             << dsLeaderInfo.second);
+    return false;
+  }
+
+  auto dsLeaderId = distance(m_mediator.m_DSCommittee->begin(), iterDSLeaderID);
+  if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                      dsLeaderId)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return false;
   }
 

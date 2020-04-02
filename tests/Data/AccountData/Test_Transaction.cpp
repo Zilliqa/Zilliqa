@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <array>
 #include <string>
 #include <vector>
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   Address toAddr;
 
   Mediator* m = nullptr;
-  unique_ptr<ValidatorBase> m_validator = make_unique<Validator>(*m);
+  unique_ptr<Validator> m_validator = make_unique<Validator>(*m);
 
   for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
     toAddr.asArray().at(i) = i + 4;
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test1) {
     fromAddr.asArray().at(i) = i + 8;
   }
 
-  PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey sender = Schnorr::GenKeyPair();
   Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
   Signature sig = TestUtils::GetSignature(
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
                       "Address from public key converted not properly.");
 
-  BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
+  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx1),
                       "Signature not verified\n");
 
   BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Transaction2 data", data2, Logger::MAX_BYTES_TO_DISPLAY);
   BOOST_CHECK_MESSAGE(data2 == tx1.GetData(), "Data not converted properly");
 
-  BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx2),
+  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx2),
                       "Signature not verified\n");
 
   tx2.SetSignature(sign);

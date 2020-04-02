@@ -539,8 +539,26 @@ message NodeFinalBlock
 
 message NodeMBnForwardTransaction
 {
-    ProtoMicroBlock microblock = 1;
+    ProtoMicroBlock microblock          = 1;
     repeated ByteArray txnswithreceipt  = 2;
+}
+
+message NodePendingTxn
+{
+    message Data
+    {
+        message Pair
+        {
+            bytes txnhash          = 1;
+            uint32 code            = 2;
+        }
+        repeated Pair hashcodepair = 1;
+        uint64 epochnumber         = 2;
+        uint32 shardid             = 3;
+        ByteArray pubkey           = 4;
+    }
+    Data data             = 1;
+    ByteArray signature   = 2;
 }
 
 message NodeVCBlock
@@ -1059,4 +1077,51 @@ message SeedSetHistoricalDB
     ByteArray pubkey           = 2;
     ByteArray signature        = 3;
 
+}
+
+// For removing sender from local blacklist
+message NodeRemoveFromBlacklist
+{
+    message Data
+    {
+        ByteArray ipAddress    = 1;
+        uint64 dsepochnumber   = 2;
+    }
+    Data data                  = 1;
+    ByteArray pubkey           = 2;
+    ByteArray signature        = 3;
+}
+
+// Holds cosigs and rewards structure for specific shard of specific epoch
+message ProtoCosigsRewardsStructure
+{
+    uint64 epochnumber         = 1;
+    int32 shardid              = 2;
+    ProtoBlockBase blockbase   = 3;
+    ByteArray rewards          = 4;
+}
+
+// From DS node for fetching cosig/rewards from Lookup
+message LookupGetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        uint32 portno           = 1;
+        uint64 epochnumber      = 2;
+    }
+    Data data                   = 1;
+    ByteArray pubkey            = 2;
+    ByteArray signature         = 3;
+}
+
+// Lookup set cosigs/rewards for ds node
+message LookupSetCosigsRewardsFromSeed
+{
+    message Data
+    {
+        repeated ProtoCosigsRewardsStructure cosigsrewards  = 1;
+    }
+    Data data                                               = 1;
+    ByteArray pubkey                                        = 2;
+    ByteArray signature                                     = 3;
 }

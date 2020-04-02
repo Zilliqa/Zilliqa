@@ -1396,11 +1396,19 @@ void DirectoryService::SaveDSPerformanceCore(
     dsMemberPerformance[member.first] = 0;
   }
 
+  uint64_t firstTxEpoch = 0;
+  if (currentEpochNum >= numOfFinalBlock) {
+    firstTxEpoch = (currentEpochNum / numOfFinalBlock - 1) * numOfFinalBlock;
+  }
   // Go through the coinbase rewardees and tally the number of co-sigs.
   // For each TX epoch,
-  for (auto const& epochNum : coinbaseRewardees) {
+  for (auto const& rewardees : coinbaseRewardees) {
+    // if rewardees not from current ds epoch, ignore them
+    if (rewardees.first < firstTxEpoch) {
+      continue;
+    }
     // Find the DS Shard.
-    for (auto const& shard : epochNum.second) {
+    for (auto const& shard : rewardees.second) {
       if (shard.first == finalblockRewardID) {
         // Find the rewards that belong to the DS Shard.
         for (auto const& pubkey : shard.second) {
@@ -1520,7 +1528,7 @@ unsigned int DirectoryService::DetermineByzantineNodes(
       m_dsMemberPerformance);
 }
 
-void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
+void DirectoryService::RunConsensusOnDSBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnDSBlock not "
@@ -1552,20 +1560,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   {
     lock_guard<mutex> h(m_mutexCoinbaseRewardees);
     m_coinbaseRewardees.clear();
-  }
-
-  {
-    lock_guard<mutex> g(m_mutexAllPOW);
-
-    if (m_allPoWs.size() == 0) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "To-do: Code up the logic for if we didn't get any "
-                "submissions at all");
-      // throw exception();
-      if (!isRejoin) {
-        return;
-      }
-    }
   }
 
   // Upon consensus object creation failure, one should not return from the

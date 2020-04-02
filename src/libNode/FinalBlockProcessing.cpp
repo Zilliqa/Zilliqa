@@ -39,7 +39,9 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
+#include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
+#include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -108,6 +110,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   uint64_t blockNum = finalBlock.GetHeader().GetBlockNum();
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
 
+  bool foundMB = false;
   // bool doRejoin = false;
 
   for (const auto& info : microBlockInfos) {
@@ -144,6 +147,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
           // doRejoin = true;
         } else if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
           // Update transaction processed
+          foundMB = true;
           UpdateProcessedTransactions();
           toSendTxnToLookup = true;
         } else {
@@ -160,6 +164,11 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         break;
       }
     }
+  }
+
+  if (!foundMB && !LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "My MB not in FB");
+    PutProcessedInUnconfirmedTxns();
   }
 
   if (/*doRejoin || */ m_doRejoinAtFinalBlock) {
@@ -252,8 +261,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
   }
   txblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), txblock.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          message, 0, message.size(), txblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(), txblock.GetCS2(),
+                                *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -273,6 +282,12 @@ void Node::InitiatePoW() {
   }
 
   SetState(POW_SUBMISSION);
+
+  if (m_mediator.m_disablePoW) {
+    LOG_GENERAL(INFO, "Skipping PoW");
+    return;
+  }
+
   POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
       FULL_DATASET_MINE);
@@ -409,6 +424,8 @@ void Node::CallActOnFinalblock() {
     return;
   }
 
+  LOG_MARKER();
+
   auto composeMBnForwardTxnMessageForSender =
       [this](bytes& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
@@ -421,6 +438,7 @@ void Node::CallActOnFinalblock() {
          [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
   lock_guard<mutex> g(m_mutexShardMember);
+
   DataSender::GetInstance().SendDataToOthers(
       *m_microblock, *m_myShardMembers, {}, {},
       m_mediator.m_lookup->GetLookupNodes(),
@@ -445,7 +463,6 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
 
   const auto& blocknum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
   {
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -461,7 +478,6 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
       }
     }
   }
-
   // Transaction body sharing
   mb_txns_message = {MessageType::NODE,
                      NodeInstructionType::MBNFORWARDTRANSACTION};
@@ -692,6 +708,8 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
 
   bool toSendTxnToLookup = false;
 
+  const bool& toSendPendingTxn = !(IsUnconfirmedTxnEmpty());
+
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
@@ -722,6 +740,9 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
                       << "Got no reward this ds epoch");
       }
     }
+  }
+  if (LOOKUP_NODE_MODE) {
+    ClearUnconfirmedTxn();
   }
 
   if (!BlockStorage::GetBlockStorage().PutStateDelta(
@@ -866,9 +887,14 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
+  LOG_GENERAL(INFO, "toSendPendingTxn " << toSendPendingTxn);
+
   if (!LOOKUP_NODE_MODE) {
     if (toSendTxnToLookup) {
       CallActOnFinalblock();
+    }
+    if (toSendPendingTxn) {
+      SendPendingTxnToLookup();
     }
 
     if (isVacuousEpoch) {
@@ -890,6 +916,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     uint32_t numShards = m_mediator.m_ds->GetNumShards();
 
     CommitMBnForwardedTransactionBuffer();
+    CommitPendingTxnBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
@@ -897,10 +924,7 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
 
-    if (LOOKUP_NODE_MODE)  // lookup, newlookup and level2lookup
-    {
-      m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
-    }
+    m_mediator.m_lookup->CheckAndFetchUnavailableMBs(true);
   }
 
   FallbackTimerPulse();
@@ -958,12 +982,24 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 }
 
 void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CommitForwardedTransactions not expected to be "
+                "called from Normal node.");
+    return;
+  }
+
   LOG_MARKER();
 
   for (const auto& twr : entry.m_transactions) {
     LOG_GENERAL(INFO, "Commit txn " << twr.GetTransaction().GetTranID().hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(twr.GetTransaction().GetTranID());
+    }
+
+    // feed the event log holder
+    if (ENABLE_WEBSOCKET) {
+      WebsocketServer::GetInstance().ParseTxnEventLog(twr);
     }
 
     // Store TxBody to disk
@@ -1026,7 +1062,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
 bool Node::ProcessMBnForwardTransaction(const bytes& message,
                                         unsigned int cur_offset,
-                                        [[gnu::unused]] const Peer& from) {
+                                        const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMBnForwardTransaction not expected to be "
@@ -1118,6 +1154,109 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   return ProcessMBnForwardTransactionCore(entry);
 }
 
+bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
+                         uint32_t shardId) {
+  uint size;
+  {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    size = m_mediator.m_ds->m_shards.size();
+  }
+  if (shardId > size) {
+    LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
+    return false;
+  } else if (shardId == size) {
+    // DS Committee
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
+      LOG_GENERAL(WARNING, "Could not find pubkey in ds committee");
+      return false;
+    }
+  } else {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
+                                  pubkey)) {
+      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
+      return false;
+    }
+  }
+
+  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  for (const auto& entry : pendingTxns) {
+    LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
+    m_unconfirmedTxns.emplace(entry);
+  }
+  return true;
+}
+
+bool Node::SendPendingTxnToLookup() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "SendPendingTxnToLookup called from lookup");
+    return false;
+  }
+
+  if (m_consensusMyID > NUM_SHARE_PENDING_TXNS && !m_isPrimary) {
+    return false;
+  }
+
+  const auto pendingTxns = GetUnconfirmedTxns();
+  const auto& blocknum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  bytes pend_txns_message = {MessageType::NODE,
+                             NodeInstructionType::PENDINGTXN};
+  if (!Messenger::SetNodePendingTxn(pend_txns_message, MessageOffset::BODY,
+                                    blocknum, pendingTxns, m_myshardId,
+                                    m_mediator.m_selfKey)) {
+    LOG_GENERAL(WARNING, "Failed to set SetNodePendingTxn");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Sent lookup Pending txns");
+  m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
+
+  return true;
+}
+
+bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
+                             [[gnu::unused]] const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Node::ProcessPendingTxn called from Normal node");
+    return false;
+  }
+  uint64_t epochNum;
+  unordered_map<TxnHash, PoolTxnStatus> hashCodeMap;
+  uint32_t shardId;
+  PubKey pubkey;
+
+  if (!Messenger::GetNodePendingTxn(message, cur_offset, epochNum, hashCodeMap,
+                                    shardId, pubkey)) {
+    LOG_GENERAL(WARNING, "Failed to set GetNodePendingTxn");
+    return false;
+  }
+  const auto& currentEpochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (currentEpochNum > epochNum) {
+    LOG_GENERAL(WARNING, "PENDINGTXN sent of an older epoch " << epochNum);
+    return false;
+  } else if (currentEpochNum < epochNum || /* Buffer for syncing seed node */
+             (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() ==
+                  SyncType::NEW_LOOKUP_SYNC) ||
+             (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+              m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
+    lock_guard<mutex> g(m_mutexPendingTxnBuffer);
+    m_pendingTxnBuffer[epochNum].emplace_back(hashCodeMap, pubkey, shardId);
+    LOG_GENERAL(INFO, "Buffer PENDINGTXN for epoch " << epochNum);
+    return true;
+  }
+  LOG_GENERAL(INFO, "Recieved message for epoch " << epochNum << " and shard "
+                                                  << shardId);
+  AddPendingTxn(hashCodeMap, pubkey, shardId);
+
+  return true;
+}
+
 bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1151,11 +1290,17 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       if (m_isVacuousEpochBuffer) {
         // Check is states updated
         uint64_t epochNum;
-        if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
-                epochNum)) {
-          LOG_GENERAL(WARNING,
-                      "BlockStorage::GetLatestEpochStateusUpdated failed");
-          return false;
+        if (m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum() == 1) {
+          epochNum = 1;
+        } else {
+          if (!BlockStorage::GetBlockStorage().GetLatestEpochStatesUpdated(
+                  epochNum)) {
+            LOG_GENERAL(WARNING,
+                        "BlockStorage::GetLatestEpochStateusUpdated failed");
+            return false;
+          }
         }
         if (AccountStore::GetInstance().GetPrevRootHash() ==
             m_mediator.m_txBlockChain.GetLastBlock()
@@ -1199,6 +1344,23 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
           return false;
         }
       }
+
+      if (ENABLE_WEBSOCKET) {
+        // send tx block and attach txhashes
+        const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+        Json::Value j_txnhashes;
+        try {
+          j_txnhashes = LookupServer::GetTransactionsForTxBlock(
+              txBlock, m_mediator.m_lookup->m_historicalDB);
+        } catch (...) {
+          j_txnhashes = Json::arrayValue;
+        }
+        WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+        // send event logs
+        WebsocketServer::GetInstance().SendOutMessages();
+      }
     }
   }
 
@@ -1227,4 +1389,24 @@ void Node::CommitMBnForwardedTransactionBuffer() {
     }
     it = m_mbnForwardedTxnBuffer.erase(it);
   }
+}
+
+void Node::CommitPendingTxnBuffer() {
+  // Clear Pending txn
+  lock_guard<mutex> g(m_mutexPendingTxnBuffer);
+
+  const auto& epochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  auto itr = m_pendingTxnBuffer.find(epochNum);
+
+  if (itr != m_pendingTxnBuffer.end()) {
+    for (const auto& entry : itr->second) {
+      AddPendingTxn(get<PendingData::HASH_CODE_MAP>(entry),
+                    get<PendingData::PUBKEY>(entry),
+                    get<PendingData::SHARD_ID>(entry));
+    }
+  }
+
+  m_pendingTxnBuffer.clear();
 }

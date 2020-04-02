@@ -24,10 +24,10 @@
 #include <thread>
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "common/Sizes.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/Block.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/TimeUtils.h"
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
     signature1.at(i) = i + 8;
   }
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
   DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second, 8,
                         789);

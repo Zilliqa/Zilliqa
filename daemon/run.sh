@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pkill ZilliqaDaemon_AWS
+pkill zilliqad
 if [ -n "$1" ] && [ "$1" = "cseed" ]
 then
-    ZilliqaDaemon_AWS --cseed
+    zilliqad --cseed
 else
-    ZilliqaDaemon_AWS
+    zilliqad
 fi

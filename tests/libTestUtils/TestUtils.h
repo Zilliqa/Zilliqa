@@ -18,11 +18,11 @@
 #ifndef __TESTUTILS_H__
 #define __TESTUTILS_H__
 
+#include <Schnorr.h>
 #include <limits>
 #include <random>
 #include <tuple>
 #include "common/BaseType.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block/BlockBase.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"

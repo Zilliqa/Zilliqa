@@ -26,6 +26,7 @@
 
 #include <leveldb/db.h>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "BlockStorage.h"
 #include "common/Constants.h"
@@ -440,6 +441,24 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
   return true;
 }
 
+bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
+  uint64_t latestTxBlockNum = 0;
+
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    leveldb::Iterator* it =
+        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
+      if (blockNum > latestTxBlockNum) {
+        latestTxBlockNum = blockNum;
+      }
+    }
+  }
+
+  return GetTxBlock(latestTxBlockNum, block);
+}
+
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   std::string bodyString;
 
@@ -565,7 +584,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   return true;
 }
 
-bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
+bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -799,8 +818,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
 
   unsigned int ds_index = 0;
   for (const auto& ds : *dsCommittee) {
-    int pubKeySize = ds.first.Serialize(data, 0);
-    ds.second.Serialize(data, pubKeySize);
+    ds.first.Serialize(data, 0);
+    ds.second.Serialize(data, data.size());
 
     /// Store index as key, to guarantee the sequence of DS committee after
     /// retrieval Because first DS committee is DS leader
@@ -812,6 +831,8 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
 
     LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << ds.first << " "
                           << ds.second);
+
+    data.clear();
   }
 
   return true;

@@ -18,9 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
 #define ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
 
+#include <atomic>
 #include <deque>
 
-#include "libCrypto/Schnorr.h"
+#include <Schnorr.h>
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
@@ -48,7 +49,7 @@ class Mediator {
   Lookup* m_lookup;
 
   /// Pointer to the Validator instance.
-  ValidatorBase* m_validator;
+  Validator* m_validator;
 
   /// The transient DS blockchain.
   DSBlockChain m_dsBlockChain;
@@ -93,6 +94,9 @@ class Mediator {
   /// Record current software information which already downloaded to this node
   SWInfo m_curSWInfo;
 
+  /// Prevent node from mining PoW at the next DS epoch
+  std::atomic<bool> m_disablePoW;
+
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 
@@ -101,7 +105,7 @@ class Mediator {
 
   /// Sets the references to the subclass instances.
   void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
-                          ValidatorBase* validator);
+                          Validator* validator);
 
   /// Updates the DS blockchain random for PoW.
   void UpdateDSBlockRand(bool isGenesis = false);

@@ -627,7 +627,9 @@ void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
 void ContractStorage2::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
     vector<std::string>& toDeletedIndices, bool temp) {
-  LOG_MARKER();
+  if (LOG_SC) {
+    LOG_MARKER();
+  }
 
   lock_guard<mutex> g(m_stateDataMutex);
 
@@ -891,7 +893,6 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
       if (revertible) {
         if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
           r_stateDataMap[state.first] = m_stateDataMap[state.first];
-          r_indexToBeDeleted.emplace(state.first, false);
         } else {
           r_stateDataMap[state.first] = {};
         }
@@ -900,6 +901,9 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
       auto pos = m_indexToBeDeleted.find(state.first);
       if (pos != m_indexToBeDeleted.end()) {
         m_indexToBeDeleted.erase(pos);
+        if (revertible) {
+          r_indexToBeDeleted.emplace(state.first, false);
+        }
       }
     }
     for (const auto& toDelete : toDeleteIndices) {
@@ -1011,7 +1015,7 @@ void ContractStorage2::InitTempState(bool callFromExternal) {
 
 dev::h256 ContractStorage2::GetContractStateHashCore(const dev::h160& address,
                                                      bool temp) {
-  if (address == Address()) {
+  if (IsNullAddress(address)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
   }

@@ -45,14 +45,15 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_txBlockRand({{0}}),
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
-      m_curSWInfo() {
+      m_curSWInfo(),
+      m_disablePoW(false) {
   SetupLogLevel();
 }
 
 Mediator::~Mediator() {}
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
-                                  Lookup* lookup, ValidatorBase* validator) {
+                                  Lookup* lookup, Validator* validator) {
   m_ds = ds;
   m_node = node;
   m_lookup = lookup;

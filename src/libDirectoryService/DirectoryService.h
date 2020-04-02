@@ -26,10 +26,10 @@
 #include <set>
 #include <shared_mutex>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
@@ -246,6 +246,10 @@ class DirectoryService : public Executable {
   bool ProcessNewDSGuardNetworkInfo(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
+  // Get cosig and rewards for given epoch
+  bool ProcessCosigsRewardsFromSeed(const bytes& message, unsigned int offset,
+                                    const Peer& from);
+
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
@@ -449,7 +453,8 @@ class DirectoryService : public Executable {
     FINALBLOCK_CONSENSUS,
     VIEWCHANGE_CONSENSUS_PREP,
     VIEWCHANGE_CONSENSUS,
-    ERROR
+    ERROR,
+    SYNC
   };
 
   enum SUBMITMICROBLOCKTYPE : unsigned char {
@@ -531,8 +536,14 @@ class DirectoryService : public Executable {
       m_lookupStoreForGuardNodeUpdate;
   std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
 
+  // For saving cosig and rewards
+  std::mutex m_mutexLookupStoreCosigRewards;
+
   bool m_doRejoinAtDSConsensus = false;
   bool m_doRejoinAtFinalConsensus = false;
+
+  // Indicate if its dsguard and its pod got restarted.
+  bool m_dsguardPodDelete = false;
 
   // GetShards
   uint32_t GetNumShards() const;
@@ -540,7 +551,7 @@ class DirectoryService : public Executable {
   std::atomic<bool> m_forceMulticast{};
 
   /// microblock_gas_limit to be adjusted due to vc
-  uint64_t m_microBlockGasLimit = MICROBLOCK_GAS_LIMIT;
+  uint64_t m_microBlockGasLimit = DS_MICROBLOCK_GAS_LIMIT;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
@@ -579,7 +590,7 @@ class DirectoryService : public Executable {
 
   /// Post processing after the DS node successfully synchronized with the
   /// network
-  bool FinishRejoinAsDS();
+  bool FinishRejoinAsDS(bool fetchShardingStruct = false);
 
   void RunConsensusOnFinalBlock();
 
@@ -594,6 +605,10 @@ class DirectoryService : public Executable {
                         const std::vector<bool>& b2, const Container& shard,
                         const int32_t& shard_id, const uint64_t& epochNum);
 
+  void GetCoinbaseRewardees(
+      std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
+          coinbase_rewardees);
+
   /// Implements the Execute function inherited from Executable.
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
@@ -605,6 +620,9 @@ class DirectoryService : public Executable {
 
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
+
+  /// Used by rejoined DS node
+  void StartNextTxEpoch();
 
   /// Begin next round of DS consensus
   void StartNewDSEpochConsensus(bool fromFallback = false,
@@ -621,7 +639,7 @@ class DirectoryService : public Executable {
   static uint8_t CalculateNodePriority(uint16_t reputation);
 
   /// PoW (DS block) consensus functions
-  void RunConsensusOnDSBlock(bool isRejoin = false);
+  void RunConsensusOnDSBlock();
   bool IsDSBlockVCState(unsigned char vcBlockState);
 
   // Sort the PoW submissions

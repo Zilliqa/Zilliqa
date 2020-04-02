@@ -23,12 +23,12 @@
 
 #include <boost/program_options.hpp>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
+#include "libUtils/CryptoUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -79,10 +79,6 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    sha2.Reset();
-    bytes message;
-
     PubKey key;
 
     try {
@@ -92,13 +88,8 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    key.Serialize(message, 0);
-    sha2.Update(message, 0, PUB_KEY_SIZE);
-    const bytes& tmp2 = sha2.Finalize();
-    Address toAddr;
-    copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
+    Address toAddr = CryptoUtils::GetAddressFromPubKey(key);
     cout << toAddr << endl;
-
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()
          << ", application will now exit" << endl;

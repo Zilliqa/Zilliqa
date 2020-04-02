@@ -479,8 +479,7 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
   }
 
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, pairOfKey.first, pairOfKey.second,
-                                   signature)) {
+  if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign zil_requestWork json value.");
     return false;
   }
@@ -529,8 +528,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
              boundary.bytes + sizeof(ethash_hash256));
 
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, pairOfKey.first, pairOfKey.second,
-                                   signature)) {
+  if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign zil_checkWorkStatus json value.");
     return false;
   }
@@ -641,8 +639,7 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
              boundary.bytes + sizeof(ethash_hash256));
 
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, pairOfKey.first, pairOfKey.second,
-                                   signature)) {
+  if (!Schnorr::Sign(tmp, pairOfKey.first, pairOfKey.second, signature)) {
     LOG_GENERAL(WARNING, "Failed to sign zil_verifyResult json value.");
     return false;
   }

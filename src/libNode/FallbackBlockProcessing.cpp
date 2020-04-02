@@ -102,8 +102,8 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
   }
   fallbackblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), fallbackblock.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          message, 0, message.size(), fallbackblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(),
+                                fallbackblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

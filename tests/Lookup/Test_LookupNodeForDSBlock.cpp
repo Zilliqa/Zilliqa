@@ -21,10 +21,10 @@
 #include <thread>
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
   std::map<PubKey, Peer> powDSWinners;
   std::vector<PubKey> removeDSNodePubkeys;
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 
 //     // std::array<unsigned char, TRAN_HASH_SIZE> emptyHash = {0};
 
-//     PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+//     PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
 //     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
 //     BlockHash(), 0,

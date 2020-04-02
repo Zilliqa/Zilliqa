@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/MemberID.h"
 #include "libRumorSpreading/Message.h"
 #include "libRumorSpreading/NetworkConfig.h"

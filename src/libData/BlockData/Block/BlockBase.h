@@ -21,10 +21,10 @@
 #include <array>
 #include "common/BaseType.h"
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libConsensus/ConsensusCommon.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 

@@ -22,10 +22,10 @@
 #include <iostream>
 #include <thread>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"

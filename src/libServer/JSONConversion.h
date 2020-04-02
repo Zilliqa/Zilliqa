@@ -32,8 +32,12 @@ class JSONConversion {
       const std::vector<MicroBlockInfo>& v);
   // converts a TxBlock to JSON object
   static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
+  // converts raw TxBlock to JSON object (for staking)
+  static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);
   // converts a DSBlocck to JSON object
   static const Json::Value convertDSblocktoJson(const DSBlock& dsblock);
+  // converts raw DSBlock to JSON object (for staking)
+  static const Json::Value convertRawDSBlocktoJson(const DSBlock& dsblock);
   // converts a JSON to Tx
   static const Transaction convertJsontoTx(const Json::Value& _json);
   // check if a Json is a valid Tx

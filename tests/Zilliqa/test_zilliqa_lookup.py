@@ -89,13 +89,13 @@ def run_setup(numnodes, printnodes):
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 		count = len(testfolders_list)
 		for x in range(0, count):
-			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
+			print ('[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x])
 
 
 	keypairs = []
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
+		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE, universal_newlines=True)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output.strip())
@@ -176,7 +176,7 @@ def run_start():
 
 	# Load the keypairs
 	keypairs = []
-	with open(LOCAL_RUN_FOLDER + 'keys.txt') as f:
+	with open(LOCAL_RUN_FOLDER + 'keys.txt', "r") as f:
 		keypairs = f.readlines()
 	keypairs = [x.strip() for x in keypairs]
 

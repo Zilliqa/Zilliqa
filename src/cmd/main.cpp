@@ -28,6 +28,7 @@
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
@@ -37,7 +38,8 @@ using namespace boost::multiprecision;
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
-#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION -2
+#define ERROR_UNHANDLED_EXCEPTION -3
 
 namespace po = boost::program_options;
 
@@ -53,7 +55,7 @@ int main(int argc, const char* argv[]) {
     int port = -1;
     unique_ptr<NAT> nt;
     uint128_t ip;
-    unsigned int synctype = 0;
+    unsigned int syncType = 0;
     const char* synctype_descr =
         "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
         "for node recovery, 6 for new lookup , 7 for ds guard node sync and 8 "
@@ -70,11 +72,12 @@ int main(int argc, const char* argv[]) {
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
         "loadconfig,l", "Loads configuration if set (deprecated)")(
-        "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
+        "synctype,s", po::value<unsigned int>(&syncType), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set")(
         "logpath,g", po::value<string>(&logpath),
         "customized log path, could be relative path (e.g., \"./logs/\"), or "
-        "absolute path (e.g., \"/usr/local/test/logs/\")");
+        "absolute path (e.g., \"/usr/local/test/logs/\")")(
+        "version,v", "Displays the Zilliqa version information");
 
     po::variables_map vm;
     try {
@@ -87,6 +90,12 @@ int main(int argc, const char* argv[]) {
         cout << desc << endl;
         return SUCCESS;
       }
+
+      if (vm.count("version")) {
+        cout << VERSION_TAG << endl;
+        return SUCCESS;
+      }
+
       po::notify(vm);
 
       try {
@@ -103,9 +112,9 @@ int main(int argc, const char* argv[]) {
         return ERROR_IN_COMMAND_LINE;
       }
 
-      if (synctype > 8) {
+      if (syncType > 8) {
         SWInfo::LogBrandBugReport();
-        std::cerr << "Invalid synctype '" << synctype
+        std::cerr << "Invalid synctype '" << syncType
                   << "', please select: " << synctype_descr << "." << endl;
       }
 
@@ -142,7 +151,7 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 
-    if (SyncType::NEW_SYNC == synctype && CHAIN_ID == MAINNET_CHAIN_ID) {
+    if (SyncType::NEW_SYNC == syncType && CHAIN_ID == MAINNET_CHAIN_ID) {
       SWInfo::IsLatestVersion();
     }
 
@@ -174,8 +183,20 @@ int main(int argc, const char* argv[]) {
       std::cout << "WARNING: loadconfig deprecated" << std::endl;
     }
 
+    if (!LOOKUP_NODE_MODE &&
+        !HardwareSpecification::
+            CheckMinimumHardwareRequired()) {  // Check on min. required
+                                               // hardware spec for only miner
+                                               // node for now.
+      std::cerr << "ERROR: "
+                << "Miner node does not meet the minimum required hardware "
+                   "spec, application will now exit"
+                << std::endl;
+      return ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION;
+    }
+
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
-                    (SyncType)synctype, vm.count("recovery"));
+                    (SyncType)syncType, vm.count("recovery"));
     auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
       zilliqa.Dispatch(message);
     };

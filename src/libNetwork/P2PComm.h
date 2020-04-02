@@ -51,6 +51,7 @@ class SendJob {
   unsigned char m_startbyte{};
   bytes m_message;
   bytes m_hash;
+  bool m_allowSendToRelaxedBlacklist{};
 
   static void SendMessageCore(const Peer& peer, const bytes& message,
                               unsigned char startbyte, const bytes& hash);
@@ -130,6 +131,7 @@ class P2PComm {
   void InitializeRumorManager(const VectorOfNode& peers,
                               const std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
+  inline static bool IsNodeNotRunning();
   static void ClearPeerConnectionCount();
 
  private:
@@ -153,7 +155,8 @@ class P2PComm {
 
   /// Multicasts message to specified list of peers.
   void SendMessage(const std::deque<Peer>& peers, const bytes& message,
-                   const unsigned char& startByteType = START_BYTE_NORMAL);
+                   const unsigned char& startByteType = START_BYTE_NORMAL,
+                   const bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
   void SendMessage(const Peer& peer, const bytes& message,

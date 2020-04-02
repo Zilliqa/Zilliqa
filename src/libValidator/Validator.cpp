@@ -32,12 +32,11 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 
 Validator::~Validator() {}
 
-bool Validator::VerifyTransaction(const Transaction& tran) const {
+bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
-                                       tran.GetSenderPubKey());
+  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
@@ -61,7 +60,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   const PubKey& senderPubKey = tx.GetSenderPubKey();
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
 
-  if (fromAddr == Address()) {
+  if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     return false;
   }
@@ -112,7 +111,15 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
-  if (fromAddr == Address()) {
+  if (tx.GetGasLimit() >
+      (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
+           ? SHARD_MICROBLOCK_GAS_LIMIT
+           : DS_MICROBLOCK_GAS_LIMIT)) {
+    LOG_GENERAL(WARNING, "Txn gas limit too high");
+    return false;
+  }
+
+  if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     return false;
   }
@@ -235,9 +242,8 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
                           block.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(serializedHeader, 0,
-                                              serializedHeader.size(),
-                                              block.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(serializedHeader, 0, serializedHeader.size(),
+                                block.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -456,8 +462,8 @@ bool Validator::CheckDirBlocks(
   return ret;
 }
 
-ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
-    const vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
+Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
+    const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
     const BlockLink& latestBlockLink) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);

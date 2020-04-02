@@ -141,10 +141,27 @@ void DirectoryService::InitCoinbase() {
 
   LOG_MARKER();
 
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+
+  // cleanup - entries from older ds epoch
+  if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() == 0) {
+    LOG_GENERAL(WARNING, "Still only have genesis block");
+    return;
+  }
+  uint64_t firstTxEpoch =
+      (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() - 1) *
+      NUM_FINAL_BLOCK_PER_POW;
+
+  auto it = m_coinbaseRewardees.begin();
+  while (it != m_coinbaseRewardees.end()) {
+    if (it->first < firstTxEpoch)
+      it = m_coinbaseRewardees.erase(it);
+    else
+      ++it;
+  }
+
   const auto& vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
   const auto& epochNum = m_mediator.m_currentEpochNum;
-
-  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   for (const auto& lookupNode : vecLookup) {
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libCrypto/MultiSig.h"
+#include <MultiSig.h>
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE multisigtest

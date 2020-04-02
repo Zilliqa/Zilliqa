@@ -27,16 +27,38 @@ from pathlib import Path
 import socket
 import argparse
 from urllib import request, parse
+import logging
+from logging import handlers
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
-NUM_TXBLOCK = 1
+NUM_TXBLOCK = 2
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
-SOURCE = './'
 TESTNET_NAME= "TEST_NET_NAME"
 SYNC_INTERVAL = 1
+
+FORMATTER = logging.Formatter(
+    "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
+)
+
+rootLogger = logging.getLogger()
+rootLogger.setLevel(logging.INFO)
+
+std_handler = logging.StreamHandler()
+std_handler.setFormatter(FORMATTER)
+rootLogger.addHandler(std_handler)
+
+def setup_logging():
+  logfile = os.path.dirname(os.path.abspath(__file__)) + "/upload_incr_DB-log.txt"
+  backup_count = 5
+  rotating_size = 8
+  fh = handlers.RotatingFileHandler(
+    logfile, maxBytes=rotating_size * 1024 * 1024, backupCount=backup_count
+    )
+  fh.setFormatter(FORMATTER)
+  rootLogger.addHandler(fh)
 
 # logger class
 class Tee(object):
@@ -50,11 +72,6 @@ class Tee(object):
 		for f in self.files:
 			f.flush()
 
-f = open('uploadIncrDB-log.txt', 'w')
-original = sys.stdout
-sys.stdout = Tee(sys.stdout, f)
-
-
 def getBucketString(subFolder):
 	return "s3://"+BUCKET_NAME+"/"+subFolder+"/"+TESTNET_NAME
 
@@ -62,13 +79,13 @@ def CreateTempPersistence():
 	bashCommand = "rsync --recursive --delete -a persistence temp"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Copied local persistence to temporary")
+	logging.info("Copied local persistence to temporary")
 
 def CleanS3StateDeltas():
 	bashCommand = "aws s3 rm --recursive "+getBucketString(STATEDELTA_DIFF_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Cleaned S3 bucket "+getBucketString(STATEDELTA_DIFF_NAME))
+	logging.info("Cleaned S3 bucket "+getBucketString(STATEDELTA_DIFF_NAME))
 
 def CleanS3EntirePersistence():
 	bashCommand = "aws s3 rm --recursive "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)
@@ -76,18 +93,33 @@ def CleanS3EntirePersistence():
 	output, error = process.communicate()
 	print("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME))
 
+def CleanS3PersistenceDiffs():
+	bashCommand = "aws s3 rm --recursive "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" --exclude 'persistence/*' --exclude '.lock' "
+	process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	output, error = process.communicate()
+	print("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+ " for persistence diffs!" )
+
+def SetCurrentTxBlkNum(txBlkNum):
+	Path(".currentTxBlk").touch()
+	with open(".currentTxBlk",encoding='utf-8', mode='w') as file:
+		file.write(txBlkNum)
+	bashCommand = "aws s3 cp .currentTxBlk "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.currentTxBlk"
+	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	output, error = process.communicate()
+	logging.info("[" + str(datetime.datetime.now()) + "] SetCurrentTxBlkNum:" + txBlkNum + " for uploading process")	
+
 def SetLock():
 	Path(".lock").touch()
 	bashCommand = "aws s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
-	print("[" + str(datetime.datetime.now()) + "] SetLock for uploading process")
+	logging.info("[" + str(datetime.datetime.now()) + "] SetLock for uploading process")
 
 def ResetLock():
 	bashCommand = "aws s3 rm "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
-	print("[" + str(datetime.datetime.now()) + "] Removed lock for uploading process")
+	logging.info("[" + str(datetime.datetime.now()) + "] Removed lock for uploading process")
 	os.remove(".lock")
 
 def SyncLocalToS3Persistence(blockNum,lastBlockNum):
@@ -101,20 +133,55 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
 		if re.match(r'^\s*$', output):
-			print("No entire persistence diff, interesting...")
+			logging.warning("No entire persistence diff, interesting...")
 		else:
-			print("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is entirely Synced")
+			logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is entirely Synced")
 		# clear the state-delta bucket now.
 		if(lastBlockNum != 0):
 			CleanS3StateDeltas()
-
-	elif (result == 0): # if has state delta diff, we still need to sync persistence/stateDelta so that next time for next blocknum we can get statedelta diff correctly
+			CleanS3PersistenceDiffs()
+	elif (result == 0):
+		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
 		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		output, error = process.communicate()
-		print("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
+		str_diff_output, error = process.communicate()
+		logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
+
+		if re.match(r'^\s*$', str_diff_output): # if output of sync command is either empty or just whitespaces
+			print("No persistence diff, interesting...")
+			tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
+			t = tarfile.TarInfo("diff_persistence_"+str(blockNum))
+			t.type = tarfile.DIRTYPE
+			tf.addfile(t)
+			tf.close()
+			bashCommand = "aws s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
+			process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+			output, error = process.communicate()
+			logging.info("DUMMY upload: persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced")
+			os.remove("diff_persistence_"+str(blockNum)+".tar.gz")
+		else:
+			str_diff_output = str_diff_output.strip()
+			splitted = str_diff_output.split('\n')
+			result=[]
+			if(len(splitted) > 0):
+				for x in splitted:
+					tok = x.split(' ')
+					# skip deleted files
+					if(len(tok) >= 3 and tok[0] == "upload:"):
+						result.append(tok[1])
+
+			tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
+			for x in result:
+				print(x)
+				tf.add(x,arcname="diff_persistence_"+str(blockNum)+"/"+ x.split("persistence/",1)[1]) 
+			tf.close()
+			bashCommand = "aws s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
+			process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+			output, error = process.communicate()
+			logging.info("Persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced without state/stateroot/contractCode/contractStateData/contractStateIndex")
+			os.remove("diff_persistence_"+str(blockNum)+".tar.gz")
 	else:
-		print("Not supposed to upload state now!")
+		logging.info("Not supposed to upload state now!")
 
 def path_leaf(path):
     head, tail = os.path.split(path)
@@ -128,7 +195,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 	diff_output, error = process.communicate()
 	str_diff_output = diff_output.decode("utf-8")
 	if re.match(r'^\s*$', str_diff_output):
-		print("No state delta diff, interesting...")
+		logging.warning("No state delta diff, interesting...")
 		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
 		t = tarfile.TarInfo("stateDelta_"+str(blockNum))
 		t.type = tarfile.DIRTYPE
@@ -137,7 +204,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+ getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
+		logging.info("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+ getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 1
@@ -150,7 +217,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
+		logging.info("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 0
@@ -172,7 +239,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
-		print("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
+		logging.info("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 0 #success
@@ -191,7 +258,7 @@ def send_packet_tcp(data, host, port):
         sock.sendall(data)
         received = recvall(sock)
     except socket.error:
-        print("Socket error")
+        logging.warning("Socket error")
         sock.close()
         return None
     sock.close()
@@ -253,7 +320,7 @@ def SendAlertIfInactive(blockNum):
 	
 	if blockNum == -1:
 		errmsg = "Alert - Failed to receive TxBlk info from lookup, please investigate! "
-		print ("[" + str(datetime.datetime.now()) + "] " + errmsg)
+		logging.warning ("[" + str(datetime.datetime.now()) + "] " + errmsg)
 		if  webhook != '':
 			send_report(errmsg, webhook)
 	elif (blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0:
@@ -269,11 +336,11 @@ def SendAlertIfInactive(blockNum):
 		try:
 			errmsg = "Alert -No activity on upload to S3 since txBlk:" + str(blockNum) + " for more than " + str((inactiveSeconds*SendAlertIfInactive.counter/60))+ " mins!\n \
 Please investigate unless viewchange happened!"
-			print ("[" + str(datetime.datetime.now()) + "] " + errmsg)
+			logging.warning ("[" + str(datetime.datetime.now()) + "] " + errmsg)
 			if webhook != '':
 				send_report(errmsg, webhook)
 		except Exception as e:
-			print(e)
+			logging.warning(e)
 			pass
 		start = (int)(time.time())
 	elif SendAlertIfInactive.lastBlockNum  != blockNum:
@@ -348,10 +415,15 @@ def main():
 					time.sleep(1)
 					continue
 
-			if ( (lastBlockNum == 0 and blockNum > -1) or (blockNum >= lastBlockNum + NUM_TXBLOCK)):
-				# try syncing every N txn blks or if its vacaous epoch
-					print("TxBlk: " + str(blockNum))
+			if ( (lastBlockNum == 0 and blockNum > -1) or 
+				(blockNum >= lastBlockNum + NUM_TXBLOCK) or
+				((blockNum > lastBlockNum) and
+				(((blockNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) or blockNum % NUM_FINAL_BLOCK_PER_POW == 0)) ):
+				# try syncing every N txn blks or if its vacaous epoch or if its first txblk of new ds epoch
+					logging.info("TxBlk: " + str(blockNum))
 					SetLock()
+					# write current txBlkNum to file
+					SetCurrentTxBlkNum(str(blockNum))
 					# create temp copy of local persistence
 					CreateTempPersistence()
 					# upload/sync the temporary copied persistence with S3
@@ -362,12 +434,13 @@ def main():
 			SendAlertIfInactive(blockNum) # Not uploaded state-delta for long
 			time.sleep(SYNC_INTERVAL)
 		except Exception as e:
-			print(e)
+			logging.warning(e)
 			time.sleep(SYNC_INTERVAL)
 			pass
 
 if __name__ == '__main__':
-	print("Starting upload to S3 process...")
+	setup_logging()
+	logging.info("Starting upload to S3 process...")
 
 	parser = argparse.ArgumentParser(description='upload incremental script')
 	parser.add_argument('-w','--webhook', help='Slack webhook URL', required=False, default='')
@@ -376,7 +449,7 @@ if __name__ == '__main__':
 	parser.add_argument('--backup', action='store_true', help='upload to backup-S3')
 	args = vars(parser.parse_args())
 	if args['backup']:
-		print('Upload to backup is true')
+		logging.info('Upload to backup is true')
 		PERSISTENCE_SNAPSHOT_NAME = 'incremental-backup'
 		STATEDELTA_DIFF_NAME = 'statedelta-backup'
 
@@ -385,12 +458,13 @@ if __name__ == '__main__':
 	tt = int(args['txblktime'])
 	dd = int(args['dsblktime'])
 	webhook = args['webhook']
+	source = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 	# create temp folder
-	if not os.path.exists(SOURCE+'temp'):
-		os.makedirs(SOURCE+'temp')
-	CleanupDir(SOURCE+'temp')
-	os.chdir(SOURCE)
+	if not os.path.exists(source+'temp'):
+		os.makedirs(source+'temp')
+	CleanupDir(source+'temp')
+	os.chdir(source)
 
 	main()
 	f.close()

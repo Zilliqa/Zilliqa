@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <Schnorr.h>
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/RootComputation.h"
@@ -38,8 +38,8 @@ Transaction createDummyTransaction() {
   }
 
   Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr,
-                 Schnorr::GetInstance().GenKeyPair(), 55, PRECISION_MIN_VALUE,
-                 22, {0x33}, {0x44});
+                 Schnorr::GenKeyPair(), 55, PRECISION_MIN_VALUE, 22, {0x33},
+                 {0x44});
   return tx;
 }
 

@@ -8,3 +8,9 @@
 	path = src/depends/protobuf
 	url = https://github.com/google/protobuf.git
 	branch = 3.9.x
+[submodule "src/depends/websocketpp"]
+	path = src/depends/websocketpp
+	url = https://github.com/zaphoyd/websocketpp
+[submodule "src/depends/Schnorr"]
+	path = src/depends/Schnorr
+	url = https://github.com/Zilliqa/schnorr.git

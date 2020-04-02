@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
+#include <Schnorr.h>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -89,6 +89,26 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   return ret;
 }
 
+const Json::Value JSONConversion::convertRawTxBlocktoJson(
+    const TxBlock& txblock) {
+  Json::Value ret;
+  bytes raw;
+  string rawstr;
+
+  if (!txblock.Serialize(raw, 0)) {
+    LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
+    return ret;
+  }
+
+  if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
+    LOG_GENERAL(WARNING, "Raw TxBlock conversion failed");
+    return ret;
+  }
+
+  ret["data"] = rawstr;
+  return ret;
+}
+
 const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   Json::Value ret;
   Json::Value ret_header;
@@ -118,6 +138,26 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
 
   ret["signature"] = ret_sign;
 
+  return ret;
+}
+
+const Json::Value JSONConversion::convertRawDSBlocktoJson(
+    const DSBlock& dsblock) {
+  Json::Value ret;
+  bytes raw;
+  string rawstr;
+
+  if (!dsblock.Serialize(raw, 0)) {
+    LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
+    return ret;
+  }
+
+  if (!DataConversion::Uint8VecToHexStr(raw, rawstr)) {
+    LOG_GENERAL(WARNING, "Raw DSBlock conversion failed");
+    return ret;
+  }
+
+  ret["data"] = rawstr;
   return ret;
 }
 

@@ -17,13 +17,13 @@
 
 #include <boost/filesystem.hpp>
 
+#include <Schnorr.h>
 #include <array>
 #include <regex>
 #include <string>
 #include <vector>
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -286,8 +286,8 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
 
   AccountStore::GetInstance().Init();
 
-  sender = Schnorr::GetInstance().GenKeyPair();
-  sender2 = Schnorr::GetInstance().GenKeyPair();
+  sender = Schnorr::GenKeyPair();
+  sender2 = Schnorr::GenKeyPair();
 
   fromAddr = Account::GetAddressFromPublicKey(sender.second);
   LOG_GENERAL(INFO, "fromAddr: " << fromAddr);

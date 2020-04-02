@@ -45,19 +45,24 @@ enum ReceiptError : unsigned int {
   LOG_ENTRY_INSTALL_FAILED,
   MESSAGE_CORRUPTED,
   RECEIPT_IS_NULL,
-  MAX_DEPTH_REACHED,
+  MAX_EDGES_REACHED,
   CHAIN_CALL_DIFF_SHARD,
   PREPARATION_FAILED,
   NO_OUTPUT,
   OUTPUT_ILLEGAL,
-  MAP_DEPTH_MISSING
+  MAP_DEPTH_MISSING,
+  GAS_NOT_SUFFICIENT,
+  INTERNAL_ERROR,
+  LIBRARY_AS_RECIPIENT,
+  VERSION_INCONSISTENT,
+  LIBRARY_EXTRACTION_FAILED
 };
 
 class TransactionReceipt : public SerializableDataBlock {
   Json::Value m_tranReceiptObj = Json::nullValue;
   std::string m_tranReceiptStr;
   uint64_t m_cumGas = 0;
-  unsigned int m_depth = 0;
+  unsigned int m_edge = 0;
   Json::Value m_errorObj;
 
  public:
@@ -66,11 +71,17 @@ class TransactionReceipt : public SerializableDataBlock {
   bool Deserialize(const bytes& src, unsigned int offset) override;
   void SetResult(const bool& result);
   void AddError(const unsigned int& errCode);
-  void AddDepth();
+  void AddEdge();
   void InstallError();
   void SetCumGas(const uint64_t& cumGas);
   void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
+  void AddTransition(const Address& addr, const Json::Value& transition,
+                     uint32_t tree_depth);
+  void AddAccepted(bool accepted);
+  bool AddAcceptedForLastTransition(bool accepted);
+  void RemoveAllTransitions();
+  void CleanEntry();
   const std::string& GetString() const { return m_tranReceiptStr; }
   void SetString(const std::string& tranReceiptStr);
   const uint64_t& GetCumGas() const { return m_cumGas; }

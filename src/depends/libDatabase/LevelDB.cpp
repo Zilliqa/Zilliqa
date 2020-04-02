@@ -431,7 +431,7 @@ bool LevelDB::RefreshDB()
     if(!status.ok())
     {
         // throw exception();
-        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+        LOG_GENERAL(WARNING, "LevelDB status is not OK. "<<status.ToString());
         return false;
     }
 

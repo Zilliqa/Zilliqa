@@ -110,8 +110,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
   }
   microBlock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), microBlock.GetB1());
-  if (!MultiSig::GetInstance().MultiSigVerify(
-          message, 0, message.size(), microBlock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::MultiSigVerify(message, 0, message.size(), microBlock.GetCS2(),
+                                *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -204,6 +204,23 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return true;
   }
 
+  uint32_t shardId = microBlock.GetHeader().GetShardId();
+  {
+    lock_guard<mutex> g(m_mutexMicroBlocks);
+    auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
+
+    // Check if we already received a validated microblock with the same shard
+    // id. Save on unnecessary-validation.
+    if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+                [shardId](const MicroBlock& mb) -> bool {
+                  return mb.GetHeader().GetShardId() == shardId;
+                }) != microBlocksAtEpoch.end()) {
+      LOG_GENERAL(WARNING,
+                  "Duplicate microblock received for shard " << shardId);
+      return false;
+    }
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = microBlock.GetHeader().GetMyHash();
   if (temp_blockHash != microBlock.GetBlockHash()) {
@@ -236,7 +253,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  uint32_t shardId = microBlock.GetHeader().GetShardId();
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "shard_id " << shardId);
 
   const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
@@ -289,17 +305,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
-
-  // Check if we already received a validated microblock with the same shard id
-  if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
-              [shardId](const MicroBlock& mb) -> bool {
-                return mb.GetHeader().GetShardId() == shardId;
-              }) != microBlocksAtEpoch.end()) {
-    LOG_GENERAL(WARNING, "Duplicate microblock received for shard " << shardId);
-    return false;
-  }
-
   if (microBlock.GetHeader().GetShardId() != m_shards.size() &&
       !SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                     microBlock.GetHeader().GetShardId(),
@@ -324,6 +329,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     }
   }
 
+  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
   microBlocksAtEpoch.emplace(microBlock);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

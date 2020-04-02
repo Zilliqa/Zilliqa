@@ -95,7 +95,8 @@ def backUp(curr_blockNum):
     return None
 
 def main():
-    parser = argparse.ArgumentParser(description='Lookup autorecovery script')
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    parser = argparse.ArgumentParser(description='Automatically backup script')
     parser.add_argument('-f','--frequency', help='Polling frequency in seconds (default = 0 or run once)', required=False, default=0)
     args = vars(parser.parse_args())
 
@@ -105,7 +106,13 @@ def main():
 
     isBackup = False
 
-    tree = xtree.parse("constants.xml")
+    while True:
+        if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml"):
+            break
+        print("Waiting for constants.xml generated...")
+        time.sleep(frequency)
+
+    tree = xtree.parse(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml")
     root = tree.getroot()
 
     for elem in tree.iter(tag=TAG_NUM_FINAL_BLOCK_PER_POW):

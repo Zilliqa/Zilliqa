@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <array>
 #include <string>
 #include <vector>
 #include "common/Constants.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -61,10 +61,10 @@ TransactionWithReceipt constructDummyTxBody(int instanceNum) {
   }
 
   // return Transaction(0, instanceNum, addr,
-  //                    Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {}, {});
+  //                    Schnorr::GenKeyPair(), 0, 1, 2, {}, {});
   return TransactionWithReceipt(
-      Transaction(0, instanceNum, toAddr, Schnorr::GetInstance().GenKeyPair(),
-                  0, 1, 2, {}, {}),
+      Transaction(0, instanceNum, toAddr, Schnorr::GenKeyPair(), 0, 1, 2, {},
+                  {}),
       TransactionReceipt());
 }
 

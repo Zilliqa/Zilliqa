@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <cstring>
-#include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 

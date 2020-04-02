@@ -17,11 +17,12 @@
 
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
@@ -85,9 +86,11 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
 
   *mediator.m_DSCommittee = dummy_ds_comm;
   dummyDS.m_shards = dummy_shards;
+  DSBlock lastBlock =
+      DSBlock(TestUtils::createDSBlockHeader(1), CoSignatures());
+  mediator.m_dsBlockChain.AddBlock(lastBlock);
 
-  const uint num_test_epoch =
-      1;  // Can be changed to NUM_FINAL_BLOCK_PER_POW for proper testing
+  const uint num_test_epoch = NUM_FINAL_BLOCK_PER_POW;
 
   for (uint i = 0; i < num_test_epoch; i++) {
     uint j = 0;

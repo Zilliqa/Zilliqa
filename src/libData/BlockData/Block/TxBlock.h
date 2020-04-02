@@ -20,10 +20,10 @@
 
 #include <array>
 
+#include <Schnorr.h>
 #include "BlockBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libNetwork/Peer.h"

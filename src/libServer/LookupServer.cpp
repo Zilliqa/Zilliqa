@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "LookupServer.h"
+#include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include "JSONConversion.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -217,6 +217,11 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetPendingTxn", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetPendingTxnI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -316,39 +321,36 @@ bool LookupServer::StartCollectorThread() {
   return true;
 }
 
-bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                               const Account* sender) const {
+bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                 const Account* sender, const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "CHAIN_ID incorrect");
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "Code size is too large");
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Code size is too large");
   }
 
-  if (tx.GetGasPrice() <
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED,
+  if (tx.GetGasPrice() < gasPrice) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasPrice " + tx.GetGasPrice().convert_to<string>() +
                                " lower than minimum allowable " +
-                               m_mediator.m_dsBlockChain.GetLastBlock()
-                                   .GetHeader()
-                                   .GetGasPrice()
-                                   .convert_to<string>());
+                               gasPrice.convert_to<string>());
   }
-  if (!m_mediator.m_validator->VerifyTransaction(tx)) {
-    throw JsonRpcException(RPC_VERIFY_REJECTED, "Unable to verify transaction");
+  if (!Validator::VerifyTransaction(tx)) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Unable to verify transaction");
   }
 
-  unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
-
-  if (fromAddr == Address()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+  if (IsNullAddress(fromAddr)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
   }
 
   if (sender == nullptr) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "The sender of the txn has no balance");
   }
   const auto type = Transaction::GetTransactionType(tx);
@@ -356,7 +358,7 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   if (type == Transaction::ContractType::CONTRACT_CALL &&
       (tx.GetGasLimit() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
@@ -366,27 +368,25 @@ bool LookupServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
            (tx.GetGasLimit() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Gas limit (" + to_string(tx.GetGasLimit()) +
                                ") lower than minimum for creating contract (" +
                                to_string(CONTRACT_CREATE_GAS) + ")");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Nonce (" + to_string(tx.GetNonce()) +
                                ") lower than current (" +
                                to_string(sender->GetNonce()) + ")");
   }
 
-  if (num_shards == 0) {
-    throw JsonRpcException(RPC_IN_WARMUP, "No Shards yet");
-  }
-
   return true;
 }
 
-Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
+Json::Value LookupServer::CreateTransaction(
+    const Json::Value& _json, const unsigned int num_shards,
+    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -404,12 +404,13 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
 
     const Address fromAddr = tx.GetSenderAddr();
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+    const Account* toAccount =
+        AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-    if (!ValidateTxn(tx, fromAddr, sender)) {
+    if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
       return ret;
     }
 
-    const unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
     switch (Transaction::GetTransactionType(tx)) {
@@ -417,6 +418,14 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
+        if (toAccount != nullptr) {
+          if (toAccount->isContract()) {
+            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                                   "Contract account won't accept normal txn");
+            return false;
+          }
+        }
+
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
@@ -434,14 +443,12 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        const Account* account =
-            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-        if (account == nullptr) {
+        if (toAccount == nullptr) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
         }
 
-        else if (!account->isContract()) {
+        else if (!toAccount->isContract()) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                  "Non - contract address called");
         }
@@ -453,6 +460,11 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
           sendToDs = _json["priority"].asBool();
         }
         if ((to_shard == shard) && !sendToDs) {
+          if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(
+                RPC_INVALID_PARAMETER,
+                "txn gas limit exceeding shard maximum limit");
+          }
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
           }
@@ -460,6 +472,10 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
               "Contract Txn, Shards Match of the sender "
               "and reciever";
         } else {
+          if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(RPC_INVALID_PARAMETER,
+                                   "txn gas limit exceeding ds maximum limit");
+          }
           if (ARCHIVAL_LOOKUP) {
             mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
           } else {
@@ -475,7 +491,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json) {
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
-    if (!m_mediator.m_lookup->AddToTxnShardMap(tx, mapIndex)) {
+    if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
@@ -870,7 +886,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "Txn Hash not Present");
     }
     const Transaction& tx = tptr->GetTransaction();
-    if (tx.GetCode().empty() || tx.GetToAddr() != NullAddress) {
+    if (tx.GetCode().empty() || !IsNullAddress(tx.GetToAddr())) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "ID is not a contract txn");
     }
@@ -1369,13 +1385,10 @@ Json::Value LookupServer::GetShardingStructure() {
 
     unsigned int num_shards = shards.size();
 
-    if (num_shards == 0) {
-      throw JsonRpcException(RPC_IN_WARMUP, "No shards yet");
-    } else {
-      for (unsigned int i = 0; i < num_shards; i++) {
-        _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
-      }
+    for (unsigned int i = 0; i < num_shards; i++) {
+      _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
     }
+
     return _json;
 
   } catch (const JsonRpcException& je) {
@@ -1459,7 +1472,6 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   uint64_t txNum;
-  Json::Value _json = Json::arrayValue;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
   } catch (exception& e) {
@@ -1468,6 +1480,16 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
+  return GetTransactionsForTxBlock(txBlock,
+                                   m_mediator.m_lookup->m_historicalDB);
+}
+
+Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                                    bool historicalDB) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
   // TODO
   // Workaround to identify dummy block as == comparator does not work on
   // empty object for TxBlock and TxBlockheader().
@@ -1478,8 +1500,9 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
   }
 
   auto microBlockInfos = txBlock.GetMicroBlockInfos();
-
+  Json::Value _json = Json::arrayValue;
   bool hasTransactions = false;
+
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
     _json[mbInfo.m_shardId] = Json::arrayValue;
@@ -1490,7 +1513,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      if (!m_mediator.m_lookup->m_historicalDB) {
+      if (!historicalDB) {
         throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
       } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
                      mbInfo.m_microBlockHash, mbptr)) {
@@ -1571,5 +1594,62 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+Json::Value LookupServer::GetPendingTxn(const string& tranID) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  try {
+    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    TxnHash tranHash(tranID);
+    Json::Value _json;
+
+    if (BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
+      // Transaction already present in database means confirmed
+      _json["confirmed"] = true;
+      _json["code"] = PoolTxnStatus::NOT_PRESENT;
+      _json["info"] = "Txn already processed and confirmed";
+      return _json;
+    }
+
+    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
+      case PoolTxnStatus::NOT_PRESENT:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::NOT_PRESENT;
+        _json["info"] = "Txn not pending";
+        return _json;
+      case PoolTxnStatus::PRESENT_NONCE_HIGH:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
+        _json["info"] = "Nonce too high";
+        return _json;
+      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
+        _json["info"] = "Could not fit in as microblock gas limit reached";
+        return _json;
+      case PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED:
+        _json["confirmed"] = false;
+        _json["code"] = PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED;
+        _json["info"] = "Transaction valid but consensus not reached";
+        return _json;
+      case PoolTxnStatus::ERROR:
+        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
   }
 }

@@ -120,7 +120,7 @@ bool ContractStorage::PutContractState(
   {
     unique_lock<shared_timed_mutex> g(m_stateMainMutex);
 
-    if (address == Address()) {
+    if (IsNullAddress(address)) {
       LOG_GENERAL(WARNING, "Null address rejected");
       return false;
     }
@@ -264,7 +264,7 @@ vector<bytes> ContractStorage::GetContractStatesData(const dev::h160& address,
   // LOG_MARKER();
   shared_lock<shared_timed_mutex> g(m_stateMainMutex);
   // get indexes
-  if (address == Address()) {
+  if (IsNullAddress(address)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return {};
   }
@@ -370,7 +370,7 @@ bool ContractStorage::GetContractStateJson(
     uint32_t& scilla_version, bool temp) {
   // LOG_MARKER();
 
-  if (address == Address()) {
+  if (IsNullAddress(address)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return false;
   }
@@ -454,7 +454,7 @@ bool ContractStorage::GetContractStateJson(
 dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address,
                                                 bool temp) {
   // LOG_MARKER();
-  if (address == Address()) {
+  if (IsNullAddress(address)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
   }

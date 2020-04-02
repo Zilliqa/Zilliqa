@@ -81,6 +81,19 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDifficultyI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleSendSCCallsToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ToggleSendSCCallsToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetSendSCCallsToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetSendSCCallsToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::DisablePoWI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -122,7 +135,7 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().Exclude(numIP)) {
+    if (!Blacklist::GetInstance().Whitelist(numIP)) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Could not add IP Address in exclusion list, already present");
@@ -147,7 +160,7 @@ bool StatusServer::RemoveFromBlacklistExclusion(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
-    if (!Blacklist::GetInstance().RemoveExclude(numIP)) {
+    if (!Blacklist::GetInstance().RemoveFromWhitelist(numIP)) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Could not remove IP Address from exclusion list");
     }
@@ -213,4 +226,30 @@ Json::Value StatusServer::IsTxnInMemPool(const string& tranID) {
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }
+}
+
+bool StatusServer::ToggleSendSCCallsToDS() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  m_mediator.m_lookup->m_sendSCCallsToDS =
+      !(m_mediator.m_lookup->m_sendSCCallsToDS);
+  return m_mediator.m_lookup->m_sendSCCallsToDS;
+}
+
+bool StatusServer::GetSendSCCallsToDS() {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup or seed");
+  }
+  return m_mediator.m_lookup->m_sendSCCallsToDS;
+}
+
+bool StatusServer::DisablePoW() {
+  if (LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Not to be queried on lookup");
+  }
+  m_mediator.m_disablePoW = true;
+  return true;
 }

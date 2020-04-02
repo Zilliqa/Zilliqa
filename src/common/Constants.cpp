@@ -143,6 +143,8 @@ const unsigned int POW_PACKET_SENDERS{
     ReadConstantNumeric("POW_PACKET_SENDERS", "node.data_sharing.")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadConstantNumeric("TX_SHARING_CLUSTER_SIZE", "node.data_sharing.")};
+const unsigned int NUM_SHARE_PENDING_TXNS{
+    (ReadConstantNumeric("NUM_SHARE_PENDING_TXNS", "node.data_sharing."))};
 
 // Dispatcher constants
 const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
@@ -174,8 +176,8 @@ const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
     "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
-const unsigned int NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
-    "NEW_LOOKUP_GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int GETSHARD_TIMEOUT_IN_SECONDS{
+    ReadConstantNumeric("GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
     "GETSTATEDELTAS_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int RETRY_REJOINING_TIMEOUT{
@@ -186,6 +188,8 @@ const unsigned int MAX_FETCHMISSINGMBS_NUM{
     ReadConstantNumeric("MAX_FETCHMISSINGMBS_NUM", "node.epoch_timing.")};
 const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(
     "LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS", "node.epoch_timing.")};
+const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
+    "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{
@@ -200,8 +204,10 @@ const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
 
 // Gas constants
-const unsigned int MICROBLOCK_GAS_LIMIT{
-    ReadConstantNumeric("MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
+    ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadConstantNumeric("CONTRACT_CREATE_GAS", "node.gas.")};
 const unsigned int CONTRACT_INVOKE_GAS{
@@ -299,15 +305,23 @@ const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
 // RPC Constants
 const unsigned int LOOKUP_RPC_PORT{
     ReadConstantNumeric("LOOKUP_RPC_PORT", "node.jsonrpc.")};
+const unsigned int STAKING_RPC_PORT{
+    ReadConstantNumeric("STAKING_RPC_PORT", "node.jsonrpc.")};
 const unsigned int STATUS_RPC_PORT{
     ReadConstantNumeric("STATUS_RPC_PORT", "node.jsonrpc.")};
 const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
+const bool ENABLE_STAKING_RPC{
+    ReadConstantString("ENABLE_STAKING_RPC", "node.jsonrpc.") == "true"};
 const bool ENABLE_STATUS_RPC{
     ReadConstantString("ENABLE_STATUS_RPC", "node.jsonrpc.") == "true"};
 const unsigned int NUM_SHARD_PEER_TO_REVEAL{
     ReadConstantNumeric("NUM_SHARD_PEER_TO_REVEAL", "node.jsonrpc.")};
 const std::string SCILLA_IPC_SOCKET_PATH{
     ReadConstantString("SCILLA_IPC_SOCKET_PATH", "node.jsonrpc.")};
+bool ENABLE_WEBSOCKET{ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") ==
+                      "true"};
+const unsigned int WEBSOCKET_PORT{
+    ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
@@ -345,12 +359,12 @@ const unsigned int MIN_READ_WATERMARK_IN_BYTES{
     ReadConstantNumeric("MIN_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 const unsigned int MAX_READ_WATERMARK_IN_BYTES{
     ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
-const unsigned int CONNECTION_TIMEOUT_IN_SECONDS{
-    ReadConstantNumeric("CONNECTION_TIMEOUT_IN_SECONDS", "node.p2pcomm.")};
 const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
 const unsigned int MAX_PEER_CONNECTION{
     ReadConstantNumeric("MAX_PEER_CONNECTION", "node.p2pcomm.")};
+const unsigned int MAX_WHITELISTREQ_LIMIT{
+    ReadConstantNumeric("MAX_WHITELISTREQ_LIMIT", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -470,6 +484,12 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+const string CONTRACT_FILE_EXTENSION{
+    ReadConstantString("CONTRACT_FILE_EXTENSION", "node.smart_contract.")};
+const string LIBRARY_CODE_EXTENSION{
+    ReadConstantString("LIBRARY_CODE_EXTENSION", "node.smart_contract.")};
+const string EXTLIB_FOLDER{
+    ReadConstantString("EXTLIB_FOLDER", "node.smart_contract.")};
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
@@ -512,8 +532,12 @@ const unsigned int LOOKUP_REWARD_IN_PERCENT{
     ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadConstantNumeric("MAX_CODE_SIZE_IN_BYTES", "node.transactions.")};
-const unsigned int MAX_CONTRACT_DEPTH{
-    ReadConstantNumeric("MAX_CONTRACT_DEPTH", "node.transactions.")};
+const unsigned int MAX_CONTRACT_EDGES{
+    ReadConstantNumeric("MAX_CONTRACT_EDGES", "node.transactions.")};
+const unsigned int SCILLA_CHECKER_INVOKE_GAS{
+    ReadConstantNumeric("SCILLA_CHECKER_INVOKE_GAS", "node.transactions.")};
+const unsigned int SCILLA_RUNNER_INVOKE_GAS{
+    ReadConstantNumeric("SCILLA_RUNNER_INVOKE_GAS", "node.transactions.")};
 const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
     "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(

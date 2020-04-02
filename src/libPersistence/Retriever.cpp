@@ -32,16 +32,17 @@ Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
 bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   LOG_MARKER();
-  std::list<TxBlockSharedPtr> blocks;
+  std::deque<TxBlockSharedPtr> blocks;
   std::vector<bytes> extraStateDeltas;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
     LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
     return false;
   }
 
-  blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
+  sort(blocks.begin(), blocks.end(),
+       [](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+       });
 
   unsigned int lastBlockNum = blocks.back()->GetHeader().GetBlockNum();
 
@@ -256,8 +257,17 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
         LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
         return false;
       }
-      m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
-          DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
+
+      auto dsBlockNumStr =
+          DataConversion::CharArrayToString(latestActiveDSBlockNumVec);
+      try {
+        m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(dsBlockNumStr);
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Cannot convert invalid DS block number "
+                                 << dsBlockNumStr << ", exception "
+                                 << e.what());
+        return false;
+      }
     }
   } else {
     return false;
@@ -477,13 +487,6 @@ bool Retriever::ValidateStates() {
                           << AccountStore::GetInstance().GetStateRootHash());
     return false;
   }
-}
-
-bool Retriever::MigrateContractStates(
-    bool ignore_checker, const std::string& contract_address_output_dir,
-    const std::string& normal_address_output_dir) {
-  return AccountStore::GetInstance().MigrateContractStates(
-      ignore_checker, contract_address_output_dir, normal_address_output_dir);
 }
 
 void Retriever::CleanAll() {

@@ -26,6 +26,7 @@
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
+#include "libServer/StakingServer.h"
 #include "libServer/StatusServer.h"
 #include "libUtils/ThreadPool.h"
 
@@ -34,16 +35,18 @@ class Zilliqa {
   Mediator m_mediator;
   DirectoryService m_ds;
   Lookup m_lookup;
-  std::shared_ptr<ValidatorBase> m_validator;
+  std::shared_ptr<Validator> m_validator;
   Node m_n;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
-  std::unique_ptr<StatusServer> m_statusServer;
   std::shared_ptr<LookupServer> m_lookupServer;
-  std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
+  std::shared_ptr<StakingServer> m_stakingServer;
+  std::unique_ptr<StatusServer> m_statusServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
+  std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 

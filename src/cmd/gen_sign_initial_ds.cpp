@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     string sig_str;
 
     Signature sig;
-    Schnorr::GetInstance().Sign(message, privKeys.at(0), pubKeys.at(0), sig);
+    Schnorr::Sign(message, privKeys.at(0), pubKeys.at(0), sig);
     bytes result;
     sig.Serialize(result, 0);
 

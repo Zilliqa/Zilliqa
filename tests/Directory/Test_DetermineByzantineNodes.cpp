@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <string>
-#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/ShardStruct.h"
@@ -50,12 +50,12 @@ struct F {
     BOOST_TEST_MESSAGE("setup fixture");
 
     // Generate the self key.
-    selfKeyPair = Schnorr::GetInstance().GenKeyPair();
+    selfKeyPair = Schnorr::GenKeyPair();
     selfPubKey = selfKeyPair.second;
 
     // Generate the DS Committee.
     for (int i = 0; i < COMMITTEE_SIZE; ++i) {
-      PairOfKey kp = Schnorr::GetInstance().GenKeyPair();
+      PairOfKey kp = Schnorr::GenKeyPair();
       PubKey pk = kp.second;
       Peer peer = Peer(LOCALHOST, BASE_PORT + i);
       PairOfNode entry = std::make_pair(pk, peer);

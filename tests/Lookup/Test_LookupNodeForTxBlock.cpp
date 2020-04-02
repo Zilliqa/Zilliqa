@@ -21,10 +21,10 @@
 #include <thread>
 #include <vector>
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
@@ -55,7 +55,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
   std::map<PubKey, Peer> powDSWinners;
   std::vector<PubKey> removeDSNodePubkeys;
   DSBlock dsblock(
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   // std::array<unsigned char, TRAN_HASH_SIZE> emptyHash = {0};
 
-  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
 
   TxBlock txblock(
       TxBlockHeader(1, 1, 1, 0, TxBlockHashSet(), 0, pubKey1.second, 0,
