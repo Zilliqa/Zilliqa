@@ -90,7 +90,7 @@ class AccountStore
   bytes m_stateDeltaSerialized;
 
   /// Scilla IPC server related
-  std::unique_ptr<ScillaIPCServer> m_scillaIPCServer;
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
 
   AccountStore();

@@ -44,7 +44,7 @@ AccountStore::AccountStore() {
     m_scillaIPCServerConnector =
         make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
-        make_unique<ScillaIPCServer>(*m_scillaIPCServerConnector);
+        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {

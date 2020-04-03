@@ -31,30 +31,17 @@ class ScillaUtils {
   static Json::Value GetBlockStateJson(const uint64_t& BlockNum);
 
   /// get the command for invoking the scilla_checker while deploying
-  static std::string GetContractCheckerCmdStr(const std::string& root_w_version,
-                                              bool is_library,
-                                              const uint64_t& available_gas);
-
   static Json::Value GetContractCheckerJson(const std::string& root_w_version,
                                             bool is_library,
                                             const uint64_t& available_gas);
 
   /// get the command for invoking the scilla_runner while deploying
-  static std::string GetCreateContractCmdStr(
-      const std::string& root_w_version, bool is_library,
-      const uint64_t& available_gas,
-      const boost::multiprecision::uint128_t& balance);
-
   static Json::Value GetCreateContractJson(
       const std::string& root_w_version, bool is_library,
       const uint64_t& available_gas,
       const boost::multiprecision::uint128_t& balance);
 
   /// get the command for invoking the scilla_runner while calling
-  static std::string GetCallContractCmdStr(
-      const std::string& root_w_version, const uint64_t& available_gas,
-      const boost::multiprecision::uint128_t& balance);
-
   static Json::Value GetCallContractJson(
       const std::string& root_w_version, const uint64_t& available_gas,
       const boost::multiprecision::uint128_t& balance);
