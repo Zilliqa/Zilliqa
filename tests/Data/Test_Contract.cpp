@@ -164,111 +164,107 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "loopy-tree-call ended");
 }
 
-// BOOST_AUTO_TEST_CASE(salarybot) {
-//   INIT_STDOUT_LOGGER();
-//   LOG_MARKER();
+BOOST_AUTO_TEST_CASE(salarybot) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
-//   PairOfKey owner = Schnorr::GenKeyPair();
-//   PairOfKey employee1 = Schnorr::GenKeyPair();
-//   PairOfKey employee2 = Schnorr::GenKeyPair();
-//   PairOfKey employee3 = Schnorr::GenKeyPair();
+  PairOfKey owner = Schnorr::GenKeyPair();
+  PairOfKey employee1 = Schnorr::GenKeyPair();
+  PairOfKey employee2 = Schnorr::GenKeyPair();
+  PairOfKey employee3 = Schnorr::GenKeyPair();
 
-//   Address ownerAddr, employee1Addr, employee2Addr, employee3Addr, contrAddr;
-//   uint64_t nonce = 0;
+  Address ownerAddr, employee1Addr, employee2Addr, employee3Addr, contrAddr;
+  uint64_t nonce = 0;
 
-//   if (SCILLA_ROOT.empty()) {
-//     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-//     return;
-//   }
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-//   employee1Addr = Account::GetAddressFromPublicKey(employee1.second);
-//   employee2Addr = Account::GetAddressFromPublicKey(employee2.second);
-//   employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  employee1Addr = Account::GetAddressFromPublicKey(employee1.second);
+  employee2Addr = Account::GetAddressFromPublicKey(employee2.second);
+  employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
 
-//   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000,
-//   nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
 
-//   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
-//   LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
 
-//   std::vector<ScillaTestUtil::ScillaTest> tests;
+  std::vector<ScillaTestUtil::ScillaTest> tests;
 
-//   for (unsigned int i = 0; i <= 5; i++) {
-//     ScillaTestUtil::ScillaTest test;
-//     BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "salarybot", i),
-//                         "Unable to fetch test salarybot_" << i << ".");
+  for (unsigned int i = 0; i <= 5; i++) {
+    ScillaTestUtil::ScillaTest test;
+    BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "salarybot", i),
+                        "Unable to fetch test salarybot_" << i << ".");
 
-//     test.message["_sender"] = "0x" + ownerAddr.hex();
+    test.message["_sender"] = "0x" + ownerAddr.hex();
 
-//     tests.emplace_back(test);
-//   }
+    tests.emplace_back(test);
+  }
 
-//   tests[1].message["params"][0]["value"] = "0x" + employee1Addr.hex();
-//   tests[2].message["params"][0]["value"] = "0x" + employee2Addr.hex();
-//   tests[3].message["params"][0]["value"] = "0x" + employee3Addr.hex();
-//   tests[4].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+  tests[1].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+  tests[2].message["params"][0]["value"] = "0x" + employee2Addr.hex();
+  tests[3].message["params"][0]["value"] = "0x" + employee3Addr.hex();
+  tests[4].message["params"][0]["value"] = "0x" + employee1Addr.hex();
 
-//   for (const auto& test : tests) {
-//     LOG_GENERAL(INFO, "message: " <<
-//     JSONUtils::GetInstance().convertJsontoStr(
-//                           test.message));
-//   }
+  for (const auto& test : tests) {
+    LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
+                          test.message));
+  }
 
-//   // Replace owner address in init.json
-//   for (auto& it : tests[0].init) {
-//     if (it["vname"] == "owner") {
-//       it["value"] = "0x" + ownerAddr.hex();
-//     }
-//   }
+  // Replace owner address in init.json
+  for (auto& it : tests[0].init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
+  }
 
-//   // and remove _creation_block (automatic insertion later).
-//   ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
-//   ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
 
-//   bool deployed = false;
+  bool deployed = false;
 
-//   for (unsigned int i = 0; i < tests.size();) {
-//     bool deploy = i == 0 && !deployed;
+  for (unsigned int i = 0; i < tests.size();) {
+    bool deploy = i == 0 && !deployed;
 
-//     uint64_t bnum =
-//     ScillaTestUtil::GetBlockNumberFromJson(tests[i].blockchain); std::string
-//     initStr =
-//         JSONUtils::GetInstance().convertJsontoStr(tests[i].init);
-//     bytes data;
-//     uint64_t amount = 0;
-//     Address recipient;
-//     bytes code;
-//     if (deploy) {
-//       data = bytes(initStr.begin(), initStr.end());
-//       recipient = Address();
-//       code = tests[i].code;
-//       deployed = true;
-//     } else {
-//       amount = ScillaTestUtil::PrepareMessageData(tests[i].message, data);
-//       recipient = contrAddr;
-//       i++;
-//     }
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tests[i].blockchain);
+    std::string initStr =
+        JSONUtils::GetInstance().convertJsontoStr(tests[i].init);
+    bytes data;
+    uint64_t amount = 0;
+    Address recipient;
+    bytes code;
+    if (deploy) {
+      data = bytes(initStr.begin(), initStr.end());
+      recipient = Address();
+      code = tests[i].code;
+      deployed = true;
+    } else {
+      amount = ScillaTestUtil::PrepareMessageData(tests[i].message, data);
+      recipient = contrAddr;
+      i++;
+    }
 
-//     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient,
-//     owner,
-//                    amount, PRECISION_MIN_VALUE, 20000, code, data);
-//     TransactionReceipt tr;
-//     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
-//     nonce++;
-//   }
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient, owner,
+                   amount, PRECISION_MIN_VALUE, 20000, code, data);
+    TransactionReceipt tr;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
+    nonce++;
+  }
 
-//   Account* e2 = AccountStore::GetInstance().GetAccountTemp(employee2Addr);
-//   Account* e3 = AccountStore::GetInstance().GetAccountTemp(employee3Addr);
+  Account* e2 = AccountStore::GetInstance().GetAccountTemp(employee2Addr);
+  Account* e3 = AccountStore::GetInstance().GetAccountTemp(employee3Addr);
 
-//   BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
-//                       "employee2 or 3 are not existing");
+  BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
+                      "employee2 or 3 are not existing");
 
-//   BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
-//                       "multi message failed");
-// }
+  BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
+                      "multi message failed");
+}
 
 // Scilla Library
 BOOST_AUTO_TEST_CASE(testScillaLibrary) {
@@ -530,7 +526,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint128_t contrBal =
       AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
-  uint128_t oBal = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call1] Owner balance: " << AccountStore::GetInstance()
                                                      .GetAccountTemp(ownerAddr)
@@ -544,9 +539,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                 .GetAccountTemp(donor2Addr)
                                                 ->GetBalance());
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
-  LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
-  BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount,
-                      "Balance mis-match after Donate");
+  BOOST_CHECK_MESSAGE(contrBal == amount, "Balance mis-match after Donate");
 
   /* ------------------------------------------------------------------- */
 
@@ -573,7 +566,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint128_t contrBal2 =
       AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
-  uint128_t oBal2 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call2] Owner balance: " << AccountStore::GetInstance()
                                                      .GetAccountTemp(ownerAddr)
@@ -587,8 +579,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                 .GetAccountTemp(donor2Addr)
                                                 ->GetBalance());
   LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
-  LOG_GENERAL(INFO, "[Call2] Contract balance (blockchain): " << oBal2);
-  BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2,
+  BOOST_CHECK_MESSAGE(contrBal2 == amount + amount2,
                       "Balance mis-match after Donate2");
 
   /* ------------------------------------------------------------------- */
@@ -603,7 +594,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   }
   uint128_t contrBal3 =
       AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
-  uint128_t oBal3 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call3] Owner balance: " << AccountStore::GetInstance()
                                                      .GetAccountTemp(ownerAddr)
@@ -617,7 +607,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                 .GetAccountTemp(donor2Addr)
                                                 ->GetBalance());
   LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
-  LOG_GENERAL(INFO, "[Call3] Contract balance (blockchain): " << oBal3);
   BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
                       "Balance mis-match after Donate3");
 
@@ -645,7 +634,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint128_t contrBal4 =
       AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
-  uint128_t oBal4 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call4] Owner balance: " << AccountStore::GetInstance()
                                                      .GetAccountTemp(ownerAddr)
@@ -659,8 +647,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                 .GetAccountTemp(donor2Addr)
                                                 ->GetBalance());
   LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
-  LOG_GENERAL(INFO, "[Call4] Contract balance (blockchain): " << oBal4);
-  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4,
+  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3,
                       "Balance mis-match after GetFunds");
 
   /* ------------------------------------------------------------------- */
@@ -687,7 +674,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint128_t contrBal5 =
       AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
-  uint128_t oBal5 = ScillaTestUtil::GetBalanceFromOutput();
 
   LOG_GENERAL(INFO, "[Call5] Owner balance: " << AccountStore::GetInstance()
                                                      .GetAccountTemp(ownerAddr)
@@ -701,8 +687,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                 .GetAccountTemp(donor2Addr)
                                                 ->GetBalance());
   LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
-  LOG_GENERAL(INFO, "[Call5] Contract balance (blockchain): " << oBal4);
-  BOOST_CHECK_MESSAGE(contrBal5 == oBal5 && contrBal5 == contrBal4 - amount,
+  BOOST_CHECK_MESSAGE(contrBal5 == contrBal4 - amount,
                       "Balance mis-match after GetFunds");
 
   /* ------------------------------------------------------------------- */
@@ -1743,8 +1728,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
 //     // Deploy DEX
 //     // Deploy the DEX contract with the 0th test case, but use custom
-//     messages
-//     // for makeOrder/fillOrder.
+//     // messages for makeOrder/fillOrder.
 //     ScillaTestUtil::ScillaTest dexT1;
 //     if (!ScillaTestUtil::GetScillaTest(dexT1, "simple-dex", 1)) {
 //       LOG_GENERAL(WARNING, "Unable to fetch test simple-dex_1.");
@@ -1941,12 +1925,13 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
 //     // At this point:
 //     // - sender's balance should have decreased, because the DEX contract
-//     will
-//     // have taken custody of the token.
+//     // will have taken custody of the token.
 //     // - there should be an additional order in simple-dex.
 //     Json::Value token1State;
-//     BOOST_CHECK_MESSAGE(token1Account->FetchStateJson(token1State, "", {},
-//     true), "Fetch token1State failed"); for (auto& s : token1State) {
+//     BOOST_CHECK_MESSAGE(
+//         token1Account->FetchStateJson(token1State, "", {}, true),
+//         "Fetch token1State failed");
+//     for (auto& s : token1State) {
 //       if (s["vname"] == "balances") {
 //         for (auto& hodl : s["value"]) {
 //           if (hodl["key"] == "0x" + ownerToken1Addr.hex()) {
@@ -1963,8 +1948,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 //     LOG_GENERAL(INFO, "New order ID = " << id);
 
 //     Json::Value simpleDexState;
-//     BOOST_CHECK_MESSAGE(dexAccount->FetchStateJson(simpleDexState, "", {},
-//     true), "Fetch token1State failed"); bool hasNewOrder = false;
+//     BOOST_CHECK_MESSAGE(
+//         dexAccount->FetchStateJson(simpleDexState, "", {}, true),
+//         "Fetch token1State failed");
+//     bool hasNewOrder = false;
 
 //     for (auto& s : simpleDexState) {
 //       LOG_GENERAL(INFO, "s: " <<

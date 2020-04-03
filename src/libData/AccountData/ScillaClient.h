@@ -18,13 +18,18 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_SCILLACLIENT_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_SCILLACLIENT_H_
 
-#include <unordered_map>
+#include <map>
+#include <memory>
 
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 
+#include "common/Constants.h"
+
 class ScillaClient {
-  std::unordered_map<uint32_t, jsonrpc::Client> m_clients;
+  std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
+  std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
+      m_connectors;
 
   ScillaClient(){};
   ~ScillaClient(){};
@@ -40,9 +45,9 @@ class ScillaClient {
   bool OpenServer(uint32_t version);
 
   bool CallChecker(uint32_t version, const Json::Value& _json,
-                   std::string& result);
+                   std::string& result, uint32_t counter = MAXRETRYCONN);
   bool CallRunner(uint32_t version, const Json::Value& _json,
-                  std::string& result);
+                  std::string& result, uint32_t counter = MAXRETRYCONN);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_SCILLACLIENT_H_

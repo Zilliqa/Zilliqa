@@ -52,59 +52,25 @@ Json::Value ScillaUtils::GetBlockStateJson(const uint64_t& BlockNum) {
   return root;
 }
 
-string ScillaUtils::GetContractCheckerCmdStr(const string& root_w_version,
-                                             bool is_library,
-                                             const uint64_t& available_gas) {
-  string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_CHECKER + " -init " + INIT_JSON +
-      " -contractinfo -jsonerrors -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER + " " + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
-      " -gaslimit " + to_string(available_gas);
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
-}
-
 Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
                                                 bool is_library,
                                                 const uint64_t& available_gas) {
   Json::Value ret;
-  ret["argv"]
-      .append("-init")
-      .append(INIT_JSON)
-      .append("-libdir")
-      .append(root_w_version + '/' + SCILLA_LIB + ":" + EXTLIB_FOLDER)
-      .append(INPUT_CODE +
-              (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION))
-      .append("-gaslimit")
-      .append(to_string(available_gas))
-      .append("-contractinfo")
-      .append("-jsonerrors");
+  ret["argv"].append("-init");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INIT_JSON);
+  ret["argv"].append("-libdir");
+  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
+                     boost::filesystem::current_path().string() + '/' +
+                     EXTLIB_FOLDER);
+  ret["argv"].append(
+      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
+  ret["argv"].append("-gaslimit");
+  ret["argv"].append(to_string(available_gas));
+  ret["argv"].append("-contractinfo");
+  ret["argv"].append("-jsonerrors");
   return ret;
-}
-
-string ScillaUtils::GetCreateContractCmdStr(const string& root_w_version,
-                                            bool is_library,
-                                            const uint64_t& available_gas,
-                                            const uint128_t& balance) {
-  string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
-      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
-      " -gaslimit " + to_string(available_gas) + " -jsonerrors -balance " +
-      balance.convert_to<string>() + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER;
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
 }
 
 Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
@@ -112,74 +78,65 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                                                const uint64_t& available_gas,
                                                const uint128_t& balance) {
   Json::Value ret;
-  ret["argv"]
-      .append("-init")
-      .append(INIT_JSON)
-      .append("-ipcaddress")
-      .append(SCILLA_IPC_SOCKET_PATH)
-      .append("iblockchain")
-      .append(INPUT_BLOCKCHAIN_JSON)
-      .append("-o")
-      .append(OUTPUT_JSON)
-      .append("-i")
-      .append(INPUT_CODE +
-              (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION))
-      .append("-gaslimit")
-      .append(to_string(available_gas))
-      .append("-balance")
-      .append(balance.convert_to<string>())
-      .append("-libdir")
-      .append(root_w_version + '/' + SCILLA_LIB + ":" + EXTLIB_FOLDER)
-      .append("-jsonerrors");
+  ret["argv"].append("-init");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INIT_JSON);
+  ret["argv"].append("-ipcaddress");
+  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
+  ret["argv"].append("-iblockchain");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_BLOCKCHAIN_JSON);
+  ret["argv"].append("-o");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     OUTPUT_JSON);
+  ret["argv"].append("-i");
+  ret["argv"].append(
+      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
+  ret["argv"].append("-gaslimit");
+  ret["argv"].append(to_string(available_gas));
+  ret["argv"].append("-balance");
+  ret["argv"].append(balance.convert_to<string>());
+  ret["argv"].append("-libdir");
+  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
+                     boost::filesystem::current_path().string() + '/' +
+                     EXTLIB_FOLDER);
+  ret["argv"].append("-jsonerrors");
 
   return ret;
-}
-
-string ScillaUtils::GetCallContractCmdStr(const string& root_w_version,
-                                          const uint64_t& available_gas,
-                                          const uint128_t& balance) {
-  string cmdStr =
-      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
-      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
-      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
-      INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
-      OUTPUT_JSON + " -i " + INPUT_CODE + CONTRACT_FILE_EXTENSION +
-      " -gaslimit " + to_string(available_gas) + " -disable-pp-json" +
-      " -disable-validate-json" + " -jsonerrors -balance " +
-      balance.convert_to<string>() + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + ":" + EXTLIB_FOLDER;
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, cmdStr);
-  }
-  return cmdStr;
 }
 
 Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                                              const uint64_t& available_gas,
                                              const uint128_t& balance) {
   Json::Value ret;
-  ret["argv"]
-      .append("-init")
-      .append(INIT_JSON)
-      .append("-ipcaddress")
-      .append(SCILLA_IPC_SOCKET_PATH)
-      .append("-iblockchain")
-      .append(INPUT_BLOCKCHAIN_JSON)
-      .append("-imessage")
-      .append(INPUT_MESSAGE_JSON)
-      .append("-o")
-      .append(OUTPUT_JSON)
-      .append("-i")
-      .append(INPUT_CODE + CONTRACT_FILE_EXTENSION)
-      .append("-gaslimit")
-      .append(to_string(available_gas))
-      .append("-balance")
-      .append(balance.convert_to<string>())
-      .append("-libdir")
-      .append(root_w_version + '/' + SCILLA_LIB + ":" + EXTLIB_FOLDER)
-      .append("-disable-validate-json")
-      .append("-jsonerrors");
+  ret["argv"].append("-init");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INIT_JSON);
+  ret["argv"].append("-ipcaddress");
+  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
+  ret["argv"].append("-iblockchain");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_BLOCKCHAIN_JSON);
+  ret["argv"].append("-imessage");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_MESSAGE_JSON);
+  ret["argv"].append("-o");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     OUTPUT_JSON);
+  ret["argv"].append("-i");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_CODE + CONTRACT_FILE_EXTENSION);
+  ret["argv"].append("-gaslimit");
+  ret["argv"].append(to_string(available_gas));
+  ret["argv"].append("-balance");
+  ret["argv"].append(balance.convert_to<string>());
+  ret["argv"].append("-libdir");
+  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
+                     boost::filesystem::current_path().string() + '/' +
+                     EXTLIB_FOLDER);
+  ret["argv"].append("-disable-validate-json");
+  ret["argv"].append("-jsonerrors");
 
   return ret;
 }

@@ -94,7 +94,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::atomic<bool> m_txnProcessTimeout;
 
   /// Scilla IPC server
-  std::unique_ptr<ScillaIPCServer> m_scillaIPCServer;
+  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 
   /// A set of contract account address pending for storageroot updating
   std::set<Address> m_storageRootUpdateBuffer;
@@ -215,7 +215,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   void NotifyTimeout();
 
   /// public interface to setup scilla ipc server
-  void SetScillaIPCServer(std::unique_ptr<ScillaIPCServer>& scillaIPCServer);
+  void SetScillaIPCServer(std::shared_ptr<ScillaIPCServer> scillaIPCServer);
 
   /// public interface to invoke processing of the buffered storage root
   /// updating tasks

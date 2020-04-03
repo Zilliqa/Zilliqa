@@ -59,12 +59,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
     TransactionReceipt& receipt) {
-  int pid = -1;
-
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &pid,
-                &receipt]() mutable -> void {
-    bool called = true;
+                &available_gas, &balance, &ret, &receipt]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
@@ -72,7 +68,6 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 ScillaUtils::GetContractCheckerJson(m_root_w_version,
                                                     is_library, available_gas),
                 interprinterPrint)) {
-          called = false;
         }
         break;
       case RUNNER_CREATE:
@@ -81,7 +76,6 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 ScillaUtils::GetCreateContractJson(m_root_w_version, is_library,
                                                    available_gas, balance),
                 interprinterPrint)) {
-          called = false;
         }
         break;
       case RUNNER_CALL:
@@ -90,40 +84,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 ScillaUtils::GetCallContractJson(m_root_w_version,
                                                  available_gas, balance),
                 interprinterPrint)) {
-          called = false;
         }
         break;
-    }
-
-    if (!called) {
-      std::string cmdStr;
-      switch (invoke_type) {
-        case CHECKER:
-          cmdStr = ScillaUtils::GetContractCheckerCmdStr(
-              m_root_w_version, is_library, available_gas);
-          break;
-        case RUNNER_CREATE:
-          cmdStr = ScillaUtils::GetCreateContractCmdStr(
-              m_root_w_version, is_library, available_gas, balance);
-          break;
-        case RUNNER_CALL:
-          cmdStr = ScillaUtils::GetCallContractCmdStr(m_root_w_version,
-                                                      available_gas, balance);
-          break;
-      }
-
-      try {
-        if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT_PID, cmdStr,
-                                    interprinterPrint, pid)) {
-          LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-          receipt.AddError(EXECUTE_CMD_FAILED);
-          ret = false;
-        }
-      } catch (const std::exception& e) {
-        LOG_GENERAL(WARNING, "Exception caught in SysCommand::ExecuteCmd (2): "
-                                 << e.what());
-        ret = false;
-      }
     }
 
     cv_callContract.notify_all();
@@ -136,17 +98,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   }
 
   if (m_txnProcessTimeout) {
-    LOG_GENERAL(WARNING,
-                "Txn processing timeout! Interrupt current contract "
-                "deployment, pid: "
-                    << pid);
-    try {
-      if (pid >= 0) {
-        kill(pid, SIGKILL);
-      }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception caught in kill pid: " << e.what());
-    }
+    LOG_GENERAL(WARNING, "Txn processing timeout!");
 
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
@@ -316,8 +268,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      LOG_GENERAL(INFO, "mark 0");
+
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddress(toAddr);
+
+      LOG_GENERAL(INFO, "mark 1");
 
       // ************************************************************************
       // Undergo scilla checker
@@ -998,44 +954,19 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
     TransactionReceipt& receipt) {
   // LOG_MARKER();
 
-  std::ifstream in(OUTPUT_JSON, std::ios::binary);
-  std::string outStr;
-
-  if (!in.is_open()) {
-    LOG_GENERAL(WARNING,
-                "Error opening output file or no output file generated");
-
-    // Check the printout
-    if (!runnerPrint.empty()) {
-      outStr = runnerPrint;
-    } else {
-      receipt.AddError(NO_OUTPUT);
-      return false;
-    }
-  } else {
-    outStr = {std::istreambuf_iterator<char>(in),
-              std::istreambuf_iterator<char>()};
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (runnerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? runnerPrint.substr(
+                                 0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : runnerPrint));
   }
 
-  LOG_GENERAL(
-      INFO,
-      "Output: " << std::endl
-                 << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                         ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
-                               "\n ... "
-                         : outStr));
-
-  if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
+  if (!JSONUtils::GetInstance().convertStrtoJson(runnerPrint, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
-
-    // // detect is Scilla Server running
-    // if (outStr.find(SCILLA_SERVER_SOCKET_PATH + (ENABLE_SCILLA_MULTI_VERSION
-    // ? ("." + ) : "") != std::string::npos) {
-    //   if (!ScillaClient::GetInstance().OpenServer()) {
-    //     LOG_GENERAL(WARNING, "Failed to reopen Scilla Server");
-    //     m_scillaClient.reset();
-    //   }
-    // }
 
     return false;
   }
@@ -1115,51 +1046,29 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
-  // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
   }
-  std::ifstream in(OUTPUT_JSON, std::ios::binary);
-  std::string outStr;
 
-  try {
-    if (!in.is_open()) {
-      LOG_GENERAL(WARNING,
-                  "Error opening output file or no output file generated");
-
-      // Check the printout
-      if (!runnerPrint.empty()) {
-        outStr = runnerPrint;
-      } else {
-        receipt.AddError(NO_OUTPUT);
-        return false;
-      }
-    } else {
-      outStr = {std::istreambuf_iterator<char>(in),
-                std::istreambuf_iterator<char>()};
-    }
-
+  if (LOG_SC) {
     LOG_GENERAL(
         INFO,
         "Output: " << std::endl
-                   << (outStr.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
-                           ? outStr.substr(0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                   << (runnerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? runnerPrint.substr(
+                                 0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
                                  "\n ... "
-                           : outStr));
+                           : runnerPrint));
+  }
 
-    if (!JSONUtils::GetInstance().convertStrtoJson(outStr, jsonOutput)) {
-      receipt.AddError(JSON_OUTPUT_CORRUPTED);
-      return false;
-    }
-    if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
-                             << r_timer_end(tpStart));
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught: " << e.what() << " outStr: " << outStr);
+  if (!JSONUtils::GetInstance().convertStrtoJson(runnerPrint, jsonOutput)) {
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
     return false;
+  }
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
+                           << r_timer_end(tpStart));
   }
 
   return true;
@@ -1170,7 +1079,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
     TransactionReceipt& receipt, uint32_t tree_depth,
     uint32_t pre_scilla_version) {
-  // LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -1537,9 +1445,9 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 
 template <class MAP>
 void AccountStoreSC<MAP>::SetScillaIPCServer(
-    std::unique_ptr<ScillaIPCServer>& scillaIPCServer) {
+    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();
-  m_scillaIPCServer.swap(scillaIPCServer);
+  m_scillaIPCServer = std::move(scillaIPCServer);
 }
 
 template <class MAP>
