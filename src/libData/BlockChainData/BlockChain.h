@@ -99,6 +99,8 @@ class BlockChain {
                           << blockNumMissed);
           m_blocks.increase_size(blockNumMissed);
         }
+      } else {
+        m_blocks.increase_size(blockNumOfNewBlock);
       }
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
