@@ -138,7 +138,8 @@ class Lookup : public Executable {
   bytes ComposeGetDSInfoMessage(bool initialDS = false);
   bytes ComposeGetStateMessage();
 
-  bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum,
+                                 const bool includeMinerInfo = false);
   bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
   bytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
@@ -224,7 +225,8 @@ class Lookup : public Executable {
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
-  bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum,
+                                 const bool includeMinerInfo = false);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
@@ -239,7 +241,8 @@ class Lookup : public Executable {
   bool ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
                                [[gnu::unused]] unsigned int offset,
                                [[gnu::unused]] const Peer& from);
-  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
+  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum,
+                               const bool includeMinerInfo = false);
 
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -325,6 +328,8 @@ class Lookup : public Executable {
                                 const Peer& from);
   bool ProcessSetDSBlockFromSeed(const bytes& message, unsigned int offset,
                                  const Peer& from);
+  bool ProcessSetMinerInfoFromSeed(const bytes& message, unsigned int offset,
+                                   const Peer& from);
   bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
                                  const Peer& from);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
@@ -373,8 +378,9 @@ class Lookup : public Executable {
   bool ProcessGetCosigsRewardsFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from);
 
-  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
-                                                bool toSendSeed = true);
+  void ComposeAndSendGetDirectoryBlocksFromSeed(
+      const uint64_t& index_num, bool toSendSeed = true,
+      const bool includeMinerInfo = false);
 
   void ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num);
 

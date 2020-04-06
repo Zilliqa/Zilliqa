@@ -20,6 +20,7 @@
 
 #include <Schnorr.h>
 #include "libData/BlockData/Block.h"
+#include "libData/MiningData/MinerInfo.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
@@ -28,5 +29,9 @@
 void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
                                       DequeOfNode& dsComm,
                                       const DSBlock& dsblock);
+void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
+                                      DequeOfNode& dsComm,
+                                      const DSBlock& dsblock,
+                                      MinerInfoDSComm& minerInfo);
 
 #endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_

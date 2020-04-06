@@ -5567,7 +5567,8 @@ bool Messenger::SetLookupGetDSBlockFromSeed(bytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
-                                            const uint32_t listenPort) {
+                                            const uint32_t listenPort,
+                                            const bool includeMinerInfo) {
   LOG_MARKER();
 
   LookupGetDSBlockFromSeed result;
@@ -5575,6 +5576,7 @@ bool Messenger::SetLookupGetDSBlockFromSeed(bytes& dst,
   result.set_lowblocknum(lowBlockNum);
   result.set_highblocknum(highBlockNum);
   result.set_listenport(listenPort);
+  result.set_includeminerinfo(includeMinerInfo);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetDSBlockFromSeed initialization failed");
@@ -5584,11 +5586,9 @@ bool Messenger::SetLookupGetDSBlockFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDSBlockFromSeed(const bytes& src,
-                                            const unsigned int offset,
-                                            uint64_t& lowBlockNum,
-                                            uint64_t& highBlockNum,
-                                            uint32_t& listenPort) {
+bool Messenger::GetLookupGetDSBlockFromSeed(
+    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5608,6 +5608,7 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const bytes& src,
   lowBlockNum = result.lowblocknum();
   highBlockNum = result.highblocknum();
   listenPort = result.listenport();
+  includeMinerInfo = result.includeminerinfo();
 
   return true;
 }
@@ -5695,6 +5696,152 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
   if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetDSBlockFromSeed");
     return false;
+  }
+
+  return true;
+}
+
+bool Messenger::SetLookupSetMinerInfoFromSeed(
+    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    const map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>&
+        minerInfoPerDS) {
+  LOG_MARKER();
+
+  LookupSetMinerInfoFromSeed result;
+
+  for (const auto& dsBlockAndMinerInfo : minerInfoPerDS) {
+    LookupSetMinerInfoFromSeed::MinerInfo tmpMinerInfo;
+
+    // Set the MinerInfoDSComm member for the DS block number
+    for (const auto& dsnode : dsBlockAndMinerInfo.second.first.m_dsNodes) {
+      ProtoMinerInfoDSComm::Node* protodsnode =
+          tmpMinerInfo.mutable_minerinfodscomm()->add_dsnodes();
+      SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
+    }
+    for (const auto& dsnode :
+         dsBlockAndMinerInfo.second.first.m_dsNodesEjected) {
+      ProtoMinerInfoDSComm::Node* protodsnode =
+          tmpMinerInfo.mutable_minerinfodscomm()->add_dsnodesejected();
+      SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
+    }
+    if (!result.IsInitialized()) {
+      LOG_GENERAL(WARNING, "ProtoMinerInfoDSComm initialization failed");
+      return false;
+    }
+
+    // Set the MinerInfoShards member for the DS block number
+    for (const auto& shard : dsBlockAndMinerInfo.second.second.m_shards) {
+      ProtoMinerInfoShards::Shard* protoshard =
+          tmpMinerInfo.mutable_minerinfoshards()->add_shards();
+      protoshard->set_shardsize(shard.m_shardSize);
+      for (const auto& shardnode : shard.m_shardNodes) {
+        ProtoMinerInfoShards::Node* protoshardnode =
+            protoshard->add_shardnodes();
+        SerializableToProtobufByteArray(shardnode,
+                                        *protoshardnode->mutable_pubkey());
+      }
+    }
+    if (!result.IsInitialized()) {
+      LOG_GENERAL(WARNING, "ProtoMinerInfoShards initialization failed");
+      return false;
+    }
+
+    // Add both to result map
+    auto protoMap = result.mutable_data()->mutable_minerinfoperds();
+    (*protoMap)[dsBlockAndMinerInfo.first] = tmpMinerInfo;
+  }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetMinerInfoFromSeed.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign miner info");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetMinerInfoFromSeed(
+    const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
+    map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>& minerInfoPerDS) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupSetMinerInfoFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetMinerInfoFromSeed initialization failed");
+    return false;
+  }
+
+  // Check signature first
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in LookupSetMinerInfoFromSeed");
+    return false;
+  }
+
+  // Populate the map
+  minerInfoPerDS.clear();
+  for (const auto& dsBlockAndMinerInfo : result.data().minerinfoperds()) {
+    // Get the MinerInfoDSComm member for the DS block number
+    MinerInfoDSComm tmpDSComm;
+    for (const auto& protodsnode :
+         dsBlockAndMinerInfo.second.minerinfodscomm().dsnodes()) {
+      PubKey pubkey;
+      PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
+      tmpDSComm.m_dsNodes.emplace_back(pubkey);
+    }
+    for (const auto& protodsnode :
+         dsBlockAndMinerInfo.second.minerinfodscomm().dsnodesejected()) {
+      PubKey pubkey;
+      PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
+      tmpDSComm.m_dsNodesEjected.emplace_back(pubkey);
+    }
+
+    // Get the MinerInfoShards member for the DS block number
+    MinerInfoShards tmpShards;
+    for (const auto& protoshard :
+         dsBlockAndMinerInfo.second.minerinfoshards().shards()) {
+      MinerInfoShards::MinerInfoShard shard;
+      shard.m_shardSize = protoshard.shardsize();
+      for (const auto& protoshardnode : protoshard.shardnodes()) {
+        PubKey pubkey;
+        PROTOBUFBYTEARRAYTOSERIALIZABLE(protoshardnode.pubkey(), pubkey);
+        shard.m_shardNodes.emplace_back(pubkey);
+      }
+      tmpShards.m_shards.emplace_back(shard);
+    }
+
+    // Add both to minerInfoPerDS map
+    minerInfoPerDS.emplace(dsBlockAndMinerInfo.first,
+                           make_pair(tmpDSComm, tmpShards));
   }
 
   return true;
@@ -7146,14 +7293,14 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   return true;
 }
 
-bool Messenger::SetLookupGetDirectoryBlocksFromSeed(bytes& dst,
-                                                    const unsigned int offset,
-                                                    const uint32_t portNo,
-                                                    const uint64_t& indexNum) {
+bool Messenger::SetLookupGetDirectoryBlocksFromSeed(
+    bytes& dst, const unsigned int offset, const uint32_t portNo,
+    const uint64_t& indexNum, const bool includeMinerInfo) {
   LookupGetDirectoryBlocksFromSeed result;
 
   result.set_portno(portNo);
   result.set_indexnum(indexNum);
+  result.set_includeminerinfo(includeMinerInfo);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -7167,7 +7314,8 @@ bool Messenger::SetLookupGetDirectoryBlocksFromSeed(bytes& dst,
 bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
                                                     const unsigned int offset,
                                                     uint32_t& portNo,
-                                                    uint64_t& indexNum) {
+                                                    uint64_t& indexNum,
+                                                    bool& includeMinerInfo) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -7184,8 +7332,8 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
   }
 
   portNo = result.portno();
-
   indexNum = result.indexnum();
+  includeMinerInfo = result.includeminerinfo();
 
   return true;
 }
@@ -8888,6 +9036,134 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
         txBlkNum, shardId, cosiginfo.GetB1(), cosiginfo.GetB2(), rewards));
     LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
                           << txBlkNum << ", shard " << shardId);
+  }
+
+  return true;
+}
+
+bool Messenger::SetMinerInfoDSComm(bytes& dst, const unsigned int offset,
+                                   const MinerInfoDSComm& minerInfo) {
+  LOG_MARKER();
+
+  ProtoMinerInfoDSComm result;
+
+  for (const auto& dsnode : minerInfo.m_dsNodes) {
+    ProtoMinerInfoDSComm::Node* protodsnode = result.add_dsnodes();
+    SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
+  }
+
+  for (const auto& dsnode : minerInfo.m_dsNodesEjected) {
+    ProtoMinerInfoDSComm::Node* protodsnode = result.add_dsnodesejected();
+    SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMinerInfoDSComm initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetMinerInfoDSComm(const bytes& src, const unsigned int offset,
+                                   MinerInfoDSComm& minerInfo) {
+  LOG_MARKER();
+
+  minerInfo.m_dsNodes.clear();
+  minerInfo.m_dsNodesEjected.clear();
+
+  if (src.size() == 0) {
+    LOG_GENERAL(INFO, "Empty MinerInfoDSComm");
+    return true;
+  }
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMinerInfoDSComm result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMinerInfoDSComm initialization failed");
+    return false;
+  }
+
+  for (const auto& protodsnode : result.dsnodes()) {
+    PubKey pubkey;
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
+    minerInfo.m_dsNodes.emplace_back(pubkey);
+  }
+
+  for (const auto& protodsnode : result.dsnodesejected()) {
+    PubKey pubkey;
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
+    minerInfo.m_dsNodesEjected.emplace_back(pubkey);
+  }
+
+  return true;
+}
+
+bool Messenger::SetMinerInfoShards(bytes& dst, const unsigned int offset,
+                                   const MinerInfoShards& minerInfo) {
+  LOG_MARKER();
+
+  ProtoMinerInfoShards result;
+
+  for (const auto& shard : minerInfo.m_shards) {
+    ProtoMinerInfoShards::Shard* protoshard = result.add_shards();
+    protoshard->set_shardsize(shard.m_shardSize);
+    for (const auto& shardnode : shard.m_shardNodes) {
+      ProtoMinerInfoShards::Node* protoshardnode = protoshard->add_shardnodes();
+      SerializableToProtobufByteArray(shardnode,
+                                      *protoshardnode->mutable_pubkey());
+    }
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMinerInfoShards initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetMinerInfoShards(const bytes& src, const unsigned int offset,
+                                   MinerInfoShards& minerInfo) {
+  LOG_MARKER();
+
+  minerInfo.m_shards.clear();
+
+  if (src.size() == 0) {
+    LOG_GENERAL(INFO, "Empty MinerInfoShards");
+    return true;
+  }
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMinerInfoShards result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMinerInfoShards initialization failed");
+    return false;
+  }
+
+  for (const auto& protoshard : result.shards()) {
+    MinerInfoShards::MinerInfoShard shard;
+    shard.m_shardSize = protoshard.shardsize();
+    for (const auto& protoshardnode : protoshard.shardnodes()) {
+      PubKey pubkey;
+      PROTOBUFBYTEARRAYTOSERIALIZABLE(protoshardnode.pubkey(), pubkey);
+      shard.m_shardNodes.emplace_back(pubkey);
+    }
+    minerInfo.m_shards.emplace_back(shard);
   }
 
   return true;

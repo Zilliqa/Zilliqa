@@ -93,6 +93,13 @@ target_include_directories(genTxnBodiesFromS3 PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountData Utils Persistence
     Server -s)
 
+add_executable(isolatedServer isolated_server.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:isolatedServer> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator)
+
 #add_executable(data_migrate data_migrate.cpp)
 #add_custom_command(TARGET zilliqa
 #        POST_BUILD

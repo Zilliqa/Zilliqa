@@ -222,6 +222,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetPendingTxnI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetMinerInfoI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -326,6 +331,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
+  }
+
+  if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Transaction Version incorrect");
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
@@ -1651,5 +1661,125 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
+  }
+}
+
+Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  try {
+    const DSBlock& latest = m_mediator.m_dsBlockChain.GetLastBlock();
+    const uint64_t requestedDSBlockNum = stoull(blockNum);
+
+    if (latest.GetHeader().GetBlockNum() < requestedDSBlockNum) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Requested data not found");
+    }
+
+    // For DS Committee
+
+    // Retrieve the minerInfoDSComm database entry for the nearest multiple of
+    // STORE_DS_COMMITTEE_INTERVAL Set the initial DS committee result to the
+    // public keys in the entry
+    const uint64_t initDSBlockNum =
+        requestedDSBlockNum -
+        (requestedDSBlockNum % STORE_DS_COMMITTEE_INTERVAL);
+    MinerInfoDSComm minerInfoDSComm;
+    if (!BlockStorage::GetBlockStorage().GetMinerInfoDSComm(initDSBlockNum,
+                                                            minerInfoDSComm)) {
+      throw JsonRpcException(
+          RPC_DATABASE_ERROR,
+          "Failed to get DS committee miner info for block " +
+              boost::lexical_cast<std::string>(initDSBlockNum));
+    }
+
+    // From the entry after that until the requested block
+    uint64_t currDSBlockNum = initDSBlockNum;
+    while (currDSBlockNum < requestedDSBlockNum) {
+      currDSBlockNum++;
+
+      // Retrieve the dsBlocks database entry for the current block number
+      const DSBlock& currDSBlock =
+          m_mediator.m_dsBlockChain.GetBlock(currDSBlockNum);
+
+      // Add the public keys of the PoWWinners in that entry to the DS committee
+      for (const auto& winner : currDSBlock.GetHeader().GetDSPoWWinners()) {
+        minerInfoDSComm.m_dsNodes.emplace_front(winner.first);
+      }
+
+      // Retrieve the minerInfoDSComm database entry for the current block
+      // number
+      MinerInfoDSComm tmp;
+      if (!BlockStorage::GetBlockStorage().GetMinerInfoDSComm(currDSBlockNum,
+                                                              tmp)) {
+        throw JsonRpcException(
+            RPC_DATABASE_ERROR,
+            "Failed to get DS committee miner info for block " +
+                boost::lexical_cast<std::string>(currDSBlockNum));
+      }
+
+      // Remove the public keys of the ejected nodes in that entry from the DS
+      // committee
+      for (const auto& ejected : tmp.m_dsNodesEjected) {
+        auto entry = find(minerInfoDSComm.m_dsNodes.begin(),
+                          minerInfoDSComm.m_dsNodes.end(), ejected);
+        if (entry == minerInfoDSComm.m_dsNodes.end()) {
+          throw JsonRpcException(RPC_MISC_ERROR,
+                                 "Failed to get DS committee miner info");
+        }
+        minerInfoDSComm.m_dsNodes.erase(entry);
+      }
+    }
+
+    // For Shards
+
+    // Retrieve the minerInfo database entry for the requested DS block
+    MinerInfoShards minerInfoShards;
+    if (!BlockStorage::GetBlockStorage().GetMinerInfoShards(requestedDSBlockNum,
+                                                            minerInfoShards)) {
+      throw JsonRpcException(
+          RPC_DATABASE_ERROR,
+          "Failed to get shards miner info for block " +
+              boost::lexical_cast<std::string>(requestedDSBlockNum));
+    }
+
+    Json::Value _json;
+
+    // Record the final DS committee public keys in the API response message
+    _json["dscommittee"] = Json::Value(Json::arrayValue);
+    for (const auto& dsnode : minerInfoDSComm.m_dsNodes) {
+      _json["dscommittee"].append(static_cast<string>(dsnode));
+    }
+
+    // Record the shard sizes and public keys in the API response message
+    _json["shards"] = Json::Value(Json::arrayValue);
+    for (const auto& shard : minerInfoShards.m_shards) {
+      Json::Value _jsonShard;
+      _jsonShard["size"] = uint(shard.m_shardSize);
+      _jsonShard["nodes"] = Json::Value(Json::arrayValue);
+      for (const auto& shardnode : shard.m_shardNodes) {
+        _jsonShard["nodes"].append(static_cast<string>(shardnode));
+      }
+      _json["shards"].append(_jsonShard);
+    }
+
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (runtime_error& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
+  } catch (invalid_argument& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+  } catch (out_of_range& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }

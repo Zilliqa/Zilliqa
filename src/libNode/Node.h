@@ -363,8 +363,6 @@ class Node : public Executable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
-  void RemoveIpMapping();
-
   void WakeupAtDSEpoch();
 
   void WakeupAtTxEpoch();
@@ -518,6 +516,8 @@ class Node : public Executable {
 
   void UpdateDSCommitteeComposition(DequeOfNode& dsComm,
                                     const DSBlock& dsblock);
+  void UpdateDSCommitteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock,
+                                    MinerInfoDSComm& minerInfo);
 
   void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
                                       const PubKey& leaderPubKey,
@@ -664,6 +664,8 @@ class Node : public Executable {
   void ClearUnconfirmedTxn();
 
   bool IsUnconfirmedTxnEmpty() const;
+
+  void RemoveIpMapping();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

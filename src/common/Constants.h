@@ -278,6 +278,7 @@ extern const double DS_PERFORMANCE_THRESHOLD_PERCENT;
 extern const unsigned int NUM_DS_BYZANTINE_REMOVED;
 extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
 extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
+extern const unsigned int STORE_DS_COMMITTEE_INTERVAL;
 
 // P2PComm constants
 extern const unsigned int BROADCAST_INTERVAL;

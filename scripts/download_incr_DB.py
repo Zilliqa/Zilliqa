@@ -41,6 +41,7 @@ NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
+Exclude_minerInfo = True
 
 BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 STORAGE_PATH = BASE_PATH
@@ -119,7 +120,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 		lastkey = ''
 		for key in tree[startInd:]:
 			key_url = key[0].text
-			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url) and not ("diff_persistence" in key_url)):
+			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url) and not (Exclude_minerInfo and (("minerInfoDSComm" in key_url) or ("minerInfoShards" in key_url))) and not ("diff_persistence" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
 			lastkey = key_url
@@ -281,6 +282,7 @@ def run():
 def start():
 	global Exclude_txnBodies
 	global Exclude_microBlocks
+	global Exclude_minerInfo
 	global STORAGE_PATH
 	if len(sys.argv) >= 2:
 		if os.path.isabs(sys.argv[1]):
@@ -292,6 +294,7 @@ def start():
 		if len(sys.argv) == 3 and sys.argv[2] == "false":
 			Exclude_txnBodies = False
 			Exclude_microBlocks = False
+			Exclude_minerInfo = False
 	return run()
 
 if __name__ == "__main__":

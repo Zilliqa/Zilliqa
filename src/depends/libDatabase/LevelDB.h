@@ -41,6 +41,10 @@ class LevelDB
 
     std::shared_ptr<leveldb::DB> m_db;
 
+    leveldb::Options m_options;
+
+    std::string m_open_db_path;
+
 public:
 
     /// Constructor.
@@ -48,6 +52,14 @@ public:
     explicit LevelDB(const std::string& dbName, const std::string& path, const std::string& subdirectory = "");
     /// Destructor.
     ~LevelDB() = default;
+
+    /// manually compact, might be helpful in future
+    void compact () {
+        m_db->CompactRange(NULL, NULL);
+    }
+
+    /// Reopen the leveldb object to trigger compact and cleaning of LOG/MANIFEST files
+    void Reopen();
 
     /// Returns the reference to the leveldb database instance.
     std::shared_ptr<leveldb::DB> GetDB();
@@ -97,10 +109,12 @@ public:
     int Insert(const leveldb::Slice & key, const leveldb::Slice & value);
 
     /// Sets the value at the specified key for multiple such pairs.
-    int BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                    std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux);
-
+    bool BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
+                     const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux);
     bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
+
+    /// Remove the kv pair for multiple specified key.
+    bool BatchDelete(const std::vector<dev::h256>& toDelete);
 
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;
