@@ -200,7 +200,8 @@ class Lookup : public Executable {
   bool GenTxnToSend(size_t num_txn,
                     std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
-  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
+  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& shardTxn,
+                    std::vector<Transaction>& DSTxn);
 
   // Try resolving ip from the given peer's DNS
   uint128_t TryGettingResolvedIP(const Peer& peer) const;
