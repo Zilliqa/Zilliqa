@@ -103,6 +103,8 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  lock_guard<mutex> g(m_mutexVCBlock);
+
   VCBlock vcblock;
 
   if (!Messenger::GetNodeVCBlock(message, cur_offset, vcblock)) {
