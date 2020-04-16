@@ -428,6 +428,9 @@ class Node : public Executable {
   // DS block information
   std::mutex m_mutexDSBlock;
 
+  // VC block information
+  std::mutex m_mutexVCBlock;
+
   /// The current internal state of this Node instance.
   std::atomic<NodeState> m_state{};
 
