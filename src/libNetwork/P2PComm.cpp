@@ -805,6 +805,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
     LOG_GENERAL(WARNING, "SendQueue is full");
+    delete job;
   }
 }
 
@@ -829,6 +830,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
     LOG_GENERAL(WARNING, "SendQueue is full");
+    delete job;
   }
 }
 
@@ -848,6 +850,7 @@ void P2PComm::SendMessage(const Peer& peer, const bytes& message,
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
     LOG_GENERAL(WARNING, "SendQueue is full");
+    delete job;
   }
 }
 
@@ -876,6 +879,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
     LOG_GENERAL(WARNING, "SendQueue is full");
+    delete job;
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -907,6 +911,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
     LOG_GENERAL(WARNING, "SendQueue is full");
+    delete job;
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);

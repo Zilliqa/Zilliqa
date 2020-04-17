@@ -4827,6 +4827,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
     msg_size += protoTxn->ByteSize();
+    delete protoTxn;
   }
 
   for (const auto& txn : txnsGenerated) {
@@ -4843,6 +4844,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     *result.add_transactions() = *protoTxn;
     txnsGeneratedCount++;
     msg_size += txn_size;
+    delete protoTxn;
   }
 
   Signature signature;
@@ -4906,6 +4908,7 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
     *result.add_transactions() = *protoTxn;
     txnsCount++;
     msg_size += txn_size;
+    delete protoTxn;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
