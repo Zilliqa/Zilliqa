@@ -452,5 +452,6 @@ void Zilliqa::Dispatch(pair<bytes, Peer>* message) {
   // Queue message
   if (!m_msgQueue.bounded_push(message)) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full");
+    delete message;
   }
 }
