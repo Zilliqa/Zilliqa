@@ -83,7 +83,7 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::vector<uint32_t> txnOffsets;
 
   for (auto nonce = begin; nonce < end; nonce++) {
-    Transaction txn{DataConversion::Pack(CHAIN_ID, 0),
+    Transaction txn{DataConversion::Pack(CHAIN_ID, TRANSACTION_VERSION),
                     nonce,
                     toAddr,
                     std::make_pair(privKey, pubKey),
