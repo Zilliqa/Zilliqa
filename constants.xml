@@ -157,6 +157,7 @@
         <!-- Only for lookup nodes used for staking data retrieval -->
         <ENABLE_STAKING_RPC>false</ENABLE_STAKING_RPC>
         <STAKING_RPC_PORT>4501</STAKING_RPC_PORT>
+        <ENABLE_GETTXNBODIESFORTXBLOCK>false</ENABLE_GETTXNBODIESFORTXBLOCK>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

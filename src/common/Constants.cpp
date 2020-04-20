@@ -322,6 +322,9 @@ bool ENABLE_WEBSOCKET{ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") ==
                       "true"};
 const unsigned int WEBSOCKET_PORT{
     ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
+const bool ENABLE_GETTXNBODIESFORTXBLOCK{
+    ReadConstantString("ENABLE_GETTXNBODIESFORTXBLOCK", "node.jsonrpc.") ==
+    "true"};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
