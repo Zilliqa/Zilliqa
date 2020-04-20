@@ -499,6 +499,8 @@ const string FIELDS_MAP_DEPTH_INDICATOR{
     ReadConstantString("FIELDS_MAP_DEPTH_INDICATOR", "node.smart_contract.")};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
+const bool DISABLE_SCILLA_LIB{
+    ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{

@@ -221,6 +221,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
+        if (DISABLE_SCILLA_LIB && is_library) {
+          LOG_GENERAL(WARNING, "ScillaLib disabled");
+          return false;
+        }
+
         if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
           return false;
@@ -509,6 +514,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (is_library) {
         LOG_GENERAL(WARNING, "Library being called");
+        return false;
+      }
+
+      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+        LOG_GENERAL(WARNING, "ScillaLib disabled");
         return false;
       }
 
@@ -1517,6 +1527,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                            extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
         receipt.AddError(INTERNAL_ERROR);
+        return false;
+      }
+
+      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+        LOG_GENERAL(WARNING, "ScillaLib disabled");
         return false;
       }
 
