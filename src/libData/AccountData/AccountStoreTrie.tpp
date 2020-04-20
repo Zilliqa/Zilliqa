@@ -78,6 +78,7 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
   if (!account->DeserializeBase(
           bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
     LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+    delete account;
     return nullptr;
   }
 
@@ -86,6 +87,8 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
   }
 
   auto it2 = this->m_addressToAccount->emplace(address, *account);
+
+  delete account;
 
   return &it2.first->second;
 }
