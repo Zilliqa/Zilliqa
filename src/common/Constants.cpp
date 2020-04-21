@@ -346,7 +346,10 @@ const unsigned int BROADCAST_EXPIRY{
     ReadConstantNumeric("BROADCAST_EXPIRY", "node.p2pcomm.")};
 const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadConstantNumeric("FETCH_LOOKUP_MSG_MAX_RETRY", "node.p2pcomm.")};
-const uint32_t MAXMESSAGE{ReadConstantNumeric("MAXMESSAGE", "node.p2pcomm.")};
+const uint32_t MAXSENDMESSAGE{
+    ReadConstantNumeric("MAXSENDMESSAGE", "node.p2pcomm.")};
+const uint32_t MAXRECVMESSAGE{
+    ReadConstantNumeric("MAXRECVMESSAGE", "node.p2pcomm.")};
 const unsigned int MAXRETRYCONN{
     ReadConstantNumeric("MAXRETRYCONN", "node.p2pcomm.")};
 const unsigned int MSGQUEUE_SIZE{

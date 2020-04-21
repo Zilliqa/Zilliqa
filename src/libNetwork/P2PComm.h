@@ -103,7 +103,7 @@ class P2PComm {
   static std::mutex m_mutexPeerConnectionCount;
   static std::map<uint128_t, uint16_t> m_peerConnectionCount;
 
-  ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+  ThreadPool m_SendPool{MAXSENDMESSAGE, "SendPool"};
 
   boost::lockfree::queue<SendJob*> m_sendQueue;
   void ProcessSendJob(SendJob* job);
