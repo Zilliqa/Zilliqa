@@ -195,6 +195,10 @@ class LookupServer : public Server,
                                                  Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
+  inline virtual void GetTxnBodiesForTxBlockI(const Json::Value& request,
+                                              Json::Value& response) {
+    response = this->GetTxnBodiesForTxBlock(request[0u].asString());
+  }
   inline virtual void GetShardMembersI(const Json::Value& request,
                                        Json::Value& response) {
     response = this->GetShardMembers(request[0u].asUInt());
@@ -207,6 +211,11 @@ class LookupServer : public Server,
   inline virtual void GetPendingTxnI(const Json::Value& request,
                                      Json::Value& response) {
     response = this->GetPendingTxn(request[0u].asString());
+  }
+  inline virtual void GetPendingTxnsI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->GetPendingTxns();
   }
   inline virtual void GetMinerInfoI(const Json::Value& request,
                                     Json::Value& response) {
@@ -252,6 +261,7 @@ class LookupServer : public Server,
   // gets the number of transaction starting from block blockNum to most recent
   // block
   Json::Value GetPendingTxn(const std::string& tranID);
+  Json::Value GetPendingTxns();
   Json::Value GetSmartContractState(
       const std::string& address, const std::string& vname = "",
       const Json::Value& indices = Json::arrayValue);
@@ -262,6 +272,7 @@ class LookupServer : public Server,
                                                bool historicalDB);
 
   Json::Value GetMinerInfo(const std::string& blockNum);
+  Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

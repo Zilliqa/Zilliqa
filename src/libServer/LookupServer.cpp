@@ -223,10 +223,19 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetPendingTxnI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetPendingTxnsI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetMinerInfoI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTxnBodiesForTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetTxnBodiesForTxBlockI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1509,6 +1518,47 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
                                    m_mediator.m_lookup->m_historicalDB);
 }
 
+Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  if (!ENABLE_GETTXNBODIESFORTXBLOCK) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "GetTxnForTxBlock not enabled");
+  }
+  uint64_t txNum;
+  Json::Value _json = Json::arrayValue;
+  try {
+    txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+  } catch (exception& e) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
+  }
+
+  try {
+    auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
+
+    auto const& hashes =
+        GetTransactionsForTxBlock(txBlock, m_mediator.m_lookup->m_historicalDB);
+
+    if (hashes.empty()) {
+      throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+    }
+
+    for (const auto& shard_txn : hashes) {
+      for (const auto& txn_hash : shard_txn) {
+        auto json_txn = GetTransaction(txn_hash.asString());
+        _json.append(json_txn);
+      }
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+  return _json;
+}
+
 Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
                                                     bool historicalDB) {
   LOG_MARKER();
@@ -1674,6 +1724,31 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
+  }
+}
+
+Json::Value LookupServer::GetPendingTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  try {
+    Json::Value _json;
+    _json["Txns"] = Json::Value(Json::arrayValue);
+    for (const auto& txhash_and_status :
+         m_mediator.m_node->GetUnconfirmedTxns()) {
+      Json::Value tmpJson;
+      tmpJson["TxnHash"] = txhash_and_status.first.hex();
+      tmpJson["Status"] = uint(txhash_and_status.second);
+      _json["Txns"].append(tmpJson);
+    }
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }
