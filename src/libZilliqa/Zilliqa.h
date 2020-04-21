@@ -48,7 +48,7 @@ class Zilliqa {
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
-  ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
+  ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(std::pair<bytes, Peer>* message);
 
