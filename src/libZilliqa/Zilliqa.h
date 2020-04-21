@@ -45,7 +45,7 @@ class Zilliqa {
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_lookupServerConnector;
 
-  ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
+  ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(std::pair<bytes, Peer>* message);
 
