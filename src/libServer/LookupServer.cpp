@@ -346,8 +346,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Transaction Version incorrect");
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "Transaction version incorrect, Expected:" +
+            to_string(TRANSACTION_VERSION) +
+            " Actual:" + to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
