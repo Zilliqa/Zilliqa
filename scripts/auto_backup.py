@@ -83,15 +83,25 @@ def GetCurrentTxBlockNum():
         blockNum = int(val) - 1 # -1 because we need TxBlockNum (not epochnum)
     return blockNum + 1
 
+def CreateTempPersistence():
+    bashCommand = "rsync --recursive --delete -a persistence tempbackup"
+    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    print("Copied local persistence to temporary")
+
 def backUp(curr_blockNum):
+    CreateTempPersistence()
+    os.chdir("tempbackup")
     with tarfile.open(TESTNET_NAME + ".tar.gz", "w:gz") as tar:
         for root, dir, files in os.walk("persistence"):
             for file in files:
                 fullpath = os.path.join(root, file)
                 tar.add(fullpath)
 
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz");
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz");
+    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz")
+    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz")
+    os.remove(TESTNET_NAME + ".tar.gz")
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     return None
 
 def main():
@@ -99,6 +109,11 @@ def main():
     parser = argparse.ArgumentParser(description='Automatically backup script')
     parser.add_argument('-f','--frequency', help='Polling frequency in seconds (default = 0 or run once)', required=False, default=0)
     args = vars(parser.parse_args())
+
+    # create temp folder
+    if os.path.exists('tempbackup'):
+        shutil.rmtree('tempbackup')
+    os.makedirs('tempbackup')
 
     frequency = 0
     if 'frequency' in args:
