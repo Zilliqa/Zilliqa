@@ -22,6 +22,8 @@ import json
 import socket
 import tarfile
 import xml.etree.cElementTree as xtree
+import math
+import shutil
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
@@ -133,6 +135,8 @@ def main():
     for elem in tree.iter(tag=TAG_NUM_FINAL_BLOCK_PER_POW):
         num_final_block_per_pow = (int)(elem.text)
 
+    target_backup_final_block = math.floor(num_final_block_per_pow * 0.88)
+
     while True:
         curr_blockNum = GetCurrentTxBlockNum()
         print("Current blockNum = ", curr_blockNum)
@@ -140,7 +144,7 @@ def main():
         if(curr_blockNum % num_final_block_per_pow == 0):
             isBackup = False
 
-        if(curr_blockNum % num_final_block_per_pow == (num_final_block_per_pow * 0.8)) and isBackup == False:
+        if((curr_blockNum % num_final_block_per_pow) == target_backup_final_block) and isBackup == False:
             print("Starting to back-up persistence now...")
             backUp(curr_blockNum)
             print("Backing up persistence successfully.")
