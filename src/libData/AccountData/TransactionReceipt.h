@@ -71,6 +71,7 @@ class TransactionReceipt : public SerializableDataBlock {
   bool Deserialize(const bytes& src, unsigned int offset) override;
   void SetResult(const bool& result);
   void AddError(const unsigned int& errCode);
+  void AddException(const Json::Value& jsonException);
   void AddEdge();
   void InstallError();
   void SetCumGas(const uint64_t& cumGas);

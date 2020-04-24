@@ -77,6 +77,15 @@ void TransactionReceipt::AddError(const unsigned int& errCode) {
   m_errorObj[to_string(m_edge)].append(errCode);
 }
 
+void TransactionReceipt::AddException(const Json::Value& jsonException) {
+  for (const auto& _e : jsonException) {
+    Json::Value obj;
+    obj["message"] = _e["error_message"];
+    obj["line"] = _e["start_location"]["line"];
+    m_tranReceiptObj["exceptions"].append(obj);
+  }
+}
+
 void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
   m_cumGas = cumGas;
   m_tranReceiptObj["cumulative_gas"] = to_string(m_cumGas);

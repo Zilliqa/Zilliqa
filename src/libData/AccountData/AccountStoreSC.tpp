@@ -412,6 +412,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             INFO,
             "Create contract failed, but return true in order to change state");
 
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        }
+
         return true;  // Return true because the states already changed
       }
 
@@ -656,6 +660,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(
             INFO,
             "Call contract failed, but return true in order to change state");
+
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        }
 
         return true;  // Return true because the states already changed
       }
@@ -1078,6 +1086,11 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     if (!is_library) {
       if (!root.isMember("contract_info")) {
         receipt.AddError(CHECKER_FAILED);
+
+        if (root.isMember("errors")) {
+          receipt.AddException(root["errors"]);
+        }
+
         return false;
       }
 
@@ -1192,6 +1205,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
       if (_json.isMember("errors")) {
         LOG_GENERAL(WARNING, "Contract creation failed");
         receipt.AddError(CREATE_CONTRACT_FAILED);
+        receipt.AddException(_json["errors"]);
       } else {
         LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
         receipt.AddError(OUTPUT_ILLEGAL);
@@ -1321,6 +1335,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
       receipt.AddError(CALL_CONTRACT_FAILED);
+      receipt.AddException(_json["errors"]);
     } else {
       LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
       receipt.AddError(OUTPUT_ILLEGAL);
