@@ -130,6 +130,15 @@ sudo swapon --show
     | **Smart Contract IDE** | https://ide.zilliqa.com/ |
     | **Testnet Wallet** | https://dev-wallet.zilliqa.com/home |
 
+
+## Bootstrap Options
+
+- Accounts File : Use `-f` to refer to the location of json file containing accounts (Required)
+- Port : Use `-p` to configure the local port to start on (Default : 5555)
+- Initial Blocknumber : Use `-b` to configure the initial blocknumber which the server starts with (Default : 1)
+- Time increment : Use `-t` (t > 0) to configure automatic increment of blocknum (in ms) (Disabled by default) 
+
+
 ### Acknowledgements
 
 Isolated server is created by: @KaustubhShamshery

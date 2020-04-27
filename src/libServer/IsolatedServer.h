@@ -26,10 +26,13 @@ class IsolatedServer : public LookupServer,
                        public jsonrpc::AbstractServer<IsolatedServer> {
   uint64_t m_blocknum;
   uint128_t m_gasPrice{1};
+  std::atomic<uint32_t> m_timeDelta;
+
+  bool StartBlocknumIncrement();
 
  public:
   IsolatedServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server,
-                 const uint64_t& blocknum);
+                 const uint64_t& blocknum, const uint32_t& timeDelta);
   ~IsolatedServer() = default;
 
   inline virtual void CreateTransactionI(const Json::Value& request,
@@ -50,11 +53,17 @@ class IsolatedServer : public LookupServer,
                                           Json::Value& response) {
     response = this->SetMinimumGasPrice(request[0u].asString());
   }
+  inline virtual void GetBlocknumI(const Json::Value& request,
+                                   Json::Value& response) {
+    (void)request;
+    response = this->GetBlocknum();
+  }
 
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
   std::string IncreaseBlocknum(const uint32_t& delta);
+  std::string GetBlocknum();
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
 };
