@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla:v0.6.0
+FROM zilliqa/scilla:v0.7.0
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \

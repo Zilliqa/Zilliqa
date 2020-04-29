@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.6.0
+ARG BASE=zilliqa/scilla:v0.7.0
 FROM ${BASE}
 
 # Format guideline: one package per line and keep them alphabetically sorted
