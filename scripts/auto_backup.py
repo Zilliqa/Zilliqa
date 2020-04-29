@@ -24,12 +24,36 @@ import tarfile
 import xml.etree.cElementTree as xtree
 import math
 import shutil
+import logging
+from logging import handlers
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
 BUCKET_NAME='BUCKET_NAME'
 AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
 
+FORMATTER = logging.Formatter(
+    "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
+)
+
+rootLogger = logging.getLogger()
+rootLogger.setLevel(logging.INFO)
+
+std_handler = logging.StreamHandler()
+std_handler.setFormatter(FORMATTER)
+rootLogger.addHandler(std_handler)
+
+def setup_logging():
+  if not os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "/logs"):
+    os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/logs")
+  logfile = os.path.dirname(os.path.abspath(__file__)) + "/logs/auto_backup-log.txt"
+  backup_count = 5
+  rotating_size = 8
+  fh = handlers.RotatingFileHandler(
+    logfile, maxBytes=rotating_size * 1024 * 1024, backupCount=backup_count
+    )
+  fh.setFormatter(FORMATTER)
+  rootLogger.addHandler(fh)
 
 def recvall(sock):
     BUFF_SIZE = 4096 # 4 KiB
@@ -69,7 +93,7 @@ def send_packet_tcp(data, host, port):
         sock.sendall(data)
         received = recvall(sock)
     except socket.error:
-        print("Socket error")
+        logging.warning("Socket error")
         sock.close()
         return None
     sock.close()
@@ -89,7 +113,7 @@ def CreateTempPersistence():
     bashCommand = "rsync --recursive --delete -a persistence tempbackup"
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
-    print("Copied local persistence to temporary")
+    logging.info("Copied local persistence to temporary")
 
 def backUp(curr_blockNum):
     CreateTempPersistence()
@@ -107,6 +131,7 @@ def backUp(curr_blockNum):
     return None
 
 def main():
+    setup_logging()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     parser = argparse.ArgumentParser(description='Automatically backup script')
     parser.add_argument('-f','--frequency', help='Polling frequency in seconds (default = 0 or run once)', required=False, default=0)
@@ -126,7 +151,7 @@ def main():
     while True:
         if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml"):
             break
-        print("Waiting for constants.xml generated...")
+        logging.info("Waiting for constants.xml generated...")
         time.sleep(frequency)
 
     tree = xtree.parse(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml")
@@ -138,19 +163,23 @@ def main():
     target_backup_final_block = math.floor(num_final_block_per_pow * 0.88)
 
     while True:
-        curr_blockNum = GetCurrentTxBlockNum()
-        print("Current blockNum = ", curr_blockNum)
+        try:
+            curr_blockNum = GetCurrentTxBlockNum()
+            print("Current blockNum = %s" % curr_blockNum)
 
-        if(curr_blockNum % num_final_block_per_pow == 0):
-            isBackup = False
+            if(curr_blockNum % num_final_block_per_pow == 0):
+                isBackup = False
 
-        if((curr_blockNum % num_final_block_per_pow) == target_backup_final_block) and isBackup == False:
-            print("Starting to back-up persistence now...")
-            backUp(curr_blockNum)
-            print("Backing up persistence successfully.")
-            isBackup = True
+            if((curr_blockNum % num_final_block_per_pow) == target_backup_final_block) and isBackup == False:
+                logging.info("Starting to back-up persistence at blockNum : %s" % curr_blockNum)
+                backUp(curr_blockNum)
+                logging.info("Backing up persistence successfully.")
+                isBackup = True
 
-        time.sleep(frequency)
+            time.sleep(frequency)
+        except Exception as e:
+            logging.warning(e)
+            time.sleep(frequency)
 
 if __name__ == "__main__":
 	main()
