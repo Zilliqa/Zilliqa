@@ -374,6 +374,8 @@ void WebsocketServer::SendOutMessages() {
     lock_guard<mutex> g1(m_mutexSubscriptions);
 
     if (m_subscriptions.empty()) {
+      lock_guard<mutex> g(m_mutexEventLogDataBuffer);
+      m_eventLogDataBuffer.clear();
       return;
     }
 
