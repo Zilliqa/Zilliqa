@@ -117,6 +117,34 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
   return true;
 }
 
+bool ScillaClient::CallSharding(uint32_t version, const Json::Value& _json,
+                               std::string& result, uint32_t counter) {
+  if (counter == 0) {
+    return false;
+  }
+
+  if (!CheckClient(version)) {
+    LOG_GENERAL(WARNING, "CheckClient failed");
+    return false;
+  }
+
+  try {
+    result = m_clients.at(version)->CallMethod("shard", _json).asString();
+  } catch (jsonrpc::JsonRpcException& e) {
+    LOG_GENERAL(WARNING, "CallSharding failed: " << e.what());
+    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
+        std::string::npos) {
+      if (!OpenServer(version)) {
+        LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
+        return CallSharding(version, _json, result, counter - 1);
+      }
+    }
+  }
+
+  return true;
+}
+
+
 bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
                               std::string& result, uint32_t counter) {
   if (counter == 0) {

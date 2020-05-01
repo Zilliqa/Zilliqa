@@ -18,6 +18,7 @@
 #include "Transaction.h"
 #include <algorithm>
 #include "Account.h"
+#include "libPersistence/ContractStorage2.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
@@ -166,27 +167,60 @@ void Transaction::SetSignature(const Signature& signature) {
   m_signature = signature;
 }
 
-unsigned int Transaction::GetShardIndex(const Address& fromAddr,
-                                        unsigned int numShards) {
-  uint32_t x = 0;
-
-  if (numShards == 0) {
-    LOG_GENERAL(WARNING, "numShards is 0 and trying to calculate shard index");
-    return 0;
-  }
-
-  // Take the last four bytes of the address
-  for (unsigned int i = 0; i < 4; i++) {
-    x = (x << 8) | fromAddr.asArray().at(ACC_ADDR_SIZE - 4 + i);
-  }
-
-  return x % numShards;
-}
-
 unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
   const auto& fromAddr = GetSenderAddr();
+  const auto ds_shard = numShards;
 
-  return GetShardIndex(fromAddr, numShards);
+  const auto tt = GetTransactionType(*this);
+
+  if (tt == CONTRACT_CALL) {
+      const auto& toAddr = GetToAddr();
+      Account* toAccount =
+        AccountStore::GetInstance().GetAccount(toAddr);
+      Json::Value sh_info;
+      auto& cs = Contract::ContractStorage2::GetContractStorage();
+
+      std::vector<Address> extlibs;
+      bool is_library = false;
+      uint32_t scilla_version = 0;
+
+      if (toAccount->isContract() && cs.FetchContractShardingInfo(toAddr, sh_info)
+          && toAccount->GetContractAuxiliaries(is_library, scilla_version, extlibs)
+          && !is_library) {
+
+        // Prepare request to the sharding decider
+        std::string dataStr(GetData().begin(), GetData().end());
+        Json::Value tx_data;
+        if (!JSONUtils::GetInstance().convertStrtoJson(dataStr, tx_data)) {
+          return false;
+        }
+        std::string prepend = "0x";
+        tx_data["_sender"] =
+            prepend +
+            Account::GetAddressFromPublicKey(GetSenderPubKey()).hex();
+        tx_data["_amount"] = GetAmount().convert_to<std::string>();
+
+
+        Json::Value req_t;
+        req_t["sharding_info"] = sh_info;
+        req_t["tx_data"] = tx_data;
+
+        // We can't send the JSON dictionary directly; serialize it
+        Json::Value req;
+        req["req"] = JSONUtils::GetInstance().convertJsontoStr(req_t);
+
+        string result = "";
+        ScillaClient::GetInstance().CallSharding(scilla_version, req, result);
+        LOG_GENERAL(INFO, "GetShardIndex: " << result);
+        return ds_shard;
+      // The transaction is junk
+      } else {
+        LOG_GENERAL(INFO, "GetShardIndex JUNK!");
+        return ds_shard;
+      }
+  }
+
+  return AddressShardIndex(fromAddr, numShards);
 }
 
 bool Transaction::operator==(const Transaction& tran) const {

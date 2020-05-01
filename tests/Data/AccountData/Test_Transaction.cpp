@@ -74,12 +74,11 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx1),
                       "Signature not verified\n");
 
-  BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
+  BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(0),
                       "Shard index > 0 when passing zero shards");
 
   uint32_t shardSize = TestUtils::DistUint32();
   tx1.GetShardIndex(
-      fromCheck,
       shardSize);  // Check against nothing, just to increase coverage
 
   bytes message1;

@@ -194,7 +194,7 @@ CreateTransactionResponse Server::CreateTransaction(
     }
 
     if (num_shards > 0) {
-      unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+      unsigned int shard = Transaction::GetShardIndex(num_shards);
 
       if (tx.GetData().empty() || IsNullAddress(tx.GetToAddr())) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
@@ -224,12 +224,9 @@ CreateTransactionResponse Server::CreateTransaction(
           return ret;
         }
 
-        unsigned int to_shard =
-            Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-
-        if (to_shard == shard) {
+        if (shard != num_shards) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-          ret.set_info("Contract Txn, Shards Match of the sender and reciever");
+          ret.set_info("Contract Txn, Sent To Shard");
         } else {
           m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
           ret.set_info("Contract Txn, Sent To Ds");
@@ -250,13 +247,10 @@ CreateTransactionResponse Server::CreateTransaction(
             return ret;
           }
 
-          unsigned int to_shard =
-              Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-
-          if (to_shard == shard) {
+          if (shard != num_shards) {
             m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
             ret.set_info(
-                "Contract Txn, Shards Match of the sender and reciever");
+                "Contract Txn, Sent To Shard");
           } else {
             m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
             ret.set_info("Contract Txn, Sent To Ds");

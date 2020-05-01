@@ -354,7 +354,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     }
     Address addr{addrBytes};
 
-    auto txnShard = Transaction::GetShardIndex(addr, numShards);
+    auto txnShard = AddressShardIndex(addr, numShards);
     txns.clear();
 
     uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
@@ -4338,18 +4338,6 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
     }
     for (const auto& tx : shard.second) {
       unsigned int fromShard = tx.GetShardIndex(newNumShards);
-
-      if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
-        // if shard do not match directly send to ds
-        unsigned int toShard =
-            Transaction::GetShardIndex(tx.GetToAddr(), newNumShards);
-        if (toShard != fromShard) {
-          // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(tx);
-          continue;
-        }
-      }
-
       tempTxnShardMap[fromShard].emplace_back(tx);
     }
   }

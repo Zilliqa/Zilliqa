@@ -128,6 +128,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal);
 
+  bool FetchContractShardingInfo(const dev::h160& address,
+                                 Json::Value& sharding_info_json);
+
   bool FetchContractFieldsMapDepth(const dev::h160& address,
                                    Json::Value& map_depth_json, bool temp);
 

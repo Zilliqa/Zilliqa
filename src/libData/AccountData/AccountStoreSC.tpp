@@ -1299,8 +1299,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       // check whether the recipient contract is in the same shard with the
       // current contract
       if (!m_curIsDS &&
-          (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
-           Transaction::GetShardIndex(recipient, m_curNumShards))) {
+          (AddressShardIndex(curContractAddr, m_curNumShards) !=
+           AddressShardIndex(recipient, m_curNumShards))) {
         LOG_GENERAL(WARNING,
                     "another contract doesn't belong to the same shard with "
                     "current contract");

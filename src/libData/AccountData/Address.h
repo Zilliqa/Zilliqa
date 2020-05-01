@@ -34,4 +34,22 @@ const Address NullAddress;
 
 inline bool IsNullAddress(const Address& address) { return !address; }
 
+inline unsigned int AddressShardIndex(const Address& fromAddr,
+                                        unsigned int numShards) {
+  uint32_t x = 0;
+
+  if (numShards == 0) {
+    LOG_GENERAL(WARNING, "numShards is 0 and trying to calculate shard index");
+    return 0;
+  }
+
+  // Take the last four bytes of the address
+  for (unsigned int i = 0; i < 4; i++) {
+    x = (x << 8) | fromAddr.asArray().at(ACC_ADDR_SIZE - 4 + i);
+  }
+
+  return x % numShards;
+}
+
+
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_

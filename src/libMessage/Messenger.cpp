@@ -763,14 +763,15 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
       account.UpdateStates(addr, t_states, toDeleteIndices, temp, revertible);
 
-      if ((!t_states.empty() || !toDeleteIndices.empty()) &&
-          accbase.GetStorageRoot() != account.GetStorageRoot()) {
-        LOG_GENERAL(WARNING,
-                    "Storage root mismatch. Expected: "
-                        << account.GetStorageRoot().hex()
-                        << " Actual: " << accbase.GetStorageRoot().hex());
-        return false;
-      }
+      // GEORGE: this shouldn't be necessary
+      // if ((!t_states.empty() || !toDeleteIndices.empty()) &&
+      //     accbase.GetStorageRoot() != account.GetStorageRoot()) {
+      //   LOG_GENERAL(WARNING,
+      //               "Storage root mismatch. Expected: "
+      //                   << account.GetStorageRoot().hex()
+      //                   << " Actual: " << accbase.GetStorageRoot().hex());
+      //   return false;
+      // }
     }
   }
 

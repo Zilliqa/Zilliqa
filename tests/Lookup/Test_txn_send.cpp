@@ -32,8 +32,7 @@ bool GenTxns(uint txnSize, map<uint32_t, vector<Transaction>>& mp,
   mp.clear();
   for (uint i = 0; i < txnSize; i++) {
     const auto tx = TestUtils::GenerateRandomTransaction(1, 1, type);
-    const auto& fromAddr = tx.GetSenderAddr();
-    auto index = Transaction::GetShardIndex(fromAddr, numShards);
+    auto index = tx.GetShardIndex( numShards);
     mp[index].emplace_back(tx);
   }
 
@@ -53,16 +52,8 @@ void test_transaction(const map<uint32_t, vector<Transaction>>& mp,
   for (uint k = 0; k <= newShardNum; k++) {
     const auto txns = lk.GetTxnFromShardMap(k);
     for (const auto& tx : txns) {
-      const auto& fromShard = tx.GetShardIndex(newShardNum);
-      auto index = fromShard;
-      if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
-        const auto& toShard =
-            Transaction::GetShardIndex(tx.GetToAddr(), newShardNum);
-        if (toShard != fromShard) {
-          LOG_GENERAL(INFO, "Sent to ds");
-          index = newShardNum;
-        }
-      }
+      const auto& shard = tx.GetShardIndex(newShardNum);
+      auto index = shard;
 
       BOOST_CHECK_MESSAGE(k == index, "The index in map "
                                           << k << " and actual index " << index

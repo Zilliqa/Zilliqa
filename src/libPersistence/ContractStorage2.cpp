@@ -400,6 +400,31 @@ void ContractStorage2::DeleteByIndex(const string& index) {
   }
 }
 
+bool ContractStorage2::FetchContractShardingInfo(const dev::h160& address,
+                                                 Json::Value& sharding_info_json) {
+  std::map<std::string, bytes> sharding_info;
+  // GEORGE: Should this have temp = true?
+  FetchStateDataForContract(sharding_info, address,
+                            SHARDING_INFO_INDICATOR, {}, false);
+
+  string sh_str;
+  const auto key = address.hex() + SCILLA_INDEX_SEPARATOR +
+                    SHARDING_INFO_INDICATOR + SCILLA_INDEX_SEPARATOR;
+  if (sharding_info.size() == 1 &&
+      sharding_info.find(key) != sharding_info.end()) {
+    sh_str = DataConversion::CharArrayToString(sharding_info.at(key));
+  } else {
+    LOG_GENERAL(WARNING, "Cannot find SHARDING_INFO_INDICATOR");
+    return false;
+  }
+
+  if (!sharding_info.empty() && !JSONUtils::GetInstance().convertStrtoJson(
+                                    sh_str, sharding_info_json)) {
+    return false;
+  }
+  return true;
+}
+
 bool ContractStorage2::FetchContractFieldsMapDepth(const dev::h160& address,
                                                    Json::Value& map_depth_json,
                                                    bool temp) {

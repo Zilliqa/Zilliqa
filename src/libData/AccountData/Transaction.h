@@ -148,10 +148,6 @@ class Transaction : public SerializableDataBlock {
   /// Set the signature
   void SetSignature(const Signature& signature);
 
-  /// Identifies the shard number that should process the transaction.
-  static unsigned int GetShardIndex(const Address& fromAddr,
-                                    unsigned int numShards);
-
   enum ContractType {
     NON_CONTRACT = 0,
     CONTRACT_CREATION,
