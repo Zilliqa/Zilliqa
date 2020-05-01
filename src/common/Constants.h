@@ -357,6 +357,7 @@ extern const std::string LIBRARY_CODE_EXTENSION;
 extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
+extern const std::string SHARDING_INFO_INDICATOR;
 extern const bool LOG_SC;
 
 // Test constants

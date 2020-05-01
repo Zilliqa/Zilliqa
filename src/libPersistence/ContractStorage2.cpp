@@ -140,8 +140,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
   }
 
-  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
-    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
+  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR || query.name() == SHARDING_INFO_INDICATOR) {
+    LOG_GENERAL(WARNING, "query name is " << query.name());
     return false;
   }
 
@@ -503,7 +503,7 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
 
     string vname = fragments.at(1);
 
-    if (vname == FIELDS_MAP_DEPTH_INDICATOR) {
+    if (vname == FIELDS_MAP_DEPTH_INDICATOR || vname == SHARDING_INFO_INDICATOR) {
       continue;
     }
 
@@ -774,8 +774,8 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     return false;
   }
 
-  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR) {
-    LOG_GENERAL(WARNING, "query name is " << FIELDS_MAP_DEPTH_INDICATOR);
+  if (query.name() == FIELDS_MAP_DEPTH_INDICATOR || query.name() == SHARDING_INFO_INDICATOR) {
+    LOG_GENERAL(WARNING, "query name is " << query.name());
     return false;
   }
 
@@ -885,6 +885,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
 
   lock_guard<mutex> g(m_stateDataMutex);
 
+  // Merge from shard
   if (temp) {
     for (const auto& state : t_states) {
       t_stateDataMap[state.first] = state.second;
@@ -896,6 +897,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     for (const auto& index : toDeleteIndices) {
       t_indexToBeDeleted.emplace(index);
     }
+  // Commit
   } else {
     for (const auto& state : t_states) {
       if (revertible) {

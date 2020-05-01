@@ -285,20 +285,26 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       // parse checker output
       bytes map_depth_data;
+      bytes sharding_info;
 
       if (ret_checker &&
           !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
-                                      gasRemained, is_library)) {
+                                      sharding_info, gasRemained, is_library)) {
         ret_checker = false;
       }
 
       if (ret_checker && !is_library) {
-        std::map<std::string, bytes> t_map_depth_map;
-        t_map_depth_map.emplace(
+        std::map<std::string, bytes> t_metadata;
+        t_metadata.emplace(
             Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
                 toAddr, FIELDS_MAP_DEPTH_INDICATOR, {}),
             map_depth_data);
-        toAccount->UpdateStates(toAddr, t_map_depth_map, {}, true);
+        sharding_info = sharding_info;
+        t_metadata.emplace(
+            Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+                toAddr, SHARDING_INFO_INDICATOR, {}),
+            sharding_info);
+        toAccount->UpdateStates(toAddr, t_metadata, {}, true);
       }
 
       // *************************************************************************
@@ -861,7 +867,8 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const std::string& checkerPrint, TransactionReceipt& receipt,
-    bytes& map_depth_data, uint64_t& gasRemained, bool is_library) {
+    bytes& map_depth_data, bytes& sharding_info,
+    uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 
   LOG_GENERAL(
@@ -925,6 +932,18 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 
       map_depth_data = DataConversion::StringToCharArray(
           JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+
+      if (!root.isMember("sharding_info")
+          || !root["sharding_info"].isMember("field_pcms")
+          || !root["sharding_info"].isMember("transition_constraints")) {
+        receipt.AddError(CHECKER_FAILED);
+        return false;
+      }
+
+      Json::Value sharding_info_json = root["sharding_info"];
+
+      sharding_info = DataConversion::StringToCharArray(
+          JSONUtils::GetInstance().convertJsontoStr(sharding_info_json));
     }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "

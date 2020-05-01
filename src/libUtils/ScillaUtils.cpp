@@ -69,6 +69,7 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
   ret["argv"].append("-gaslimit");
   ret["argv"].append(to_string(available_gas));
   ret["argv"].append("-contractinfo");
+  ret["argv"].append("-sa");
   ret["argv"].append("-jsonerrors");
   return ret;
 }
