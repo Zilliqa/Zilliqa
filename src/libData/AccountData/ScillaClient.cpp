@@ -34,18 +34,21 @@ bool ScillaClient::OpenServer(uint32_t version) {
   std::string killStr, executeStr;
 
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    killStr = "ps --no-headers axk comm o pid,args | awk '$2 ~ \"" +
-              server_path + "\"{print $1}' | xargs kill -9";
     executeStr = server_path + " -socket " + SCILLA_SERVER_SOCKET_PATH + "." +
                  std::to_string(version);
   } else {
-    killStr = "pkill " + SCILLA_SERVER_BINARY;
     executeStr = server_path + " -socket " + SCILLA_SERVER_SOCKET_PATH;
   }
 
+  // If multiple servers running on the same PC, don't want to kill all of them
+  // so we target according to executeStr
+  killStr = "ps --no-headers axk comm o pid,args | awk '$2 ~ \"" +
+            executeStr + "\"{print $1}' | xargs kill -9";
+
   cmdStr = killStr + "; " + executeStr;
 
-  auto func = [&cmdStr]() mutable -> void {
+  // Important to make a copy of cmdStr rather than take a thread-local reference!
+  auto func = [cmdStr]() mutable -> void {
     LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
 
     try {

@@ -34,7 +34,7 @@ const Address NullAddress;
 
 inline bool IsNullAddress(const Address& address) { return !address; }
 
-inline unsigned int AddressShardIndex(const Address& fromAddr,
+inline unsigned int AddressShardIndex(const Address& addr,
                                         unsigned int numShards) {
   uint32_t x = 0;
 
@@ -45,7 +45,7 @@ inline unsigned int AddressShardIndex(const Address& fromAddr,
 
   // Take the last four bytes of the address
   for (unsigned int i = 0; i < 4; i++) {
-    x = (x << 8) | fromAddr.asArray().at(ACC_ADDR_SIZE - 4 + i);
+    x = (x << 8) | addr.asArray().at(ACC_ADDR_SIZE - 4 + i);
   }
 
   return x % numShards;
