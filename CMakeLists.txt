@@ -56,7 +56,35 @@ list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
 list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
 list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
 
-set(PY_COMP_SUFFIX "python-py${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
+set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
+
+
+find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
+find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
+find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
+
+
+
+if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
+
+set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
+
+elseif(Boost_PYTHON${PY_VERSION}_FOUND)
+
+set(PY_COMP_SUFFIX "python${PY_VERSION}")
+
+elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
+
+set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
+
+else()
+
+message(FATAL_ERROR "Could not find boost python")
+
+endif()
+
+message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
+
 
 message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
 
@@ -101,41 +129,41 @@ if(CUDA_MINE)
 endif()
 
 if(FALLBACKTEST)
-	add_definitions(-DFALLBACK_TEST)
+    add_definitions(-DFALLBACK_TEST)
 endif()
 
 # VC related test scenario
 # For DS Block Consensus
 if(VC_TEST_DS_SUSPEND_1)
     message(STATUS "VC 1 test enabled")
-	add_definitions(-DVC_TEST_DS_SUSPEND_1)
+    add_definitions(-DVC_TEST_DS_SUSPEND_1)
 endif()
 
 if(VC_TEST_DS_SUSPEND_3)
     message(STATUS "VC 2 test enabled")
-	add_definitions(-DVC_TEST_DS_SUSPEND_3)
+    add_definitions(-DVC_TEST_DS_SUSPEND_3)
 endif()
 
 # For Final Block Consensus
 if(VC_TEST_FB_SUSPEND_1)
     message(STATUS "VC 3 test enabled")
-	add_definitions(-DVC_TEST_FB_SUSPEND_1)
+    add_definitions(-DVC_TEST_FB_SUSPEND_1)
 endif()
 
 if(VC_TEST_FB_SUSPEND_3)
     message(STATUS "VC 4 test enabled")
-	add_definitions(-DVC_TEST_FB_SUSPEND_3)
+    add_definitions(-DVC_TEST_FB_SUSPEND_3)
 endif()
 
 # For View change Block Consensus
 if(VC_TEST_VC_SUSPEND_1)
     message(STATUS "VC 5 test enabled")
-	add_definitions(-DVC_TEST_VC_SUSPEND_1)
+    add_definitions(-DVC_TEST_VC_SUSPEND_1)
 endif()
 
 if(VC_TEST_VC_SUSPEND_3)
     message(STATUS "VC 6 test enabled")
-	add_definitions(-DVC_TEST_VC_SUSPEND_3)
+    add_definitions(-DVC_TEST_VC_SUSPEND_3)
 endif()
 
 if(VC_TEST_VC_PRECHECK_1)
