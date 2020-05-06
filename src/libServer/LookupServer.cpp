@@ -276,6 +276,11 @@ bool LookupServer::StartCollectorThread() {
       txnsShard.clear();
       txnsDS.clear();
 
+      if (m_mediator.m_disableTxns) {
+        LOG_GENERAL(INFO, "Txns disabled - skipping forwarding to upper seed");
+        continue;
+      }
+
       if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
         LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
         continue;
@@ -425,6 +430,11 @@ Json::Value LookupServer::CreateTransaction(
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  if (Mediator::m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - rejecting new txn");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
   try {

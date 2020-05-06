@@ -112,6 +112,7 @@ def make_options_dictionary(options_dict):
 	options_dict["set_sendsccallstods"] = "ToggleSendSCCallsToDS"
 	options_dict["get_sendsccallstods"] = "GetSendSCCallsToDS"
 	options_dict["disable_pow"] = "DisablePoW"
+	options_dict["disabletxns"] = "ToggleDisableTxns"
 
 def ProcessResponseCore(resp, param):
 	if param:

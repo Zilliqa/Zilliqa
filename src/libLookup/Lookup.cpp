@@ -4380,6 +4380,11 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
     return;
   }
 
+  if (m_mediator.m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - skipping dispatch to shards");
+    return;
+  }
+
   const uint32_t numShards = newNumShards;
 
   map<uint32_t, vector<Transaction>> mp;

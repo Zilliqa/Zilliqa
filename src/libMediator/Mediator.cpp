@@ -28,6 +28,8 @@
 
 using namespace std;
 
+std::atomic<bool> Mediator::m_disableTxns(false);
+
 Mediator::Mediator(const PairOfKey& key, const Peer& peer)
     : m_selfKey(key),
       m_selfPeer(peer),
