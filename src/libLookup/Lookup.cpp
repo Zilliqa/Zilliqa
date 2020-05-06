@@ -4580,6 +4580,11 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
                 "non-lookup node");
   }
 
+  if (m_mediator.m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - dropping txn packet");
+    return false;
+  }
+
   vector<Transaction> txnsShard;
   vector<Transaction> txnsDS;
 
