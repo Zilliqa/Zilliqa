@@ -45,7 +45,8 @@ std::string handle_pyerror() {
 // params are the command line argumnents to be passed to the py code
 
 bool PythonRunner::RunPyFunc(const string& file, const string& func,
-                             const vector<string>& params) {
+                             const vector<string>& params,
+                             const string& outputFileName) {
   LOG_MARKER();
   try {
     setenv("PYTHONPATH", ".", 1);
@@ -70,15 +71,28 @@ bool PythonRunner::RunPyFunc(const string& file, const string& func,
 
     std::string stdOutErr =
         "import sys\n\
-class CatchOutErr:\n\
-    def __init__(self):\n\
-        self.value = ''\n\
-    def write(self, txt):\n\
-        self.value += txt\n\
-catchOutErr = CatchOutErr()\n\
-sys.stdout = catchOutErr\n\
-sys.stderr = catchOutErr\n\
+class CatchOutput:\n\
+  def __init__(self):\n\
+    self.value = ''\n\
+    self.file = open(\'" +
+        outputFileName +
+        "\',\'w\')\n\
+  def write(self,msg):\n\
+    self.value += msg\n\
+    self.file.write(msg)\n\
+  def close(self):\n\
+    self.file.close()\n\
+    self.file = None\n\
+catchOutput = CatchOutput()\n\
+sys.stdout = catchOutput\n\
+sys.stderr = catchOutput\n\
+  ";
+
+    string closeOutput =
+        "catchOutput.close()\n\
 ";
+
+    LOG_GENERAL(INFO, "stdOut: " << stdOutErr);
 
     PySys_SetArgvEx(argc, _argv, 0);
 
@@ -95,8 +109,9 @@ sys.stderr = catchOutErr\n\
 
     object ret = exec();
 
-    PyObject* catcher = PyObject_GetAttrString(main.ptr(), "catchOutErr");
+    PyObject* catcher = PyObject_GetAttrString(main.ptr(), "catchOutput");
     PyObject* output = PyObject_GetAttrString(catcher, "value");
+    PyRun_SimpleString(closeOutput.c_str());  // For cleaning the buffer out
 
     const string out = extract<string>(output);
 
