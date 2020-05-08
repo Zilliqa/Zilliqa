@@ -135,15 +135,18 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
     return false;
   }
 
-  if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
-    // Avoid using the original message for broadcasting in case it contains
-    // excess data beyond the VCBlock
-    bytes message2 = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-    if (!Messenger::SetNodeVCBlock(message2, MessageOffset::BODY, vcblock)) {
-      LOG_GENERAL(WARNING, "Messenger::SetNodeVCBlock failed");
-    } else {
-      SendVCBlockToOtherShardNodes(message2);
-    }
+  // Avoid using the original message for broadcasting in case it contains
+  // excess data beyond the VCBlock
+  bytes message2 = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+  if (!Messenger::SetNodeVCBlock(message2, MessageOffset::BODY, vcblock)) {
+    LOG_GENERAL(WARNING, "Messenger::SetNodeVCBlock failed");
+  } else if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
+    SendVCBlockToOtherShardNodes(message2);
+  } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && MULTIPLIER_SYNC_MODE) {
+    // push to local store of VCBLOCKS which maintains vcblocks only of
+    // latest tx block.
+    std::lock_guard<mutex> g1(m_mutexvcBlocksStore);
+    m_vcBlockStore.push_back(vcblock);
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

@@ -4547,6 +4547,74 @@ bool Messenger::GetNodeVCDSBlocksMessage(const bytes& src,
                                      shardingStructureVersion, shards);
 }
 
+bool Messenger::SetNodeVCFinalBlock(bytes& dst, const unsigned int offset,
+                                    const uint64_t dsBlockNumber,
+                                    const uint32_t consensusID,
+                                    const TxBlock& txBlock,
+                                    const bytes& stateDelta,
+                                    const std::vector<VCBlock>& vcBlocks) {
+  LOG_MARKER();
+
+  NodeVCFinalBlock result;
+
+  result.set_dsblocknumber(dsBlockNumber);
+  result.set_consensusid(consensusID);
+  TxBlockToProtobuf(txBlock, *result.mutable_txblock());
+  result.set_statedelta(stateDelta.data(), stateDelta.size());
+
+  for (const auto& vcblock : vcBlocks) {
+    VCBlockToProtobuf(vcblock, *result.add_vcblocks());
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeFinalBlock initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeVCFinalBlock(const bytes& src, const unsigned int offset,
+                                    uint64_t& dsBlockNumber,
+                                    uint32_t& consensusID, TxBlock& txBlock,
+                                    bytes& stateDelta,
+                                    std::vector<VCBlock>& vcBlocks) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeVCFinalBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeVCFinalBlock initialization failed");
+    return false;
+  }
+
+  dsBlockNumber = result.dsblocknumber();
+  consensusID = result.consensusid();
+  if (!ProtobufToTxBlock(result.txblock(), txBlock)) {
+    return false;
+  }
+  stateDelta.resize(result.statedelta().size());
+  copy(result.statedelta().begin(), result.statedelta().end(),
+       stateDelta.begin());
+
+  for (const auto& proto_vcblock : result.vcblocks()) {
+    VCBlock vcblock;
+    if (!ProtobufToVCBlock(proto_vcblock, vcblock)) {
+      LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
+      return false;
+    }
+    vcBlocks.emplace_back(move(vcblock));
+  }
+  return true;
+}
+
 bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
@@ -5871,6 +5939,312 @@ bool Messenger::SetLookupGetTxBlockFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+bool Messenger::SetLookupGetVCFinalBlockFromL2l(bytes& dst,
+                                                const unsigned int offset,
+                                                const uint64_t& blockNum,
+                                                const Peer& sender,
+                                                const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetVCFinalBlockFromL2l result;
+
+  result.mutable_data()->set_blocknum(blockNum);
+
+  PeerToProtobuf(sender, *result.mutable_data()->mutable_sender());
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetVCFinalBlockFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign LookupGetVCFinalBlockFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetVCFinalBlockFromL2l initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetVCFinalBlockFromL2l(const bytes& src,
+                                                const unsigned int offset,
+                                                uint64_t& blockNum, Peer& from,
+                                                PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetVCFinalBlockFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "GetLookupGetVCFinalBlockFromL2l initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "GetLookupGetVCFinalBlockFromL2l signature wrong");
+    return false;
+  }
+
+  blockNum = result.data().blocknum();
+  ProtobufToPeer(result.data().sender(), from);
+
+  return true;
+}
+
+bool Messenger::SetLookupGetDSBlockFromL2l(bytes& dst,
+                                           const unsigned int offset,
+                                           const uint64_t& blockNum,
+                                           const Peer& sender,
+                                           const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetDSBlockFromL2l result;
+
+  result.mutable_data()->set_blocknum(blockNum);
+
+  PeerToProtobuf(sender, *result.mutable_data()->mutable_sender());
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSBlockFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign LookupGetDSBlockFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSBlockFromL2l initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSBlockFromL2l(const bytes& src,
+                                           const unsigned int offset,
+                                           uint64_t& blockNum, Peer& from,
+                                           PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetDSBlockFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l signature wrong");
+    return false;
+  }
+
+  blockNum = result.data().blocknum();
+  ProtobufToPeer(result.data().sender(), from);
+
+  return true;
+}
+
+bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
+    bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetMBnForwardTxnFromL2l result;
+
+  result.mutable_data()->set_blocknum(blockNum);
+  result.mutable_data()->set_shardid(shardId);
+
+  PeerToProtobuf(sender, *result.mutable_data()->mutable_sender());
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetMBnForwardTxnFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign LookupGetMBnForwardTxnFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const bytes& src,
+                                                 const unsigned int offset,
+                                                 uint64_t& blockNum,
+                                                 uint32_t& shardId, Peer& from,
+                                                 PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetMBnForwardTxnFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l signature wrong");
+    return false;
+  }
+
+  blockNum = result.data().blocknum();
+  shardId = result.data().shardid();
+  ProtobufToPeer(result.data().sender(), from);
+
+  return true;
+}
+
+bool Messenger::SetLookupGetPendingTxnFromL2l(
+    bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetPendingTxnFromL2l result;
+
+  result.mutable_data()->set_blocknum(blockNum);
+  result.mutable_data()->set_shardid(shardId);
+
+  PeerToProtobuf(sender, *result.mutable_data()->mutable_sender());
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetPendingTxnFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign LookupGetPendingTxnFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetPendingTxnFromL2l(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& blockNum,
+                                              uint32_t& shardId, Peer& from,
+                                              PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetPendingTxnFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l signature wrong");
+    return false;
+  }
+
+  blockNum = result.data().blocknum();
+  shardId = result.data().shardid();
+  ProtobufToPeer(result.data().sender(), from);
+
+  return true;
+}
+
 bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
                                             const unsigned int offset,
                                             uint64_t& lowBlockNum,
@@ -7013,7 +7387,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const bytes& src,
 
 bool Messenger::SetLookupGetMicroBlockFromLookup(
     bytes& dst, const unsigned int offset,
-    const vector<BlockHash>& microBlockHashes, uint32_t portNo) {
+    const vector<BlockHash>& microBlockHashes, const uint32_t portNo) {
   LOG_MARKER();
 
   LookupGetMicroBlockFromLookup result;
@@ -7029,6 +7403,89 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
     return false;
   }
   return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetLookupGetMicroBlockFromL2l(
+    bytes& dst, const unsigned int offset,
+    const vector<BlockHash>& microBlockHashes, uint32_t portNo,
+    const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetMicroBlockFromL2l result;
+
+  result.mutable_data()->set_portno(portNo);
+
+  for (const auto& hash : microBlockHashes) {
+    result.mutable_data()->add_mbhashes(hash.data(), hash.size);
+  }
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetMicroBlockFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING,
+                "Failed to sign LookupGetMicroBlockFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetMicroBlockFromL2l initialization failed");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetMicroBlockFromL2l(
+    const bytes& src, const unsigned int offset,
+    vector<BlockHash>& microBlockHashes, uint32_t& portNo,
+    PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetMicroBlockFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetMicroBlockFromL2l initialization failed");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "GetLookupGetMicroBlockFromL2l signature wrong");
+    return false;
+  }
+
+  portNo = result.data().portno();
+
+  for (const auto& hash : result.data().mbhashes()) {
+    microBlockHashes.emplace_back();
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)microBlockHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         microBlockHashes.back().asArray().begin());
+  }
+
+  return true;
 }
 
 // UNUSED
@@ -7152,7 +7609,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
                                            const unsigned int offset,
                                            const BlockHash& mbHash,
                                            const vector<TxnHash>& txnhashes,
-                                           uint32_t portNo) {
+                                           const uint32_t portNo) {
   LOG_MARKER();
 
   LookupGetTxnsFromLookup result;
@@ -7200,6 +7657,90 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
   for (const auto& hash : result.txnhashes()) {
+    txnhashes.emplace_back();
+    size = min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
+    copy(hash.begin(), hash.begin() + size, txnhashes.back().asArray().begin());
+  }
+  return true;
+}
+
+bool Messenger::SetLookupGetTxnsFromL2l(bytes& dst, const unsigned int offset,
+                                        const BlockHash& mbHash,
+                                        const vector<TxnHash>& txnhashes,
+                                        const uint32_t portNo,
+                                        const PairOfKey& seedKey) {
+  LOG_MARKER();
+
+  LookupGetTxnsFromL2l result;
+
+  result.mutable_data()->set_portno(portNo);
+  result.mutable_data()->set_mbhash(mbHash.data(), mbHash.size);
+
+  for (const auto& txhash : txnhashes) {
+    result.mutable_data()->add_txnhashes(txhash.data(), txhash.size);
+  }
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l.Data initialization failed");
+    return false;
+  }
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign LookupGetTxnsFromL2l request message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l initialization failure");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+// UNUSED
+bool Messenger::GetLookupGetTxnsFromL2l(
+    const bytes& src, const unsigned int offset, BlockHash& mbHash,
+    vector<TxnHash>& txnhashes, uint32_t& portNo, PubKey& senderPubKey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetTxnsFromL2l result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l initialization failure");
+    return false;
+  }
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "GetLookupGetTxnsFromL2l signature wrong");
+    return false;
+  }
+
+  portNo = result.data().portno();
+  auto hash = result.data().mbhash();
+  unsigned int size = min((unsigned int)hash.size(), (unsigned int)mbHash.size);
+  copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
+
+  for (const auto& hash : result.data().txnhashes()) {
     txnhashes.emplace_back();
     size = min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
     copy(hash.begin(), hash.begin() + size, txnhashes.back().asArray().begin());

@@ -55,8 +55,9 @@ class Zilliqa {
  public:
   /// Constructor.
   Zilliqa(const PairOfKey& key, const Peer& peer,
-          SyncType syncType = SyncType::NO_SYNC,
-          bool toRetrieveHistory = false);
+          SyncType syncType = SyncType::NO_SYNC, bool toRetrieveHistory = false,
+          bool multiplierSyncMode = true,
+          PairOfKey extSeedKey = PairOfKey(PrivKey(), PubKey()));
 
   /// Destructor.
   ~Zilliqa();

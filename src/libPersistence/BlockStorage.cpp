@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -593,6 +594,95 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   return true;
 }
 
+bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
+  LOG_MARKER();
+
+  unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+
+  string keyStr = "0000000001";
+  uint32_t key;
+  leveldb::Iterator* it =
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  it->SeekToLast();
+  if (it->Valid()) {
+    keyStr = it->key().ToString();
+    try {
+      key = stoull(keyStr);
+      std::stringstream ss;
+      ss << std::setw(10) << std::setfill('0') << ++key;
+      keyStr = ss.str();
+    } catch (...) {
+      delete it;
+      LOG_GENERAL(WARNING, "key is not numeric");
+      return false;
+    }
+  }
+  delete it;
+
+  bytes data;
+  pubK.Serialize(data, 0);
+  LOG_GENERAL(INFO, "Inserting with key:" << keyStr << ", Pubkey:" << pubK);
+  int ret = m_extSeedPubKeysDB->Insert(keyStr, data);
+  return (ret == 0);
+}
+
+bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
+  LOG_MARKER();
+
+  unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+
+  leveldb::Iterator* it =
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  bytes data;
+  pubK.Serialize(data, 0);
+  string pubKStrI = DataConversion::CharArrayToString(data);
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string pns = it->key().ToString();
+    string pubkString = it->value().ToString();
+    if (pubkString == pubKStrI) {
+      if (0 == m_extSeedPubKeysDB->DeleteKey(pns)) {
+        LOG_GENERAL(
+            INFO, "Deleted extseed pubkey " << pubK << " from DB successfully");
+        delete it;
+        return true;
+      }
+    }
+  }
+  delete it;
+  return false;
+}
+
+bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
+  LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+
+  leveldb::Iterator* it =
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  uint64_t count = 0;
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string pubkString = it->value().ToString();
+    if (pubkString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one extseed public key in the DB");
+      delete it;
+      return false;
+    }
+    PubKey pubK(bytes(pubkString.begin(), pubkString.end()), 0);
+    pubKeys.emplace(pubK);
+    count++;
+  }
+  LOG_GENERAL(INFO, "Retrieved " << count << " PubKeys");
+
+  delete it;
+
+  if (pubKeys.empty()) {
+    LOG_GENERAL(INFO, "Disk has no extseed PubKeys");
+    return false;
+  }
+
+  return true;
+}
+
 bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
@@ -621,6 +711,38 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no TxBlock");
     return false;
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
+  LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
+
+  leveldb::Iterator* it =
+      m_VCBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  uint64_t count = 0;
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one block in the chain");
+      delete it;
+      return false;
+    }
+    VCBlockSharedPtr block = VCBlockSharedPtr(
+        new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
+    blocks.emplace_back(block);
+    count++;
+  }
+  LOG_GENERAL(INFO, "Retrievd " << count << " VCBlocks");
+
+  delete it;
+
+  if (blocks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no VCBlock");
   }
 
   return true;
@@ -1437,6 +1559,11 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_minerInfoShardsDB->ResetDB();
       break;
     }
+    case EXTSEED_PUBKEYS: {
+      unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+      ret = m_extSeedPubKeysDB->ResetDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
@@ -1549,6 +1676,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_minerInfoShardsDB->RefreshDB();
       break;
     }
+    case EXTSEED_PUBKEYS: {
+      unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+      ret = m_extSeedPubKeysDB->RefreshDB();
+      break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Refresh DB " << type << " failed");
@@ -1654,6 +1786,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_minerInfoShardsDB->GetDBName());
       break;
     }
+    case EXTSEED_PUBKEYS: {
+      shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+      ret.push_back(m_extSeedPubKeysDB->GetDBName());
+      break;
+    }
   }
 
   return ret;
@@ -1678,7 +1815,8 @@ bool BlockStorage::ResetAll() {
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
            ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
-           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS);
+           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS) &
+           ResetDB(EXTSEED_PUBKEYS);
   }
 }
 
@@ -1704,6 +1842,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
            RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
            RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
+           RefreshDB(EXTSEED_PUBKEYS) &
            Contract::ContractStorage2::GetContractStorage().RefreshAll();
   }
 }

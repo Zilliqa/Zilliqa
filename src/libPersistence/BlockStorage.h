@@ -107,6 +107,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_minerInfoDSCommDB;
   /// used for miner nodes (shards) retrieval
   std::shared_ptr<LevelDB> m_minerInfoShardsDB;
+  /// used for extseed pub key storage and retrieval
+  std::shared_ptr<LevelDB> m_extSeedPubKeysDB;
 
   BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -133,6 +135,7 @@ class BlockStorage : public Singleton<BlockStorage> {
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
       m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
       m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
+      m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
     }
   };
   ~BlockStorage() = default;
@@ -160,6 +163,7 @@ class BlockStorage : public Singleton<BlockStorage> {
     PROCESSED_TEMP,
     MINER_INFO_DSCOMM,
     MINER_INFO_SHARDS,
+    EXTSEED_PUBKEYS
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -257,11 +261,23 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves all the TxBlocks
   bool GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks);
 
+  /// Retrieves all the VCBlocks
+  bool GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks);
+
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 
   /// Retrieve all the blocklink
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
+
+  /// Put extseed public key to storage
+  bool PutExtSeedPubKey(const PubKey& pubK);
+
+  /// Delete extseed public key from storage
+  bool DeleteExtSeedPubKey(const PubKey& pubK);
+
+  /// Retrieve all the extseed pubkeys
+  bool GetAllExtSeedPubKeys(std::unordered_set<PubKey>& pubKeys);
 
   /// Save Last Transactions Trie Root Hash
   bool PutMetadata(MetaType type, const bytes& data);
@@ -403,6 +419,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexProcessTx;
   mutable std::shared_timed_mutex m_mutexMinerInfoDSComm;
   mutable std::shared_timed_mutex m_mutexMinerInfoShards;
+  mutable std::shared_timed_mutex m_mutexExtSeedPubKeys;
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;
