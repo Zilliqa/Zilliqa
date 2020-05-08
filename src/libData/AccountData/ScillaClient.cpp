@@ -65,7 +65,7 @@ bool ScillaClient::OpenServer(uint32_t version) {
 
   DetachedFunction(1, func);
 
-  usleep(200 * 1000);
+  usleep(500 * 1000);
 
   return true;
 }

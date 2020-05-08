@@ -175,6 +175,8 @@ class Account : public AccountBase {
   bool GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                               std::vector<Address>& extlibs);
 
+  bool GetScillaVersion(uint32_t& scilla_version);
+
   // includes scilla_version, is_library, and extlibs
   bool RetrieveContractAuxiliaries();
 
@@ -186,7 +188,9 @@ class Account : public AccountBase {
   void UpdateStates(const Address& addr,
                     const std::map<std::string, bytes>& t_states,
                     const std::vector<std::string>& toDeleteIndices, bool temp,
-                    bool revertible = false);
+                    bool revertible = false,
+                    const uint32_t& shardId = UNKNOWN_SHARD_ID,
+                    const uint32_t& numShards = UNKNOWN_SHARD_ID);
 
   bool FetchStateJson(Json::Value& root, const std::string& vname = "",
                       const std::vector<std::string>& indices = {},

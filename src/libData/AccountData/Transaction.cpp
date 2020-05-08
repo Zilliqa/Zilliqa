@@ -229,7 +229,7 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
         }
         // We can't send the JSON dictionary directly; serialize it
         string req_str = JSONUtils::GetInstance().convertJsontoStr(req_t);
-        Json::Value req;
+        Json::Value req = Json::objectValue;
         req["req"] = req_str;
 
         string result = "";

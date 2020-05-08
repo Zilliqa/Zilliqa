@@ -903,26 +903,93 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
 void ContractStorage2::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const std::map<std::string, bytes>& t_states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-    bool temp, bool revertible) {
+    bool temp, bool revertible,
+    const uint32_t& shardId, const uint32_t& numShards) {
   if (LOG_SC) {
     LOG_MARKER();
   }
 
   lock_guard<mutex> g(m_stateDataMutex);
 
-  // Merge from shard
+  // This function is used in several ways, which are not immediately obvious
+  // by just looking at the function's code. In particular, the function is used to:
+  //    1) merge a contribution from a particular shard (temp && shardId != UNKNOWN_SHARD_ID)
+  //    2) overwrite the existing tempAccountStore with a new one, i.e. a contribution from
+  //        an unknown shard or more than one shard (temp && shard == UNKNOWN_SHARD_ID)
+  //    3) commit some sets into the permanent account store (!temp)
+  // In case (1), we perform a three-way merge according to addr's sharding_info.
   if (temp) {
-    for (const auto& state : t_states) {
-      t_stateDataMap[state.first] = state.second;
-      auto pos = t_indexToBeDeleted.find(state.first);
-      if (pos != t_indexToBeDeleted.end()) {
-        t_indexToBeDeleted.erase(pos);
+    Json::Value sh_info;
+    auto& cs = Contract::ContractStorage2::GetContractStorage();
+
+    // Case (1) -- three-way merge for a contract with sharding info
+    if (shardId != UNKNOWN_SHARD_ID && numShards != UNKNOWN_SHARD_ID
+        && cs.FetchContractShardingInfo(addr, sh_info)) {
+      Json::Value merge_req = Json::objectValue;
+      merge_req["req_type"] = "join";
+      merge_req["shard_id"] = shardId;
+      merge_req["contract_shard"] = AddressShardIndex(addr, numShards);
+      merge_req["num_shards"] = numShards;
+      merge_req["sharding_info"] = sh_info;
+      merge_req["states"] = Json::objectValue;
+
+      for (const auto& state : t_states) {
+        std::map<string, bytes> ancestor_m, temp_m;
+        FetchStateDataForKey(ancestor_m, state.first, false);
+        FetchStateDataForKey(temp_m, state.first, true);
+        auto ancestor = ancestor_m[state.first];
+        auto temp = temp_m[state.first];
+        auto shard = state.second;
+
+        Json::Value st = Json::objectValue;
+        st["ancestor"] = DataConversion::CharArrayToString(ancestor);
+        st["temp"] = DataConversion::CharArrayToString(temp);
+        st["shard"] = DataConversion::CharArrayToString(shard);
+
+        merge_req["states"][state.first] = st;
+      }
+
+    string req_str = JSONUtils::GetInstance().convertJsontoStr(merge_req);
+    Json::Value req = Json::objectValue;
+    req["req"] = req_str;
+
+    // Ensure we call the merger for the appropriate Scilla version
+    Account* acc = AccountStore::GetInstance().GetAccount(addr);
+    uint32_t scilla_version;
+    string result = "";
+    bool call_succeeded =
+      acc->GetScillaVersion(scilla_version) &&
+      ScillaClient::GetInstance().CallSharding(scilla_version, req, result);
+
+    LOG_GENERAL(INFO, "Merge request\n" << req_str << "\nResponse:\n" << result);
+    Json::Value resp;
+    // TODO: is there any recovery option if this fails?
+    if (call_succeeded
+        && JSONUtils::GetInstance().convertStrtoJson(result, resp)
+        && resp.isMember("states")) {
+      for (const auto& state_key : resp["states"].getMemberNames()) {
+        bytes state_value = DataConversion::StringToCharArray(resp["states"][state_key].asString());
+        t_stateDataMap[state_key] = state_value;
       }
     }
+    else {
+      LOG_GENERAL(FATAL, "Merge request failed!");
+    }
+    // Case (2) -- overwrite
+    } else {
+      for (const auto& state : t_states) {
+          t_stateDataMap[state.first] = state.second;
+        auto pos = t_indexToBeDeleted.find(state.first);
+        if (pos != t_indexToBeDeleted.end()) {
+          t_indexToBeDeleted.erase(pos);
+        }
+      }
+    }
+
     for (const auto& index : toDeleteIndices) {
       t_indexToBeDeleted.emplace(index);
     }
-  // Commit
+  // Case (3) -- commit / overwrite
   } else {
     for (const auto& state : t_states) {
       if (revertible) {
@@ -932,6 +999,11 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
           r_stateDataMap[state.first] = {};
         }
       }
+      LOG_GENERAL(INFO, "Commit " <<
+          "state key: " << state.first <<
+          " old: " << DataConversion::CharArrayToString(m_stateDataMap[state.first]) <<
+          " new: " << DataConversion::CharArrayToString(state.second));
+
       m_stateDataMap[state.first] = state.second;
       auto pos = m_indexToBeDeleted.find(state.first);
       if (pos != m_indexToBeDeleted.end()) {

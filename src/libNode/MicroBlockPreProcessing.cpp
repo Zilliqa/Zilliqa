@@ -1363,7 +1363,7 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg,
          CheckMicroBlockTimestamp() &&
          CheckMicroBlockGasLimit(microblock_gas_limit) &&
          CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
-         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
+         CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)

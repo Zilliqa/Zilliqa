@@ -346,9 +346,12 @@ void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
 void Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
-                           bool temp, bool revertible) {
+                           bool temp, bool revertible,
+                           const uint32_t& shardId,
+                           const uint32_t& numShards) {
   ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
+      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible,
+      shardId, numShards);
   if (!m_address) {
     SetAddress(addr);
   }
@@ -465,6 +468,16 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
   scilla_version = m_scilla_version;
   extlibs = m_extlibs;
   return true;
+}
+
+bool Account::GetScillaVersion(uint32_t& scilla_version) {
+  if (!isContract()) {
+    return false;
+  }
+
+  std::vector<Address> extlibs;
+  bool is_library = false;
+  return GetContractAuxiliaries(is_library, scilla_version, extlibs);
 }
 
 bool Account::RetrieveContractAuxiliaries() {

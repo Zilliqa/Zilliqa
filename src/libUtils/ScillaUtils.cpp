@@ -18,7 +18,6 @@
 #include "ScillaUtils.h"
 
 #include <boost/filesystem.hpp>
-
 #include "Logger.h"
 #include "common/Constants.h"
 
@@ -54,7 +53,9 @@ Json::Value ScillaUtils::GetBlockStateJson(const uint64_t& BlockNum) {
 
 Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
                                                 bool is_library,
-                                                const uint64_t& available_gas) {
+                                                const uint64_t& available_gas,
+                                                const Json::Value sharding_input) {
+
   Json::Value ret;
   ret["argv"].append("-init");
   ret["argv"].append(boost::filesystem::current_path().string() + '/' +
@@ -71,6 +72,20 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
   ret["argv"].append("-contractinfo");
   ret["argv"].append("-sa");
   ret["argv"].append("-jsonerrors");
+
+  if (sharding_input.isMember("transitions")) {
+    for (const auto& tr : sharding_input["transitions"]) {
+      ret["argv"].append("-sa-tr");
+      ret["argv"].append(tr.asString());
+    }
+  }
+  if (sharding_input.isMember("weak_reads")) {
+    for (const auto& wr : sharding_input["weak_reads"]) {
+      ret["argv"].append("-sa-wr");
+      ret["argv"].append(wr.asString());
+    }
+  }
+
   return ret;
 }
 

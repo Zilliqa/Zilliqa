@@ -350,6 +350,8 @@ class DirectoryService : public Executable {
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const bytes& stateDelta,
+                         const uint32_t& shardId,
+                         const uint32_t& numShards,
                          const StateHash& microBlockStateDeltaHash,
                          const BlockHash& microBlockHash);
   void SkipDSMicroBlock();

@@ -58,15 +58,16 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt) {
+    TransactionReceipt& receipt, const Json::Value sharding_input) {
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt]() mutable -> void {
+                &available_gas, &balance, &ret, &receipt, sharding_input]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
                 version,
                 ScillaUtils::GetContractCheckerJson(m_root_w_version,
-                                                    is_library, available_gas),
+                                                    is_library, available_gas,
+                                                    sharding_input),
                 interprinterPrint)) {
         }
         break;
@@ -225,11 +226,39 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       uint32_t scilla_version;
 
+      Json::Value sharding_input = Json::objectValue;
       try {
+        // Handle optional sharding parameters in transaction init data
+        Json::Value init_data = Json::arrayValue;
+        // Filter out sharding parameters if they exist
+        Json::Value filtered_init_data = Json::arrayValue;
+        bytes initData = transaction.GetData();
+        if (!initData.empty() && JSONUtils::GetInstance().convertStrtoJson(
+              DataConversion::CharArrayToString(initData), init_data)) {
+
+          for(const auto& entry : init_data) {
+            if (entry.isMember("vname") && entry.isMember("type")
+                && entry.isMember("value")
+                && entry["vname"].asString() == "_sharding_input"
+                && entry["value"].isString()) {
+
+              LOG_GENERAL(INFO, "Found _sharding_intput in transaction init data");
+              std::string si = entry["value"].asString();
+              JSONUtils::GetInstance().convertStrtoJson(si, sharding_input);
+            } else {
+              filtered_init_data.append(entry);
+            }
+          }
+        }
+
+        LOG_GENERAL(INFO, "_sharding_input = " << JSONUtils::GetInstance().convertJsontoStr(sharding_input));
+        bytes filteredData = DataConversion::StringToCharArray(
+            JSONUtils::GetInstance().convertJsontoStr(filtered_init_data));
+
         // Initiate the contract account, including setting the contract code
         // store the immutable states
         if (!toAccount->InitContract(transaction.GetCode(),
-                                     transaction.GetData(), toAddr, blockNum)) {
+                                     filteredData, toAddr, blockNum)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
@@ -281,7 +310,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string checkerPrint;
 
       InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
-                        gasRemained, 0, ret_checker, receipt);
+                        gasRemained, 0, ret_checker, receipt, sharding_input);
 
       // parse checker output
       bytes map_depth_data;
@@ -732,6 +761,7 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
   os.open(INIT_JSON);
+
   if (LOG_SC) {
     LOG_GENERAL(
         INFO, "init data to export: "

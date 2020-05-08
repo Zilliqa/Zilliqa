@@ -198,9 +198,10 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset,
+    const uint32_t& shardId, const uint32_t& numShards) {
   lock_guard<mutex> g(m_mutexDelta);
-  return m_accountStoreTemp->DeserializeDelta(src, offset);
+  return m_accountStoreTemp->DeserializeDelta(src, offset, shardId, numShards);
 }
 
 bool AccountStore::MoveRootToDisk(const h256& root) {

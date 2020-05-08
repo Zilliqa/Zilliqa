@@ -672,8 +672,9 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
-                            const Address& addr, const bool fullCopy, bool temp,
-                            bool revertible = false) {
+                            const Address& addr, const uint32_t& shardId,
+                            const uint32_t& numShards,
+                            const bool fullCopy, bool temp, bool revertible = false) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
@@ -746,7 +747,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       }
     }
 
-    if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
+    // GEORGE: this check might be true even if you have stuff to process
+    // if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
       dev::h256 tmpHash;
 
       map<string, bytes> t_states;
@@ -761,7 +763,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         toDeleteIndices.emplace_back(entry);
       }
 
-      account.UpdateStates(addr, t_states, toDeleteIndices, temp, revertible);
+      account.UpdateStates(addr, t_states, toDeleteIndices, temp, revertible,
+          shardId, numShards);
 
       // GEORGE: this shouldn't be necessary
       // if ((!t_states.empty() || !toDeleteIndices.empty()) &&
@@ -773,7 +776,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       //   return false;
       // }
     }
-  }
+  // }
 
   return true;
 }
@@ -2738,8 +2741,9 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     t_account = *oriAccount;
     account = *oriAccount;
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
-                                temp, revertible)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address,
+                                UNKNOWN_SHARD_ID, UNKNOWN_SHARD_ID,
+                                fullCopy, temp, revertible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << address.hex());
@@ -2756,7 +2760,9 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 bool Messenger::GetAccountStoreDelta(const bytes& src,
                                      const unsigned int offset,
                                      AccountStoreTemp& accountStoreTemp,
-                                     bool temp) {
+                                     bool temp, const uint32_t& shardId,
+                                     const uint32_t& numShards) {
+  LOG_MARKER();
   ProtoAccountStore result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
@@ -2795,8 +2801,9 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     account = *oriAccount;
 
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
-                                temp)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address,
+                                shardId, numShards,
+                                fullCopy, temp)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << address.hex());

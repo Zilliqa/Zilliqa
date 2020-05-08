@@ -33,7 +33,8 @@ class ScillaUtils {
   /// get the command for invoking the scilla_checker while deploying
   static Json::Value GetContractCheckerJson(const std::string& root_w_version,
                                             bool is_library,
-                                            const uint64_t& available_gas);
+                                            const uint64_t& available_gas,
+                                            const Json::Value sharding_input);
 
   /// get the command for invoking the scilla_runner while deploying
   static Json::Value GetCreateContractJson(
