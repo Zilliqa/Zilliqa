@@ -257,6 +257,7 @@
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
+        <SHARDING_INFO_INDICATOR>_sharding_info</SHARDING_INFO_INDICATOR>
         <LOG_SC>true</LOG_SC>
     </smart_contract>
     <tests>

@@ -262,21 +262,26 @@ def run_start(numdsnodes):
 		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 		ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
-		patch_scilla_ipc_path_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path)
+		server_path = "/tmp/scilla-server" + str(NODE_LISTEN_PORT + x) + ".sock"
+		patch_scilla_ipc_server_path_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, server_path)
 
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
+
+		valgrind_run = 'cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; valgrind $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &'
+		normal_run = 'cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &'
 		if (x < numdsnodes):
 			shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
+			os.system(normal_run)
 		else:
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
+			os.system(normal_run)
 
-def patch_scilla_ipc_path_xml(filepath, ipc_path):
+def patch_scilla_ipc_server_path_xml(filepath, ipc_path, server_path):
         root = ET.parse(filepath).getroot()
 
         td = root.find('jsonrpc')
         td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
+        td.find('SCILLA_SERVER_SOCKET_PATH').text = server_path
 
         tree = ET.ElementTree(root)
         tree.write(filepath)
