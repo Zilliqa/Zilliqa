@@ -57,20 +57,6 @@ SWInfo::SWInfo(const uint32_t& zilliqaMajorVersion,
       m_scillaUpgradeDS(scillaUpgradeDS),
       m_scillaCommit(scillaCommit) {}
 
-SWInfo::SWInfo(const SWInfo& src)
-    : m_zilliqaMajorVersion(src.m_zilliqaMajorVersion),
-      m_zilliqaMinorVersion(src.m_zilliqaMinorVersion),
-      m_zilliqaFixVersion(src.m_zilliqaFixVersion),
-      m_zilliqaUpgradeDS(src.m_zilliqaUpgradeDS),
-      m_zilliqaCommit(src.m_zilliqaCommit),
-      m_scillaMajorVersion(src.m_scillaMajorVersion),
-      m_scillaMinorVersion(src.m_scillaMinorVersion),
-      m_scillaFixVersion(src.m_scillaFixVersion),
-      m_scillaUpgradeDS(src.m_scillaUpgradeDS),
-      m_scillaCommit(src.m_scillaCommit) {}
-
-SWInfo::~SWInfo() {}
-
 /// Implements the Serialize function inherited from Serializable.
 unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();

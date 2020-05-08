@@ -55,12 +55,6 @@ class SWInfo : public Serializable {
          const uint32_t& scillaFixVersion, const uint64_t& scillaUpgradeDS,
          const uint32_t& scillaCommit);
 
-  /// Destructor.
-  ~SWInfo();
-
-  /// Copy constructor.
-  SWInfo(const SWInfo&);
-
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
