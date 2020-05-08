@@ -94,6 +94,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::DisablePoWI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleDisableTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::ToggleDisableTxnsI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -252,4 +256,13 @@ bool StatusServer::DisablePoW() {
   }
   m_mediator.m_disablePoW = true;
   return true;
+}
+
+bool StatusServer::ToggleDisableTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  m_mediator.m_disableTxns = !m_mediator.m_disableTxns;
+  return m_mediator.m_disableTxns;
 }

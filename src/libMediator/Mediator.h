@@ -97,6 +97,9 @@ class Mediator {
   /// Prevent node from mining PoW at the next DS epoch
   std::atomic<bool> m_disablePoW;
 
+  /// Prevent transactions from being created, forwarded, and dispatched
+  static std::atomic<bool> m_disableTxns;
+
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 

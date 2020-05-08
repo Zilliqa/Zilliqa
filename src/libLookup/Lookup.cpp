@@ -4380,6 +4380,11 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
     return;
   }
 
+  if (m_mediator.m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - skipping dispatch to shards");
+    return;
+  }
+
   const uint32_t numShards = newNumShards;
 
   map<uint32_t, vector<Transaction>> mp;
@@ -4573,6 +4578,11 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
                 "non-lookup node");
+  }
+
+  if (m_mediator.m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - dropping txn packet");
+    return false;
   }
 
   vector<Transaction> txnsShard;
