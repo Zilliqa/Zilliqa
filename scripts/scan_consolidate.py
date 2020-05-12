@@ -85,11 +85,11 @@ def sort_mb_info(mb_infos):
 def sort_mb_time(mb_infos):
     mb_infos.sort(key=lambda x:(x[0],x[1][0]))
 
-def save_to_csv_lookup(list_of_items):
-    for  i in list_of_items:
+def save_to_csv_lookup(dict_of_items):
+    for epoch_num in dict_of_items:
         with open(CSV2_FILENAME, 'a', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(i)
+            writer.writerow([epoch_num] + dict_of_items[epoch_num])
 
 def search_lookup():
     lookup_file_names = get_filenames_for_dir(LOG_DIR, 'lookup')
@@ -101,13 +101,13 @@ def search_lookup():
     tps = 0
     gas_consumed = 0
     mb_infos = []
-    lookup_info= []
+    lookup_info = {}
 
     for line in file:
         if line.find(KEYWORD_FBSIZE) != -1:
             if currentBlocknum >= 0:
                 sort_mb_info(mb_infos)
-                lookup_info.append([currentBlocknum,size,time,tps*1000000,mb_infos,gas_consumed])
+                lookup_info[currentBlocknum] = [size,time,tps*1000000,mb_infos,gas_consumed]
                 mb_infos = []
             (size, blockNumber) = get_blocknum_size(line[END_POS_TIMESTAMP:])
             currentBlocknum = blockNumber
@@ -154,36 +154,35 @@ def get_mb_consensus_info(line,next_line):
     shard_id = int(m[1][1:-1])
     return blocknum, [shard_id,end_time-start_time]
 
-def get_fb_consensus_info(line, next_line):
-    start_time = convert_time_string(get_time(line))
-    end_time = convert_time_string(get_time(next_line))
-    m = re.findall(r'(\[\d+\])',line[END_POS_TIMESTAMP:])
-    if(m == None):
-        print(line)
-    blocknum = int(m[0][1:-1])
-    return [blocknum, end_time-start_time]
+def get_epoch_number(line):
+    return int(re.search('\[(\d+)\] ({0}|{1})$'.format(KEYWORD_BEGIN,KEYWORD_DONE), line).group(1))
+
+def get_epoch_number_and_time(mydict_tmp, mydict, line):
+    if line.find(KEYWORD_BEGIN) != -1:
+        epoch_num = get_epoch_number(line)
+        start_time = convert_time_string(get_time(line))
+        mydict_tmp[epoch_num] = start_time
+    elif line.find(KEYWORD_DONE)!= -1:
+        epoch_num = get_epoch_number(line)
+        end_time = convert_time_string(get_time(line))
+        start_time = mydict_tmp[epoch_num]
+        del mydict_tmp[epoch_num]
+        mydict[epoch_num] = end_time - start_time if epoch_num not in mydict else max(mydict[epoch_num], end_time - start_time)
 
 def search_ds():
-    ds_consensus_times = []
-    ds_wait_times = []
+    ds_wait_times = {}
+    ds_consensus_times = {}
     start_time = 0
-    epoch_num=1
     all_ds_files = get_filenames_for_dir(LOG_DIR, 'dsguard')
     for fileName in all_ds_files:
         with open(LOG_DIR+'/'+fileName+'/'+STATE_LOG_FILENAME) as ds_file:
+            ds_wait_times_tmp = {}
+            ds_consensus_times_tmp = {}
             for line in ds_file:
                 if line.find(KEYWORD_MBWAIT) != -1:
-                    if line.find(KEYWORD_BEGIN) != -1:
-                        start_time = convert_time_string(get_time(line))
-                        #print(start_time, epoch_num, 'begin')
-                    elif line.find(KEYWORD_DONE)!= -1:
-                         end_time = convert_time_string(get_time(line))
-                         #print(end_time, epoch_num, 'end')
-                         ds_wait_times.append((epoch_num,convert_time_string(get_time(line))-start_time))
-                         epoch_num = epoch_num + 1
-                         start_time = 0
-                if line.find(KEYWORD_FBCON) != -1:
-                    ds_consensus_times.append(get_fb_consensus_info(line, next(ds_file)))
+                    get_epoch_number_and_time(ds_wait_times_tmp, ds_wait_times, line)
+                elif line.find(KEYWORD_FBCON) != -1:
+                    get_epoch_number_and_time(ds_consensus_times_tmp, ds_consensus_times, line)
 
     return ds_consensus_times, ds_wait_times
 
@@ -219,21 +218,21 @@ if __name__ == '__main__':
         mb_time_infos = search_normal()
         ds_consensus_times, ds_wait_times = search_ds()
         lookup_times = search_lookup()
-        mb_time = []
-        for (key, value) in mb_time_infos.items():
-            mb_time.append([key,value])
         final_list = []
-        for (a,b,c,d) in zip(mb_time, ds_consensus_times, ds_wait_times, lookup_times):
-            temp_list = []
-            temp_list.append(b[0])
-            a[1] = sorted(a[1], key=itemgetter(0))
-            for shardinfo in a[1]:
+        num_epochs = min(len(mb_time_infos), len(ds_consensus_times), len(ds_wait_times), len(lookup_times))
+        for epoch_num in range(1, num_epochs + 1):
+            a = sorted(mb_time_infos[epoch_num], key=itemgetter(0))
+            b = ds_consensus_times[epoch_num]
+            c = ds_wait_times[epoch_num]
+            d = lookup_times[epoch_num]
+            temp_list = [epoch_num]
+            for shardinfo in a:
                 for j in range(0,3):
                     temp_list.append(shardinfo[j])
-            temp_list.append(b[1])
-            temp_list.append(c[1])
-            temp_list.append(d[2]*1000)
-            temp_list.append(int(d[5]))
+            temp_list.append(b)
+            temp_list.append(c)
+            temp_list.append(d[1]*1000)
+            temp_list.append(int(d[4]))
             final_list.append(temp_list)
         make_csv_header(int(sys.argv[1]))
         final_list = sorted(final_list, key=itemgetter(0))
