@@ -174,7 +174,11 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
   const auto tt = GetTransactionType(*this);
 
   if (tt == CONTRACT_CALL) {
-      LOG_GENERAL(INFO, "GetShardIndex CONTRACT_CALL");
+    std::chrono::system_clock::time_point tpStart;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+            tpStart = r_timer_start();
+      }
+
       const auto& toAddr = GetToAddr();
       Account* toAccount =
         AccountStore::GetInstance().GetAccount(toAddr);
@@ -241,9 +245,16 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
             && JSONUtils::GetInstance().convertStrtoJson(result, resp)
             && resp.isMember("shard") && resp["shard"].isIntegral()) {
 
-          LOG_GENERAL(INFO, "GetShardIndex\nRequest: " << req_str
-                      << "\nResponse: " << result);
+          if (LOG_SC) {
+            LOG_GENERAL(INFO, "GetShardIndex\nRequest: " << req_str
+                        << "\nResponse: " << result);
+          }
           shard = resp["shard"].asUInt();
+        }
+
+        if (ENABLE_CHECK_PERFORMANCE_LOG) {
+          LOG_GENERAL(INFO, "Routed CONTRACT_CALL to shard in "
+                              << r_timer_end(tpStart) << " microseconds");
         }
         return shard;
       // The transaction is junk

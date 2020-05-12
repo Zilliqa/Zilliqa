@@ -925,6 +925,11 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     // Case (1) -- three-way merge for a contract with sharding info
     if (shardId != UNKNOWN_SHARD_ID && numShards != UNKNOWN_SHARD_ID
         && cs.FetchContractShardingInfo(addr, sh_info)) {
+      std::chrono::system_clock::time_point tpStart;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        tpStart = r_timer_start();
+      }
+
       Json::Value merge_req = Json::objectValue;
       merge_req["req_type"] = "join";
       merge_req["shard_id"] = shardId;
@@ -961,7 +966,9 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
       acc->GetScillaVersion(scilla_version) &&
       ScillaClient::GetInstance().CallSharding(scilla_version, req, result);
 
-    LOG_GENERAL(INFO, "Merge request\n" << req_str << "\nResponse:\n" << result);
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Merge request\n" << req_str << "\nResponse:\n" << result);
+    }
     Json::Value resp;
     // TODO: is there any recovery option if this fails?
     if (call_succeeded
@@ -974,6 +981,11 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     }
     else {
       LOG_GENERAL(FATAL, "Merge request failed!");
+    }
+
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(INFO, "Merged " << t_states.size() << " account deltas in "
+                            << r_timer_end(tpStart) << " microseconds");
     }
     // Case (2) -- overwrite
     } else {

@@ -152,6 +152,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
+      std::chrono::system_clock::time_point tpStart;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        tpStart = r_timer_start();
+      }
 
       bool validToTransferBalance = true;
 
@@ -242,7 +246,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 && entry["vname"].asString() == "_sharding_input"
                 && entry["value"].isString()) {
 
-              LOG_GENERAL(INFO, "Found _sharding_intput in transaction init data");
               std::string si = entry["value"].asString();
               JSONUtils::GetInstance().convertStrtoJson(si, sharding_input);
             } else {
@@ -251,7 +254,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           }
         }
 
-        LOG_GENERAL(INFO, "_sharding_input = " << JSONUtils::GetInstance().convertJsontoStr(sharding_input));
         bytes filteredData = DataConversion::StringToCharArray(
             JSONUtils::GetInstance().convertJsontoStr(filtered_init_data));
 
@@ -336,6 +338,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         toAccount->UpdateStates(toAddr, t_metadata, {}, true);
       }
 
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+          LOG_GENERAL(INFO, "Typechecked contract in "
+                              << r_timer_end(tpStart) << " microseconds");
+      }
       // *************************************************************************
       // Undergo scilla runner
       bool ret = true;
@@ -559,7 +565,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                         gasRemained, this->GetBalance(toAddr), ret, receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG, "Executed root transition in "
+        LOG_GENERAL(INFO, "Executed root transition in "
                                << r_timer_end(tpStart) << " microseconds");
       }
 
@@ -1305,7 +1311,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG,
                     "LDB Write (microseconds) = " << r_timer_end(tpStart));
-        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
+        LOG_GENERAL(INFO, "Gas used = " << (startGas - gasRemained));
       }
 
       if (t_ret) {
@@ -1405,7 +1411,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                         receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
+        LOG_GENERAL(INFO, "Executed " << input_message["_tag"] << " in "
                                        << r_timer_end(tpStart)
                                        << " microseconds");
       }
