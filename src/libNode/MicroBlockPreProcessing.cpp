@@ -904,7 +904,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << m_myshardId << "] BGIN");
+      << "][" << m_myshardId << "] BEGIN");
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
