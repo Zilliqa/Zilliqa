@@ -31,119 +31,44 @@ import shutil
 import csv
 from operator import itemgetter
 
-KEYWORD_FBSIZE = '[FBSIZE]'
-KEYWORD_TIME = '[FBTIME]'
-KEYWORD_TPS = '[FBTPS]'
-KEYWORD_FBGAS = '[FBGAS]'
+KEYWORD_FBSTAT = '[FBSTAT]'
 KEYWORD_MBPCK = '[MBPCKT]'
 KEYWORD_MICON = '[MICON]'
 KEYWORD_MITXN = '[MITXN]'
 KEYWORD_BEGIN = 'BEGIN'
 KEYWORD_DONE = 'DONE'
 CSV_FILENAME = 'results.csv'
-CSV2_FILENAME = 'extra_results.csv'
 KEYWORD_MBWAIT = '[MIBLKSWAIT]'
 KEYWORD_FBCON = '[FBCON]'
 
 STATE_LOG_FILENAME='state-00001-log.txt'
 END_POS_TIMESTAMP = 25
 
-def get_blocknum_size(line):
-    m = re.findall(r'[0-9]+', line)
-    if (m == None):
-        print(line)
-    size = m[0]
-    blockNumber = m[1]
-    return (int(size),int(blockNumber))
-
-def get_keyword_val(line):
-    m = re.search(r'\d+(\.\d+)?',line)
-    if(m == None):
-        print(line)
-    return float(m.group(0))
-
-def get_mb_info(line):
-    m = re.findall(r'\d+',line)
-    if(m == None):
-        print(line)
-    size = int(m[0])
-    epoch = int(m[1])
-    shard = int(m[2])
-    return (shard, size)
-
-def make_csv_header(numshards):
-    with open(CSV_FILENAME, 'w',newline='\n') as csvfile:
-        w = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        w.writerow((['Block Number'] + (['Shard id', 'Consensus Time (ms)', 'Num Txs'] * numshards) + ['FB Consensus time (ms)', 'DS MBLK Wait time (ms)','FB block time','Total Txns']))
-    with open(CSV2_FILENAME, 'w',newline='\n') as csvfile:
-        w = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        w.writerow(['Block Number', 'Size', 'Consensus Time (ms)', 'TPS', 'MB info (Shard id, Size)','Gas Consumed'])
-
-def sort_mb_info(mb_infos):
-    mb_infos.sort(key= lambda x:x[0])
-
-def sort_mb_time(mb_infos):
-    mb_infos.sort(key=lambda x:(x[0],x[1][0]))
-
-def save_to_csv_lookup(dict_of_items):
-    for epoch_num in dict_of_items:
-        with open(CSV2_FILENAME, 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([epoch_num] + dict_of_items[epoch_num])
-
-def search_lookup():
-    lookup_file_names = get_filenames_for_dir(LOG_DIR, 'lookup')
-    fileName = lookup_file_names[0]
-    file = open(LOG_DIR+'/'+fileName+'/'+STATE_LOG_FILENAME,'r+')
-    currentBlocknum=-1
-    size = 0
-    time = 0
-    tps = 0
-    gas_consumed = 0
-    mb_infos = []
-    lookup_info = {}
-
-    for line in file:
-        if line.find(KEYWORD_FBSIZE) != -1:
-            if currentBlocknum >= 0:
-                sort_mb_info(mb_infos)
-                lookup_info[currentBlocknum] = [size,time,tps*1000000,mb_infos,gas_consumed]
-                mb_infos = []
-            (size, blockNumber) = get_blocknum_size(line[END_POS_TIMESTAMP:])
-            currentBlocknum = blockNumber
-        elif line.find(KEYWORD_TIME) != -1:
-            time = get_keyword_val(line[END_POS_TIMESTAMP:])
-            #print('Time: '+str(time))
-        elif line.find(KEYWORD_TPS) != -1:
-            tps = get_keyword_val(line[END_POS_TIMESTAMP:])
-            #print('TPS: '+str(tps*1000000))
-        elif line.find(KEYWORD_FBGAS) != -1:
-            gas_consumed = get_keyword_val(line[END_POS_TIMESTAMP:])
-            #print('GAS: '+str(gas_consumed))
-        elif line.find(KEYWORD_MBPCK) != -1:
-            mb_infos.append(get_mb_info(line[END_POS_TIMESTAMP:]))
-
-    file.close()
-    return lookup_info
-
-def filter(string, substr): 
-    return [str for str in string if
-             any(sub in str for sub in substr)] 
-
-def get_filenames_for_dir(path, substr):
-    all_files = os.listdir(path)
-    return filter(all_files,[substr])
+# =============================
+# Log line extraction functions
+# =============================
 
 def get_time(line):
     # The format is [ 18-12-07T09:47:21.817 ], what need to get is 09:47:21.817
     return line[11:24]
+
+def get_epoch_number(line):
+    return int(re.search('\[(\d+)\] ({0}|{1})$'.format(KEYWORD_BEGIN,KEYWORD_DONE), line).group(1))
 
 def convert_time_string(strTime):
     a,b,cd = strTime.split(':')
     c,d = cd.split('.')
     return int(a) * 3600000 + int(b) * 60000 + int(c) * 1000 + int(d)
 
-def get_mb_consensus_info(line,next_line):
+def get_FBSTAT(line):
+    result = re.search('\[(\d+)\] Size=(\d+) Time=(\S+) TPS=(\S+) Gas=(\d+)', line)
+    return int(result.group(1)), result.group(2), result.group(3), result.group(4), result.group(5)
+
+def get_MBPCK(line):
+    result = re.search('Size:(\d+) Epoch:(\d+) Shard:(\d+) Txns:(\d+)', line)
+    return int(result.group(1)), int(result.group(2)), int(result.group(3)), int(result.group(4))
+
+def get_MICON(line, next_line):
     start_time = convert_time_string(get_time(line))
     end_time = convert_time_string(get_time(next_line))
     m = re.findall(r'(\[\d+\])',line[END_POS_TIMESTAMP:])
@@ -152,12 +77,13 @@ def get_mb_consensus_info(line,next_line):
     #print(m)
     blocknum = int(m[0][1:-1])
     shard_id = int(m[1][1:-1])
-    return blocknum, [shard_id,end_time-start_time]
+    return blocknum, shard_id, end_time-start_time
 
-def get_epoch_number(line):
-    return int(re.search('\[(\d+)\] ({0}|{1})$'.format(KEYWORD_BEGIN,KEYWORD_DONE), line).group(1))
+def get_MITXN(line):
+    result = re.search('\[(\d+)\]$', line)
+    return int(result.group(1))
 
-def get_epoch_number_and_time(mydict_tmp, mydict, line):
+def get_MBWAIT_FBCON(mydict_tmp, mydict, line):
     if line.find(KEYWORD_BEGIN) != -1:
         epoch_num = get_epoch_number(line)
         start_time = convert_time_string(get_time(line))
@@ -168,6 +94,41 @@ def get_epoch_number_and_time(mydict_tmp, mydict, line):
         start_time = mydict_tmp[epoch_num]
         del mydict_tmp[epoch_num]
         mydict[epoch_num] = end_time - start_time if epoch_num not in mydict else max(mydict[epoch_num], end_time - start_time)
+
+# ============================
+# Log file searching functions
+# ============================
+
+def filter(string, substr): 
+    return [str for str in string if
+             any(sub in str for sub in substr)] 
+
+def get_filenames_for_dir(path, substr):
+    all_files = os.listdir(path)
+    return filter(all_files,[substr])
+
+def search_lookup():
+    lookup_file_names = get_filenames_for_dir(LOG_DIR, 'lookup')
+    fileName = lookup_file_names[0]
+    file = open(LOG_DIR+'/'+fileName+'/'+STATE_LOG_FILENAME,'r+')
+    lookup_info = {}
+
+    for line in file:
+        if line.find(KEYWORD_FBSTAT) != -1:
+            epoch_num, size, time, tps, gas = get_FBSTAT(line)
+            if epoch_num not in lookup_info:
+                lookup_info[epoch_num] = [size, time, tps, {}, gas]
+            else:
+                lookup_info[epoch_num] = [size, time, tps, lookup_info[epoch_num][3], gas]
+        elif line.find(KEYWORD_MBPCK) != -1:
+            mbsize, epoch_num, shard_id, txns = get_MBPCK(line)
+            if epoch_num not in lookup_info:
+                lookup_info[epoch_num] = [0, 0, 0.0, {shard_id: [txns, mbsize]}, 0]
+            else:
+                lookup_info[epoch_num][3][shard_id] = [txns, mbsize]
+
+    file.close()
+    return lookup_info
 
 def search_ds():
     ds_wait_times = {}
@@ -180,9 +141,9 @@ def search_ds():
             ds_consensus_times_tmp = {}
             for line in ds_file:
                 if line.find(KEYWORD_MBWAIT) != -1:
-                    get_epoch_number_and_time(ds_wait_times_tmp, ds_wait_times, line)
+                    get_MBWAIT_FBCON(ds_wait_times_tmp, ds_wait_times, line)
                 elif line.find(KEYWORD_FBCON) != -1:
-                    get_epoch_number_and_time(ds_consensus_times_tmp, ds_consensus_times, line)
+                    get_MBWAIT_FBCON(ds_consensus_times_tmp, ds_consensus_times, line)
 
     return ds_consensus_times, ds_wait_times
 
@@ -191,19 +152,30 @@ def search_normal():
     mb_time_infos = {}
     for fileName in all_normal_files:
         file = open(LOG_DIR+'/'+fileName+'/'+STATE_LOG_FILENAME,'r')
+        shard_id = 0
         for line in file:
             if line.find(KEYWORD_MICON) != -1:
-                bNum,mb_time = get_mb_consensus_info(line,next(file))
-                if bNum not in mb_time_infos.keys():
-                    mb_time_infos[bNum] = []
-                mb_time_infos[bNum].append(mb_time)
-            if line.find(KEYWORD_MITXN) != -1:
-                tx_num = get_keyword_val(line[END_POS_TIMESTAMP:])
-                mb_time_infos[bNum][-1].append(tx_num)
+                bNum, shard_id, mb_time = get_MICON(line, next(file))
+                if bNum not in mb_time_infos:
+                    mb_time_infos[bNum] = {}
+                mb_time_infos[bNum][shard_id] = [mb_time]
+            elif line.find(KEYWORD_MITXN) != -1:
+                tx_num = get_MITXN(line[END_POS_TIMESTAMP:])
+                mb_time_infos[bNum][shard_id].append(tx_num)
         file.close()
     return mb_time_infos
 
-def save_to_csv_time(list_of_items):
+# ===========================
+# Report generation functions
+# ===========================
+
+def make_csv_header():
+    with open(CSV_FILENAME, 'w',newline='\n') as csvfile:
+        w = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        w.writerow((['Epoch #', 'Shard Details', '', '', '', 'DS Wait (MBs) (ms)','Block Time (ms)','Gas Used','TPS']))
+        w.writerow((['', 'ID', 'Cons (ms)', '# Txns', 'MB Size (bytes)', '','','','']))
+
+def save_to_csv(list_of_items):
     with open(CSV_FILENAME, 'a', newline='\n') as csvfile:
         for item in list_of_items:
             w = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
@@ -214,27 +186,69 @@ if __name__ == '__main__':
         print('USAGE: ' + sys.argv[0] + '<num shards> <path to state logs folder>')
     else:
         LOG_DIR = sys.argv[2]
-        # FORMAT: mb_time_infos[block number] = [[shard id, time, tx num], [shard id, time, tx num], [shard id, time, tx num]]
+        num_shards = int(sys.argv[1])
+        # FORMAT: mb_time_infos[block number] = {shard id: [time, tx num]}
         mb_time_infos = search_normal()
         ds_consensus_times, ds_wait_times = search_ds()
-        lookup_times = search_lookup()
+        lookup_info = search_lookup()
         final_list = []
-        num_epochs = min(len(mb_time_infos), len(ds_consensus_times), len(ds_wait_times), len(lookup_times))
+        num_epochs = min(len(mb_time_infos), len(ds_consensus_times), len(ds_wait_times), len(lookup_info))
         for epoch_num in range(1, num_epochs + 1):
-            a = sorted(mb_time_infos[epoch_num], key=itemgetter(0))
+            a = mb_time_infos[epoch_num]
             b = ds_consensus_times[epoch_num]
             c = ds_wait_times[epoch_num]
-            d = lookup_times[epoch_num]
-            temp_list = [epoch_num]
-            for shardinfo in a:
-                for j in range(0,3):
-                    temp_list.append(shardinfo[j])
-            temp_list.append(b)
-            temp_list.append(c)
-            temp_list.append(d[1]*1000)
-            temp_list.append(int(d[4]))
+            d = lookup_info[epoch_num]
+            
+            # Create first row for this epoch (contains shard 0 MB stats + other stats)
+            shard_id = 0
+            temp_list = [epoch_num] # Epoch
+            temp_list.append(shard_id) # Shard ID
+            temp_list.append(a[shard_id][0]) # Consensus Time
+            temp_list.append(a[shard_id][1]) # Num Txns
+            if shard_id in d[3]:
+                temp_list.append(d[3][shard_id][1]) # MB Size
+                assert d[3][shard_id][0] == a[shard_id][1] # Num Txns in lookup log == Num Txns in normal log
+            else:
+                temp_list.append(0)
+
+            temp_list.append(c) # DS Wait Time (MBs)
+            temp_list.append(d[1]) # FB Block Time
+            temp_list.append(d[4]) # Gas Used
+            temp_list.append(d[2]) # TPS
             final_list.append(temp_list)
-        make_csv_header(int(sys.argv[1]))
-        final_list = sorted(final_list, key=itemgetter(0))
-        save_to_csv_time(final_list)
-        save_to_csv_lookup(lookup_times)
+
+            # Create other rows for this epoch (contains shard X MB stats)
+            if num_shards > 1:
+                temp_list = [''] # Epoch
+                for shard_id in range(1, num_shards):
+                    temp_list.append(shard_id) # Shard ID
+                    temp_list.append(a[shard_id][0]) # Consensus Time
+                    temp_list.append(a[shard_id][1]) # Num Txns
+                    if shard_id in d[3]:
+                        temp_list.append(d[3][shard_id][1]) # MB Size
+                        assert d[3][shard_id][0] == a[shard_id][1] # Num Txns in lookup log == Num Txns in normal log
+                    else:
+                        temp_list.append(0)
+                temp_list.append('') # DS Wait Time (MBs)
+                temp_list.append('') # FB Block Time
+                temp_list.append('') # Gas Used
+                temp_list.append('') # TPS
+                final_list.append(temp_list)
+
+            # Create last row for this epoch (contains DS MB stats)
+            temp_list = [''] # Epoch
+            temp_list.append(num_shards) # Shard ID (DS)
+            temp_list.append(b) # Consensus Time (FB + DS MB)
+            if num_shards in d[3]:
+                temp_list.append(d[3][num_shards][0]) # Num Txns (DS MB)
+                temp_list.append(d[3][num_shards][1]) # MB Size (DS MB)
+            else:
+                temp_list.append(0)
+                temp_list.append(0)
+            temp_list.append('') # DS Wait Time (MBs)
+            temp_list.append('') # FB Block Time
+            temp_list.append('') # Gas Used
+            temp_list.append('') # TPS
+            final_list.append(temp_list)
+        make_csv_header()
+        save_to_csv(final_list)
