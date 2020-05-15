@@ -1645,6 +1645,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     return true;
   }
 
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPKT][" << m_mediator.m_currentEpochNum
+                          << "] PktEpoch=" << epochNum << " Shard=" << shardId
+                          << " Lookup=" << string(lookupPubKey).substr(0, 8));
+  }
+
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     LOG_GENERAL(WARNING, "This node already started rejoin, ignore txn packet");
     return false;

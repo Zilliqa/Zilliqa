@@ -719,9 +719,15 @@ bool Node::ProcessFinalBlockCore(const bytes& message, unsigned int offset,
     }
   }
 
-  LOG_STATE("[FLBLK][" << setw(15) << left
-                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                       << m_mediator.m_currentEpochNum << "] RECVD FLBLK");
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[FLBLKRECV][" << m_mediator.m_currentEpochNum
+                             << "] Shard=" << m_myshardId);
+  } else {
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum
+                         << "] RECVD FLBLK");
+  }
 
   bool toSendTxnToLookup = false;
 
