@@ -4257,7 +4257,8 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
 
   txnShardMap[shardId].push_back(tx);
   LOG_GENERAL(INFO,
-              "Added Txn " << tx.GetTranID().hex() << " to shard " << shardId);
+              "Added Txn " << tx.GetTranID().hex() << " with nonce " << tx.GetNonce()
+              << " to shard " << shardId);
 
   return true;
 }
@@ -4280,8 +4281,6 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
                 "other than the LookUp node.");
     return true;
   }
-
-  lock_guard<mutex> g(m_txnShardMapMutex);
 
   m_txnShardMap[shardId].clear();
 
@@ -4326,8 +4325,6 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
 
   map<uint, vector<Transaction>> tempTxnShardMap;
 
-  lock_guard<mutex> g(m_txnShardMapMutex);
-
   LOG_GENERAL(INFO, "Shard dropped or gained, shuffling txn shard map");
   LOG_GENERAL(INFO, "New Shard Size: " << newNumShards
                                        << "  Old Shard Size: " << oldNumShards);
@@ -4366,6 +4363,10 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
     return;
   }
 
+  // Need to lock to prevent receiving transactions between
+  // SetNodeForwardTxnBlock and DeleteTxnShardMap
+  lock_guard<mutex> g(m_txnShardMapMutex);
+
   const uint32_t numShards = newNumShards;
 
   map<uint32_t, vector<Transaction>> mp;
@@ -4376,10 +4377,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
   }
 
   if (oldNumShards != newNumShards) {
-    auto rectifyFunc = [this, oldNumShards, newNumShards]() mutable -> void {
       RectifyTxnShardMap(oldNumShards, newNumShards);
-    };
-    DetachedFunction(1, rectifyFunc);
   }
 
   this_thread::sleep_for(
@@ -4388,9 +4386,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
   for (unsigned int i = 0; i < numShards + 1; i++) {
     bytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
     bool result = false;
-
     {
-      lock_guard<mutex> g(m_txnShardMapMutex);
       auto transactionNumber = mp[i].size();
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);

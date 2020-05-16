@@ -1787,14 +1787,16 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
     LOG_GENERAL(INFO,
-                "TxnPool size before processing: " << m_createdTxns.size());
+                "[TxPool] TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
-      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
+      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " with nonce " << txn.GetNonce() 
+                  << " (next: " << AccountStore::GetInstance().GetNonceTemp(txn.GetSenderAddr()) + 1
+                  << ") added to pool");
       m_createdTxns.insert(txn);
     }
 
-    LOG_GENERAL(INFO, "Txn processed: " << processed_count
+    LOG_GENERAL(INFO, "[TxPool] Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
   }

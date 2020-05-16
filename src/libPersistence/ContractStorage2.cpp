@@ -923,11 +923,19 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     auto& cs = Contract::ContractStorage2::GetContractStorage();
 
     // Case (1) -- three-way merge for a contract with sharding info
-    if (shardId != UNKNOWN_SHARD_ID && numShards != UNKNOWN_SHARD_ID
+    if (t_states.size() > 0 && shardId != UNKNOWN_SHARD_ID
+        && numShards != UNKNOWN_SHARD_ID
         && cs.FetchContractShardingInfo(addr, sh_info)) {
       std::chrono::system_clock::time_point tpStart;
+      std::chrono::system_clock::time_point genStart;
+      std::chrono::system_clock::time_point callStart;
+      std::chrono::system_clock::time_point writeStart;
+
+      double genTime, callTime;
+
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         tpStart = r_timer_start();
+        genStart = r_timer_start();
       }
 
       Json::Value merge_req = Json::objectValue;
@@ -958,6 +966,11 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     Json::Value req = Json::objectValue;
     req["req"] = req_str;
 
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      genTime = r_timer_end(genStart);
+      callStart = r_timer_start();
+    }
+
     // Ensure we call the merger for the appropriate Scilla version
     Account* acc = AccountStore::GetInstance().GetAccount(addr);
     uint32_t scilla_version;
@@ -966,11 +979,16 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
       acc->GetScillaVersion(scilla_version) &&
       ScillaClient::GetInstance().CallSharding(scilla_version, req, result);
 
+    if (ENABLE_CHECK_PERFORMANCE_LOG) {
+      callTime = r_timer_end(callStart);
+      writeStart = r_timer_start();
+    }
     if (LOG_SC) {
       LOG_GENERAL(INFO, "Merge request\n" << req_str << "\nResponse:\n" << result);
     }
-    Json::Value resp;
+
     // TODO: is there any recovery option if this fails?
+    Json::Value resp;
     if (call_succeeded
         && JSONUtils::GetInstance().convertStrtoJson(result, resp)
         && resp.isMember("states")) {
@@ -984,8 +1002,16 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     }
 
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(INFO, "Merged " << t_states.size() << " account deltas in "
-                            << r_timer_end(tpStart) << " microseconds");
+      string timing_str = "";
+      if (resp.isMember("timing") && resp["timing"].isString()) {
+        timing_str = resp["timing"].asString();
+      }
+
+      LOG_GENERAL(INFO, "Merged " << t_states.size() << " account deltas in "
+                        << r_timer_end(tpStart) << " microseconds"
+                        << " (Serialize: " << genTime << ", Call: " << callTime
+                        << " [" << timing_str << "]"
+                        << ", Write: " << r_timer_end(writeStart) << ")" );
     }
     // Case (2) -- overwrite
     } else {
@@ -1011,10 +1037,12 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
           r_stateDataMap[state.first] = {};
         }
       }
-      LOG_GENERAL(INFO, "Commit " <<
-          "state key: " << state.first <<
-          " old: " << DataConversion::CharArrayToString(m_stateDataMap[state.first]) <<
-          " new: " << DataConversion::CharArrayToString(state.second));
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Commit " <<
+            "state key: " << state.first <<
+            " old: " << DataConversion::CharArrayToString(m_stateDataMap[state.first]) <<
+            " new: " << DataConversion::CharArrayToString(state.second));
+      }
 
       m_stateDataMap[state.first] = state.second;
       auto pos = m_indexToBeDeleted.find(state.first);

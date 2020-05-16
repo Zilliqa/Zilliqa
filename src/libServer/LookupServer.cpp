@@ -467,7 +467,6 @@ Json::Value LookupServer::CreateTransaction(
         if (_json.isMember("priority")) {
           sendToDs = _json["priority"].asBool();
         }
-        // TODO GEORGE: Lookup logic
         if (shard != num_shards && !sendToDs) {
           if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
             throw JsonRpcException(

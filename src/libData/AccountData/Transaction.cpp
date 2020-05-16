@@ -253,7 +253,8 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
         }
 
         if (ENABLE_CHECK_PERFORMANCE_LOG) {
-          LOG_GENERAL(INFO, "Routed CONTRACT_CALL to shard in "
+          LOG_GENERAL(INFO, "Routed CONTRACT_CALL with nonce " << GetNonce()
+                              << " to shard " << shard << " in "
                               << r_timer_end(tpStart) << " microseconds");
         }
         return shard;

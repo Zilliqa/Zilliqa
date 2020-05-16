@@ -279,6 +279,7 @@ void Node::ProcessTransactionWhenShardLeader(
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
   m_TxnOrder.clear();
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Leader of shard " << m_myshardId << ") Have " << t_createdTxns.size () << " transactions");
 
   bool txnProcTimeout = false;
 
@@ -369,16 +370,17 @@ void Node::ProcessTransactionWhenShardLeader(
       // LOG_GENERAL(INFO, "findOneFromCreated");
 
       Address senderAddr = t.GetSenderAddr();
+      uint128_t expectedNonce = AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1;
+
       // check nonce, if nonce larger than expected, put it into
       // m_addrNonceTxnMap
-      if (t.GetNonce() >
-          AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
-        // LOG_GENERAL(INFO, "High nonce: "
-        //                     << t.GetNonce() << " cur sender " <<
-        //                     senderAddr.hex()
-        //                     << " nonce: "
-        //                     <<
-        //                     AccountStore::GetInstance().GetNonceTemp(senderAddr));
+      if (t.GetNonce() > expectedNonce) {
+        LOG_GENERAL(INFO, "High nonce: "
+                            << t.GetNonce() << " cur sender " <<
+                            senderAddr.hex()
+                            << " nonce: "
+                            <<
+                            AccountStore::GetInstance().GetNonceTemp(senderAddr));
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(t.GetNonce());
@@ -394,17 +396,17 @@ void Node::ProcessTransactionWhenShardLeader(
         t_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
       }
       // if nonce too small, ignore it
-      else if (t.GetNonce() <
-               AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
-        // LOG_GENERAL(INFO,
-        //             "Nonce too small"
-        //                 << " Expected "
-        //                 <<
-        //                 AccountStore::GetInstance().GetNonceTemp(senderAddr)
-        //                 << " Found " << t.GetNonce());
+      else if (t.GetNonce() < expectedNonce) {
+        LOG_GENERAL(INFO,
+                    "Nonce too small"
+                        << " Expected "
+                        <<
+                        AccountStore::GetInstance().GetNonceTemp(senderAddr)
+                        << " Found " << t.GetNonce());
       }
       // if nonce correct, process it
       else {
+        LOG_GENERAL(INFO, "Found transaction with correct nonce " << t.GetNonce());
         if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
           gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
@@ -441,6 +443,8 @@ void Node::ProcessTransactionWhenShardLeader(
   if (ENABLE_TXNS_BACKUP) {
     SaveTxnsToS3(t_processedTransactions);
   }
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Leader) Processed " << t_processedTransactions.size ()
+            << " transactions using " << m_gasUsedTotal << " gas");
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
@@ -526,6 +530,7 @@ void Node::ProcessTransactionWhenShardBackup(
   m_expectedTranOrdering.clear();
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Backup in shard " << m_myshardId << ") Have " << t_createdTxns.size () << " transactions");
 
   bool txnProcTimeout = false;
 
@@ -614,10 +619,10 @@ void Node::ProcessTransactionWhenShardBackup(
     // if no txn in u_map meet right nonce process new come-in transactions
     else if (t_createdTxns.findOne(t)) {
       Address senderAddr = t.GetSenderAddr();
+      uint128_t expectedNonce = AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1;
       // check nonce, if nonce larger than expected, put it into
       // t_addrNonceTxnMap
-      if (t.GetNonce() >
-          AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
+      if (t.GetNonce() > expectedNonce) {
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(t.GetNonce());
@@ -630,14 +635,15 @@ void Node::ProcessTransactionWhenShardBackup(
             continue;
           }
         }
+        // LOG_GENERAL(INFO, "Expected nonce " << expectedNonce << " got " << t.GetNonce());
         t_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
       }
       // if nonce too small, ignore it
-      else if (t.GetNonce() <
-               AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
+      else if (t.GetNonce() < expectedNonce) {
       }
       // if nonce correct, process it
       else {
+        LOG_GENERAL(INFO, "Found transaction with correct nonce " << t.GetNonce());
         if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
           gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
@@ -674,6 +680,8 @@ void Node::ProcessTransactionWhenShardBackup(
 
   PutTxnsInTempDataBase(t_processedTransactions);
 
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Backup) Processed " << t_processedTransactions.size ()
+            << " transactions using " << m_gasUsedTotal << " gas");
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
 
@@ -738,22 +746,37 @@ void Node::ReinstateMemPool(
     const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
     const vector<Transaction>& gasLimitExceededTxnBuffer) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  // Parent already has lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-  // Put remaining txns back in pool
+  uint64_t count = 0;
+
+  // Reinstate non-processed transactions
+  for (const auto& kv : m_createdTxns.HashIndex) {
+    if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
+          count++;
+          t_createdTxns.insert(kv.second);
+          // TODO: With what status do we report these to the lookup?
+    }
+  }
+
+  // TODO: this might not report back all txs if not everything got put in addrNonceTxnMap
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
-      t_createdTxns.insert(nonceTxn.second);
       m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
                                 PoolTxnStatus::PRESENT_NONCE_HIGH);
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
+    count++;
     t_createdTxns.insert(t);
     LOG_GENERAL(INFO, "PendingAPI " << t.GetTranID());
     m_unconfirmedTxns.emplace(t.GetTranID(),
                               PoolTxnStatus::PRESENT_GAS_EXCEEDED);
   }
+
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool] Put back " << count << " transactions into mempool");
+
 }
 
 void Node::PutProcessedInUnconfirmedTxns() {
