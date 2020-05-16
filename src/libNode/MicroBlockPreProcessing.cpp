@@ -272,10 +272,11 @@ void Node::ProcessTransactionWhenShardLeader(
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
   }
-
-  lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-  t_createdTxns = m_createdTxns;
+  TxnPool t_createdTxns;
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    t_createdTxns = m_createdTxns;
+  }
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
   m_TxnOrder.clear();
@@ -524,9 +525,11 @@ void Node::ProcessTransactionWhenShardBackup(
     UpdateBalanceForPreGeneratedAccounts();
   }
 
-  lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-  t_createdTxns = m_createdTxns;
+  TxnPool t_createdTxns;
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    t_createdTxns = m_createdTxns;
+  }
   m_expectedTranOrdering.clear();
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
@@ -746,16 +749,18 @@ void Node::ReinstateMemPool(
     const map<Address, map<uint64_t, Transaction>>& addrNonceTxnMap,
     const vector<Transaction>& gasLimitExceededTxnBuffer) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-  // Parent already has lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   uint64_t count = 0;
 
   // Reinstate non-processed transactions
-  for (const auto& kv : m_createdTxns.HashIndex) {
-    if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
-          count++;
-          t_createdTxns.insert(kv.second);
-          // TODO: With what status do we report these to the lookup?
+  {
+    lock_guard<mutex> q(m_mutexCreatedTransactions);
+    for (const auto& kv : m_createdTxns.HashIndex) {
+      if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
+            count++;
+            t_createdTxns.insert(kv.second);
+            // TODO: With what status do we report these to the lookup?
+      }
     }
   }
 
