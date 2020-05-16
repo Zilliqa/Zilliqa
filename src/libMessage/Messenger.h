@@ -160,7 +160,7 @@ class Messenger {
   static bool GetFallbackBlock(const bytes& src, const unsigned int offset,
                                FallbackBlock& fallbackBlock);
   static bool SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
-                                     const TransactionCoreInfo& transaction);
+                                     const TransactionCoreInfo& transaction, bool skipNonce=false);
   static bool GetTransactionCoreInfo(const bytes& src,
                                      const unsigned int offset,
                                      TransactionCoreInfo& transaction);

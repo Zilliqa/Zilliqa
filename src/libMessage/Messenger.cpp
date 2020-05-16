@@ -1145,9 +1145,14 @@ bool ProtobufToShardingStructureAnnouncement(
 }
 
 void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
-                                   ProtoTransactionCoreInfo& protoTxnCoreInfo) {
+                                   ProtoTransactionCoreInfo& protoTxnCoreInfo,
+                                   bool skipNonce) {
   protoTxnCoreInfo.set_version(txnCoreInfo.version);
-  protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
+  if (skipNonce) {
+    protoTxnCoreInfo.set_nonce(0);
+  } else {
+    protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
+  }
   protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
                               txnCoreInfo.toAddr.size);
   SerializableToProtobufByteArray(txnCoreInfo.senderPubKey,
@@ -1204,7 +1209,7 @@ void TransactionToProtobuf(const Transaction& transaction,
   protoTransaction.set_tranid(transaction.GetTranID().data(),
                               transaction.GetTranID().size);
   TransactionCoreInfoToProtobuf(transaction.GetCoreInfo(),
-                                *protoTransaction.mutable_info());
+                                *protoTransaction.mutable_info(), false);
 
   SerializableToProtobufByteArray(transaction.GetSignature(),
                                   *protoTransaction.mutable_signature());
@@ -1234,8 +1239,14 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
-  bytes txnData;
+  bytes txnData, txnDataV;
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
+    LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
+    return false;
+  }
+  auto ptV = protoTransaction.info();
+  ptV.set_nonce(0);
+  if (!SerializeToArray(ptV, txnDataV, 0)) {
     LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
     return false;
   }
@@ -1253,7 +1264,7 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   }
 
   // Verify signature
-  if (!Schnorr::Verify(txnData, signature, txnCoreInfo.senderPubKey)) {
+  if (!Schnorr::Verify(txnDataV, signature, txnCoreInfo.senderPubKey)) {
     LOG_GENERAL(WARNING, "Signature verification failed");
     return false;
   }
@@ -3191,10 +3202,11 @@ bool Messenger::GetFallbackBlock(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
-                                       const TransactionCoreInfo& transaction) {
+                                       const TransactionCoreInfo& transaction,
+                                       bool skipNonce) {
   ProtoTransactionCoreInfo result;
 
-  TransactionCoreInfoToProtobuf(transaction, result);
+  TransactionCoreInfoToProtobuf(transaction, result, skipNonce);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoTransactionCoreInfo initialization failed");

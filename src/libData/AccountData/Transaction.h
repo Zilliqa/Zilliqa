@@ -99,7 +99,7 @@ class Transaction : public SerializableDataBlock {
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;
 
-  bool SerializeCoreFields(bytes& dst, unsigned int offset) const;
+  bool SerializeCoreFields(bytes& dst, unsigned int offset, bool skipNonce=false) const;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;

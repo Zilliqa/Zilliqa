@@ -31,8 +31,8 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset) const {
-  return Messenger::SetTransactionCoreInfo(dst, offset, m_coreInfo);
+bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset, bool skipNonce) const {
+  return Messenger::SetTransactionCoreInfo(dst, offset, m_coreInfo, skipNonce);
 }
 
 Transaction::Transaction() {}
@@ -87,8 +87,9 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {
-  bytes txnData;
-  SerializeCoreFields(txnData, 0);
+  bytes txnData, txnDataV;
+  SerializeCoreFields(txnData, 0, false);
+  SerializeCoreFields(txnDataV, 0, true);
 
   // Generate the transaction ID
   SHA2<HashType::HASH_VARIANT_256> sha2;
@@ -101,7 +102,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
   // Verify the signature
-  if (!Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey)) {
+  if (!Schnorr::Verify(txnDataV, m_signature, m_coreInfo.senderPubKey)) {
     LOG_GENERAL(WARNING, "We failed to verify the input signature.");
   }
 }

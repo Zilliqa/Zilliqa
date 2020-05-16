@@ -33,10 +33,10 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 Validator::~Validator() {}
 
 bool Validator::VerifyTransaction(const Transaction& tran) {
-  bytes txnData;
-  tran.SerializeCoreFields(txnData, 0);
+  bytes txnDataV;
+  tran.SerializeCoreFields(txnDataV, 0, true);
 
-  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
+  return Schnorr::Verify(txnDataV, tran.GetSignature(), tran.GetSenderPubKey());
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
