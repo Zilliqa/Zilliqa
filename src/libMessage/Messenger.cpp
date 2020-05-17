@@ -4834,16 +4834,16 @@ bool Messenger::SetNodeForwardTxnBlock(
   unsigned int msg_size = 0;
 
   for (const auto& txn : txnsCurrent) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
-      break;
-    }
+    // if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+    //   break;
+    // }
     ProtoTransaction* protoTxn = new ProtoTransaction();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
-    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
-        txn_size >= SMALL_TXN_SIZE) {
-      continue;
-    }
+    // if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
+    //     txn_size >= SMALL_TXN_SIZE) {
+    //   continue;
+    // }
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
     msg_size += protoTxn->ByteSize();
@@ -4913,16 +4913,16 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
   unsigned int msg_size = 0;
 
   for (const auto& txn : txns) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
-      break;
-    }
+    // if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+    //   break;
+    // }
     ProtoTransaction* protoTxn = new ProtoTransaction();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
-    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
-        txn_size >= SMALL_TXN_SIZE) {
-      continue;
-    }
+    // if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
+    //     txn_size >= SMALL_TXN_SIZE) {
+    //   continue;
+    // }
     *result.add_transactions() = *protoTxn;
     txnsCount++;
     msg_size += txn_size;
