@@ -284,13 +284,13 @@ void Node::ProcessTransactionWhenShardLeader(
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    NotifyTimeout(txnProcTimeout);
-  };
+  // auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+  //   NotifyTimeout(txnProcTimeout);
+  // };
 
-  DetachedFunction(1, txnProcTimer);
+  // DetachedFunction(1, txnProcTimer);
 
-  this_thread::sleep_for(chrono::milliseconds(100));
+  // this_thread::sleep_for(chrono::milliseconds(100));
 
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
@@ -546,13 +546,13 @@ void Node::ProcessTransactionWhenShardBackup(
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    NotifyTimeout(txnProcTimeout);
-  };
+  // auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+  //   NotifyTimeout(txnProcTimeout);
+  // };
 
-  DetachedFunction(1, txnProcTimer);
+  // DetachedFunction(1, txnProcTimer);
 
-  this_thread::sleep_for(chrono::milliseconds(100));
+  // this_thread::sleep_for(chrono::milliseconds(100));
 
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
