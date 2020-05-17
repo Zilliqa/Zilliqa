@@ -447,7 +447,7 @@ void Node::ProcessTransactionWhenShardLeader(
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Leader) Processed " << t_processedTransactions.size ()
             << " transactions using " << m_gasUsedTotal << " gas");
   // Put txns in map back into pool
-  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+  // ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
@@ -501,7 +501,16 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTxns = move(t_createdTxns);
+
+    t_createdTxns = m_createdTxns;
+    m_createdTxns.clear();
+    // m_createdTxns = move(t_createdTxns);
+    // TODO GEORGE: make this more efficient
+    for (const auto& kv : t_createdTxns.HashIndex) {
+      if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
+            m_createdTxns.insert(kv.second);
+      }
+    }
     t_createdTxns.clear();
   }
   if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
@@ -685,7 +694,7 @@ void Node::ProcessTransactionWhenShardBackup(
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Backup) Processed " << t_processedTransactions.size ()
             << " transactions using " << m_gasUsedTotal << " gas");
-  ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+  // ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
 }
 
 void Node::PutTxnsInTempDataBase(
@@ -751,18 +760,6 @@ void Node::ReinstateMemPool(
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   uint64_t count = 0;
-
-  // Reinstate non-processed transactions
-  {
-    lock_guard<mutex> q(m_mutexCreatedTransactions);
-    for (const auto& kv : m_createdTxns.HashIndex) {
-      if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
-            count++;
-            t_createdTxns.insert(kv.second);
-            // TODO: With what status do we report these to the lookup?
-      }
-    }
-  }
 
   // TODO: this might not report back all txs if not everything got put in addrNonceTxnMap
   for (const auto& kv : addrNonceTxnMap) {
