@@ -4414,6 +4414,12 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
+      if (LOG_PARAMETERS) {
+        LOG_STATE("[TXNPKT][" << m_mediator.m_currentEpochNum << "] Shard=" << i
+                              << " NumTx="
+                              << (GetTxnFromShardMap(i).size() + mp[i].size()));
+      }
+
       if (GetTxnFromShardMap(i).empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
         continue;

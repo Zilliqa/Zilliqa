@@ -141,6 +141,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 {
   LOG_MARKER();
 
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
+  }
+
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     pair<bytes, Peer>* message = NULL;
