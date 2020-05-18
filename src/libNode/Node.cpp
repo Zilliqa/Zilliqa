@@ -1646,9 +1646,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 
   if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPKT][" << m_mediator.m_currentEpochNum
-                          << "] PktEpoch=" << epochNum << " Shard=" << shardId
-                          << " Lookup=" << string(lookupPubKey).substr(0, 8));
+    LOG_STATE("[TXNPKT-BEG]["
+              << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
+              << " Shard=" << shardId
+              << " Lookup=" << string(lookupPubKey).substr(0, 8));
   }
 
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
@@ -1805,12 +1806,20 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                                         << m_createdTxns.size());
   }
 
-  LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << "][" << m_mediator.m_currentEpochNum << "]["
-                            << shardId << "]["
-                            << string(lookupPubKey).substr(0, 6) << "] DONE ["
-                            << processed_count << "]");
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPKT-END]["
+              << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
+              << " Shard=" << shardId
+              << " Lookup=" << string(lookupPubKey).substr(0, 8));
+  } else {
+    LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << shardId << "]["
+                              << string(lookupPubKey).substr(0, 6) << "] DONE ["
+                              << processed_count << "]");
+  }
+
   return true;
 }
 

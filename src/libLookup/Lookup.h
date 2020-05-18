@@ -76,6 +76,10 @@ class Lookup : public Executable {
   // constants.xml.
   VectorOfNode m_lookupNodesStatic;
 
+  // This is used only for testing with gentxn
+  std::vector<Address> m_myGenesisAccounts1;
+  std::vector<Address> m_myGenesisAccounts2;
+
   // To ensure that the confirm of DS node rejoin won't be later than
   // It receiving a new DS block
   bool m_currDSExpired = false;

@@ -173,6 +173,7 @@ extern const unsigned int NUM_SHARE_PENDING_TXNS;
 
 // Dispatcher constants
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const unsigned int NUM_DISPATCHERS;
 extern const std::string TXN_PATH;
 
 // Epoch timing constants

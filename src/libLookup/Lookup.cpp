@@ -210,6 +210,60 @@ void Lookup::SetLookupNodes() {
   }
 
   m_lookupNodesStatic = m_lookupNodes;
+
+  /*
+    For testing with gentxn, distribute the genesis accounts evenly across the
+    number of dispatching lookups. Then for each lookup's accounts, split the
+    list evenly in two so that the lookup can continuously send transactions
+    across alternating epochs. Finally, to achieve even distribution across
+    shards, each epoch's list of accounts should have an equal number of
+    addresses that belong to a shard. For example: assuming 3 lookups and 3
+    shards: <accounts> <account></account> -> for lookup 0 shard 0 set 1
+      <account></account> -> for lookup 0 shard 1 set 1
+      <account></account> -> for lookup 0 shard 2 set 1
+      <account></account> -> for lookup 0 shard 0 set 2
+      <account></account> -> for lookup 0 shard 1 set 2
+      <account></account> -> for lookup 0 shard 2 set 2
+      ...
+      <account></account> -> for lookup 2 shard 0 set 2
+      <account></account> -> for lookup 2 shard 1 set 2
+      <account></account> -> for lookup 2 shard 2 set 2
+  */
+  if (USE_REMOTE_TXN_CREATOR && GENESIS_WALLETS.size() > 0) {
+    const unsigned int myLookupIndex = std::distance(
+        m_lookupNodesStatic.begin(),
+        find_if(m_lookupNodesStatic.begin(), m_lookupNodesStatic.end(),
+                [&](const PairOfNode& x) {
+                  return (m_mediator.m_selfKey.second == x.first);
+                }));
+    const unsigned int indexBeg =
+        myLookupIndex * (GENESIS_WALLETS.size() / NUM_DISPATCHERS);
+    const unsigned int indexMid =
+        indexBeg + (GENESIS_WALLETS.size() / NUM_DISPATCHERS) / 2;
+    const unsigned int indexEnd =
+        (myLookupIndex + 1) * (GENESIS_WALLETS.size() / NUM_DISPATCHERS);
+
+    LOG_GENERAL(INFO, "I am dispatcher number " << (myLookupIndex + 1) << " of "
+                                                << NUM_DISPATCHERS);
+
+    for (unsigned int i = indexBeg; i < indexMid; i++) {
+      const auto& addrStr = GENESIS_WALLETS.at(i);
+      bytes addrBytes;
+      if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
+        continue;
+      }
+      m_myGenesisAccounts1.emplace_back(Address(addrBytes));
+    }
+
+    for (unsigned int i = indexMid; i < indexEnd; i++) {
+      const auto& addrStr = GENESIS_WALLETS.at(i);
+      bytes addrBytes;
+      if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
+        continue;
+      }
+      m_myGenesisAccounts2.emplace_back(Address(addrBytes));
+    }
+  }
 }
 
 void Lookup::SetAboveLayer() {
@@ -346,15 +400,14 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     return false;
   }
 
-  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
+  const vector<Address>& myGenesisAccounts = m_mediator.m_currentEpochNum % 2
+                                                 ? m_myGenesisAccounts1
+                                                 : m_myGenesisAccounts2;
+  const unsigned int NUM_TXN_TO_DS_PER_ACCOUNT =
+      num_txn / myGenesisAccounts.size();
 
-  for (auto& addrStr : GENESIS_WALLETS) {
-    bytes addrBytes;
-    if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
-      continue;
-    }
-    Address addr{addrBytes};
-
+  for (unsigned int i = 0; i < myGenesisAccounts.size(); i++) {
+    const auto& addr = myGenesisAccounts.at(i);
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
 
@@ -372,9 +425,13 @@ bool Lookup::GenTxnToSend(size_t num_txn,
                           << nonce + num_txn << " of Addr " << addr.hex());
     txns.clear();
 
-    if (!GetTxnFromFile::GetFromFile(addr,
-                                     static_cast<uint32_t>(nonce) + num_txn + 1,
-                                     NUM_TXN_TO_DS, txns)) {
+    if (!GetTxnFromFile::GetFromFile(
+            addr, static_cast<uint32_t>(nonce) + num_txn + 1,
+            NUM_TXN_TO_DS_PER_ACCOUNT +
+                (i != myGenesisAccounts.size() - 1
+                     ? 0
+                     : num_txn % myGenesisAccounts.size()),
+            txns)) {
       LOG_GENERAL(WARNING, "Failed to get txns for DS");
     }
 
