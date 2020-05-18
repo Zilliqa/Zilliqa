@@ -376,12 +376,12 @@ void Node::ProcessTransactionWhenShardLeader(
       // check nonce, if nonce larger than expected, put it into
       // m_addrNonceTxnMap
       if (t.GetNonce() > expectedNonce) {
-        LOG_GENERAL(INFO, "High nonce: "
-                            << t.GetNonce() << " cur sender " <<
-                            senderAddr.hex()
-                            << " nonce: "
-                            <<
-                            AccountStore::GetInstance().GetNonceTemp(senderAddr));
+        // LOG_GENERAL(INFO, "High nonce: "
+        //                     << t.GetNonce() << " cur sender " <<
+        //                     senderAddr.hex()
+        //                     << " nonce: "
+        //                     <<
+        //                     AccountStore::GetInstance().GetNonceTemp(senderAddr));
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(t.GetNonce());
@@ -448,6 +448,7 @@ void Node::ProcessTransactionWhenShardLeader(
             << " transactions using " << m_gasUsedTotal << " gas");
   // Put txns in map back into pool
   // ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+  UpdateMemPool();
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
@@ -496,23 +497,28 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
   return true;
 }
 
+void Node::UpdateMemPool() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+  t_createdTxns = m_createdTxns;
+  m_createdTxns.clear();
+  // m_createdTxns = move(t_createdTxns);
+  // TODO GEORGE: make this more efficient
+  for (const auto& kv : t_createdTxns.HashIndex) {
+    if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
+          m_createdTxns.insert(kv.second);
+    }
+  }
+  t_createdTxns.clear();
+}
+
 void Node::UpdateProcessedTransactions() {
   LOG_MARKER();
 
-  {
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
+  UpdateMemPool();
 
-    t_createdTxns = m_createdTxns;
-    m_createdTxns.clear();
-    // m_createdTxns = move(t_createdTxns);
-    // TODO GEORGE: make this more efficient
-    for (const auto& kv : t_createdTxns.HashIndex) {
-      if (t_processedTransactions.find(kv.first) == t_processedTransactions.end()) {
-            m_createdTxns.insert(kv.second);
-      }
-    }
-    t_createdTxns.clear();
-  }
   if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
     BlockStorage::GetBlockStorage().ResetDB(
         BlockStorage::DBTYPE::PROCESSED_TEMP);
@@ -695,6 +701,7 @@ void Node::ProcessTransactionWhenShardBackup(
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[TxPool](Backup) Processed " << t_processedTransactions.size ()
             << " transactions using " << m_gasUsedTotal << " gas");
   // ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer);
+  UpdateMemPool();
 }
 
 void Node::PutTxnsInTempDataBase(

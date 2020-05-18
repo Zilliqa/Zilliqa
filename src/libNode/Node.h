@@ -623,6 +623,7 @@ class Node : public Executable {
   void UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
                                                    DequeOfNode& dsComm);
 
+  void UpdateMemPool();
   void UpdateProcessedTransactions();
 
   bool IsShardNode(const PubKey& pubKey);
