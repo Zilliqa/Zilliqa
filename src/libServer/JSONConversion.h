@@ -42,6 +42,8 @@ class JSONConversion {
   static const Transaction convertJsontoTx(const Json::Value& _json);
   // check if a Json is a valid Tx
   static bool checkJsonTx(const Json::Value& _json);
+  // check is string address is a valid address
+  static bool checkStringAddress(const std::string& address);
   // Convert a json array of strings to a vector of strings
   static const std::vector<std::string> convertJsonArrayToVector(
       const Json::Value& _json);

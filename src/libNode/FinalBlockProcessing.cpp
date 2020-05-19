@@ -1020,7 +1020,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
 
     // feed the event log holder
     if (ENABLE_WEBSOCKET) {
-      WebsocketServer::GetInstance().ParseTxnEventLog(twr);
+      WebsocketServer::GetInstance().ParseTxn(twr);
     }
 
     // Store TxBody to disk
