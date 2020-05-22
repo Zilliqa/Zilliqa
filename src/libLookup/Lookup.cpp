@@ -418,6 +418,10 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   const vector<Address>& myGenesisAccounts = m_mediator.m_currentEpochNum % 2
                                                  ? m_myGenesisAccounts1
                                                  : m_myGenesisAccounts2;
+
+  if (myGenesisAccounts.empty()) {
+    return false;
+  }
   const unsigned int NUM_TXN_TO_DS_PER_ACCOUNT =
       num_txn / myGenesisAccounts.size();
 
@@ -3093,9 +3097,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       return;
     }
   }
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_node->ClearUnconfirmedTxn();
-  }
 
   for (const auto& txBlock : txBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, txBlock);
@@ -3140,6 +3141,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         m_syncType == SyncType::GUARD_DS_SYNC) {
       // Compose And Send GetCosigRewards for this txBlk from seed
       ComposeAndSendGetCosigsRewardsFromSeed(txBlock.GetHeader().GetBlockNum());
+    }
+
+    if (LOOKUP_NODE_MODE) {
+      m_mediator.m_node->ClearPendingAndDroppedTxn();
     }
   }
 
@@ -4782,6 +4787,7 @@ bool Lookup::CleanVariables() {
     l_nodesInNetwork.clear();
   }
   m_mediator.m_node->CleanWhitelistReqs();
+  m_mediator.m_node->ClearAllPendingAndDroppedTxn();
 
   return true;
 }

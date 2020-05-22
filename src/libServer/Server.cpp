@@ -23,7 +23,7 @@
 
 #include <Schnorr.h>
 #include "Server.h"
-#include "common/MempoolEnum.h"
+#include "common/ErrTxn.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"

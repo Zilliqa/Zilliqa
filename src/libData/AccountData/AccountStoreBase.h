@@ -24,6 +24,7 @@
 #include "Transaction.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
+#include "common/ErrTxn.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
 
@@ -38,7 +39,7 @@ class AccountStoreBase : public SerializableDataBlock {
                           const uint128_t& gasPrice, uint128_t& gasRefund);
 
   bool UpdateAccounts(const Transaction& transaction,
-                      TransactionReceipt& receipt);
+                      TransactionReceipt& receipt, ErrTxnStatus& error_code);
 
  public:
   virtual void Init();

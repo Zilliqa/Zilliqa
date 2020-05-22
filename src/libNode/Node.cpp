@@ -553,8 +553,35 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
 }
 
 void Node::ClearUnconfirmedTxn() {
-  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
-  m_unconfirmedTxns.clear();
+  LOG_MARKER();
+  {
+    unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+    m_unconfirmedTxns.clear();
+  }
+}
+
+void Node::ClearPendingAndDroppedTxn() {
+  const auto& latestBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  {
+    unique_lock<shared_timed_mutex> g(m_droppedTxnsMutex);
+    m_droppedTxns.clear(latestBlockNum, NUM_TTL_DROPPED_TXN);
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_pendingTxnsMutex);
+    m_pendingTxns.clear(latestBlockNum, NUM_TTL_PENDING_TXN);
+  }
+}
+
+void Node::ClearAllPendingAndDroppedTxn() {
+  {
+    unique_lock<shared_timed_mutex> g(m_droppedTxnsMutex);
+    m_droppedTxns.clearAll();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_pendingTxnsMutex);
+    m_pendingTxns.clearAll();
+  }
 }
 
 bool Node::ValidateDB() {
@@ -1822,15 +1849,18 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
   std::vector<Transaction> checkedTxns;
+  vector<pair<TxnHash, ErrTxnStatus>> rejectTxns;
   for (const auto& txn : txns) {
     if (m_mediator.GetIsVacuousEpoch()) {
       LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
       return false;
     }
-    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
+    ErrTxnStatus error;
+    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
       checkedTxns.push_back(txn);
     } else {
       LOG_GENERAL(WARNING, "Txn " << txn.GetTranID().hex() << " is not valid.");
+      rejectTxns.emplace_back(txn.GetTranID(), error);
     }
 
     processed_count++;
@@ -1846,13 +1876,29 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
-      LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
-      m_createdTxns.insert(txn);
+      const auto& ret_pair = m_createdTxns.insert(txn);
+      if (!ret_pair.first) {
+        {
+          rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
+          LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
+                                   << " rejected by pool due to "
+                                   << ret_pair.second);
+        }
+      } else {
+        LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
+      }
     }
 
     LOG_GENERAL(INFO, "Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
+  }
+
+  {
+    unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+    for (const auto& txnhashStatus : rejectTxns) {
+      m_unconfirmedTxns.emplace(txnhashStatus);
+    }
   }
 
   if (LOG_PARAMETERS) {

@@ -21,7 +21,7 @@
 #include <boost/variant.hpp>
 #include <map>
 #include "common/BaseType.h"
-#include "common/MempoolEnum.h"
+#include "common/ErrTxn.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
@@ -387,12 +387,12 @@ class Messenger {
                                            MBnForwardedTxnEntry& entry);
   static bool GetNodePendingTxn(
       const bytes& src, const unsigned offset, uint64_t& epochnum,
-      std::unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap,
-      uint32_t& shardId, PubKey& pubKey);
+      std::unordered_map<TxnHash, ErrTxnStatus>& hashCodeMap, uint32_t& shardId,
+      PubKey& pubKey);
 
   static bool SetNodePendingTxn(
       bytes& dst, const unsigned offset, const uint64_t& epochnum,
-      const std::unordered_map<TxnHash, PoolTxnStatus>& hashCodeMap,
+      const std::unordered_map<TxnHash, ErrTxnStatus>& hashCodeMap,
       const uint32_t shardId, const PairOfKey& key);
 
   static bool SetNodeForwardTxnBlock(

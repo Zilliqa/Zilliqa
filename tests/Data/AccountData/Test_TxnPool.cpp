@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   // queried back
   // ============================================================
   for (auto& t : transaction_v) {
-    BOOST_CHECK_EQUAL(true, tp.insert(t));
+    BOOST_CHECK_EQUAL(true, tp.insert(t).first);
     BOOST_CHECK_EQUAL(true, tp.exist(t.GetTranID()));
     Transaction tran = Transaction();
     BOOST_CHECK_EQUAL(true, tp.get(t.GetTranID(), tran));
@@ -134,7 +134,8 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   // ============================================================
   BOOST_CHECK_EQUAL(false,
                     tp.insert(transaction_v[TestUtils::RandomIntInRng<uint8_t>(
-                        0, transaction_v.size() - 1)]));
+                                  0, transaction_v.size() - 1)])
+                        .first);
 
   // ============================================================
   // Insert existing Transaction but with higher gas price (+1)
@@ -152,7 +153,7 @@ BOOST_AUTO_TEST_CASE(txnpool) {
     }
     ++i;
   }
-  BOOST_CHECK_EQUAL(true, tp.insert(transactionHigherGas));
+  BOOST_CHECK_EQUAL(true, tp.insert(transactionHigherGas).first);
 
   // ============================================================
   // Test if findSameNonceButHigherGas returns same Transaction but with higher

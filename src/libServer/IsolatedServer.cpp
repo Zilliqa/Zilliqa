@@ -242,18 +242,29 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     TransactionReceipt txreceipt;
 
+    ErrTxnStatus error_code;
+    bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
-    AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                   3  // Arbitrary values
-                                                   ,
-                                                   true, tx, txreceipt);
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
+                                                        3  // Arbitrary values
+                                                        ,
+                                                        true, tx, txreceipt,
+                                                        error_code)) {
+      throwError = true;
+    }
 
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
     AccountStore::GetInstance().SerializeDelta();
     AccountStore::GetInstance().CommitTemp();
 
     AccountStore::GetInstance().InitTemp();
+
+    if (throwError) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Error Code: " + to_string(error_code));
+    }
 
     TransactionWithReceipt twr(tx, txreceipt);
 
