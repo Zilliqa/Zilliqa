@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
   bytes data = bytes(initStr.begin(), initStr.end());
 
-  for (unsigned int i = 0; i < 5; i++) {
+  for (unsigned int i = 0; i < 1; i++) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
     TransactionReceipt tr;

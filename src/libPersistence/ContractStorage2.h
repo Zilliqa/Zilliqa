@@ -37,6 +37,8 @@ class ProtoScillaVal;
 
 namespace Contract {
 
+static std::string type_placeholder;
+
 enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
 
 Index GetIndex(const dev::h160& address, const std::string& key);
@@ -120,16 +122,24 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
-  std::string GenerateStorageKey(const dev::h160& addr,
-                                 const std::string& vname,
-                                 const std::vector<std::string>& indices);
+  static std::string GenerateStorageKey(
+      const dev::h160& addr, const std::string& vname,
+      const std::vector<std::string>& indices);
+
+  std::string RemoveAddrFromKey(const std::string& key);
+
+  bool IsReservedVName(const std::string& name);
 
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
-                       bool& foundVal);
+                       bool& foundVal, bool getType = false,
+                       std::string& type = type_placeholder);
 
-  bool FetchContractFieldsMapDepth(const dev::h160& address,
-                                   Json::Value& map_depth_json, bool temp);
+  bool FetchExternalStateValue(
+      const dev::h160& caller, const dev::h160& target, const bytes& src,
+      unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
+      std::string& type,
+      uint32_t caller_version = std::numeric_limits<uint32_t>::max());
 
   void InsertValueToStateJson(Json::Value& _json, std::string key,
                               std::string value, bool unquote = true,
