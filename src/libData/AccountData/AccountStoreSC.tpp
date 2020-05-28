@@ -233,7 +233,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       bool init = true;
-
       bool is_library;
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       uint32_t scilla_version;
@@ -294,7 +293,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddress(toAddr);
+      m_scillaIPCServer->setContractAddressVer(toAddr, scilla_version);
 
       // ************************************************************************
       // Undergo scilla checker
@@ -304,22 +303,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
                         gasRemained, 0, ret_checker, receipt);
 
-      // parse checker output
-      bytes map_depth_data;
+      // 0xabc._version
+      // 0xabc._depth.data1
+      // 0xabc._type.data1
+
+      std::map<std::string, bytes> t_metadata;
+      t_metadata.emplace(
+          Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+              toAddr, SCILLA_VERSION_INDICATOR, {}),
+          DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
       if (ret_checker &&
-          !ParseContractCheckerOutput(checkerPrint, receipt, map_depth_data,
+          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
                                       gasRemained, is_library)) {
         ret_checker = false;
-      }
-
-      if (ret_checker && !is_library) {
-        std::map<std::string, bytes> t_map_depth_map;
-        t_map_depth_map.emplace(
-            Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
-                toAddr, FIELDS_MAP_DEPTH_INDICATOR, {}),
-            map_depth_data);
-        toAccount->UpdateStates(toAddr, t_map_depth_map, {}, true);
       }
 
       // *************************************************************************
@@ -431,10 +428,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
-      toAccount->SetStorageRoot(
-          Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-              toAddr, true, true));
+      /// inserting address to create the uniqueness of the contract merkle trie
+      t_metadata.emplace(Contract::ContractStorage2::GenerateStorageKey(
+                             toAddr, CONTRACT_ADDR_INDICATOR, {}),
+                         toAddr.asBytes());
 
+      toAccount->UpdateStates(toAddr, t_metadata, {}, true);
+
+      /// calculate total gas in receipt
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
 
       if (is_library) {
@@ -559,9 +560,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddress(toAddr);
-
-      Contract::ContractStorage2::GetContractStorage().BufferCurrentState();
+      m_scillaIPCServer->setContractAddressVer(toAddr, scilla_version);
+      Contract::ContractStorage2::GetContractStorage()
+          .ResetBufferedAtomicState();
 
       std::string runnerPrint;
       bool ret = true;
@@ -578,7 +579,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt,
                                     tree_depth, scilla_version)) {
-        Contract::ContractStorage2::GetContractStorage().RevertPrevState();
+        Contract::ContractStorage2::GetContractStorage().RevertAtomicState();
         receipt.RemoveAllTransitions();
         ret = false;
       }
@@ -915,8 +916,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const std::string& checkerPrint, TransactionReceipt& receipt,
-    bytes& map_depth_data, uint64_t& gasRemained, bool is_library) {
+    const Address& addr, const std::string& checkerPrint,
+    TransactionReceipt& receipt, std::map<std::string, bytes>& metadata,
+    uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 
   LOG_GENERAL(
@@ -969,22 +971,36 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
         return false;
       }
 
-      Json::Value map_depth_json;
+      bool hasMap = false;
+
       if (root["contract_info"].isMember("fields")) {
         for (const auto& field : root["contract_info"]["fields"]) {
           if (field.isMember("vname") && field.isMember("depth") &&
-              field["depth"].isNumeric()) {
-            map_depth_json[field["vname"].asString()] = field["depth"].asInt();
+              field["depth"].isNumeric() && field.isMember("type")) {
+            metadata.emplace(
+                Contract::ContractStorage2::GetContractStorage()
+                    .GenerateStorageKey(addr, MAP_DEPTH_INDICATOR,
+                                        {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["depth"].asString()));
+            if (!hasMap && field["depth"].asInt() > 0) {
+              hasMap = true;
+            }
+            metadata.emplace(
+                Contract::ContractStorage2::GetContractStorage()
+                    .GenerateStorageKey(addr, TYPE_INDICATOR,
+                                        {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["type"].asString()));
+          } else {
+            LOG_GENERAL(WARNING, "Unexpected field detected" << checkerPrint);
+            return false;
           }
         }
       }
 
-      if (map_depth_json.empty()) {
-        map_depth_json = Json::objectValue;
-      }
-
-      map_depth_data = DataConversion::StringToCharArray(
-          JSONUtils::GetInstance().convertJsontoStr(map_depth_json));
+      metadata.emplace(
+          Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+              addr, HAS_MAP_INDICATOR, {}),
+          DataConversion::StringToCharArray(hasMap ? "true" : "false"));
     }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
@@ -1371,9 +1387,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
+      // prepare IPC with the recipient contract address
       bool is_library;
-      uint32_t scilla_version;
       std::vector<Address> extlibs;
+      uint32_t scilla_version;
 
       if (!account->GetContractAuxiliaries(is_library, scilla_version,
                                            extlibs)) {
@@ -1381,6 +1398,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         receipt.AddError(INTERNAL_ERROR);
         return false;
       }
+
+      m_scillaIPCServer->setContractAddressVer(recipient, scilla_version);
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1414,7 +1433,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       // prepare IPC with the recipient contract address
-      m_scillaIPCServer->setContractAddress(recipient);
+      m_scillaIPCServer->setContractAddressVer(recipient, scilla_version);
       std::string runnerPrint;
       bool result = true;
 
@@ -1462,7 +1481,8 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
       }
       account->SetStorageRoot(
           Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
-              addr, true, true));
+              addr, account->GetStorageRoot(), true /*temp*/,
+              false /*revertible*/, true /*fromExternal*/));
     }
   }
   CleanStorageRootUpdateBuffer();

@@ -466,15 +466,137 @@ void AccountStore::RevertCommitTemp() {
 
   // Revert changed
   for (auto const& entry : m_addressToAccountRevChanged) {
-    // LOG_GENERAL(INFO, "Revert changed address: " << entry.first);
     (*m_addressToAccount)[entry.first] = entry.second;
     UpdateStateTrie(entry.first, entry.second);
   }
   for (auto const& entry : m_addressToAccountRevCreated) {
-    // LOG_GENERAL(INFO, "Remove created address: " << entry.first);
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
 
   ContractStorage2::GetContractStorage().RevertContractStates();
+}
+
+bool AccountStore::MigrateContractStates2(
+    bool ignoreCheckerFailure, const string& contract_address_output_dir,
+    const string& normal_address_output_dir) {
+  LOG_MARKER();
+
+  std::ofstream os_1;
+  std::ofstream os_2;
+  if (!contract_address_output_dir.empty()) {
+    os_1.open(contract_address_output_dir);
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.open(normal_address_output_dir);
+  }
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    LOG_GENERAL(INFO, "Address: " << address.hex());
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return false;
+    }
+
+    if (account.isContract()) {
+      account.SetAddress(address);
+      if (!contract_address_output_dir.empty()) {
+        os_1 << address.hex() << endl;
+      }
+    } else {
+      this->AddAccount(address, account, true);
+      if (!normal_address_output_dir.empty()) {
+        os_2 << address.hex() << endl;
+      }
+      continue;
+    }
+
+    // adding new metadata
+    std::map<std::string, bytes> t_metadata;
+    bool is_library;
+    uint32_t scilla_version;
+    std::vector<Address> extlibs;
+    if (!account.GetContractAuxiliaries(is_library, scilla_version, extlibs)) {
+      LOG_GENERAL(WARNING, "GetScillaVersion failed");
+      return false;
+    }
+
+    if (DISABLE_SCILLA_LIB && is_library) {
+      LOG_GENERAL(WARNING, "ScillaLib disabled");
+      return false;
+    }
+
+    std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
+    if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+      LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
+      return false;
+    }
+
+    if (!ExportCreateContractFiles(account, is_library, scilla_version,
+                                   extlibs_exports)) {
+      LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
+      return false;
+    }
+
+    // invoke scilla checker
+    std::string checkerPrint;
+    bool ret_checker = true;
+    TransactionReceipt receipt;
+    uint64_t gasRem = UINT64_MAX;
+    InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library, gasRem,
+                      std::numeric_limits<uint128_t>::max(), ret_checker,
+                      receipt);
+
+    if (!ret_checker) {
+      LOG_GENERAL(WARNING, "InvokeScillaChecker failed");
+      return false;
+    }
+
+    // adding scilla_version metadata
+    t_metadata.emplace(
+        Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+            address, SCILLA_VERSION_INDICATOR, {}),
+        DataConversion::StringToCharArray(std::to_string(scilla_version)));
+
+    // adding depth and type metadata
+    if (!ParseContractCheckerOutput(address, checkerPrint, receipt, t_metadata,
+                                    gasRem)) {
+      LOG_GENERAL(WARNING, "ParseContractCheckerOutput failed");
+      if (ignoreCheckerFailure) {
+        continue;
+      }
+      return false;
+    }
+
+    // remove previous map depth
+    std::vector<std::string> toDeletes;
+    toDeletes.emplace_back(
+        Contract::ContractStorage2::GetContractStorage().GenerateStorageKey(
+            address, FIELDS_MAP_DEPTH_INDICATOR, {}));
+
+    account.SetStorageRoot(dev::h256());
+
+    account.UpdateStates(address, t_metadata, toDeletes, false);
+
+    this->AddAccount(address, account, true);
+  }
+
+  if (!contract_address_output_dir.empty()) {
+    os_1.close();
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.close();
+  }
+
+  /// repopulate trie and discard old persistence
+  if (!MoveUpdatesToDisk()) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
+    return false;
+  }
+
+  return true;
 }

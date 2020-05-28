@@ -14,3 +14,8 @@ add_executable(Test_TriePerformance Test_TriePerformance.cpp)
 target_include_directories(Test_TriePerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TriePerformance PUBLIC Trie Utils Constants)
 add_test(NAME Test_TriePerformance COMMAND Test_TriePerformance)
+
+add_executable(Test_StateTrie Test_StateTrie.cpp)
+target_include_directories(Test_StateTrie PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_StateTrie PUBLIC boost_system AccountData TestUtils Trie Utils Persistence)
+add_test(NAME Test_StateTrie COMMAND Test_StateTrie)

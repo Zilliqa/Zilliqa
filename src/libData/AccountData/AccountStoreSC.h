@@ -46,10 +46,10 @@ class AccountStoreAtomic
   GetAddressToAccount();
 };
 
+enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL };
+
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
-  enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL };
-
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
@@ -174,10 +174,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// discard the existing transfers in m_accountStoreAtomic
   void DiscardTransferAtomic();
 
-  bool PopulateExtlibsExports(
-      uint32_t scilla_version, const std::vector<Address>& extlibs,
-      std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
-
  protected:
   AccountStoreSC();
 
@@ -197,15 +193,21 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
-  bool ParseContractCheckerOutput(const std::string& checkerPrint,
+  bool ParseContractCheckerOutput(const Address& addr,
+                                  const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  bytes& map_depth_data, uint64_t& gasRemained,
+                                  std::map<std::string, bytes>& metadata,
+                                  uint64_t& gasRemained,
                                   bool is_library = false);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
                       TransactionReceipt& receipt, ErrTxnStatus& error_code);
+
+  bool PopulateExtlibsExports(
+      uint32_t scilla_version, const std::vector<Address>& extlibs,
+      std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
 
  public:
   /// Initialize the class

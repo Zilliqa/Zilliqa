@@ -372,9 +372,15 @@ extern const std::string CONTRACT_FILE_EXTENSION;
 extern const std::string LIBRARY_CODE_EXTENSION;
 extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
-extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
+
+const std::string FIELDS_MAP_DEPTH_INDICATOR = "_fields_map_depth";
+const std::string MAP_DEPTH_INDICATOR = "_depth";
+const std::string SCILLA_VERSION_INDICATOR = "_version";
+const std::string TYPE_INDICATOR = "_type";
+const std::string HAS_MAP_INDICATOR = "_hasmap";
+const std::string CONTRACT_ADDR_INDICATOR = "addr";
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
