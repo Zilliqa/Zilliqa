@@ -52,7 +52,7 @@ RUN apt-get update \
     python3-pip \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install setuptools \
+    && pip install 'setuptools<45' \
     && pip install  request requests clint futures \
     && pip3 install requests clint future
 
