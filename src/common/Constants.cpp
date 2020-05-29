@@ -150,6 +150,8 @@ const unsigned int NUM_SHARE_PENDING_TXNS{
 const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadConstantString("USE_REMOTE_TXN_CREATOR", "node.dispatcher.") == "true"};
+const unsigned int NUM_DISPATCHERS{
+    (ReadConstantNumeric("NUM_DISPATCHERS", "node.dispatcher."))};
 
 // Epoch timing constants
 const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{

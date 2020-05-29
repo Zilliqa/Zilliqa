@@ -52,6 +52,7 @@
     </data_sharing>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
+        <NUM_DISPATCHERS>1</NUM_DISPATCHERS>
         <TXN_PATH/>
     </dispatcher>
     <epoch_timing>
