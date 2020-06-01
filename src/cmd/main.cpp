@@ -40,6 +40,7 @@ using namespace boost::multiprecision;
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION -2
 #define ERROR_UNHANDLED_EXCEPTION -3
+#define ERROR_IN_CONSTANTS -4
 
 namespace po = boost::program_options;
 
@@ -193,6 +194,11 @@ int main(int argc, const char* argv[]) {
                    "spec, application will now exit"
                 << std::endl;
       return ERROR_HARDWARE_SPEC_MISMATCH_EXCEPTION;
+    }
+
+    if (TOLERANCE_FRACTION > 1.0) {
+      LOG_GENERAL(WARNING, "TOLERANCE_FRACTION cannot exceed 1.0");
+      return ERROR_IN_CONSTANTS;
     }
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,

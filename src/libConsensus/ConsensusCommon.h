@@ -209,9 +209,6 @@ class ConsensusCommon {
                    // ConsensusBackup
   }
 
-  /// The minimum fraction of peers necessary to achieve consensus.
-  static constexpr double TOLERANCE_FRACTION = 0.667;
-
   /// Returns the state of the active consensus session
   State GetState() const;
 
