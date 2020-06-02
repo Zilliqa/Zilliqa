@@ -20,4 +20,4 @@
 set -e
 
 # assume that it is run from project root directory
-bash <(curl -s https://codecov.io/bash) -g '/usr/**' -x gcov-5 || echo "Codecov did not collect coverage reports"
+bash <(curl -s https://codecov.io/bash) -g '/usr/**' -x gcov-5 -X gcovout || echo "Codecov did not collect coverage reports"
