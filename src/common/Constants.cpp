@@ -114,6 +114,8 @@ const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
 const unsigned int TXN_STORAGE_LIMIT{
     ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
 // Consensus constants
+const double TOLERANCE_FRACTION{
+    ReadConstantDouble("TOLERANCE_FRACTION", "node.consensus.")};
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
