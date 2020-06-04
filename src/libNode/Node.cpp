@@ -1648,7 +1648,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (LOG_PARAMETERS) {
     LOG_STATE("[TXNPKT-BEG]["
               << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
-              << " Shard=" << shardId
+              << " PktSize=" << message.size() << " Shard=" << shardId
               << " Lookup=" << string(lookupPubKey).substr(0, 8));
   }
 
@@ -1809,7 +1809,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (LOG_PARAMETERS) {
     LOG_STATE("[TXNPKT-END]["
               << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
-              << " Shard=" << shardId
+              << " PktSize=" << message.size() << " Shard=" << shardId
               << " Lookup=" << string(lookupPubKey).substr(0, 8));
   } else {
     LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
