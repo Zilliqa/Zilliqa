@@ -351,6 +351,19 @@ class Messenger {
                                        uint32_t& shardingStructureVersion,
                                        DequeOfShard& shards);
 
+  static bool SetNodeVCFinalBlock(bytes& dst, const unsigned int offset,
+                                  const uint64_t dsBlockNumber,
+                                  const uint32_t consensusID,
+                                  const TxBlock& txBlock,
+                                  const bytes& stateDelta,
+                                  const std::vector<VCBlock>& vcBlocks);
+
+  static bool GetNodeVCFinalBlock(const bytes& src, const unsigned int offset,
+                                  uint64_t& dsBlockNumber,
+                                  uint32_t& consensusID, TxBlock& txBlock,
+                                  bytes& stateDelta,
+                                  std::vector<VCBlock>& vcBlocks);
+
   static bool SetNodeFinalBlock(bytes& dst, const unsigned int offset,
                                 const uint64_t dsBlockNumber,
                                 const uint32_t consensusID,
@@ -510,6 +523,39 @@ class Messenger {
                                           uint64_t& lowBlockNum,
                                           uint64_t& highBlockNum,
                                           uint32_t& listenPort);
+  static bool SetLookupGetVCFinalBlockFromL2l(bytes& dst,
+                                              const unsigned int offset,
+                                              const uint64_t& blockNum,
+                                              const Peer& sender,
+                                              const PairOfKey& seedKey);
+  static bool GetLookupGetVCFinalBlockFromL2l(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& blockNum, Peer& from,
+                                              PubKey& senderPubKey);
+  static bool SetLookupGetDSBlockFromL2l(bytes& dst, const unsigned int offset,
+                                         const uint64_t& blockNum,
+                                         const Peer& sender,
+                                         const PairOfKey& seedKey);
+  static bool GetLookupGetDSBlockFromL2l(const bytes& src,
+                                         const unsigned int offset,
+                                         uint64_t& blockNum, Peer& from,
+                                         PubKey& senderPubKey);
+  static bool SetLookupGetMBnForwardTxnFromL2l(
+      bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+      const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey);
+  static bool GetLookupGetMBnForwardTxnFromL2l(const bytes& src,
+                                               const unsigned int offset,
+                                               uint64_t& blockNum,
+                                               uint32_t& shardId, Peer& from,
+                                               PubKey& senderPubKey);
+  static bool SetLookupGetPendingTxnFromL2l(
+      bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+      const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey);
+  static bool GetLookupGetPendingTxnFromL2l(const bytes& src,
+                                            const unsigned int offset,
+                                            uint64_t& blockNum,
+                                            uint32_t& shardId, Peer& from,
+                                            PubKey& senderPubKey);
   static bool SetLookupSetTxBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
@@ -654,12 +700,21 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       bytes& dst, const unsigned int offset,
-      const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
+      const std::vector<BlockHash>& microBlockHashes, const uint32_t portNo);
 
-  // UNUSED
   static bool GetLookupGetMicroBlockFromLookup(
       const bytes& src, const unsigned int offset,
       std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
+
+  static bool SetLookupGetMicroBlockFromL2l(
+      bytes& dst, const unsigned int offset,
+      const std::vector<BlockHash>& microBlockHashes, const uint32_t portNo,
+      const PairOfKey& seedKey);
+
+  static bool GetLookupGetMicroBlockFromL2l(
+      const bytes& src, const unsigned int offset,
+      std::vector<BlockHash>& microBlockHashes, uint32_t& portNo,
+      PubKey& senderPubKey);
 
   static bool SetLookupSetMicroBlockFromLookup(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
@@ -669,16 +724,26 @@ class Messenger {
                                                const unsigned int offset,
                                                PubKey& lookupPubKey,
                                                std::vector<MicroBlock>& mbs);
-  // UNUSED
+
   static bool SetLookupGetTxnsFromLookup(bytes& dst, const unsigned int offset,
                                          const BlockHash& mbHash,
                                          const std::vector<TxnHash>& txnhashes,
-                                         uint32_t portNo);
+                                         const uint32_t portNo);
   static bool GetLookupGetTxnsFromLookup(const bytes& src,
                                          const unsigned int offset,
                                          BlockHash& mbHash,
                                          std::vector<TxnHash>& txnhashes,
                                          uint32_t& portNo);
+  static bool SetLookupGetTxnsFromL2l(bytes& dst, const unsigned int offset,
+                                      const BlockHash& mbHash,
+                                      const std::vector<TxnHash>& txnhashes,
+                                      const uint32_t portNo,
+                                      const PairOfKey& seedKey);
+  static bool GetLookupGetTxnsFromL2l(const bytes& src,
+                                      const unsigned int offset,
+                                      BlockHash& mbHash,
+                                      std::vector<TxnHash>& txnhashes,
+                                      uint32_t& portNo, PubKey& senderPubKey);
   // UNUSED
   static bool SetLookupSetTxnsFromLookup(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,

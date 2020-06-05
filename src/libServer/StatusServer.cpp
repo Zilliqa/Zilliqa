@@ -62,6 +62,16 @@ StatusServer::StatusServer(Mediator& mediator,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &StatusServer::RemoveFromBlacklistExclusionI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("AddToExtSeedWhitelist", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::AddToExtSeedWhitelist);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("RemoveFromExtSeedWhitelist",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &StatusServer::RemoveFromExtSeedWhitelist);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
@@ -145,6 +155,45 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
           "Could not add IP Address in exclusion list, already present");
     }
 
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::AddToExtSeedWhitelist(const string& pubKeyStr) {
+  try {
+    PubKey pubKey = PubKey::GetPubKeyFromString(pubKeyStr);
+
+    if (!m_mediator.m_lookup->AddToWhitelistExtSeed(pubKey)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not add pub key in extseed whitelist, already present");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::RemoveFromExtSeedWhitelist(const string& pubKeyStr) {
+  try {
+    PubKey pubKey = PubKey::GetPubKeyFromString(pubKeyStr);
+
+    if (!m_mediator.m_lookup->RemoveFromWhitelistExtSeed(pubKey)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not remove pub key in extseed whitelist, "
+                             "already not present");
+    }
     return true;
 
   } catch (const JsonRpcException& je) {

@@ -248,10 +248,15 @@ class Node : public Executable {
                                   const Peer& from);
   bool ProcessMicroBlockConsensusCore(const bytes& message, unsigned int offset,
                                       const Peer& from);
+  bool ProcessVCFinalBlock(const bytes& message, unsigned int offset,
+                           const Peer& from);
+  bool ProcessVCFinalBlockCore(const bytes& message, unsigned int offset,
+                               const Peer& from);
   bool ProcessFinalBlock(const bytes& message, unsigned int offset,
                          const Peer& from);
-  bool ProcessFinalBlockCore(const bytes& message, unsigned int offset,
-                             const Peer& from, bool buffered = false);
+  bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
+                             TxBlock& txBlock, bytes& stateDelta,
+                             const uint64_t& messageSize);
   bool ProcessMBnForwardTransaction(const bytes& message,
                                     unsigned int cur_offset, const Peer& from);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
@@ -425,6 +430,9 @@ class Node : public Executable {
   // Finalblock Processing
   std::mutex m_mutexFinalBlock;
 
+  // VCFinalblock Processing
+  std::mutex m_mutexVCFinalBlock;
+
   // DS block information
   std::mutex m_mutexDSBlock;
 
@@ -451,6 +459,34 @@ class Node : public Executable {
   // hold count of whitelist request for given ip
   std::mutex m_mutexWhitelistReqs;
   std::map<uint128_t, uint32_t> m_whitelistReqs;
+
+  // store VCBlocks if any of latest tx block
+  std::mutex m_mutexvcBlocksStore;
+  std::vector<VCBlock> m_vcBlockStore;
+
+  // store VCDSBlocks
+  std::mutex m_mutexVCDSBlockStore;
+  std::map<uint64_t, bytes> m_vcDSBlockStore;
+
+  // store VCFinalBlocks
+  std::mutex m_mutexVCFinalBlockStore;
+  std::map<uint64_t, bytes> m_vcFinalBlockStore;
+
+  // store MBNFORWARDTRANSACTION
+  std::mutex m_mutexMBnForwardedTxnStore;
+  std::map<uint64_t, std::map<uint32_t, bytes>> m_mbnForwardedTxnStore;
+
+  // store PENDINGTXN
+  std::mutex m_mutexPendingTxnStore;
+  std::map<uint64_t, std::map<uint32_t, bytes>> m_pendingTxnStore;
+
+  // stores historical map of vcblocks to txblocknum
+  std::mutex m_mutexhistVCBlkForTxBlock;
+  std::map<uint64_t, std::vector<VCBlockSharedPtr>> m_histVCBlocksForTxBlock;
+
+  // stores historical map of vcblocks to dsblocknum
+  std::mutex m_mutexhistVCBlkForDSBlock;
+  std::map<uint64_t, std::vector<VCBlockSharedPtr>> m_histVCBlocksForDSBlock;
 
   // whether txns dist window open
   std::atomic<bool> m_txn_distribute_window_open{};
@@ -669,6 +705,8 @@ class Node : public Executable {
   bool IsUnconfirmedTxnEmpty() const;
 
   void RemoveIpMapping();
+
+  void CleanLocalRawStores();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

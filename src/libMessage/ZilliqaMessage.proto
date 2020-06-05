@@ -565,6 +565,15 @@ message NodeFinalBlock
     repeated uint32 shardids      = 5;
 }
 
+message NodeVCFinalBlock
+{
+    uint64 dsblocknumber = 1;
+    uint32 consensusid   = 2;
+    ProtoTxBlock txblock = 3;
+    bytes statedelta     = 4;
+    repeated ProtoVCBlock vcblocks  = 5;
+}
+
 message NodeMBnForwardTransaction
 {
     ProtoMicroBlock microblock          = 1;
@@ -867,18 +876,42 @@ message LookupSetMicroBlockFromLookup
     ByteArray signature                  = 3;
 }
 
+message LookupGetMicroBlockFromL2l
+{
+    message Data
+    {
+        uint32 portno            = 1;
+        repeated bytes mbhashes  = 2;
+    }
+    Data data                    = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
+}
+
 message LookupForwardTxnsFromSeed
 {
     ProtoTransactionArray shardtransactions = 1;
     ProtoTransactionArray dstransactions    = 2;
 }
 
-
 message LookupGetTxnsFromLookup
 {
     uint32 portno            = 1;
     bytes mbhash             = 2;
     repeated bytes txnhashes = 3;
+}
+
+message LookupGetTxnsFromL2l
+{
+    message Data
+    {
+        uint32 portno            = 1;
+        bytes mbhash             = 2;
+        repeated bytes txnhashes = 3;
+    }
+    Data data                    = 1;
+    ByteArray pubkey             = 2;
+    ByteArray signature          = 3;
 }
 
 message LookupSetTxnsFromLookup
@@ -1171,4 +1204,62 @@ message LookupSetCosigsRewardsFromSeed
     Data data                                               = 1;
     ByteArray pubkey                                        = 2;
     ByteArray signature                                     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetVCFinalBlockFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        ProtoPeer sender    = 2;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetDSBlockFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        ProtoPeer sender    = 2;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetMBnForwardTxnFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        uint32 shardId      = 2;  
+        ProtoPeer sender    = 3;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
+}
+
+// From seed node to level2lookup node.
+message LookupGetPendingTxnFromL2l
+{
+    
+    message Data
+    {
+        uint64 blocknum     = 1;
+        uint32 shardId      = 2;
+        ProtoPeer sender    = 3;    
+    }
+    Data data               = 1;
+    ByteArray pubkey        = 2;
+    ByteArray signature     = 3;
 }

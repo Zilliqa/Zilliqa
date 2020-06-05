@@ -45,7 +45,11 @@ target_link_libraries(ReadBlock PUBLIC AccountData Utils Persistence)
 #target_include_directories(ReadTransactions PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries(ReadTransactions PUBLIC Crypto AccountData Utils Persistence)
 
-set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody Test_Diagnostic)
+add_executable(Test_ExtSeedPubKeys Test_ExtSeedPubKeys.cpp)
+target_include_directories(Test_ExtSeedPubKeys PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_ExtSeedPubKeys PUBLIC Utils Persistence TestUtils)
+
+set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody Test_Diagnostic Test_ExtSeedPubKeys)
 
 foreach(testcase ${TESTCASES_ENABLED})
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${testcase}_run)
