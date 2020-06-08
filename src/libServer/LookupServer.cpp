@@ -481,7 +481,7 @@ Json::Value LookupServer::CreateTransaction(
         }
         ret["Info"] = "Contract Creation txn, sent to shard";
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
