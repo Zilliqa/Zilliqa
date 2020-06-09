@@ -4876,16 +4876,14 @@ bool Messenger::SetNodeForwardTxnBlock(
   result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  unsigned int txnsCurrentCount = 0;
-  unsigned int txnsGeneratedCount = 0;
-
-  unsigned int msg_size = 0;
+  unsigned int txnsCurrentCount = 0, txnsGeneratedCount = 0, msg_size = 0;
 
   for (const auto& txn : txnsCurrent) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
-    ProtoTransaction* protoTxn = new ProtoTransaction();
+
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
@@ -4895,14 +4893,14 @@ bool Messenger::SetNodeForwardTxnBlock(
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
     msg_size += protoTxn->ByteSize();
-    delete protoTxn;
   }
 
   for (const auto& txn : txnsGenerated) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
-    ProtoTransaction* protoTxn = new ProtoTransaction();
+
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
@@ -4912,7 +4910,6 @@ bool Messenger::SetNodeForwardTxnBlock(
     *result.add_transactions() = *protoTxn;
     txnsGeneratedCount++;
     msg_size += txn_size;
-    delete protoTxn;
   }
 
   Signature signature;
@@ -4958,17 +4955,16 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
   result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey, *result.mutable_pubkey());
 
-  unsigned int txnsCount = 0;
-
-  unsigned int msg_size = 0;
+  unsigned int txnsCount = 0, msg_size = 0;
 
   for (const auto& txn : txns) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
-    ProtoTransaction* protoTxn = new ProtoTransaction();
+
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSize();
+    const unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       continue;
@@ -4976,7 +4972,6 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
     *result.add_transactions() = *protoTxn;
     txnsCount++;
     msg_size += txn_size;
-    delete protoTxn;
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
