@@ -23,7 +23,8 @@
 class PythonRunner {
  public:
   static bool RunPyFunc(const std::string& file, const std::string& func,
-                        const std::vector<std::string>& params);
+                        const std::vector<std::string>& params,
+                        const std::string& outputFileName);
 
   static boost::python::list VectorToPyList(
       const std::vector<std::string>& str);

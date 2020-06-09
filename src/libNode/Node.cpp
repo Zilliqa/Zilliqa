@@ -153,7 +153,8 @@ bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
   return PythonRunner::RunPyFunc("download_incr_DB", "start",
-                                 {STORAGE_PATH + "/", excludembtxns});
+                                 {STORAGE_PATH + "/", excludembtxns},
+                                 "py_download_incr_DB.log");
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
