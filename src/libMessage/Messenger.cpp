@@ -4810,12 +4810,12 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   unsigned int txnsCurrentCount = 0, txnsGeneratedCount = 0, msg_size = 0;
 
-  const auto protoTxn = std::make_unique<ProtoTransaction>();
   for (const auto& txn : txnsCurrent) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
 
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
@@ -4832,6 +4832,7 @@ bool Messenger::SetNodeForwardTxnBlock(
       break;
     }
 
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
@@ -4887,13 +4888,13 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(lookupKey, *result.mutable_pubkey());
 
   unsigned int txnsCount = 0, msg_size = 0;
-  const auto protoTxn = std::make_unique<ProtoTransaction>();
 
   for (const auto& txn : txns) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
 
+    auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
     const unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
