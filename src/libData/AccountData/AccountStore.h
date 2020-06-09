@@ -33,9 +33,7 @@
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
 

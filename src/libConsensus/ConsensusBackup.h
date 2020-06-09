@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_
 
 #include <condition_variable>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>

@@ -19,7 +19,6 @@
 
 #include "MicroBlock.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

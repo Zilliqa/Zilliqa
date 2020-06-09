@@ -16,6 +16,7 @@
  */
 
 #include "NetworkConfig.h"
+#include <algorithm>
 #include <cmath>
 
 namespace RRS {

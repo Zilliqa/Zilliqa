@@ -21,7 +21,6 @@
 #include <map>
 #include <memory>
 #include <ostream>
-#include <vector>
 
 namespace RRS {
 

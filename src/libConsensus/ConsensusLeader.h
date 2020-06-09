@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
 #define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
 
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>

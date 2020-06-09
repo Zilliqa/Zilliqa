@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBNETWORK_GUARD_H_
 
 #include <mutex>
-#include <unordered_map>
 
 #include <Schnorr.h>
 #include "Peer.h"

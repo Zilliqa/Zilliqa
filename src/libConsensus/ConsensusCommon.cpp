@@ -24,7 +24,6 @@
 #include "libMessage/ZilliqaMessage.pb.h"
 #pragma GCC diagnostic pop
 #include "libNetwork/P2PComm.h"
-#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 

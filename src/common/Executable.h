@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_COMMON_EXECUTABLE_H_
 #define ZILLIQA_SRC_COMMON_EXECUTABLE_H_
 
-#include <vector>
 #include "libNetwork/Peer.h"
 
 /// Specifies the interface required for classes that process messages.

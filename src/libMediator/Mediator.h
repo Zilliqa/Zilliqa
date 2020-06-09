@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
 
 #include <atomic>
-#include <deque>
 
 #include <Schnorr.h>
 #include "libData/BlockChainData/BlockChain.h"

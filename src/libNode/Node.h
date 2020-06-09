@@ -18,7 +18,6 @@
 #define ZILLIQA_SRC_LIBNODE_NODE_H_
 
 #include <condition_variable>
-#include <deque>
 #include <list>
 #include <map>
 #include <mutex>

@@ -18,8 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 #define ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 
-#include <vector>
-
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"

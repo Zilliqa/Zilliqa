@@ -20,7 +20,6 @@
 
 #include <list>
 #include <map>
-#include <unordered_map>
 
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"

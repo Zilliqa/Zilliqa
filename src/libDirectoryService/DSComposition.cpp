@@ -16,6 +16,7 @@
  */
 
 #include "DSComposition.h"
+#include "libNetwork/Guard.h"
 
 using namespace std;
 

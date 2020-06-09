@@ -15,7 +15,6 @@
 
 #include <vector>
 
-#include "depends/libDatabase/MemoryDB.h"
 #include "TrieHash.h"
 #include "TrieCommon.h"
 #include "TrieDB.h"	// @TODO replace ASAP!

@@ -20,7 +20,6 @@
 
 #include <deque>
 #include <functional>
-#include <vector>
 
 #include "ShardStruct.h"
 #include "common/Singleton.h"

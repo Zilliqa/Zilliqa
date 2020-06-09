@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBCRYPTO_SHA2_H_
 
 #include <openssl/sha.h>
-#include <vector>
 #include "libUtils/Logger.h"
 
 /// List of supported hash variants.

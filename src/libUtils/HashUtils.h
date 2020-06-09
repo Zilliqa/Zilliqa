@@ -18,8 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_HASHUTILS_H_
 #define ZILLIQA_SRC_LIBUTILS_HASHUTILS_H_
 
-#include <string>
-#include <vector>
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 

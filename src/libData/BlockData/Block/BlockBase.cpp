@@ -18,7 +18,6 @@
 #include <utility>
 
 #include "BlockBase.h"
-#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

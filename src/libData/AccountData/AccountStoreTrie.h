@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 
 template <class DB, class MAP>

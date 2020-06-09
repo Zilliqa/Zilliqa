@@ -18,8 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBRUMORSPREADING_NETWORKCONFIG_H_
 #define ZILLIQA_SRC_LIBRUMORSPREADING_NETWORKCONFIG_H_
 
-#include <string>
-#include <unordered_map>
+#include <stddef.h>
 
 namespace RRS {
 
