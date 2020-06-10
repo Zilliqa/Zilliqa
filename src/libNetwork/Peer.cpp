@@ -52,11 +52,7 @@ bool Peer::operator<(const Peer& r) const {
 }
 
 const string Peer::GetPrintableIPAddress() const {
-  char str[INET_ADDRSTRLEN];
-  struct sockaddr_in serv_addr {};
-  serv_addr.sin_addr.s_addr = m_ipAddress.convert_to<unsigned long>();
-  inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
-  return string(str);
+  return IPConverter::ToStrFromNumericalIP(m_ipAddress);
 }
 
 unsigned int Peer::Serialize(bytes& dst, unsigned int offset) const {
