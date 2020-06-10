@@ -65,12 +65,16 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("AddToExtSeedWhitelist", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &StatusServer::AddToExtSeedWhitelist);
+      &StatusServer::AddToExtSeedWhitelistI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("RemoveFromExtSeedWhitelist",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &StatusServer::RemoveFromExtSeedWhitelist);
+      &StatusServer::RemoveFromExtSeedWhitelistI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetWhitelistedExtSeed", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetWhitelistedExtSeedI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
@@ -196,6 +200,29 @@ bool StatusServer::RemoveFromExtSeedWhitelist(const string& pubKeyStr) {
     }
     return true;
 
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+string StatusServer::GetWhitelistedExtSeed() {
+  try {
+    std::unordered_set<PubKey> extSeedsWhitelisted;
+    if (!BlockStorage::GetBlockStorage().GetAllExtSeedPubKeys(
+            extSeedsWhitelisted)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not get pub key in extseed whitelist");
+    }
+    string result;
+    for (const auto& pubk : extSeedsWhitelisted) {
+      result += string(pubk);
+      result += ", ";
+    }
+    result.erase(result.find_last_of(','));
+    return result;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (const exception& e) {
