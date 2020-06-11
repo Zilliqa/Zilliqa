@@ -38,13 +38,18 @@ class StatusServer : public Server,
                                                Json::Value& response) {
     response = this->AddToBlacklistExclusion(request[0u].asString());
   }
-  inline virtual void AddToExtSeedWhitelist(const Json::Value& request,
-                                            Json::Value& response) {
+  inline virtual void AddToExtSeedWhitelistI(const Json::Value& request,
+                                             Json::Value& response) {
     response = this->AddToExtSeedWhitelist(request[0u].asString());
   }
-  inline virtual void RemoveFromExtSeedWhitelist(const Json::Value& request,
-                                                 Json::Value& response) {
+  inline virtual void RemoveFromExtSeedWhitelistI(const Json::Value& request,
+                                                  Json::Value& response) {
     response = this->RemoveFromExtSeedWhitelist(request[0u].asString());
+  }
+  inline virtual void GetWhitelistedExtSeedI(const Json::Value& request,
+                                             Json::Value& response) {
+    (void)request;
+    response = this->GetWhitelistedExtSeed();
   }
   inline virtual void RemoveFromBlacklistExclusionI(const Json::Value& request,
                                                     Json::Value& response) {
@@ -90,6 +95,7 @@ class StatusServer : public Server,
   bool AddToBlacklistExclusion(const std::string& ipAddr);
   bool AddToExtSeedWhitelist(const std::string& pubKeyStr);
   bool RemoveFromExtSeedWhitelist(const std::string& pubKeyStr);
+  std::string GetWhitelistedExtSeed();
   bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
   std::string GetNodeState();
   std::string GetLatestEpochStatesUpdated();

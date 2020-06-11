@@ -109,6 +109,7 @@ def make_options_dictionary(options_dict):
 	options_dict["whitelist_remove"] = "RemoveFromBlacklistExclusion"
 	options_dict["register_extseed"] = "AddToExtSeedWhitelist"
 	options_dict["deregister_extseed"] = "RemoveFromExtSeedWhitelist"
+	options_dict["reglist_extseed"] = "GetWhitelistedExtSeed"
 	options_dict["ds_difficulty"] = "GetPrevDSDifficulty"
 	options_dict["difficulty"] = "GetPrevDifficulty"
 	options_dict["set_sendsccallstods"] = "ToggleSendSCCallsToDS"
