@@ -2475,6 +2475,10 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
                      SyncType::GUARD_DS_SYNC &&
                  GUARD_MODE) {
         return true;
+      } else if (m_mediator.m_lookup->GetSyncType() == SyncType::NORMAL_SYNC &&
+                 (ins_byte == NodeInstructionType::DSBLOCK ||
+                  ins_byte == NodeInstructionType::FINALBLOCK)) {
+        return true;
       }
       if (!m_fromNewProcess) {
         if (ins_byte != NodeInstructionType::DSBLOCK &&
