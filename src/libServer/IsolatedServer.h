@@ -27,6 +27,8 @@ class IsolatedServer : public LookupServer,
   uint64_t m_blocknum;
   uint128_t m_gasPrice{1};
   std::atomic<uint32_t> m_timeDelta;
+  std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
+  std::mutex mutable m_txnBlockNumMapMutex;
 
   bool StartBlocknumIncrement();
 
@@ -59,11 +61,17 @@ class IsolatedServer : public LookupServer,
     response = this->GetBlocknum();
   }
 
+  inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
+                                                 Json::Value& response) {
+    response = this->GetTransactionsForTxBlock(request[0u].asString());
+  }
+
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
+  Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
 };
