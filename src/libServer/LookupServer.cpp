@@ -420,6 +420,26 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                to_string(sender->GetNonce()) + ")");
   }
 
+  // Check if transaction amount is valid
+  uint128_t gasDeposit = 0;
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+                                gasDeposit)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+  }
+
+  uint128_t debt = 0;
+  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+  }
+
+  if (sender->GetBalance() < debt) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Insufficient funds in source account!");
+  }
+
   return true;
 }
 
