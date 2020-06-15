@@ -30,3 +30,8 @@ add_executable (Test_ReputationManager Test_ReputationManager.cpp)
 target_include_directories (Test_ReputationManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_ReputationManager PUBLIC Network Utils)
 add_test(NAME Test_ReputationManager COMMAND Test_ReputationManager)
+
+add_executable (Test_Peer Test_Peer.cpp)
+target_include_directories (Test_Peer PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_Peer PUBLIC Network)
+add_test(NAME Test_Peer COMMAND Test_Peer)
