@@ -227,38 +227,44 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  winning_result.result, winning_result.mix_hash,
                                  lookupId, m_proposedGasPrice)) {
         return false;
-      } else {
-        DetachedFunction(1, checkerThread);
       }
 
-      LOG_GENERAL(INFO, "Mining again for DS diff");
-      auto currentTime = std::chrono::high_resolution_clock::now();
-      auto shardPoWTime = std::chrono::duration_cast<std::chrono::seconds>(
-                              currentTime - startTime)
-                              .count();
-      powTimeWindow -= shardPoWTime;
+      DetachedFunction(1, checkerThread);
 
-      if (powTimeWindow > 1) {
-        EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
-            block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
-            FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
+      if (SKIP_POW_REATTEMPT_FOR_DS_DIFF) {
+        LOG_GENERAL(INFO, "Skipping PoW reattempt for DS difficulty");
+      } else {
+        LOG_GENERAL(INFO, "Mining again for DS diff");
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto shardPoWTime = std::chrono::duration_cast<std::chrono::seconds>(
+                                currentTime - startTime)
+                                .count();
+        powTimeWindow -= shardPoWTime;
 
-        if (ds_pow_winning_result.success) {
-          LOG_GENERAL(INFO, "DS diff soln = " << ds_pow_winning_result.result);
+        if (powTimeWindow > 1) {
+          EthashMiningResult ds_pow_winning_result = POW::GetInstance().PoWMine(
+              block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
+              FULL_DATASET_MINE, winning_result.winning_nonce, powTimeWindow);
 
-          // Submission of PoW for ds commitee
-          if (!SendPoWResultToDSComm(
-                  block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
-                  ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
-                  lookupId, m_proposedGasPrice)) {
-            return false;
+          if (ds_pow_winning_result.success) {
+            LOG_GENERAL(INFO,
+                        "DS diff soln = " << ds_pow_winning_result.result);
+
+            // Submission of PoW for ds commitee
+            if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                                       ds_pow_winning_result.winning_nonce,
+                                       ds_pow_winning_result.result,
+                                       ds_pow_winning_result.mix_hash, lookupId,
+                                       m_proposedGasPrice)) {
+              return false;
+            }
+          } else {
+            LOG_GENERAL(INFO, "Failed to find soln for DS diff");
           }
         } else {
-          LOG_GENERAL(INFO, "Failed to find soln for DS diff");
+          LOG_GENERAL(
+              INFO, "Time window for DS diff is too short, skip DS diff mine");
         }
-      } else {
-        LOG_GENERAL(INFO,
-                    "Time window for DS diff is too short, skip DS diff mine");
       }
     }
   } else {

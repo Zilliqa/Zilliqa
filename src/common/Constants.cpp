@@ -446,6 +446,9 @@ const unsigned int TXN_DS_TARGET_NUM{
     ReadConstantNumeric("TXN_DS_TARGET_NUM", "node.pow.")};
 const unsigned int PRIORITY_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("PRIORITY_TOLERANCE_IN_PERCENT", "node.pow.")};
+const bool SKIP_POW_REATTEMPT_FOR_DS_DIFF{
+    ReadConstantString("SKIP_POW_REATTEMPT_FOR_DS_DIFF", "node.pow.") ==
+    "true"};
 
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
