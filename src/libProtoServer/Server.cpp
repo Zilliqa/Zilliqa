@@ -186,11 +186,21 @@ CreateTransactionResponse Server::CreateTransaction(
 
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-    if (sender == nullptr) {
-      ret.set_error("The sender of the txn is null");
-      return ret;
+    uint64_t senderNonce;
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+
+      if (sender == nullptr) {
+        ret.set_error("The sender of the txn is null");
+        return ret;
+      }
+
+      senderNonce = sender->GetNonce();
     }
 
     if (num_shards > 0) {
@@ -206,22 +216,26 @@ CreateTransactionResponse Server::CreateTransaction(
           ret.set_info("Contract Creation txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
           ret.set_contractaddress(
-              Account::GetAddressForContract(fromAddr, sender->GetNonce())
-                  .hex());
+              Account::GetAddressForContract(fromAddr, senderNonce).hex());
         } else {
           ret.set_error("Code is empty and To addr is null");
         }
 
       } else {
-        const Account* account =
-            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+        {
+          shared_lock<shared_timed_mutex> lock(
+              AccountStore::GetInstance().GetPrimaryMutex());
 
-        if (account == nullptr) {
-          ret.set_error("To Addr is null");
-          return ret;
-        } else if (!account->isContract()) {
-          ret.set_error("Non - contract address called");
-          return ret;
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+          if (account == nullptr) {
+            ret.set_error("To Addr is null");
+            return ret;
+          } else if (!account->isContract()) {
+            ret.set_error("Non - contract address called");
+            return ret;
+          }
         }
 
         unsigned int to_shard =
@@ -239,15 +253,20 @@ CreateTransactionResponse Server::CreateTransaction(
 
       switch (Transaction::GetTransactionType(tx)) {
         case Transaction::CONTRACT_CALL: {
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+          {
+            shared_lock<shared_timed_mutex> lock(
+                AccountStore::GetInstance().GetPrimaryMutex());
 
-          if (account == nullptr) {
-            ret.set_error("To Addr is null");
-            return ret;
-          } else if (!account->isContract()) {
-            ret.set_error("Non - contract address called");
-            return ret;
+            const Account* account =
+                AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+            if (account == nullptr) {
+              ret.set_error("To Addr is null");
+              return ret;
+            } else if (!account->isContract()) {
+              ret.set_error("Non - contract address called");
+              return ret;
+            }
           }
 
           unsigned int to_shard =
@@ -269,8 +288,7 @@ CreateTransactionResponse Server::CreateTransaction(
           ret.set_info("Contract Creation txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
           ret.set_contractaddress(
-              Account::GetAddressForContract(fromAddr, sender->GetNonce())
-                  .hex());
+              Account::GetAddressForContract(fromAddr, senderNonce).hex());
           break;
         }
         case Transaction::NON_CONTRACT: {
@@ -482,22 +500,26 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     }
 
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    if (account != nullptr) {
-      const uint128_t& balance = account->GetBalance();
-      ret.set_balance(balance.str());
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+      const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-      uint128_t nonce = account->GetNonce();
-      ret.set_nonce(nonce.str());
+      if (account != nullptr) {
+        const uint128_t& balance = account->GetBalance();
+        ret.set_balance(balance.str());
 
-      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
-                                   << nonce.convert_to<unsigned int>());
-    } else if (account == nullptr) {
-      ret.set_balance("0");
-      ret.set_nonce("0");
+        uint128_t nonce = account->GetNonce();
+        ret.set_nonce(nonce.str());
+
+        LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
+                                     << nonce.convert_to<unsigned int>());
+      } else {
+        ret.set_balance("0");
+        ret.set_nonce("0");
+      }
     }
-
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -531,22 +553,27 @@ GetSmartContractStateResponse Server::GetSmartContractState(
     }
 
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
 
-    if (account == nullptr) {
-      ret.set_error("Address does not exist");
-      return ret;
-    }
+      const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    if (!account->isContract()) {
-      ret.set_error("Address is not a contract account");
-      return ret;
-    }
+      if (account == nullptr) {
+        ret.set_error("Address does not exist");
+        return ret;
+      }
 
-    pair<Json::Value, Json::Value> roots;
-    if (!account->GetStorageJson(roots, false)) {
-      ret.set_error("Scilla_version not set properly");
-      return ret;
+      if (!account->isContract()) {
+        ret.set_error("Address is not a contract account");
+        return ret;
+      }
+
+      pair<Json::Value, Json::Value> roots;
+      if (!account->GetStorageJson(roots, false)) {
+        ret.set_error("Scilla_version not set properly");
+        return ret;
+      }
     }
 
     ret.set_initjson(roots.first.toStyledString());
@@ -583,20 +610,26 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
     }
 
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    if (account == nullptr) {
-      ret.set_error("Address does not exist");
-      return ret;
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+      if (account == nullptr) {
+        ret.set_error("Address does not exist");
+        return ret;
+      }
+
+      if (!account->isContract()) {
+        ret.set_error("Address is not a contract account");
+        return ret;
+      }
+
+      ret.set_smartcontractcode(
+          DataConversion::CharArrayToString(account->GetCode()));
     }
-
-    if (!account->isContract()) {
-      ret.set_error("Address is not a contract account");
-      return ret;
-    }
-
-    ret.set_smartcontractcode(
-        DataConversion::CharArrayToString(account->GetCode()));
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -629,40 +662,46 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
     }
 
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    if (account == nullptr) {
-      ret.set_error("Address does not exist");
-      return ret;
-    }
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
 
-    if (account->isContract()) {
-      ret.set_error("A contract account queried");
-      return ret;
-    }
+      const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    uint64_t nonce = account->GetNonce();
-    //[TODO] find out a more efficient way (using storage)
-
-    for (uint64_t i = 0; i < nonce; i++) {
-      Address contractAddr = Account::GetAddressForContract(addr, i);
-      const Account* contractAccount =
-          AccountStore::GetInstance().GetAccount(contractAddr);
-
-      if (contractAccount == nullptr || !contractAccount->isContract()) {
-        continue;
+      if (account == nullptr) {
+        ret.set_error("Address does not exist");
+        return ret;
       }
 
-      auto protoContractAccount = ret.add_address();
-      protoContractAccount->set_address(contractAddr.hex());
-      Json::Value root;
-      if (!contractAccount->FetchStateJson(root)) {
-        ret.set_error("Unable to fetch state in JSON for contract " +
-                      contractAddr.hex());
-        continue;
+      if (account->isContract()) {
+        ret.set_error("A contract account queried");
+        return ret;
       }
-      protoContractAccount->set_state(
-          JSONUtils::GetInstance().convertJsontoStr(root));
+
+      uint64_t nonce = account->GetNonce();
+      //[TODO] find out a more efficient way (using storage)
+
+      for (uint64_t i = 0; i < nonce; i++) {
+        Address contractAddr = Account::GetAddressForContract(addr, i);
+        const Account* contractAccount =
+            AccountStore::GetInstance().GetAccount(contractAddr);
+
+        if (contractAccount == nullptr || !contractAccount->isContract()) {
+          continue;
+        }
+
+        auto protoContractAccount = ret.add_address();
+        protoContractAccount->set_address(contractAddr.hex());
+        Json::Value root;
+        if (!contractAccount->FetchStateJson(root)) {
+          ret.set_error("Unable to fetch state in JSON for contract " +
+                        contractAddr.hex());
+          continue;
+        }
+        protoContractAccount->set_state(
+            JSONUtils::GetInstance().convertJsontoStr(root));
+      }
     }
 
   } catch (exception& e) {

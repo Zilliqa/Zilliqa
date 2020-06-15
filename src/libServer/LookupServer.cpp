@@ -467,12 +467,24 @@ Json::Value LookupServer::CreateTransaction(
     Json::Value ret;
 
     const Address fromAddr = tx.GetSenderAddr();
-    const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
-    const Account* toAccount =
-        AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-    if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
-      return ret;
+    bool toAccountExist;
+    bool toAccountIsContract;
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      const Account* toAccount =
+          AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+      if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
+        return ret;
+      }
+
+      toAccountExist = (toAccount != nullptr);
+      toAccountIsContract = toAccount->isContract();
     }
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
@@ -482,8 +494,8 @@ Json::Value LookupServer::CreateTransaction(
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
-        if (toAccount != nullptr) {
-          if (toAccount->isContract()) {
+        if (toAccountExist) {
+          if (toAccountIsContract) {
             throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                                    "Contract account won't accept normal txn");
             return false;
@@ -508,11 +520,11 @@ Json::Value LookupServer::CreateTransaction(
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
 
-        if (toAccount == nullptr) {
+        if (!toAccountExist) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
         }
 
-        else if (!toAccount->isContract()) {
+        else if (!toAccountIsContract) {
           throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                  "Non - contract address called");
         }
@@ -717,6 +729,10 @@ Json::Value LookupServer::GetBalance(const string& address) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
     Address addr(tmpaddr);
+
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     Json::Value ret;
@@ -762,6 +778,10 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
     }
 
     Address addr(tmpaddr);
+
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
@@ -807,19 +827,29 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
     if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
+
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-    if (account == nullptr) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist");
-    }
-    if (!account->isContract()) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address not contract address");
+    bytes initData;
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+      if (account == nullptr) {
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Address does not exist");
+      }
+      if (!account->isContract()) {
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Address not contract address");
+      }
+
+      initData = account->GetInitData();
     }
 
-    bytes initData = account->GetInitData();
     string initDataStr = DataConversion::CharArrayToString(initData);
     Json::Value initDataJson;
     if (!JSONUtils::GetInstance().convertStrtoJson(initDataStr, initDataJson)) {
@@ -852,6 +882,10 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
     Address addr(tmpaddr);
+
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
@@ -894,6 +928,10 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     }
 
     Address addr(tmpaddr);
+
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
@@ -1183,8 +1221,16 @@ double LookupServer::GetTxBlockRate() {
 string LookupServer::GetTotalCoinSupply() {
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
   boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
-  const Account* account = AccountStore::GetInstance().GetAccount(NullAddress);
-  boost::multiprecision::cpp_dec_float_50 rewards(account->GetBalance().str());
+
+  uint128_t balance;
+
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    balance = AccountStore::GetInstance().GetAccount(NullAddress)->GetBalance();
+  }
+
+  boost::multiprecision::cpp_dec_float_50 rewards(balance.str());
   ans -= rewards;
   ans /= 1000000000000;  // Convert to ZIL
 

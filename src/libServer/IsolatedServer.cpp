@@ -181,23 +181,33 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     Json::Value ret;
 
+    uint64_t senderNonce;
+    uint128_t senderBalance;
+
     const Address fromAddr = tx.GetSenderAddr();
-    const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-    if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
-      return ret;
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+
+      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
+        return ret;
+      }
+
+      senderNonce = sender->GetNonce();
+      senderBalance = sender->GetBalance();
     }
 
-    if (sender->GetNonce() + 1 != tx.GetNonce()) {
-      throw JsonRpcException(
-          RPC_INVALID_PARAMETER,
-          "Expected Nonce: " + to_string(sender->GetNonce() + 1));
+    if (senderNonce + 1 != tx.GetNonce()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
-    if (sender->GetBalance() < tx.GetAmount()) {
-      throw JsonRpcException(
-          RPC_INVALID_PARAMETER,
-          "Insufficient Balance: " + sender->GetBalance().str());
+    if (senderBalance < tx.GetAmount()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Insufficient Balance: " + senderBalance.str());
     }
 
     if (m_gasPrice > tx.GetGasPrice()) {
@@ -213,22 +223,29 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
+            Account::GetAddressForContract(fromAddr, senderNonce).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        const Account* account =
-            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-        if (account == nullptr) {
-          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
-        }
+        {
+          shared_lock<shared_timed_mutex> lock(
+              AccountStore::GetInstance().GetPrimaryMutex());
 
-        else if (!account->isContract()) {
-          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                 "Non - contract address called");
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+          if (account == nullptr) {
+            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "To addr is null");
+          }
+
+          else if (!account->isContract()) {
+            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "Non - contract address called");
+          }
         }
       } break;
 

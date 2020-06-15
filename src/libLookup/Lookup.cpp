@@ -367,14 +367,21 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
 
     txns.clear();
 
-    auto account = AccountStore::GetInstance().GetAccount(addr);
+    uint64_t nonce;
 
-    if (!account) {
-      LOG_GENERAL(WARNING, "Failed to get genesis account!");
-      return false;
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      auto account = AccountStore::GetInstance().GetAccount(addr);
+
+      if (!account) {
+        LOG_GENERAL(WARNING, "Failed to get genesis account!");
+        return false;
+      }
+
+      nonce = account->GetNonce();
     }
-
-    uint64_t nonce = account->GetNonce();
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {
@@ -426,7 +433,13 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
 
-    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+    uint64_t nonce;
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+      nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+    }
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {
