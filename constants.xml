@@ -31,8 +31,11 @@
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
         <TXN_STORAGE_LIMIT>100000</TXN_STORAGE_LIMIT>
+        <SEED_SYNC_SMALL_PULL_INTERVAL>5</SEED_SYNC_SMALL_PULL_INTERVAL>
+        <SEED_SYNC_LARGE_PULL_INTERVAL>10</SEED_SYNC_LARGE_PULL_INTERVAL>
     </seed>
     <consensus>
+        <TOLERANCE_FRACTION>0.667</TOLERANCE_FRACTION>
         <COMMIT_WINDOW_IN_SECONDS>10</COMMIT_WINDOW_IN_SECONDS>
         <CONSENSUS_MSG_ORDER_BLOCK_WINDOW>10</CONSENSUS_MSG_ORDER_BLOCK_WINDOW>
         <CONSENSUS_OBJECT_TIMEOUT>20</CONSENSUS_OBJECT_TIMEOUT>
@@ -52,6 +55,7 @@
     </data_sharing>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
+        <NUM_DISPATCHERS>1</NUM_DISPATCHERS>
         <TXN_PATH/>
     </dispatcher>
     <epoch_timing>
@@ -159,6 +163,7 @@
         <!-- Only for lookup nodes used for staking data retrieval -->
         <ENABLE_STAKING_RPC>false</ENABLE_STAKING_RPC>
         <STAKING_RPC_PORT>4501</STAKING_RPC_PORT>
+        <ENABLE_GETTXNBODIESFORTXBLOCK>false</ENABLE_GETTXNBODIESFORTXBLOCK>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -178,7 +183,8 @@
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>
         <BROADCAST_EXPIRY>600</BROADCAST_EXPIRY>
         <FETCH_LOOKUP_MSG_MAX_RETRY>3</FETCH_LOOKUP_MSG_MAX_RETRY>
-        <MAXMESSAGE>800</MAXMESSAGE>
+        <MAXSENDMESSAGE>600</MAXSENDMESSAGE>
+        <MAXRECVMESSAGE>200</MAXRECVMESSAGE>
         <MAXRETRYCONN>3</MAXRETRYCONN>
         <MSGQUEUE_SIZE>128</MSGQUEUE_SIZE>
         <PUMPMESSAGE_MILLISECONDS>1</PUMPMESSAGE_MILLISECONDS>
@@ -259,6 +265,7 @@
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
         <FIELDS_MAP_DEPTH_INDICATOR>_fields_map_depth</FIELDS_MAP_DEPTH_INDICATOR>
         <LOG_SC>false</LOG_SC>
+        <DISABLE_SCILLA_LIB>true</DISABLE_SCILLA_LIB>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>
@@ -269,6 +276,7 @@
         <NUM_ACCOUNTS_PREGENERATE>0</NUM_ACCOUNTS_PREGENERATE>
         <PREGEN_ACCOUNT_TIMES>0</PREGEN_ACCOUNT_TIMES>
         <PREGENED_ACCOUNTS_FILE/>
+        <LOG_PARAMETERS>false</LOG_PARAMETERS>
     </tests>
     <transactions>
         <TOTAL_COINBASE_REWARD>8400000000000000000000</TOTAL_COINBASE_REWARD>
@@ -376,6 +384,16 @@
         </peer>
         -->
     </lower_seed>
+    <l2l_data_providers>
+        <!--
+        <peer>
+            <hostname></hostname>
+            <ip></ip>
+            <port>33133</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </l2l_data_providers>
     <ds_guard>
         <!--Pubkey to be provided in testnet/mainnet.
         <DSPUBKEY></DSPUBKEY>

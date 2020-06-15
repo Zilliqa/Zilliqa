@@ -219,6 +219,11 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   return tx1;
 }
 
+bool JSONConversion::checkStringAddress(const std::string& address) {
+  return ((address.size() == ACC_ADDR_SIZE * 2 + 2) &&
+          (address.substr(0, 2) == "0x"));
+}
+
 bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   bool ret = true;
 

@@ -25,7 +25,7 @@
 #include <list>
 #include <string>
 #include <sstream>
-#include <boost/timer.hpp>
+#include <boost/timer/timer.hpp>
 
 #include "Common.h"
 #include "FixedHash.h"

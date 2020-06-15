@@ -23,11 +23,13 @@ using namespace std;
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
-                               const uint64_t& blocknum)
+                               const uint64_t& blocknum,
+                               const uint32_t& timeDelta)
     : LookupServer(mediator, server),
       jsonrpc::AbstractServer<IsolatedServer>(server,
                                               jsonrpc::JSONRPC_SERVER_V2),
-      m_blocknum(blocknum) {
+      m_blocknum(blocknum),
+      m_timeDelta(timeDelta) {
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
@@ -92,7 +94,15 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetContractAddressFromTransactionIDI);
-  ;
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("GetBlocknum", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetBlocknumI);
+
+  if (timeDelta > 0) {
+    StartBlocknumIncrement();
+  }
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -269,10 +279,16 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 }
 
 string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
+  if (m_timeDelta > 0) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
+  }
+
   m_blocknum += delta;
 
   return to_string(m_blocknum);
 }
+
+string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;
@@ -293,3 +309,17 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
 }
 
 string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
+
+bool IsolatedServer::StartBlocknumIncrement() {
+  LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
+  auto incrThread = [this]() mutable -> void {
+    while (true) {
+      this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
+
+      m_blocknum++;
+    }
+  };
+
+  DetachedFunction(1, incrThread);
+  return true;
+}

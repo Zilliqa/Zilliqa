@@ -1064,7 +1064,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BGIN, POWS = " << m_allPoWs.size());
+      << "] BEGIN, POWS = " << m_allPoWs.size());
 
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.

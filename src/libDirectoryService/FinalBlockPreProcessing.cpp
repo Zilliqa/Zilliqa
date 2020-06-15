@@ -286,7 +286,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] BGIN");
+        << "] BEGIN");
   }
 
   auto announcementGeneratorFunc =

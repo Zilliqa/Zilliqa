@@ -120,7 +120,7 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
       m_statistics(),
       m_maxNeighborsPerRound(maxNeighborsPerRound) {
   if (maxNeighborsPerRound > (int)peers.size()) {
-    maxNeighborsPerRound = peers.size();
+    m_maxNeighborsPerRound = peers.size();
   }
   toVector(peers);
 }

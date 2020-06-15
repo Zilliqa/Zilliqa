@@ -241,6 +241,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
+        if (DISABLE_SCILLA_LIB && is_library) {
+          LOG_GENERAL(WARNING, "ScillaLib disabled");
+          return false;
+        }
+
         if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "ScillaUtils::PopulateExtLibsExports failed");
           return false;
@@ -268,8 +273,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      LOG_GENERAL(INFO, "mark 0");
+
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddress(toAddr);
+
+      LOG_GENERAL(INFO, "mark 1");
 
       // ************************************************************************
       // Undergo scilla checker
@@ -371,6 +380,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(
             INFO,
             "Create contract failed, but return true in order to change state");
+
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        }
 
         return true;  // Return true because the states already changed
       }
@@ -477,6 +490,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+        LOG_GENERAL(WARNING, "ScillaLib disabled");
+        return false;
+      }
+
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
         LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
@@ -515,10 +533,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       std::string runnerPrint;
       bool ret = true;
+<<<<<<< HEAD
 
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                         gasRemained, this->GetBalance(toAddr), ret, receipt);
 
+=======
+
+      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
+                        gasRemained, this->GetBalance(toAddr), ret, receipt);
+
+>>>>>>> b50069b61753234d4e9596d0724f0a998e25faac
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed root transition in "
                                << r_timer_end(tpStart) << " microseconds");
@@ -570,6 +595,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(
             INFO,
             "Call contract failed, but return true in order to change state");
+
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        }
 
         return true;  // Return true because the states already changed
       }
@@ -902,6 +931,11 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     if (!is_library) {
       if (!root.isMember("contract_info")) {
         receipt.AddError(CHECKER_FAILED);
+
+        if (root.isMember("errors")) {
+          receipt.AddException(root["errors"]);
+        }
+
         return false;
       }
 
@@ -1001,6 +1035,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
       if (_json.isMember("errors")) {
         LOG_GENERAL(WARNING, "Contract creation failed");
         receipt.AddError(CREATE_CONTRACT_FAILED);
+        receipt.AddException(_json["errors"]);
       } else {
         LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
         receipt.AddError(OUTPUT_ILLEGAL);
@@ -1107,6 +1142,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
       receipt.AddError(CALL_CONTRACT_FAILED);
+      receipt.AddException(_json["errors"]);
     } else {
       LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
       receipt.AddError(OUTPUT_ILLEGAL);
@@ -1313,6 +1349,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                            extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
         receipt.AddError(INTERNAL_ERROR);
+        return false;
+      }
+
+      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+        LOG_GENERAL(WARNING, "ScillaLib disabled");
         return false;
       }
 

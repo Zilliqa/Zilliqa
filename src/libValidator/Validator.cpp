@@ -57,7 +57,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   }
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
-    LOG_GENERAL(WARNING, "Transaction Version incorrect");
+    LOG_GENERAL(WARNING, "Transaction version incorrect "
+                             << "Expected:" << TRANSACTION_VERSION << " Actual:"
+                             << DataConversion::UnpackB(tx.GetVersion()));
     return false;
   }
 
@@ -111,7 +113,9 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   }
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
-    LOG_GENERAL(WARNING, "Transaction Version incorrect");
+    LOG_GENERAL(WARNING, "Transaction version incorrect "
+                             << "Expected:" << TRANSACTION_VERSION << " Actual:"
+                             << DataConversion::UnpackB(tx.GetVersion()));
     return false;
   }
 

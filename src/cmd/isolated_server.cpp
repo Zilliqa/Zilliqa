@@ -71,7 +71,7 @@ int main(int argc, const char* argv[]) {
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};
-
+  uint timeDelta{0};
   try {
     po::options_description desc("Options");
 
@@ -81,7 +81,10 @@ int main(int argc, const char* argv[]) {
         "port,p", po::value<uint>(&port),
         "Port to run server on {default: 5555")(
         "blocknum,b", po::value<string>(&blocknum_str),
-        "Initial blocknumber {default : 1 }");
+        "Initial blocknumber {default : 1 }")(
+        "time,t", po::value<uint>(&timeDelta),
+        "the automatic blocktime for incrementing block number (in ms)  "
+        "(Disabled by default)");
 
     po::variables_map vm;
 
@@ -145,7 +148,7 @@ int main(int argc, const char* argv[]) {
 
     auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
     auto isolatedServer = make_shared<IsolatedServer>(
-        mediator, *isolatedServerConnector, blocknum);
+        mediator, *isolatedServerConnector, blocknum, timeDelta);
 
     if (!isolatedServer
              ->jsonrpc::AbstractServer<IsolatedServer>::StartListening()) {

@@ -15,6 +15,13 @@ add_custom_command(TARGET zilliqa
 target_include_directories(sendcmd PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(sendcmd PUBLIC Network Utils -s)
 
+add_executable(genaccounts genaccounts.cpp)
+add_custom_command(TARGET zilliqa
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genaccounts> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(genaccounts PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(genaccounts PUBLIC AccountData Schnorr Utils -s)
+
 add_executable(genkeypair genkeypair.cpp)
 add_custom_command(TARGET zilliqa
     POST_BUILD

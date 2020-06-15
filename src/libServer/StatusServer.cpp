@@ -62,6 +62,20 @@ StatusServer::StatusServer(Mediator& mediator,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &StatusServer::RemoveFromBlacklistExclusionI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("AddToExtSeedWhitelist", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::AddToExtSeedWhitelistI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("RemoveFromExtSeedWhitelist",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &StatusServer::RemoveFromExtSeedWhitelistI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetWhitelistedExtSeed", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetWhitelistedExtSeedI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
@@ -94,6 +108,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::DisablePoWI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleDisableTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::ToggleDisableTxnsI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -143,6 +161,68 @@ bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
 
     return true;
 
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::AddToExtSeedWhitelist(const string& pubKeyStr) {
+  try {
+    PubKey pubKey = PubKey::GetPubKeyFromString(pubKeyStr);
+
+    if (!m_mediator.m_lookup->AddToWhitelistExtSeed(pubKey)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not add pub key in extseed whitelist, already present");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::RemoveFromExtSeedWhitelist(const string& pubKeyStr) {
+  try {
+    PubKey pubKey = PubKey::GetPubKeyFromString(pubKeyStr);
+
+    if (!m_mediator.m_lookup->RemoveFromWhitelistExtSeed(pubKey)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not remove pub key in extseed whitelist, "
+                             "already not present");
+    }
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+string StatusServer::GetWhitelistedExtSeed() {
+  try {
+    std::unordered_set<PubKey> extSeedsWhitelisted;
+    if (!BlockStorage::GetBlockStorage().GetAllExtSeedPubKeys(
+            extSeedsWhitelisted)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Could not get pub key in extseed whitelist");
+    }
+    string result;
+    for (const auto& pubk : extSeedsWhitelisted) {
+      result += string(pubk);
+      result += ", ";
+    }
+    result.erase(result.find_last_of(','));
+    return result;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (const exception& e) {
@@ -252,4 +332,13 @@ bool StatusServer::DisablePoW() {
   }
   m_mediator.m_disablePoW = true;
   return true;
+}
+
+bool StatusServer::ToggleDisableTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  m_mediator.m_disableTxns = !m_mediator.m_disableTxns;
+  return m_mediator.m_disableTxns;
 }

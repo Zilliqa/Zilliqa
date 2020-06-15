@@ -27,6 +27,11 @@ using namespace std;
 namespace
 {
     const int DISCOVERY_TIME_OUT = 2000;
+
+#if MINIUPNPC_API_VERSION >= 14
+    const int TTL = 2;
+#endif //MINIUPNPC_API_VERSION
+
 }
 
 NAT::NAT()
@@ -58,7 +63,7 @@ void NAT::init()
         devlist.reset(upnpDiscover(DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, TTL, &error));
 #else
         devlist.reset(upnpDiscover(DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, &error));
-#endif
+#endif //MINIUPNPC_API_VERSION
 
     if (devlist.get() == NULL || error != 0)
     {

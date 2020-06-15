@@ -223,10 +223,19 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetPendingTxnI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetPendingTxnsI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetMinerInfoI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTxnBodiesForTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetTxnBodiesForTxBlockI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -258,29 +267,46 @@ bool LookupServer::StartCollectorThread() {
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
-    vector<Transaction> txns;
+    vector<Transaction> txnsShard;
+    vector<Transaction> txnsDS;
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
-      txns.clear();
+      txnsShard.clear();
+      txnsDS.clear();
+
+      if (m_mediator.m_disableTxns) {
+        LOG_GENERAL(INFO, "Txns disabled - skipping forwarding to upper seed");
+        continue;
+      }
 
       if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
         LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
         continue;
       }
 
-      if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
-                                        NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
+      if (USE_REMOTE_TXN_CREATOR &&
+          !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT,
+                                             txnsShard, txnsDS)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
       }
 
-      if (!txns.empty()) {
-        for (const auto& tx : txns) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+      if (!txnsShard.empty()) {
+        for (const auto& tx : txnsShard) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_SHARD);
         }
+        LOG_GENERAL(INFO, "Size of txns to shard: " << txnsShard.size());
       }
-      // LOG_GENERAL(INFO, "Size of txns " << txns.size());
+
+      if (!txnsDS.empty()) {
+        for (const auto& tx : txnsDS) {
+          m_mediator.m_lookup->AddToTxnShardMap(tx,
+                                                SEND_TYPE::ARCHIVAL_SEND_DS);
+        }
+        LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
+      }
 
       bool hasTxn = false;
 
@@ -334,8 +360,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Transaction Version incorrect");
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "Transaction version incorrect, Expected:" +
+            to_string(TRANSACTION_VERSION) +
+            " Actual:" + to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
@@ -391,6 +420,26 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                to_string(sender->GetNonce()) + ")");
   }
 
+  // Check if transaction amount is valid
+  uint128_t gasDeposit = 0;
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+                                gasDeposit)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+  }
+
+  uint128_t debt = 0;
+  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+  }
+
+  if (sender->GetBalance() < debt) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Insufficient funds in source account!");
+  }
+
   return true;
 }
 
@@ -401,6 +450,11 @@ Json::Value LookupServer::CreateTransaction(
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  if (Mediator::m_disableTxns) {
+    LOG_GENERAL(INFO, "Txns disabled - rejecting new txn");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
   try {
@@ -447,7 +501,7 @@ Json::Value LookupServer::CreateTransaction(
         }
         ret["Info"] = "Contract Creation txn, sent to shard";
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
@@ -1494,6 +1548,47 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
                                    m_mediator.m_lookup->m_historicalDB);
 }
 
+Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  if (!ENABLE_GETTXNBODIESFORTXBLOCK) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "GetTxnForTxBlock not enabled");
+  }
+  uint64_t txNum;
+  Json::Value _json = Json::arrayValue;
+  try {
+    txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+  } catch (exception& e) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
+  }
+
+  try {
+    auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
+
+    auto const& hashes =
+        GetTransactionsForTxBlock(txBlock, m_mediator.m_lookup->m_historicalDB);
+
+    if (hashes.empty()) {
+      throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+    }
+
+    for (const auto& shard_txn : hashes) {
+      for (const auto& txn_hash : shard_txn) {
+        auto json_txn = GetTransaction(txn_hash.asString());
+        _json.append(json_txn);
+      }
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+  return _json;
+}
+
 Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
                                                     bool historicalDB) {
   LOG_MARKER();
@@ -1659,6 +1754,31 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
+  }
+}
+
+Json::Value LookupServer::GetPendingTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  try {
+    Json::Value _json;
+    _json["Txns"] = Json::Value(Json::arrayValue);
+    for (const auto& txhash_and_status :
+         m_mediator.m_node->GetUnconfirmedTxns()) {
+      Json::Value tmpJson;
+      tmpJson["TxnHash"] = txhash_and_status.first.hex();
+      tmpJson["Status"] = uint(txhash_and_status.second);
+      _json["Txns"].append(tmpJson);
+    }
+    return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }

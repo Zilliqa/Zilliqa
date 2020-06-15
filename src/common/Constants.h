@@ -152,8 +152,12 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
 extern const unsigned int TXN_STORAGE_LIMIT;
+extern bool MULTIPLIER_SYNC_MODE;
+extern const unsigned int SEED_SYNC_SMALL_PULL_INTERVAL;
+extern const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL;
 
 // Consensus constants
+extern const double TOLERANCE_FRACTION;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
@@ -173,6 +177,7 @@ extern const unsigned int NUM_SHARE_PENDING_TXNS;
 
 // Dispatcher constants
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const unsigned int NUM_DISPATCHERS;
 extern const std::string TXN_PATH;
 
 // Epoch timing constants
@@ -270,6 +275,7 @@ extern const std::string SCILLA_SERVER_SOCKET_PATH;
 extern const std::string SCILLA_SERVER_BINARY;
 extern bool ENABLE_WEBSOCKET;
 extern const unsigned int WEBSOCKET_PORT;
+extern const bool ENABLE_GETTXNBODIESFORTXBLOCK;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;
@@ -284,7 +290,8 @@ extern const unsigned int STORE_DS_COMMITTEE_INTERVAL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
-extern const uint32_t MAXMESSAGE;
+extern const uint32_t MAXSENDMESSAGE;
+extern const uint32_t MAXRECVMESSAGE;
 extern const unsigned int MAXRETRYCONN;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
@@ -358,6 +365,7 @@ extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
 extern const bool LOG_SC;
+extern const bool DISABLE_SCILLA_LIB;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
@@ -370,6 +378,7 @@ extern const bool UPDATE_PREGENED_ACCOUNTS;
 extern const unsigned int NUM_ACCOUNTS_PREGENERATE;
 extern const unsigned int PREGEN_ACCOUNT_TIMES;
 extern const std::string PREGENED_ACCOUNTS_FILE;
+extern const bool LOG_PARAMETERS;
 
 // Transaction constants
 extern const uint128_t TOTAL_COINBASE_REWARD;

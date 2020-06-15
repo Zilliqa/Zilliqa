@@ -153,7 +153,8 @@ bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
   string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
   return PythonRunner::RunPyFunc("download_incr_DB", "start",
-                                 {STORAGE_PATH + "/", excludembtxns});
+                                 {STORAGE_PATH + "/", excludembtxns},
+                                 "py_download_incr_DB.log");
 }
 
 bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
@@ -705,13 +706,61 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
        SyncType::NEW_LOOKUP_SYNC == syncType) ||
-      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
-       SyncType::RECOVERY_ALL_SYNC == syncType)) {
+      (LOOKUP_NODE_MODE && SyncType::RECOVERY_ALL_SYNC == syncType)) {
     // Additional safe-guard mechanism, find if have not received any MBs from
     // last N txblks in persistence from S3.
     m_mediator.m_lookup->FindMissingMBsForLastNTxBlks(
         LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(false);
+
+    // Pull the extseed pubkeys to local store from persistence DB
+    lock_guard<mutex> g(m_mediator.m_lookup->m_mutexExtSeedWhitelisted);
+    BlockStorage::GetBlockStorage().GetAllExtSeedPubKeys(
+        m_mediator.m_lookup->m_extSeedWhitelisted);
+  }
+
+  // fetch vcblocks from disk
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && MULTIPLIER_SYNC_MODE) {
+    std::list<VCBlockSharedPtr> vcblocks;
+    if (!BlockStorage::GetBlockStorage().GetAllVCBlocks(vcblocks)) {
+      LOG_GENERAL(WARNING, "Failed to get vcBlocks");
+      return false;
+    }
+
+    lock(m_mutexhistVCBlkForDSBlock, m_mutexhistVCBlkForTxBlock);
+    lock_guard<mutex> g(m_mutexhistVCBlkForDSBlock, adopt_lock);
+    lock_guard<mutex> g2(m_mutexhistVCBlkForTxBlock, adopt_lock);
+    m_histVCBlocksForDSBlock.clear();
+    m_histVCBlocksForTxBlock.clear();
+    for (const auto& block : vcblocks) {
+      if (m_mediator.m_ds->IsDSBlockVCState(
+              block->GetHeader().GetViewChangeState())) {
+        // this vcblock belongs to dsepoch (some dsblock)
+        auto dsEpoch = block->GetHeader().GetViewChangeDSEpochNo();
+        m_histVCBlocksForDSBlock[dsEpoch].emplace_back(block);
+      } else {
+        // this vc blocks belongs to tx epoch (some txblock)
+        auto txEpoch = block->GetHeader().GetViewChangeEpochNo();
+        m_histVCBlocksForTxBlock[txEpoch].emplace_back(block);
+      }
+    }
+
+    // sorted map values by vccounter
+    for (auto it : m_histVCBlocksForTxBlock) {
+      sort(it.second.begin(), it.second.end(),
+           [](const VCBlockSharedPtr& a, const VCBlockSharedPtr& b) {
+             return a->GetHeader().GetViewChangeCounter() <
+                    b->GetHeader().GetViewChangeCounter();
+           });
+    }
+
+    for (auto it : m_histVCBlocksForDSBlock) {
+      sort(it.second.begin(), it.second.end(),
+           [](const VCBlockSharedPtr& a, const VCBlockSharedPtr& b) {
+             return a->GetHeader().GetViewChangeCounter() <
+                    b->GetHeader().GetViewChangeCounter();
+           });
+    }
   }
 
   if (/* new node not part of ds committee */ (SyncType::NEW_SYNC == syncType &&
@@ -1645,6 +1694,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     return true;
   }
 
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPKT-BEG]["
+              << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
+              << " PktSize=" << message.size() << " Shard=" << shardId
+              << " Lookup=" << string(lookupPubKey).substr(0, 8));
+  }
+
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     LOG_GENERAL(WARNING, "This node already started rejoin, ignore txn packet");
     return false;
@@ -1799,12 +1855,20 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                                         << m_createdTxns.size());
   }
 
-  LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << "][" << m_mediator.m_currentEpochNum << "]["
-                            << shardId << "]["
-                            << string(lookupPubKey).substr(0, 6) << "] DONE ["
-                            << processed_count << "]");
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[TXNPKT-END]["
+              << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
+              << " PktSize=" << message.size() << " Shard=" << shardId
+              << " Lookup=" << string(lookupPubKey).substr(0, 8));
+  } else {
+    LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << shardId << "]["
+                              << string(lookupPubKey).substr(0, 6) << "] DONE ["
+                              << processed_count << "]");
+  }
+
   return true;
 }
 
@@ -2411,6 +2475,10 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
                      SyncType::GUARD_DS_SYNC &&
                  GUARD_MODE) {
         return true;
+      } else if (m_mediator.m_lookup->GetSyncType() == SyncType::NORMAL_SYNC &&
+                 (ins_byte == NodeInstructionType::DSBLOCK ||
+                  ins_byte == NodeInstructionType::FINALBLOCK)) {
+        return true;
       }
       if (!m_fromNewProcess) {
         if (ins_byte != NodeInstructionType::DSBLOCK &&
@@ -2557,7 +2625,8 @@ bool Node::Execute(const bytes& message, unsigned int offset,
                                        &Node::ProcessProposeGasPrice,
                                        &Node::ProcessDSGuardNetworkInfoUpdate,
                                        &Node::ProcessRemoveNodeFromBlacklist,
-                                       &Node::ProcessPendingTxn};
+                                       &Node::ProcessPendingTxn,
+                                       &Node::ProcessVCFinalBlock};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
@@ -2691,4 +2760,70 @@ void Node::GetEntireNetworkPeerInfo(VectorOfNode& peers,
 
 UnavailableMicroBlockList& Node::GetUnavailableMicroBlocks() {
   return m_unavailableMicroBlocks;
+}
+
+void Node::CleanLocalRawStores() {
+  LOG_MARKER();
+
+  uint64_t key_txepoch = m_mediator.m_currentEpochNum - NUM_FINAL_BLOCK_PER_POW;
+  uint64_t key_dsepoch =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() - 1;
+
+  // Clear VCStore
+  {
+    std::lock_guard<mutex> g1(m_mutexvcBlocksStore);
+    m_vcBlockStore.clear();
+  }
+
+  // Clear VCDSBlock message store
+  {
+    std::lock_guard<mutex> g1(m_mutexVCDSBlockStore);
+    for (auto iter = m_vcDSBlockStore.begin();
+         iter != m_vcDSBlockStore.end();) {
+      if (iter->first < key_dsepoch) {
+        iter = m_vcDSBlockStore.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
+  }
+
+  // Clear VCFinalBlock message store
+  std::lock_guard<mutex> g1(m_mutexVCFinalBlockStore);
+  {
+    for (auto iter = m_vcFinalBlockStore.begin();
+         iter != m_vcFinalBlockStore.end();) {
+      if (iter->first < key_txepoch) {
+        iter = m_vcFinalBlockStore.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
+  }
+
+  // Clear MBnForwardedTxn message store
+  {
+    std::lock_guard<mutex> g1(m_mutexMBnForwardedTxnStore);
+    for (auto iter = m_mbnForwardedTxnStore.begin();
+         iter != m_mbnForwardedTxnStore.end();) {
+      if (iter->first < key_txepoch) {
+        iter = m_mbnForwardedTxnStore.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
+  }
+
+  // Clear PendingTxn message store
+  {
+    std::lock_guard<mutex> g1(m_mutexPendingTxnStore);
+    for (auto iter = m_pendingTxnStore.begin();
+         iter != m_pendingTxnStore.end();) {
+      if (iter->first < key_txepoch) {
+        iter = m_pendingTxnStore.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
+  }
 }

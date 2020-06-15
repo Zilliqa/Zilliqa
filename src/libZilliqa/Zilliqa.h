@@ -48,15 +48,16 @@ class Zilliqa {
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
-  ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
+  ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(std::pair<bytes, Peer>* message);
 
  public:
   /// Constructor.
   Zilliqa(const PairOfKey& key, const Peer& peer,
-          SyncType syncType = SyncType::NO_SYNC,
-          bool toRetrieveHistory = false);
+          SyncType syncType = SyncType::NO_SYNC, bool toRetrieveHistory = false,
+          bool multiplierSyncMode = true,
+          PairOfKey extSeedKey = PairOfKey(PrivKey(), PubKey()));
 
   /// Destructor.
   ~Zilliqa();

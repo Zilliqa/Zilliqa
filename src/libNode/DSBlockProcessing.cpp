@@ -715,6 +715,32 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
 
   m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
+  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+    if (MULTIPLIER_SYNC_MODE) {
+      // Avoid using the original message in case it contains
+      // excess data beyond the VCDSBlock
+      bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+
+      if (!Messenger::SetNodeVCDSBlocksMessage(
+              message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
+              shardingStructureVersion, m_mediator.m_ds->m_shards)) {
+        LOG_GENERAL(WARNING, "Messenger::SetNodeVCDSBlocksMessage failed");
+      } else {
+        // Store to local map for VCDSBLOCK
+        std::lock_guard<mutex> g1(m_mutexVCDSBlockStore);
+        m_vcDSBlockStore[dsblock.GetHeader().GetBlockNum()] = message2;
+      }
+
+      // house keeping / clearing older entries from all in-memory stores.
+      CleanLocalRawStores();
+    } else {
+      {
+        unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCDSBlockProcessed);
+        m_mediator.m_lookup->m_vcDsBlockProcessed = true;
+      }
+      m_mediator.m_lookup->cv_vcDsBlockProcessed.notify_all();
+    }
+  }
   if (LOOKUP_NODE_MODE) {
     if (!BlockStorage::GetBlockStorage().PutMinerInfoDSComm(
             dsblock.GetHeader().GetBlockNum(), minerInfoDSComm)) {

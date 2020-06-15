@@ -29,7 +29,7 @@ namespace {
 // RAM specific
 const std::string MEMORYINFO_SOURCE_FILE = "/proc/meminfo";
 const std::string TOTAL_MEMORY_KEY = "MemTotal:";
-const unsigned long MINIMUM_REQ_RAM = 4000000;
+const unsigned long MINIMUM_REQ_RAM = 3800000;
 
 // CPU specific
 const unsigned int MINIMUM_REQ_NUM_OF_CPU = 2;

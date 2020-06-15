@@ -131,15 +131,20 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
 }
 
 Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
-                 bool toRetrieveHistory)
+                 bool toRetrieveHistory, bool multiplierSyncMode,
+                 PairOfKey extSeedKey)
     : m_mediator(key, peer),
       m_ds(m_mediator),
-      m_lookup(m_mediator, syncType),
+      m_lookup(m_mediator, syncType, multiplierSyncMode, std::move(extSeedKey)),
       m_n(m_mediator, syncType, toRetrieveHistory),
       m_msgQueue(MSGQUEUE_SIZE)
 
 {
   LOG_MARKER();
+
+  if (LOG_PARAMETERS) {
+    LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
+  }
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
@@ -452,5 +457,6 @@ void Zilliqa::Dispatch(pair<bytes, Peer>* message) {
   // Queue message
   if (!m_msgQueue.bounded_push(message)) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full");
+    delete message;
   }
 }

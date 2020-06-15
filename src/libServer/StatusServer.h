@@ -38,6 +38,19 @@ class StatusServer : public Server,
                                                Json::Value& response) {
     response = this->AddToBlacklistExclusion(request[0u].asString());
   }
+  inline virtual void AddToExtSeedWhitelistI(const Json::Value& request,
+                                             Json::Value& response) {
+    response = this->AddToExtSeedWhitelist(request[0u].asString());
+  }
+  inline virtual void RemoveFromExtSeedWhitelistI(const Json::Value& request,
+                                                  Json::Value& response) {
+    response = this->RemoveFromExtSeedWhitelist(request[0u].asString());
+  }
+  inline virtual void GetWhitelistedExtSeedI(const Json::Value& request,
+                                             Json::Value& response) {
+    (void)request;
+    response = this->GetWhitelistedExtSeed();
+  }
   inline virtual void RemoveFromBlacklistExclusionI(const Json::Value& request,
                                                     Json::Value& response) {
     response = this->RemoveFromBlacklistExclusion(request[0u].asString());
@@ -72,9 +85,17 @@ class StatusServer : public Server,
     (void)request;
     response = this->DisablePoW();
   }
+  inline virtual void ToggleDisableTxnsI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->ToggleDisableTxns();
+  }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
+  bool AddToExtSeedWhitelist(const std::string& pubKeyStr);
+  bool RemoveFromExtSeedWhitelist(const std::string& pubKeyStr);
+  std::string GetWhitelistedExtSeed();
   bool RemoveFromBlacklistExclusion(const std::string& ipAddr);
   std::string GetNodeState();
   std::string GetLatestEpochStatesUpdated();
@@ -83,6 +104,7 @@ class StatusServer : public Server,
   bool ToggleSendSCCallsToDS();
   bool GetSendSCCallsToDS();
   bool DisablePoW();
+  bool ToggleDisableTxns();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_

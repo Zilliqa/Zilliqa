@@ -113,7 +113,14 @@ const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
 const unsigned int TXN_STORAGE_LIMIT{
     ReadConstantNumeric("TXN_STORAGE_LIMIT", "node.seed.")};
+bool MULTIPLIER_SYNC_MODE = true;
+const unsigned int SEED_SYNC_SMALL_PULL_INTERVAL{
+    ReadConstantNumeric("SEED_SYNC_SMALL_PULL_INTERVAL", "node.seed.")};
+const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL{
+    ReadConstantNumeric("SEED_SYNC_LARGE_PULL_INTERVAL", "node.seed.")};
 // Consensus constants
+const double TOLERANCE_FRACTION{
+    ReadConstantDouble("TOLERANCE_FRACTION", "node.consensus.")};
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
@@ -150,6 +157,8 @@ const unsigned int NUM_SHARE_PENDING_TXNS{
 const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadConstantString("USE_REMOTE_TXN_CREATOR", "node.dispatcher.") == "true"};
+const unsigned int NUM_DISPATCHERS{
+    (ReadConstantNumeric("NUM_DISPATCHERS", "node.dispatcher."))};
 
 // Epoch timing constants
 const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
@@ -326,6 +335,9 @@ bool ENABLE_WEBSOCKET{ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") ==
                       "true"};
 const unsigned int WEBSOCKET_PORT{
     ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
+const bool ENABLE_GETTXNBODIESFORTXBLOCK{
+    ReadConstantString("ENABLE_GETTXNBODIESFORTXBLOCK", "node.jsonrpc.") ==
+    "true"};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
@@ -350,7 +362,10 @@ const unsigned int BROADCAST_EXPIRY{
     ReadConstantNumeric("BROADCAST_EXPIRY", "node.p2pcomm.")};
 const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadConstantNumeric("FETCH_LOOKUP_MSG_MAX_RETRY", "node.p2pcomm.")};
-const uint32_t MAXMESSAGE{ReadConstantNumeric("MAXMESSAGE", "node.p2pcomm.")};
+const uint32_t MAXSENDMESSAGE{
+    ReadConstantNumeric("MAXSENDMESSAGE", "node.p2pcomm.")};
+const uint32_t MAXRECVMESSAGE{
+    ReadConstantNumeric("MAXRECVMESSAGE", "node.p2pcomm.")};
 const unsigned int MAXRETRYCONN{
     ReadConstantNumeric("MAXRETRYCONN", "node.p2pcomm.")};
 const unsigned int MSGQUEUE_SIZE{
@@ -503,6 +518,8 @@ const string FIELDS_MAP_DEPTH_INDICATOR{
     ReadConstantString("FIELDS_MAP_DEPTH_INDICATOR", "node.smart_contract.")};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
+const bool DISABLE_SCILLA_LIB{
+    ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{
@@ -524,6 +541,8 @@ const unsigned int PREGEN_ACCOUNT_TIMES{
     ReadConstantNumeric("PREGEN_ACCOUNT_TIMES", "node.tests.")};
 const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
+const bool LOG_PARAMETERS{ReadConstantString("LOG_PARAMETERS", "node.tests.") ==
+                          "true"};
 
 // Transaction constants
 const uint128_t TOTAL_COINBASE_REWARD{
