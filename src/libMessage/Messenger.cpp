@@ -1088,14 +1088,14 @@ void AnnouncementShardingStructureToProtobuf(
 
       ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
       const auto soln = allPoWs.find(key);
-      proto_soln->set_nonce(soln->second.nonce);
-      proto_soln->set_result(soln->second.result.data(),
-                             soln->second.result.size());
-      proto_soln->set_mixhash(soln->second.mixhash.data(),
-                              soln->second.mixhash.size());
-      proto_soln->set_lookupid(soln->second.lookupId);
+      proto_soln->set_nonce(soln->second.m_nonce);
+      proto_soln->set_result(soln->second.m_result.data(),
+                             soln->second.m_result.size());
+      proto_soln->set_mixhash(soln->second.m_mixhash.data(),
+                              soln->second.m_mixhash.size());
+      proto_soln->set_lookupid(soln->second.m_lookupId);
       NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-          soln->second.gasPrice, *proto_soln->mutable_gasprice());
+          soln->second.m_gasPrice, *proto_soln->mutable_gasprice());
     }
   }
 }
@@ -4096,12 +4096,12 @@ bool Messenger::SetDSDSBlockAnnouncement(
                                     *protoDSWinnerPoW->mutable_pubkey());
     ProtoPoWSolution* proto_soln = protoDSWinnerPoW->mutable_powsoln();
     const auto soln = kv.second;
-    proto_soln->set_nonce(soln.nonce);
-    proto_soln->set_result(soln.result.data(), soln.result.size());
-    proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
-    proto_soln->set_lookupid(soln.lookupId);
+    proto_soln->set_nonce(soln.m_nonce);
+    proto_soln->set_result(soln.m_result.data(), soln.m_result.size());
+    proto_soln->set_mixhash(soln.m_mixhash.data(), soln.m_mixhash.size());
+    proto_soln->set_lookupid(soln.m_lookupId);
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-        soln.gasPrice, *proto_soln->mutable_gasprice());
+        soln.m_gasPrice, *proto_soln->mutable_gasprice());
   }
 
   if (!dsblock->IsInitialized()) {
