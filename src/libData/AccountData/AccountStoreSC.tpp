@@ -533,17 +533,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       std::string runnerPrint;
       bool ret = true;
-<<<<<<< HEAD
 
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                         gasRemained, this->GetBalance(toAddr), ret, receipt);
 
-=======
-
-      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                        gasRemained, this->GetBalance(toAddr), ret, receipt);
-
->>>>>>> b50069b61753234d4e9596d0724f0a998e25faac
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed root transition in "
                                << r_timer_end(tpStart) << " microseconds");
