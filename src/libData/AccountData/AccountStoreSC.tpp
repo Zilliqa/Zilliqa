@@ -1477,7 +1477,7 @@ template <class MAP>
 void AccountStoreSC<MAP>::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();
-  m_scillaIPCServer = std::move(scillaIPCServer);
+  m_scillaIPCServer = scillaIPCServer;
 }
 
 template <class MAP>

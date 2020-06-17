@@ -24,12 +24,14 @@
 
 bool ScillaClient::OpenServer(uint32_t version) {
   LOG_MARKER();
+
   std::string cmdStr;
   std::string root_w_version;
   if (!ScillaUtils::PrepareRootPathWVersion(version, root_w_version)) {
     LOG_GENERAL(WARNING, "ScillaUtils::PrepareRootPathWVersion failed");
     return false;
   }
+
   std::string server_path = root_w_version + "/bin/" + SCILLA_SERVER_BINARY;
   std::string killStr, executeStr;
 
