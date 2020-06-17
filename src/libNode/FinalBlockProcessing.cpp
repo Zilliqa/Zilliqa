@@ -854,9 +854,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       }
     }
   }
-  if (LOOKUP_NODE_MODE) {
-    ClearUnconfirmedTxn();
-  }
 
   if (!BlockStorage::GetBlockStorage().PutStateDelta(
           txBlock.GetHeader().GetBlockNum(), stateDelta)) {
@@ -1003,7 +1000,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     if (toSendPendingTxn) {
       SendPendingTxnToLookup();
     }
-
+    ClearUnconfirmedTxn();
     if (isVacuousEpoch) {
       InitiatePoW();
     } else {
@@ -1017,7 +1014,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_consensusLeaderID++;
       m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
     }
-
+    ClearPendingAndDroppedTxn();
     // Now only forwarded txn are left, so only call in lookup
 
     uint32_t numShards = m_mediator.m_ds->GetNumShards();
@@ -1304,10 +1301,29 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
     }
   }
 
-  unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
+  const auto& currentEpochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  lock(m_pendingTxnsMutex, m_droppedTxnsMutex);
+
+  unique_lock<shared_timed_mutex> g1(m_pendingTxnsMutex, adopt_lock);
+  unique_lock<shared_timed_mutex> g2(m_droppedTxnsMutex, adopt_lock);
   for (const auto& entry : pendingTxns) {
     LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
-    m_unconfirmedTxns.emplace(entry);
+
+    if (BlockStorage::GetBlockStorage().CheckTxBody(entry.first)) {
+      LOG_GENERAL(INFO, "TranHash: " << entry.first << " sent by pubkey "
+                                     << pubkey << " of shard " << shardId
+                                     << " is already confirmed");
+      continue;
+    }
+
+    if (!IsTxnDropped(entry.second)) {
+      m_pendingTxns.insert(entry.first, entry.second, currentEpochNum);
+    } else {
+      LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);
+      m_droppedTxns.insert(entry.first, entry.second, currentEpochNum);
+    }
   }
   return true;
 }
@@ -1348,7 +1364,7 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
     return false;
   }
   uint64_t epochNum;
-  unordered_map<TxnHash, PoolTxnStatus> hashCodeMap;
+  unordered_map<TxnHash, ErrTxnStatus> hashCodeMap;
   uint32_t shardId;
   PubKey pubkey;
 

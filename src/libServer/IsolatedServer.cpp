@@ -100,6 +100,17 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &IsolatedServer::GetBlocknumI);
 
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetRecentTransactionsI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("GetTransactionsForTxBlock",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetTransactionsForTxBlockI);
+
   if (timeDelta > 0) {
     StartBlocknumIncrement();
   }
@@ -242,18 +253,29 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     TransactionReceipt txreceipt;
 
+    ErrTxnStatus error_code;
+    bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
-    AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                   3  // Arbitrary values
-                                                   ,
-                                                   true, tx, txreceipt);
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
+                                                        3  // Arbitrary values
+                                                        ,
+                                                        true, tx, txreceipt,
+                                                        error_code)) {
+      throwError = true;
+    }
 
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
     AccountStore::GetInstance().SerializeDelta();
     AccountStore::GetInstance().CommitTemp();
 
     AccountStore::GetInstance().InitTemp();
+
+    if (throwError) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Error Code: " + to_string(error_code));
+    }
 
     TransactionWithReceipt twr(tx, txreceipt);
 
@@ -264,8 +286,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     if (!BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
-
-    ret["TranID"] = tx.GetTranID().hex();
+    const auto& txHash = tx.GetTranID();
+    LookupServer::AddToRecentTransactions(txHash);
+    {
+      lock_guard<mutex> g(m_txnBlockNumMapMutex);
+      m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
+    }
+    LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+    ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
     return ret;
 
@@ -276,6 +304,32 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+}
+
+Json::Value IsolatedServer::GetTransactionsForTxBlock(
+    const string& txBlockNum) {
+  uint64_t txNum;
+  Json::Value _json;
+  try {
+    txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+  } catch (exception& e) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
+  }
+
+  lock_guard<mutex> g(m_txnBlockNumMapMutex);
+
+  const auto& iter = m_txnBlockNumMap.find(txNum);
+
+  if (iter == m_txnBlockNumMap.end()) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "No txns found");
+  }
+
+  for (const auto& txhash : iter->second) {
+    const auto& json_txn = GetTransaction(txhash.hex());
+    _json.append(json_txn);
+  }
+
+  return _json;
 }
 
 string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
@@ -315,7 +369,6 @@ bool IsolatedServer::StartBlocknumIncrement() {
   auto incrThread = [this]() mutable -> void {
     while (true) {
       this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
-
       m_blocknum++;
     }
   };

@@ -149,7 +149,8 @@ class AccountStore
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
                           const Transaction& transaction,
-                          TransactionReceipt& receipt);
+                          TransactionReceipt& receipt,
+                          ErrTxnStatus& error_code);
 
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {

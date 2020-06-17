@@ -384,7 +384,8 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
                                       const Transaction& transaction,
-                                      TransactionReceipt& receipt) {
+                                      TransactionReceipt& receipt,
+                                      ErrTxnStatus& error_code) {
   // LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -392,7 +393,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   lock(g, g2);
 
   return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt);
+                                            transaction, receipt, error_code);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,

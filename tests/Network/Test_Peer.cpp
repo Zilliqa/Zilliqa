@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2020 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
-#define ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
+#include <string>
+#include "libNetwork/Peer.h"
 
-#include "depends/common/FixedHash.h"
+#define BOOST_TEST_MODULE peer_test
+#include <boost/test/included/unit_test.hpp>
 
-enum PoolTxnStatus : uint8_t {
-  NOT_PRESENT = 0,
-  PRESENT_NONCE_HIGH,
-  PRESENT_GAS_EXCEEDED,
-  PRESENT_VALID_CONSENSUS_NOT_REACHED,
-  ERROR
-};
-using TxnHash = dev::h256;
-using HashCodeMap = std::unordered_map<TxnHash, PoolTxnStatus>;
+BOOST_AUTO_TEST_SUITE(peer_test)
 
-enum PendingData { HASH_CODE_MAP, PUBKEY, SHARD_ID };
+BOOST_AUTO_TEST_CASE(test_print_ip_numerical_to_String) {
+  Peer p((boost::multiprecision::uint128_t)16777343, 0);
+  std::string result = p.GetPrintableIPAddress();
+  BOOST_CHECK_MESSAGE(result == "127.0.0.1",
+                      "Expected: 127.0.0.1 , Result: " + result);
+  Peer p1;
+  result = p1.GetPrintableIPAddress();
+  BOOST_CHECK_MESSAGE(result == "0.0.0.0",
+                      "Expected: 0.0.0.0 , Result: " + result);
+}
 
-#endif  // ZILLIQA_SRC_COMMON_MEMPOOLENUM_H_
+BOOST_AUTO_TEST_SUITE_END()

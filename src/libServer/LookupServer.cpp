@@ -440,6 +440,15 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Insufficient funds in source account!");
   }
 
+  if ((type == Transaction::ContractType::CONTRACT_CREATION ||
+       type == Transaction::ContractType::NON_CONTRACT) &&
+      tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Gas limit " + to_string(tx.GetGasLimit()) +
+                               " greater than " +
+                               to_string(SHARD_MICROBLOCK_GAS_LIMIT));
+  }
+
   return true;
 }
 
@@ -1719,36 +1728,39 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
     if (BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
       // Transaction already present in database means confirmed
       _json["confirmed"] = true;
-      _json["code"] = PoolTxnStatus::NOT_PRESENT;
-      _json["info"] = "Txn already processed and confirmed";
+      _json["code"] = ErrTxnStatus::NOT_PRESENT;
       return _json;
     }
 
-    switch (m_mediator.m_node->IsTxnInMemPool(tranHash)) {
-      case PoolTxnStatus::NOT_PRESENT:
-        _json["confirmed"] = false;
-        _json["code"] = PoolTxnStatus::NOT_PRESENT;
-        _json["info"] = "Txn not pending";
-        return _json;
-      case PoolTxnStatus::PRESENT_NONCE_HIGH:
-        _json["confirmed"] = false;
-        _json["code"] = PoolTxnStatus::PRESENT_NONCE_HIGH;
-        _json["info"] = "Nonce too high";
-        return _json;
-      case PoolTxnStatus::PRESENT_GAS_EXCEEDED:
-        _json["confirmed"] = false;
-        _json["code"] = PoolTxnStatus::PRESENT_GAS_EXCEEDED;
-        _json["info"] = "Could not fit in as microblock gas limit reached";
-        return _json;
-      case PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED:
-        _json["confirmed"] = false;
-        _json["code"] = PoolTxnStatus::PRESENT_VALID_CONSENSUS_NOT_REACHED;
-        _json["info"] = "Transaction valid but consensus not reached";
-        return _json;
-      case PoolTxnStatus::ERROR:
-        throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
-      default:
-        throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    const auto& code = m_mediator.m_node->IsTxnInMemPool(tranHash);
+
+    if (!IsTxnDropped(code)) {
+      switch (code) {
+        case ErrTxnStatus::NOT_PRESENT:
+          _json["confirmed"] = false;
+          _json["pending"] = false;
+          _json["code"] = ErrTxnStatus::NOT_PRESENT;
+          return _json;
+        case ErrTxnStatus::PRESENT_NONCE_HIGH:
+          _json["confirmed"] = false;
+          _json["pending"] = true;
+          _json["code"] = ErrTxnStatus::PRESENT_NONCE_HIGH;
+          return _json;
+        case ErrTxnStatus::PRESENT_GAS_EXCEEDED:
+          _json["confirmed"] = false;
+          _json["pending"] = true;
+          _json["code"] = ErrTxnStatus::PRESENT_GAS_EXCEEDED;
+          return _json;
+        case ErrTxnStatus::ERROR:
+          throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
+        default:
+          throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+      }
+    } else {
+      _json["confirmed"] = false;
+      _json["pending"] = false;
+      _json["code"] = code;
+      return _json;
     }
   } catch (const JsonRpcException& je) {
     throw je;
@@ -1764,16 +1776,20 @@ Json::Value LookupServer::GetPendingTxns() {
     throw JsonRpcException(RPC_INVALID_REQUEST,
                            "Not to be queried on non-lookup");
   }
-  try {
-    Json::Value _json;
-    _json["Txns"] = Json::Value(Json::arrayValue);
-    for (const auto& txhash_and_status :
-         m_mediator.m_node->GetUnconfirmedTxns()) {
+  Json::Value _json;
+  _json["Txns"] = Json::Value(Json::arrayValue);
+  auto putTxns = [&_json](const HashCodeMap& t_hashCodeMap) -> void {
+    for (const auto& txhash_and_status : t_hashCodeMap) {
       Json::Value tmpJson;
       tmpJson["TxnHash"] = txhash_and_status.first.hex();
       tmpJson["Status"] = uint(txhash_and_status.second);
       _json["Txns"].append(tmpJson);
     }
+  };
+
+  try {
+    putTxns(m_mediator.m_node->GetPendingTxns());
+    putTxns(m_mediator.m_node->GetDroppedTxns());
     return _json;
   } catch (const JsonRpcException& je) {
     throw je;

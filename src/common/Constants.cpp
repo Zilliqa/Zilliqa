@@ -338,6 +338,10 @@ const unsigned int WEBSOCKET_PORT{
 const bool ENABLE_GETTXNBODIESFORTXBLOCK{
     ReadConstantString("ENABLE_GETTXNBODIESFORTXBLOCK", "node.jsonrpc.") ==
     "true"};
+const unsigned int NUM_TTL_PENDING_TXN{
+    ReadConstantNumeric("NUM_TTL_PENDING_TXN", "node.jsonrpc.pending_txn.")};
+const unsigned int NUM_TTL_DROPPED_TXN{
+    ReadConstantNumeric("NUM_TTL_DROPPED_TXN", "node.jsonrpc.pending_txn.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
