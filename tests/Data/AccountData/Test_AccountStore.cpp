@@ -451,7 +451,9 @@ void RunTransaction(const PairOfKey& sender, unsigned int major_index,
                  amount, PRECISION_MIN_VALUE, 20000, deploy ? t.code : _bytes,
                  data);
   TransactionReceipt tr;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
+  ErrTxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr,
+                                                 error_code);
   nonce++;
 
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();

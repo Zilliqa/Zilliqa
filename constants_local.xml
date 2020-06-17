@@ -161,6 +161,10 @@
         <ENABLE_STAKING_RPC>false</ENABLE_STAKING_RPC>
         <STAKING_RPC_PORT>4501</STAKING_RPC_PORT>
         <ENABLE_GETTXNBODIESFORTXBLOCK>false</ENABLE_GETTXNBODIESFORTXBLOCK>
+        <pending_txn>
+            <NUM_TTL_PENDING_TXN>1</NUM_TTL_PENDING_TXN>
+            <NUM_TTL_DROPPED_TXN>5</NUM_TTL_DROPPED_TXN>
+        </pending_txn>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

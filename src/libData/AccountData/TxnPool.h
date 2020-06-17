@@ -24,6 +24,7 @@
 
 #include "Account.h"
 #include "Transaction.h"
+#include "common/ErrTxn.h"
 
 struct TxnPool {
   struct PubKeyNonceHash {
@@ -63,9 +64,9 @@ struct TxnPool {
     return true;
   }
 
-  bool insert(const Transaction& t) {
+  std::pair<bool, ErrTxnStatus> insert(const Transaction& t) {
     if (exist(t.GetTranID())) {
-      return false;
+      return {false, ErrTxnStatus::MEMPOOL_ALREADY_PRESENT};
     }
 
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
@@ -90,13 +91,17 @@ struct TxnPool {
         HashIndex[t.GetTranID()] = t;
         GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
         searchNonce->second = t;
+      } else {
+        // GasPrice is higher but of same nonce
+        // or same gas price and nonce but higher tranID
+        return {false, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS};
       }
     } else {
       HashIndex[t.GetTranID()] = t;
       GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
       NonceIndex[{t.GetSenderPubKey(), t.GetNonce()}] = t;
     }
-    return true;
+    return {true, ErrTxnStatus::NOT_PRESENT};
   }
 
   void findSameNonceButHigherGas(Transaction& t) {

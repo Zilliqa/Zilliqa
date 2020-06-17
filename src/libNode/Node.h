@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "common/Constants.h"
+#include "common/ErrTxn.h"
 #include "common/Executable.h"
-#include "common/MempoolEnum.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -142,7 +142,13 @@ class Node : public Executable {
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
   //     m_committedTransactions;
   std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
-  std::unordered_map<TxnHash, PoolTxnStatus> m_unconfirmedTxns;
+  HashCodeMap m_unconfirmedTxns;
+
+  std::shared_timed_mutex mutable m_droppedTxnsMutex;
+  TTLTxns m_droppedTxns;
+
+  std::shared_timed_mutex mutable m_pendingTxnsMutex;
+  TTLTxns m_pendingTxns;
 
   std::mutex m_mutexMBnForwardedTxnBuffer;
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
@@ -228,7 +234,8 @@ class Node : public Executable {
 
   void ReinstateMemPool(
       const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
-      const std::vector<Transaction>& gasLimitExceededTxnBuffer);
+      const std::vector<Transaction>& gasLimitExceededTxnBuffer,
+      const std::vector<std::pair<TxnHash, ErrTxnStatus>>& droppedTxns);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -667,9 +674,13 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  PoolTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
+  ErrTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
 
-  std::unordered_map<TxnHash, PoolTxnStatus> GetUnconfirmedTxns() const;
+  std::unordered_map<TxnHash, ErrTxnStatus> GetUnconfirmedTxns() const;
+
+  std::unordered_map<TxnHash, ErrTxnStatus> GetDroppedTxns() const;
+
+  std::unordered_map<TxnHash, ErrTxnStatus> GetPendingTxns() const;
 
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
@@ -701,6 +712,10 @@ class Node : public Executable {
   void CleanWhitelistReqs();
 
   void ClearUnconfirmedTxn();
+
+  void ClearPendingAndDroppedTxn();
+
+  void ClearAllPendingAndDroppedTxn();
 
   bool IsUnconfirmedTxnEmpty() const;
 
