@@ -255,7 +255,8 @@ BOOST_AUTO_TEST_CASE(salarybot) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient, owner,
                    amount, PRECISION_MIN_VALUE, 20000, code, data);
     TransactionReceipt tr;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr);
+    ErrTxnStatus ets;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr, ets);
     nonce++;
   }
 
