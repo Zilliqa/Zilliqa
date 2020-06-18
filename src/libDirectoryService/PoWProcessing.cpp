@@ -367,14 +367,14 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
-      } else if (m_allPoWs[submitterPubKey].result > soln.result) {
+      } else if (m_allPoWs[submitterPubKey].m_result > soln.m_result) {
         // string harderSolnStr, oldSolnStr;
         // DataConversion::charArrToHexStr(soln.result, harderSolnStr);
         // DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
         // oldSolnStr);
         LOG_GENERAL(INFO, "Replaced");
         m_allPoWs[submitterPubKey] = soln;
-      } else if (m_allPoWs[submitterPubKey].result == soln.result) {
+      } else if (m_allPoWs[submitterPubKey].m_result == soln.m_result) {
         LOG_GENERAL(INFO, "Duplicated");
         return true;
       }
@@ -476,7 +476,7 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(
     const PubKey& Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end()) {
-    return m_allDSPoWs[Pubk].result;
+    return m_allDSPoWs[Pubk].m_result;
   } else {
     LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
     return array<unsigned char, 32>();

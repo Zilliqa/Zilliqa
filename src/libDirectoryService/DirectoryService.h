@@ -43,28 +43,28 @@
 class Mediator;
 
 struct PoWSolution {
-  uint64_t nonce;
-  std::array<unsigned char, 32> result;
-  std::array<unsigned char, 32> mixhash;
-  uint32_t lookupId;
-  uint128_t gasPrice;
+  uint64_t m_nonce;
+  std::array<unsigned char, 32> m_result;
+  std::array<unsigned char, 32> m_mixhash;
+  uint32_t m_lookupId;
+  uint128_t m_gasPrice;
 
   PoWSolution()
-      : nonce(0),
-        result({{0}}),
-        mixhash({{0}}),
-        lookupId(uint32_t() - 1),
-        gasPrice(0) {
+      : m_nonce(0),
+        m_result({{0}}),
+        m_mixhash({{0}}),
+        m_lookupId(uint32_t() - 1),
+        m_gasPrice(0) {
 
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
               const std::array<unsigned char, 32>& m, uint32_t l,
               const uint128_t& gp)
-      : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
+      : m_nonce(n), m_result(r), m_mixhash(m), m_lookupId(l), m_gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
-    return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
-           std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.lookupId,
-                    rhs.gasPrice);
+    return std::tie(m_nonce, m_result, m_mixhash, m_lookupId, m_gasPrice) ==
+           std::tie(rhs.m_nonce, rhs.m_result, rhs.m_mixhash, rhs.m_lookupId,
+                    rhs.m_gasPrice);
   }
 };
 

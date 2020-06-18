@@ -348,20 +348,20 @@ bool DirectoryService::VerifyPoWWinner(
 
         auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand, peer,
-            DSPowWinner.first, dsPowSoln.lookupId, dsPowSoln.gasPrice);
+            DSPowWinner.first, dsPowSoln.m_lookupId, dsPowSoln.m_gasPrice);
 
         string resultStr, mixHashStr;
-        if (!DataConversion::charArrToHexStr(dsPowSoln.result, resultStr)) {
+        if (!DataConversion::charArrToHexStr(dsPowSoln.m_result, resultStr)) {
           return false;
         }
-        if (!DataConversion::charArrToHexStr(dsPowSoln.mixhash, mixHashStr)) {
+        if (!DataConversion::charArrToHexStr(dsPowSoln.m_mixhash, mixHashStr)) {
           return false;
         }
 
         // Validate the PoW submission
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
-            headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
+            headerHash, dsPowSoln.m_nonce, resultStr, mixHashStr);
         if (!result) {
           LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "WARNING: Failed to verify DS PoW from node "
@@ -555,7 +555,7 @@ bool DirectoryService::VerifyPoWOrdering(
                                  << toFind << " " << sortedPoWSolns.size());
 
         if (m_allPoWs.find(toFind) != m_allPoWs.end()) {
-          result = m_allPoWs.at(toFind).result;
+          result = m_allPoWs.at(toFind).m_result;
           LOG_GENERAL(INFO, "Found the PoW from local PoW list");
         } else {
           LOG_GENERAL(INFO,
@@ -565,7 +565,7 @@ bool DirectoryService::VerifyPoWOrdering(
             const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
             const auto& powSoln = pubKeyToPoW->second;
             if (VerifyPoWFromLeader(peer, pubKeyToPoW->first, powSoln)) {
-              result = powSoln.result;
+              result = powSoln.m_result;
             } else {
               ret = false;
               break;
@@ -644,7 +644,7 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
                                            const PoWSolution& powSoln) {
   auto headerHash =
       POW::GenHeaderHash(m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-                         peer, pubKey, powSoln.lookupId, powSoln.gasPrice);
+                         peer, pubKey, powSoln.m_lookupId, powSoln.m_gasPrice);
 
   auto difficulty =
       (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey))
@@ -654,16 +654,16 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
                 .GetDifficulty();
 
   string resultStr, mixHashStr;
-  if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+  if (!DataConversion::charArrToHexStr(powSoln.m_result, resultStr)) {
     return false;
   }
 
-  if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+  if (!DataConversion::charArrToHexStr(powSoln.m_mixhash, mixHashStr)) {
     return false;
   }
 
   if (!POW::GetInstance().PoWVerify(m_pendingDSBlock->GetHeader().GetBlockNum(),
-                                    difficulty, headerHash, powSoln.nonce,
+                                    difficulty, headerHash, powSoln.m_nonce,
                                     resultStr, mixHashStr)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW solution from leader for node: "
                              << pubKey);
@@ -678,7 +678,7 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
 
   if (POW::GetInstance().PoWVerify(m_pendingDSBlock->GetHeader().GetBlockNum(),
-                                   dsDifficulty, headerHash, powSoln.nonce,
+                                   dsDifficulty, headerHash, powSoln.m_nonce,
                                    resultStr, mixHashStr)) {
     AddDSPoWs(pubKey, powSoln);
   }
@@ -747,7 +747,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
     const unsigned int byzantineRemoved) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
   for (const auto& powsoln : mapOfPoWs) {
-    PoWOrderSorter[powsoln.second.result] = powsoln.first;
+    PoWOrderSorter[powsoln.second.m_result] = powsoln.first;
   }
 
   // Put it back to vector for easy manipulation and adjustment of the ordering
