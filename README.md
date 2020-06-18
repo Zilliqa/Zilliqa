@@ -89,7 +89,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tag/v6.2.0
+$ cd Zilliqa && git checkout tags/v6.2.0
 
 # build Zilliqa binary
 $ ./build.sh
