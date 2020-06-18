@@ -107,27 +107,6 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, const std::string &contrName,
                 ParseJsonFile(t.message, testDir + "/message_" + is + ".json"));
 }
 
-// Get _balance from output state of interpreter, from OUTPUT_JSON.
-// Return 0 on failure.
-uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
-  Json::Value iOutput;
-  if (!ScillaTestUtil::ParseJsonFile(iOutput, OUTPUT_JSON)) {
-    LOG_GENERAL(WARNING, "Unable to parse output of interpreter.");
-    return 0;
-  }
-
-  // Get balance as given by the interpreter.
-  uint128_t oBal = 0;
-  Json::Value states = iOutput["states"];
-  for (auto &state : states) {
-    if (state["vname"] == "_balance") {
-      oBal = atoi(state["value"].asCString());
-    }
-  }
-
-  return oBal;
-}
-
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
   // Get blocknumber from blockchain.json

@@ -130,6 +130,7 @@ class SysCommand {
 
     // Log the stderr into stdout as well
     cmd += " 2>&1 ";
+    LOG_GENERAL(INFO, "cmd: " << cmd);
     std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
                                                   pclose);
     if (!proc) {
@@ -157,6 +158,7 @@ class SysCommand {
 
     // Log the stderr into stdout as well
     cmd += " 2>&1 ";
+
     std::unique_ptr<FILE, std::function<void(FILE*)>> proc(
         popen_with_pid(cmd.c_str(), "r", pid, cwd),
         [pid](FILE* ptr) { popen_with_pid(ptr, pid); });
