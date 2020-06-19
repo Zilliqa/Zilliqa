@@ -225,6 +225,8 @@ class AccountStore
 
   /// clean the data for revert the AccountStore
   void InitRevertibles();
+
+  std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

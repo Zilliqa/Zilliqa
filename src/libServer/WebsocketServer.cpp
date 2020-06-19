@@ -240,22 +240,27 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
         if (j_query.isMember("addresses") && j_query["addresses"].isArray() &&
             !j_query["addresses"].empty()) {
           set<Address> el_addresses;
-          for (const auto& address : j_query["addresses"]) {
-            try {
-              const auto& addr_str = address.asString();
-              if (!JSONConversion::checkStringAddress(addr_str)) {
-                response = "Invalid hex address";
+
+          {
+            shared_lock<shared_timed_mutex> lock(
+                AccountStore::GetInstance().GetPrimaryMutex());
+            for (const auto& address : j_query["addresses"]) {
+              try {
+                const auto& addr_str = address.asString();
+                if (!JSONConversion::checkStringAddress(addr_str)) {
+                  response = "Invalid hex address";
+                  break;
+                }
+                Address addr(addr_str);
+                Account* acc = AccountStore::GetInstance().GetAccount(addr);
+                if (acc == nullptr || !acc->isContract()) {
+                  continue;
+                }
+                el_addresses.emplace(addr);
+              } catch (...) {
+                response = "invalid address";
                 break;
               }
-              Address addr(addr_str);
-              Account* acc = AccountStore::GetInstance().GetAccount(addr);
-              if (acc == nullptr || !acc->isContract()) {
-                continue;
-              }
-              el_addresses.emplace(addr);
-            } catch (...) {
-              response = "invalid address";
-              break;
             }
           }
           if (el_addresses.empty()) {
