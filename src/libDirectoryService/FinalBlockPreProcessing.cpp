@@ -305,7 +305,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 }
 
 // Check version (must be most current version)
-bool DirectoryService::CheckFinalBlockVersion() {
+bool DirectoryService::CheckFinalBlockVersion() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockVersion not expected to "
@@ -330,7 +330,7 @@ bool DirectoryService::CheckFinalBlockVersion() {
 
 // Check block number (must be = 1 + block number of last Tx block header in the
 // Tx blockchain)
-bool DirectoryService::CheckFinalBlockNumber() {
+bool DirectoryService::CheckFinalBlockNumber() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockNumber not expected to "
@@ -353,7 +353,7 @@ bool DirectoryService::CheckFinalBlockNumber() {
 
 // Check previous hash (must be = sha2-256 digest of last Tx block header in the
 // Tx blockchain)
-bool DirectoryService::CheckPreviousFinalBlockHash() {
+bool DirectoryService::CheckPreviousFinalBlockHash() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckPreviousFinalBlockHash not "
@@ -382,7 +382,7 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
 
 // Check timestamp (must be greater than timestamp of last Tx block header in
 // the Tx blockchain)
-bool DirectoryService::CheckFinalBlockTimestamp() {
+bool DirectoryService::CheckFinalBlockTimestamp() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckFinalBlockTimestamp not expected "
@@ -424,7 +424,7 @@ bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
       LOG_GENERAL(INFO, "MicroBlock hash = " << hash);
       bool found = false;
       auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
-      for (auto& microBlock : microBlocks) {
+      for (const auto& microBlock : microBlocks) {
         if (microBlock.GetBlockHash() == hash) {
           found = true;
           break;
@@ -471,7 +471,7 @@ bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
   return true;
 }
 
-bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
+bool DirectoryService::CheckLegitimacyOfMicroBlocks() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckLegitimacyOfMicroBlocks not expected "
@@ -489,9 +489,13 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
 
   {
     lock_guard<mutex> g(m_mutexMicroBlocks);
+    std::set<MicroBlock> microBlocks;
+    if (m_microBlocks.find(m_mediator.m_currentEpochNum) !=
+        m_microBlocks.end()) {
+      microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
+    }
 
-    auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
-    for (auto& microBlock : microBlocks) {
+    for (const auto& microBlock : microBlocks) {
       uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
       uint128_t tmpRewards = allRewards;
 
@@ -713,7 +717,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   return true;
 }
 
-bool DirectoryService::CheckMicroBlockInfo() {
+bool DirectoryService::CheckMicroBlockInfo() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckIsMicroBlockEmpty not expected to "
@@ -735,8 +739,12 @@ bool DirectoryService::CheckMicroBlockInfo() {
     //                 << "; hashes: " << hashesInMicroBlocks[i]
     //                 << "; IsMicroBlockEmpty: "
     //                 << m_finalBlock->GetIsMicroBlockEmpty()[i]);
-    auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
-    for (auto& microBlock : microBlocks) {
+    std::set<MicroBlock> microBlocks;
+    if (m_microBlocks.find(m_mediator.m_currentEpochNum) !=
+        m_microBlocks.end()) {
+      microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
+    }
+    for (const auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockInfos.at(i).m_microBlockHash) {
         if (m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash !=
             microBlock.GetHeader().GetTxRootHash()) {
@@ -785,7 +793,7 @@ bool DirectoryService::CheckMicroBlockInfo() {
 }
 
 // Check state root
-bool DirectoryService::CheckStateRoot() {
+bool DirectoryService::CheckStateRoot() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckStateRoot not expected to be "
@@ -811,7 +819,7 @@ bool DirectoryService::CheckStateRoot() {
   return true;
 }
 
-bool DirectoryService::CheckStateDeltaHash() {
+bool DirectoryService::CheckStateDeltaHash() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckStateDeltaHash not expected to be "
@@ -838,7 +846,7 @@ bool DirectoryService::CheckStateDeltaHash() {
   return true;
 }
 
-bool DirectoryService::CheckBlockHash() {
+bool DirectoryService::CheckBlockHash() const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckBlockHash not expected to be "

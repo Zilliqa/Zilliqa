@@ -356,19 +356,19 @@ class DirectoryService : public Executable {
   void PrepareRunConsensusOnFinalBlockNormal();
 
   // FinalBlockValidator functions
-  bool CheckBlockHash();
+  bool CheckBlockHash() const;
   bool CheckFinalBlockValidity(bytes& errorMsg);
   bool CheckMicroBlockValidity(bytes& errorMsg);
-  bool CheckFinalBlockVersion();
-  bool CheckPreviousFinalBlockHash();
-  bool CheckFinalBlockNumber();
-  bool CheckFinalBlockTimestamp();
+  bool CheckFinalBlockVersion() const;
+  bool CheckPreviousFinalBlockHash() const;
+  bool CheckFinalBlockNumber() const;
+  bool CheckFinalBlockTimestamp() const;
   bool CheckMicroBlocks(bytes& errorMsg, bool fromShards,
                         bool generateErrorMsg);
-  bool CheckLegitimacyOfMicroBlocks();
-  bool CheckMicroBlockInfo();
-  bool CheckStateRoot();
-  bool CheckStateDeltaHash();
+  bool CheckLegitimacyOfMicroBlocks() const;
+  bool CheckMicroBlockInfo() const;
+  bool CheckStateRoot() const;
+  bool CheckStateDeltaHash() const;
   void LoadUnavailableMicroBlocks();
 
   // DS block consensus validator function
@@ -513,7 +513,7 @@ class DirectoryService : public Executable {
   std::mutex m_mutexPrepareRunFinalblockConsensus;
   std::atomic<bool> m_startedRunFinalblockConsensus{};
 
-  std::mutex m_mutexMicroBlocks;
+  mutable std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   std::unordered_map<uint64_t, std::unordered_map<BlockHash, bytes>>

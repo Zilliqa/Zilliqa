@@ -194,7 +194,7 @@ class Lookup : public Executable {
   std::mutex m_txnShardMapMutex;
 
   const std::vector<Transaction>& GetTxnFromShardMap(
-      uint32_t index);  // Use m_txnShardMapMutex with this function
+      uint32_t shardId) const;  // Use m_txnShardMapMutex with this function
 
   std::mutex m_mutexShardStruct;
   std::condition_variable cv_shardStruct;

@@ -3372,8 +3372,13 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
   }
 }
 
-const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
-  return m_txnShardMap[index];
+const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t shardId) const {
+  if (m_txnShardMap.find(shardId) != m_txnShardMap.end()) {
+    return m_txnShardMap.at(shardId);
+  }
+
+  static vector<Transaction> emptyTrans;
+  return emptyTrans;
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
