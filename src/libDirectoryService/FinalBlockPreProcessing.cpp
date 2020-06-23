@@ -58,7 +58,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
   auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
 
-  for (auto& microBlock : microBlocks) {
+  for (const auto& microBlock : microBlocks) {
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << i << "    ]["
@@ -489,39 +489,38 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() const {
 
   {
     lock_guard<mutex> g(m_mutexMicroBlocks);
-    std::set<MicroBlock> microBlocks;
     if (m_microBlocks.find(m_mediator.m_currentEpochNum) !=
         m_microBlocks.end()) {
-      microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
-    }
+      const auto& microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
+      for (const auto& microBlock : microBlocks) {
+        uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
+        uint128_t tmpRewards = allRewards;
 
-    for (const auto& microBlock : microBlocks) {
-      uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
-      uint128_t tmpRewards = allRewards;
+        bool flag = true;
+        if (!SafeMath<uint64_t>::add(allGasLimit,
+                                     microBlock.GetHeader().GetGasLimit(),
+                                     allGasLimit)) {
+          flag = false;
+        }
+        if (flag &&
+            !SafeMath<uint64_t>::add(
+                allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
+          flag = false;
+        }
+        if (flag &&
+            !SafeMath<uint128_t>::add(
+                allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
+          flag = false;
+        }
+        if (!flag) {
+          allGasLimit = tmpGasLimit;
+          allGasUsed = tmpGasUsed;
+          allRewards = tmpRewards;
+        }
 
-      bool flag = true;
-      if (!SafeMath<uint64_t>::add(
-              allGasLimit, microBlock.GetHeader().GetGasLimit(), allGasLimit)) {
-        flag = false;
+        allNumTxns += microBlock.GetHeader().GetNumTxs();
+        ++allNumMicroBlockHashes;
       }
-      if (flag &&
-          !SafeMath<uint64_t>::add(
-              allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
-        flag = false;
-      }
-      if (flag &&
-          !SafeMath<uint128_t>::add(
-              allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
-        flag = false;
-      }
-      if (!flag) {
-        allGasLimit = tmpGasLimit;
-        allGasUsed = tmpGasUsed;
-        allRewards = tmpRewards;
-      }
-
-      allNumTxns += microBlock.GetHeader().GetNumTxs();
-      ++allNumMicroBlockHashes;
     }
   }
 
@@ -739,11 +738,12 @@ bool DirectoryService::CheckMicroBlockInfo() const {
     //                 << "; hashes: " << hashesInMicroBlocks[i]
     //                 << "; IsMicroBlockEmpty: "
     //                 << m_finalBlock->GetIsMicroBlockEmpty()[i]);
-    std::set<MicroBlock> microBlocks;
-    if (m_microBlocks.find(m_mediator.m_currentEpochNum) !=
+
+    if (m_microBlocks.find(m_mediator.m_currentEpochNum) ==
         m_microBlocks.end()) {
-      microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
+      continue;
     }
+    const auto& microBlocks = m_microBlocks.at(m_mediator.m_currentEpochNum);
     for (const auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockInfos.at(i).m_microBlockHash) {
         if (m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash !=
