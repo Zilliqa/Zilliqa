@@ -811,6 +811,22 @@ void DirectoryService::ReloadGuardedShards(DequeOfShard& shards) {
   }
 }
 
+bool DirectoryService::UpdateShardNodeNetworkInfo(
+    const Peer& shardNodeNetworkInfo, const PubKey& pubKey) {
+  LOG_MARKER();
+  lock_guard<mutex> g(m_mutexShards);
+  for (auto& shard : m_shards) {
+    for (auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == pubKey) {
+        std::get<SHARD_NODE_PEER>(node) = shardNodeNetworkInfo;
+        LOG_GENERAL(INFO, "updated network info successfully!");
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   if ((m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC ||
        m_state == SYNC) &&
@@ -965,7 +981,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       }
     }
 
-    if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
+    if (foundDSGuardNode && BROADCAST_GOSSIP_MODE && !LOOKUP_NODE_MODE) {
       VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);

@@ -122,6 +122,8 @@ class RumorManager {
       const RawBytes& message, const RRS::Message::Type& t, const Peer& from);
 
   void AppendKeyAndSignature(RawBytes& result, const RawBytes& messageToSig);
+
+  void UpdatePeerInfo(const Peer& newPeerInfo, const PubKey& pubKey);
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
 };

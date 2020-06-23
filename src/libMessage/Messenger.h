@@ -923,6 +923,22 @@ class Messenger {
                                             PubKey& lookupPubKey);
 
   // ============================================================================
+  // Shard Guard network information update
+  // ============================================================================
+
+  static bool SetNodeNewShardGuardNetworkInfo(
+      bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+      const Peer& shardGuardNewNetworkInfo, const uint64_t timestamp,
+      const PairOfKey& shardGuardkey);
+
+  static bool GetNodeNewShardGuardNetworkInfo(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& dsEpochNumber,
+                                              Peer& shardGuardNewNetworkInfo,
+                                              uint64_t& timestamp,
+                                              PubKey& shardGuardPubkey);
+
+  // ============================================================================
   // DS Guard network information update
   // ============================================================================
 

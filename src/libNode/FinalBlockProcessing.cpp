@@ -759,7 +759,15 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     // Missed some final block, rejoin
     else if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
       if (!LOOKUP_NODE_MODE) {
-        RejoinAsNormal();
+        if (txBlock.GetHeader().GetBlockNum() - m_mediator.m_currentEpochNum <=
+            NUM_FINAL_BLOCK_PER_POW) {
+          LOG_GENERAL(INFO, "Syncing as normal node from seeds ...");
+          m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+          auto func = [this]() mutable -> void { StartSynchronization(); };
+          DetachedFunction(1, func);
+        } else {
+          RejoinAsNormal();
+        }
       } else if (ARCHIVAL_LOOKUP) {
         // Too many txblks ( and corresponding mb/txns) to be fetch from lookup.
         // so sync from S3 instead
