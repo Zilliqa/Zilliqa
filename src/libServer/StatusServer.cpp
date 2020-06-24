@@ -320,9 +320,9 @@ Json::Value StatusServer::IsTxnInMemPool(const string& tranID) {
 }
 
 bool StatusServer::ToggleSendSCCallsToDS() {
-  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+  if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST,
-                           "Not to be queried on non-lookup or seed");
+                           "Not to be queried on non-lookup");
   }
   m_mediator.m_lookup->m_sendSCCallsToDS =
       !(m_mediator.m_lookup->m_sendSCCallsToDS);
@@ -330,9 +330,9 @@ bool StatusServer::ToggleSendSCCallsToDS() {
 }
 
 bool StatusServer::GetSendSCCallsToDS() {
-  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
+  if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST,
-                           "Not to be queried on non-lookup or seed");
+                           "Not to be queried on non-lookup");
   }
   return m_mediator.m_lookup->m_sendSCCallsToDS;
 }

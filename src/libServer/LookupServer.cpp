@@ -493,7 +493,7 @@ Json::Value LookupServer::CreateTransaction(
       }
 
       toAccountExist = (toAccount != nullptr);
-      toAccountIsContract = toAccount->isContract();
+      toAccountIsContract = toAccountExist && toAccount->isContract();
     }
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
@@ -540,9 +540,10 @@ Json::Value LookupServer::CreateTransaction(
 
         unsigned int to_shard =
             Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-        bool sendToDs = false;
+        // Use m_sendSCCallsToDS as initial setting
+        bool sendToDs = m_mediator.m_lookup->m_sendSCCallsToDS;
         if (_json.isMember("priority")) {
-          sendToDs = _json["priority"].asBool();
+          sendToDs = sendToDs || _json["priority"].asBool();
         }
         if ((to_shard == shard) && !sendToDs) {
           if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
