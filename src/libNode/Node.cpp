@@ -2219,19 +2219,25 @@ void Node::CleanCreatedTransaction() {
 
 bool Node::IsShardNode(const PubKey& pubKey) {
   lock_guard<mutex> lock(m_mutexShardMember);
-  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&pubKey](const PairOfNode& node) {
-                        return node.first == pubKey;
-                      }) != m_myShardMembers->end();
+  if (m_myShardMembers != nullptr) {
+    return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                        [&pubKey](const PairOfNode& node) {
+                          return node.first == pubKey;
+                        }) != m_myShardMembers->end();
+  }
+  return false;
 }
 
 bool Node::IsShardNode(const Peer& peerInfo) {
   lock_guard<mutex> lock(m_mutexShardMember);
-  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&peerInfo](const PairOfNode& node) {
-                        return node.second.GetIpAddress() ==
-                               peerInfo.GetIpAddress();
-                      }) != m_myShardMembers->end();
+  if (m_myShardMembers != nullptr) {
+    return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                        [&peerInfo](const PairOfNode& node) {
+                          return node.second.GetIpAddress() ==
+                                 peerInfo.GetIpAddress();
+                        }) != m_myShardMembers->end();
+  }
+  return false;
 }
 
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
