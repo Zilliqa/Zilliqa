@@ -14,6 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # This Dockerfile is incomplete and should only be used with other Dockerfiles
+
+COPY requirements2.k8s.txt ./
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
     gdb \
@@ -24,6 +27,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     trickle \
     vim \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install 'setuptools<45' \
-    && pip install urllib3 kubernetes netaddr==0.7.19 boto3 awscli clint request
+    && pip install -r requirements2.k8s.txt
 

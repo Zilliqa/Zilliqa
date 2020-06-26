@@ -17,6 +17,10 @@
 ARG BASE=zilliqa/scilla:v0.7.0
 FROM ${BASE}
 
+COPY requirements2.txt ./
+COPY requirements2.preq.txt ./
+COPY requirements3.txt ./
+
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -54,9 +58,9 @@ RUN apt-get update \
     python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install 'setuptools<45' \
-    && pip install request requests clint futures \
-    && pip3 install requests clint future
+    && pip install -r requirements2.preq.txt \
+    && pip install -r requirements2.txt \
+    && pip3 install -r requirements3.txt
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.3.0-alpha.0
