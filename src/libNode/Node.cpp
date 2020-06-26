@@ -1679,8 +1679,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
          ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
            0) ||
           m_justDidFallback))) {
+      SHA2<HashType::HASH_VARIANT_256> sha256;
+      sha256.Update(message2);  // message hash
+      bytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace_back(message2);
+      m_txnPacketBuffer.emplace(msg_hash, message2);
       return true;
     }
   }
@@ -1717,7 +1720,10 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
                 << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
                 << "] RECVFROMLOOKUP");
     }
-    m_txnPacketBuffer.emplace_back(message2);
+    SHA2<HashType::HASH_VARIANT_256> sha256;
+    sha256.Update(message2);  // message hash
+    bytes msg_hash = sha256.Finalize();
+    m_txnPacketBuffer.emplace(msg_hash, message2);
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
@@ -1991,12 +1997,13 @@ void Node::CommitTxnPacketBuffer() {
   }
 
   lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-  for (const auto& message : m_txnPacketBuffer) {
+  for (const auto& entry : m_txnPacketBuffer) {
     uint64_t epochNumber = 0, dsBlockNum = 0;
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
     Signature signature;
+    const auto& message = entry.second;
 
     if (!Messenger::GetNodeForwardTxnBlock(
             message, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
