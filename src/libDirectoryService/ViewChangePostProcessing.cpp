@@ -330,11 +330,13 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
     // Acquire shard receivers cosigs from MicroBlocks
     unordered_map<uint32_t, BlockBase> t_microBlocks;
-    lock_guard<mutex> g(m_mutexMicroBlocks);
-    const auto& microBlocks = m_microBlocks
-        [m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()];
-    for (const auto& microBlock : microBlocks) {
-      t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
+    {
+      lock_guard<mutex> g(m_mutexMicroBlocks);
+      const auto& microBlocks = m_microBlocks
+          [m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()];
+      for (const auto& microBlock : microBlocks) {
+        t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
+      }
     }
 
     DequeOfShard t_shards;
