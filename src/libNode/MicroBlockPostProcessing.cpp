@@ -99,6 +99,7 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
   if (!IsShardNode(senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "ProcessMicroBlockConsensus signed by non shard member");
+    return false;
   }
 
   if (m_state != MICROBLOCK_CONSENSUS) {
