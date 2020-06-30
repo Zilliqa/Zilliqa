@@ -17,6 +17,7 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
+#include "libServer/WebsocketServer.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -105,13 +106,23 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
 
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetTransactionsForTxBlock",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
-      &IsolatedServer::GetTransactionsForTxBlockI);
-
   if (timeDelta > 0) {
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetTransactionsForTxBlock",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::GetTransactionsForTxBlockI);
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetTxBlockI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::GetLatestTxBlockI);
+
     StartBlocknumIncrement();
   }
 }
@@ -185,6 +196,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
     }
+
+    lock_guard<mutex> g(m_blockMutex);
 
     LOG_GENERAL(INFO, "On the isolated server ");
 
@@ -300,6 +313,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     twr.Serialize(twr_ser, 0);
 
+    m_currEpochGas += txreceipt.GetCumGas();
+
     if (!BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
@@ -312,6 +327,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
+    WebsocketServer::GetInstance().ParseTxn(twr);
     return ret;
 
   } catch (const JsonRpcException& je) {
@@ -386,10 +402,54 @@ bool IsolatedServer::StartBlocknumIncrement() {
   auto incrThread = [this]() mutable -> void {
     while (true) {
       this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
-      m_blocknum++;
+      PostTxBlock();
     }
   };
 
   DetachedFunction(1, incrThread);
   return true;
+}
+
+TxBlock IsolatedServer::GenerateTxBlock() {
+  uint numtxns;
+  {
+    lock_guard<mutex> g(m_txnBlockNumMapMutex);
+    numtxns = m_txnBlockNumMap[m_blocknum].size();
+  }
+  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
+                              TxBlockHashSet(), numtxns, PubKey(),
+                              TXBLOCK_VERSION);
+  TxBlock txblock(txblockheader, {MicroBlockInfo()}, CoSignatures());
+
+  return txblock;
+}
+
+void IsolatedServer::PostTxBlock() {
+  lock_guard<mutex> g(m_blockMutex);
+  const TxBlock& txBlock = GenerateTxBlock();
+  if (ENABLE_WEBSOCKET) {
+    // send tx block and attach txhashes
+    Json::Value j_txnhashes;
+    try {
+      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
+    } catch (exception& e) {
+      j_txnhashes = Json::arrayValue;
+    }
+    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+    // send event logs
+    WebsocketServer::GetInstance().SendOutMessages();
+  }
+  m_mediator.m_txBlockChain.AddBlock(txBlock);
+
+  bytes serializedTxBlock;
+  txBlock.Serialize(serializedTxBlock, 0);
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(
+          txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
+  }
+
+  m_blocknum++;
+  m_currEpochGas = 0;
 }

@@ -63,6 +63,7 @@ bool WebsocketServer::start() {
   clean();
   // Initialising websocketserver
   m_server.init_asio();
+  m_server.set_reuse_addr(true);
 
   // Register the message handlers.
   m_server.set_message_handler(&WebsocketServer::on_message);
