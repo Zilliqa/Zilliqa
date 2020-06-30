@@ -1902,7 +1902,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
       const auto& ret_pair = m_createdTxns.insert(txn);
       if (!ret_pair.first) {
         {
-          rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
+          if (ret_pair.second != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
+            // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
+            // issue, hence if this comes, either the txn should be confirmed or
+            // if it is pending/dropped there should be some other cause which
+            // is primary.
+            rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
+          }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
                                    << " rejected by pool due to "
                                    << ret_pair.second);
