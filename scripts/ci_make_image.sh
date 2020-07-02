@@ -40,16 +40,16 @@ set -e
 docker --version
 aws --version
 
-commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
+commit_or_tag=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
 test_extra_cmake_args=${TEST_EXTRA_CMAKE_ARGS}
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
-source_image=zilliqa:${commit}
-target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}${TEST_NAME}
+source_image=zilliqa:${commit_or_tag}
+target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit_or_tag}${TEST_NAME}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
 set +e
-make -C docker k8s EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT="${commit}"  || exit 10
+make -C docker k8s EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
 set -e
 docker tag ${source_image} ${target_image}
 docker push ${target_image}

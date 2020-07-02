@@ -1,0 +1,5 @@
+urllib3==1.25.9
+kubernetes==11.0.0
+netaddr==0.7.19
+boto3==1.14.9
+awscli==1.18.68
