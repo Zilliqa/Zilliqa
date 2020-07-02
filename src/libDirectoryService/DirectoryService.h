@@ -241,8 +241,8 @@ class DirectoryService : public Executable {
                                 const Peer& from);
   bool ProcessPushLatestTxBlock(const bytes& message, unsigned int offset,
                                 const Peer& from);
-  bool ProcessGetDSTxBlockMessage(const bytes& message, unsigned int offset,
-                                  const Peer& from);
+  bool ProcessVCPushLatestDSTxBlock(const bytes& message, unsigned int offset,
+                                    const Peer& from);
   bool ProcessNewDSGuardNetworkInfo(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
