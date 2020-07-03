@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.7.1-alpha.0
+ARG BASE=zilliqa/scilla:v0.7.1
 FROM ${BASE}
 
 COPY requirements2.txt ./
@@ -63,7 +63,7 @@ RUN apt-get update \
     && pip3 install -r requirements3.txt
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=v6.3.0-alpha.1
+ARG COMMIT_OR_TAG=v6.3.0-alpha.2
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
