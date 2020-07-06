@@ -50,7 +50,7 @@ using namespace boost::multiprecision;
 const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned char START_BYTE_GOSSIP = 0x33;
-const unsigned int HDR_LEN = 6;
+const unsigned int HDR_LEN = 8;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_ROUND_LEN = 4;
@@ -235,16 +235,19 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     }
     // Transmission format:
     // 0x01 ~ 0xFF - version, defined in constant file
+    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
     // 0x11 - start byte
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
     // <message>
 
     // 0x01 ~ 0xFF - version, defined in constant file
+    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
     // 0x22 - start byte (broadcast)
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
     // <32-byte hash> <message>
 
     // 0x01 ~ 0xFF - version, defined in constant file
+    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
     // 0x33 - start byte (report)
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
@@ -255,6 +258,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     }
 
     unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
+                                  (unsigned char)((CHAIN_ID >> 8) & 0XFF),
+                                  (unsigned char)(CHAIN_ID & 0xFF),
                                   start_byte,
                                   (unsigned char)((length >> 24) & 0xFF),
                                   (unsigned char)((length >> 16) & 0xFF),
@@ -541,22 +546,26 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
   // Reception format:
   // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
   // 0x11 - start byte
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
   // <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
   // 0x22 - start byte (broadcast)
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
   // <32-byte hash> <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
   // 0x33 - start byte (gossip)
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
   // 0x01 ~ 0x04 - Gossip_Message_Type
   // <4-byte Age> <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
   // 0x33 - start byte (report)
   // 0x00 0x00 0x00 0x01 - 4-byte length of message
   // 0x00
@@ -568,7 +577,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 
   const unsigned char version = message[0];
-  const unsigned char startByte = message[1];
 
   // Check for version requirement
   if (version != (unsigned char)(MSG_VERSION & 0xFF)) {
@@ -578,8 +586,18 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     return;
   }
 
+  const uint16_t chainId = (message[1] << 8) + message[2];
+  if (chainId != CHAIN_ID) {
+    LOG_GENERAL(WARNING, "Header chainid wrong, received ["
+                             << chainId << "] while expected [" << CHAIN_ID
+                             << "].");
+    return;
+  }
+
+  const unsigned char startByte = message[3];
+
   const uint32_t messageLength =
-      (message[2] << 24) + (message[3] << 16) + (message[4] << 8) + message[5];
+      (message[4] << 24) + (message[5] << 16) + (message[6] << 8) + message[7];
 
   {
     // Check for length consistency
