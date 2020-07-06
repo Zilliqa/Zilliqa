@@ -160,7 +160,7 @@ class Node : public Executable {
       m_pendingTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
-  std::vector<bytes> m_txnPacketBuffer;
+  std::map<bytes, bytes> m_txnPacketBuffer;
 
   // txn proc timeout related
   std::mutex m_mutexCVTxnProcFinished;
