@@ -850,7 +850,7 @@ ErrTxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
     const auto& unconfirmStatus =
         findTxnHashStatus(m_pendingTxnsMutex, m_pendingTxns.GetHashCodeMap());
 
-    if ((unconfirmStatus != ErrTxnStatus::NOT_PRESENT)) {
+    if ((unconfirmStatus == ErrTxnStatus::NOT_PRESENT)) {
       return findTxnHashStatus(m_droppedTxnsMutex,
                                m_droppedTxns.GetHashCodeMap());
     }
