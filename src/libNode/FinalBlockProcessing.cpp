@@ -1281,22 +1281,22 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
     size = m_mediator.m_ds->m_shards.size();
+    if (shardId > size) {
+      LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
+      return false;
+    } else if (shardId < size) {
+      if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
+                                    pubkey)) {
+        LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
+        return false;
+      }
+    }
   }
-  if (shardId > size) {
-    LOG_GENERAL(WARNING, "Shard id exceeds shards: " << shardId);
-    return false;
-  } else if (shardId == size) {
+  if (shardId == size) {
     // DS Committee
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
       LOG_GENERAL(WARNING, "Could not find pubkey in ds committee");
-      return false;
-    }
-  } else {
-    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    if (!Lookup::VerifySenderNode(m_mediator.m_ds->m_shards.at(shardId),
-                                  pubkey)) {
-      LOG_GENERAL(WARNING, "Could not find PubKey in shard " << shardId);
       return false;
     }
   }
