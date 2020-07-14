@@ -597,6 +597,8 @@ const bool ENABLE_TXNS_BACKUP{
 const bool SHARDLDR_SAVE_TXN_LOCALLY{
     ReadConstantString("SHARDLDR_SAVE_TXN_LOCALLY", "node.transactions.") ==
     "true"};
+const double BLOOM_FILTER_FALSE_RATE{
+    ReadConstantDouble("BLOOM_FILTER_FALSE_RATE", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

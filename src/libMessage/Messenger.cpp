@@ -3727,6 +3727,57 @@ bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
   return true;
 }
 
+bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
+                               const bloom_filter& filter) {
+  ProtoBloomFilter result;
+
+  for (const auto& salt : filter.salt_) {
+    result.add_salt(salt);
+  }
+  result.set_bittable(DataConversion::CharArrayToString(filter.bit_table_));
+  result.set_saltcount(filter.salt_count_);
+  result.set_tablesize(filter.table_size_);
+  result.set_projectedelementcount(filter.projected_element_count_);
+  result.set_insertedelementcount(filter.inserted_element_count_);
+  result.set_randomseed(filter.random_seed_);
+  result.set_probability(filter.desired_false_positive_probability_);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBloomFilter initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetBloomFilter(const bytes& src, const unsigned int offset,
+                               bloom_filter& filter) {
+  ProtoBloomFilter protoBloomFilter;
+  protoBloomFilter.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!protoBloomFilter.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBloomFilter initialization failed");
+    return false;
+  }
+
+  for (const auto& salt : protoBloomFilter.salt()) {
+    filter.salt_.emplace_back(salt);
+  }
+
+  filter.bit_table_.resize(protoBloomFilter.bittable().size());
+  copy(protoBloomFilter.bittable().begin(), protoBloomFilter.bittable().end(),
+       filter.bit_table_.begin());
+
+  filter.salt_count_ = protoBloomFilter.saltcount();
+  filter.table_size_ = protoBloomFilter.tablesize();
+  filter.projected_element_count_ = protoBloomFilter.projectedelementcount();
+  filter.inserted_element_count_ = protoBloomFilter.insertedelementcount();
+  filter.random_seed_ = protoBloomFilter.randomseed();
+  filter.desired_false_positive_probability_ = protoBloomFilter.probability();
+
+  return true;
+}
+
 // ============================================================================
 // Peer Manager messages
 // ============================================================================
