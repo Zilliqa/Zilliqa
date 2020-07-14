@@ -26,3 +26,8 @@ add_executable(Test_TxnPool Test_TxnPool.cpp)
 target_include_directories(Test_TxnPool PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_TxnPool PUBLIC AccountData Trie Utils Persistence TestUtils)
 add_test(NAME Test_TxnPool COMMAND Test_TransactionReceipt)
+
+add_executable(Test_BloomFilter Test_BloomFilter.cpp)
+target_include_directories(Test_BloomFilter PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_BloomFilter PUBLIC AccountData Trie Utils Persistence TestUtils)
+add_test(NAME Test_BloomFilter COMMAND Test_TransactionReceipt)
