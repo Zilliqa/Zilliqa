@@ -512,7 +512,10 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     }
   }
 
-  m_mediator.m_ds->m_shards = move(t_shards);
+  {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    m_mediator.m_ds->m_shards = move(t_shards);
+  }
 
   MinerInfoDSComm minerInfoDSComm;
   MinerInfoShards minerInfoShards;
