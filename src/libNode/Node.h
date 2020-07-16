@@ -284,6 +284,9 @@ class Node : public Executable {
   bool ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                                        unsigned int offset, const Peer& from);
 
+  bool ProcessNewShardGuardNetworkInfo(const bytes& message,
+                                       unsigned int offset, const Peer& from);
+
   // bool ProcessCreateAccounts(const bytes & message,
   // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const bytes& message, unsigned int cur_offset,
@@ -626,7 +629,8 @@ class Node : public Executable {
   void SetMyshardId(uint32_t shardId);
 
   /// Used by oldest DS node to finish setup as a new shard node
-  void StartFirstTxEpoch();
+  /// And also used by shard node rejoining back
+  void StartFirstTxEpoch(bool fbWaitState = false);
 
   /// Used for start consensus on microblock
   bool RunConsensusOnMicroBlock();
@@ -722,6 +726,10 @@ class Node : public Executable {
   void RemoveIpMapping();
 
   void CleanLocalRawStores();
+
+  void WaitForNextTwoBlocksBeforeRejoin();
+
+  bool UpdateShardGuardIdentity();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
