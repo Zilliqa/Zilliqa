@@ -475,6 +475,8 @@ const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS{
     ReadConstantNumeric("INCRDB_DSNUMS_WITH_STATEDELTAS", "node.recovery.")};
 const bool CONTRACT_STATES_MIGRATED{
     ReadConstantString("CONTRACT_STATES_MIGRATED", "node.recovery.") == "true"};
+const unsigned int MAX_IPCHANGE_REQUEST_LIMIT{
+    ReadConstantNumeric("MAX_IPCHANGE_REQUEST_LIMIT", "node.recovery.")};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

@@ -61,7 +61,7 @@ enum NodeInstructionType : unsigned char {
   REMOVENODEFROMBLACKLIST = 0x0D,
   PENDINGTXN = 0x0E,
   VCFINALBLOCK = 0x0F,
-  NEWSHARDGUARDIDENTITY = 0x10
+  NEWSHARDNODEIDENTITY = 0x10
 };
 
 enum LookupInstructionType : unsigned char {

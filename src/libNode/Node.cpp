@@ -1001,7 +1001,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       LOG_GENERAL(
           INFO,
           "My IP has been changed. So will broadcast my new IP to network");
-      if (!UpdateShardGuardIdentity()) {
+      if (!UpdateShardNodeIdentity()) {
         WaitForNextTwoBlocksBeforeRejoin();
         return false;
       }
@@ -2209,6 +2209,11 @@ bool Node::CleanVariables() {
 
   CleanWhitelistReqs();
 
+  {
+    lock_guard<mutex> g(m_mutexIPChangeRequestStore);
+    m_ipChangeRequestStore.clear();
+  }
+
   return true;
 }
 
@@ -2448,49 +2453,41 @@ bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
   return true;
 }
 
-// This feature is only available to shard guard node. This allows guard node to
+// This feature is only available to shard node. This allows shard node to
 // change it's network information (IP and/or port).
 // Pre-condition: Must still have access to existing public and private keypair
-bool Node::UpdateShardGuardIdentity() {
+bool Node::UpdateShardNodeIdentity() {
   LOG_MARKER();
 
-  if (!GUARD_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Not in guard mode. Unable to update shard guard network info.");
-    return false;
-  }
-
-  if (!Guard::GetInstance().IsNodeInShardGuardList(
-          m_mediator.m_selfKey.second)) {
+  if (!IsShardNode(m_mediator.m_selfKey.second)) {
     return false;
   }
 
   LOG_GENERAL(WARNING,
-              "Current node is a shard guard node. Updating "
+              "Current node is a shard node. Updating "
               "network info.");
 
   // To provide current pubkey, new IP, new Port and current timestamp
-  bytes updateshardguardidentitymessage = {
-      MessageType::NODE, NodeInstructionType::NEWSHARDGUARDIDENTITY};
+  bytes updateShardNodeIdentitymessage = {
+      MessageType::NODE, NodeInstructionType::NEWSHARDNODEIDENTITY};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-  if (!Messenger::SetNodeNewShardGuardNetworkInfo(
-          updateshardguardidentitymessage, MessageOffset::BODY, curDSEpochNo,
+  if (!Messenger::SetNodeNewShardNodeNetworkInfo(
+          updateShardNodeIdentitymessage, MessageOffset::BODY, curDSEpochNo,
           m_mediator.m_selfPeer, get_time_as_int(), m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetNodeNewShardGuardNetworkInfo failed.");
+              "Messenger::SetNodeNewShardNodeNetworkInfo failed.");
     return false;
   }
 
   // Send to all lookups
   m_mediator.m_lookup->SendMessageToLookupNodesSerial(
-      updateshardguardidentitymessage);
+      updateShardNodeIdentitymessage);
 
   // Send to all upper seed nodes
-  m_mediator.m_lookup->SendMessageToSeedNodes(updateshardguardidentitymessage);
+  m_mediator.m_lookup->SendMessageToSeedNodes(updateShardNodeIdentitymessage);
 
   vector<Peer> peerInfo;
   {
@@ -2509,46 +2506,43 @@ bool Node::UpdateShardGuardIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updateshardguardidentitymessage);
+  P2PComm::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
 
   return true;
 }
 
-bool Node::ProcessNewShardGuardNetworkInfo(const bytes& message,
-                                           unsigned int offset,
-                                           const Peer& from) {
+bool Node::ProcessNewShardNodeNetworkInfo(const bytes& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
   LOG_MARKER();
 
-  if (!GUARD_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Not in guard mode. Unable to update shard guard network info.");
-    return false;
-  }
-
   uint64_t dsEpochNumber;
-  Peer shardGuardNewNetworkInfo;
+  Peer shardNodeNewNetworkInfo;
   uint64_t timestamp;
-  PubKey shardGuardPubkey;
+  PubKey shardNodePubkey;
 
-  if (!Messenger::GetNodeNewShardGuardNetworkInfo(
-          message, offset, dsEpochNumber, shardGuardNewNetworkInfo, timestamp,
-          shardGuardPubkey)) {
+  if (!Messenger::GetNodeNewShardNodeNetworkInfo(message, offset, dsEpochNumber,
+                                                 shardNodeNewNetworkInfo,
+                                                 timestamp, shardNodePubkey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetNodeNewShardGuardNetworkInfo failed.");
+              "Messenger::GetNodeNewShardNodeNetworkInfo failed.");
     return false;
   }
 
-  if (from.GetIpAddress() != shardGuardNewNetworkInfo.GetIpAddress()) {
+  if (!ValidateAndUpdateIPChangeRequestStore(shardNodePubkey)) {
+    return false;
+  }
+
+  if (from.GetIpAddress() != shardNodeNewNetworkInfo.GetIpAddress()) {
     LOG_CHECK_FAIL("IP Address",
-                   shardGuardNewNetworkInfo.GetPrintableIPAddress(),
+                   shardNodeNewNetworkInfo.GetPrintableIPAddress(),
                    from.GetPrintableIPAddress());
     return false;
   }
 
-  if (m_mediator.m_selfKey.second == shardGuardPubkey) {
+  if (m_mediator.m_selfKey.second == shardNodePubkey) {
     LOG_GENERAL(INFO,
-                "[update shard guard] Node to be updated is current node. No "
+                "[update shard node] Node to be updated is current node. No "
                 "update needed.");
     return false;
   }
@@ -2559,22 +2553,16 @@ bool Node::ProcessNewShardGuardNetworkInfo(const bytes& message,
   if (dsEpochNumber != currentDSEpochNumber) {
     LOG_GENERAL(
         WARNING,
-        "Update of shard guard network info failure  - dsepoch in message: "
+        "Update of shard node network info failure  - dsepoch in message: "
             << dsEpochNumber
             << " does not match current dsepoch: " << currentDSEpochNumber);
     return false;
   }
 
-  if (!Guard::GetInstance().IsNodeInShardGuardList(shardGuardPubkey)) {
-    LOG_GENERAL(WARNING,
-                "Update of shard guard requested by non-shard guard node, So "
-                "ignore the request");
-    return false;
-  }
   // I am lookup node
   if (LOOKUP_NODE_MODE) {
-    m_mediator.m_ds->UpdateShardNodeNetworkInfo(shardGuardNewNetworkInfo,
-                                                shardGuardPubkey);
+    m_mediator.m_ds->UpdateShardNodeNetworkInfo(shardNodeNewNetworkInfo,
+                                                shardNodePubkey);
     if (!BlockStorage::GetBlockStorage().PutShardStructure(
             m_mediator.m_ds->m_shards, 0)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutShardStructure failed");
@@ -2582,24 +2570,23 @@ bool Node::ProcessNewShardGuardNetworkInfo(const bytes& message,
   }
   // I am sharded node and requestor is also from my shard
   else if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-    // update requestor's ( ShardGuard ) new IP
+    // update requestor's ( ShardNode ) new IP
     lock_guard<mutex> g(m_mutexShardMember);
 
     unsigned int indexOfShardNode;
     for (indexOfShardNode = 0; indexOfShardNode < m_myShardMembers->size();
          indexOfShardNode++) {
-      if (m_myShardMembers->at(indexOfShardNode).first == shardGuardPubkey) {
+      if (m_myShardMembers->at(indexOfShardNode).first == shardNodePubkey) {
         LOG_GENERAL(
-            INFO, "[update shard guard] shard guard to be updated is at index "
+            INFO, "[update shard Node] shard node to be updated is at index "
                       << indexOfShardNode << " "
                       << m_myShardMembers->at(indexOfShardNode).second << " -> "
-                      << shardGuardNewNetworkInfo);
-        m_myShardMembers->at(indexOfShardNode).second =
-            shardGuardNewNetworkInfo;
+                      << shardNodeNewNetworkInfo);
+        m_myShardMembers->at(indexOfShardNode).second = shardNodeNewNetworkInfo;
         if (BROADCAST_GOSSIP_MODE) {
           // Update peer info for gossip
           P2PComm::GetInstance().UpdatePeerInfoInRumorManager(
-              shardGuardNewNetworkInfo, shardGuardPubkey);
+              shardNodeNewNetworkInfo, shardNodePubkey);
         }
 
         // Put the sharding structure to disk
@@ -2619,8 +2606,8 @@ bool Node::ProcessNewShardGuardNetworkInfo(const bytes& message,
   }
   // I am ds node and requestor is from one of shards
   else if (m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    if (!m_mediator.m_ds->UpdateShardNodeNetworkInfo(shardGuardNewNetworkInfo,
-                                                     shardGuardPubkey)) {
+    if (!m_mediator.m_ds->UpdateShardNodeNetworkInfo(shardNodeNewNetworkInfo,
+                                                     shardNodePubkey)) {
       LOG_GENERAL(WARNING, "PubKey of sender "
                                << from
                                << " does not match any of my shard members");
@@ -2634,6 +2621,31 @@ bool Node::ProcessNewShardGuardNetworkInfo(const bytes& message,
     }
   }
 
+  return true;
+}
+
+bool Node::ValidateAndUpdateIPChangeRequestStore(
+    const PubKey& shardNodePubkey) {
+  if (Guard::GetInstance().IsNodeInShardGuardList(shardNodePubkey)) {
+    // shardguards are relaxed from the MAX_IPCHANGE_REQUEST_LIMIT check.
+    return true;
+  }
+
+  // Check if requestor is requesting for network info (IP) change within
+  // expected requests limit.
+  lock_guard<mutex> g(m_mutexIPChangeRequestStore);
+  auto it = m_ipChangeRequestStore.find(shardNodePubkey);
+  if (it != m_ipChangeRequestStore.end()) {
+    if (it->second >= MAX_IPCHANGE_REQUEST_LIMIT) {
+      LOG_GENERAL(WARNING, "Shard node update requested over "
+                               << MAX_IPCHANGE_REQUEST_LIMIT
+                               << " times by sender :" << shardNodePubkey);
+      return false;
+    }
+    it->second++;
+  } else {
+    m_ipChangeRequestStore.emplace(shardNodePubkey, 1);
+  }
   return true;
 }
 
@@ -2884,15 +2896,20 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
-bool Node::RecalculateMyShardId() {
+bool Node::RecalculateMyShardId(bool& ipChanged) {
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-  m_myshardId = -1;
   uint32_t shardId = -1;
+  m_myshardId = -1;
+  ipChanged = false;
   for (const auto& shard : m_mediator.m_ds->m_shards) {
     shardId++;
     for (const auto& node : shard) {
       if (std::get<SHARD_NODE_PUBKEY>(node) == m_mediator.m_selfKey.second) {
         m_myshardId = shardId;
+        if (get<SHARD_NODE_PEER>(node).m_ipAddress !=
+            m_mediator.m_selfPeer.m_ipAddress) {
+          ipChanged = true;
+        }
         return true;
       }
     }
@@ -2925,7 +2942,7 @@ bool Node::Execute(const bytes& message, unsigned int offset,
                                        &Node::ProcessRemoveNodeFromBlacklist,
                                        &Node::ProcessPendingTxn,
                                        &Node::ProcessVCFinalBlock,
-                                       &Node::ProcessNewShardGuardNetworkInfo};
+                                       &Node::ProcessNewShardNodeNetworkInfo};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

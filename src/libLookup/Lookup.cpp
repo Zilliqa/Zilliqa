@@ -3213,7 +3213,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               WARNING,
               "Didn't receive sharding structure! Try checking next epoch");
         } else {
-          if (!m_mediator.m_node->RecalculateMyShardId()) {
+          bool ipChanged = false;
+          if (!m_mediator.m_node->RecalculateMyShardId(ipChanged)) {
             LOG_GENERAL(
                 INFO, "I was not in any shard in current ds epoch previously");
             m_mediator.m_node->m_confirmedNotInNetwork = true;
@@ -3227,9 +3228,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               GetDSInfo();
               m_isFirstLoop = true;
               SetSyncType(SyncType::NO_SYNC);
-              // Send whitelist request to all peers.
-              m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(
-                  Node::PEER);
+
+              if (ipChanged) {
+                // Send new network info to own shard, ds committee and lookups
+                m_mediator.m_node->UpdateShardNodeIdentity();
+              } else {
+                // Send whitelist request to all peers.
+                m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(
+                    Node::PEER);
+              }
 
               m_mediator.m_node->StartFirstTxEpoch(
                   true);  // Starts with WAITING_FINALBLOCK
