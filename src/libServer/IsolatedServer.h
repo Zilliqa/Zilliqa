@@ -29,8 +29,12 @@ class IsolatedServer : public LookupServer,
   std::atomic<uint32_t> m_timeDelta;
   std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
   std::mutex mutable m_txnBlockNumMapMutex;
+  std::mutex mutable m_blockMutex;
+  uint64_t m_currEpochGas{0};
 
   bool StartBlocknumIncrement();
+  TxBlock GenerateTxBlock();
+  void PostTxBlock();
 
  public:
   IsolatedServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server,
