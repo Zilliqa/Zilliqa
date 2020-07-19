@@ -46,6 +46,7 @@ POW::POW() {
 
   if (REMOTE_MINE) {
     m_httpClient = std::make_unique<jsonrpc::HttpClient>(MINING_PROXY_URL);
+    m_httpClient->SetTimeout(MINING_PROXY_TIMEOUT_IN_MS);
   }
 
   if (!GETWORK_SERVER_MINE && FULL_DATASET_MINE && !CUDA_GPU_MINE &&
