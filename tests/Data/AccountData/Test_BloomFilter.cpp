@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(bloomfiltersize) {
   LOG_GENERAL(INFO, "txn_ids_size: " << n_txn_ids_size);
 
   // compose bloom filter
-  bloom_parameters params;
+  BloomParameters params;
   params.projected_element_count = n;
   params.false_positive_probability = 0.0001;
   params.random_seed = 0xA5A5A5A5;
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(bloomfiltersize) {
     return;
   }
   params.compute_optimal_parameters();
-  bloom_filter filter(params);
+  BloomFilter filter(params);
 
   for (const auto& iter : n_txn_ids) {
     filter.insert(iter.hex());
@@ -138,8 +138,8 @@ BOOST_AUTO_TEST_CASE(bloomfiltersize) {
     }
   }
 
-  LOG_GENERAL(INFO, "exist: " << ari);
-  LOG_GENERAL(INFO, "notexist: " << nai);
+  LOG_GENERAL(INFO, "exist: " << exist);
+  LOG_GENERAL(INFO, "notexist: " << notexist);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
