@@ -20,7 +20,7 @@
 
 bool BloomFilter::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetBloomFilter(dst, offset, *this)) {
-    // LOG_GENERAL(WARNING, "Messenger::SetBloomFilter failed.");
+    LOG_GENERAL(WARNING, "Messenger::SetBloomFilter failed.");
     return false;
   }
   return true;
@@ -28,7 +28,7 @@ bool BloomFilter::Serialize(bytes& dst, unsigned int offset) const {
 
 bool BloomFilter::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetBloomFilter(src, offset, *this)) {
-    // LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
+    LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
     return false;
   }
 

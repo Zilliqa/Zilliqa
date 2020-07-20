@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_CASE(bloomfiltersize) {
   auto n_txns = GenWithSigning(sender, receiver, n);
   auto m_txns = GenWithSigning(receiver, sender, m);
 
-  vector<TxnHash> n_txn_ids;
-  vector<TxnHash> m_txn_ids;
+  vector<TxnHash> n_txn_ids(n_txns.size());
+  vector<TxnHash> m_txn_ids(m_txns.size());
 
   unsigned int n_txn_ids_size = 0;
 
