@@ -30,7 +30,7 @@ def main():
 	if len(sys.argv) == 7:
 		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
 	else:
-		print "Not enough args"
+		print("Not enough args")
 
 def get_immediate_subdirectories(a_dir):
 	subdirs = [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]

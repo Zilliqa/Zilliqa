@@ -140,7 +140,7 @@ def filter(string, substr):
 
 def get_filenames_for_dir(path, substr):
     all_files = os.listdir(path)
-    return filter(all_files,[substr])
+    return list(filter(all_files,[substr]))
 
 def search_lookup():
     lookup_file_names = get_filenames_for_dir(LOG_DIR, 'lookup')
@@ -266,9 +266,9 @@ def search_ds(txpkt_stats, lookup_ident, txpool_stats):
                 else:
                     txpkt_stats[epoch_num][shard_id][lookup_pkt] = \
                         [0, \
-                        max((vals[1] - vals[0]) for fileName, vals in txpkt_stats[epoch_num][shard_id][lookup_pkt].items()), \
+                        max((vals[1] - vals[0]) for fileName, vals in list(txpkt_stats[epoch_num][shard_id][lookup_pkt].items())), \
                         len(txpkt_stats[epoch_num][shard_id][lookup_pkt]), \
-                        max(vals[2] for fileName, vals in txpkt_stats[epoch_num][shard_id][lookup_pkt].items())]
+                        max(vals[2] for fileName, vals in list(txpkt_stats[epoch_num][shard_id][lookup_pkt].items()))]
 
     return ds_consensus_times, ds_wait_times, txpkt_stats, txpool_stats
 
@@ -348,10 +348,10 @@ def search_normal(num_shards, lookup_ident):
                     txpkt_stats[epoch_num][shard_id][lookup_pkt] = ['NA', 'NA', 'NA']
                 else:
                     txpkt_stats[epoch_num][shard_id][lookup_pkt] = \
-                        [max((vals[0] - fb_receipt_times[epoch_num-1][shard_id][fileName]) for fileName, vals in txpkt_stats[epoch_num][shard_id][lookup_pkt].items()), \
-                        max((vals[1] - vals[0]) for fileName, vals in txpkt_stats[epoch_num][shard_id][lookup_pkt].items()), \
+                        [max((vals[0] - fb_receipt_times[epoch_num-1][shard_id][fileName]) for fileName, vals in list(txpkt_stats[epoch_num][shard_id][lookup_pkt].items())), \
+                        max((vals[1] - vals[0]) for fileName, vals in list(txpkt_stats[epoch_num][shard_id][lookup_pkt].items())), \
                         len(txpkt_stats[epoch_num][shard_id][lookup_pkt]), \
-                        max(vals[2] for fileName, vals in txpkt_stats[epoch_num][shard_id][lookup_pkt].items())]
+                        max(vals[2] for fileName, vals in list(txpkt_stats[epoch_num][shard_id][lookup_pkt].items()))]
 
     return mb_time_infos, txpkt_stats, txpool_stats
 
@@ -415,8 +415,8 @@ def add_rows_for_epoch(epoch_num, lookup_packets, a, b, c, d, e, f, num_shards):
     for shard_id in range(0, num_shards):
         rows[shard_id][CSV_POS_SHARD_SHARDID] = shard_id # ID
         rows[shard_id][CSV_POS_SHARD_PKTSDISP] = ';'.join(('L' + str(lookup_index) + '=' + (str(lookup_packets[lookup_index][epoch_num][shard_id]) if epoch_num in lookup_packets[lookup_index] else '0')) for lookup_index in range(0, num_lookups)) # Pkts Disp
-        rows[shard_id][CSV_POS_SHARD_FBRECPKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[0])) for lookup_pkt, vals in e[shard_id].items())) if e and shard_id in e else 'none' # FB Rec’d->Pkt Proc
-        rows[shard_id][CSV_POS_SHARD_PKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[1]) + ' (' + str(vals[2]) + ') (' + str(vals[3]) + ')') for lookup_pkt, vals in e[shard_id].items())) if e and shard_id in e else 'none' # Pkt Proc
+        rows[shard_id][CSV_POS_SHARD_FBRECPKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[0])) for lookup_pkt, vals in list(e[shard_id].items()))) if e and shard_id in e else 'none' # FB Rec’d->Pkt Proc
+        rows[shard_id][CSV_POS_SHARD_PKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[1]) + ' (' + str(vals[2]) + ') (' + str(vals[3]) + ')') for lookup_pkt, vals in list(e[shard_id].items()))) if e and shard_id in e else 'none' # Pkt Proc
         rows[shard_id][CSV_POS_SHARD_TXPOOLBEF] = ';'.join(str(x) for x in sorted(f[shard_id][0])) if f and shard_id in f else 'none' # TxPool Bef
         rows[shard_id][CSV_POS_SHARD_TXPROC] = f[shard_id][2] if f and shard_id in f else '0' # Txn Proc
         rows[shard_id][CSV_POS_SHARD_CONS] = a[shard_id][0] if a and shard_id in a else 'none' # Cons
@@ -430,7 +430,7 @@ def add_rows_for_epoch(epoch_num, lookup_packets, a, b, c, d, e, f, num_shards):
 
     # DS Details
     rows[0][CSV_POS_DS_PKTSDISP] = ';'.join(('L' + str(lookup_index) + '=' + (str(lookup_packets[lookup_index][epoch_num][num_shards]) if epoch_num in lookup_packets[lookup_index] else '0')) for lookup_index in range(0, num_lookups)) # Pkts Disp
-    rows[0][CSV_POS_DS_PKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[1]) + ' (' + str(vals[2]) + ') (' + str(vals[3]) + ')') for lookup_pkt, vals in e[num_shards].items())) if e and num_shards in e else 'none' # Pkt Proc
+    rows[0][CSV_POS_DS_PKTPROC] = ';'.join(sorted((lookup_pkt + '=' + str(vals[1]) + ' (' + str(vals[2]) + ') (' + str(vals[3]) + ')') for lookup_pkt, vals in list(e[num_shards].items()))) if e and num_shards in e else 'none' # Pkt Proc
     rows[0][CSV_POS_DS_WAITMBS] = c # Wait MBs
     rows[0][CSV_POS_DS_TXPOOLBEF] = ';'.join(str(x) for x in sorted(f[num_shards][0])) if f and num_shards in f else 'none' # TxPool Bef
     rows[0][CSV_POS_DS_TXPROC] = f[num_shards][2] if f and num_shards in f else '0' # Txn Proc
@@ -459,13 +459,13 @@ if __name__ == '__main__':
         lookup_info = search_lookup()
         lookup_packets = search_lookup_packets(num_shards + 1)
         final_list = []
-        num_epochs = max(max(k for k, v in mb_time_infos.items()), \
-                        max(k for k, v in ds_consensus_times.items()), \
-                        max(k for k, v in ds_wait_times.items()), \
-                        max(k for k, v in lookup_info.items()), \
-                        max(k for k, v in lookup_packets.items()), \
-                        max(k for k, v in txpkt_stats.items()), \
-                        max(k for k, v in txpool_stats.items()))
+        num_epochs = max(max(k for k, v in list(mb_time_infos.items())), \
+                        max(k for k, v in list(ds_consensus_times.items())), \
+                        max(k for k, v in list(ds_wait_times.items())), \
+                        max(k for k, v in list(lookup_info.items())), \
+                        max(k for k, v in list(lookup_packets.items())), \
+                        max(k for k, v in list(txpkt_stats.items())), \
+                        max(k for k, v in list(txpool_stats.items())))
         for epoch_num in range(1, num_epochs + 1):
             print('Processing epoch_num=' + str(epoch_num))
             a = mb_time_infos[epoch_num] if epoch_num in mb_time_infos else None

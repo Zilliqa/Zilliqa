@@ -1,4 +1,0 @@
-request==2019.4.13
-requests==2.24.0
-clint==0.5.1
-futures==3.3.0

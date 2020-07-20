@@ -17,8 +17,6 @@
 ARG BASE=zilliqa/scilla:v0.7.0
 FROM ${BASE}
 
-COPY requirements2.txt ./
-COPY requirements2.preq.txt ./
 COPY requirements3.txt ./
 
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -51,16 +49,15 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    python \
-    python-pip \
     python3-dev \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install -r requirements2.preq.txt \
-    && pip install -r requirements2.txt \
     && pip3 install -r requirements3.txt
+
+# set python3 as default instead python2
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.3.0-alpha.0

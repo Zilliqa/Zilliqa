@@ -15,7 +15,7 @@
 #
 # This Dockerfile is incomplete and should only be used with other Dockerfiles
 
-COPY requirements2.k8s.txt ./
+
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
@@ -26,6 +26,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rsyslog \
     trickle \
     vim \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install -r requirements2.k8s.txt
+    && rm -rf /var/lib/apt/lists/*
 
