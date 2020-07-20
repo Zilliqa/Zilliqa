@@ -42,9 +42,9 @@ static const unsigned char bit_mask[bits_per_char] = {
     0x80   // 10000000
 };
 
-class bloom_parameters {
+class BloomParameters {
  public:
-  bloom_parameters()
+  BloomParameters()
       : minimum_size(1),
         maximum_size(std::numeric_limits<uint64_t>::max()),
         minimum_number_of_hashes(1),
@@ -53,7 +53,7 @@ class bloom_parameters {
         false_positive_probability(1.0 / projected_element_count),
         random_seed(0xA5A5A5A55A5A5A5AULL) {}
 
-  virtual ~bloom_parameters() {}
+  virtual ~BloomParameters() {}
 
   inline bool operator!() {
     return (minimum_size > maximum_size) ||
@@ -86,14 +86,14 @@ class bloom_parameters {
 
   uint64_t random_seed;
 
-  struct optimal_parameters_t {
-    optimal_parameters_t() : number_of_hashes(0), table_size(0) {}
+  struct OptimalParametersT {
+    OptimalParametersT() : number_of_hashes(0), table_size(0) {}
 
     uint32_t number_of_hashes;
     uint64_t table_size;
   };
 
-  optimal_parameters_t optimal_parameters;
+  OptimalParametersT optimal_parameters;
 
   virtual bool compute_optimal_parameters() {
     /*
@@ -125,7 +125,7 @@ class bloom_parameters {
       k += 1.0;
     }
 
-    optimal_parameters_t& optp = optimal_parameters;
+    OptimalParametersT& optp = optimal_parameters;
 
     optp.number_of_hashes = static_cast<uint32_t>(min_k);
 
@@ -150,14 +150,14 @@ class bloom_parameters {
   }
 };
 
-class bloom_filter {
+class BloomFilter {
  protected:
   typedef uint32_t bloom_type;
   typedef unsigned char cell_type;
   typedef std::vector<unsigned char> table_type;
 
  public:
-  bloom_filter()
+  BloomFilter()
       : salt_count_(0),
         table_size_(0),
         projected_element_count_(0),
@@ -165,7 +165,7 @@ class bloom_filter {
         random_seed_(0),
         desired_false_positive_probability_(0.0) {}
 
-  bloom_filter(const bloom_parameters& p)
+  BloomFilter(const BloomParameters& p)
       : projected_element_count_(p.projected_element_count),
         inserted_element_count_(0),
         random_seed_((p.random_seed * 0xA5A5A5A5) + 1),
@@ -179,13 +179,13 @@ class bloom_filter {
                       static_cast<unsigned char>(0x00));
   }
 
-  bloom_filter(const bloom_filter& filter) { this->operator=(filter); }
+  BloomFilter(const BloomFilter& filter) { this->operator=(filter); }
 
   bool Serialize(bytes& dst, unsigned int offset) const;
 
   bool Deserialize(const bytes& src, unsigned int offset);
 
-  inline bool operator==(const bloom_filter& f) const {
+  inline bool operator==(const BloomFilter& f) const {
     if (this != &f) {
       return (salt_count_ == f.salt_count_) && (table_size_ == f.table_size_) &&
              (bit_table_.size() == f.bit_table_.size()) &&
@@ -199,9 +199,9 @@ class bloom_filter {
       return true;
   }
 
-  inline bool operator!=(const bloom_filter& f) const { return !operator==(f); }
+  inline bool operator!=(const BloomFilter& f) const { return !operator==(f); }
 
-  inline bloom_filter& operator=(const bloom_filter& f) {
+  inline BloomFilter& operator=(const BloomFilter& f) {
     if (this != &f) {
       salt_count_ = f.salt_count_;
       table_size_ = f.table_size_;
@@ -220,7 +220,7 @@ class bloom_filter {
     return *this;
   }
 
-  virtual ~bloom_filter() {}
+  virtual ~BloomFilter() {}
 
   inline bool operator!() const { return (0 == table_size_); }
 
@@ -235,7 +235,7 @@ class bloom_filter {
     std::size_t bit_index = 0;
     std::size_t bit = 0;
 
-    for (std::size_t i = 0; i < salt_.size(); ++i) {
+    for (auto i : salt_) {
       compute_indices(hash_ap(key_begin, length, salt_[i]), bit_index, bit);
 
       bit_table_[bit_index / bits_per_char] |= bit_mask[bit];
@@ -272,7 +272,7 @@ class bloom_filter {
     std::size_t bit_index = 0;
     std::size_t bit = 0;
 
-    for (std::size_t i = 0; i < salt_.size(); ++i) {
+    for (auto i : salt_) {
       compute_indices(hash_ap(key_begin, length, salt_[i]), bit_index, bit);
 
       if ((bit_table_[bit_index / bits_per_char] & bit_mask[bit]) !=
@@ -348,7 +348,7 @@ class bloom_filter {
         1.0 * salt_.size());
   }
 
-  inline bloom_filter& operator&=(const bloom_filter& f) {
+  inline BloomFilter& operator&=(const BloomFilter& f) {
     /* intersection */
     if ((salt_count_ == f.salt_count_) && (table_size_ == f.table_size_) &&
         (random_seed_ == f.random_seed_)) {
@@ -360,7 +360,7 @@ class bloom_filter {
     return *this;
   }
 
-  inline bloom_filter& operator|=(const bloom_filter& f) {
+  inline BloomFilter& operator|=(const BloomFilter& f) {
     /* union */
     if ((salt_count_ == f.salt_count_) && (table_size_ == f.table_size_) &&
         (random_seed_ == f.random_seed_)) {
@@ -372,7 +372,7 @@ class bloom_filter {
     return *this;
   }
 
-  inline bloom_filter& operator^=(const bloom_filter& f) {
+  inline BloomFilter& operator^=(const BloomFilter& f) {
     /* difference */
     if ((salt_count_ == f.salt_count_) && (table_size_ == f.table_size_) &&
         (random_seed_ == f.random_seed_)) {
@@ -390,12 +390,12 @@ class bloom_filter {
 
   std::vector<bloom_type> salt_;
   std::vector<unsigned char> bit_table_;
-  uint32_t salt_count_;
-  uint64_t table_size_;
-  uint64_t projected_element_count_;
-  uint64_t inserted_element_count_;
-  uint64_t random_seed_;
-  double desired_false_positive_probability_;
+  uint32_t salt_count_ = 0;
+  uint64_t table_size_ = 0;
+  uint64_t projected_element_count_ = 0;
+  uint64_t inserted_element_count_ = 0;
+  uint64_t random_seed_ = 0;
+  double desired_false_positive_probability_ = 0;
 
  protected:
   inline virtual void compute_indices(const bloom_type& hash,
@@ -531,27 +531,27 @@ class bloom_filter {
   }
 };
 
-inline bloom_filter operator&(const bloom_filter& a, const bloom_filter& b) {
-  bloom_filter result = a;
+inline BloomFilter operator&(const BloomFilter& a, const BloomFilter& b) {
+  BloomFilter result = a;
   result &= b;
   return result;
 }
 
-inline bloom_filter operator|(const bloom_filter& a, const bloom_filter& b) {
-  bloom_filter result = a;
+inline BloomFilter operator|(const BloomFilter& a, const BloomFilter& b) {
+  BloomFilter result = a;
   result |= b;
   return result;
 }
 
-inline bloom_filter operator^(const bloom_filter& a, const bloom_filter& b) {
-  bloom_filter result = a;
+inline BloomFilter operator^(const BloomFilter& a, const BloomFilter& b) {
+  BloomFilter result = a;
   result ^= b;
   return result;
 }
 
-class compressible_bloom_filter : public bloom_filter {
+class CompressibleBloomFilter : public BloomFilter {
  public:
-  compressible_bloom_filter(const bloom_parameters& p) : bloom_filter(p) {
+  CompressibleBloomFilter(const BloomParameters& p) : BloomFilter(p) {
     size_list.push_back(table_size_);
   }
 
@@ -604,7 +604,7 @@ class compressible_bloom_filter : public bloom_filter {
                               std::size_t& bit) const {
     bit_index = hash;
 
-    for (std::size_t i = 0; i < size_list.size(); ++i) {
+    for (auto i : size_list) {
       bit_index %= size_list[i];
     }
 

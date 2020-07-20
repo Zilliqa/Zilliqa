@@ -3728,7 +3728,7 @@ bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
 }
 
 bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
-                               const bloom_filter& filter) {
+                               const BloomFilter& filter) {
   ProtoBloomFilter result;
 
   for (const auto& salt : filter.salt_) {
@@ -3751,7 +3751,7 @@ bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetBloomFilter(const bytes& src, const unsigned int offset,
-                               bloom_filter& filter) {
+                               BloomFilter& filter) {
   ProtoBloomFilter protoBloomFilter;
   protoBloomFilter.ParseFromArray(src.data() + offset, src.size() - offset);
 

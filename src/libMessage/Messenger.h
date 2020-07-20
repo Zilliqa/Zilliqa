@@ -238,9 +238,9 @@ class Messenger {
                                         DiagnosticDataCoinbase& entry);
 
   static bool SetBloomFilter(bytes& dst, const unsigned int offset,
-                             const bloom_filter& filter);
+                             const BloomFilter& filter);
   static bool GetBloomFilter(const bytes& src, const unsigned int offset,
-                             bloom_filter& filter);
+                             BloomFilter& filter);
 
   // ============================================================================
   // Peer Manager messages
