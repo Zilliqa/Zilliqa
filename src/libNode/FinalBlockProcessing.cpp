@@ -427,6 +427,10 @@ void Node::CallActOnFinalblock() {
 
   LOG_MARKER();
 
+  if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
+    return;
+  }
+
   auto composeMBnForwardTxnMessageForSender =
       [this](bytes& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
@@ -1129,6 +1133,57 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 }
 
+void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::SoftConfirmForwardedTransactions not expected to be "
+                "called from Normal node.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
+
+  for (const auto& twr : entry.m_transactions) {
+    m_softConfirmedTxns.emplace(twr.GetTransaction().GetTranID(), twr);
+  }
+}
+
+bool Node::GetSoftConfirmedTransaction(const TxnHash& txnHash,
+                                       TxBodySharedPtr& tptr) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::GetSoftConfirmedTransaction not expected to be "
+                "called from Normal node.");
+    return false;
+  }
+
+  lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
+
+  auto find = m_softConfirmedTxns.find(txnHash);
+  if (find != m_softConfirmedTxns.end()) {
+    tptr = TxBodySharedPtr(new TransactionWithReceipt(find->second));
+    return true;
+  }
+  return false;
+}
+
+void Node::ClearSoftConfirmedTransactions() {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::ClearSoftConfirmedTransactions not expected to be "
+                "called from Normal node.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexSoftConfirmedTxns);
+
+  m_softConfirmedTxns.clear();
+}
+
 void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
     const uint64_t& blocknum) {
   LOG_MARKER();
@@ -1203,6 +1258,21 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
     return false;
   }
 
+  if (entry.m_microBlock.GetHeader().GetVersion() != MICROBLOCK_VERSION) {
+    LOG_CHECK_FAIL("MicroBlock version",
+                   entry.m_microBlock.GetHeader().GetVersion(),
+                   MICROBLOCK_VERSION);
+    return false;
+  }
+
+  // Verify the co-signature
+  if (!m_mediator.m_ds->VerifyMicroBlockCoSignature(
+          entry.m_microBlock, entry.m_microBlock.GetHeader().GetShardId())) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Microblock co-sig verification failed");
+    return false;
+  }
+
   // Verify Microblock agains forwarded txns
   // BlockHash
   BlockHash temp_blockHash = entry.m_microBlock.GetHeader().GetMyHash();
@@ -1268,6 +1338,14 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
                           << entry.m_microBlock.GetHeader().GetEpochNum()
                           << " shard "
                           << entry.m_microBlock.GetHeader().GetShardId());
+
+    if (entry.m_microBlock.GetHeader().GetShardId() !=
+        m_mediator.m_ds->m_shards.size()) {
+      // pre-process of early MBnForwardTxn submission
+      // soft confirmation
+      SoftConfirmForwardedTransactions(entry);
+      // invoke txn distribution
+    }
 
     return true;
   }
@@ -1376,8 +1454,9 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   const auto& currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  if (currentEpochNum > epochNum) {
-    LOG_GENERAL(WARNING, "PENDINGTXN sent of an older epoch " << epochNum);
+  if (currentEpochNum > epochNum + 1) {
+    LOG_GENERAL(WARNING,
+                "PENDINGTXN sent of an two epoches older epoch " << epochNum);
     return false;
   } else if (currentEpochNum < epochNum || /* Buffer for syncing seed node */
              (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
@@ -1454,6 +1533,8 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
     if (isEveryMicroBlockAvailable) {
       DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
           entry.m_microBlock.GetHeader().GetEpochNum());
+
+      ClearSoftConfirmedTransactions();
 
       if (m_isVacuousEpochBuffer) {
         // Check is states updated

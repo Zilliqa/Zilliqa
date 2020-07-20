@@ -242,7 +242,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
           microBlock.GetHeader().GetDSBlockNum() + 1,
           microBlock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
-                "ProcessMicroblockSubmissionFromShardCore "
+                "ProcessMicroblockSubmissionFromShardCore::"
                 "CheckWhetherBlockIsLatest failed");
     return false;
   }
