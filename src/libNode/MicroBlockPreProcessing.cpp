@@ -794,24 +794,29 @@ void Node::ReinstateMemPool(
     const vector<pair<TxnHash, ErrTxnStatus>>& droppedTxns) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
+  MempoolInsertionStatus status;
   // Put remaining txns back in pool
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
-      LOG_GENERAL(INFO, "PendingTxn " << nonceTxn.second.GetTranID());
-      t_createdTxns.insert(nonceTxn.second);
+      t_createdTxns.insert(nonceTxn.second, status);
+      LOG_GENERAL(INFO, "Txn " << nonceTxn.second.GetTranID() << ", Status: "
+                               << status.first << "  " << status.second);
       m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
                                 ErrTxnStatus::PRESENT_NONCE_HIGH);
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
-    t_createdTxns.insert(t);
-    LOG_GENERAL(INFO, "PendingTxn " << t.GetTranID());
+    t_createdTxns.insert(t, status);
+    LOG_GENERAL(INFO, "Txn " << t.GetTranID() << ", Status: " << status.first
+                             << "  " << status.second);
     m_unconfirmedTxns.emplace(t.GetTranID(),
                               ErrTxnStatus::PRESENT_GAS_EXCEEDED);
   }
 
   for (const auto& txnHashStatus : droppedTxns) {
+    LOG_GENERAL(INFO,
+                "[DTXN]" << txnHashStatus.first << " " << txnHashStatus.second);
     m_unconfirmedTxns.emplace(txnHashStatus);
   }
 }
