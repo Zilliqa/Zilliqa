@@ -24,7 +24,7 @@ for subdir, dirs, files in os.walk("./src"):
 	skip = False
 	for exclusion in exclude:
 		if subdir.find(exclusion) != -1:
-			print subdir
+			print(subdir)
 			skip = True
 			break
 	if skip:
@@ -33,7 +33,7 @@ for subdir, dirs, files in os.walk("./src"):
 		for i in headerFiles:
 			if filename.endswith(i):			
 			#print filename
-				print subdir
+				print(subdir)
 				filepath = subdir + os.sep + filename
 				#print filepath
 				guard_body = re.sub('[/\\.]','_',filepath)
@@ -45,7 +45,7 @@ for subdir, dirs, files in os.walk("./src"):
 				with open(filepath,"w") as f:
 					for line in text:
 						if line.find('#ifndef') != -1 and line.rstrip().endswith('_'):
-							print line
+							print(line)
 							line = "#ifndef "+guard_body.upper()+"\n"
 						if line.find('#define') != -1 and line.rstrip().endswith('_'):
 							line = "#define "+guard_body.upper()+'\n'

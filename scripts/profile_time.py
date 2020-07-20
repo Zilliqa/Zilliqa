@@ -166,13 +166,13 @@ def check_miblock_broadcast(line):
 		strSendTime = get_time(line)
 		sendTime = convert_time_string(strSendTime)
 		# Need to get the earliest one to send out
-		if ((not MIBlockSendTime.has_key(blockNumber)) or sendTime < convert_time_string(MIBlockSendTime[blockNumber])):
+		if ((blockNumber not in MIBlockSendTime) or sendTime < convert_time_string(MIBlockSendTime[blockNumber])):
 			MIBlockSendTime[blockNumber] = strSendTime
 	elif line.find(KEYWORD_RECV) != -1:
 		strRecvTime = get_time(line)
 		recvTime = convert_time_string(strRecvTime)
 		# Need to get the last one to receive
-		if ((not MIBlockRecvTime.has_key(blockNumber)) or recvTime > convert_time_string(MIBlockRecvTime[blockNumber])):
+		if ((blockNumber not in MIBlockRecvTime) or recvTime > convert_time_string(MIBlockRecvTime[blockNumber])):
 			MIBlockRecvTime[blockNumber] = strRecvTime
 
 def check_final_consensus(line):
@@ -194,13 +194,13 @@ def check_flblk_broadcast(line):
 		strSendTime = get_time(line)
 		sendTime = convert_time_string(strSendTime)
 		# Need to get the earliest one to send out
-		if ((not FLBlockSendTime.has_key(blockNumber)) or sendTime < convert_time_string(FLBlockSendTime[blockNumber])):
+		if ((blockNumber not in FLBlockSendTime) or sendTime < convert_time_string(FLBlockSendTime[blockNumber])):
 			FLBlockSendTime[blockNumber] = get_time(line)
 	elif line.find(KEYWORD_RECV) != -1:
 		strRecvTime = get_time(line)
 		recvTime = convert_time_string(strRecvTime)
 		# Need to get the last one to receive
-		if ((not FLBlockRecvTime.has_key(blockNumber)) or recvTime > convert_time_string(FLBlockRecvTime[blockNumber])):
+		if ((blockNumber not in FLBlockRecvTime) or recvTime > convert_time_string(FLBlockRecvTime[blockNumber])):
 			FLBlockRecvTime[blockNumber] = strRecvTime
 
 def check_leader(line, nodeId):
@@ -238,21 +238,21 @@ def scan_file(fileName):
 				strSendTime = get_time(line)
 				sendTime = convert_time_string(strSendTime)
 				# Need to get the earliest one to send out
-				if ((not DSBlockSendTime.has_key(blockNumber)) or sendTime < convert_time_string(DSBlockSendTime[blockNumber])):
+				if ((blockNumber not in DSBlockSendTime) or sendTime < convert_time_string(DSBlockSendTime[blockNumber])):
 					DSBlockSendTime[blockNumber] = get_time(line)
 
 			elif line.find(KEYWORD_RECV) != -1:
 				strRecvTime = get_time(line)
 				recvTime = convert_time_string(strRecvTime)
 				# Need to get the last one to receive
-				if ((not DSBlockRecvTime.has_key(blockNumber)) or recvTime > convert_time_string(DSBlockRecvTime[blockNumber])):
+				if ((blockNumber not in DSBlockRecvTime) or recvTime > convert_time_string(DSBlockRecvTime[blockNumber])):
 					DSBlockRecvTime[blockNumber] = strRecvTime
 
 		elif line.find(KEYWORD_TXNPROC_START) != -1:
 			blockNumber = get_block_number(line)
 			strStartTime = get_time(line)
 			startTime = convert_time_string(strStartTime)
-			if ((not TxnProcStartTime.has_key(blockNumber)) or startTime < convert_time_string(TxnProcStartTime[blockNumber])):
+			if ((blockNumber not in TxnProcStartTime) or startTime < convert_time_string(TxnProcStartTime[blockNumber])):
 				TxnProcStartTime[blockNumber] = strStartTime
 
 		elif line.find(KEYWORD_TXNPROC) != -1:
@@ -261,7 +261,7 @@ def scan_file(fileName):
 				strEndTime = get_time(line)
 				endTime = convert_time_string(strEndTime)
 				# Need to get the last finishes to process
-				if ((not TxnProcEndTime.has_key(blockNumber)) or endTime > convert_time_string(TxnProcEndTime[blockNumber])):
+				if ((blockNumber not in TxnProcEndTime) or endTime > convert_time_string(TxnProcEndTime[blockNumber])):
 					TxnProcEndTime[blockNumber] = strEndTime
 
 		elif line.find(KEYWORD_MICON) != -1:
@@ -295,28 +295,28 @@ def convert_time_string(strTime):
 	return int(a) * 3600000 + int(b) * 60000 + int(c) * 1000 + int(d)
 
 def printResult(outputFile):	
-	DSConsensusStartTimeKeys = DSConsensusStartTime.keys()
-	DSConsensusStartTimeValues = DSConsensusStartTime.values()
-	DSConsensusEndTimeValues = DSConsensusEndTime.values()
+	DSConsensusStartTimeKeys = list(DSConsensusStartTime.keys())
+	DSConsensusStartTimeValues = list(DSConsensusStartTime.values())
+	DSConsensusEndTimeValues = list(DSConsensusEndTime.values())
 
-	DSBlockSendTimeValues = DSBlockSendTime.values()
-	DSBlockRecvTimeValues = DSBlockRecvTime.values()
+	DSBlockSendTimeValues = list(DSBlockSendTime.values())
+	DSBlockRecvTimeValues = list(DSBlockRecvTime.values())
 
-	MBConsensusDictKeys = MIConsensusDict.keys()
-	MBConsensusDictValues = MIConsensusDict.values()
+	MBConsensusDictKeys = list(MIConsensusDict.keys())
+	MBConsensusDictValues = list(MIConsensusDict.values())
 
-	TxnProcEndTimeKeys = TxnProcEndTime.keys()
-	TxnProcStartTimeValues = TxnProcStartTime.values()
-	TxnProcEndTimeValues = TxnProcEndTime.values()
+	TxnProcEndTimeKeys = list(TxnProcEndTime.keys())
+	TxnProcStartTimeValues = list(TxnProcStartTime.values())
+	TxnProcEndTimeValues = list(TxnProcEndTime.values())
 
-	MIBlockSendTimeValues = MIBlockSendTime.values()
-	MIBlockRecvTimeValues = MIBlockRecvTime.values()
+	MIBlockSendTimeValues = list(MIBlockSendTime.values())
+	MIBlockRecvTimeValues = list(MIBlockRecvTime.values())
 
-	FBConsensusDictKeys = FBConsensusDict.keys()
-	FBConsensusDictValues = FBConsensusDict.values()
+	FBConsensusDictKeys = list(FBConsensusDict.keys())
+	FBConsensusDictValues = list(FBConsensusDict.values())
 
-	FLBlockSendTimeValues = FLBlockSendTime.values()
-	FLBlockRecvTimeValues = FLBlockRecvTime.values()
+	FLBlockSendTimeValues = list(FLBlockSendTime.values())
+	FLBlockRecvTimeValues = list(FLBlockRecvTime.values())
 
 	totalFBBlockNumber = len(FBConsensusDictKeys)
 	totalDSBlockNumber = len(DSConsensusEndTimeValues)
@@ -353,7 +353,7 @@ def printResult(outputFile):
 			outputFile.write(OUTPUT_LINE_FORMAT % ('DSBlk Bdcast', DSConsensusStartTimeKeys[dsIndex], DSBlockSendTimeValues[dsIndex], DSBlockRecvTimeValues[dsIndex], dsBdcastSpan))
 
 		if (txnIndex < len(TxnProcEndTimeKeys)):
-			if TxnProcStartTime.has_key(blockNumber) and TxnProcEndTime.has_key(blockNumber):
+			if blockNumber in TxnProcStartTime and blockNumber in TxnProcEndTime:
 				txnProcSpan = convert_time_string(TxnProcEndTime.get(blockNumber)) - convert_time_string(TxnProcStartTime.get(blockNumber))
 				outputFile.write(OUTPUT_LINE_FORMAT % ('Process Txns', blockNumber, TxnProcStartTime.get(blockNumber), TxnProcEndTime.get(blockNumber), txnProcSpan))
 				txnIndex += 1
@@ -361,13 +361,13 @@ def printResult(outputFile):
 		if mbIndex < len(MBConsensusDictKeys):
 			if (MBConsensusDictKeys[mbIndex] == blockNumber):
 				#print(MBConsensusDictValues[mbIndex].items())
-				for shardId, mbConsensus in MBConsensusDictValues[mbIndex].items():
+				for shardId, mbConsensus in list(MBConsensusDictValues[mbIndex].items()):
 					miConName = 'MI Con(%4d)' % shardId
 					outputFile.write(OUTPUT_LINE_FORMAT_WO_RETURN % (miConName, mbConsensus.blockNumber, mbConsensus.startTime, mbConsensus.endTime, mbConsensus.timeSpan))
 
-					if (MIConsensusLeader.has_key(blockNumber)):
+					if (blockNumber in MIConsensusLeader):
 						miConLeaders = MIConsensusLeader.get(blockNumber)
-						if (miConLeaders.has_key(shardId)):
+						if (shardId in miConLeaders):
 							nodeLeader = miConLeaders.get(shardId)
 							outputFile.write("SD Leader   \tNode_%04d\t%s\n" % (nodeLeader.nodeId, nodeLeader.ipAddress))
 
@@ -393,13 +393,13 @@ def printResult(outputFile):
 			dsIndex += 1
 
 def print_node_epoch(outputFile):
-	NodeLastBlockKeys = NodeLastBlock.keys()
-	NodeLastBlockValues = NodeLastBlock.values()
-	NodeRewardValues = NodeReward.values()
+	NodeLastBlockKeys = list(NodeLastBlock.keys())
+	NodeLastBlockValues = list(NodeLastBlock.values())
+	NodeRewardValues = list(NodeReward.values())
 	#outputFile.write("\n")
 	outputFile.write("\nNode_Id  \tLast Block\tTotal Rewards\n")
 
-	for nodeId, blockNumber in NodeLastBlock.items():
+	for nodeId, blockNumber in list(NodeLastBlock.items()):
 		outputFile.write("Node_%04d\t%6d\t%10d\n" %(nodeId, blockNumber, NodeReward.get(nodeId)))
 		if LatestBlockNumber - blockNumber > NODE_DROP_OFF_BLOCK_NUMBER:
 			print("Node_%04d Drop off already" % nodeId)
