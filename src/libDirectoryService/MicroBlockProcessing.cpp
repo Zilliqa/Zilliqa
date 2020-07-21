@@ -42,13 +42,6 @@ using namespace boost::multiprecision;
 
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::VerifyMicroBlockCoSignature not "
-                "expected to be called from LookUp node.");
-    return true;
-  }
-
   LOG_MARKER();
 
   const vector<bool>& B2 = microBlock.GetB2();
