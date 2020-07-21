@@ -427,6 +427,18 @@ message ProtoTransactionWithReceipt
     ProtoTransactionReceipt receipt = 2;
 }
 
+message ProtoBloomFilter
+{
+    repeated uint32 salt           = 1;
+    bytes bittable                = 2;
+    uint32 saltcount              = 3;
+    uint64 tablesize              = 4;
+    uint64 projectedelementcount = 5;
+    uint64 insertedelementcount  = 6;
+    uint64 randomseed             = 7;
+    double probability             = 8;
+}
+
 message ProtoSWInfo
 {
     uint32 zilliqamajorversion        = 1;
