@@ -3209,6 +3209,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                 INFO, "I was not in any shard in current ds epoch previously");
             m_mediator.m_node->m_confirmedNotInNetwork = true;
           } else if (m_mediator.m_node->LoadShardingStructure()) {
+            LOG_GENERAL(INFO,
+                        "I was already part of shard in current ds epoch");
             if (!m_currDSExpired &&
                 m_mediator.m_dsBlockChain.GetLastBlock()
                         .GetHeader()
@@ -3220,7 +3222,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
               m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(
                   Node::PEER);
 
-              m_mediator.m_node->StartFirstTxEpoch();
+              m_mediator.m_node->StartFirstTxEpoch(
+                  true);  // Starts with WAITING_FINALBLOCK
             }
           }
           m_currDSExpired = false;

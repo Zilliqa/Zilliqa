@@ -23,6 +23,7 @@
 #include "common/BaseType.h"
 #include "common/ErrTxn.h"
 #include "common/Serializable.h"
+#include "libData/AccountData/BloomFilter.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
@@ -235,6 +236,11 @@ class Messenger {
   static bool GetDiagnosticDataCoinbase(const bytes& src,
                                         const unsigned int offset,
                                         DiagnosticDataCoinbase& entry);
+
+  static bool SetBloomFilter(bytes& dst, const unsigned int offset,
+                             const BloomFilter& filter);
+  static bool GetBloomFilter(const bytes& src, const unsigned int offset,
+                             BloomFilter& filter);
 
   // ============================================================================
   // Peer Manager messages
@@ -921,6 +927,22 @@ class Messenger {
                                             std::vector<DSBlock>& dsBlocks,
                                             std::vector<TxBlock>& txBlocks,
                                             PubKey& lookupPubKey);
+
+  // ============================================================================
+  // Shard Guard network information update
+  // ============================================================================
+
+  static bool SetNodeNewShardGuardNetworkInfo(
+      bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+      const Peer& shardGuardNewNetworkInfo, const uint64_t timestamp,
+      const PairOfKey& shardGuardkey);
+
+  static bool GetNodeNewShardGuardNetworkInfo(const bytes& src,
+                                              const unsigned int offset,
+                                              uint64_t& dsEpochNumber,
+                                              Peer& shardGuardNewNetworkInfo,
+                                              uint64_t& timestamp,
+                                              PubKey& shardGuardPubkey);
 
   // ============================================================================
   // DS Guard network information update

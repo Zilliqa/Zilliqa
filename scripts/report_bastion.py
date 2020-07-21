@@ -28,7 +28,7 @@ RESULT_LOOKUP = dict()
 RESULT_DSNODE = dict()
 
 def print_usage():
-	print "Usage:\tpython " + sys.argv[0] + "<report title> <lookup pods TXT> <DS guard pods TXT> <webhook URL> <poll interval in mins (0 = run once)>\n"
+	print("Usage:\tpython " + sys.argv[0] + "<report title> <lookup pods TXT> <DS guard pods TXT> <webhook URL> <poll interval in mins (0 = run once)>\n")
 
 def getPods(fileName):
 	file = open(fileName, "r+")
@@ -41,7 +41,7 @@ def getPods(fileName):
 	return result
 
 def getSubset(DSNodes, count):
-	subset = [DSNodes[i] for i in sorted(random.sample(range(len(DSNodes)), count))]
+	subset = [DSNodes[i] for i in sorted(random.sample(list(range(len(DSNodes))), count))]
 	return subset
 
 def getLookupData(lookup):
@@ -76,7 +76,7 @@ def generateReport(reportname, lookups, dsNodesSubset, webhookURL):
 	# 24 = Latest VC Tx
 
 	lookupData = dict()
-	for key, val in RESULT_LOOKUP.items():
+	for key, val in list(RESULT_LOOKUP.items()):
 		lookupnum = (int)(key[key.rfind('-') + 1:])
 		rawdatasegments = val.split(' ')
 
@@ -185,7 +185,7 @@ def generateReport(reportname, lookups, dsNodesSubset, webhookURL):
 	# 9 = PoW
 
 	dsNodeData = dict()
-	for key, val in RESULT_DSNODE.items():
+	for key, val in list(RESULT_DSNODE.items()):
 		dsnum = (int)(key[key.rfind('-') + 1:])
 		rawdatasegments = val.split(' ')
 
@@ -200,7 +200,7 @@ def generateReport(reportname, lookups, dsNodesSubset, webhookURL):
 		# 9 = PoW
 		dsNodeData[dsnum].append(re.search(r'\d+', rawdatasegments[9]).group())
 
-	keylist = dsNodeData.keys()
+	keylist = list(dsNodeData.keys())
 	keylist.sort()
 	for key in keylist:
 		report_string += str(key).ljust(6) + dsNodeData[key][0].ljust(8) + dsNodeData[key][1].ljust(9) + dsNodeData[key][2] + "\n"

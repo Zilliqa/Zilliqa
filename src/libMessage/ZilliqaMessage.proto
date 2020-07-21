@@ -427,6 +427,18 @@ message ProtoTransactionWithReceipt
     ProtoTransactionReceipt receipt = 2;
 }
 
+message ProtoBloomFilter
+{
+    repeated uint32 salt           = 1;
+    bytes bittable                = 2;
+    uint32 saltcount              = 3;
+    uint64 tablesize              = 4;
+    uint64 projectedelementcount = 5;
+    uint64 insertedelementcount  = 6;
+    uint64 randomseed             = 7;
+    double probability             = 8;
+}
+
 message ProtoSWInfo
 {
     uint32 zilliqamajorversion        = 1;
@@ -1094,6 +1106,24 @@ message VCNodeSetDSTxBlockFromSeed
     Data data               = 1;
     ByteArray pubkey        = 2;
     ByteArray signature     = 3;
+}
+
+// ============================================================================
+// Shard Guard identity update
+// ============================================================================
+
+// From Shard Guard to lookup/dsCommittee. New Shard guard node network info.
+message NodeSetShardGuardNetworkInfoUpdate
+{
+    message Data
+    {
+        uint64 dsepochnumber               = 1;
+        ByteArray shardguardpubkey         = 2;
+        ProtoPeer shardguardnewnetworkinfo = 3;
+        uint64 timestamp                   = 4;
+    }
+    Data data                              = 1;
+    ByteArray signature                    = 2;
 }
 
 // ============================================================================

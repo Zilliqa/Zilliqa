@@ -3727,6 +3727,57 @@ bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
   return true;
 }
 
+bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
+                               const BloomFilter& filter) {
+  ProtoBloomFilter result;
+
+  for (const auto& salt : filter.salt_) {
+    result.add_salt(salt);
+  }
+  result.set_bittable(DataConversion::CharArrayToString(filter.bit_table_));
+  result.set_saltcount(filter.salt_count_);
+  result.set_tablesize(filter.table_size_);
+  result.set_projectedelementcount(filter.projected_element_count_);
+  result.set_insertedelementcount(filter.inserted_element_count_);
+  result.set_randomseed(filter.random_seed_);
+  result.set_probability(filter.desired_false_positive_probability_);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBloomFilter initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetBloomFilter(const bytes& src, const unsigned int offset,
+                               BloomFilter& filter) {
+  ProtoBloomFilter protoBloomFilter;
+  protoBloomFilter.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!protoBloomFilter.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBloomFilter initialization failed");
+    return false;
+  }
+
+  for (const auto& salt : protoBloomFilter.salt()) {
+    filter.salt_.emplace_back(salt);
+  }
+
+  filter.bit_table_.resize(protoBloomFilter.bittable().size());
+  copy(protoBloomFilter.bittable().begin(), protoBloomFilter.bittable().end(),
+       filter.bit_table_.begin());
+
+  filter.salt_count_ = protoBloomFilter.saltcount();
+  filter.table_size_ = protoBloomFilter.tablesize();
+  filter.projected_element_count_ = protoBloomFilter.projectedelementcount();
+  filter.inserted_element_count_ = protoBloomFilter.insertedelementcount();
+  filter.random_seed_ = protoBloomFilter.randomseed();
+  filter.desired_false_positive_probability_ = protoBloomFilter.probability();
+
+  return true;
+}
+
 // ============================================================================
 // Peer Manager messages
 // ============================================================================
@@ -8992,6 +9043,94 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
     LOG_GENERAL(WARNING, "Invalid signature in VCNodeSetDSTxBlockFromSeed");
     return false;
   }
+
+  return true;
+}
+
+bool Messenger::SetNodeNewShardGuardNetworkInfo(
+    bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+    const Peer& shardGuardNewNetworkInfo, const uint64_t timestamp,
+    const PairOfKey& shardGuardkey) {
+  LOG_MARKER();
+  NodeSetShardGuardNetworkInfoUpdate result;
+
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+  SerializableToProtobufByteArray(
+      shardGuardkey.second, *result.mutable_data()->mutable_shardguardpubkey());
+  PeerToProtobuf(shardGuardNewNetworkInfo,
+                 *result.mutable_data()->mutable_shardguardnewnetworkinfo());
+  result.mutable_data()->set_timestamp(timestamp);
+
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "NodeSetShardGuardNetworkInfoUpdate.Data initialization failed");
+    return false;
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+  if (!Schnorr::Sign(tmp, shardGuardkey.first, shardGuardkey.second,
+                     signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign shard guard identity update");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "NodeSetShardGuardNetworkInfoUpdate initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeNewShardGuardNetworkInfo(const bytes& src,
+                                                const unsigned int offset,
+                                                uint64_t& dsEpochNumber,
+                                                Peer& shardGuardNewNetworkInfo,
+                                                uint64_t& timestamp,
+                                                PubKey& shardGuardPubkey) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeSetShardGuardNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "NodeSetShardGuardNetworkInfoUpdate initialization failed");
+    return false;
+  }
+
+  // First deserialize the fields needed just for signature check
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.data().shardguardpubkey(),
+                                  shardGuardPubkey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, shardGuardPubkey)) {
+    LOG_GENERAL(WARNING, "NodeSetShardGuardNetworkInfoUpdate signature wrong");
+    return false;
+  }
+
+  // Deserialize the remaining fields
+  dsEpochNumber = result.data().dsepochnumber();
+  ProtobufToPeer(result.data().shardguardnewnetworkinfo(),
+                 shardGuardNewNetworkInfo);
+  timestamp = result.data().timestamp();
 
   return true;
 }

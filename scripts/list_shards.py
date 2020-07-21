@@ -63,17 +63,17 @@ def scan_file(fileName):
 					shardsAndShardPeers.insert(shardNum, [])
 				state = 2
 			elif line.find(KEYWORD_END) != -1:
-				print "EPOCH " + epochNum
+				print("EPOCH " + epochNum)
 				outputstr = ","
 				for shardIndex in range(len(shardsAndShardPeers)):
 					outputstr = outputstr + "SHARD " + str(shardIndex) + ","
-				print outputstr
+				print(outputstr)
 				for peerIndex in range(len(shardsAndShardPeers[0])):
 					outputstr = "PEER " + str(peerIndex) + ","
 					for shardIndex in range(len(shardsAndShardPeers)):
 						outputstr = outputstr + shardsAndShardPeers[shardIndex][peerIndex] + ","
-					print outputstr
-				print ""
+					print(outputstr)
+				print()
 				state = 0
 		elif state == 2:
 			if line.find(KEYWORD_ENTRY) != -1:

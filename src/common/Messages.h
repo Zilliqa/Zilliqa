@@ -60,7 +60,8 @@ enum NodeInstructionType : unsigned char {
   DSGUARDNODENETWORKINFOUPDATE = 0x0C,
   REMOVENODEFROMBLACKLIST = 0x0D,
   PENDINGTXN = 0x0E,
-  VCFINALBLOCK = 0x0F
+  VCFINALBLOCK = 0x0F,
+  NEWSHARDGUARDIDENTITY = 0x10
 };
 
 enum LookupInstructionType : unsigned char {

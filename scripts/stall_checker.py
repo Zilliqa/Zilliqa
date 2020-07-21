@@ -28,7 +28,7 @@ import datetime
 RESULT_LOOKUP = dict()
 
 def print_usage():
-	print "Usage:\tpython " + sys.argv[0] + "<report title> <lookup pods TXT> <webhook URL> <stall tolerance in mins> <poll interval in mins (0 = run once)>\n"
+	print("Usage:\tpython " + sys.argv[0] + "<report title> <lookup pods TXT> <webhook URL> <stall tolerance in mins> <poll interval in mins (0 = run once)>\n")
 
 def getPods(fileName):
 	file = open(fileName, "r+")
@@ -62,7 +62,7 @@ def generateReport(reportname, lookups, webhookURL, stalInMins):
 
 	lookupData = dict()
 	thetimenow = datetime.datetime.now()
-	for key, val in RESULT_LOOKUP.items():
+	for key, val in list(RESULT_LOOKUP.items()):
 		lookupnum = (int)(key[key.rfind('-') + 1:])
 		rawdatasegments = val.split(' ')
 

@@ -654,6 +654,12 @@ class DirectoryService : public Executable {
   // For DS guard to update it's network information while in GUARD_MODE
   bool UpdateDSGuardIdentity();
 
+  // Update shard node's network info
+  bool UpdateShardNodeNetworkInfo(const Peer& shardNodeNetworkInfo,
+                                  const PubKey& pubKey);
+
+  bool CheckIfShardNode(const PubKey& submitterPubKey);
+
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
@@ -696,7 +702,6 @@ class DirectoryService : public Executable {
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool CheckIfDSNode(const PubKey& submitterPubKey);
-  bool CheckIfShardNode(const PubKey& submitterPubKey);
   void RemoveDSMicroBlock();
 };
 
