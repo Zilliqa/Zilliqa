@@ -232,7 +232,7 @@ class LookupServer : public Server,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
   Json::Value GetTransaction(const std::string& transactionHash);
-  Json::Value GetSoftConfirmedTransaction(const std::string& transactionHash);
+  Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum);
   Json::Value GetTxBlock(const std::string& blockNum);
   Json::Value GetLatestDsBlock();
