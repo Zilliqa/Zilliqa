@@ -134,11 +134,22 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
                       message_length - written_length);
 
     if (P2PComm::IsHostHavingNetworkIssue()) {
-      LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << " (" << std::strerror(errno)
-                               << "). Adding " << from.GetPrintableIPAddress()
-                               << " as strictly blacklisted");
-      Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
+      if (Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding seed "
+                                 << from.GetPrintableIPAddress()
+                                 << " as relaxed blacklisted");
+        // Add this seed node to relaxed blacklist even if it is whitelisted in
+        // general.
+        Blacklist::GetInstance().Add(from.m_ipAddress, false, true);
+      } else {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << from.GetPrintableIPAddress()
+                                 << " as strictly blacklisted");
+        Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
+      }
       return written_length;
     } else if (P2PComm::IsNodeNotRunning()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
@@ -218,11 +229,23 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
       if (P2PComm::IsHostHavingNetworkIssue()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " as strictly blacklisted");
-        Blacklist::GetInstance().Add(peer.m_ipAddress);
+        if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
+          LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                   << errno << " (" << std::strerror(errno)
+                                   << "). Adding seed "
+                                   << peer.GetPrintableIPAddress()
+                                   << " as relaxed blacklisted");
+          // Add this seed node to relaxed blacklist even if it is whitelisted
+          // in general.
+          Blacklist::GetInstance().Add(peer.m_ipAddress, false, true);
+        } else {
+          LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                   << errno << " (" << std::strerror(errno)
+                                   << "). Adding "
+                                   << peer.GetPrintableIPAddress()
+                                   << " as strictly blacklisted");
+          Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
+        }
       } else if (P2PComm::IsNodeNotRunning()) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << errno << " (" << std::strerror(errno)

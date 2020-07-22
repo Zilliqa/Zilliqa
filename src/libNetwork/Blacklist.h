@@ -48,6 +48,9 @@ class Blacklist {
                       // Strict -> Blacklisted for both sending and incoming msg
                       // Relaxed -> Blacklisted for incoming msg only
   std::set<uint128_t> m_whitelistedIP;
+
+  std::mutex m_mutexWhitelistedSeedsIP;
+  std::set<uint128_t> m_whitelistedSeedsIP;
   std::atomic<bool> m_enabled;
 
  public:
@@ -58,7 +61,8 @@ class Blacklist {
   bool Exist(const uint128_t& ip, const bool strict = true);
 
   /// P2PComm may use this function to blacklist certain non responding nodes
-  void Add(const uint128_t& ip, const bool strict = true);
+  void Add(const uint128_t& ip, const bool strict = true,
+           const bool ignoreWhitelist = false);
 
   /// P2PComm may use this function to remove a node form blacklist
   void Remove(const uint128_t& ip);
@@ -81,8 +85,17 @@ class Blacklist {
   /// Remove node from whitelist
   bool RemoveFromWhitelist(const uint128_t& ip);
 
+  /// Seeds node to be whitelisted
+  bool WhitelistSeed(const uint128_t& ip);
+
+  /// Remove node from whitelisted seeds
+  bool RemoveFromWhitelistedSeeds(const uint128_t& ip);
+
   /// Check if given IP is a part of whitelisted ip
   bool IsWhitelistedIP(const uint128_t& ip);
+
+  /// Special case - Whitelisted seeds - exchange seeds, level2lookups, lookups
+  bool IsWhitelistedSeed(const uint128_t& ip);
 };
 
 #endif  // ZILLIQA_SRC_LIBNETWORK_BLACKLIST_H_
