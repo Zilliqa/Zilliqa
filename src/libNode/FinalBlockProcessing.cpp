@@ -471,7 +471,10 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
   {
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
-    auto& processedTransactions = m_processedTransactions[blocknum];
+    auto& processedTransactions =
+        m_mediator.m_ds->m_mode == DirectoryService::IDLE
+            ? t_processedTransactions
+            : m_processedTransactions[blocknum];
     for (const auto& tx_hash : tx_hashes) {
       const auto& txnIt = processedTransactions.find(tx_hash);
       if (txnIt != processedTransactions.end()) {
