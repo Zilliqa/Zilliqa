@@ -17,14 +17,12 @@
 ARG BASE=zilliqa/scilla:v0.9.0-backport.16.04
 FROM ${BASE}
 
-COPY requirements2.txt ./
-COPY requirements2.preq.txt ./
 COPY requirements3.txt ./
+
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:tah83/secp256k1 -y \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     build-essential \
@@ -34,6 +32,9 @@ RUN apt-get update \
     curl \
     git \
     golang \
+    # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
+    # mention again as installation candidate
+    rsync \
     libboost-filesystem-dev \
     libboost-program-options-dev \
     libboost-system-dev \
@@ -51,15 +52,11 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    python \
-    python-pip \
     python3-dev \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install -r requirements2.preq.txt \
-    && pip install -r requirements2.txt \
     && pip3 install -r requirements3.txt
 
 # Manually input tag or commit, can be overwritten by docker build-args
