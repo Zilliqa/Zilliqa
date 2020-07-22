@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.7.0
+ARG BASE=zilliqa/scilla:scilla_ubuntu20_upgrade_a8efaa28
 FROM ${BASE}
 
 COPY requirements3.txt ./
@@ -22,8 +22,8 @@ COPY requirements3.txt ./
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:tah83/secp256k1 -y \
     && apt-get update && apt-get install -y --no-install-recommends \
+    cron \
     autoconf \
     build-essential \
     ca-certificates \
@@ -31,12 +31,14 @@ RUN apt-get update \
     # curl is not a build dependency
     curl \
     git \
+    rsync \
     golang \
     libboost-filesystem-dev \
     libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
     libboost-python-dev \
+    python3-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
@@ -49,15 +51,13 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    python3-dev \
+    python-is-python3 \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install -r requirements3.txt
 
-# set python3 as default instead python2
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.3.0-alpha.0

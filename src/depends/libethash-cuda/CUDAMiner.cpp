@@ -211,7 +211,7 @@ bool CUDAMiner::cuda_configureGPU(
         }
         return true;
     }
-    catch (std::runtime_error)
+    catch (std::runtime_error const&)
     {
         if(s_exit)
             exit(1);
