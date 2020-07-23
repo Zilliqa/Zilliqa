@@ -26,6 +26,8 @@
 #include "Transaction.h"
 #include "common/ErrTxn.h"
 
+using MempoolInsertionStatus = std::pair<ErrTxnStatus, TxnHash>;
+
 struct TxnPool {
   struct PubKeyNonceHash {
     std::size_t operator()(const std::pair<PubKey, uint128_t>& p) const {
@@ -64,9 +66,10 @@ struct TxnPool {
     return true;
   }
 
-  std::pair<bool, ErrTxnStatus> insert(const Transaction& t) {
+  bool insert(const Transaction& t, MempoolInsertionStatus& status) {
     if (exist(t.GetTranID())) {
-      return {false, ErrTxnStatus::MEMPOOL_ALREADY_PRESENT};
+      status = {ErrTxnStatus::MEMPOOL_ALREADY_PRESENT, t.GetTranID()};
+      return false;
     }
 
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
@@ -75,6 +78,7 @@ struct TxnPool {
           (t.GetGasPrice() == searchNonce->second.GetGasPrice() &&
            t.GetTranID() < searchNonce->second.GetTranID())) {
         // erase from HashIdxTxns
+        TxnHash hashToBeRemoved = searchNonce->second.GetTranID();
         auto searchHash = HashIndex.find(searchNonce->second.GetTranID());
         if (searchHash != HashIndex.end()) {
           HashIndex.erase(searchHash);
@@ -91,17 +95,22 @@ struct TxnPool {
         HashIndex[t.GetTranID()] = t;
         GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
         searchNonce->second = t;
+
+        status = {ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, hashToBeRemoved};
+        return true;
       } else {
         // GasPrice is higher but of same nonce
         // or same gas price and nonce but higher tranID
-        return {false, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS};
+        status = {ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, t.GetTranID()};
+        return false;
       }
     } else {
       HashIndex[t.GetTranID()] = t;
       GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
       NonceIndex[{t.GetSenderPubKey(), t.GetNonce()}] = t;
     }
-    return {true, ErrTxnStatus::NOT_PRESENT};
+    status = {ErrTxnStatus::NOT_PRESENT, t.GetTranID()};
+    return true;
   }
 
   void findSameNonceButHigherGas(Transaction& t) {
