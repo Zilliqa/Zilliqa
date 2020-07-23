@@ -646,20 +646,13 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
       throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
     }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
-    bool isPresentHistorical = false;
-    if (m_mediator.m_lookup->m_historicalDB && !isPresent) {
-      isPresentHistorical =
-          BlockStorage::GetBlockStorage().GetTxnFromHistoricalDB(tranHash,
-                                                                 tptr);
-    }
-
     bool isSoftConfirmed = false;
-    if (!isPresent && !isPresentHistorical) {
+    if (!isPresent) {
       isSoftConfirmed =
           m_mediator.m_node->GetSoftConfirmedTransaction(tranHash, tptr);
     }
 
-    if (isPresentHistorical || isPresent || isSoftConfirmed) {
+    if (isPresent || isSoftConfirmed) {
       Json::Value _json;
       return JSONConversion::convertTxtoJson(*tptr, isSoftConfirmed);
     } else {

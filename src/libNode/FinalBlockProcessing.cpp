@@ -427,10 +427,6 @@ void Node::CallActOnFinalblock() {
 
   LOG_MARKER();
 
-  if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
-    return;
-  }
-
   auto composeMBnForwardTxnMessageForSender =
       [this](bytes& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
@@ -1009,9 +1005,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   LOG_GENERAL(INFO, "toSendPendingTxn " << toSendPendingTxn);
 
   if (!LOOKUP_NODE_MODE) {
-    if (toSendTxnToLookup) {
-      CallActOnFinalblock();
-    }
     if (toSendPendingTxn) {
       SendPendingTxnToLookup();
     }
@@ -1350,13 +1343,20 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
                           << " shard "
                           << entry.m_microBlock.GetHeader().GetShardId());
 
-    if (entry.m_microBlock.GetHeader().GetShardId() !=
-        m_mediator.m_ds->m_shards.size()) {
-      // pre-process of early MBnForwardTxn submission
-      // soft confirmation
-      SoftConfirmForwardedTransactions(entry);
-      // invoke txn distribution
+    {
+      // skip for DS microblock submission
+      std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+      if (entry.m_microBlock.GetHeader().GetShardId() ==
+          m_mediator.m_ds->m_shards.size()) {
+        return true;
+      }
     }
+
+    // shard microblock only:
+    // pre-process of early MBnForwardTxn submission
+    // soft confirmation
+    SoftConfirmForwardedTransactions(entry);
+    // [TODO] invoke txn distribution
 
     return true;
   }

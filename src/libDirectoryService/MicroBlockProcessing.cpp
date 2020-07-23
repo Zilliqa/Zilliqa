@@ -64,7 +64,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
       }
       index++;
     }
-  } else {
+  } else if (shardId < m_shards.size()) {
     const auto& shard = m_shards.at(shardId);
 
     if (shard.size() != B2.size()) {
@@ -82,6 +82,9 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
       }
       index++;
     }
+  } else {
+    LOG_GENERAL(WARNING, "Invalid shardId " << shardId);
+    return false;
   }
 
   if (count != ConsensusCommon::NumForConsensus(B2.size())) {
