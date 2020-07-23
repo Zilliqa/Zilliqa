@@ -76,6 +76,16 @@ StatusServer::StatusServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetWhitelistedExtSeedI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("AddToSeedsWhitelist", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::AddToSeedsWhitelistI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("RemoveFromSeedsWhitelist",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &StatusServer::RemoveFromSeedsWhitelistI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
@@ -223,6 +233,56 @@ string StatusServer::GetWhitelistedExtSeed() {
     }
     result.erase(result.find_last_of(','));
     return result;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::AddToSeedsWhitelist(const string& ipAddr) {
+  try {
+    uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().WhitelistSeed(numIP)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not add IP Address in whitelisted seed list, already present");
+    }
+
+    return true;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+bool StatusServer::RemoveFromSeedsWhitelist(const string& ipAddr) {
+  try {
+    uint128_t numIP;
+
+    if (!IPConverter::ToNumericalIPFromStr(ipAddr, numIP)) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "IP Address provided not valid");
+    }
+
+    if (!Blacklist::GetInstance().RemoveFromWhitelistedSeeds(numIP)) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Could not remove IP Address from whitelisted seed list");
+    }
+
+    return true;
+
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (const exception& e) {

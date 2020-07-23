@@ -2281,13 +2281,6 @@ bool Node::IsShardNode(const Peer& peerInfo) {
 }
 
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ComposeAndSendRemoveNodeFromBlacklist not "
-                "expected to be called from LookUp node.");
-    return false;
-  }
-
   LOG_MARKER();
   if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
     LOG_GENERAL(INFO, "I am a ds guard node. So skipping sending...");
@@ -2306,7 +2299,8 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     return false;
   }
 
-  if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
+  if (!LOOKUP_NODE_MODE &&
+      (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH)) {
     // Send the peers
     VectorOfPeer peerList;
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node

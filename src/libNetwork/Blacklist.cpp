@@ -50,16 +50,17 @@ bool Blacklist::Exist(const uint128_t& ip, const bool strict) {
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Add(const uint128_t& ip, const bool strict) {
+void Blacklist::Add(const uint128_t& ip, const bool strict,
+                    const bool ignoreWhitelist) {
   if (!m_enabled) {
     return;
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  if (m_whitelistedIP.end() == m_whitelistedIP.find(ip)) {
+  if (ignoreWhitelist || (m_whitelistedIP.end() == m_whitelistedIP.find(ip))) {
     const auto& res = m_blacklistIP.emplace(ip, strict);
-    // already existed, then over-ride strictness i.e. false by true
-    if (!res.second && strict) {
+    // already existed, then over-ride strictness
+    if (!res.second) {
       res.first->second = strict;
     }
   } else {
@@ -138,4 +139,32 @@ bool Blacklist::RemoveFromWhitelist(const uint128_t& ip) {
 bool Blacklist::IsWhitelistedIP(const uint128_t& ip) {
   lock_guard<mutex> g(m_mutexBlacklistIP);
   return m_whitelistedIP.end() != m_whitelistedIP.find(ip);
+}
+
+bool Blacklist::WhitelistSeed(const uint128_t& ip) {
+  if (!m_enabled) {
+    return false;
+  }
+
+  {
+    // Incase it was already blacklisted, remove it.
+    lock_guard<mutex> g(m_mutexBlacklistIP);
+    m_blacklistIP.erase(ip);
+  }
+
+  lock_guard<mutex> g(m_mutexWhitelistedSeedsIP);
+  return m_whitelistedSeedsIP.emplace(ip).second;
+}
+
+bool Blacklist::RemoveFromWhitelistedSeeds(const uint128_t& ip) {
+  if (!m_enabled) {
+    return false;
+  }
+  lock_guard<mutex> g(m_mutexWhitelistedSeedsIP);
+  return (m_whitelistedSeedsIP.erase(ip) > 0);
+}
+
+bool Blacklist::IsWhitelistedSeed(const uint128_t& ip) {
+  lock_guard<mutex> g(m_mutexWhitelistedSeedsIP);
+  return m_whitelistedSeedsIP.end() != m_whitelistedSeedsIP.find(ip);
 }
