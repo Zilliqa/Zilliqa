@@ -206,6 +206,7 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <REMOTE_MINE>false</REMOTE_MINE>
         <MINING_PROXY_URL>http://127.0.0.1:4202/api</MINING_PROXY_URL>
+        <MINING_PROXY_TIMEOUT_IN_MS>15000</MINING_PROXY_TIMEOUT_IN_MS>
         <MAX_RETRY_SEND_POW_TIME>5</MAX_RETRY_SEND_POW_TIME>
         <!-- Every interval seconds to check if mining proxy has the PoW result -->
         <CHECK_MINING_RESULT_INTERVAL>5</CHECK_MINING_RESULT_INTERVAL>
