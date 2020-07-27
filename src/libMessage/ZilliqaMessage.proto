@@ -1109,17 +1109,17 @@ message VCNodeSetDSTxBlockFromSeed
 }
 
 // ============================================================================
-// Shard Guard identity update
+// Shard node identity update
 // ============================================================================
 
-// From Shard Guard to lookup/dsCommittee. New Shard guard node network info.
-message NodeSetShardGuardNetworkInfoUpdate
+// From shard node to lookup/dsCommittee. New shard node network info.
+message NodeSetShardNodeNetworkInfoUpdate
 {
     message Data
     {
         uint64 dsepochnumber               = 1;
-        ByteArray shardguardpubkey         = 2;
-        ProtoPeer shardguardnewnetworkinfo = 3;
+        ByteArray shardnodepubkey          = 2;
+        ProtoPeer shardnodenewnetworkinfo  = 3;
         uint64 timestamp                   = 4;
     }
     Data data                              = 1;
