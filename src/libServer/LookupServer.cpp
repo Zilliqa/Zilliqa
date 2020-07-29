@@ -80,6 +80,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetTransactionI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetSoftConfirmedTransaction",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetSoftConfirmedTransactionI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
@@ -623,6 +628,40 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  try {
+    TxBodySharedPtr tptr;
+    TxnHash tranHash(txnHash);
+    if (txnHash.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
+    }
+    bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+    bool isSoftConfirmed = false;
+    if (!isPresent) {
+      isSoftConfirmed =
+          m_mediator.m_node->GetSoftConfirmedTransaction(tranHash, tptr);
+    }
+
+    if (isPresent || isSoftConfirmed) {
+      Json::Value _json;
+      return JSONConversion::convertTxtoJson(*tptr, isSoftConfirmed);
+    } else {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not soft confirmed");
+    }
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txnHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }

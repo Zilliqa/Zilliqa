@@ -347,8 +347,6 @@ class DirectoryService : public Executable {
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   uint128_t& allRewards, uint32_t& numTxs);
-  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
-                                   uint32_t shardId);
   bool ProcessStateDelta(const bytes& stateDelta,
                          const StateHash& microBlockStateDeltaHash,
                          const BlockHash& microBlockHash);
@@ -670,6 +668,9 @@ class DirectoryService : public Executable {
                                        VCBlockSharedPtr& prevVCBlockptr);
 
   std::string GetStateString() const;
+
+  bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
+                                   uint32_t shardId);
 
   // DS Reputation functions with no state access.
   static void SaveDSPerformanceCore(

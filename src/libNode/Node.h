@@ -169,6 +169,10 @@ class Node : public Executable {
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
 
+  // soft confirmed transactions
+  std::mutex m_mutexSoftConfirmedTxns;
+  std::unordered_map<TxnHash, TransactionWithReceipt> m_softConfirmedTxns;
+
   // Fallback Consensus
   std::mutex m_mutexFallbackTimer;
   uint32_t m_fallbackTimer{};
@@ -387,6 +391,9 @@ class Node : public Executable {
 
   /// Initilize the add genesis block and account
   void AddGenesisInfo(SyncType syncType);
+
+  void SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry);
+  void ClearSoftConfirmedTransactions();
 
  public:
   enum NodeState : unsigned char {
@@ -732,6 +739,8 @@ class Node : public Executable {
 
   void CleanLocalRawStores();
 
+  bool GetSoftConfirmedTransaction(const TxnHash& txnHash,
+                                   TxBodySharedPtr& tptr);
   void WaitForNextTwoBlocksBeforeRejoin();
 
   bool UpdateShardNodeIdentity();

@@ -68,6 +68,10 @@ class LookupServer : public Server,
                                       Json::Value& response) {
     response = this->GetTransaction(request[0u].asString());
   }
+  inline virtual void GetSoftConfirmedTransactionI(const Json::Value& request,
+                                                   Json::Value& response) {
+    response = this->GetSoftConfirmedTransaction(request[0u].asString());
+  }
   inline virtual void GetDsBlockI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetDsBlock(request[0u].asString());
@@ -228,6 +232,7 @@ class LookupServer : public Server,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
   Json::Value GetTransaction(const std::string& transactionHash);
+  Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum);
   Json::Value GetTxBlock(const std::string& blockNum);
   Json::Value GetLatestDsBlock();

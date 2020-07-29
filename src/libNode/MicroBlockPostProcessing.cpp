@@ -270,6 +270,17 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
       return ComposeMicroBlockMessageForSender(microblock_message);
     };
 
+    auto composeMBnForwardTxnMessageForSender =
+        [this](bytes& forwardtxn_message) -> bool {
+      return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
+    };
+
+    auto sendMbnFowardTxnToShardNodes =
+        []([[gnu::unused]] const bytes& message,
+           [[gnu::unused]] const DequeOfShard& shards,
+           [[gnu::unused]] const unsigned int& my_shards_lo,
+           [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
+
     unordered_map<uint32_t, BlockBase> t_blocks;
     if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() ==
         m_mediator.m_currentEpochNum) {
@@ -280,11 +291,24 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
 
     {
       lock_guard<mutex> g(m_mutexShardMember);
+      // To DS -> ProcessMicroBlock
       DataSender::GetInstance().SendDataToOthers(
           *m_microblock, *m_myShardMembers, ds_shards, t_blocks,
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
           m_consensusMyID, composeMicroBlockMessageForSender, false, nullptr);
+      // To Lookup -> ProcessMBnForwardTxn
+      DataSender::GetInstance().SendDataToOthers(
+          *m_microblock, *m_myShardMembers, {}, {},
+          m_mediator.m_lookup->GetLookupNodes(),
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+          m_consensusMyID, composeMBnForwardTxnMessageForSender, false,
+          SendDataToLookupFuncDefault, sendMbnFowardTxnToShardNodes);
+      // pending Txns
+      if (!IsUnconfirmedTxnEmpty()) {
+        SendPendingTxnToLookup();
+        ClearUnconfirmedTxn();
+      }
     }
 
     LOG_STATE(

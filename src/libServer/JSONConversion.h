@@ -48,7 +48,8 @@ class JSONConversion {
   static const std::vector<std::string> convertJsonArrayToVector(
       const Json::Value& _json);
   // Convert a Tx to JSON object
-  static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr);
+  static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr,
+                                           bool isSoftConfirmed = false);
   // Convert a node to json
   static const Json::Value convertNode(const PairOfNode& node);
   // conver a node with reputation to json

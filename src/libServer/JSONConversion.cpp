@@ -322,7 +322,7 @@ const vector<string> JSONConversion::convertJsonArrayToVector(
 }
 
 const Json::Value JSONConversion::convertTxtoJson(
-    const TransactionWithReceipt& twr) {
+    const TransactionWithReceipt& twr, bool isSoftConfirmed) {
   Json::Value _json;
 
   _json["ID"] = twr.GetTransaction().GetTranID().hex();
@@ -344,6 +344,10 @@ const Json::Value JSONConversion::convertTxtoJson(
   if (!twr.GetTransaction().GetData().empty()) {
     _json["data"] =
         DataConversion::CharArrayToString(twr.GetTransaction().GetData());
+  }
+
+  if (isSoftConfirmed) {
+    _json["softconfirm"] = true;
   }
 
   return _json;

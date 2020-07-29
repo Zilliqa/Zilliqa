@@ -42,13 +42,6 @@ using namespace boost::multiprecision;
 
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::VerifyMicroBlockCoSignature not "
-                "expected to be called from LookUp node.");
-    return true;
-  }
-
   LOG_MARKER();
 
   const vector<bool>& B2 = microBlock.GetB2();
@@ -71,7 +64,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
       }
       index++;
     }
-  } else {
+  } else if (shardId < m_shards.size()) {
     const auto& shard = m_shards.at(shardId);
 
     if (shard.size() != B2.size()) {
@@ -89,6 +82,9 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
       }
       index++;
     }
+  } else {
+    LOG_GENERAL(WARNING, "Invalid shardId " << shardId);
+    return false;
   }
 
   if (count != ConsensusCommon::NumForConsensus(B2.size())) {
@@ -242,7 +238,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
           microBlock.GetHeader().GetDSBlockNum() + 1,
           microBlock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
-                "ProcessMicroblockSubmissionFromShardCore "
+                "ProcessMicroblockSubmissionFromShardCore::"
                 "CheckWhetherBlockIsLatest failed");
     return false;
   }
