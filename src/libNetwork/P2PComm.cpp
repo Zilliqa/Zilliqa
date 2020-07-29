@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cstring>
+#include <future>
 #include <memory>
 #include <utility>
 
@@ -345,6 +346,7 @@ void SendJobPeer::DoSend() {
 
 template <class T>
 void SendJobPeers<T>::DoSend() {
+  LOG_MARKER();
   vector<unsigned int> indexes(m_peers.size());
 
   for (unsigned int i = 0; i < indexes.size(); i++) {
@@ -362,6 +364,7 @@ void SendJobPeers<T>::DoSend() {
                          << hashStr.substr(0, 6) << "] BEGN");
   }
 
+  vector<std::shared_ptr<std::future<void>>> runningSendTasks;
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
        curr < indexes.end(); ++curr) {
     const Peer& peer = m_peers.at(*curr);
@@ -373,8 +376,23 @@ void SendJobPeers<T>::DoSend() {
       continue;
     }
 
-    SendMessageCore(peer, m_message, m_startbyte, m_hash);
+    // Launch the thread.
+    auto hThread = make_shared<std::future<void>>(
+        std::async(std::launch::async, SendMessageCore, peer, m_message,
+                   m_startbyte, m_hash));
+
+    // Park the thread if message sending taking more than expected time
+    auto status = hThread->wait_for(std::chrono::seconds(SENDJOBPEERS_TIMEOUT));
+
+    if (status == std::future_status::timeout) {
+      LOG_GENERAL(WARNING,
+                  "Sending delayed for " << peer.GetPrintableIPAddress());
+      runningSendTasks.push_back(hThread);
+    }
   }
+
+  // If any threads in runningSendTask exist, it will be blocked until it
+  // completes.
 
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
     LOG_STATE("[BROAD][" << std::setw(15) << std::left
