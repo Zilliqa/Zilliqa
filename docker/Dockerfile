@@ -14,15 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.7.0
+ARG BASE=zilliqa/scilla:v0.8.0-alpha.0
 FROM ${BASE}
 
 COPY requirements3.txt ./
 
+
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:tah83/secp256k1 -y \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     build-essential \
@@ -32,6 +32,9 @@ RUN apt-get update \
     curl \
     git \
     golang \
+    # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
+    # mention again as installation candidate
+    rsync \
     libboost-filesystem-dev \
     libboost-program-options-dev \
     libboost-system-dev \
