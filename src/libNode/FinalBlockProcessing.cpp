@@ -1269,8 +1269,10 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
     return false;
   }
 
-  // Verify the co-signature
-  if (!m_mediator.m_ds->VerifyMicroBlockCoSignature(
+  // Verify the co-signature if not DS MB
+  if (entry.m_microBlock.GetHeader().GetShardId() !=
+          m_mediator.m_ds->m_shards.size() &&
+      !m_mediator.m_ds->VerifyMicroBlockCoSignature(
           entry.m_microBlock, entry.m_microBlock.GetHeader().GetShardId())) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Microblock co-sig verification failed");
