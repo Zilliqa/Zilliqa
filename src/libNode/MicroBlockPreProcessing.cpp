@@ -1088,7 +1088,7 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
-  m_txn_distribute_window_open = true;
+  cv_txnPacket.notify_all();
 
   if (m_mediator.GetIsVacuousEpoch()) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,

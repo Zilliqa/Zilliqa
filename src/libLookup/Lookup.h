@@ -127,6 +127,7 @@ class Lookup : public Executable {
   std::mutex m_mutexMicroBlocksBuffer;
 
   TxnShardMap m_txnShardMap;
+  TxnShardMap m_txnShardMapGenerated;
 
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
@@ -192,6 +193,7 @@ class Lookup : public Executable {
   VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
+  std::mutex m_txnShardMapGeneratedMutex;
 
   const std::vector<Transaction>& GetTxnFromShardMap(
       uint32_t index);  // Use m_txnShardMapMutex with this function
@@ -307,9 +309,16 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread(const uint32_t);
+  void SenderTxnBatchThread(const uint32_t, bool newDSEpoch = false);
 
-  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
+  void SendTxnPacketPrepare(const uint32_t oldNumShards,
+                            const uint32_t newNumShards);
+  void SendTxnPacketToNodes(const uint32_t oldNumShards,
+                            const uint32_t newNumShards);
+  void SendTxnPacketToDS(const uint32_t oldNumShards,
+                         const uint32_t newNumShards);
+  void SendTxnPacketToShard(const uint32_t shardId, bool toDS);
+
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);

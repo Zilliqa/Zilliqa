@@ -126,6 +126,10 @@ class Node : public Executable {
   std::mutex m_mutexCVWaitDSBlock;
   std::condition_variable cv_waitDSBlock;
 
+  /// TxnPacket Timer Vars
+  std::mutex m_mutexCVTxnPacket;
+  std::condition_variable cv_txnPacket;
+
   // Final Block Buffer for seed node
   std::vector<bytes> m_seedTxnBlksBuffer;
   std::mutex m_mutexSeedTxnBlksBuffer;

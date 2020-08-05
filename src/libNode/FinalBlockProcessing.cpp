@@ -382,7 +382,7 @@ void Node::BeginNextConsensusRound() {
 
   ScheduleMicroBlockConsensus();
 
-  CommitTxnPacketBuffer();
+  // CommitTxnPacketBuffer();
 }
 
 bool Node::FindTxnInProcessedTxnsList(
@@ -1288,9 +1288,16 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
     return false;
   }
 
+  bool isDSMB = false;
+
+  {
+    std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    isDSMB = entry.m_microBlock.GetHeader().GetShardId() ==
+             m_mediator.m_ds->m_shards.size();
+  }
+
   // Verify the co-signature if not DS MB
-  if (entry.m_microBlock.GetHeader().GetShardId() !=
-          m_mediator.m_ds->m_shards.size() &&
+  if (!isDSMB &&
       !m_mediator.m_ds->VerifyMicroBlockCoSignature(
           entry.m_microBlock, entry.m_microBlock.GetHeader().GetShardId())) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1364,20 +1371,20 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
                           << " shard "
                           << entry.m_microBlock.GetHeader().GetShardId());
 
-    {
-      // skip for DS microblock submission
-      std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-      if (entry.m_microBlock.GetHeader().GetShardId() ==
-          m_mediator.m_ds->m_shards.size()) {
-        return true;
-      }
+    // skip soft confirmation for DSMB
+    if (isDSMB) {
+      return true;
     }
 
     // shard microblock only:
     // pre-process of early MBnForwardTxn submission
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
-    // [TODO] invoke txn distribution
+    // invoke txn distribution
+    if (!m_mediator.GetIsVacuousEpoch()) {
+      m_mediator.m_lookup->SendTxnPacketToShard(
+          entry.m_microBlock.GetHeader().GetShardId(), false);
+    }
 
     return true;
   }

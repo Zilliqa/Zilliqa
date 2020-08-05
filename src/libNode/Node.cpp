@@ -1750,14 +1750,15 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
 
   // Avoid using the original message for broadcasting in case it contains
   // excess data beyond the TxnPacket
-  bytes message2 = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
-  if (!Messenger::SetNodeForwardTxnBlock(
-          message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
-          lookupPubKey, transactions, signature)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetNodeForwardTxnBlock failed.");
-    return false;
-  }
+  // bytes message2 = {MessageType::NODE,
+  // NodeInstructionType::FORWARDTXNPACKET}; if
+  // (!Messenger::SetNodeForwardTxnBlock(
+  //         message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
+  //         lookupPubKey, transactions, signature)) {
+  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+  //             "Messenger::GetNodeForwardTxnBlock failed.");
+  //   return false;
+  // }
 
   {
     // The check here is in case the lookup send the packet
@@ -1782,13 +1783,24 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
            0) ||
           m_justDidFallback))) {
       SHA2<HashType::HASH_VARIANT_256> sha256;
-      sha256.Update(message2);  // message hash
+      sha256.Update(message);  // message hash
       bytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace(msg_hash, message2);
+      m_txnPacketBuffer.emplace(msg_hash, message);
       return true;
     }
   }
+
+  // for shard:
+  // 1. DS epoch: lookup dispatch in new DS epoch, buffer and dispatch when mb
+  // finish, so normally first DS epoch won't have txns
+  // 2. FB epoch: saying the 2nd epoch after ds epoch, lookup dispatch txn upon
+  // mb, they distribute right away once mb consensus started, and before
+  // submitting mb, all the packet received should be buffered
+  // for DS:
+  // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
+  // DSMB started, during DSMB and FB consensus, all packet should be buffered
+  // until the next epoch
 
   bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
                     from.GetPrintableIPAddress() != "127.0.0.1";
@@ -1796,41 +1808,43 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   bool properState =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
        m_mediator.m_ds->m_state ==
            DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
+
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS));
+        m_state == MICROBLOCK_CONSENSUS || m_state == WAITING_FINALBLOCK));
 
-  if (fromLookup || !properState) {
+  if (!properState) {
     if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO, string(fromLookup ? "Received txn packet from lookup"
-                                        : "Received not in the proper state") +
-                          ", store txn packet to buffer");
+    LOG_GENERAL(INFO,
+                "Received not in the proper state, store txn packet to buffer");
     if (fromLookup) {
       LOG_STATE("[TXNPKTPROC]["
                 << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                 << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-                << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
+                << string(lookupPubKey).substr(0, 6) << "][" << message.size()
                 << "] RECVFROMLOOKUP");
     }
     SHA2<HashType::HASH_VARIANT_256> sha256;
-    sha256.Update(message2);  // message hash
+    sha256.Update(message);  // message hash
     bytes msg_hash = sha256.Finalize();
-    m_txnPacketBuffer.emplace(msg_hash, message2);
+    m_txnPacketBuffer.emplace(msg_hash, message);
   } else {
+    // not from lookup and in proper state
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neighbor and process it");
-    return ProcessTxnPacketFromLookupCore(message2, epochNumber, dsBlockNum,
+    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }
 
@@ -1921,6 +1935,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+  }
+
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+      m_state != MICROBLOCK_CONSENSUS_PREP) {
+    unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+    cv_txnPacket.wait(lk,
+                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE

@@ -5357,7 +5357,8 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
   return true;
 }
 
-void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
+void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards,
+                                  bool newDSEpoch) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SenderTxnBatchThread not expected to be called from "
@@ -5372,13 +5373,17 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards) {
     return;
   }
 
-  auto main_func = [this, oldNumShards]() mutable -> void {
+  auto main_func = [this, oldNumShards, newDSEpoch]() mutable -> void {
     m_startedTxnBatchThread = true;
     uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
         numShards = m_mediator.m_ds->GetNumShards();
-        SendTxnPacketToNodes(oldNumShards, numShards);
+        if (newDSEpoch) {
+          SendTxnPacketToNodes(oldNumShards, numShards);
+        } else {
+          SendTxnPacketToDS(oldNumShards, numShards);
+        }
       }
       break;
     }
@@ -5436,13 +5441,143 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
   LOG_GENERAL(INFO, "Elapsed time for exchange " << elaspedTimeMs);
 }
 
-void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards) {
+void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Lookup::SendTxnPacketToNodes not expected to be called from "
+                "Lookup::SendTxnPacketToShard not expected to be called from"
+                "other than the LookUp node.");
+    return;
+  }
+
+  bytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
+  bool result = false;
+
+  {
+    lock_guard<mutex> g1(m_txnShardMapMutex);
+    lock_guard<mutex> g2(m_txnShardMapGeneratedMutex);
+    if (shardId > m_txnShardMapGenerated.size()) {
+      return;
+    }
+    auto transactionNumber = m_txnShardMapGenerated[shardId].size();
+
+    LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
+
+    if (LOG_PARAMETERS) {
+      LOG_STATE("[TXNPKT][" << m_mediator.m_currentEpochNum
+                            << "] Shard=" << shardId << " NumTx="
+                            << (GetTxnFromShardMap(shardId).size() +
+                                m_txnShardMapGenerated[shardId].size()));
+    }
+
+    if (GetTxnFromShardMap(shardId).empty() &&
+        m_txnShardMapGenerated[shardId].empty()) {
+      LOG_GENERAL(INFO, "No txns to send to shard " << shardId);
+      return;
+    }
+
+    result = Messenger::SetNodeForwardTxnBlock(
+        msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+        shardId, m_mediator.m_selfKey, GetTxnFromShardMap(shardId),
+        m_txnShardMapGenerated[shardId]);
+  }
+
+  if (!result) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::SetNodeForwardTxnBlock failed.");
+    LOG_GENERAL(WARNING, "Cannot create packet for " << shardId << " shard");
+    return;
+  }
+
+  vector<Peer> toSend;
+  if (!toDS) {
+    {
+      lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+      uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
+          lastBlockHash, m_mediator.m_ds->m_shards.at(shardId).size(),
+          m_mediator.m_ds->m_shards.at(shardId));
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Shard leader id " << leader_id);
+
+      auto it = m_mediator.m_ds->m_shards.at(shardId).begin();
+      // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
+      unsigned int num_node_to_send = NUM_NODES_TO_SEND_LOOKUP;
+      for (unsigned int j = 0;
+           j < num_node_to_send &&
+           it != m_mediator.m_ds->m_shards.at(shardId).end();
+           j++, it++) {
+        if (distance(m_mediator.m_ds->m_shards.at(shardId).begin(), it) ==
+            leader_id) {
+          num_node_to_send++;
+        } else {
+          toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
+          LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
+        }
+      }
+      if (m_mediator.m_ds->m_shards.at(shardId).empty()) {
+        return;
+      }
+    }
+
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+    DeleteTxnShardMap(shardId);
+  } else {
+    // To send DS
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+      if (m_mediator.m_DSCommittee->empty()) {
+        return;
+      }
+
+      // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
+      PairOfNode dsLeader;
+      if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                            m_mediator.m_dsBlockChain.GetLastBlock(),
+                            *m_mediator.m_DSCommittee, dsLeader)) {
+        toSend.push_back(dsLeader.second);
+      }
+
+      for (auto const& i : *m_mediator.m_DSCommittee) {
+        if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
+            i.second != dsLeader.second) {
+          toSend.push_back(i.second);
+        }
+
+        if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
+          return;
+        }
+      }
+    }
+
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+    LOG_GENERAL(INFO, "[DSMB]"
+                          << " Sent DS the txns");
+
+    DeleteTxnShardMap(shardId);
+  }
+}
+
+void Lookup::SendTxnPacketToDS(const uint32_t oldNumShards,
+                               const uint32_t newNumShards) {
+  LOG_MARKER();
+
+  SendTxnPacketPrepare(oldNumShards, newNumShards);
+
+  SendTxnPacketToShard(newNumShards, true);
+}
+
+void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
+                                  const uint32_t newNumShards) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::SendTxnPacketPrepare not expected to be called from "
                 "other than the LookUp node.");
     return;
   }
@@ -5454,11 +5589,16 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
   const uint32_t numShards = newNumShards;
 
-  map<uint32_t, vector<Transaction>> mp;
+  // map<uint32_t, vector<Transaction>> mp;
+  {
+    lock_guard<mutex> g(m_txnShardMapGeneratedMutex);
+    m_txnShardMapGenerated.clear();
 
-  if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards)) {
-    LOG_GENERAL(WARNING, "GenTxnToSend failed");
-    // return;
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnShardMapGenerated,
+                      numShards)) {
+      LOG_GENERAL(WARNING, "GenTxnToSend failed");
+      // return;
+    }
   }
 
   if (oldNumShards != newNumShards) {
@@ -5470,110 +5610,23 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
   this_thread::sleep_for(
       chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+}
 
-  for (unsigned int i = 0; i < numShards + 1; i++) {
-    bytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
-    bool result = false;
+void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
+                                  const uint32_t newNumShards) {
+  LOG_MARKER();
 
-    {
-      lock_guard<mutex> g(m_txnShardMapMutex);
-      auto transactionNumber = mp[i].size();
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::SendTxnPacketToNodes not expected to be called from "
+                "other than the LookUp node.");
+    return;
+  }
 
-      LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
+  SendTxnPacketToShard(oldNumShards, newNumShards);
 
-      if (LOG_PARAMETERS) {
-        LOG_STATE("[TXNPKT][" << m_mediator.m_currentEpochNum << "] Shard=" << i
-                              << " NumTx="
-                              << (GetTxnFromShardMap(i).size() + mp[i].size()));
-      }
-
-      if (GetTxnFromShardMap(i).empty() && mp[i].empty()) {
-        LOG_GENERAL(INFO, "No txns to send to shard " << i);
-        continue;
-      }
-
-      result = Messenger::SetNodeForwardTxnBlock(
-          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
-          m_mediator.m_selfKey, GetTxnFromShardMap(i), mp[i]);
-    }
-
-    if (!result) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::SetNodeForwardTxnBlock failed.");
-      LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
-      continue;
-    }
-    vector<Peer> toSend;
-    if (i < numShards) {
-      {
-        lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-        uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-        uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
-            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size(),
-            m_mediator.m_ds->m_shards.at(i));
-        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                  "Shard leader id " << leader_id);
-
-        auto it = m_mediator.m_ds->m_shards.at(i).begin();
-        // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
-        unsigned int num_node_to_send = NUM_NODES_TO_SEND_LOOKUP;
-        for (unsigned int j = 0; j < num_node_to_send &&
-                                 it != m_mediator.m_ds->m_shards.at(i).end();
-             j++, it++) {
-          if (distance(m_mediator.m_ds->m_shards.at(i).begin(), it) ==
-              leader_id) {
-            num_node_to_send++;
-          } else {
-            toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-            LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
-          }
-        }
-        if (m_mediator.m_ds->m_shards.at(i).empty()) {
-          continue;
-        }
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-
-      DeleteTxnShardMap(i);
-    } else if (i == numShards) {
-      // To send DS
-      {
-        lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-
-        if (m_mediator.m_DSCommittee->empty()) {
-          continue;
-        }
-
-        // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
-        PairOfNode dsLeader;
-        if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                              m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee, dsLeader)) {
-          toSend.push_back(dsLeader.second);
-        }
-
-        for (auto const& i : *m_mediator.m_DSCommittee) {
-          if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
-              i.second != dsLeader.second) {
-            toSend.push_back(i.second);
-          }
-
-          if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
-            break;
-          }
-        }
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-
-      LOG_GENERAL(INFO, "[DSMB]"
-                            << " Sent DS the txns");
-
-      DeleteTxnShardMap(i);
-    }
+  for (unsigned int i = 0; i < newNumShards + 1; i++) {
+    SendTxnPacketToShard(i, i == newNumShards);
   }
 }
 
