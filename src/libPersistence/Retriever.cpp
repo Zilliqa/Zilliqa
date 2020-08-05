@@ -490,3 +490,10 @@ void Retriever::CleanAll() {
     LOG_GENERAL(WARNING, "FAIL: Reset DB Failed");
   }
 }
+
+bool Retriever::MigrateContractStates(
+    bool ignore_checker, const std::string& contract_address_output_dir,
+    const std::string& normal_address_output_dir) {
+  return AccountStore::GetInstance().MigrateContractStates2(
+      ignore_checker, contract_address_output_dir, normal_address_output_dir);
+}

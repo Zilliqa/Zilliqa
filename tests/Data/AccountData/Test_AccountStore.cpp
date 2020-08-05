@@ -681,74 +681,77 @@ void CheckRFContract(
                       "ContrBalance doesn't match");
 }
 
-BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
-  INIT_STDOUT_LOGGER();
+// BOOST_AUTO_TEST_CASE(serializeAndDeserialize) {
+//   INIT_STDOUT_LOGGER();
 
-  LOG_MARKER();
+//   LOG_MARKER();
 
-  AccountStore::GetInstance().Init();
+//   AccountStore::GetInstance().Init();
 
-  PubKey pubKey1 = Schnorr::GenKeyPair().second;
-  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+//   PubKey pubKey1 = Schnorr::GenKeyPair().second;
+//   Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-  Account account1(21, 211);
-  AccountStore::GetInstance().AddAccountTemp(address1, account1);
+//   Account account1(21, 211);
+//   AccountStore::GetInstance().AddAccountTemp(address1, account1);
 
-  Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
-  dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
-      contrStateHash2, contrStateHash3, contrStateHash4;
-  bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
-      initData3, initData4;
-  Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
-  uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
+//   Address contrAddr1, contrAddr2, contrAddr3, contrAddr4;
+//   dev::h256 codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
+//       contrStateHash2, contrStateHash3, contrStateHash4;
+//   bytes contrCode1, contrCode2, contrCode3, contrCode4, initData1, initData2,
+//       initData3, initData4;
+//   Json::Value stateJson1, stateJson2, stateJson3, stateJson4;
+//   uint128_t contrBalance1, contrBalance2, contrBalance3, contrBalance4;
 
-  if (!SCILLA_ROOT.empty()) {
-    RunCFContract(true, contrAddr1, contrAddr2, contrAddr3, contrAddr4,
-                  codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
-                  contrStateHash2, contrStateHash3, contrStateHash4, contrCode1,
-                  contrCode2, contrCode3, contrCode4, initData1, initData2,
-                  initData3, initData4, stateJson1, stateJson2, stateJson3,
-                  stateJson4, contrBalance1, contrBalance2, contrBalance3,
-                  contrBalance4);
-  }
+//   if (!SCILLA_ROOT.empty()) {
+//     RunCFContract(true, contrAddr1, contrAddr2, contrAddr3, contrAddr4,
+//                   codeHash1, codeHash2, codeHash3, codeHash4,
+//                   contrStateHash1, contrStateHash2, contrStateHash3,
+//                   contrStateHash4, contrCode1, contrCode2, contrCode3,
+//                   contrCode4, initData1, initData2, initData3, initData4,
+//                   stateJson1, stateJson2, stateJson3, stateJson4,
+//                   contrBalance1, contrBalance2, contrBalance3,
+//                   contrBalance4);
+//   }
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
-                      "Failed to SerializeDelta");
-  AccountStore::GetInstance().CommitTemp();
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().SerializeDelta(),
+//                       "Failed to SerializeDelta");
+//   AccountStore::GetInstance().CommitTemp();
 
-  AccountStore::GetInstance().UpdateStateTrieAll();
-  auto root1 = AccountStore::GetInstance().GetStateRootHash();
-  bytes rawstates;
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Serialize(rawstates, 0),
-                      "AccountStore::Serialize failed");
+//   AccountStore::GetInstance().UpdateStateTrieAll();
+//   auto root1 = AccountStore::GetInstance().GetStateRootHash();
+//   bytes rawstates;
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Serialize(rawstates, 0),
+//                       "AccountStore::Serialize failed");
 
-  AccountStore::GetInstance().Init();
-  auto root0 = AccountStore::GetInstance().GetStateRootHash();
-  BOOST_CHECK_MESSAGE(root1 != root0,
-                      "State root didn't change after AccountStore::Init");
+//   AccountStore::GetInstance().Init();
+//   auto root0 = AccountStore::GetInstance().GetStateRootHash();
+//   BOOST_CHECK_MESSAGE(root1 != root0,
+//                       "State root didn't change after AccountStore::Init");
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Deserialize(rawstates, 0),
-                      "AccountStore::Deserialize failed");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().Deserialize(rawstates, 0),
+//                       "AccountStore::Deserialize failed");
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
-                      "IncreaseNonce changed balance! ");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+//                       "IncreaseNonce changed balance! ");
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 211,
-                      "IncreaseNonce didn't change nonce rightly!");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 211,
+//                       "IncreaseNonce didn't change nonce rightly!");
 
-  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() == root1,
-                      "State root didn't match after deserialize");
+//   BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetStateRootHash() ==
+//   root1,
+//                       "State root didn't match after deserialize");
 
-  if (!SCILLA_ROOT.empty()) {
-    CheckRFContract(true, contrAddr1, contrAddr2, contrAddr3, contrAddr4,
-                    codeHash1, codeHash2, codeHash3, codeHash4, contrStateHash1,
-                    contrStateHash2, contrStateHash3, contrStateHash4,
-                    contrCode1, contrCode2, contrCode3, contrCode4, initData1,
-                    initData2, initData3, initData4, stateJson1, stateJson2,
-                    stateJson3, stateJson4, contrBalance1, contrBalance2,
-                    contrBalance3, contrBalance4);
-  }
-}
+//   if (!SCILLA_ROOT.empty()) {
+//     CheckRFContract(true, contrAddr1, contrAddr2, contrAddr3, contrAddr4,
+//                     codeHash1, codeHash2, codeHash3, codeHash4,
+//                     contrStateHash1, contrStateHash2, contrStateHash3,
+//                     contrStateHash4, contrCode1, contrCode2, contrCode3,
+//                     contrCode4, initData1, initData2, initData3, initData4,
+//                     stateJson1, stateJson2, stateJson3, stateJson4,
+//                     contrBalance1, contrBalance2, contrBalance3,
+//                     contrBalance4);
+//   }
+// }
 
 // BOOST_AUTO_TEST_CASE(stateDelta) {
 //   INIT_STDOUT_LOGGER();

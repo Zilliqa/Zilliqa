@@ -373,6 +373,8 @@ extern const std::string FIELDS_MAP_DEPTH_INDICATOR;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 
+const std::string CONTRACT_ADDR_INDICATOR = "addr";
+
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 #ifdef FALLBACK_TEST
