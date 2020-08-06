@@ -14,7 +14,7 @@
 
 Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
-* If you’re interested in mining Zilliqa, see here: https://github.com/Zilliqa/Zilliqa/wiki/Mining.
+* If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/.
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
@@ -71,15 +71,42 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
 
 ## Build Dependencies
 
-* Ubuntu 16.04:
+The current supported version is **Ubuntu 16.04**.
+
+Run the following to install the build dependencies:
+
+```bash
+sudo apt-get update
+sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
+    libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
+    libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
+    libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev \
+    python3-setuptools python3-pip gawk
+```
+
+### Additional Requirements for Contributors
+
+If you intend to contribute to the code base, please perform these additional steps:
+
+1. Install `pyyaml`:
 
     ```bash
+    pip install pyyaml
+    ```
+
+1. Create file `/etc/apt/sources.list.d/llvm-7.list` with the following contents ([reference](https://apt.llvm.org/)):
+
+    ```
+    deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main
+    deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main
+    ```
+
+1. Run the following:
+
+    ```bash
+    curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
     sudo apt-get update
-    sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
-        libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
-        libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev \
-        python3-setuptools python3-pip gawk
+    sudo apt-get install clang-format-7 clang-tidy-7 -y
     ```
 
 ## Build from Source Code
@@ -99,6 +126,12 @@ If you want to build the development branch instead, do:
 
 ```shell
 $ git checkout master
+```
+
+If you want to contribute by submitting code changes in a pull request, perform the build with `clang-format` and `clang-tidy` enabled by doing:
+
+```shell
+$ ./build.sh style
 ```
 
 ## Boot up a local testnet for development
