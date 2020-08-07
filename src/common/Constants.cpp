@@ -67,6 +67,17 @@ const vector<string> ReadAccountsFromConstantsFile(const string& propName) {
   return result;
 }
 
+const vector<pair<uint64_t, uint32_t>>
+ReadVerifierExclusionListFromConstantsFile() {
+  auto pt = PTree::GetInstance();
+  vector<pair<uint64_t, uint32_t>> result;
+  for (auto& entry : pt.get_child("node.verifier.exclusion_list")) {
+    result.emplace_back(make_pair(entry.second.get<uint64_t>("TXBLOCK"),
+                                  entry.second.get<uint32_t>("MICROBLOCK")));
+  }
+  return result;
+}
+
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
@@ -631,3 +642,5 @@ const std::string VERIFIER_PUBKEY{
     ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
 const unsigned int SEED_PORT{
     ReadConstantNumeric("SEED_PORT", "node.verifier.")};
+const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{
+    ReadVerifierExclusionListFromConstantsFile()};

@@ -39,7 +39,7 @@ class BlockLinkChain {
   DequeOfNode m_builtDsCommittee;
 
  public:
-  BlockLink GetFromPersistentStorage(const uint64_t& index);
+  static BlockLink GetFromPersistentStorage(const uint64_t& index);
   void Reset();
 
   BlockLinkChain();

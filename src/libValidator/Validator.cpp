@@ -241,8 +241,11 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
 
 template <class Container, class DirectoryBlock>
 bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
-                                      const Container& commKeys) {
-  LOG_MARKER();
+                                      const Container& commKeys,
+                                      const bool showLogs) {
+  if (showLogs) {
+    LOG_MARKER();
+  }
 
   unsigned int index = 0;
   unsigned int count = 0;
@@ -340,7 +343,7 @@ bool Validator::CheckDirBlocks(
         LOG_GENERAL(WARNING, "prevHash incorrect "
                                  << prevHash << " "
                                  << dsblock.GetHeader().GetPrevHash()
-                                 << "in DS block " << prevdsblocknum + 1);
+                                 << " in DS block " << prevdsblocknum + 1);
         ret = false;
         break;
       }
@@ -493,6 +496,109 @@ bool Validator::CheckDirBlocks(
       }
       prevHash = fallbackblock.GetBlockHash();
       totalIndex++;
+    } else {
+      LOG_GENERAL(WARNING, "dirBlock type unexpected ");
+    }
+  }
+
+  newDSComm = move(mutable_ds_comm);
+  return ret;
+}
+
+bool Validator::CheckDirBlocksNoUpdate(
+    const vector<boost::variant<DSBlock, VCBlock,
+                                FallbackBlockWShardingStructure>>& dirBlocks,
+    const DequeOfNode& initDsComm, const uint64_t& index_num,
+    DequeOfNode& newDSComm) {
+  DequeOfNode mutable_ds_comm = initDsComm;
+
+  bool ret = true;
+
+  uint64_t prevdsblocknum = 0;
+  uint64_t totalIndex = index_num;
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      BlockLinkChain::GetFromPersistentStorage(0));
+
+  for (const auto& dirBlock : dirBlocks) {
+    if (typeid(DSBlock) == dirBlock.type()) {
+      const auto& dsblock = get<DSBlock>(dirBlock);
+      if (dsblock.GetHeader().GetBlockNum() != prevdsblocknum + 1) {
+        LOG_GENERAL(WARNING, "DSblocks not in sequence "
+                                 << dsblock.GetHeader().GetBlockNum() << " "
+                                 << prevdsblocknum);
+        ret = false;
+        break;
+      }
+      if (dsblock.GetHeader().GetMyHash() != dsblock.GetBlockHash()) {
+        LOG_GENERAL(WARNING, "DSblock "
+                                 << prevdsblocknum + 1
+                                 << " has different blockhash than stored "
+                                 << " Stored: " << dsblock.GetBlockHash());
+        ret = false;
+        break;
+      }
+      if (!CheckBlockCosignature(dsblock, mutable_ds_comm, false)) {
+        LOG_GENERAL(WARNING, "Co-sig verification of ds block "
+                                 << prevdsblocknum + 1 << " failed");
+        ret = false;
+        break;
+      }
+      if (prevHash != dsblock.GetHeader().GetPrevHash()) {
+        LOG_GENERAL(WARNING, "prevHash incorrect "
+                                 << prevHash << " "
+                                 << dsblock.GetHeader().GetPrevHash()
+                                 << " in DS block " << prevdsblocknum + 1);
+        ret = false;
+        break;
+      }
+      prevdsblocknum++;
+      prevHash = dsblock.GetBlockHash();
+      m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock,
+                                                      false);
+      totalIndex++;
+    } else if (typeid(VCBlock) == dirBlock.type()) {
+      const auto& vcblock = get<VCBlock>(dirBlock);
+
+      if (vcblock.GetHeader().GetViewChangeDSEpochNo() != prevdsblocknum + 1) {
+        LOG_GENERAL(WARNING,
+                    "VC block ds epoch number does not match the number being "
+                    "processed "
+                        << prevdsblocknum << " "
+                        << vcblock.GetHeader().GetViewChangeDSEpochNo());
+        ret = false;
+        break;
+      }
+      if (vcblock.GetHeader().GetMyHash() != vcblock.GetBlockHash()) {
+        LOG_GENERAL(WARNING, "VCblock in "
+                                 << prevdsblocknum
+                                 << " has different blockhash than stored "
+                                 << " Stored: " << vcblock.GetBlockHash());
+        ret = false;
+        break;
+      }
+      if (!CheckBlockCosignature(vcblock, mutable_ds_comm, false)) {
+        LOG_GENERAL(WARNING, "Co-sig verification of vc block in "
+                                 << prevdsblocknum << " failed"
+                                 << totalIndex + 1);
+        ret = false;
+        break;
+      }
+
+      if (prevHash != vcblock.GetHeader().GetPrevHash()) {
+        LOG_GENERAL(WARNING, "prevHash incorrect "
+                                 << prevHash << " "
+                                 << vcblock.GetHeader().GetPrevHash()
+                                 << "in VC block " << prevdsblocknum + 1);
+        ret = false;
+        break;
+      }
+
+      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
+          vcblock, mutable_ds_comm, false);
+      prevHash = vcblock.GetBlockHash();
+      totalIndex++;
+    } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
+      // TODO
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }

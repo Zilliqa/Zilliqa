@@ -306,9 +306,13 @@ void Node::UpdateDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
 
 // Only compares the pubkeys to kickout
 void Node::UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
-                                                       DequeOfNode& dsComm) {
+                                                       DequeOfNode& dsComm,
+                                                       const bool showLogs) {
   if (GUARD_MODE) {
-    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
+    if (showLogs) {
+      LOG_GENERAL(INFO,
+                  "In guard mode. No updating of DS composition requried");
+    }
     return;
   }
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {

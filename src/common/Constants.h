@@ -91,6 +91,8 @@ enum SyncType : unsigned int {
   SYNC_TYPE_COUNT
 };
 
+enum class ValidateState : unsigned char { IDLE = 0, INPROGRESS, DONE, ERROR };
+
 namespace Contract {
 using VName = std::string;
 using Mutable = bool;
@@ -426,4 +428,5 @@ extern const std::vector<std::string> GENESIS_KEYS;
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
 extern const unsigned int SEED_PORT;
+extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

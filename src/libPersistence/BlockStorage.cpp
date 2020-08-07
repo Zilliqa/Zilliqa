@@ -183,7 +183,7 @@ bool BlockStorage::GetHistoricalMicroBlock(const BlockHash& blockhash,
 
 bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   string blockString;
 

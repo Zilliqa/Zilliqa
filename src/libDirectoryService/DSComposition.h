@@ -32,6 +32,7 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
 void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
                                       DequeOfNode& dsComm,
                                       const DSBlock& dsblock,
-                                      MinerInfoDSComm& minerInfo);
+                                      MinerInfoDSComm& minerInfo,
+                                      const bool showLogs = true);
 
 #endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_

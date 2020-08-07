@@ -275,17 +275,13 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::CheckIntegrity(bool fromIsolatedBinary) {
-  // Retrieve the latest Tx block from storage
-  TxBlockSharedPtr latestTxBlock;
-  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
-    return false;
-  }
+bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
+  LOG_MARKER();
 
-  const uint64_t latestTxBlockNum = latestTxBlock->GetHeader().GetBlockNum();
-  const uint64_t latestDSIndex = latestTxBlock->GetHeader().GetDSBlockNum();
+  // Set validation state for StatusServer
+  m_mediator.m_validateState = ValidateState::INPROGRESS;
 
+  // Lambda for getting current time for logging
   auto getTime = []() -> string {
     auto cur_time_t =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -294,27 +290,65 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     return ss.str();
   };
 
-  if (fromIsolatedBinary) {
+  // Retrieve the latest Tx block from storage
+  TxBlockSharedPtr latestTxBlock;
+  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
+    LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
+    // Set validation state for StatusServer
+    m_mediator.m_validateState = ValidateState::ERROR;
+    return false;
+  }
+
+  const uint64_t latestTxBlockNum = latestTxBlock->GetHeader().GetBlockNum();
+  const uint64_t latestDSIndex = latestTxBlock->GetHeader().GetDSBlockNum();
+
+  if (fromValidateDBBinary) {
     cout << "[" << getTime() << "] Latest Tx block = " << latestTxBlockNum
          << endl;
     cout << "[" << getTime() << "] Latest DS block = " << latestDSIndex << endl;
     cout << "[" << getTime() << "] Loading dir blocks" << endl;
+  } else {
+    LOG_GENERAL(INFO, "Latest Tx block = " << latestTxBlockNum);
+    LOG_GENERAL(INFO, "Latest DS block = " << latestDSIndex);
+    LOG_GENERAL(INFO, "Loading dir blocks");
   }
 
   // Load all dir blocks (until latestTxBlockNum) from blocklink chain
   std::list<BlockLink> blocklinks;
-  if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
-    LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
-    return false;
-  }
 
-  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
-    return std::get<BlockLinkIndex::INDEX>(a) <
-           std::get<BlockLinkIndex::INDEX>(b);
-  });
+  // If using validateDB binary, we use GetAllBlockLink
+  // If using within zilliqa process, we need to avoid keeping the lock on the
+  // blocklink DB
+  if (fromValidateDBBinary) {
+    if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
+      LOG_GENERAL(WARNING, "GetAllBlockLink failed");
+      return false;
+    }
+    blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+      return std::get<BlockLinkIndex::INDEX>(a) <
+             std::get<BlockLinkIndex::INDEX>(b);
+    });
+  } else {
+    // Get the blocklink size from m_blocklinkchain since we can't get it from
+    // the database
+    const unsigned int latestIndex =
+        m_mediator.m_blocklinkchain.GetLatestIndex();
+    for (unsigned int index = 0; index <= latestIndex; index++) {
+      BlockLinkSharedPtr bl;
+      if (!BlockStorage::GetBlockStorage().GetBlockLink(index, bl)) {
+        LOG_GENERAL(WARNING, "GetBlockLink failed at index "
+                                 << index << " (latest=" << latestIndex << ")");
+        // Set validation state for StatusServer
+        m_mediator.m_validateState = ValidateState::ERROR;
+        return false;
+      }
+      blocklinks.emplace_back(*bl);
+    }
+  }
 
   bool firstMinerInfoFound = false;
 
+  // Load the stored data blocks based on the dir blocks
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
   for (const auto& blocklink : blocklinks) {
@@ -326,6 +360,8 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       DSBlockSharedPtr dsblock;
       if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
         LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
+        // Set validation state for StatusServer
+        m_mediator.m_validateState = ValidateState::ERROR;
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
@@ -337,7 +373,7 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       }
       dirBlocks.emplace_back(*dsblock);
 
-      if (fromIsolatedBinary) {
+      if (fromValidateDBBinary) {
         // Once the first miner info data is found, every subsequent DS block
         // should also have one
         MinerInfoDSComm dummyDSComm;
@@ -371,6 +407,8 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       VCBlockSharedPtr vcblock;
       if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
         LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
+        // Set validation state for StatusServer
+        m_mediator.m_validateState = ValidateState::ERROR;
         return false;
       }
       if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
@@ -384,59 +422,58 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
               std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
               fallbackwshardingstruct)) {
         LOG_GENERAL(WARNING, "Could not retrieve FB blocks " << blockHash);
+        // Set validation state for StatusServer
+        m_mediator.m_validateState = ValidateState::ERROR;
         return false;
       }
       dirBlocks.emplace_back(*fallbackwshardingstruct);
     }
   }
 
-  if (fromIsolatedBinary) {
+  // Clear blocklinks - no longer used hereon
+  blocklinks.clear();
+
+  if (fromValidateDBBinary) {
     cout << "[" << getTime() << "] Checking dir blocks" << endl;
+  } else {
+    LOG_GENERAL(INFO, "Checking dir blocks");
   }
 
-  // Check the dir blocks
+  // Check the dir blocks and reconstruct latest DS committee
   DequeOfNode dsComm;
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
   }
-  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
-    LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
-    return false;
+
+  if (fromValidateDBBinary) {
+    if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 1, dsComm)) {
+      LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
+      return false;
+    }
+  } else {
+    if (!m_mediator.m_validator->CheckDirBlocksNoUpdate(dirBlocks, dsComm, 1,
+                                                        dsComm)) {
+      LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
+      // Set validation state for StatusServer
+      m_mediator.m_validateState = ValidateState::ERROR;
+      return false;
+    }
   }
 
-  if (fromIsolatedBinary) {
+  // Clear dirBlocks - no longer used hereon
+  dirBlocks.clear();
+
+  if (fromValidateDBBinary) {
     cout << "[" << getTime() << "] Checking Tx blocks" << endl;
+  } else {
+    LOG_GENERAL(INFO, "Checking Tx blocks");
   }
 
   // Check the latest Tx Block
-  uint64_t latestDSIndexInBlockLink = get<BlockLinkIndex::DSINDEX>(
-      m_mediator.m_blocklinkchain.GetLatestBlockLink());
-  if (get<BlockLinkIndex::BLOCKTYPE>(
-          m_mediator.m_blocklinkchain.GetLatestBlockLink()) != BlockType::DS) {
-    if (latestDSIndexInBlockLink == 0) {
-      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
-      return false;
-    }
-    latestDSIndexInBlockLink--;
-  }
-  if (latestTxBlock->GetHeader().GetDSBlockNum() != latestDSIndexInBlockLink) {
-    if (latestDSIndexInBlockLink > latestTxBlock->GetHeader().GetDSBlockNum()) {
-      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
-                               << latestDSIndexInBlockLink << " "
-                               << latestTxBlock->GetHeader().GetDSBlockNum());
-      return false;
-    }
-
-    LOG_GENERAL(
-        WARNING,
-        "The latest DS index does not match that of the latest Tx Block DS num"
-            << latestTxBlock->GetHeader().GetDSBlockNum() << " "
-            << latestDSIndexInBlockLink);
-    return false;
-  }
-
   if (!m_mediator.m_validator->CheckBlockCosignature(*latestTxBlock, dsComm)) {
     LOG_GENERAL(WARNING, "CheckBlockCosignature failed");
+    // Set validation state for StatusServer
+    m_mediator.m_validateState = ValidateState::ERROR;
     return false;
   }
 
@@ -445,13 +482,17 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
 
   // This lambda performs all the checks on one Tx block
   auto validateOneTxBlock =
-      [&, result, fromIsolatedBinary](uint64_t blockNum) mutable -> void {
+      [&, result, fromValidateDBBinary](uint64_t blockNum) mutable -> void {
     // Abort checking if overall result is false already
-    if (!*result && !fromIsolatedBinary) {
+    if (!*result && !fromValidateDBBinary) {
       return;
     }
-    if (fromIsolatedBinary && (blockNum % 1000 == 0)) {
-      cout << "[" << getTime() << "] On Tx block " << blockNum << endl;
+    if (blockNum % 1000 == 0) {
+      if (fromValidateDBBinary) {
+        cout << "[" << getTime() << "] On Tx block " << blockNum << endl;
+      } else {
+        LOG_GENERAL(INFO, "On Tx block " << blockNum);
+      }
     }
 
     // Fetch the block
@@ -474,7 +515,8 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
       const BlockHash& prevHash = txBlock->GetHeader().GetPrevHash();
       const BlockHash& prevBlockHash = txBlockPrev->GetHeader().GetMyHash();
       if (prevHash != prevBlockHash) {
-        LOG_CHECK_FAIL("Prev hash", prevHash, prevBlockHash);
+        LOG_CHECK_FAIL("Prev hash for block " << blockNum, prevHash,
+                       prevBlockHash);
         *result = false;
         return;
       }
@@ -484,70 +526,75 @@ bool Node::CheckIntegrity(bool fromIsolatedBinary) {
     const auto& microblockInfos = txBlock->GetMicroBlockInfos();
     for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
-      LOG_GENERAL(INFO, "FB: " << txBlock->GetHeader().GetBlockNum()
-                               << " MB: " << mbInfo.m_shardId);
       // Skip because empty microblocks are not stored
       if (mbInfo.m_txnRootHash == TxnHash()) {
         continue;
       }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
+        if (find(VERIFIER_EXCLUSION_LIST.begin(), VERIFIER_EXCLUSION_LIST.end(),
+                 make_pair(blockNum, mbInfo.m_shardId)) !=
+            VERIFIER_EXCLUSION_LIST.end()) {
+          continue;
+        }
         // Check the transactions
-        if (LOOKUP_NODE_MODE) {
-          const auto& tranHashes = mbptr->GetTranHashes();
-          for (const auto& tranHash : tranHashes) {
-            TxBodySharedPtr tx;
-            if (!BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
-              LOG_GENERAL(WARNING, "FB: " << txBlock->GetHeader().GetBlockNum()
-                                          << " MB: " << mbInfo.m_shardId
-                                          << " Missing Tx: " << tranHash);
-              *result = false;
-              if (!fromIsolatedBinary) {
-                break;
-              }
-            }
+        const auto& tranHashes = mbptr->GetTranHashes();
+        for (const auto& tranHash : tranHashes) {
+          TxBodySharedPtr tx;
+          if (!BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
+            LOG_GENERAL(WARNING, "FB: " << blockNum
+                                        << " MB: " << mbInfo.m_shardId
+                                        << " Missing Tx: " << tranHash);
+            *result = false;
           }
         }
       } else {
-        LOG_GENERAL(WARNING,
-                    "FB: " << txBlock->GetHeader().GetBlockNum()
-                           << " Missing MB: " << mbInfo.m_microBlockHash);
+        LOG_GENERAL(WARNING, "FB: " << blockNum << " Missing MB: "
+                                    << mbInfo.m_microBlockHash);
         *result = false;
-        if (!fromIsolatedBinary) {
-          break;
-        }
       }
     }
   };
 
-  const unsigned int NUMTHREADS = 10;
-  const int MAXJOBSLEFT = NUMTHREADS * 3;
-  ThreadPool validatePool(NUMTHREADS, "ValidatePool");
-
+  // If using validateDB binary, we use a thread pool to get fast results
+  // If using within zilliqa process, we do block validation sequentially to
+  // control resource consumption
   uint64_t blockNum = 0;
+  if (fromValidateDBBinary) {
+    const unsigned int NUMTHREADS = 10;
+    const int MAXJOBSLEFT = NUMTHREADS * 3;
+    ThreadPool validatePool(NUMTHREADS, "ValidatePool");
 
-  while (blockNum <= latestTxBlockNum) {
-    validatePool.AddJob([validateOneTxBlock, blockNum]() mutable -> void {
-      validateOneTxBlock(blockNum);
-    });
+    while (blockNum <= latestTxBlockNum) {
+      validatePool.AddJob([validateOneTxBlock, blockNum]() mutable -> void {
+        validateOneTxBlock(blockNum);
+      });
 
-    if (!*result && !fromIsolatedBinary) {
-      break;
+      while (validatePool.GetJobsLeft() > MAXJOBSLEFT) {
+      }
+
+      blockNum++;
     }
 
-    while (validatePool.GetJobsLeft() > MAXJOBSLEFT) {
+    while (validatePool.GetJobsLeft() > 0) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    blockNum++;
-  }
-
-  while (validatePool.GetJobsLeft() > 0) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
-
-  if (fromIsolatedBinary) {
     cout << "[" << getTime() << "] Done" << endl;
+  } else {
+    while (blockNum <= latestTxBlockNum) {
+      validateOneTxBlock(blockNum);
+      if (!*result) {
+        break;
+      }
+      blockNum++;
+    }
+    LOG_GENERAL(INFO, "Done");
   }
+
+  // Set validation state for StatusServer
+  m_mediator.m_validateState =
+      *result ? ValidateState::DONE : ValidateState::ERROR;
 
   return *result;
 }
@@ -584,6 +631,10 @@ void Node::ClearAllPendingAndDroppedTxn() {
   }
 }
 
+// This version of ValidateDB was when we had a separate validating process
+// alongside zilliqa Deprecating it now for in-node validation by lookups/seeds
+// through StatusServer
+#if 0
 bool Node::ValidateDB() {
   const string lookupIp = "127.0.0.1";
   const unsigned int port = SEED_PORT;
@@ -613,6 +664,30 @@ bool Node::ValidateDB() {
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
+
+  return true;
+}
+#endif
+
+bool Node::ValidateDB() {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::ValidateDB not expected to be called from non-lookup.");
+    return false;
+  }
+
+  auto validate_func = [this]() mutable -> void {
+    try {
+      CheckIntegrity();
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Node::CheckIntegrity failed.");
+      // Set validation state for StatusServer
+      m_mediator.m_validateState = ValidateState::ERROR;
+    }
+  };
+  DetachedFunction(1, validate_func);
 
   return true;
 }

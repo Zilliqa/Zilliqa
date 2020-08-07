@@ -47,9 +47,16 @@ class Validator {
 
   template <class Container, class DirectoryBlock>
   bool CheckBlockCosignature(const DirectoryBlock& block,
-                             const Container& commKeys);
+                             const Container& commKeys,
+                             const bool showLogs = true);
 
   bool CheckDirBlocks(
+      const std::vector<boost::variant<
+          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
+      const DequeOfNode& initDsComm, const uint64_t& index_num,
+      DequeOfNode& newDSComm);
+
+  bool CheckDirBlocksNoUpdate(
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
       const DequeOfNode& initDsComm, const uint64_t& index_num,
