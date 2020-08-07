@@ -26,20 +26,20 @@ ulimit -Sc unlimited;
 ulimit -Hc unlimited;
 ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py start 10
+python tests/Zilliqa/test_zilliqa_local.py start 5
 
 sleep 40
 echo "starting..."
 
 #set primary 
-for ds in {1..10}
+for ds in {1..5}
 do
     python tests/Zilliqa/test_zilliqa_local.py sendcmd $ds 01000000000000000000000000000100007F00001389
 done
 sleep 10
 
 # PoW submission should be multicasted to all DS committee members
-for node in {11..20}
+for node in {6..10}
 do
-    python tests/Zilliqa/test_zilliqa_local.py startpow $node 10 0000000000000001 05 03 2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf
+    python tests/Zilliqa/test_zilliqa_local.py startpow $node 5 0000000000000001 05 03 2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf
 done
