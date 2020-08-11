@@ -26,6 +26,7 @@ from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
 NODE_LISTEN_PORT = 5001
+STATUS_SERVER_LISTEN_PORT = 4301
 LOCAL_RUN_FOLDER = './local_run/'
 REJOIN_DS_GUARD_RUN_FOLDER = './dsguard_rejoin_local_run/'
 
@@ -127,7 +128,9 @@ def run_setup(numnodes, printnodes):
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 		count = len(testfolders_list)
 		for x in range(0, count):
-			print ('[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x])
+			print ('[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x)
+			+ ']  [Status Server Port '+ str(STATUS_SERVER_LISTEN_PORT + x)
+			+ '] '  + LOCAL_RUN_FOLDER + testfolders_list[x])
 
 def run_setup_dsguard(numnodes, printnodes):
 	if (os.path.exists(REJOIN_DS_GUARD_RUN_FOLDER)):
@@ -262,7 +265,8 @@ def run_start(numdsnodes):
 		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 		ipc_path = "/tmp/zilliqa" + str(NODE_LISTEN_PORT + x) + ".sock"
-		patch_scilla_ipc_path_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path)
+		status_server_port = str(STATUS_SERVER_LISTEN_PORT + x)
+		patch_param_in_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', ipc_path, status_server_port)
 
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
@@ -272,11 +276,12 @@ def run_start(numdsnodes):
 		else:
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
 
-def patch_scilla_ipc_path_xml(filepath, ipc_path):
+def patch_param_in_xml(filepath, ipc_path, status_server_port):
         root = ET.parse(filepath).getroot()
 
         td = root.find('jsonrpc')
         td.find('SCILLA_IPC_SOCKET_PATH').text = ipc_path
+        td.find('STATUS_RPC_PORT').text = status_server_port
 
         tree = ET.ElementTree(root)
         tree.write(filepath)

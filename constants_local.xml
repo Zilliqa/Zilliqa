@@ -170,7 +170,7 @@
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
-        <COMM_SIZE>10</COMM_SIZE>
+        <COMM_SIZE>5</COMM_SIZE>
         <NUM_DS_ELECTION>1</NUM_DS_ELECTION>
         <!-- DS Node must meet this minimum threshold to remain in the committee -->
         <DS_PERFORMANCE_THRESHOLD_PERCENT>0.15</DS_PERFORMANCE_THRESHOLD_PERCENT>
