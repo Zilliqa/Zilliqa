@@ -42,6 +42,8 @@ class DSBlockHeader : public BlockHeaderBase {
   std::map<PubKey, Peer> m_PoWDSWinners;
   std::vector<PubKey> m_removeDSNodePubkeys;
   DSBlockHashSet m_hashset;
+  // map of proposal id , ds votes map, shard votes map
+  GovDSShardVotesMap m_govProposalMap;
 
  public:
   /// Default constructor.
@@ -57,7 +59,9 @@ class DSBlockHeader : public BlockHeaderBase {
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const std::vector<PubKey>& removeDSNodePubkeys,
-                const DSBlockHashSet& hashset, const uint32_t version = 0,
+                const DSBlockHashSet& hashset,
+                const GovDSShardVotesMap& m_govProposalMap,
+                const uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -97,6 +101,11 @@ class DSBlockHeader : public BlockHeaderBase {
 
   // Returns the DS PoW Winners.
   const std::map<PubKey, Peer>& GetDSPoWWinners() const;
+
+  // Returns Governance proposals and corresponding votes values count.
+  inline const GovDSShardVotesMap& GetGovProposalMap() const {
+    return m_govProposalMap;
+  }
 
   // Returns the DS members to remove for non-performance.
   const std::vector<PubKey>& GetDSRemovePubKeys() const;

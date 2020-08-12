@@ -1096,6 +1096,12 @@ void AnnouncementShardingStructureToProtobuf(
       proto_soln->set_lookupid(soln->second.m_lookupId);
       NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
           soln->second.m_gasPrice, *proto_soln->mutable_gasprice());
+      if (proto_soln->govdata().IsInitialized()) {
+        proto_soln->mutable_govdata()->set_proposalid(
+            soln->second.m_govProposal.first);
+        proto_soln->mutable_govdata()->set_votevalue(
+            soln->second.m_govProposal.second);
+      }
     }
   }
 }
@@ -1106,6 +1112,8 @@ bool ProtobufToShardingStructureAnnouncement(
   std::array<unsigned char, 32> result{};
   std::array<unsigned char, 32> mixhash{};
   uint128_t gasPrice;
+  uint32_t govProposalId{};
+  uint32_t govVoteValue{};
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
     shards.emplace_back();
@@ -1131,9 +1139,14 @@ bool ProtobufToShardingStructureAnnouncement(
            mixhash.begin());
       ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
           proto_member.powsoln().gasprice(), gasPrice);
+      if (proto_member.powsoln().govdata().IsInitialized()) {
+        govProposalId = proto_member.powsoln().govdata().proposalid();
+        govVoteValue = proto_member.powsoln().govdata().votevalue();
+      }
       allPoWs.emplace(
           key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
-                           proto_member.powsoln().lookupid(), gasPrice));
+                           proto_member.powsoln().lookupid(), gasPrice,
+                           std::make_pair(govProposalId, govVoteValue)));
     }
   }
 
@@ -1391,6 +1404,24 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                                       *powdswinner->mutable_val());
     }
 
+    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Proposal* protoproposal;
+    for (const auto& govProposal : dsBlockHeader.GetGovProposalMap()) {
+      protoproposal = protoDSBlockHeader.add_proposals();
+      protoproposal->set_proposalid(govProposal.first);
+      for (const auto& vote : govProposal.second.first) {
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
+        protoVote = protoproposal->add_dsvotes();
+        protoVote->set_value(vote.first);
+        protoVote->set_count(vote.second);
+      }
+      for (const auto& vote : govProposal.second.second) {
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
+        protoVote = protoproposal->add_minervotes();
+        protoVote->set_value(vote.first);
+        protoVote->set_count(vote.second);
+      }
+    }
+
     ZilliqaMessage::ByteArray* dsremoved;
     for (const auto& removedPubKey : dsBlockHeader.GetDSRemovePubKeys()) {
       dsremoved = protoDSBlockHeader.add_dsremoved();
@@ -1459,6 +1490,20 @@ bool ProtobufToDSBlockHeader(
     powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
   }
 
+  GovDSShardVotesMap govProposalMap;
+  for (const auto& protoProposal : protoDSBlockHeader.proposals()) {
+    std::map<uint32_t, uint32_t> dsVotes;
+    std::map<uint32_t, uint32_t> shardVotes;
+    for (const auto& protovote : protoProposal.dsvotes()) {
+      dsVotes[protovote.value()] = protovote.count();
+    }
+    for (const auto& protovote : protoProposal.minervotes()) {
+      shardVotes[protovote.value()] = protovote.count();
+    }
+    govProposalMap[protoProposal.proposalid()].first = dsVotes;
+    govProposalMap[protoProposal.proposalid()].second = shardVotes;
+  }
+
   // Deserialize removeDSNodePubkeys
   std::vector<PubKey> removeDSNodePubKeys;
   PubKey tempRemovePubKey;
@@ -1492,10 +1537,10 @@ bool ProtobufToDSBlockHeader(
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoDSBlockHeader.gasprice(), gasprice);
 
-  dsBlockHeader = DSBlockHeader(dsdifficulty, difficulty, leaderPubKey,
-                                protoDSBlockHeader.blocknum(),
-                                protoDSBlockHeader.epochnum(), gasprice, swInfo,
-                                powDSWinners, removeDSNodePubKeys, hash);
+  dsBlockHeader = DSBlockHeader(
+      dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
+      protoDSBlockHeader.epochnum(), gasprice, swInfo, powDSWinners,
+      removeDSNodePubKeys, hash, govProposalMap);
 
   const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
       protoDSBlockHeader.blockheaderbase();
@@ -1575,6 +1620,12 @@ void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
       powSolution.GetResultingHash());
   dsPowSubmission.mutable_data()->set_mixhash(powSolution.GetMixHash());
   dsPowSubmission.mutable_data()->set_lookupid(powSolution.GetLookupId());
+  if (dsPowSubmission.mutable_data()->govdata().IsInitialized()) {
+    dsPowSubmission.mutable_data()->mutable_govdata()->set_proposalid(
+        powSolution.GetGovProposalId());
+    dsPowSubmission.mutable_data()->mutable_govdata()->set_votevalue(
+        powSolution.GetGovVoteValue());
+  }
 
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       powSolution.GetGasPrice(),
@@ -1604,9 +1655,13 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(dsPowSubmission.signature(), signature);
 
+  const uint32_t& govProposalId = dsPowSubmission.data().govdata().proposalid();
+  const uint32_t& govVoteValue = dsPowSubmission.data().govdata().votevalue();
+
   DSPowSolution result(blockNumber, difficultyLevel, submitterPeer,
                        submitterKey, nonce, resultingHash, mixHash, lookupId,
-                       gasPrice, signature);
+                       gasPrice, std::make_pair(govProposalId, govVoteValue),
+                       signature);
   powSolution = result;
 
   return true;
@@ -3859,7 +3914,8 @@ bool Messenger::SetDSPoWSubmission(
     const uint8_t difficultyLevel, const Peer& submitterPeer,
     const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
-    const uint32_t& lookupId, const uint128_t& gasPrice) {
+    const uint32_t& lookupId, const uint128_t& gasPrice,
+    const GovProposalIdVotePair& govProposal) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -3885,6 +3941,15 @@ bool Messenger::SetDSPoWSubmission(
     return false;
   }
 
+  // [Gov] first=proposalId,second=votevalue
+  if (govProposal.first > 0 && govProposal.second > 0) {
+    result.mutable_data()->mutable_govdata()->set_proposalid(govProposal.first);
+    result.mutable_data()->mutable_govdata()->set_votevalue(govProposal.second);
+    if (!result.data().govdata().IsInitialized()) {
+      LOG_GENERAL(WARNING, "DSPoWSubmission [Gov] data initialization failed");
+    }
+  }
+
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
@@ -3906,13 +3971,12 @@ bool Messenger::SetDSPoWSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
-                                   uint64_t& blockNumber,
-                                   uint8_t& difficultyLevel,
-                                   Peer& submitterPeer, PubKey& submitterPubKey,
-                                   uint64_t& nonce, string& resultingHash,
-                                   string& mixHash, Signature& signature,
-                                   uint32_t& lookupId, uint128_t& gasPrice) {
+bool Messenger::GetDSPoWSubmission(
+    const bytes& src, const unsigned int offset, uint64_t& blockNumber,
+    uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
+    uint64_t& nonce, string& resultingHash, string& mixHash,
+    Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
+    uint32_t& govProposalId, uint32_t& govVoteValue) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3943,7 +4007,10 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(result.data().gasprice(),
                                                      gasPrice);
-
+  if (result.data().govdata().IsInitialized()) {
+    govProposalId = result.data().govdata().proposalid();
+    govVoteValue = result.data().govdata().votevalue();
+  }
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
@@ -4153,6 +4220,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_lookupid(soln.m_lookupId);
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
         soln.m_gasPrice, *proto_soln->mutable_gasprice());
+    proto_soln->mutable_govdata()->set_proposalid(soln.m_govProposal.first);
+    proto_soln->mutable_govdata()->set_votevalue(soln.m_govProposal.second);
   }
 
   if (!dsblock->IsInitialized()) {
@@ -4243,6 +4312,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
     std::array<unsigned char, 32> result{};
     std::array<unsigned char, 32> mixhash{};
     uint128_t gasPrice;
+    uint32_t govProposalId{};
+    uint32_t govVoteValue{};
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSWinnerPoW.pubkey(), key);
 
@@ -4258,9 +4329,14 @@ bool Messenger::GetDSDSBlockAnnouncement(
          mixhash.begin());
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         protoDSWinnerPoW.powsoln().gasprice(), gasPrice);
+    if (protoDSWinnerPoW.powsoln().govdata().IsInitialized()) {
+      govProposalId = protoDSWinnerPoW.powsoln().govdata().proposalid();
+      govVoteValue = protoDSWinnerPoW.powsoln().govdata().votevalue();
+    }
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
-                         protoDSWinnerPoW.powsoln().lookupid(), gasPrice));
+                         protoDSWinnerPoW.powsoln().lookupid(), gasPrice,
+                         std::make_pair(govProposalId, govVoteValue)));
   }
 
   // Get the part of the announcement that should be co-signed during the first

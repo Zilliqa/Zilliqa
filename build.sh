@@ -74,6 +74,10 @@ do
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 3 times (before DS block consensus)"
     ;;
+    govvc2)
+        CMAKE_EXTRA_OPTIONS="-DGOVVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with GOVVC test - Suspend DS leader for 3 times (before DS block consensus)"
+    ;;
     vc3)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 1 time (before Final block consensus)"

@@ -17,6 +17,7 @@
 
 #include <Schnorr.h>
 #include <string>
+#include "../libTestUtils/TestUtils.h"
 #include "libData/BlockData/Block.h"
 #include "libDirectoryService/DSComposition.h"
 #include "libNetwork/ShardStruct.h"
@@ -45,6 +46,8 @@
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(updatedscomposition)
+
+BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
 
 struct F {
   F() {
@@ -87,13 +90,17 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
 
   // Create the nodes to be removed. This should be empty for this test case.
   std::vector<PubKey> removeDSNodePubkeys;
-
+  GovDSShardVotesMap govProposalMap;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
-                       DSBlockHashSet());
+                       DSBlockHashSet(), govProposalMap);
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.
@@ -143,12 +150,18 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
   // Creat the empty nodes to be removed vector.
   std::vector<PubKey> removeDSNodePubkeys;
 
+  GovDSShardVotesMap govProposalMap;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
-                       DSBlockHashSet());
+                       DSBlockHashSet(), govProposalMap);
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.
@@ -203,12 +216,18 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
     removeDSNodePubkeys.emplace_back(kp.first);
   }
 
+  GovDSShardVotesMap govProposalMap;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+
   // Construct the fake DS Block.
   PairOfKey leaderKeyPair = Schnorr::GenKeyPair();
   PubKey leaderPubKey = leaderKeyPair.second;
   DSBlockHeader header(DS_DIFF, SHARD_DIFF, leaderPubKey, BLOCK_NUM, EPOCH_NUM,
                        GAS_PRICE, SWInfo(), winners, removeDSNodePubkeys,
-                       DSBlockHashSet());
+                       DSBlockHashSet(), govProposalMap);
   DSBlock block(header, CoSignatures());
 
   // Build the expected composition.

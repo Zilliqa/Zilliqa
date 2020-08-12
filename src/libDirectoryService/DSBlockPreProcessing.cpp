@@ -974,6 +974,38 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   ClearReputationOfNodeWithoutPoW();
   ComputeSharding(sortedPoWSolns);
 
+  GovDSShardVotesMap govProposalMap;
+  for (const auto& dsnode : powDSWinners) {
+    if (GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(dsnode.first)) {
+      const auto& powSolIter = allDSPoWs.find(dsnode.first);
+      if (powSolIter != allDSPoWs.end()) {
+        const uint32_t& proposalId = powSolIter->second.m_govProposal.first;
+        const uint32_t& voteValue = powSolIter->second.m_govProposal.second;
+        if (proposalId > 0 && voteValue > 0) {
+          LOG_GENERAL(INFO, "[Gov] DS proposalId=" << proposalId
+                                                   << " vote=" << voteValue);
+          govProposalMap[proposalId].first[voteValue]++;
+        }
+      }
+    }
+  }
+
+  for (const auto& miner : sortedPoWSolns) {
+    if (GUARD_MODE &&
+        !Guard::GetInstance().IsNodeInShardGuardList(miner.second)) {
+      const auto& powSolIter = allPoWs.find(miner.second);
+      if (powSolIter != allPoWs.end()) {
+        const uint32_t& proposalId = powSolIter->second.m_govProposal.first;
+        const uint32_t& voteValue = powSolIter->second.m_govProposal.second;
+        if (proposalId > 0 && voteValue > 0) {
+          LOG_GENERAL(INFO, "[Gov] Shard proposalId=" << proposalId
+                                                      << " vote=" << voteValue);
+          govProposalMap[proposalId].second[voteValue]++;
+        }
+      }
+    }
+  }
+
   vector<Peer> proposedDSMembersInfo;
   proposedDSMembersInfo.reserve(sortedDSPoWSolns.size());
   for (const auto& proposedMember : sortedDSPoWSolns) {
@@ -1013,7 +1045,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
                       blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
                       m_mediator.m_curSWInfo, powDSWinners, removeDSNodePubkeys,
-                      dsBlockHashSet, version, committeeHash, prevHash),
+                      dsBlockHashSet, govProposalMap, version, committeeHash,
+                      prevHash),
         CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
@@ -1036,11 +1069,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_DS_SUSPEND_1
 
-#ifdef VC_TEST_DS_SUSPEND_3
+#if defined(VC_TEST_DS_SUSPEND_3) || defined(GOVVC_TEST_DS_SUSPEND_3)
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
-    LOG_EPOCH(
-        WARNING, m_mediator.m_currentEpochNum,
-        "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_3)");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "I am suspending myself to test viewchange "
+              "(VC_TEST_DS_SUSPEND_3) or (GOVVC_TEST_DS_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_DS_SUSPEND_3

@@ -172,6 +172,22 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   return true;
 }
 
+void Node ::UpdateGovProposalRemainingVoteInfo() {
+  LOG_MARKER();
+  lock_guard<mutex> g(m_mutexGovProposal);
+  if (m_govProposalInfo.isGovProposalActive) {
+    uint64_t curDSEpochNo =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    if (curDSEpochNo >= m_govProposalInfo.startDSEpoch &&
+        curDSEpochNo <= m_govProposalInfo.endDSEpoch &&
+        m_govProposalInfo.remainingVoteCount > 1) {
+      --m_govProposalInfo.remainingVoteCount;
+    } else {
+      m_govProposalInfo.reset();
+    }
+  }
+}
+
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
   LOG_GENERAL(INFO,
               "DS Diff   = " << (int)dsblock.GetHeader().GetDSDifficulty());
@@ -664,6 +680,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                     "I am now DS backup for the next round");
         }
       }
+      // reset governance proposal and vote if DS member
+      UpdateGovProposalRemainingVoteInfo();
 
       m_mediator.m_ds->StartFirstTxEpoch();
     } else {
@@ -689,6 +707,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           SendDSBlockToOtherShardNodes(message2);
         }
       }
+      // reset governance proposal and vote if shard member
+      UpdateGovProposalRemainingVoteInfo();
 
       // Finally, start as a shard node
       StartFirstTxEpoch();

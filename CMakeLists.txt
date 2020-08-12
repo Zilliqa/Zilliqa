@@ -144,6 +144,11 @@ if(VC_TEST_DS_SUSPEND_3)
     add_definitions(-DVC_TEST_DS_SUSPEND_3)
 endif()
 
+if(GOVVC_TEST_DS_SUSPEND_3)
+    message(STATUS "GOVVC 2 test enabled")
+    add_definitions(-DGOVVC_TEST_DS_SUSPEND_3)
+endif()
+
 # For Final Block Consensus
 if(VC_TEST_FB_SUSPEND_1)
     message(STATUS "VC 3 test enabled")

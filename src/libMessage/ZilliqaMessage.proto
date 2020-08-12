@@ -81,6 +81,18 @@ message ProtoDSBlock
         DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
         repeated ByteArray dsremoved    = 12; // Added in: v2.0, Deprecated in: N/A
         // Add new members here
+        message Vote
+        {
+            uint32 value = 1;
+            uint32 count = 2;
+        }
+        message Proposal
+        {
+            uint32 proposalid           = 1;
+            repeated Vote dsvotes       = 2;
+            repeated Vote minervotes    = 3;
+        }
+        repeated Proposal proposals      = 13;
     }
     DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
     ProtoBlockBase blockbase   = 2;  // Added in: v1.0, Deprecated in: N/A
@@ -355,6 +367,7 @@ message ProtoPoWSolution
     bytes mixhash       = 3;
     oneof oneof4 { uint32 lookupid     = 4; }
     ByteArray gasprice  = 5;
+    GovernanceData govdata  = 6;
 }
 
 message ProtoCommittee
@@ -485,6 +498,16 @@ message PMHello
 }
 
 // ============================================================================
+// Governance message
+// ============================================================================
+
+message GovernanceData
+{
+    uint32 proposalid   = 1;
+    uint32 votevalue    = 2;
+}
+
+// ============================================================================
 // Directory Service messages
 // ============================================================================
 
@@ -492,18 +515,19 @@ message DSPoWSubmission
 {
     message Data
     {
-        uint64 blocknumber        = 1;
-        uint32 difficultylevel    = 2; // only LSB used
-        ByteArray submitterpeer   = 3;
-        ByteArray submitterpubKey = 4;
-        uint64 nonce              = 5;
-        string resultinghash      = 6;
-        string mixhash            = 7;
-        uint32 lookupid           = 8;
-        ByteArray gasprice        = 9;
+        uint64 blocknumber          = 1;
+        uint32 difficultylevel      = 2; // only LSB used
+        ByteArray submitterpeer     = 3;
+        ByteArray submitterpubKey   = 4;
+        uint64 nonce                = 5;
+        string resultinghash        = 6;
+        string mixhash              = 7;
+        uint32 lookupid             = 8;
+        ByteArray gasprice          = 9;
+        GovernanceData govdata      = 10;
     }
-    Data data                     = 1;
-    ByteArray signature           = 2;
+    Data data                       = 1;
+    ByteArray signature             = 2;
 }
 
 message DSPoWPacketSubmission
