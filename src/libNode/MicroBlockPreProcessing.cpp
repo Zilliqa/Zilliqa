@@ -69,10 +69,11 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD_PER_DS, rewards)) {
-      LOG_GENERAL(WARNING, "rewards addition unsafe!");
-    }
+    rewards =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+         COINBASE_UPDATE_TARGET_DS)
+            ? COINBASE_REWARD_PER_DS_NEW
+            : COINBASE_REWARD_PER_DS;
   } else {
     rewards = m_txnFees;
   }
@@ -1339,12 +1340,14 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
   // Check Rewards
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    // Check COINBASE_REWARD_PER_DS + totalTxnFees
-    uint128_t rewards = 0;
-    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD_PER_DS, rewards)) {
-      LOG_GENERAL(WARNING, "total_reward addition unsafe!");
-    }
+    // Check COINBASE_REWARD_PER_DS
+
+    uint128_t rewards =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+         COINBASE_UPDATE_TARGET_DS)
+            ? COINBASE_REWARD_PER_DS_NEW
+            : COINBASE_REWARD_PER_DS;
+
     if (rewards != m_microblock->GetHeader().GetRewards()) {
       LOG_CHECK_FAIL("Total rewards", m_microblock->GetHeader().GetRewards(),
                      rewards);
