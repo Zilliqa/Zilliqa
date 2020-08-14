@@ -1980,13 +1980,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
   std::vector<Transaction> checkedTxns;
-  vector<pair<TxnHash, ErrTxnStatus>> rejectTxns;
+  vector<pair<TxnHash, TxnStatus>> rejectTxns;
   for (const auto& txn : txns) {
     if (m_mediator.GetIsVacuousEpoch()) {
       LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
       return false;
     }
-    ErrTxnStatus error;
+    TxnStatus error;
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
       checkedTxns.push_back(txn);
     } else {
@@ -2010,7 +2010,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
       MempoolInsertionStatus status;
       if (!m_createdTxns.insert(txn, status)) {
         {
-          if (status.first != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
+          if (status.first != TxnStatus::MEMPOOL_ALREADY_PRESENT) {
             // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
             // issue, hence if this comes, either the txn should be confirmed or
             // if it is pending/dropped there should be some other cause which
@@ -2022,7 +2022,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                                    << status.first);
         }
       } else {
-        if (status.first != ErrTxnStatus::NOT_PRESENT) {
+        if (status.first != TxnStatus::NOT_PRESENT) {
           // Txn added with deletion of some previous txn
           rejectTxns.emplace_back(status.second, status.first);
           LOG_GENERAL(INFO, "Txn " << status.second

@@ -189,10 +189,10 @@ BOOST_AUTO_TEST_CASE(txnpool_status) {
   /// Try inserting lower gas txn first and then higher gas
 
   BOOST_CHECK_EQUAL(true, tp.insert(txn, status));
-  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::NOT_PRESENT);
+  BOOST_CHECK_EQUAL(status.first, TxnStatus::NOT_PRESENT);
 
   BOOST_CHECK_EQUAL(true, tp.insert(higherGasTxn, status));
-  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
+  BOOST_CHECK_EQUAL(status.first, TxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
   BOOST_CHECK_EQUAL(status.second, txn.GetTranID());
 
   ///
@@ -202,10 +202,10 @@ BOOST_AUTO_TEST_CASE(txnpool_status) {
   /// Try inserting higher gas txn first and then lower gas
 
   BOOST_CHECK_EQUAL(true, tp.insert(higherGasTxn, status));
-  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::NOT_PRESENT);
+  BOOST_CHECK_EQUAL(status.first, TxnStatus::NOT_PRESENT);
 
   BOOST_CHECK_EQUAL(false, tp.insert(txn, status));
-  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
+  BOOST_CHECK_EQUAL(status.first, TxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
   BOOST_CHECK_EQUAL(status.second, txn.GetTranID());
 }
 

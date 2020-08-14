@@ -41,21 +41,21 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         TransactionReceipt& receipt,
-                                        ErrTxnStatus& error_code) const {
+                                        TxnStatus& error_code) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Validator::CheckCreatedTransaction not expected to be "
                 "called from LookUp node.");
     return true;
   }
-  error_code = ErrTxnStatus::NOT_PRESENT;
+  error_code = TxnStatus::NOT_PRESENT;
   // LOG_MARKER();
 
   // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     LOG_GENERAL(WARNING, "CHAIN_ID incorrect");
-    error_code = ErrTxnStatus::VERIF_ERROR;
+    error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
 
@@ -63,7 +63,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     LOG_GENERAL(WARNING, "Transaction version incorrect "
                              << "Expected:" << TRANSACTION_VERSION << " Actual:"
                              << DataConversion::UnpackB(tx.GetVersion()));
-    error_code = ErrTxnStatus::VERIF_ERROR;
+    error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
 
@@ -73,7 +73,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
   if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
-    error_code = ErrTxnStatus::INVALID_FROM_ACCOUNT;
+    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
     return false;
   }
 
@@ -82,7 +82,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
                                                 << ". Transaction rejected: "
                                                 << tx.GetTranID());
-    error_code = ErrTxnStatus::INVALID_FROM_ACCOUNT;
+    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
     return false;
   }
 
@@ -93,7 +93,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)
                   << " Debit Amount = " << tx.GetAmount());
-    error_code = ErrTxnStatus::INSUFFICIENT_BALANCE;
+    error_code = TxnStatus::INSUFFICIENT_BALANCE;
     return false;
   }
 
@@ -106,7 +106,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
-                                                  ErrTxnStatus& error_code) {
+                                                  TxnStatus& error_code) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Validator::CheckCreatedTransactionFromLookup not expected "
@@ -114,13 +114,13 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     return true;
   }
 
-  error_code = ErrTxnStatus::NOT_PRESENT;
+  error_code = TxnStatus::NOT_PRESENT;
 
   // LOG_MARKER();
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     LOG_GENERAL(WARNING, "CHAIN_ID incorrect");
-    error_code = ErrTxnStatus::VERIF_ERROR;
+    error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
 
@@ -128,7 +128,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     LOG_GENERAL(WARNING, "Transaction version incorrect "
                              << "Expected:" << TRANSACTION_VERSION << " Actual:"
                              << DataConversion::UnpackB(tx.GetVersion()));
-    error_code = ErrTxnStatus::VERIF_ERROR;
+    error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
 
@@ -142,7 +142,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
            ? SHARD_MICROBLOCK_GAS_LIMIT
            : DS_MICROBLOCK_GAS_LIMIT)) {
-    error_code = ErrTxnStatus::HIGH_GAS_LIMIT;
+    error_code = TxnStatus::HIGH_GAS_LIMIT;
     // Already should be checked at lookup
     LOG_GENERAL(WARNING, "Txn gas limit too high");
     return false;
@@ -150,7 +150,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
 
   if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
-    error_code = ErrTxnStatus::INVALID_FROM_ACCOUNT;
+    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
     return false;
   }
 
@@ -163,7 +163,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
                     << " From Account  = 0x" << fromAddr
                     << " Correct shard = " << correct_shard_from
                     << " This shard    = " << m_mediator.m_node->GetShardId());
-      error_code = ErrTxnStatus::INCORRECT_SHARD;
+      error_code = TxnStatus::INCORRECT_SHARD;
       return false;
       // // Transaction created from the GenTransactionBulk will be rejected
       // // by all shards but one. Next line is commented to avoid this
@@ -179,7 +179,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
                                    << correct_shard_to
                                    << " is different for the call SC txn");
         // Already checked at lookup
-        error_code = ErrTxnStatus::CONTRACT_CALL_WRONG_SHARD;
+        error_code = TxnStatus::CONTRACT_CALL_WRONG_SHARD;
         return false;
       }
     }
@@ -191,7 +191,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
                            << " larger than maximum code size allowed "
                            << MAX_CODE_SIZE_IN_BYTES);
     // Already checked at lookup
-    error_code = ErrTxnStatus::HIGH_BYTE_SIZE_CODE;
+    error_code = TxnStatus::HIGH_BYTE_SIZE_CODE;
     return false;
   }
 
@@ -204,7 +204,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
                                  .GetHeader()
                                  .GetGasPrice());
     // Should be checked at lookup also
-    error_code = ErrTxnStatus::INSUFFICIENT_GAS;
+    error_code = TxnStatus::INSUFFICIENT_GAS;
     return false;
   }
 
@@ -212,7 +212,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Signature incorrect: " << fromAddr << ". Transaction rejected: "
                                       << tx.GetTranID());
-    error_code = ErrTxnStatus::VERIF_ERROR;
+    error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
 
@@ -221,7 +221,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "fromAddr not found: " << fromAddr << ". Transaction rejected: "
                                      << tx.GetTranID());
-    error_code = ErrTxnStatus::INVALID_FROM_ACCOUNT;
+    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
     return false;
   }
 
@@ -232,7 +232,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)
                   << " Debit Amount = " << tx.GetAmount());
-    error_code = ErrTxnStatus::INSUFFICIENT_BALANCE;
+    error_code = TxnStatus::INSUFFICIENT_BALANCE;
     return false;
   }
 

@@ -79,7 +79,7 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
   Transaction icfTx(DataConversion::Pack(CHAIN_ID, 1), nonce, icfAddress,
                     sender, amount, gasPrice, gasLimit, {}, icfData);
   TransactionReceipt icfTr;
-  ErrTxnStatus error_code;
+  TxnStatus error_code;
   if (!AccountStore::GetInstance().UpdateAccounts(blockNum, 1, true, icfTx,
                                                   icfTr, error_code)) {
     LOG_GENERAL(INFO, "InvokeFunction Failed");
@@ -163,7 +163,7 @@ bool CreateContract(const int& blockNum, ResetType rType) {
   Transaction createTx(DataConversion::Pack(CHAIN_ID, 1), nonce, dev::h160(),
                        sender, 0, PRECISION_MIN_VALUE, 50, code, initData);
   TransactionReceipt createTr;
-  ErrTxnStatus error_code;
+  TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccounts(blockNum, 1, true, createTx,
                                              createTr, error_code);
 
@@ -231,7 +231,7 @@ void AutoTest(bool doResetCF, bool doResetICF,
                          samples[i].cfSender, samples[i].amount,
                          samples[i].gasPrice, samples[i].gasLimit, {}, cfData);
         TransactionReceipt cfTr;
-        ErrTxnStatus error_code;
+        TxnStatus error_code;
         if (!AccountStore::GetInstance().UpdateAccounts(
                 samples[i].blockNum, 1, true, cfTx, cfTr, error_code)) {
           continue;

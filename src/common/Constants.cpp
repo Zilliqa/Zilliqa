@@ -129,6 +129,23 @@ const unsigned int SEED_SYNC_SMALL_PULL_INTERVAL{
     ReadConstantNumeric("SEED_SYNC_SMALL_PULL_INTERVAL", "node.seed.")};
 const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL{
     ReadConstantNumeric("SEED_SYNC_LARGE_PULL_INTERVAL", "node.seed.")};
+
+// RemotestorageDB constants
+const string REMOTESTORAGE_DB_HOST{
+    ReadConstantString("REMOTESTORAGE_DB_HOST", "node.remotestorageDB.")};
+const string REMOTESTORAGE_DB_NAME{
+    ReadConstantString("REMOTESTORAGE_DB_NAME", "node.remotestorageDB.")};
+const unsigned int REMOTESTORAGE_DB_PORT{
+    ReadConstantNumeric("REMOTESTORAGE_DB_PORT", "node.remotestorageDB.")};
+const bool REMOTESTORAGE_DB_CONFIGURE{
+    ReadConstantString("REMOTESTORAGE_DB_CONFIGURE", "node.remotestorageDB.") ==
+    "true"};
+const string REMOTESTORAGE_DB_TLS_FILE{
+    ReadConstantString("REMOTESTORAGE_DB_TLS_FILE", "node.remotestorageDB.")};
+bool REMOTESTORAGE_DB_ENABLE{
+    ReadConstantString("REMOTESTORAGE_DB_ENABLE", "node.remotestorageDB.") ==
+    "true"};
+
 // Consensus constants
 const double TOLERANCE_FRACTION{
     ReadConstantDouble("TOLERANCE_FRACTION", "node.consensus.")};

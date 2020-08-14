@@ -29,6 +29,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
+#include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
@@ -241,6 +242,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxnBodiesForTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTransactionStatus", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetTransactionStatusI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1814,7 +1820,7 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
     if (BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
       // Transaction already present in database means confirmed
       _json["confirmed"] = true;
-      _json["code"] = ErrTxnStatus::NOT_PRESENT;
+      _json["code"] = TxnStatus::NOT_PRESENT;
       return _json;
     }
 
@@ -1822,22 +1828,22 @@ Json::Value LookupServer::GetPendingTxn(const string& tranID) {
 
     if (!IsTxnDropped(code)) {
       switch (code) {
-        case ErrTxnStatus::NOT_PRESENT:
+        case TxnStatus::NOT_PRESENT:
           _json["confirmed"] = false;
           _json["pending"] = false;
-          _json["code"] = ErrTxnStatus::NOT_PRESENT;
+          _json["code"] = TxnStatus::NOT_PRESENT;
           return _json;
-        case ErrTxnStatus::PRESENT_NONCE_HIGH:
+        case TxnStatus::PRESENT_NONCE_HIGH:
           _json["confirmed"] = false;
           _json["pending"] = true;
-          _json["code"] = ErrTxnStatus::PRESENT_NONCE_HIGH;
+          _json["code"] = TxnStatus::PRESENT_NONCE_HIGH;
           return _json;
-        case ErrTxnStatus::PRESENT_GAS_EXCEEDED:
+        case TxnStatus::PRESENT_GAS_EXCEEDED:
           _json["confirmed"] = false;
           _json["pending"] = true;
-          _json["code"] = ErrTxnStatus::PRESENT_GAS_EXCEEDED;
+          _json["code"] = TxnStatus::PRESENT_GAS_EXCEEDED;
           return _json;
-        case ErrTxnStatus::ERROR:
+        case TxnStatus::ERROR:
           throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
         default:
           throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
@@ -2003,5 +2009,30 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
+  try {
+    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
+
+    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
+
+    if (result.isMember("error")) {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
+    } else if (result == Json::Value::null) {
+      // No txnhash matches the one in DB
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Txn Hash not Present");
+    }
+    return result;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
   }
 }

@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ErrTxn.h"
+#include "TxnStatus.h"
 #include "libUtils/Logger.h"
 
-bool TTLTxns::insert(const TxnHash& txhash, const ErrTxnStatus status,
+bool TTLTxns::insert(const TxnHash& txhash, const TxnStatus status,
                      const uint64_t& epochNum) {
   m_txnHashExpiration[epochNum].emplace(txhash);
   LOG_GENERAL(INFO, "[DTXN]"

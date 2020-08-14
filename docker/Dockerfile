@@ -67,6 +67,7 @@ ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
 ARG EXTRA_CMAKE_ARGS=
+ARG MONGO_INSTALL_DIR=${BUILD_DIR}/mongo
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
@@ -75,6 +76,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib \
+    && echo "mongo files:" && ls -lh ${MONGO_INSTALL_DIR}/lib \
     # strip all exes
     && strip /usr/local/bin/grepperf \
        /usr/local/bin/zilliqad \
@@ -156,6 +158,7 @@ RUN mkdir -p \
     /zilliqa/scripts
 
 ARG INSTALL_DIR=/usr/local
+ARG MONGO_INSTALL_DIR=/build/mongo
 
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
@@ -166,7 +169,8 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
+COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/ 
 
-ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
+ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib:${MONGO_INSTALL_DIR}/lib
 
 ENTRYPOINT ["/bin/bash"]

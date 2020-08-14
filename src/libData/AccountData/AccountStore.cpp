@@ -385,7 +385,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const bool& isDS,
                                       const Transaction& transaction,
                                       TransactionReceipt& receipt,
-                                      ErrTxnStatus& error_code) {
+                                      TxnStatus& error_code) {
   // LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);

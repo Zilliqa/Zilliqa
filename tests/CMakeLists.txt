@@ -17,6 +17,7 @@ add_subdirectory (RumorSpreading)
 add_subdirectory (Server)
 add_subdirectory (Utils)
 add_subdirectory (Zilliqa)
+#add_subdirectory (RemoteStorageDB) Works only if you have a local mongo server running
 
 file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR})
 #FIXME: constants.xml is not used for local_run, thus shouldn't be copied

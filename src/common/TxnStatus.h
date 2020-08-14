@@ -15,19 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_ERRTXN_H_
-#define ZILLIQA_SRC_COMMON_ERRTXN_H_
+#ifndef ZILLIQA_SRC_COMMON_TXNSTATUS_H_
+#define ZILLIQA_SRC_COMMON_TXNSTATUS_H_
 
 #include "depends/common/FixedHash.h"
 
 using TxnHash = dev::h256;
 
-enum ErrTxnStatus : uint8_t {
-  // PendingTxns
+enum TxnStatus : uint8_t {
+
   NOT_PRESENT = 0,
-  PRESENT_NONCE_HIGH = 1,
-  PRESENT_GAS_EXCEEDED = 2,
-  PRESENT_VALID_CONSENSUS_NOT_REACHED = 3,
+  DISPATCHED = 1,
+  SOFT_CONFIRMED = 2,
+  CONFIRMED = 3,
+  // Pending
+  PRESENT_NONCE_HIGH = 4,
+  PRESENT_GAS_EXCEEDED = 5,
+  PRESENT_VALID_CONSENSUS_NOT_REACHED = 6,
   // RareDropped
   MATH_ERROR = 10,
   FAIL_SCILLA_LIB = 11,
@@ -48,14 +52,14 @@ enum ErrTxnStatus : uint8_t {
   //
   INVALID_TO_ACCOUNT = 25,
   FAIL_CONTRACT_ACCOUNT_CREATION = 26,
-  ERROR = 4  // MISC_ERROR
+  ERROR = 255  // MISC_ERROR
 };
 
-inline bool IsTxnDropped(ErrTxnStatus code) {
+inline bool IsTxnDropped(TxnStatus code) {
   return (static_cast<uint8_t>(code) >= 10);
 }
 
-using HashCodeMap = std::unordered_map<TxnHash, ErrTxnStatus>;
+using HashCodeMap = std::unordered_map<TxnHash, TxnStatus>;
 
 class TTLTxns {
  private:
@@ -63,7 +67,7 @@ class TTLTxns {
   HashCodeMap m_txnCode;
 
  public:
-  bool insert(const TxnHash& txhash, const ErrTxnStatus status,
+  bool insert(const TxnHash& txhash, const TxnStatus status,
               const uint64_t& epochNum);
   void clear(const uint64_t& epochNum, const unsigned int& TTL);
   const HashCodeMap& GetHashCodeMap() const;
@@ -72,4 +76,4 @@ class TTLTxns {
 
 enum PendingData { HASH_CODE_MAP, PUBKEY, SHARD_ID };
 
-#endif  // ZILLIQA_SRC_COMMON_ERRTXN_H_
+#endif  // ZILLIQA_SRC_COMMON_TXNSTATUS_H_

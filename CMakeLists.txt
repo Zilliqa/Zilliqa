@@ -43,6 +43,9 @@ endif()
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
+include(InstallMongo)
+find_package(mongocxx CONFIG REQUIRED)
+ 
 include(InstallWebsocketpp)
 find_package(websocketpp CONFIG REQUIRED)
 
