@@ -459,6 +459,7 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
         m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
       uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
+      LOG_GENERAL(INFO, "txBlockNum: " << blockNum);
       if (blockNum > latestTxBlockNum) {
         latestTxBlockNum = blockNum;
       }
