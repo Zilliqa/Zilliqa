@@ -43,13 +43,16 @@ int readAccountJsonFromFile(const string& path) {
     for (const auto& i : _json.getMemberNames()) {
       Address addr(i);
       uint128_t balance(_json[i]["amount"].asString());
-      AccountStore::GetInstance().AddAccount(
-          addr, {balance, _json[i]["nonce"].asUInt()});
+      if (AccountStore::GetInstance().AddAccount(
+              addr, {balance, _json[i]["nonce"].asUInt()})) {
+        LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
+      }
     }
   } catch (exception& e) {
     cout << "Unable to load data " << e.what() << endl;
     return -1;
   }
+  AccountStore::GetInstance().UpdateStateTrieAll();
   return 0;
 }
 
@@ -73,11 +76,12 @@ int main(int argc, const char* argv[]) {
   uint port{5555};
   string blocknum_str{"1"};
   uint timeDelta{0};
+  bool loadPersistence{false};
   try {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help message")(
-        "file,f", po::value<string>(&accountJsonFilePath)->required(),
+        "file,f", po::value<string>(&accountJsonFilePath),
         "Json file containing bootstrap accounts")(
         "port,p", po::value<uint>(&port),
         "Port to run server on {default: 5555")(
@@ -85,7 +89,9 @@ int main(int argc, const char* argv[]) {
         "Initial blocknumber {default : 1 }")(
         "time,t", po::value<uint>(&timeDelta),
         "the automatic blocktime for incrementing block number (in ms)  "
-        "(Disabled by default)");
+        "(Disabled by default)")(
+        "load,l", po::bool_switch()->default_value(false),
+        "Load from persistence folder (False by default)");
 
     po::variables_map vm;
 
@@ -98,6 +104,7 @@ int main(int argc, const char* argv[]) {
         return SUCCESS;
       }
       po::notify(vm);
+      loadPersistence = vm["load"].as<bool>();
     } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
@@ -128,28 +135,45 @@ int main(int argc, const char* argv[]) {
       LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
     }
 
-    uint64_t blocknum;
-
-    try {
-      blocknum = stoull(blocknum_str);
-    } catch (exception& e) {
-      cerr << "Error: "
-           << "blocknum not numeric" << endl;
-      return ERROR_IN_COMMAND_LINE;
-    }
-
     mediator.RegisterColleagues(nullptr, &node, &lk, vd.get());
 
-    AccountStore::GetInstance().Init();
-    if (readAccountJsonFromFile(accountJsonFilePath)) {
-      cerr << "ERROR: "
-           << "Unable to parse account json file" << endl;
+    AccountStore::GetInstance().InitSoft();
+
+    uint64_t blocknum;
+
+    if (!loadPersistence && accountJsonFilePath.empty()) {
+      LOG_GENERAL(
+          WARNING,
+          "Either set the accounts files using -f option or use persistence to "
+          "load using -l option. Neither option specified");
       return ERROR_IN_COMMAND_LINE;
     }
+    if (!loadPersistence) {
+      try {
+        blocknum = stoull(blocknum_str);
+      } catch (exception& e) {
+        cerr << "Error: "
+             << "blocknum not numeric" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
 
+      if (readAccountJsonFromFile(accountJsonFilePath)) {
+        cerr << "ERROR: "
+             << "Unable to parse account json file" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+    }
     auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
     auto isolatedServer = make_shared<IsolatedServer>(
         mediator, *isolatedServerConnector, blocknum, timeDelta);
+
+    if (loadPersistence) {
+      LOG_GENERAL(INFO, "Trying to load persistence.. ");
+      if (!isolatedServer->RetrieveHistory()) {
+        LOG_GENERAL(WARNING, "RetrieveHistory Failed");
+        return ERROR_UNHANDLED_EXCEPTION;
+      }
+    }
 
     if (!isolatedServer
              ->jsonrpc::AbstractServer<IsolatedServer>::StartListening()) {
