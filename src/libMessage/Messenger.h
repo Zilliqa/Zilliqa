@@ -868,12 +868,14 @@ class Messenger {
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t leaderID, const Signature& collectiveSig,
-      const std::vector<bool>& bitmap, const PairOfKey& leaderKey);
+      const std::vector<bool>& bitmap, const PairOfKey& leaderKey,
+      const bytes& newAnnouncementMessage);
   static bool GetConsensusCollectiveSig(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t leaderID, std::vector<bool>& bitmap,
-      Signature& collectiveSig, const PubKey& leaderKey);
+      Signature& collectiveSig, const PubKey& leaderKey,
+      bytes& newAnnouncementMessage);
 
   static bool SetConsensusCommitFailure(bytes& dst, const unsigned int offset,
                                         const uint32_t consensusID,

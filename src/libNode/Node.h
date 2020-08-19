@@ -124,6 +124,11 @@ class Node : public Executable {
   std::mutex m_mutexCVWaitDSBlock;
   std::condition_variable cv_waitDSBlock;
 
+  /// TxnPacket Timer Vars
+  std::mutex m_mutexCVTxnPacket;
+  std::condition_variable cv_txnPacket;
+  std::atomic<uint32_t> m_txnPacketThreadOnHold{0};
+
   // Final Block Buffer for seed node
   std::vector<bytes> m_seedTxnBlksBuffer;
   std::mutex m_mutexSeedTxnBlksBuffer;
@@ -133,7 +138,6 @@ class Node : public Executable {
 
   bytes m_consensusBlockHash;
   std::pair<uint64_t, CoSignatures> m_lastMicroBlockCoSig;
-  std::mutex m_mutexMicroBlock;
 
   const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
   const static unsigned int GOSSIP_RATE = 48;
@@ -178,9 +182,13 @@ class Node : public Executable {
   std::mutex m_mutexTxnPacketBuffer;
   std::map<bytes, bytes> m_txnPacketBuffer;
 
+  std::mutex m_mutexTxnPktInProcess;
+  std::set<bytes> m_txnPktInProcess;
+
   // txn proc timeout related
   std::mutex m_mutexCVTxnProcFinished;
   std::condition_variable cv_TxnProcFinished;
+  bool m_txnProcessingFinished = false;
 
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
@@ -351,6 +359,13 @@ class Node : public Executable {
 
   bool RunConsensusOnMicroBlockWhenShardLeader();
   bool RunConsensusOnMicroBlockWhenShardBackup();
+  bool PrePrepMicroBlockValidator(const bytes& message, unsigned int offset,
+                                  bytes& errorMsg, const uint32_t consensusID,
+                                  const uint64_t blockNumber,
+                                  const bytes& blockHash,
+                                  const uint16_t leaderID,
+                                  const PubKey& leaderKey,
+                                  bytes& messageToCosign);
   bool ComposeMicroBlockMessageForSender(bytes& microblock_message) const;
   bool MicroBlockValidator(const bytes& message, unsigned int offset,
                            bytes& errorMsg, const uint32_t consensusID,
@@ -403,6 +418,7 @@ class Node : public Executable {
   void AddGenesisInfo(SyncType syncType);
 
   void SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry);
+
   void ClearSoftConfirmedTransactions();
   void UpdateGovProposalRemainingVoteInfo();
   bool CheckIfGovProposalActive();
@@ -433,7 +449,18 @@ class Node : public Executable {
   std::mutex m_mutexShardMember;
   std::shared_ptr<DequeOfNode> m_myShardMembers;
 
+  std::mutex m_mutexPrePrepMissingTxnhashes;
+  std::vector<TxnHash> m_prePrepMissingTxnhashes;
+
   std::shared_ptr<MicroBlock> m_microblock;
+  // used only by leader
+  std::shared_ptr<MicroBlock> m_prePrepMicroblock;
+
+  bool m_completeMicroBlockReady = false;
+  std::condition_variable m_cvCompleteMicroBlockReady;
+
+  // used only by backup
+  bool m_prePrepRunning = false;
 
   std::mutex m_mutexCVMicroBlockMissingTxn;
   std::condition_variable cv_MicroBlockMissingTxn;
@@ -452,6 +479,9 @@ class Node : public Executable {
   std::atomic<uint32_t> m_myshardId{};
   std::atomic<bool> m_isPrimary{};
   std::shared_ptr<ConsensusCommon> m_consensusObject;
+
+  // Microblock processing
+  std::mutex m_mutexMicroBlock;
 
   // Finalblock Processing
   std::mutex m_mutexFinalBlock;
@@ -609,8 +639,15 @@ class Node : public Executable {
 
   void CommitPendingTxnBuffer();
 
+  // Used by leader before sending 'collective sig + newannouncement'
+  bool WaitUntilCompleteMicroBlockIsReady();
+  // Used by backup before processing 'collective sig + newannouncement'
+  bool WaitUntilTxnProcessingDone();
+
+  void StartTxnProcessingThread();
   void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit);
   void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit);
+  bool ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit);
   bool ComposeMicroBlock(const uint64_t& microblock_gas_limit);
   bool CheckMicroBlockValidity(bytes& errorMsg,
                                const uint64_t& microblock_gas_limit);
@@ -745,6 +782,7 @@ class Node : public Executable {
 
   bool GetSoftConfirmedTransaction(const TxnHash& txnHash,
                                    TxBodySharedPtr& tptr);
+
   void WaitForNextTwoBlocksBeforeRejoin();
 
   bool UpdateShardNodeIdentity();

@@ -1049,6 +1049,8 @@ message ConsensusCollectiveSig
     ConsensusInfo consensusinfo = 1;
     ByteArray pubkey            = 2;
     ByteArray signature         = 3;
+    bytes newannouncement       = 4;
+    ByteArray finalsignature    = 5;    
 }
 
 message ConsensusCommitFailure

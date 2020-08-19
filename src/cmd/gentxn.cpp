@@ -44,7 +44,14 @@ using NonceRange = std::tuple<std::size_t, std::size_t>;
 std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
   std::vector<KeyPairAddress> result;
 
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
+  dev::strings allGenesis;
+  allGenesis.reserve(GENESIS_KEYS.size() +
+                     DS_GENESIS_KEYS.size());  // preallocate memory
+  allGenesis.insert(allGenesis.end(), GENESIS_KEYS.begin(), GENESIS_KEYS.end());
+  allGenesis.insert(allGenesis.end(), DS_GENESIS_KEYS.begin(),
+                    DS_GENESIS_KEYS.end());
+
+  for (auto& privKeyHexStr : allGenesis) {
     bytes out;
     if (DataConversion::HexStrToUint8Vec(privKeyHexStr, out)) {
       const auto& privKeyBytes{out};

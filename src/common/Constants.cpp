@@ -54,13 +54,13 @@ string ReadConstantString(const string& propertyName,
   return pt.get<string>(path + propertyName);
 }
 
-const vector<string> ReadAccountsFromConstantsFile(const string& propName) {
+const vector<string> ReadAccountsFromConstantsFile(
+    const string& propName, const string& path = "node.accounts") {
   auto pt = PTree::GetInstance();
   vector<string> result;
-  for (auto& acc : pt.get_child("node.accounts")) {
+  for (auto& acc : pt.get_child(path)) {
     auto child = acc.second.get_optional<string>(propName);
     if (child) {
-      // LOG_GENERAL("constants " << child.get());
       result.push_back(child.get());
     }
   }
@@ -203,8 +203,10 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadConstantNumeric("DELAY_FIRSTXNEPOCH_IN_MS", "node.epoch_timing.")};
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadConstantNumeric("FETCHING_MISSING_DATA_TIMEOUT", "node.epoch_timing.")};
-const unsigned int ANNOUNCEMENT_DELAY_IN_MS{
-    ReadConstantNumeric("ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
+const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS{
+    ReadConstantNumeric("DS_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
+const unsigned int SHARD_ANNOUNCEMENT_DELAY_IN_MS{ReadConstantNumeric(
+    "SHARD_ANNOUNCEMENT_DELAY_IN_MS", "node.epoch_timing.")};
 const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{ReadConstantNumeric(
     "LOOKUP_DELAY_SEND_TXNPACKET_IN_MS", "node.epoch_timing.")};
 const unsigned int MICROBLOCK_TIMEOUT{
@@ -221,6 +223,8 @@ const unsigned int RECOVERY_SYNC_TIMEOUT{
     ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+const unsigned int DS_TX_PROCESSING_TIMEOUT{
+    ReadConstantNumeric("DS_TX_PROCESSING_TIMEOUT", "node.epoch_timing.")};
 const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
     "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int GETSHARD_TIMEOUT_IN_SECONDS{
@@ -603,6 +607,8 @@ const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
     "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
     "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
+const unsigned int TXNS_MISSING_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
+    "TXNS_MISSING_TOLERANCE_IN_PERCENT", "node.transactions.")};
 const unsigned int PACKET_EPOCH_LATE_ALLOW{
     ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.transactions.")};
 const unsigned int PACKET_BYTESIZE_LIMIT{
@@ -648,6 +654,12 @@ const unsigned int VIEWCHANGE_TIME{
 const vector<string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
+
+// Genesis accounts for ds txn dispatching ( TEST Purpose Only )
+const vector<string> DS_GENESIS_WALLETS{
+    ReadAccountsFromConstantsFile("wallet_address", "node.ds_accounts")};
+const vector<string> DS_GENESIS_KEYS{
+    ReadAccountsFromConstantsFile("private_key", "node.ds_accounts")};
 
 // Verifier
 const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{

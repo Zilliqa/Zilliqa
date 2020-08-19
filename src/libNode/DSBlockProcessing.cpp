@@ -347,7 +347,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
-  CommitTxnPacketBuffer();
+  // CommitTxnPacketBuffer();
 
   if (fbWaitState) {
     SetState(WAITING_FINALBLOCK);
@@ -730,7 +730,7 @@ bool Node::ProcessVCDSBlocksMessage(
     }
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
-      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
+      m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards, true);
     }
   }
 

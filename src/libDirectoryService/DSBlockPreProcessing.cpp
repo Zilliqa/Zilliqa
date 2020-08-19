@@ -1116,7 +1116,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
   };
 
-  cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
+  cl->StartConsensus(announcementGeneratorFunc, nullptr, BROADCAST_GOSSIP_MODE);
   return true;
 }
 

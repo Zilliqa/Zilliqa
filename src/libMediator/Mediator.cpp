@@ -52,8 +52,9 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_disablePoW(false),
       m_validateState(ValidateState::IDLE),
       m_aveBlockTimeInSeconds(
-          static_cast<double>(TX_DISTRIBUTE_TIME_IN_MS +
-                              (ANNOUNCEMENT_DELAY_IN_MS * 2)) /
+          static_cast<double>(
+              TX_DISTRIBUTE_TIME_IN_MS +
+              (DS_ANNOUNCEMENT_DELAY_IN_MS + SHARD_ANNOUNCEMENT_DELAY_IN_MS)) /
           1000) {
   SetupLogLevel();
 }
