@@ -558,7 +558,7 @@ class Node : public Executable {
   bool StartRetrieveHistory(const SyncType syncType,
                             bool rejoiningAfterRecover = false);
 
-  bool CheckIntegrity(bool fromIsolatedBinary = false);
+  bool CheckIntegrity(const bool fromValidateDBBinary = false);
   void PutProcessedInUnconfirmedTxns();
 
   bool SendPendingTxnToLookup();
@@ -575,8 +575,8 @@ class Node : public Executable {
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
 
-  void UpdateDSCommitteeComposition(DequeOfNode& dsComm,
-                                    const DSBlock& dsblock);
+  void UpdateDSCommitteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock,
+                                    const bool showLogs = true);
   void UpdateDSCommitteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock,
                                     MinerInfoDSComm& minerInfo);
 
@@ -683,7 +683,8 @@ class Node : public Executable {
   void UpdateDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
                                            DequeOfNode& dsComm);
   void UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
-                                                   DequeOfNode& dsComm);
+                                                   DequeOfNode& dsComm,
+                                                   const bool showLogs = true);
 
   void UpdateProcessedTransactions();
 

@@ -48,7 +48,8 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
       m_isRetrievedHistory(false),
       m_isVacuousEpoch(false),
       m_curSWInfo(),
-      m_disablePoW(false) {
+      m_disablePoW(false),
+      m_validateState(ValidateState::IDLE) {
   SetupLogLevel();
 }
 

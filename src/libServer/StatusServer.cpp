@@ -122,6 +122,14 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("ToggleDisableTxns", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::ToggleDisableTxnsI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("SetValidateDB", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::SetValidateDBI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetValidateDB", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetValidateDBI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -412,4 +420,65 @@ bool StatusServer::ToggleDisableTxns() {
   }
   m_mediator.m_disableTxns = !m_mediator.m_disableTxns;
   return m_mediator.m_disableTxns;
+}
+
+string StatusServer::SetValidateDB() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  string result = "";
+  try {
+    switch (m_mediator.m_validateState) {
+      case ValidateState::IDLE:
+      case ValidateState::DONE:
+      case ValidateState::ERROR:
+        if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
+          result = "Validation aborted - node not synced";
+        } else {
+          m_mediator.m_node->ValidateDB();
+          result = "Validation started";
+        }
+        break;
+      case ValidateState::INPROGRESS:
+      default:
+        result = "Validation in progress";
+        break;
+    }
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+
+  return result;
+}
+
+string StatusServer::GetValidateDB() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  string result = "";
+  try {
+    switch (m_mediator.m_validateState) {
+      case ValidateState::IDLE:
+        result = "Validation idle";
+        break;
+      case ValidateState::INPROGRESS:
+        result = "Validation in progress";
+        break;
+      case ValidateState::DONE:
+        result = "Validation completed successfully";
+        break;
+      case ValidateState::ERROR:
+      default:
+        result = "Validation completed with errors";
+        break;
+    }
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error]: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+
+  return result;
 }

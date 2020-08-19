@@ -99,23 +99,24 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
 }
 
 void Node::UpdateDSCommitteeComposition(DequeOfNode& dsComm,
-                                        const DSBlock& dsblock) {
-  // Update the DS committee composition.
-  LOG_MARKER();
+                                        const DSBlock& dsblock,
+                                        const bool showLogs) {
+  if (showLogs) {
+    LOG_MARKER();
+  }
 
   MinerInfoDSComm dummy;
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second, dsComm, dsblock,
-                                   dummy);
+                                   dummy, showLogs);
 }
 
 void Node::UpdateDSCommitteeComposition(DequeOfNode& dsComm,
                                         const DSBlock& dsblock,
                                         MinerInfoDSComm& minerInfo) {
-  // Update the DS committee composition.
   LOG_MARKER();
 
   UpdateDSCommitteeCompositionCore(m_mediator.m_selfKey.second, dsComm, dsblock,
-                                   minerInfo);
+                                   minerInfo, true);
 }
 
 bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {

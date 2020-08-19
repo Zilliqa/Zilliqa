@@ -100,6 +100,9 @@ class Mediator {
   /// Prevent transactions from being created, forwarded, and dispatched
   static std::atomic<bool> m_disableTxns;
 
+  /// ValidateDB state, used by StatusServer
+  std::atomic<ValidateState> m_validateState;
+
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 

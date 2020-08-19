@@ -316,6 +316,32 @@
         <VERIFIER_PATH>./historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
         <SEED_PORT>33133</SEED_PORT>
+        <exclusion_list>
+            <entry>
+                <TXBLOCK>175334</TXBLOCK>
+                <MICROBLOCK>0</MICROBLOCK>
+            </entry>
+            <entry>
+                <TXBLOCK>175637</TXBLOCK>
+                <MICROBLOCK>0</MICROBLOCK>
+            </entry>
+            <entry>
+                <TXBLOCK>175637</TXBLOCK>
+                <MICROBLOCK>1</MICROBLOCK>
+            </entry>
+            <entry>
+                <TXBLOCK>175637</TXBLOCK>
+                <MICROBLOCK>2</MICROBLOCK>
+            </entry>
+            <entry>
+                <TXBLOCK>175701</TXBLOCK>
+                <MICROBLOCK>0</MICROBLOCK>
+            </entry>
+            <entry>
+                <TXBLOCK>175701</TXBLOCK>
+                <MICROBLOCK>1</MICROBLOCK>
+            </entry>
+        </exclusion_list>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>
