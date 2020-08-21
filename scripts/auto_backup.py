@@ -110,7 +110,7 @@ def GetCurrentTxBlockNum():
     return blockNum + 1
 
 def CreateTempPersistence():
-    bashCommand = "rsync --recursive --delete -a persistence tempbackup"
+    bashCommand = "rsync --recursive --inplace --delete -a persistence tempbackup && rsync --recursive --inplace --delete -a persistence tempbackup"
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
     logging.info("Copied local persistence to temporary")
