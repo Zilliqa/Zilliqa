@@ -75,7 +75,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
-    && echo "built files:" && ls ${BUILD_DIR} && ls ${INSTALL_DIR}/lib
+    && echo "built files:" && ls -l ${BUILD_DIR} && echo "installed libs:" && ls -l ${INSTALL_DIR}/lib
 
 FROM ubuntu:18.04
 
@@ -123,6 +123,8 @@ RUN pip3 install wheel \
 RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
     /zilliqa/scripts
+
+ARG INSTALL_DIR=/usr/local
 
 COPY --from=scilla  /scilla/0/bin            /scilla/0/bin
 COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
