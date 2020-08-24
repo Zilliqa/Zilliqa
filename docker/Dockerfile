@@ -15,8 +15,9 @@
 #
 
 ARG BASE=zilliqa/scilla:v0.8.0
-FROM ${BASE} AS builder
+FROM ${BASE} AS scilla
 
+FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -122,8 +123,8 @@ RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
     /zilliqa/scripts
 
-COPY --from=builder /scilla/0/bin /scilla/0/bin
-COPY --from=builder /scilla/0/src/stdlib /scilla/0/src/stdlib
+COPY --from=scilla /scilla/0/bin /scilla/0/bin
+COPY --from=scilla /scilla/0/src/stdlib /scilla/0/src/stdlib
 COPY --from=builder /zilliqa/scripts /zilliqa/scripts
 COPY --from=builder /usr/local/bin/* /usr/local/bin/
 
