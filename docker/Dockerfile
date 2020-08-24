@@ -72,7 +72,7 @@ ARG EXTRA_CMAKE_ARGS=
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
+    -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && rm -rf ${BUILD_DIR}
@@ -123,10 +123,11 @@ RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
     /zilliqa/scripts
 
-COPY --from=scilla /scilla/0/bin /scilla/0/bin
-COPY --from=scilla /scilla/0/src/stdlib /scilla/0/src/stdlib
-COPY --from=builder /zilliqa/scripts /zilliqa/scripts
-COPY --from=builder /usr/local/bin/* /usr/local/bin/
+COPY --from=scilla  /scilla/0/bin            /scilla/0/bin
+COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
+COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
+COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
