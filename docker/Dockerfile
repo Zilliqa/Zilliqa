@@ -15,10 +15,7 @@
 #
 
 ARG BASE=zilliqa/scilla:v0.8.0
-FROM ${BASE}
-
-COPY requirements3.txt ./
-
+FROM ${BASE} AS builder
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -78,6 +75,57 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && rm -rf ${BUILD_DIR}
+
+FROM ubuntu:18.04
+
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    # autoconf \
+    # build-essential \
+    ca-certificates \
+    # cmake \
+    # curl is not a build dependency
+    curl \
+    git \
+    # golang \
+    # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
+    # mention again as installation candidate
+    rsync \
+    libboost-filesystem-dev \
+    libboost-program-options-dev \
+    libboost-system-dev \
+    libboost-test-dev \
+    libboost-python-dev \
+    libcurl4-openssl-dev \
+    libevent-dev \
+    libjsoncpp-dev \
+    libjsonrpccpp-dev \
+    libleveldb-dev \
+    libmicrohttpd-dev \
+    libminiupnpc-dev \
+    libsnappy-dev \
+    libssl-dev \
+    libtool \
+    ocl-icd-opencl-dev \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    libsecp256k1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements3.txt ./
+RUN pip3 install -r requirements3.txt
+
+RUN mkdir -p \
+    /scilla/0/bin /scilla/0/src/stdlib \
+    /zilliqa/scripts
+
+COPY --from=builder /scilla/0/bin /scilla/0/bin
+COPY --from=builder /scilla/0/src/stdlib /scilla/0/src/stdlib
+COPY --from=builder /zilliqa/scripts /zilliqa/scripts
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
