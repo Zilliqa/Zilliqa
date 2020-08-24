@@ -75,7 +75,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
-    && rm -rf ${BUILD_DIR}
+    && echo "built files:" && ls ${BUILD_DIR} && ls ${INSTALL_DIR}/lib
 
 FROM ubuntu:18.04
 
@@ -117,7 +117,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements3.txt ./
-RUN pip3 install -r requirements3.txt
+RUN pip3 install wheel \
+    && pip3 install -r requirements3.txt
 
 RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
