@@ -291,16 +291,23 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
   };
 
   // Retrieve the latest Tx block from storage
-  TxBlockSharedPtr latestTxBlock;
-  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
-    // Set validation state for StatusServer
-    m_mediator.m_validateState = ValidateState::ERROR;
-    return false;
+  // If using validateDB binary, we use GetLatestTxBlock
+  // If using within zilliqa process, we need to avoid keeping the lock on
+  // txBlocks DB
+  TxBlock latestTxBlock;
+  if (fromValidateDBBinary) {
+    TxBlockSharedPtr latestTxBlockPtr;
+    if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlockPtr)) {
+      LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
+      return false;
+    }
+    latestTxBlock = *latestTxBlockPtr;
+  } else {
+    latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
   }
 
-  const uint64_t latestTxBlockNum = latestTxBlock->GetHeader().GetBlockNum();
-  const uint64_t latestDSIndex = latestTxBlock->GetHeader().GetDSBlockNum();
+  const uint64_t& latestTxBlockNum = latestTxBlock.GetHeader().GetBlockNum();
+  const uint64_t& latestDSIndex = latestTxBlock.GetHeader().GetDSBlockNum();
 
   if (fromValidateDBBinary) {
     cout << "[" << getTime() << "] Latest Tx block = " << latestTxBlockNum
@@ -470,7 +477,7 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
   }
 
   // Check the latest Tx Block
-  if (!m_mediator.m_validator->CheckBlockCosignature(*latestTxBlock, dsComm)) {
+  if (!m_mediator.m_validator->CheckBlockCosignature(latestTxBlock, dsComm)) {
     LOG_GENERAL(WARNING, "CheckBlockCosignature failed");
     // Set validation state for StatusServer
     m_mediator.m_validateState = ValidateState::ERROR;
