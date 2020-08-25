@@ -16,7 +16,7 @@
 
 ARG BASE=zilliqa/scilla:v0.8.0
 FROM ${BASE} AS scilla
-RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/
+RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -72,7 +72,30 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
-    && echo "built files:" && ls -l ${BUILD_DIR} && echo "installed libs:" && ls -l ${INSTALL_DIR}/lib
+    && echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib \
+    && strip /usr/local/bin/grepperf \
+     /usr/local/bin/zilliqad \
+     /usr/local/bin/genkeypair \
+     /usr/local/bin/signmultisig \
+     /usr/local/bin/verifymultisig \
+     /usr/local/bin/getpub \
+     /usr/local/bin/getaddr \
+     /usr/local/bin/genaccounts \
+     /usr/local/bin/sendcmd \
+     /usr/local/bin/gentxn \
+     /usr/local/bin/restore \
+     /usr/local/bin/gensigninitialds \
+     /usr/local/bin/validateDB \
+     /usr/local/bin/genTxnBodiesFromS3 \
+     /usr/local/bin/getnetworkhistory \
+     /usr/local/bin/isolatedServer \
+     /usr/local/bin/getrewardhistory \
+     /usr/local/bin/zilliqa \
+     /usr/local/lib/libSchnorr.so \
+     /usr/local/lib/libethash.so \
+     /usr/local/lib/libNAT.so \
+     /usr/local/lib/libCommon.so \
+     /usr/local/lib/libTrie.so
 
 FROM ubuntu:18.04
 
