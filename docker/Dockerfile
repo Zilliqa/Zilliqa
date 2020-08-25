@@ -107,10 +107,8 @@ FROM ubuntu:18.04
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-get update && apt-get install -y --no-install-recommends \
+    # libs
     ca-certificates \
-    curl \
-    git \
-    rsync \
     libboost-filesystem-dev \
     libboost-program-options-dev \
     libboost-system-dev \
@@ -132,6 +130,18 @@ RUN apt-get update \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
+    # tools
+    curl \
+    dnsutils \
+    gdb \
+    git \
+    less \
+    logrotate \
+    net-tools \
+    rsync \
+    rsyslog \
+    trickle \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # install all necessary libraries for python

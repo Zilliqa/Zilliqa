@@ -25,9 +25,9 @@ check-commit:
 	fi
 
 # build zilliqa docker image for Kubernetes usage
-k8s: check-commit
-	cat Dockerfile Dockerfile.k8s | docker build -t zilliqa:$(commit_or_tag) \
-		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f- .
+dev: check-commit
+	docker build -t zilliqa:$(commit_or_tag) \
+		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile .
 
 # build release version docker image for public usage
 release:
