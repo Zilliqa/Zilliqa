@@ -16,6 +16,7 @@
 
 ARG BASE=zilliqa/scilla:v0.8.0
 FROM ${BASE} AS scilla
+RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/
 
 FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -126,7 +127,7 @@ RUN mkdir -p \
 
 ARG INSTALL_DIR=/usr/local
 
-COPY --from=scilla  /scilla/0/bin            /scilla/0/bin
+COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
 COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
 COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
