@@ -93,7 +93,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
        /usr/local/bin/getnetworkhistory \
        /usr/local/bin/isolatedServer \
        /usr/local/bin/getrewardhistory \
-       /usr/local/bin/zilliqa \
+    #    /usr/local/bin/zilliqa \
        /usr/local/lib/libSchnorr.so \
        /usr/local/lib/libethash.so \
        /usr/local/lib/libNAT.so \
