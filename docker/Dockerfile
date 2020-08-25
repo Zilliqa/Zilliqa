@@ -57,10 +57,6 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
-# set python3 as default instead python2
-# RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.3.0-alpha.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
@@ -119,7 +115,8 @@ RUN apt-get update \
 
 COPY requirements3.txt ./
 RUN pip3 install wheel \
-    && pip3 install -r requirements3.txt
+    && pip3 install -r requirements3.txt \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3 10 # set python3 as default instead python2
 
 RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
