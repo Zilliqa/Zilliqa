@@ -201,7 +201,6 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   // ========================================
 
   vector<ChallengeSubsetInfo> challengeSubsetInfo;
-  vector<ResponseSubsetInfo> responseSubsetInfo;
 
   if (!Messenger::GetConsensusChallenge(challenge, offset, m_consensusID,
                                         m_blockNumber, m_blockHash, m_leaderID,
@@ -211,8 +210,10 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     return false;
   }
 
-  for (unsigned int subsetID = 0; subsetID < challengeSubsetInfo.size();
-       subsetID++) {
+  for (int subsetID = challengeSubsetInfo.size() - 1; subsetID >= 0;
+       subsetID--) {
+    vector<ResponseSubsetInfo> responseSubsetInfo;
+
     // Check the aggregated commit
     if (!challengeSubsetInfo.at(subsetID).aggregatedCommit.Initialized()) {
       LOG_GENERAL(WARNING,
@@ -246,30 +247,33 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
                  m_myPrivKey);
 
     responseSubsetInfo.emplace_back(rsi);
-  }
 
-  // Generate response
-  // =================
+    // Generate response
+    // =================
 
-  bytes response = {m_classByte, m_insByte,
-                    static_cast<uint8_t>(returnmsgtype)};
-  if (GenerateResponseMessage(response, MessageOffset::BODY + sizeof(uint8_t),
-                              responseSubsetInfo)) {
-    // Update internal state
-    // =====================
-
-    m_state = nextstate;
+    bytes response = {m_classByte, m_insByte,
+                      static_cast<uint8_t>(returnmsgtype)};
+    if (!GenerateResponseMessage(response,
+                                 MessageOffset::BODY + sizeof(uint8_t),
+                                 responseSubsetInfo)) {
+      LOG_GENERAL(WARNING,
+                  "[Subset " << subsetID << "] GenerateResponseMessage failed");
+      continue;
+    }
 
     // Unicast to the leader
     // =====================
 
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
-
-    return true;
   }
 
-  return false;
+  // Update internal state
+  // =====================
+
+  m_state = nextstate;
+
+  return true;
 }
 
 bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
