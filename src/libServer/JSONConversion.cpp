@@ -27,6 +27,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
+#include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -55,10 +56,14 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   const TxBlockHeader& txheader = txblock.GetHeader();
 
+  bool isVacuous =
+      Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
+
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
   ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
-  ret_head["Rewards"] = txheader.GetRewards().str();
+  ret_head["Rewards"] = isVacuous ? txheader.GetRewards().str() : 0;
+  ret_head["TxnFees"] = isVacuous ? 0 : txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
   ret_head["Timestamp"] = to_string(txblock.GetTimestamp());

@@ -122,7 +122,7 @@ class Mediator {
 
   bool GetIsVacuousEpoch();
 
-  bool GetIsVacuousEpoch(const uint64_t& epochNum);
+  static bool GetIsVacuousEpoch(const uint64_t& epochNum);
 
   uint32_t GetShardSize(const bool& useShardStructure) const;
 
