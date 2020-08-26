@@ -746,9 +746,9 @@ message LookupSetMinerInfoFromSeed
 // From new join lookup node or new join normal node to existing lookup node.
 message LookupGetTxBlockFromSeed
 {
-    uint64 lowblocknum  = 1;
-    uint64 highblocknum = 2;
-    uint32 listenport   = 3;
+    uint64 lowblocknum     = 1;
+    uint64 highblocknum    = 2;
+    uint32 listenport      = 3;
 }
 
 // From lookup nodes to new join lookup node or new join normal node.
