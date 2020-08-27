@@ -49,7 +49,7 @@ target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit_o
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
 set +e
-make -C docker k8s EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
+make -C docker dev EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
 set -e
 docker tag ${source_image} ${target_image}
 docker push ${target_image}

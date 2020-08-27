@@ -15,11 +15,12 @@
 #
 
 ARG BASE=zilliqa/scilla:v0.8.0
-FROM ${BASE}
+FROM ${BASE} AS scilla
+# run a copy -L to unfold the symlinkes, and strip all exes
+RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-COPY requirements3.txt ./
-
-
+# start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
+FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -56,11 +57,7 @@ RUN apt-get update \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install -r requirements3.txt
-
-# set python3 as default instead python2
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+    && rm -rf /var/lib/apt/lists/*
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.3.0-alpha.0
@@ -74,10 +71,101 @@ ARG EXTRA_CMAKE_ARGS=
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
+    -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
-    && rm -rf ${BUILD_DIR}
+    && echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib \
+    # strip all exes
+    && strip /usr/local/bin/grepperf \
+       /usr/local/bin/zilliqad \
+       /usr/local/bin/genkeypair \
+       /usr/local/bin/signmultisig \
+       /usr/local/bin/verifymultisig \
+       /usr/local/bin/getpub \
+       /usr/local/bin/getaddr \
+       /usr/local/bin/genaccounts \
+       /usr/local/bin/sendcmd \
+       /usr/local/bin/gentxn \
+       /usr/local/bin/restore \
+       /usr/local/bin/gensigninitialds \
+       /usr/local/bin/validateDB \
+       /usr/local/bin/genTxnBodiesFromS3 \
+       /usr/local/bin/getnetworkhistory \
+       /usr/local/bin/isolatedServer \
+       /usr/local/bin/getrewardhistory \
+    #    /usr/local/bin/zilliqa \
+       /usr/local/lib/libSchnorr.so \
+       /usr/local/lib/libethash.so \
+       /usr/local/lib/libNAT.so \
+       /usr/local/lib/libCommon.so \
+       /usr/local/lib/libTrie.so
+
+# start from a new ubuntu as the runner image
+FROM ubuntu:18.04
+
+# install all necessary libraries
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    # libs
+    ca-certificates \
+    libboost-filesystem-dev \
+    libboost-program-options-dev \
+    libboost-system-dev \
+    libboost-test-dev \
+    libboost-python-dev \
+    libcurl4-openssl-dev \
+    libevent-dev \
+    libjsoncpp-dev \
+    libjsonrpccpp-dev \
+    libleveldb-dev \
+    libmicrohttpd-dev \
+    libminiupnpc-dev \
+    libsnappy-dev \
+    libssl-dev \
+    libtool \
+    ocl-icd-opencl-dev \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    libsecp256k1-dev \
+    # tools
+    curl \
+    dnsutils \
+    gdb \
+    git \
+    less \
+    logrotate \
+    net-tools \
+    rsync \
+    rsyslog \
+    trickle \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# install all necessary libraries for python
+COPY requirements3.txt ./
+RUN pip3 install wheel \
+    && pip3 install --no-cache-dir -r requirements3.txt \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3 10 # set python3 as default instead python2
+
+# make dirs fro scilla and zilliqa
+RUN mkdir -p \
+    /scilla/0/bin /scilla/0/src/stdlib \
+    /zilliqa/scripts
+
+ARG INSTALL_DIR=/usr/local
+
+# pour in scilla binaries
+COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
+# pour in scilla conntract stdlibs
+COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
+# pour in zilliqa scripts
+COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+# pour in zilliqa binaries and dynnamic libs
+COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
+COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
