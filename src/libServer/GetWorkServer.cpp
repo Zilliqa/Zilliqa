@@ -66,6 +66,9 @@ bool GetWorkServer::StartServer() {
 
 // StartMining starts mining
 bool GetWorkServer::StartMining(const PoWWorkPackage& wp) {
+  // Keep track of current difficulty for this round of mining
+  m_currentTargetDifficulty = wp.difficulty;
+
   // clear the last result
   {
     lock_guard<mutex> g(m_mutexResult);
@@ -90,6 +93,7 @@ bool GetWorkServer::StartMining(const PoWWorkPackage& wp) {
 // StopMining stops mining and clear result
 void GetWorkServer::StopMining() {
   m_isMining = false;
+  m_currentTargetDifficulty = 0;
 
   lock_guard<mutex> g(m_mutexResult);
   m_curResult.success = false;
@@ -173,8 +177,8 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
 }
 
 // UpdateCurrentResult check and update new result
-bool GetWorkServer::UpdateCurrentResult(
-    const ethash_mining_result_t& newResult) {
+bool GetWorkServer::UpdateCurrentResult(const ethash_mining_result_t& newResult,
+                                        const uint8_t difficulty) {
   if (!newResult.success) {
     LOG_GENERAL(WARNING, "newResult is not success");
     return false;
@@ -186,12 +190,13 @@ bool GetWorkServer::UpdateCurrentResult(
 
   if (!m_curResult.success) {
     // accept the new result directly if current result is false
-    accept = true;
+    accept = (difficulty == m_currentTargetDifficulty);
   } else {
     // accept the new result if it less or equal than current one
     auto new_hash = POW::StringToBlockhash(newResult.result);
     auto cur_hash = POW::StringToBlockhash(m_curResult.result);
-    accept = ethash::is_less_or_equal(new_hash, cur_hash);
+    accept = ethash::is_less_or_equal(new_hash, cur_hash) &&
+             (difficulty == m_currentTargetDifficulty);
   }
 
   if (accept) {
@@ -238,6 +243,8 @@ bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
     return false;
   }
 
+  const uint8_t difficulty = m_currentTargetDifficulty;
+
   string nonce = _nonce;
   string header = _header;
   string mixdigest = _mixdigest;
@@ -259,7 +266,7 @@ bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
 
   auto result = VerifySubmit(nonce, header, mixdigest, boundary);
 
-  return UpdateCurrentResult(result);
+  return UpdateCurrentResult(result, difficulty);
   ;
 }
 
