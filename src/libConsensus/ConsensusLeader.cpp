@@ -207,15 +207,6 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       }
     }
 
-    if (GUARD_MODE && m_DS) {
-      LOG_GENERAL(
-          INFO,
-          "Guards appearing in more than 1 subset = " << std::count_if(
-              indexUseCount.begin(),
-              indexUseCount.begin() + Guard::GetInstance().GetNumOfDSGuard(),
-              [](int i) { return i > 1; }))
-    }
-
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "SubsetID: " << i);
       for (unsigned int k = 0; k < subset.commitMap.size(); k++) {
@@ -226,6 +217,16 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 
     random_shuffle(peersWhoCommitted.begin(), peersWhoCommitted.end());
   }
+
+  if (GUARD_MODE && m_DS) {
+    LOG_GENERAL(
+        INFO,
+        "Guards appearing in more than 1 subset = " << std::count_if(
+            indexUseCount.begin(),
+            indexUseCount.begin() + Guard::GetInstance().GetNumOfDSGuard(),
+            [](int i) { return i > 1; }))
+  }
+
   // Clear out the original commit map stuff, we don't need it anymore at this
   // point
   m_commitPointMap.clear();
