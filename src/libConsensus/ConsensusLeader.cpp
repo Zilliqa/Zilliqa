@@ -123,6 +123,9 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   m_consensusSubsets.clear();
   m_consensusSubsets.resize(numSubsets);
 
+  vector<unsigned int> indexUseCount(m_committee.size(), 0);
+  indexUseCount.at(m_myID) = numSubsets;  // myself
+
   for (unsigned int i = 0; i < numSubsets; i++) {
     ConsensusSubset& subset = m_consensusSubsets.at(i);
     subset.commitMap.resize(m_committee.size());
@@ -151,6 +154,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
+          indexUseCount.at(index)++;
           subsetPeers++;
           if (subsetPeers == m_numForConsensus) {
             // got all dsguards commit
@@ -175,6 +179,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPointMap.at(index) = m_commitPointMap.at(index);
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
+          indexUseCount.at(index)++;
           if (++subsetPeers >= m_numForConsensus) {
             break;
           }
@@ -183,12 +188,32 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     }
     // For other subsets, its commit from every one together.
     else {
+      unsigned int guardCount = 1;  // myself
       for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
         unsigned int index = peersWhoCommitted.at(j);
         subset.commitPointMap.at(index) = m_commitPointMap.at(index);
         subset.commitPoints.emplace_back(m_commitPointMap.at(index));
         subset.commitMap.at(index) = true;
+        indexUseCount.at(index)++;
+        if (GUARD_MODE && m_DS &&
+            index < Guard::GetInstance().GetNumOfDSGuard()) {
+          guardCount++;
+        }
       }
+      if (GUARD_MODE && m_DS) {
+        LOG_GENERAL(INFO, "[SubsetID: " << i << "] Guards = " << guardCount
+                                        << ", Non-guards = "
+                                        << m_numForConsensus - guardCount);
+      }
+    }
+
+    if (GUARD_MODE && m_DS) {
+      LOG_GENERAL(
+          INFO,
+          "Guards appearing in more than 1 subset = " << std::count_if(
+              indexUseCount.begin(),
+              indexUseCount.begin() + Guard::GetInstance().GetNumOfDSGuard(),
+              [](int i) { return i > 1; }))
     }
 
     if (DEBUG_LEVEL >= 5) {

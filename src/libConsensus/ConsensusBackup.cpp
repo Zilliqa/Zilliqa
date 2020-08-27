@@ -266,6 +266,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
+    LOG_GENERAL(INFO, "[Subset " << subsetID << "] Response sent");
   }
 
   // Update internal state
