@@ -17,6 +17,7 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
+#include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 
 using namespace jsonrpc;
@@ -30,7 +31,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::AbstractServer<IsolatedServer>(server,
                                               jsonrpc::JSONRPC_SERVER_V2),
       m_blocknum(blocknum),
-      m_timeDelta(timeDelta) {
+      m_timeDelta(timeDelta),
+      m_key(Schnorr::GenKeyPair()) {
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
@@ -191,6 +193,30 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
+bool IsolatedServer::RetrieveHistory() {
+  m_mediator.m_txBlockChain.Reset();
+
+  std::shared_ptr<Retriever> m_retriever;
+
+  bool st_result = m_retriever->RetrieveStates();
+
+  if (!(st_result)) {
+    LOG_GENERAL(WARNING, "Retrieval of states and tx block failed");
+    return false;
+  }
+  TxBlockSharedPtr txblock;
+  bool ret = BlockStorage::GetBlockStorage().GetLatestTxBlock(txblock);
+  if (ret) {
+    m_blocknum = txblock->GetHeader().GetBlockNum() + 1;
+  } else {
+    LOG_GENERAL(WARNING, "Could not retrieve latest block num");
+    return false;
+  }
+  m_currEpochGas = 0;
+
+  return true;
+}
+
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
@@ -300,7 +326,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     AccountStore::GetInstance().SerializeDelta();
     AccountStore::GetInstance().CommitTemp();
 
-    AccountStore::GetInstance().InitTemp();
+    if (!m_timeDelta) {
+      AccountStore::GetInstance().InitTemp();
+    }
 
     if (throwError) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
@@ -342,26 +370,44 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 Json::Value IsolatedServer::GetTransactionsForTxBlock(
     const string& txBlockNum) {
   uint64_t txNum;
-  Json::Value _json;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
   } catch (exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
   }
 
-  lock_guard<mutex> g(m_txnBlockNumMapMutex);
+  auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-  const auto& iter = m_txnBlockNumMap.find(txNum);
-
-  if (iter == m_txnBlockNumMap.end()) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, "No txns found");
+  if (txBlock.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txBlock.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
+    throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlock does not exist");
   }
 
-  for (const auto& txhash : iter->second) {
-    const auto& json_txn = GetTransaction(txhash.hex());
-    _json.append(json_txn);
+  auto microBlockInfos = txBlock.GetMicroBlockInfos();
+  Json::Value _json = Json::arrayValue;
+  bool hasTransactions = false;
+
+  for (auto const& mbInfo : microBlockInfos) {
+    MicroBlockSharedPtr mbptr;
+    _json[mbInfo.m_shardId] = Json::arrayValue;
+
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
+    }
+
+    const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+    if (tranHashes.size() > 0) {
+      hasTransactions = true;
+      for (const auto& tranHash : tranHashes) {
+        _json[mbInfo.m_shardId].append(tranHash.hex());
+      }
+    }
   }
 
+  if (!hasTransactions) {
+    throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+  }
   return _json;
 }
 
@@ -379,6 +425,9 @@ string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;
+  if (m_timeDelta > 0) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
+  }
   try {
     newGasPrice = move(uint128_t(gasPrice));
   } catch (exception& e) {
@@ -412,14 +461,30 @@ bool IsolatedServer::StartBlocknumIncrement() {
 
 TxBlock IsolatedServer::GenerateTxBlock() {
   uint numtxns;
+  vector<TxnHash> txnhashes;
   {
     lock_guard<mutex> g(m_txnBlockNumMapMutex);
     numtxns = m_txnBlockNumMap[m_blocknum].size();
+    txnhashes = m_txnBlockNumMap[m_blocknum];
+    m_txnBlockNumMap[m_blocknum].clear();
   }
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
-                              TxBlockHashSet(), numtxns, PubKey(),
+                              TxBlockHashSet(), numtxns, m_key.first,
                               TXBLOCK_VERSION);
-  TxBlock txblock(txblockheader, {MicroBlockInfo()}, CoSignatures());
+  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, {}, numtxns,
+                       m_key.first, 0);
+  MicroBlock mb(mbh, txnhashes, CoSignatures());
+  MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
+                        mb.GetHeader().GetShardId()};
+  LOG_GENERAL(INFO, "MicroBlock hash = " << mbInfo.m_microBlockHash);
+  bytes body;
+
+  mb.Serialize(body, 0);
+
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(mb.GetBlockHash(), body)) {
+    LOG_GENERAL(WARNING, "Failed to put microblock in body");
+  }
+  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());
 
   return txblock;
 }
@@ -449,6 +514,9 @@ void IsolatedServer::PostTxBlock() {
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
   }
+
+  AccountStore::GetInstance().MoveUpdatesToDisk();
+  AccountStore::GetInstance().InitTemp();
 
   m_blocknum++;
   m_currEpochGas = 0;

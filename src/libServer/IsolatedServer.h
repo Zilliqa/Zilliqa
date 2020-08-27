@@ -25,11 +25,12 @@ class Mediator;
 class IsolatedServer : public LookupServer,
                        public jsonrpc::AbstractServer<IsolatedServer> {
   uint64_t m_blocknum;
-  uint128_t m_gasPrice{1};
+  uint128_t m_gasPrice{GAS_PRICE_MIN_VALUE};
   std::atomic<uint32_t> m_timeDelta;
   std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
   std::mutex mutable m_txnBlockNumMapMutex;
   std::mutex mutable m_blockMutex;
+  const PairOfKey m_key;
   uint64_t m_currEpochGas{0};
 
   bool StartBlocknumIncrement();
@@ -78,6 +79,7 @@ class IsolatedServer : public LookupServer,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
+  bool RetrieveHistory();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_
