@@ -245,6 +245,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     rsi.response =
         Response(*m_commitSecret, challengeSubsetInfo.at(subsetID).challenge,
                  m_myPrivKey);
+    rsi.subsetID = subsetID;
 
     responseSubsetInfo.emplace_back(rsi);
 

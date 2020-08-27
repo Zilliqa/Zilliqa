@@ -37,6 +37,7 @@ struct ChallengeSubsetInfo {
 
 struct ResponseSubsetInfo {
   Response response;
+  uint32_t subsetID;
 };
 
 /// Implements base functionality shared between all consensus committee members

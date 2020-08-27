@@ -602,7 +602,10 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     return false;
   }
 
-  for (unsigned int subsetID = 0; subsetID < subsetInfo.size(); subsetID++) {
+  for (unsigned int subsetIndex = 0; subsetIndex < subsetInfo.size();
+       subsetIndex++) {
+    const uint32_t& subsetID = subsetInfo.at(subsetIndex).subsetID;
+
     // Check subset state
     if (!CheckStateSubset(subsetID, action)) {
       continue;
@@ -630,7 +633,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       continue;
     }
 
-    if (!MultiSig::VerifyResponse(subsetInfo.at(subsetID).response,
+    if (!MultiSig::VerifyResponse(subsetInfo.at(subsetIndex).response,
                                   subset.challenge,
                                   GetCommitteeMember(backupID).first,
                                   subset.commitPointMap.at(backupID))) {
@@ -652,8 +655,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     }
 
     // 32-byte response
-    subset.responseData.emplace_back(subsetInfo.at(subsetID).response);
-    subset.responseDataMap.at(backupID) = subsetInfo.at(subsetID).response;
+    subset.responseData.emplace_back(subsetInfo.at(subsetIndex).response);
+    subset.responseDataMap.at(backupID) = subsetInfo.at(subsetIndex).response;
     subset.responseMap.at(backupID) = true;
     subset.responseCounter++;
 

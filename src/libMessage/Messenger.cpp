@@ -8385,6 +8385,7 @@ bool Messenger::SetConsensusResponse(
     ConsensusResponse::SubsetInfo* si =
         result.mutable_consensusinfo()->add_subsetinfo();
     SerializableToProtobufByteArray(subset.response, *si->mutable_response());
+    si->set_subsetid(subset.subsetID);
   }
 
   if (!result.consensusinfo().IsInitialized()) {
@@ -8486,6 +8487,7 @@ bool Messenger::GetConsensusResponse(
     ResponseSubsetInfo si;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.response(), si.response);
+    si.subsetID = proto_si.subsetid();
 
     subsetInfo.emplace_back(si);
   }
