@@ -27,6 +27,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RandomGenerator.h"
 
 using namespace std;
 
@@ -183,11 +184,21 @@ void ConsensusLeader::GenerateConsensusSubsets() {
     }
     // For other subsets, its commit from every one together.
     else {
+      unsigned int guardCount = 1;  // myself
       for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
         unsigned int index = peersWhoCommitted.at(j);
         subset.commitPointMap.at(index) = m_commitPointMap.at(index);
         subset.commitPoints.emplace_back(m_commitPointMap.at(index));
         subset.commitMap.at(index) = true;
+        if (GUARD_MODE && m_DS &&
+            index < Guard::GetInstance().GetNumOfDSGuard()) {
+          guardCount++;
+        }
+      }
+      if (GUARD_MODE && m_DS) {
+        LOG_GENERAL(INFO, "[SubsetID: " << i << "] Guards = " << guardCount
+                                        << ", Non-guards = "
+                                        << m_numForConsensus - guardCount);
       }
     }
 
@@ -591,7 +602,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     return false;
   }
 
-  for (unsigned int subsetID = 0; subsetID < subsetInfo.size(); subsetID++) {
+  if (subsetInfo.empty()) {
+    LOG_GENERAL(WARNING, "Empty response from " << backupID);
+    return false;
+  }
+
+  bool guardInOtherSubsets = false;
+
+  for (int subsetID = subsetInfo.size() - 1; subsetID >= 0; subsetID--) {
     // Check subset state
     if (!CheckStateSubset(subsetID, action)) {
       continue;
@@ -628,6 +646,18 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       continue;
     }
 
+    // If a guard belongs to just subset 0, introduce artificial delay to give
+    // other subsets higher chance of completing first
+    if (GUARD_MODE && (subsetID == 0) && !guardInOtherSubsets &&
+        ((m_DS && (backupID < Guard::GetInstance().GetNumOfDSGuard())) ||
+         (!m_DS && Guard::GetInstance().IsNodeInShardGuardList(
+                       m_committee.at(backupID).first)))) {
+      const unsigned int delay =
+          RandomGenerator::GetRandomInt(SUBSET0_RESPONSE_DELAY_IN_MS) + 1;
+      LOG_GENERAL(INFO, "Delay guard " << backupID << " by " << delay << "ms");
+      std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+    }
+
     // Update internal state
     // =====================
 
@@ -651,6 +681,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                                    << subset.responseCounter << " / "
                                    << m_numForConsensus);
     }
+
+    guardInOtherSubsets = true;
 
     // Generate collective sig if sufficient responses have been obtained
     // ==================================================================
