@@ -194,13 +194,7 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint128_t total_reward = 0;
-
-  if (!SafeMath<uint128_t>::add(COINBASE_REWARD_PER_DS, m_totalTxnFees,
-                                total_reward)) {
-    LOG_GENERAL(WARNING, "total_reward addition unsafe!");
-    return;
-  }
+  uint128_t total_reward = COINBASE_REWARD_PER_DS;
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
