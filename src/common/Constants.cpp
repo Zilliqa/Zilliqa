@@ -144,6 +144,8 @@ const unsigned int SHARD_NUM_CONSENSUS_SUBSETS{
     ReadConstantNumeric("SHARD_NUM_CONSENSUS_SUBSETS", "node.consensus.")};
 const unsigned int COMMIT_TOLERANCE_PERCENT{
     ReadConstantNumeric("COMMIT_TOLERANCE_PERCENT", "node.consensus.")};
+const unsigned int SUBSET0_RESPONSE_DELAY_IN_MS{
+    ReadConstantNumeric("SUBSET0_RESPONSE_DELAY_IN_MS", "node.consensus.")};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{

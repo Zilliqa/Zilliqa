@@ -41,13 +41,7 @@ T GetRandom(Args&&... args) {
 }
 
 // Get random integer from 0 to size - 1
-int GetRandomInt(const int& size) {
-  if (size > 0) {
-    return GetRandom<int>(0, size - 1);
-  } else {
-    return -1;
-  }
-}
+int GetRandomInt(const int& size);
 
 }  // namespace RandomGenerator
 
