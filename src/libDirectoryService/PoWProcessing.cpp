@@ -156,10 +156,12 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
   uint32_t lookupId;
   uint128_t gasPrice;
   Signature signature;
-  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
-                                     difficultyLevel, submitterPeer,
-                                     submitterKey, nonce, resultingHash,
-                                     mixHash, signature, lookupId, gasPrice)) {
+  uint32_t govProposalId;
+  uint32_t govVoteValue;
+  if (!Messenger::GetDSPoWSubmission(
+          message, offset, blockNumber, difficultyLevel, submitterPeer,
+          submitterKey, nonce, resultingHash, mixHash, signature, lookupId,
+          gasPrice, govProposalId, govVoteValue)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ProcessPowSubmission failed.");
     return false;
@@ -205,7 +207,8 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
 
   DSPowSolution powSoln(blockNumber, difficultyLevel, submitterPeer,
                         submitterKey, nonce, resultingHash, mixHash, lookupId,
-                        gasPrice, signature);
+                        gasPrice, std::make_pair(govProposalId, govVoteValue),
+                        signature);
 
   if (VerifyPoWSubmission(powSoln)) {
     std::unique_lock<std::mutex> lk(m_mutexPowSolution);
@@ -261,6 +264,8 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   const string& mixHash = sol.GetMixHash();
   uint32_t lookupId = sol.GetLookupId();
   const uint128_t& gasPrice = sol.GetGasPrice();
+  const uint32_t& govProposalId = sol.GetGovProposalId();
+  const uint32_t& govVoteValue = sol.GetGovVoteValue();
 
   // Check block number
   if (!CheckWhetherDSBlockIsFresh(blockNumber)) {
@@ -283,9 +288,11 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
   }
 
   // Log all values
-  LOG_GENERAL(INFO, "Key   = " << submitterPubKey);
-  LOG_GENERAL(INFO, "Peer  = " << submitterPeer);
-  LOG_GENERAL(INFO, "Diff  = " << to_string(difficultyLevel));
+  LOG_GENERAL(INFO, "Key            = " << submitterPubKey);
+  LOG_GENERAL(INFO, "Peer           = " << submitterPeer);
+  LOG_GENERAL(INFO, "Diff           = " << to_string(difficultyLevel));
+  LOG_GENERAL(INFO, "GovProposalId  = " << to_string(govProposalId));
+  LOG_GENERAL(INFO, "GovVoteValue   = " << to_string(govVoteValue));
 
   if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey)) {
     LOG_GENERAL(WARNING, "Max PoW sent");
@@ -362,7 +369,8 @@ bool DirectoryService::VerifyPoWSubmission(const DSPowSolution& sol) {
       array<uint8_t, 32> resultingHashArr{}, mixHashArr{};
       DataConversion::HexStrToStdArray(resultingHash, resultingHashArr);
       DataConversion::HexStrToStdArray(mixHash, mixHashArr);
-      PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice);
+      PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice,
+                       std::make_pair(govProposalId, govVoteValue));
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

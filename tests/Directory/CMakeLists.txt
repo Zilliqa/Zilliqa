@@ -10,7 +10,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable(Test_UpdateDSComposition Test_UpdateDSComposition.cpp)
 target_include_directories(Test_UpdateDSComposition PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_UpdateDSComposition LINK_PUBLIC Network Block DirectoryService)
+target_link_libraries(Test_UpdateDSComposition LINK_PUBLIC Network Block DirectoryService TestUtils)
 add_test(NAME Test_UpdateDSComposition COMMAND Test_UpdateDSComposition)
 
 add_executable(Test_DetermineByzantineNodes Test_DetermineByzantineNodes.cpp)

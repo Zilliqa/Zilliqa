@@ -20,6 +20,7 @@
 #include <thread>
 #include <vector>
 
+#include "../libTestUtils/TestUtils.h"
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
@@ -33,6 +34,11 @@ using namespace std;
 using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
+
+BOOST_AUTO_TEST_CASE(init) {
+  INIT_STDOUT_LOGGER();
+  TestUtils::Initialize();
+}
 
 BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
   // INIT_STDOUT_LOGGER();
@@ -69,12 +75,18 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
   for (int i = 0; i < 2; i++) {
     removeDSNodePubkeys.emplace_back(Schnorr::GenKeyPair().second);
   }
+  GovDSShardVotesMap govProposalMap;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
 
-  return DSBlock(DSBlockHeader(50, 20, pubKey1.second, blocknum, 0,
-                               PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
-                               removeDSNodePubkeys, DSBlockHashSet(),
-                               DSBLOCK_VERSION, CommitteeHash(), prevHash1),
-                 CoSignatures());
+  return DSBlock(
+      DSBlockHeader(50, 20, pubKey1.second, blocknum, 0, PRECISION_MIN_VALUE,
+                    SWInfo(), powDSWinners, removeDSNodePubkeys,
+                    DSBlockHashSet(), govProposalMap, DSBLOCK_VERSION,
+                    CommitteeHash(), prevHash1),
+      CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {

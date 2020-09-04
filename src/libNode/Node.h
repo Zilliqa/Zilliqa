@@ -78,6 +78,24 @@ class Node : public Executable {
     DESERIALIZATIONERROR
   };
 
+  struct GovProposalInfo {
+    GovProposalIdVotePair proposal;
+    uint64_t startDSEpoch;
+    uint64_t endDSEpoch;
+    int32_t remainingVoteCount;
+    bool isGovProposalActive{false};
+    GovProposalInfo()
+        : proposal({0, 0}),
+          startDSEpoch(0),
+          endDSEpoch(0),
+          remainingVoteCount(0) {}
+    void reset() {
+      proposal = std::make_pair(0, 0);
+      isGovProposalActive = false;
+      startDSEpoch = endDSEpoch = remainingVoteCount = 0;
+    }
+  };
+
   Mediator& m_mediator;
 
   Synchronizer m_synchronizer;
@@ -185,6 +203,9 @@ class Node : public Executable {
   std::mutex m_MutexCVFallbackConsensusObj;
   std::condition_variable cv_fallbackConsensusObj;
   bool m_runFallback{};
+  // pair of proposal id and vote value and vote duration in epoch
+  std::mutex m_mutexGovProposal;
+  GovProposalInfo m_govProposalInfo;
 
   // Updating of ds guard var
   std::atomic_bool m_requestedForDSGuardNetworkInfoUpdate = {false};
@@ -394,6 +415,8 @@ class Node : public Executable {
 
   void SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry);
   void ClearSoftConfirmedTransactions();
+  void UpdateGovProposalRemainingVoteInfo();
+  bool CheckIfGovProposalActive();
 
  public:
   enum NodeState : unsigned char {
@@ -747,6 +770,12 @@ class Node : public Executable {
   bool UpdateShardNodeIdentity();
 
   bool ValidateAndUpdateIPChangeRequestStore(const PubKey& shardNodePubkey);
+
+  bool StoreVoteUntilPow(const std::string& proposalId,
+                         const std::string& voteValue,
+                         const std::string& remainingVoteCount,
+                         const std::string& startDSEpoch,
+                         const std::string& endDSEpoch);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

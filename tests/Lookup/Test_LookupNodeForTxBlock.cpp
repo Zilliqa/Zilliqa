@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <Schnorr.h>
+#include "../libTestUtils/TestUtils.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -43,6 +44,8 @@ using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(lookupnodetxblocktest)
 
+BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
+
 void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   LOG_MARKER();
 
@@ -58,10 +61,16 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   PairOfKey pubKey1 = Schnorr::GenKeyPair();
   std::map<PubKey, Peer> powDSWinners;
   std::vector<PubKey> removeDSNodePubkeys;
+  GovDSShardVotesMap govProposalMap;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+  govProposalMap[TestUtils::DistUint32()].first[1]++;
+  govProposalMap[TestUtils::DistUint32()].second[2]++;
+
   DSBlock dsblock(
       DSBlockHeader(50, 20, pubKey1.second, 0, 0, 0, SWInfo(), powDSWinners,
-                    removeDSNodePubkeys, DSBlockHashSet(), DSBLOCK_VERSION,
-                    CommitteeHash(), prevHash1),
+                    removeDSNodePubkeys, DSBlockHashSet(), govProposalMap,
+                    DSBLOCK_VERSION, CommitteeHash(), prevHash1),
       CoSignatures());
 
   curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);

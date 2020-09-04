@@ -19,6 +19,8 @@
 #define ZILLIQA_SRC_COMMON_BASETYPE_H_
 
 #include <stdint.h>
+#include <map>
+#include <utility>
 #include <vector>
 
 #pragma GCC diagnostic push
@@ -29,5 +31,8 @@
 using bytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
 using uint256_t = boost::multiprecision::uint256_t;
-
+using GovDSShardVotesMap =
+    std::map<uint32_t, std::pair<std::map<uint32_t, uint32_t>,
+                                 std::map<uint32_t, uint32_t>>>;
+using GovProposalIdVotePair = std::pair<uint32_t, uint32_t>;
 #endif  // ZILLIQA_SRC_COMMON_BASETYPE_H_

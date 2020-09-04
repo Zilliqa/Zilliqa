@@ -3225,3 +3225,33 @@ void Node::CleanLocalRawStores() {
     }
   }
 }
+bool Node ::StoreVoteUntilPow(const std::string& proposalId,
+                              const std::string& voteValue,
+                              const std::string& remainingVoteCount,
+                              const std::string& startDSEpoch,
+                              const std::string& endDSEpoch) {
+  try {
+    lock_guard<mutex> g(m_mutexGovProposal);
+    m_govProposalInfo.proposal =
+        make_pair(static_cast<uint32_t>(std::stoul(proposalId)),
+                  static_cast<uint32_t>(std::stoul(voteValue)));
+    m_govProposalInfo.remainingVoteCount =
+        static_cast<int32_t>(std::stoul(remainingVoteCount));
+    m_govProposalInfo.startDSEpoch =
+        static_cast<uint32_t>(std::stoul(startDSEpoch));
+    m_govProposalInfo.endDSEpoch =
+        static_cast<uint32_t>(std::stoul(endDSEpoch));
+    m_govProposalInfo.isGovProposalActive = false;
+    LOG_GENERAL(INFO, "[Gov] StoreVoteUntilPow proposalId="
+                          << m_govProposalInfo.proposal.first
+                          << " vote=" << m_govProposalInfo.proposal.second
+                          << " remainingVoteCount="
+                          << m_govProposalInfo.remainingVoteCount
+                          << " startDSEpoch=" << m_govProposalInfo.startDSEpoch
+                          << " endDSEpoch=" << m_govProposalInfo.endDSEpoch);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception raised!!!" << e.what());
+    return false;
+  }
+  return true;
+}
