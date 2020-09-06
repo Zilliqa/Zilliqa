@@ -327,8 +327,10 @@ void ZilliqaDaemon::StartScripts() {
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       exit(0);
     }
+  }
 
-    pid_parent = fork();
+  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
+    pid_t pid_parent = fork();
 
     if (pid_parent < 0) {
       ZilliqaDaemon::LOG(m_log, "Failed to fork.");
@@ -342,27 +344,6 @@ void ZilliqaDaemon::StartScripts() {
       ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       cmdToRun = "python3 " + m_curPath + auto_backup_script + " -f 10 &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      exit(0);
-    }
-  }
-
-  if (m_nodeType == "lookup" && 1 == m_nodeIndex) {
-    pid_t pid_parent = fork();
-
-    if (pid_parent < 0) {
-      ZilliqaDaemon::LOG(m_log, "Failed to fork.");
-      exit(EXIT_FAILURE);
-    }
-
-    if (pid_parent == 0) {
-      string cmdToRun =
-          "ps axf | grep " + upload_incr_DB_script +
-          " | grep -v grep  | awk '{print \"kill -9 \" $1}'| sh &";
-      ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
-      ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
-      cmdToRun = "python3 " + m_curPath + upload_incr_DB_script + " --backup &";
       ZilliqaDaemon::LOG(m_log, "Start to run command: \"" + cmdToRun + "\"");
       ZilliqaDaemon::LOG(m_log, "\" " + Execute(cmdToRun + " 2>&1") + " \"");
       exit(0);
