@@ -296,9 +296,8 @@ class Lookup : public Executable {
   void RejoinAsNewLookup(bool fromLookup = true);
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
-  static bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
-                               TxnShardMap& txnShardMap,
-                               std::mutex& txnShardMapMutex);
+  bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
+                        TxnShardMap& txnShardMap, std::mutex& txnShardMapMutex);
 
   void CheckBufferTxBlocks();
 

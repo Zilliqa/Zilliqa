@@ -14,3 +14,11 @@
 [submodule "src/depends/Schnorr"]
 	path = src/depends/Schnorr
 	url = https://github.com/Zilliqa/schnorr.git
+[submodule "src/depends/mongo-c-driver"]
+	path = src/depends/mongo-c-driver
+	url = https://github.com/mongodb/mongo-c-driver.git
+	branch = r1.17
+[submodule "src/depends/mongo-cxx-driver"]
+	path = src/depends/mongo-cxx-driver
+	url = https://github.com/mongodb/mongo-cxx-driver.git
+	branch = releases/stable

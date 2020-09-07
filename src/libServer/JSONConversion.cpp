@@ -345,6 +345,29 @@ const vector<string> JSONConversion::convertJsonArrayToVector(
   return vec;
 }
 
+const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
+  Json::Value _json;
+  _json["ID"] = txn.GetTranID().hex();
+  _json["version"] = to_string(txn.GetVersion());
+  _json["nonce"] = to_string(txn.GetNonce());
+  _json["toAddr"] = txn.GetToAddr().hex();
+  _json["senderAddr"] = txn.GetSenderAddr().hex();
+  _json["amount"] = txn.GetAmount().str();
+  _json["signature"] = static_cast<string>(txn.GetSignature());
+
+  _json["gasPrice"] = txn.GetGasPrice().str();
+  _json["gasLimit"] = to_string(txn.GetGasLimit());
+
+  if (!txn.GetCode().empty()) {
+    _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
+  }
+  if (!txn.GetData().empty()) {
+    _json["data"] = DataConversion::CharArrayToString(txn.GetData());
+  }
+
+  return _json;
+}
+
 const Json::Value JSONConversion::convertTxtoJson(
     const TransactionWithReceipt& twr, bool isSoftConfirmed) {
   Json::Value _json;

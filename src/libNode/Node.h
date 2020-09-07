@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "common/Constants.h"
-#include "common/ErrTxn.h"
 #include "common/Executable.h"
+#include "common/TxnStatus.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -260,7 +260,7 @@ class Node : public Executable {
   void ReinstateMemPool(
       const std::map<Address, std::map<uint64_t, Transaction>>& addrNonceTxnMap,
       const std::vector<Transaction>& gasLimitExceededTxnBuffer,
-      const std::vector<std::pair<TxnHash, ErrTxnStatus>>& droppedTxns);
+      const std::vector<std::pair<TxnHash, TxnStatus>>& droppedTxns);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -714,13 +714,13 @@ class Node : public Executable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  ErrTxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
+  TxnStatus IsTxnInMemPool(const TxnHash& txhash) const;
 
-  std::unordered_map<TxnHash, ErrTxnStatus> GetUnconfirmedTxns() const;
+  std::unordered_map<TxnHash, TxnStatus> GetUnconfirmedTxns() const;
 
-  std::unordered_map<TxnHash, ErrTxnStatus> GetDroppedTxns() const;
+  std::unordered_map<TxnHash, TxnStatus> GetDroppedTxns() const;
 
-  std::unordered_map<TxnHash, ErrTxnStatus> GetPendingTxns() const;
+  std::unordered_map<TxnHash, TxnStatus> GetPendingTxns() const;
 
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,

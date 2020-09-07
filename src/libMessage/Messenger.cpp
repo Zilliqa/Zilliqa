@@ -4826,7 +4826,7 @@ bool Messenger::SetNodeMBnForwardTransaction(
 
 bool Messenger::SetNodePendingTxn(
     bytes& dst, const unsigned offset, const uint64_t& epochnum,
-    const unordered_map<TxnHash, ErrTxnStatus>& hashCodeMap,
+    const unordered_map<TxnHash, TxnStatus>& hashCodeMap,
     const uint32_t shardId, const PairOfKey& key) {
   LOG_MARKER();
 
@@ -4870,7 +4870,7 @@ bool Messenger::SetNodePendingTxn(
 
 bool Messenger::GetNodePendingTxn(
     const bytes& src, const unsigned offset, uint64_t& epochnum,
-    unordered_map<TxnHash, ErrTxnStatus>& hashCodeMap, uint32_t& shardId,
+    unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
     PubKey& pubKey) {
   LOG_MARKER();
 
@@ -4907,7 +4907,7 @@ bool Messenger::GetNodePendingTxn(
                             (unsigned int)txhash.size);
     copy(codeHashPair.txnhash().begin(), codeHashPair.txnhash().begin() + size,
          txhash.asArray().begin());
-    hashCodeMap.emplace(txhash, static_cast<ErrTxnStatus>(codeHashPair.code()));
+    hashCodeMap.emplace(txhash, static_cast<TxnStatus>(codeHashPair.code()));
   }
 
   epochnum = result.data().epochnumber();

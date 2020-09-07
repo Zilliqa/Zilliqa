@@ -158,6 +158,14 @@ extern bool MULTIPLIER_SYNC_MODE;
 extern const unsigned int SEED_SYNC_SMALL_PULL_INTERVAL;
 extern const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL;
 
+// RemoteStorageDB
+extern const std::string REMOTESTORAGE_DB_HOST;
+extern const std::string REMOTESTORAGE_DB_NAME;
+extern const unsigned int REMOTESTORAGE_DB_PORT;
+extern const bool REMOTESTORAGE_DB_CONFIGURE;
+extern const std::string REMOTESTORAGE_DB_TLS_FILE;
+extern bool REMOTESTORAGE_DB_ENABLE;
+
 // Consensus constants
 extern const double TOLERANCE_FRACTION;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;

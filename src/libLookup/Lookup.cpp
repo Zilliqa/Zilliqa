@@ -45,6 +45,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/StakingServer.h"
@@ -5322,6 +5323,10 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
                                  << shardId << " of fromAddr "
                                  << tx.GetSenderAddr());
+  if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+    RemoteStorageDB::GetInstance().InsertTxn(tx, TxnStatus::DISPATCHED,
+                                             m_mediator.m_currentEpochNum);
+  }
 
   return true;
 }
@@ -5695,6 +5700,9 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
 
     for (const auto& txn : txnsDS) {
       AddToTxnShardMap(txn, shard_size);
+    }
+    if (REMOTESTORAGE_DB_ENABLE) {
+      RemoteStorageDB::GetInstance().ExecuteWrite();
     }
   } else {
     for (const auto& txn : txnsShard) {

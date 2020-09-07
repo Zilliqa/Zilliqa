@@ -24,9 +24,9 @@
 
 #include "Account.h"
 #include "Transaction.h"
-#include "common/ErrTxn.h"
+#include "common/TxnStatus.h"
 
-using MempoolInsertionStatus = std::pair<ErrTxnStatus, TxnHash>;
+using MempoolInsertionStatus = std::pair<TxnStatus, TxnHash>;
 
 struct TxnPool {
   struct PubKeyNonceHash {
@@ -68,7 +68,7 @@ struct TxnPool {
 
   bool insert(const Transaction& t, MempoolInsertionStatus& status) {
     if (exist(t.GetTranID())) {
-      status = {ErrTxnStatus::MEMPOOL_ALREADY_PRESENT, t.GetTranID()};
+      status = {TxnStatus::MEMPOOL_ALREADY_PRESENT, t.GetTranID()};
       return false;
     }
 
@@ -96,12 +96,12 @@ struct TxnPool {
         GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
         searchNonce->second = t;
 
-        status = {ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, hashToBeRemoved};
+        status = {TxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, hashToBeRemoved};
         return true;
       } else {
         // GasPrice is higher but of same nonce
         // or same gas price and nonce but higher tranID
-        status = {ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, t.GetTranID()};
+        status = {TxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, t.GetTranID()};
         return false;
       }
     } else {
@@ -109,7 +109,7 @@ struct TxnPool {
       GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
       NonceIndex[{t.GetSenderPubKey(), t.GetNonce()}] = t;
     }
-    status = {ErrTxnStatus::NOT_PRESENT, t.GetTranID()};
+    status = {TxnStatus::NOT_PRESENT, t.GetTranID()};
     return true;
   }
 
