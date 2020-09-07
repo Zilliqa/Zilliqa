@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
   bytes data = bytes(initStr.begin(), initStr.end());
 
-  for (unsigned int i = 0; i < 5; i++) {
+  for (unsigned int i = 0; i < 1; i++) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
     TransactionReceipt tr;
@@ -2050,6 +2050,173 @@ BOOST_AUTO_TEST_CASE(testCreateContractJsonOutput) {
                 "Failed to parse tag information, exception: " << e.what());
     return;
   }
+}
+
+BOOST_AUTO_TEST_CASE(simplemap) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  //   PairOfKey employee1 = Schnorr::GenKeyPair();
+  //   PairOfKey employee2 = Schnorr::GenKeyPair();
+  //   PairOfKey employee3 = Schnorr::GenKeyPair();
+  vector<PairOfKey> senders;
+  unsigned int num_sender = 1;
+  for (unsigned int i = 0; i < num_sender; ++i) {
+    senders.emplace_back(Schnorr::GenKeyPair());
+  }
+
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  vector<Address> senderAddrs;
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  //   employee1Addr = Account::GetAddressFromPublicKey(employee1.second);
+  //   employee2Addr = Account::GetAddressFromPublicKey(employee2.second);
+  //   employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
+
+  for (unsigned int i = 0; i < num_sender; ++i) {
+    Address senderAddr = Account::GetAddressFromPublicKey(senders[i].second);
+    senderAddrs.emplace_back(senderAddr);
+    AccountStore::GetInstance().AddAccountTemp(senderAddr,
+                                               {2000000000000, nonce});
+  }
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Simple-map Address: " << contrAddr);
+
+  std::vector<ScillaTestUtil::ScillaTest> tests;
+
+  for (unsigned int i = 1; i <= 1; i++) {
+    ScillaTestUtil::ScillaTest test;
+    BOOST_CHECK_MESSAGE(ScillaTestUtil::GetScillaTest(test, "simple-map", i),
+                        "Unable to fetch test simple-map_" << i << ".");
+
+    test.message["_sender"] = "0x" + ownerAddr.hex();
+
+    tests.emplace_back(test);
+  }
+
+  //   tests[1].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+  //   tests[2].message["params"][0]["value"] = "0x" + employee2Addr.hex();
+  //   tests[3].message["params"][0]["value"] = "0x" + employee3Addr.hex();
+  //   tests[4].message["params"][0]["value"] = "0x" + employee1Addr.hex();
+
+  for (const auto& test : tests) {
+    LOG_GENERAL(INFO, "message: " << JSONUtils::GetInstance().convertJsontoStr(
+                          test.message));
+  }
+
+  // Replace owner address in init.json
+  for (auto& it : tests[0].init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
+  }
+
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(tests[0].init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tests[0].init);
+
+  bool deployed = false;
+
+  uint64_t bnum = 1;
+
+  uint64_t stressAmount = 0;
+  bytes stressData;
+
+  for (unsigned int i = 0; i < tests.size();) {
+    bool deploy = i == 0 && !deployed;
+
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tests[0].blockchain);
+    std::string initStr =
+        JSONUtils::GetInstance().convertJsontoStr(tests[0].init);
+    bytes data;
+    uint64_t amount = 0;
+    Address recipient;
+    bytes code;
+    if (deploy) {
+      data = bytes(initStr.begin(), initStr.end());
+      recipient = Address();
+      code = tests[0].code;
+      deployed = true;
+    } else {
+      amount = ScillaTestUtil::PrepareMessageData(tests[i].message, data);
+      if (i == 0) {
+        stressAmount = amount;
+        stressData = data;
+      }
+      recipient = contrAddr;
+      i++;
+    }
+
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient, owner,
+                   amount, PRECISION_MIN_VALUE, 20000, code, data);
+    TransactionReceipt tr;
+    ErrTxnStatus error_code;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr,
+                                                   error_code);
+    nonce++;
+  }
+
+  LOG_GENERAL(INFO, "STRESS TEST START");
+
+  std::chrono::system_clock::time_point tpStart;
+
+  for (unsigned int i = 0; i < num_sender; ++i) {
+    LOG_GENERAL(INFO, "iteration " << i + 1);
+
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 0, contrAddr, senders[i],
+                   stressAmount, PRECISION_MIN_VALUE, 20000, {}, stressData);
+    TransactionReceipt tr;
+    ErrTxnStatus error_code;
+
+    // tpStart = r_timer_start();
+
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr,
+                                                   error_code);
+
+    // LOG_GENERAL(DEBUG, "Parse Transaction (microseconds) = "
+    //                        << r_timer_end(tpStart));
+
+    tpStart = r_timer_start();
+
+    AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+
+    LOG_GENERAL(DEBUG,
+                "Parse Transaction (microseconds) = " << r_timer_end(tpStart));
+
+    if (i % 100 == 0) {
+      AccountStore::GetInstance().SerializeDelta();
+      AccountStore::GetInstance().CommitTempRevertible();
+    }
+
+    if (i % 1000 == 0) {
+      AccountStore::GetInstance().MoveUpdatesToDisk();
+    }
+  }
+
+  LOG_GENERAL(INFO, "STRESS TEST END");
+
+  //   Account* e2 = AccountStore::GetInstance().GetAccountTemp(employee2Addr);
+  //   Account* e3 = AccountStore::GetInstance().GetAccountTemp(employee3Addr);
+
+  //   BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
+  //                       "employee2 or 3 are not existing");
+
+  //   BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() ==
+  //   12000,
+  //                       "multi message failed");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

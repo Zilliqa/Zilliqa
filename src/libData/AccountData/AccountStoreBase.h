@@ -56,7 +56,8 @@ class AccountStoreBase : public SerializableDataBlock {
   bool IsAccountExist(const Address& address);
 
   /// Adds an Account to the list.
-  bool AddAccount(const Address& address, const Account& account);
+  bool AddAccount(const Address& address, const Account& account,
+                  bool toReplace = false);
   bool AddAccount(const PubKey& pubKey, const Account& account);
 
   void RemoveAccount(const Address& address);

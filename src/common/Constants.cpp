@@ -540,8 +540,6 @@ const string EXTLIB_FOLDER{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
-const string FIELDS_MAP_DEPTH_INDICATOR{
-    ReadConstantString("FIELDS_MAP_DEPTH_INDICATOR", "node.smart_contract.")};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
 const bool DISABLE_SCILLA_LIB{
