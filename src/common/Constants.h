@@ -414,6 +414,10 @@ extern const std::string TXN_PERSISTENCE_NAME;
 extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
+extern const unsigned int COINBASE_UPDATE_TARGET_DS;
+extern const uint128_t COINBASE_REWARD_PER_DS_NEW;
+extern const unsigned int BASE_REWARD_IN_PERCENT_NEW;
+extern const unsigned int LOOKUP_REWARD_IN_PERCENT_NEW;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

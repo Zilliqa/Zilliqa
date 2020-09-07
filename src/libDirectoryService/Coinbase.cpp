@@ -194,14 +194,23 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint128_t total_reward = COINBASE_REWARD_PER_DS;
+  uint128_t total_reward =
+      (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) >=
+              COINBASE_UPDATE_TARGET_DS
+          ? COINBASE_REWARD_PER_DS_NEW
+          : COINBASE_REWARD_PER_DS;
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
   uint128_t base_reward = 0;
 
-  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
-                                base_reward)) {
+  if (!SafeMath<uint128_t>::mul(
+          total_reward,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+                  COINBASE_UPDATE_TARGET_DS
+              ? BASE_REWARD_IN_PERCENT_NEW
+              : BASE_REWARD_IN_PERCENT,
+          base_reward)) {
     LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
     return;
   }
@@ -222,8 +231,13 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
 
   uint128_t lookupReward = 0;
-  if (!SafeMath<uint128_t>::mul(total_reward, LOOKUP_REWARD_IN_PERCENT,
-                                lookupReward)) {
+  if (!SafeMath<uint128_t>::mul(
+          total_reward,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+                  COINBASE_UPDATE_TARGET_DS
+              ? LOOKUP_REWARD_IN_PERCENT_NEW
+              : LOOKUP_REWARD_IN_PERCENT,
+          lookupReward)) {
     LOG_GENERAL(WARNING, "lookupReward multiplication unsafe!");
     return;
   }
