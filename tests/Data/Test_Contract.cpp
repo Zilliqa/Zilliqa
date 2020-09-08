@@ -2163,7 +2163,7 @@ BOOST_AUTO_TEST_CASE(simplemap) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, recipient, owner,
                    amount, PRECISION_MIN_VALUE, 20000, code, data);
     TransactionReceipt tr;
-    ErrTxnStatus error_code;
+    TxnStatus error_code;
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr,
                                                    error_code);
     nonce++;
@@ -2179,7 +2179,7 @@ BOOST_AUTO_TEST_CASE(simplemap) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 0, contrAddr, senders[i],
                    stressAmount, PRECISION_MIN_VALUE, 20000, {}, stressData);
     TransactionReceipt tr;
-    ErrTxnStatus error_code;
+    TxnStatus error_code;
 
     // tpStart = r_timer_start();
 
