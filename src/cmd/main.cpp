@@ -81,6 +81,7 @@ int main(int argc, const char* argv[]) {
         "loadconfig,l", "Loads configuration if set (deprecated)")(
         "synctype,s", po::value<unsigned int>(&syncType), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set")(
+        "stdoutlog,o", "Send application logs to stdout instead of file")(
         "logpath,g", po::value<string>(&logpath),
         "customized log path, could be relative path (e.g., \"./logs/\"), or "
         "absolute path (e.g., \"/usr/local/test/logs/\")")(
@@ -166,7 +167,11 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    INIT_FILE_LOGGER("zilliqa", logpath.c_str());
+    if (vm.count("stdoutlog")) {
+      INIT_STDOUT_LOGGER();
+    } else {
+      INIT_FILE_LOGGER("zilliqa", logpath.c_str());
+    }
     INIT_STATE_LOGGER("state", logpath.c_str());
     INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
 
