@@ -455,8 +455,8 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
        type == Transaction::ContractType::NON_CONTRACT) &&
       tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit " + to_string(tx.GetGasLimit()) +
-                               " greater than " +
+                           "Txn gas limit " + to_string(tx.GetGasLimit()) +
+                               " greater than microblock gas limit" +
                                to_string(SHARD_MICROBLOCK_GAS_LIMIT));
   }
 
