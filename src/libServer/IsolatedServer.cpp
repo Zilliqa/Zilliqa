@@ -177,10 +177,14 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
            (tx.GetGasLimit() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.GetGasLimit()) +
-                               ") lower than minimum for creating contract (" +
-                               to_string(CONTRACT_CREATE_GAS) + ")");
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "Gas limit (" + to_string(tx.GetGasLimit()) +
+            ") lower than minimum for creating contract (" +
+            to_string(max(
+                CONTRACT_CREATE_GAS,
+                (unsigned int)(tx.GetCode().size() + tx.GetData().size()))) +
+            ")");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
