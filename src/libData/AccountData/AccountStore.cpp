@@ -102,7 +102,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage2::GetContractStorage().InitTempState(true);
+  ContractStorage2::GetContractStorage().InitTempState();
 }
 
 void AccountStore::InitRevertibles() {
@@ -590,6 +590,11 @@ bool AccountStore::MigrateContractStates2(
   }
   if (!normal_address_output_dir.empty()) {
     os_2.close();
+  }
+
+  if (!UpdateStateTrieAll()) {
+    LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
+    return false;
   }
 
   /// repopulate trie and discard old persistence

@@ -1482,7 +1482,7 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
       account->SetStorageRoot(
           Contract::ContractStorage2::GetContractStorage().GetContractStateHash(
               addr, account->GetStorageRoot(), true /*temp*/,
-              false /*revertible*/, true /*fromExternal*/));
+              false /*revertible*/));
     }
   }
   CleanStorageRootUpdateBuffer();
