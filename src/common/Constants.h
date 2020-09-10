@@ -162,7 +162,6 @@ extern const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL;
 extern const std::string REMOTESTORAGE_DB_HOST;
 extern const std::string REMOTESTORAGE_DB_NAME;
 extern const unsigned int REMOTESTORAGE_DB_PORT;
-extern const bool REMOTESTORAGE_DB_CONFIGURE;
 extern const std::string REMOTESTORAGE_DB_TLS_FILE;
 extern bool REMOTESTORAGE_DB_ENABLE;
 
