@@ -49,7 +49,7 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
         m_dbName(REMOTESTORAGE_DB_NAME),
         m_txnCollectionName(std::move(txnCollectionName)) {}
 
-  void Init(bool configure = true);
+  void Init(bool reset = false);
   bool InsertJson(const Json::Value& _json, const std::string& collectionName);
   bool InsertTxn(const Transaction& txn, const TxnStatus status,
                  const uint64_t& epoch, const bool success = false);
