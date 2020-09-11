@@ -406,7 +406,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (LOOKUP_NODE_MODE && REMOTESTORAGE_DB_ENABLE) {
       LOG_GENERAL(INFO, "Starting connection to mongoDB")
-      RemoteStorageDB::GetInstance().Init(REMOTESTORAGE_DB_CONFIGURE);
+      RemoteStorageDB::GetInstance().Init();
     }
 
     if (ENABLE_STATUS_RPC) {
