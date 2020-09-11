@@ -552,7 +552,7 @@ bool StatusServer::InitRemoteStorage() {
                            "Not to be queried on non-lookup");
   }
 
-  RemoteStorageDB::GetInstance().Init(REMOTESTORAGE_DB_CONFIGURE);
+  RemoteStorageDB::GetInstance().Init(true);
 
   if (!RemoteStorageDB::GetInstance().IsInitialized()) {
     throw JsonRpcException(RPC_MISC_ERROR, "Failed to initialize");

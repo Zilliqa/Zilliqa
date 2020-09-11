@@ -51,10 +51,13 @@ pair<string, string> getCreds() {
   return make_pair(username, password);
 }
 
-void RemoteStorageDB::Init(bool configure) {
-  auto instance = bsoncxx::stdx::make_unique<mongocxx::instance>();
+void RemoteStorageDB::Init(bool reset) {
   try {
-    m_inst = move(instance);
+    if (!reset) {
+      auto instance = bsoncxx::stdx::make_unique<mongocxx::instance>();
+      m_inst = move(instance);
+    }
+
     auto creds = getCreds();
     string uri;
     if (creds.first.empty() || creds.second.empty()) {
@@ -77,18 +80,6 @@ void RemoteStorageDB::Init(bool configure) {
       LOG_GENERAL(INFO, "Connecting using TLS");
     }
     m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(move(URI));
-    if (configure) {
-      const auto& c = m_pool->acquire();
-      (*c)[m_dbName].drop();
-      mongocxx::options::index index_options;
-      index_options.unique(true);
-      const auto& mongoDB = c->database(m_dbName);
-      // ID is unique in txn and from is also an index but not unique
-      mongoDB[m_txnCollectionName].create_index(make_document(kvp("ID", 1)),
-                                                index_options);
-      mongoDB[m_txnCollectionName].create_index(make_document(kvp("toAddr", 1)),
-                                                {});
-    }
     mongocxx::options::bulk_write bulk_opts;
     bulk_opts.ordered(false);
     const auto& conn = GetConnection();

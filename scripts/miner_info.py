@@ -120,6 +120,9 @@ def make_options_dictionary(options_dict):
 	options_dict["disabletxns"] = "ToggleDisableTxns"
 	options_dict["set_validatedb"] = "SetValidateDB"
 	options_dict["get_validatedb"] = "GetValidateDB"
+	options_dict["get_remotestorage"] = "GetRemoteStorage"
+	options_dict["set_remotestorage"] = "ToggleRemoteStorage"
+	options_dict["init_remotestorage"] = "InitRemoteStorage"
 
 def ProcessResponseCore(resp, param):
 	if param:
