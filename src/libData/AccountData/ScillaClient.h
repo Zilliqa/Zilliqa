@@ -31,10 +31,14 @@ class ScillaClient {
   std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
       m_connectors;
 
+  std::mutex m_mutexMain;
+
   ScillaClient(){};
   ~ScillaClient(){};
 
-  bool CheckClient(uint32_t version);
+  bool OpenServer(uint32_t version, bool toSleep);
+
+  bool CheckClient(uint32_t version, bool toSleep = true, bool enforce = false);
 
  public:
   static ScillaClient& GetInstance() {
@@ -42,7 +46,8 @@ class ScillaClient {
     return scillaclient;
   }
 
-  bool OpenServer(uint32_t version);
+  void Init();
+
   bool CallChecker(uint32_t version, const Json::Value& _json,
                    std::string& result, uint32_t counter = MAXRETRYCONN);
   bool CallRunner(uint32_t version, const Json::Value& _json,

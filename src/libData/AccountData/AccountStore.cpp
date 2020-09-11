@@ -45,6 +45,7 @@ AccountStore::AccountStore() {
         make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+    ScillaClient::GetInstance().Init();
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {
@@ -102,7 +103,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage2::GetContractStorage().InitTempState(true);
+  ContractStorage2::GetContractStorage().InitTempState();
 }
 
 void AccountStore::InitRevertibles() {
@@ -590,6 +591,11 @@ bool AccountStore::MigrateContractStates2(
   }
   if (!normal_address_output_dir.empty()) {
     os_2.close();
+  }
+
+  if (!UpdateStateTrieAll()) {
+    LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
+    return false;
   }
 
   /// repopulate trie and discard old persistence
