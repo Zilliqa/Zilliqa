@@ -2025,7 +2025,7 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
     } else if (result == Json::Value::null) {
       // No txnhash matches the one in DB
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Txn Hash not Present");
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
     }
     return result;
   } catch (const JsonRpcException& je) {
