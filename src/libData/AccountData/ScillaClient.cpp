@@ -22,7 +22,41 @@
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
-bool ScillaClient::OpenServer(uint32_t version) {
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/range/iterator_range.hpp>
+
+using namespace boost::filesystem;
+
+void ScillaClient::Init() {
+  LOG_MARKER();
+  if (ENABLE_SCILLA_MULTI_VERSION) {
+    path scilla_root_path(SCILLA_ROOT);
+    // scan existing versions
+    for (auto& entry :
+         boost::make_iterator_range(directory_iterator(scilla_root_path), {})) {
+      LOG_GENERAL(INFO, "scilla-server path: " << entry.path().string());
+      std::string folder_name = entry.path().string();
+      folder_name.erase(0, SCILLA_ROOT.size() + 1);
+      LOG_GENERAL(INFO, "folder_name: " << folder_name);
+      uint32_t version = 0;
+      try {
+        version = boost::lexical_cast<uint32_t>(folder_name);
+        if (!CheckClient(version, false)) {
+          LOG_GENERAL(WARNING,
+                      "OpenServer for version " << version << "failed");
+          continue;
+        }
+      } catch (...) {
+        continue;
+      }
+    }
+  } else {
+    CheckClient(0, false);
+  }
+}
+
+bool ScillaClient::OpenServer(uint32_t version, bool toSleep) {
   LOG_MARKER();
 
   std::string cmdStr;
@@ -36,58 +70,62 @@ bool ScillaClient::OpenServer(uint32_t version) {
   std::string killStr, executeStr;
 
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    killStr = "ps --no-headers axk comm o pid,args | awk '$2 ~ \"" +
-              server_path + "\"{print $1}' | xargs kill -9";
-    executeStr = server_path + " -socket " + SCILLA_SERVER_SOCKET_PATH + "." +
-                 std::to_string(version);
+    cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" + server_path +
+             "\" | awk '{print $1}' | xargs kill -SIGTERM ; " + server_path +
+             " -socket " + SCILLA_SERVER_SOCKET_PATH + "." +
+             std::to_string(version) + " >/dev/null &";
   } else {
-    killStr = "pkill " + SCILLA_SERVER_BINARY;
-    executeStr = server_path + " -socket " + SCILLA_SERVER_SOCKET_PATH;
+    cmdStr = "pkill " + SCILLA_SERVER_BINARY + " ; " + server_path +
+             " -socket " + SCILLA_SERVER_SOCKET_PATH + " >/dev/null &";
   }
 
-  cmdStr = killStr + "; " + executeStr;
+  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
 
-  auto func = [&cmdStr]() mutable -> void {
-    LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
-    try {
-      if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      }
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+  try {
+    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+      return false;
     }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+    return false;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
+    return false;
+  }
 
-    LOG_GENERAL(WARNING, "terminated: " << cmdStr);
-  };
+  LOG_GENERAL(WARNING, "terminated: " << cmdStr);
 
-  DetachedFunction(1, func);
-
-  usleep(200 * 1000);
+  if (toSleep) {
+    sleep(1);
+  }
 
   return true;
 }
 
-bool ScillaClient::CheckClient(uint32_t version) {
-  if (m_clients.find(version) == m_clients.end()) {
-    if (!OpenServer(version)) {
-      LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
-      return false;
-    }
+bool ScillaClient::CheckClient(uint32_t version, bool toSleep, bool enforce) {
+  std::lock_guard<std::mutex> g(m_mutexMain);
 
-    std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
-        std::make_shared<jsonrpc::UnixDomainSocketClient>(
-            SCILLA_SERVER_SOCKET_PATH + (ENABLE_SCILLA_MULTI_VERSION
-                                             ? ("." + std::to_string(version))
-                                             : ""));
-
-    m_connectors.insert({version, conn});
-
-    std::shared_ptr<jsonrpc::Client> c = std::make_shared<jsonrpc::Client>(
-        *m_connectors.at(version), jsonrpc::JSONRPC_CLIENT_V2);
-    m_clients.insert({version, c});
+  if (m_clients.find(version) != m_clients.end() && !enforce) {
+    return true;
   }
+
+  if (!OpenServer(version, toSleep)) {
+    LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
+    return false;
+  }
+
+  std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
+      std::make_shared<jsonrpc::UnixDomainSocketClient>(
+          SCILLA_SERVER_SOCKET_PATH +
+          (ENABLE_SCILLA_MULTI_VERSION ? ("." + std::to_string(version)) : ""));
+
+  m_connectors[version] = conn;
+
+  std::shared_ptr<jsonrpc::Client> c = std::make_shared<jsonrpc::Client>(
+      *m_connectors.at(version), jsonrpc::JSONRPC_CLIENT_V2);
+  m_clients[version] = c;
 
   return true;
 }
@@ -98,19 +136,24 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     return false;
   }
 
+  if (!ENABLE_SCILLA_MULTI_VERSION) {
+    version = 0;
+  }
+
   if (!CheckClient(version)) {
     LOG_GENERAL(WARNING, "CheckClient failed");
     return false;
   }
 
   try {
+    std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
         std::string::npos) {
-      if (!OpenServer(version)) {
-        LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
+      if (!CheckClient(version, true, true)) {
+        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallChecker(version, _json, result, counter - 1);
       }
     } else {
@@ -129,20 +172,25 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
     return false;
   }
 
+  if (!ENABLE_SCILLA_MULTI_VERSION) {
+    version = 0;
+  }
+
   if (!CheckClient(version)) {
     LOG_GENERAL(WARNING, "CheckClient failed");
     return false;
   }
 
   try {
+    std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("run", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
         std::string::npos) {
-      if (!OpenServer(version)) {
-        LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
-        return CallChecker(version, _json, result, counter - 1);
+      if (!CheckClient(version, true, true)) {
+        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+        return CallRunner(version, _json, result, counter - 1);
       }
     } else {
       result = e.what();
