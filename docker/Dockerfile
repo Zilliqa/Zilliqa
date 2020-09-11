@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.9.0-alpha.0
+ARG BASE=zilliqa/scilla:v0.9.0
 FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
@@ -60,7 +60,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=v7.0.0-alpha.4
+ARG COMMIT_OR_TAG=v7.0.0-alpha.5
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
