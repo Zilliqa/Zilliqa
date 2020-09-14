@@ -565,7 +565,7 @@ bool AccountStore::MigrateContractStates2(
 
     // adding depth and type metadata
     if (!ParseContractCheckerOutput(address, checkerPrint, receipt, t_metadata,
-                                    gasRem)) {
+                                    gasRem, is_library)) {
       LOG_GENERAL(WARNING, "ParseContractCheckerOutput failed");
       if (ignoreCheckerFailure) {
         continue;
