@@ -42,7 +42,7 @@ void ScillaClient::Init() {
       uint32_t version = 0;
       try {
         version = boost::lexical_cast<uint32_t>(folder_name);
-        if (!CheckClient(version, false)) {
+        if (!CheckClient(version)) {
           LOG_GENERAL(WARNING,
                       "OpenServer for version " << version << "failed");
           continue;
@@ -56,7 +56,7 @@ void ScillaClient::Init() {
   }
 }
 
-bool ScillaClient::OpenServer(uint32_t version, bool toSleep) {
+bool ScillaClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
   std::string cmdStr;
@@ -97,21 +97,20 @@ bool ScillaClient::OpenServer(uint32_t version, bool toSleep) {
 
   LOG_GENERAL(WARNING, "terminated: " << cmdStr);
 
-  if (toSleep) {
-    sleep(1);
-  }
+  std::this_thread::sleep_for(
+      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS));
 
   return true;
 }
 
-bool ScillaClient::CheckClient(uint32_t version, bool toSleep, bool enforce) {
+bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
   if (m_clients.find(version) != m_clients.end() && !enforce) {
     return true;
   }
 
-  if (!OpenServer(version, toSleep)) {
+  if (!OpenServer(version)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
@@ -152,7 +151,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
         std::string::npos) {
-      if (!CheckClient(version, true, true)) {
+      if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallChecker(version, _json, result, counter - 1);
       }
@@ -188,7 +187,7 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
         std::string::npos) {
-      if (!CheckClient(version, true, true)) {
+      if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallRunner(version, _json, result, counter - 1);
       }
