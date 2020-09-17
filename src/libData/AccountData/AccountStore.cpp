@@ -581,9 +581,12 @@ bool AccountStore::MigrateContractStates2(
 
     account.SetStorageRoot(dev::h256());
 
-    account.UpdateStates(address, t_metadata, toDeletes, false);
+    account.UpdateStates(address, t_metadata, toDeletes, false, false, true);
 
     this->AddAccount(address, account, true);
+
+    if (account.isContract())
+      LOG_GENERAL(INFO, "storageRoot: " << account.GetStorageRoot().hex());
   }
 
   if (!contract_address_output_dir.empty()) {
