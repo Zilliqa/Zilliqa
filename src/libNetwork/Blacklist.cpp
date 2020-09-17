@@ -120,6 +120,8 @@ void Blacklist::Enable(const bool enable) {
   m_enabled = enable;
 }
 
+bool Blacklist::IsEnabled() { return m_enabled; }
+
 bool Blacklist::Whitelist(const uint128_t& ip) {
   if (!m_enabled) {
     return false;

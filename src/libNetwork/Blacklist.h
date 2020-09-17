@@ -79,6 +79,9 @@ class Blacklist {
   /// Enable / disable blacklist
   void Enable(const bool enable);
 
+  // Check if Blacklisting/Whitelisting is enabled
+  bool IsEnabled();
+
   /// Node to be whitelisted
   bool Whitelist(const uint128_t& ip);
 
