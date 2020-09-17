@@ -346,9 +346,10 @@ void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
 void Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
-                           bool temp, bool revertible) {
+                           bool temp, bool revertible, bool migrating) {
   ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
+      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible,
+      migrating);
   if (!m_address) {
     SetAddress(addr);
   }
