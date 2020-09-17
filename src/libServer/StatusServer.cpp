@@ -275,6 +275,12 @@ bool StatusServer::AddToSeedsWhitelist(const string& ipAddr) {
                              "IP Address provided not valid");
     }
 
+    if (!Blacklist::GetInstance().IsEnabled()) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Whitelisting is disabled. Node might not be synced yet!");
+    }
+
     if (!Blacklist::GetInstance().WhitelistSeed(numIP)) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
