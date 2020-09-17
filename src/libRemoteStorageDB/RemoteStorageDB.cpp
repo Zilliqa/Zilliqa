@@ -70,14 +70,21 @@ void RemoteStorageDB::Init(bool reset) {
 
       LOG_GENERAL(INFO, "Authenticating.. found env variables");
     }
+    uri += "?serverSelectionTimeoutMS=" +
+           to_string(REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS);
     if (!REMOTESTORAGE_DB_TLS_FILE.empty() &&
         boost::filesystem::exists(REMOTESTORAGE_DB_TLS_FILE)) {
-      uri += "?tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
+      uri += "&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=" +
              REMOTESTORAGE_DB_TLS_FILE;
     }
+
     mongocxx::uri URI(uri);
     if (URI.tls()) {
       LOG_GENERAL(INFO, "Connecting using TLS");
+    }
+    if (URI.server_selection_timeout_ms()) {
+      LOG_GENERAL(INFO, "ServerSelectionTimeoutInMS: "
+                            << URI.server_selection_timeout_ms().value());
     }
     m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(move(URI));
     mongocxx::options::bulk_write bulk_opts;
@@ -92,7 +99,7 @@ void RemoteStorageDB::Init(bool reset) {
     }
     m_initialized = true;
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed to initialized DB " << e.what());
+    LOG_GENERAL(WARNING, "Failed to initialize DB: " << e.what());
     m_initialized = false;
   }
 }
@@ -125,6 +132,7 @@ bool RemoteStorageDB::InsertTxn(const Transaction& txn, const TxnStatus status,
     {
       lock_guard<mutex> g(m_mutexBulkWrite);
       m_bulkWrite->append(insert_op);
+      m_bulkWriteEmpty = false;
     }
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed to InsertTxn " << e.what());
@@ -150,8 +158,13 @@ bool RemoteStorageDB::ExecuteWrite() {
     auto bulk = bsoncxx::stdx::make_unique<mongocxx::bulk_write>(
         txnCollection.create_bulk_write(bulk_opts));
     m_bulkWrite = move(bulk);
+    m_bulkWriteEmpty = true;
   };
   lock_guard<mutex> g(m_mutexBulkWrite);
+  if (m_bulkWriteEmpty) {
+    LOG_GENERAL(INFO, "No txns for RemoteStorageDB");
+    return true;
+  }
   try {
     const auto& res = m_bulkWrite->execute();
 
@@ -202,6 +215,7 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
     {
       lock_guard<mutex> g(m_mutexBulkWrite);
       m_bulkWrite->append(update_op);
+      m_bulkWriteEmpty = false;
     }
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed to UpdateTxn " << txnhash << " " << e.what());
@@ -231,6 +245,7 @@ bool RemoteStorageDB::InsertJson(const Json::Value& _json,
 }
 
 Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {
+  LOG_MARKER();
   Json::Value _json{Json::Value::null};
   if (!m_initialized) {
     LOG_GENERAL(WARNING, "DB not initialized");

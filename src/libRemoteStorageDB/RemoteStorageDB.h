@@ -38,6 +38,7 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
   std::unique_ptr<mongocxx::pool> m_pool;
   std::unique_ptr<mongocxx::instance> m_inst;
   bool m_initialized;
+  bool m_bulkWriteEmpty;
   const std::string m_dbName;
   const std::string m_txnCollectionName;
   std::unique_ptr<mongocxx::bulk_write> m_bulkWrite;
@@ -46,6 +47,7 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
  public:
   RemoteStorageDB(std::string txnCollectionName = "TransactionStatus")
       : m_initialized(false),
+        m_bulkWriteEmpty(true),
         m_dbName(REMOTESTORAGE_DB_NAME),
         m_txnCollectionName(std::move(txnCollectionName)) {}
 
