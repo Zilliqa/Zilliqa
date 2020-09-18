@@ -109,10 +109,17 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
 
+  bool CheckHasMap(const dev::h160& addr, bool temp);
+
   dev::h256 UpdateContractTrie(const dev::h256& root,
                                const std::map<std::string, bytes>& states,
                                const std::vector<std::string>& toDeletedIndices,
                                bool temp, bool revertible);
+
+  dev::h256 GetContractStateHashForMergingDelta(
+      const dev::h160& addr, const dev::h256& root,
+      const std::map<std::string, bytes>& states,
+      const std::vector<std::string>& toDeleteIndices);
 
   dev::h256 DirectHashState(const std::map<std::string, bytes>& states);
 
@@ -195,9 +202,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                         unsigned int v_offset);
 
   void UpdateStateDatasAndToDeletes(
-      const dev::h160& addr, const std::map<std::string, bytes>& t_states,
+      const dev::h160& addr, const std::map<std::string, bytes>& states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-      bool temp, bool revertible);
+      bool temp, bool revertible, bool migrating);
 
   /// Buffer the current t_map into p_map
   void ResetBufferedAtomicState();

@@ -148,9 +148,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
                                        unsigned int d_offset, bool& foundVal,
                                        bool getType, string& type) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   foundVal = true;
 
@@ -707,9 +705,7 @@ void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
 void ContractStorage2::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
     vector<std::string>& toDeletedIndices, bool temp) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   if (address == dev::h160()) {
     LOG_GENERAL(WARNING, "address provided is empty");
@@ -766,6 +762,16 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
            r->compare(0, address.hex().size(), address.hex()) == 0) {
       toDeletedIndices.emplace_back(*r);
       ++r;
+    }
+  }
+
+  for (auto it = t_states.begin(); it != t_states.end();) {
+    if (m_indexToBeDeleted.find(it->first) != m_indexToBeDeleted.cend() &&
+        ((temp && t_stateDataMap.find(it->first) == t_stateDataMap.end()) ||
+         !temp)) {
+      it = t_states.erase(it);
+    } else {
+      it++;
     }
   }
 }
@@ -826,9 +832,7 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
 bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
                                         unsigned int q_offset, const bytes& v,
                                         unsigned int v_offset) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   if (q_offset > q.size()) {
     LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
@@ -962,18 +966,16 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
 }
 
 void ContractStorage2::UpdateStateDatasAndToDeletes(
-    const dev::h160& addr, const std::map<std::string, bytes>& t_states,
+    const dev::h160& addr, const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-    bool temp, bool revertible) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+    bool temp, bool revertible, bool migrating) {
+  LOG_MARKER();
 
   {
     lock_guard<mutex> g(m_stateDataMutex);
 
     if (temp) {
-      for (const auto& state : t_states) {
+      for (const auto& state : states) {
         t_stateDataMap[state.first] = state.second;
         auto pos = t_indexToBeDeleted.find(state.first);
         if (pos != t_indexToBeDeleted.end()) {
@@ -984,7 +986,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
         t_indexToBeDeleted.emplace(index);
       }
     } else {
-      for (const auto& state : t_states) {
+      for (const auto& state : states) {
         if (revertible) {
           if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
             r_stateDataMap[state.first] = m_stateDataMap[state.first];
@@ -1010,7 +1012,14 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
     }
   }
 
-  stateHash = GetContractStateHash(addr, stateHash, temp, revertible);
+  if (!migrating && !temp) {
+    // Only when merging state delta into perm
+    stateHash = GetContractStateHashForMergingDelta(addr, stateHash, states,
+                                                    toDeleteIndices);
+  } else {
+    // applies to all other situations
+    stateHash = GetContractStateHash(addr, stateHash, temp, revertible);
+  }
 }
 
 void ContractStorage2::ResetBufferedAtomicState() {
@@ -1113,6 +1122,11 @@ bool ContractStorage2::CommitStateDB() {
     batch.clear();
     // ADDS
     for (const auto& i : *mp_stateDataMap) {
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "DB batch insert: "
+                              << i.first.hex() << endl
+                              << DataConversion::CharArrayToString(i.second));
+      }
       batch.insert(
           {i.first.hex(), DataConversion::CharArrayToString(i.second)});
     }
@@ -1123,6 +1137,9 @@ bool ContractStorage2::CommitStateDB() {
 
     // DELETES
     for (const auto& index : *mp_indexToBeDeleted) {
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "DB delete: " << index.hex());
+      }
       if (mp_stateDataDB->DeleteKey(index) < 0) {
         LOG_GENERAL(WARNING, "DeleteKey " << index << " failed");
         return false;
@@ -1152,9 +1169,7 @@ void ContractStorage2::InitTempState() {
 
 dev::h256 ContractStorage2::DirectHashState(
     const std::map<std::string, bytes>& states) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   // iterate the raw protobuf string and hash
   SHA2<HashType::HASH_VARIANT_256> sha2;
@@ -1178,11 +1193,11 @@ dev::h256 ContractStorage2::UpdateContractTrie(
     const dev::h256& root, const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeletedIndices, bool temp,
     bool revertible) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   lock_guard<mutex> g(m_stateMPTMutex);
+
+  LOG_GENERAL(INFO, "root: " << root.hex());
 
   if (temp) {
     if (root == dev::h256()) {
@@ -1192,6 +1207,11 @@ dev::h256 ContractStorage2::UpdateContractTrie(
     }
 
     for (const auto& state : states) {
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "insert key: " << state.first << " value: "
+                                         << DataConversion::CharArrayToString(
+                                                state.second));
+      }
       m_tempTrie.insert(
           DataConversion::StringToCharArray(RemoveAddrFromKey(state.first)),
           state.second);
@@ -1201,6 +1221,9 @@ dev::h256 ContractStorage2::UpdateContractTrie(
       bytes b_index =
           DataConversion::StringToCharArray(RemoveAddrFromKey(index));
       if (m_tempTrie.contains(b_index)) {
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "delete key: " << index);
+        }
         m_tempTrie.remove(b_index);
       }
     }
@@ -1219,9 +1242,9 @@ dev::h256 ContractStorage2::UpdateContractTrie(
 
     for (const auto& state : states) {
       if (LOG_SC) {
-        LOG_GENERAL(INFO, "state key: " << state.first << " value: "
-                                        << DataConversion::CharArrayToString(
-                                               state.second));
+        LOG_GENERAL(INFO, "insert key: " << state.first << " value: "
+                                         << DataConversion::CharArrayToString(
+                                                state.second));
       }
       m_permTrie.insert(
           DataConversion::StringToCharArray(RemoveAddrFromKey(state.first)),
@@ -1232,6 +1255,9 @@ dev::h256 ContractStorage2::UpdateContractTrie(
       bytes b_index =
           DataConversion::StringToCharArray(RemoveAddrFromKey(index));
       if (m_permTrie.contains(b_index)) {
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "delete key: " << index);
+        }
         m_permTrie.remove(b_index);
       }
     }
@@ -1244,6 +1270,45 @@ dev::h256 ContractStorage2::UpdateContractTrie(
   }
 }
 
+bool ContractStorage2::CheckHasMap(const dev::h160& addr, bool temp) {
+  std::map<std::string, bytes> t_hasMap;
+  std::string hasMap_key = GenerateStorageKey(addr, HAS_MAP_INDICATOR, {});
+
+  FetchStateDataForKey(t_hasMap, hasMap_key, temp);
+
+  if (t_hasMap.empty()) {
+    LOG_GENERAL(WARNING, "Failed to fetch hasMap for addr: " << addr.hex());
+  } else {
+    try {
+      return DataConversion::CharArrayToString(t_hasMap[hasMap_key]) == "true";
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Invalid hasMap: " << hasMap_key << endl
+                                              << e.what());
+    }
+  }
+
+  return false;
+}
+
+dev::h256 ContractStorage2::GetContractStateHashForMergingDelta(
+    const dev::h160& addr, const dev::h256& root,
+    const std::map<std::string, bytes>& states,
+    const std::vector<std::string>& toDeleteIndices) {
+  if (IsNullAddress(addr)) {
+    LOG_GENERAL(WARNING, "Null address rejected");
+    return dev::h256();
+  }
+
+  if (CheckHasMap(addr, false)) {
+    // only use the provided data to populate the merkle trie
+    return UpdateContractTrie(root, states, toDeleteIndices, false, true);
+  } else {
+    std::map<std::string, bytes> states;
+    FetchStateDataForContract(states, addr, "", {}, false);
+    return DirectHashState(states);
+  }
+}
+
 dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& addr,
                                                  const dev::h256& root,
                                                  bool temp, bool revertible) {
@@ -1252,37 +1317,16 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& addr,
     return dev::h256();
   }
 
-  std::map<std::string, bytes> t_hasMap;
-  std::string hasMap_key = GenerateStorageKey(addr, HAS_MAP_INDICATOR, {});
-
-  FetchStateDataForKey(t_hasMap, hasMap_key, temp);
-
-  bool hasMap = false;
-
-  if (t_hasMap.empty()) {
-    LOG_GENERAL(WARNING, "Failed to fetch hasMap for addr: " << addr.hex());
-  } else {
-    try {
-      hasMap =
-          (DataConversion::CharArrayToString(t_hasMap[hasMap_key]) == "true");
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Invalid hasMap: " << hasMap_key << endl
-                                              << e.what());
-    }
-  }
-
   std::map<std::string, bytes> states;
-  std::vector<std::string> toDeletedIndices;
+  std::vector<std::string> toDeleteIndices;
 
-  if (hasMap) {
-    FetchUpdatedStateValuesForAddress(addr, states, toDeletedIndices, temp);
+  if (CheckHasMap(addr, temp)) {
+    FetchUpdatedStateValuesForAddress(addr, states, toDeleteIndices, temp);
+    return UpdateContractTrie(root, states, toDeleteIndices, temp, revertible);
   } else {
     FetchStateDataForContract(states, addr, "", {}, temp);
+    return DirectHashState(states);
   }
-
-  return hasMap ? UpdateContractTrie(root, states, toDeletedIndices, temp,
-                                     revertible)
-                : DirectHashState(states);
 }
 
 void ContractStorage2::Reset() {
