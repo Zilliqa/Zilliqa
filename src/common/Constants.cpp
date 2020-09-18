@@ -274,6 +274,10 @@ const unsigned int MEAN_GAS_PRICE_DS_NUM{
     ReadConstantNumeric("MEAN_GAS_PRICE_DS_NUM", "node.gas.")};
 const string LEGAL_GAS_PRICE_IP{
     ReadConstantString("LEGAL_GAS_PRICE_IP", "node.gas.")};
+const unsigned int GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS{
+    ReadConstantNumeric("GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS", "node.gas.")};
+const uint128_t GAS_PRICE_MIN_VALUE_NEW{
+    ReadConstantNumeric("GAS_PRICE_MIN_VALUE_NEW", "node.gas.")};
 
 // Gossip constants
 const bool BROADCAST_GOSSIP_MODE{

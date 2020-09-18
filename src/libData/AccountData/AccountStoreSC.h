@@ -73,7 +73,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   uint64_t m_curGasLimit{0};
 
   /// the gas price while executing each txn
-  uint128_t m_curGasPrice{GAS_PRICE_MIN_VALUE};
+  uint128_t m_curGasPrice{0};
 
   /// the gas price while executing each txn will be used in calculating the
   /// shard allocation of sender/recipient during chain call
