@@ -2014,6 +2014,9 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
 
 Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
   try {
+    if (!REMOTESTORAGE_DB_ENABLE) {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+    }
     if (txnhash.size() != TRAN_HASH_SIZE * 2) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Txn Hash size not appropriate");

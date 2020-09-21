@@ -137,6 +137,9 @@ const string REMOTESTORAGE_DB_NAME{
     ReadConstantString("REMOTESTORAGE_DB_NAME", "node.remotestorageDB.")};
 const unsigned int REMOTESTORAGE_DB_PORT{
     ReadConstantNumeric("REMOTESTORAGE_DB_PORT", "node.remotestorageDB.")};
+const unsigned int REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS{
+    ReadConstantNumeric("REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS",
+                        "node.remotestorageDB.")};
 const string REMOTESTORAGE_DB_TLS_FILE{
     ReadConstantString("REMOTESTORAGE_DB_TLS_FILE", "node.remotestorageDB.")};
 bool REMOTESTORAGE_DB_ENABLE{
