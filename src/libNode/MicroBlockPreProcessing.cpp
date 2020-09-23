@@ -408,12 +408,12 @@ void Node::ProcessTransactionWhenShardLeader(
       // if nonce too small, ignore it
       else if (t.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
-        // LOG_GENERAL(INFO,
-        //             "Nonce too small"
-        //                 << " Expected "
-        //                 <<
-        //                 AccountStore::GetInstance().GetNonceTemp(senderAddr)
-        //                 << " Found " << t.GetNonce());
+        LOG_GENERAL(
+            INFO, "Nonce too small"
+                      << " Expected "
+                      << AccountStore::GetInstance().GetNonceTemp(senderAddr)
+                      << " Found " << t.GetNonce() << " for " << t.GetTranID());
+        droppedTxns.emplace_back(t.GetTranID(), TxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
@@ -676,6 +676,12 @@ void Node::ProcessTransactionWhenShardBackup(
       // if nonce too small, ignore it
       else if (t.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
+        LOG_GENERAL(
+            INFO, "Nonce too small"
+                      << " Expected "
+                      << AccountStore::GetInstance().GetNonceTemp(senderAddr)
+                      << " Found " << t.GetNonce() << " for " << t.GetTranID());
+        droppedTxns.emplace_back(t.GetTranID(), TxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
