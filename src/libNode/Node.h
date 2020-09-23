@@ -129,6 +129,7 @@ class Node : public Executable {
   /// TxnPacket Timer Vars
   std::mutex m_mutexCVTxnPacket;
   std::condition_variable cv_txnPacket;
+  std::atomic<uint32_t> m_txnPacketThreadOnHold{0};
 
   // Final Block Buffer for seed node
   std::vector<bytes> m_seedTxnBlksBuffer;

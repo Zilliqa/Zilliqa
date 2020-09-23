@@ -924,6 +924,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
       !m_mediator.GetIsVacuousEpoch()) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS +
                                                      ANNOUNCEMENT_DELAY_IN_MS));
+    while (m_txnPacketThreadOnHold > 0) {
+      std::this_thread::sleep_for(chrono::milliseconds(100));
+    }
   }
 
   m_txn_distribute_window_open = false;
@@ -1027,6 +1030,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    while (m_txnPacketThreadOnHold > 0) {
+      std::this_thread::sleep_for(chrono::milliseconds(100));
+    }
     ProcessTransactionWhenShardBackup(SHARD_MICROBLOCK_GAS_LIMIT);
   }
 

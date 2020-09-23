@@ -1795,8 +1795,8 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   // 1. DS epoch: lookup dispatch in new DS epoch, buffer and dispatch when mb
   // finish, so normally first DS epoch won't have txns
   // 2. FB epoch: saying the 2nd epoch after ds epoch, lookup dispatch txn upon
-  // mb, they distribute right away once mb consensus started, and before
-  // submitting mb, all the packet received should be buffered
+  // mb, they distribute right away until mb consensus started. During the mb
+  // consensus, all the packet received should be buffered
   // for DS:
   // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
   // DSMB started, during DSMB and FB consensus, all packet should be buffered
@@ -1902,6 +1902,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     return false;
   }
 
+  if (m_mediator.GetIsVacuousEpoch()) {
+    LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
+    return false;
+  }
+
   if (BROADCAST_GOSSIP_MODE) {
     LOG_STATE("[TXNPKTPROC-CORE]["
               << std::setw(15) << std::left
@@ -1935,13 +1940,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
-  }
-
-  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      m_state != MICROBLOCK_CONSENSUS_PREP) {
-    unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
-    cv_txnPacket.wait(lk,
-                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
@@ -1995,6 +1993,14 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 #endif  // DM_TEST_DM_MORETXN_HALF
 
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+      m_state != MICROBLOCK_CONSENSUS_PREP) {
+    unique_lock<mutex> lk(m_mutexCVTxnPacket);
+    m_txnPacketThreadOnHold++;
+    cv_txnPacket.wait(lk,
+                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
+  }
+
   // Process the txns
   unsigned int processed_count = 0;
 
@@ -2003,10 +2009,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   std::vector<Transaction> checkedTxns;
   vector<pair<TxnHash, TxnStatus>> rejectTxns;
   for (const auto& txn : txns) {
-    if (m_mediator.GetIsVacuousEpoch()) {
-      LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
-      return false;
-    }
     TxnStatus error;
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
       checkedTxns.push_back(txn);
@@ -2078,6 +2080,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                               << shardId << "]["
                               << string(lookupPubKey).substr(0, 6) << "] DONE ["
                               << processed_count << "]");
+  }
+
+  if (m_txnPacketThreadOnHold > 0) {
+    m_txnPacketThreadOnHold--;
   }
 
   return true;
