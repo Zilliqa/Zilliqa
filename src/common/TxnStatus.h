@@ -52,6 +52,7 @@ enum TxnStatus : uint8_t {
   //
   INVALID_TO_ACCOUNT = 25,
   FAIL_CONTRACT_ACCOUNT_CREATION = 26,
+  NONCE_TOO_LOW = 27,
   ERROR = 255  // MISC_ERROR
 };
 
