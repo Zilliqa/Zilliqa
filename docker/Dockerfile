@@ -63,7 +63,7 @@ RUN apt-get update \
     && pip3 install -r requirements3.txt
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=v6.3.0
+ARG COMMIT_OR_TAG=v6.4.0-alpha.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
