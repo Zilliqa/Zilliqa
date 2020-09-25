@@ -1829,7 +1829,7 @@ Json::Value LookupServer::GetPendingTxns() {
     for (const auto& txhash_and_status : t_hashCodeMap) {
       Json::Value tmpJson;
       tmpJson["TxnHash"] = txhash_and_status.first.hex();
-      tmpJson["Status"] = uint(txhash_and_status.second);
+      tmpJson["code"] = uint(txhash_and_status.second);
       _json["Txns"].append(tmpJson);
     }
   };

@@ -1679,8 +1679,11 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
          ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
            0) ||
           m_justDidFallback))) {
+      SHA2<HashType::HASH_VARIANT_256> sha256;
+      sha256.Update(message2);  // message hash
+      bytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace_back(message2);
+      m_txnPacketBuffer.emplace(msg_hash, message2);
       return true;
     }
   }
@@ -1717,7 +1720,10 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
                 << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
                 << "] RECVFROMLOOKUP");
     }
-    m_txnPacketBuffer.emplace_back(message2);
+    SHA2<HashType::HASH_VARIANT_256> sha256;
+    sha256.Update(message2);  // message hash
+    bytes msg_hash = sha256.Finalize();
+    m_txnPacketBuffer.emplace(msg_hash, message2);
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
@@ -1902,7 +1908,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
       const auto& ret_pair = m_createdTxns.insert(txn);
       if (!ret_pair.first) {
         {
-          rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
+          if (ret_pair.second != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
+            // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
+            // issue, hence if this comes, either the txn should be confirmed or
+            // if it is pending/dropped there should be some other cause which
+            // is primary.
+            rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
+          }
           LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
                                    << " rejected by pool due to "
                                    << ret_pair.second);
@@ -1991,12 +2003,13 @@ void Node::CommitTxnPacketBuffer() {
   }
 
   lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-  for (const auto& message : m_txnPacketBuffer) {
+  for (const auto& entry : m_txnPacketBuffer) {
     uint64_t epochNumber = 0, dsBlockNum = 0;
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
     Signature signature;
+    const auto& message = entry.second;
 
     if (!Messenger::GetNodeForwardTxnBlock(
             message, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
@@ -2219,19 +2232,25 @@ void Node::CleanCreatedTransaction() {
 
 bool Node::IsShardNode(const PubKey& pubKey) {
   lock_guard<mutex> lock(m_mutexShardMember);
-  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&pubKey](const PairOfNode& node) {
-                        return node.first == pubKey;
-                      }) != m_myShardMembers->end();
+  if (m_myShardMembers != nullptr) {
+    return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                        [&pubKey](const PairOfNode& node) {
+                          return node.first == pubKey;
+                        }) != m_myShardMembers->end();
+  }
+  return false;
 }
 
 bool Node::IsShardNode(const Peer& peerInfo) {
   lock_guard<mutex> lock(m_mutexShardMember);
-  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
-                      [&peerInfo](const PairOfNode& node) {
-                        return node.second.GetIpAddress() ==
-                               peerInfo.GetIpAddress();
-                      }) != m_myShardMembers->end();
+  if (m_myShardMembers != nullptr) {
+    return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                        [&peerInfo](const PairOfNode& node) {
+                          return node.second.GetIpAddress() ==
+                                 peerInfo.GetIpAddress();
+                        }) != m_myShardMembers->end();
+  }
+  return false;
 }
 
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
