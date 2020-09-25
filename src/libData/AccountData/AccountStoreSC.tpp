@@ -1415,8 +1415,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       bool result = true;
 
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                        gasRemained, this->GetBalance(recipient), result,
-                        receipt);
+                        gasRemained, account->GetBalance(), result, receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
