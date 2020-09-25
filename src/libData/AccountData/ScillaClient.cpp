@@ -113,7 +113,11 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
         LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
         return CallChecker(version, _json, result, counter - 1);
       }
+    } else {
+      result = e.what();
     }
+
+    return false;
   }
 
   return true;
@@ -140,7 +144,10 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
         LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
         return CallChecker(version, _json, result, counter - 1);
       }
+    } else {
+      result = e.what();
     }
+
     return false;
   }
 

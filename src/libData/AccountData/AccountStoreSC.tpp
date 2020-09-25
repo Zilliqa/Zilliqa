@@ -289,12 +289,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      LOG_GENERAL(INFO, "mark 0");
-
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddress(toAddr);
-
-      LOG_GENERAL(INFO, "mark 1");
 
       // ************************************************************************
       // Undergo scilla checker

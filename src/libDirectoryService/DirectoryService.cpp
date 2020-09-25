@@ -1067,7 +1067,7 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
                        &DirectoryService::ProcessMicroblockSubmission,
                        &DirectoryService::ProcessFinalBlockConsensus,
                        &DirectoryService::ProcessViewChangeConsensus,
-                       &DirectoryService::ProcessGetDSTxBlockMessage,
+                       &DirectoryService::ProcessVCPushLatestDSTxBlock,
                        &DirectoryService::ProcessPoWPacketSubmission,
                        &DirectoryService::ProcessNewDSGuardNetworkInfo,
                        &DirectoryService::ProcessCosigsRewardsFromSeed});

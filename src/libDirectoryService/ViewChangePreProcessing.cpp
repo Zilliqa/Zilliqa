@@ -279,6 +279,11 @@ void DirectoryService::RunConsensusOnViewChange() {
     }
   }
 
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC) {
+    LOG_GENERAL(INFO, "Node is in DS_SYNC. Skipping view change consensus.");
+    return;
+  }
+
   // Blacklist::GetInstance().Clear();
 
   uint16_t faultyLeaderIndex;
@@ -738,14 +743,14 @@ bytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
   return getDSTxBlockMessage;
 }
 
-bool DirectoryService::ProcessGetDSTxBlockMessage(
+bool DirectoryService::ProcessVCPushLatestDSTxBlock(
     const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::ProcessGetDSTxBlockMessage not expected "
+                "DirectoryService::ProcessVCPushLatestDSTxBlock not expected "
                 "to be called from LookUp node.");
     return true;
   }
@@ -753,7 +758,7 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
   if (m_state != VIEWCHANGE_CONSENSUS_PREP) {
     LOG_EPOCH(
         WARNING, m_mediator.m_currentEpochNum,
-        "Unable to process ProcessGetDSTxBlockMessage as current state is "
+        "Unable to process ProcessVCPushLatestDSTxBlock as current state is "
             << to_string(m_state));
   }
 
