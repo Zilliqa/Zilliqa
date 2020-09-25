@@ -1908,18 +1908,17 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     for (const auto& txn : checkedTxns) {
       MempoolInsertionStatus status;
       if (!m_createdTxns.insert(txn, status)) {
-          if (status.first != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
-            // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
-            // issue, hence if this comes, either the txn should be confirmed or
-            // if it is pending/dropped there should be some other cause which
-            // is primary.
-            rejectTxns.emplace_back(status.second, status.first);
-          }
-          LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to "
-                                   << status.first);
+        if (status.first != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
+          // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
+          // issue, hence if this comes, either the txn should be confirmed or
+          // if it is pending/dropped there should be some other cause which
+          // is primary.
+          rejectTxns.emplace_back(status.second, status.first);
         }
-        else {
+        LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
+                                 << " rejected by pool due to "
+                                 << status.first);
+      } else {
         if (status.first != ErrTxnStatus::NOT_PRESENT) {
           // Txn added with deletion of some previous txn
           rejectTxns.emplace_back(status.second, status.first);
@@ -1930,7 +1929,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
         LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
       }
     }
-  
 
     LOG_GENERAL(INFO, "Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
