@@ -22,6 +22,7 @@
 
 #include "Node.h"
 #include "common/Constants.h"
+#include "common/ErrTxn.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
@@ -413,7 +414,7 @@ void Node::ProcessTransactionWhenShardLeader(
                       << " Expected "
                       << AccountStore::GetInstance().GetNonceTemp(senderAddr)
                       << " Found " << t.GetNonce() << " for " << t.GetTranID());
-        droppedTxns.emplace_back(t.GetTranID(), TxnStatus::NONCE_TOO_LOW);
+        droppedTxns.emplace_back(t.GetTranID(), ErrTxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
@@ -681,7 +682,7 @@ void Node::ProcessTransactionWhenShardBackup(
                       << " Expected "
                       << AccountStore::GetInstance().GetNonceTemp(senderAddr)
                       << " Found " << t.GetNonce() << " for " << t.GetTranID());
-        droppedTxns.emplace_back(t.GetTranID(), TxnStatus::NONCE_TOO_LOW);
+        droppedTxns.emplace_back(t.GetTranID(), ErrTxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
