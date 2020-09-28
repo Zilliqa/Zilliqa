@@ -267,8 +267,9 @@ def run():
 			while(currTxBlk < newTxBlk):
 				lst.append(currTxBlk+1)
 				currTxBlk += 1
-			GetPersistenceDiffFromS3(lst)
-			GetStateDeltaDiffFromS3(lst)
+			if lst:
+				GetPersistenceDiffFromS3(lst)
+				GetStateDeltaDiffFromS3(lst)
 			break
 
 		except Exception as e:
