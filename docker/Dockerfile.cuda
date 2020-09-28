@@ -54,8 +54,8 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install 'setuptools<45' \
-    && pip install request requests clint futures \
-    && pip3 install request requests clint future
+    && pip install requests clint futures \
+    && pip3 install requests clint future
 
 ############################### CUDA Installation ##############################
 # taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/base/Dockerfile
