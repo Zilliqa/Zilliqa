@@ -218,6 +218,8 @@ extern const unsigned int GAS_CONGESTION_PERCENT;
 extern const unsigned int UNFILLED_PERCENT_LOW;
 extern const unsigned int UNFILLED_PERCENT_HIGH;
 extern const uint128_t GAS_PRICE_MIN_VALUE;
+extern const unsigned int GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS;
+extern const uint128_t GAS_PRICE_MIN_VALUE_NEW;
 extern const unsigned int GAS_PRICE_PRECISION;
 extern const uint128_t PRECISION_MIN_VALUE;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
@@ -311,6 +313,7 @@ extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
 extern const std::string MINING_PROXY_URL;
+extern const unsigned int MINING_PROXY_TIMEOUT_IN_MS;
 extern const unsigned int MAX_RETRY_SEND_POW_TIME;
 extern const unsigned int CHECK_MINING_RESULT_INTERVAL;
 extern const bool GETWORK_SERVER_MINE;
@@ -407,6 +410,10 @@ extern const std::string BUCKET_NAME;
 extern const std::string TXN_PERSISTENCE_NAME;
 extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
+extern const unsigned int COINBASE_UPDATE_TARGET_DS;
+extern const uint128_t COINBASE_REWARD_PER_DS_NEW;
+extern const unsigned int BASE_REWARD_IN_PERCENT_NEW;
+extern const unsigned int LOOKUP_REWARD_IN_PERCENT_NEW;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

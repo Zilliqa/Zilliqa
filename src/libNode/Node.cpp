@@ -1554,7 +1554,8 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
   for (const auto& submittedTxn : txns) {
-    m_createdTxns.insert(submittedTxn);
+    MempoolInsertionStatus status;
+    m_createdTxns.insert(submittedTxn, status);
   }
 
   cv_MicroBlockMissingTxn.notify_all();
@@ -1905,21 +1906,26 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                 "TxnPool size before processing: " << m_createdTxns.size());
 
     for (const auto& txn : checkedTxns) {
-      const auto& ret_pair = m_createdTxns.insert(txn);
-      if (!ret_pair.first) {
-        {
-          if (ret_pair.second != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
-            // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
-            // issue, hence if this comes, either the txn should be confirmed or
-            // if it is pending/dropped there should be some other cause which
-            // is primary.
-            rejectTxns.emplace_back(txn.GetTranID(), ret_pair.second);
-          }
-          LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
-                                   << " rejected by pool due to "
-                                   << ret_pair.second);
+      MempoolInsertionStatus status;
+      if (!m_createdTxns.insert(txn, status)) {
+        if (status.first != ErrTxnStatus::MEMPOOL_ALREADY_PRESENT) {
+          // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate
+          // issue, hence if this comes, either the txn should be confirmed or
+          // if it is pending/dropped there should be some other cause which
+          // is primary.
+          rejectTxns.emplace_back(status.second, status.first);
         }
+        LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex()
+                                 << " rejected by pool due to "
+                                 << status.first);
       } else {
+        if (status.first != ErrTxnStatus::NOT_PRESENT) {
+          // Txn added with deletion of some previous txn
+          rejectTxns.emplace_back(status.second, status.first);
+          LOG_GENERAL(INFO, "Txn " << status.second
+                                   << " removed from pool due to "
+                                   << status.first);
+        }
         LOG_GENERAL(INFO, "Txn " << txn.GetTranID().hex() << " added to pool");
       }
     }
@@ -2254,13 +2260,6 @@ bool Node::IsShardNode(const Peer& peerInfo) {
 }
 
 bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ComposeAndSendRemoveNodeFromBlacklist not "
-                "expected to be called from LookUp node.");
-    return false;
-  }
-
   LOG_MARKER();
   if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
     LOG_GENERAL(INFO, "I am a ds guard node. So skipping sending...");
@@ -2279,7 +2278,8 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     return false;
   }
 
-  if (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH) {
+  if (!LOOKUP_NODE_MODE &&
+      (receiver == RECEIVERTYPE::PEER || receiver == RECEIVERTYPE::BOTH)) {
     // Send the peers
     VectorOfPeer peerList;
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)  // DS node

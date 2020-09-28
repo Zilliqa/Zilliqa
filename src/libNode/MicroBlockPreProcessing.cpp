@@ -22,6 +22,7 @@
 
 #include "Node.h"
 #include "common/Constants.h"
+#include "common/ErrTxn.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
@@ -69,10 +70,11 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD_PER_DS, rewards)) {
-      LOG_GENERAL(WARNING, "rewards addition unsafe!");
-    }
+    rewards =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+         COINBASE_UPDATE_TARGET_DS)
+            ? COINBASE_REWARD_PER_DS_NEW
+            : COINBASE_REWARD_PER_DS;
   } else {
     rewards = m_txnFees;
   }
@@ -407,12 +409,12 @@ void Node::ProcessTransactionWhenShardLeader(
       // if nonce too small, ignore it
       else if (t.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
-        // LOG_GENERAL(INFO,
-        //             "Nonce too small"
-        //                 << " Expected "
-        //                 <<
-        //                 AccountStore::GetInstance().GetNonceTemp(senderAddr)
-        //                 << " Found " << t.GetNonce());
+        LOG_GENERAL(
+            INFO, "Nonce too small"
+                      << " Expected "
+                      << AccountStore::GetInstance().GetNonceTemp(senderAddr)
+                      << " Found " << t.GetNonce() << " for " << t.GetTranID());
+        droppedTxns.emplace_back(t.GetTranID(), ErrTxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
@@ -675,6 +677,12 @@ void Node::ProcessTransactionWhenShardBackup(
       // if nonce too small, ignore it
       else if (t.GetNonce() <
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
+        LOG_GENERAL(
+            INFO, "Nonce too small"
+                      << " Expected "
+                      << AccountStore::GetInstance().GetNonceTemp(senderAddr)
+                      << " Found " << t.GetNonce() << " for " << t.GetTranID());
+        droppedTxns.emplace_back(t.GetTranID(), ErrTxnStatus::NONCE_TOO_LOW);
       }
       // if nonce correct, process it
       else {
@@ -794,24 +802,29 @@ void Node::ReinstateMemPool(
     const vector<pair<TxnHash, ErrTxnStatus>>& droppedTxns) {
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
+  MempoolInsertionStatus status;
   // Put remaining txns back in pool
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
-      LOG_GENERAL(INFO, "PendingTxn " << nonceTxn.second.GetTranID());
-      t_createdTxns.insert(nonceTxn.second);
+      t_createdTxns.insert(nonceTxn.second, status);
+      LOG_GENERAL(INFO, "Txn " << nonceTxn.second.GetTranID() << ", Status: "
+                               << status.first << "  " << status.second);
       m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
                                 ErrTxnStatus::PRESENT_NONCE_HIGH);
     }
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
-    t_createdTxns.insert(t);
-    LOG_GENERAL(INFO, "PendingTxn " << t.GetTranID());
+    t_createdTxns.insert(t, status);
+    LOG_GENERAL(INFO, "Txn " << t.GetTranID() << ", Status: " << status.first
+                             << "  " << status.second);
     m_unconfirmedTxns.emplace(t.GetTranID(),
                               ErrTxnStatus::PRESENT_GAS_EXCEEDED);
   }
 
   for (const auto& txnHashStatus : droppedTxns) {
+    LOG_GENERAL(INFO,
+                "[DTXN]" << txnHashStatus.first << " " << txnHashStatus.second);
     m_unconfirmedTxns.emplace(txnHashStatus);
   }
 }
@@ -1334,12 +1347,14 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
   // Check Rewards
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    // Check COINBASE_REWARD_PER_DS + totalTxnFees
-    uint128_t rewards = 0;
-    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD_PER_DS, rewards)) {
-      LOG_GENERAL(WARNING, "total_reward addition unsafe!");
-    }
+    // Check COINBASE_REWARD_PER_DS
+
+    uint128_t rewards =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+         COINBASE_UPDATE_TARGET_DS)
+            ? COINBASE_REWARD_PER_DS_NEW
+            : COINBASE_REWARD_PER_DS;
+
     if (rewards != m_microblock->GetHeader().GetRewards()) {
       LOG_CHECK_FAIL("Total rewards", m_microblock->GetHeader().GetRewards(),
                      rewards);

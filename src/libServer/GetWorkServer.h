@@ -121,6 +121,9 @@ class GetWorkServer : public AbstractStubServer {
   std::mutex m_mutexResult;
   std::condition_variable m_cvGotResult;
 
+  // an indicator for current mining target difficulty
+  std::atomic<uint8_t> m_currentTargetDifficulty{};
+
  public:
   // Returns the singleton instance.
   static GetWorkServer &GetInstance();
@@ -146,7 +149,8 @@ class GetWorkServer : public AbstractStubServer {
   // Protocol for GetResult
   ethash_mining_result_t GetResult(int waitTime);
 
-  bool UpdateCurrentResult(const ethash_mining_result_t &newResult);
+  bool UpdateCurrentResult(const ethash_mining_result_t &newResult,
+                           const uint8_t difficulty);
 
   // RPC methods
   virtual Json::Value getWork();

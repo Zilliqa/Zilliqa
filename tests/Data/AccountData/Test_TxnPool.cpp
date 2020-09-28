@@ -40,11 +40,11 @@ bool checkExistenceAndAdd(MAP& m, const KEY& k) {
   }
 }
 
-Transaction createTransaction(const uint128_t& gasPrice, const TxnHash& tranID,
+Transaction createTransaction(const uint128_t& gasPrice,
                               const PubKey& senderPubKey,
                               const uint64_t& nonce) {
   return Transaction(
-      tranID, TestUtils::DistUint32(), nonce, Address().random(), senderPubKey,
+      TestUtils::DistUint32(), nonce, Address().random(), senderPubKey,
       TestUtils::DistUint128(), gasPrice, TestUtils::DistUint64(),
       TestUtils::GenerateRandomCharVector(TestUtils::DistUint8()),
       TestUtils::GenerateRandomCharVector(TestUtils::DistUint8()),
@@ -82,7 +82,7 @@ Transaction generateUniqueTransaction() {
     uniq &= checkExistenceAndAdd(nonce_m, nonce);
   } while (!uniq);
 
-  return createTransaction(gasPrice, tranID, senderPubKey, nonce);
+  return createTransaction(gasPrice, senderPubKey, nonce);
 }
 
 std::vector<Transaction> generateUniqueTransactionVector(
@@ -111,8 +111,9 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   // Insert Transactions in TxnPool and check that inserted elements can be
   // queried back
   // ============================================================
+  MempoolInsertionStatus status;
   for (auto& t : transaction_v) {
-    BOOST_CHECK_EQUAL(true, tp.insert(t).first);
+    BOOST_CHECK_EQUAL(true, tp.insert(t, status));
     BOOST_CHECK_EQUAL(true, tp.exist(t.GetTranID()));
     Transaction tran = Transaction();
     BOOST_CHECK_EQUAL(true, tp.get(t.GetTranID(), tran));
@@ -134,8 +135,8 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   // ============================================================
   BOOST_CHECK_EQUAL(false,
                     tp.insert(transaction_v[TestUtils::RandomIntInRng<uint8_t>(
-                                  0, transaction_v.size() - 1)])
-                        .first);
+                                  0, transaction_v.size() - 1)],
+                              status));
 
   // ============================================================
   // Insert existing Transaction but with higher gas price (+1)
@@ -146,14 +147,14 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   while (true) {
     uint128_t gasprice = transaction_v[i].GetGasPrice();
     if (gasprice < gasprice + 1) {
-      transactionHigherGas = createTransaction(
-          gasprice + 1, transaction_v[i].GetTranID(),
-          transaction_v[i].GetSenderPubKey(), transaction_v[i].GetNonce());
+      transactionHigherGas =
+          createTransaction(gasprice + 1, transaction_v[i].GetSenderPubKey(),
+                            transaction_v[i].GetNonce());
       break;
     }
     ++i;
   }
-  BOOST_CHECK_EQUAL(true, tp.insert(transactionHigherGas).first);
+  BOOST_CHECK_EQUAL(true, tp.insert(transactionHigherGas, status));
 
   // ============================================================
   // Test if findSameNonceButHigherGas returns same Transaction but with higher
@@ -172,6 +173,40 @@ BOOST_AUTO_TEST_CASE(txnpool) {
     BOOST_CHECK_EQUAL(true, tp.findOne(transactionTest));
   }
   BOOST_CHECK_EQUAL(false, tp.findOne(transactionTest));
+}
+
+BOOST_AUTO_TEST_CASE(txnpool_status) {
+  TxnPool tp;
+
+  Transaction txn = generateUniqueTransaction();
+  const uint128_t& gasprice = txn.GetGasPrice();
+
+  Transaction higherGasTxn =
+      createTransaction(gasprice + 1, txn.GetSenderPubKey(), txn.GetNonce());
+
+  MempoolInsertionStatus status;
+
+  /// Try inserting lower gas txn first and then higher gas
+
+  BOOST_CHECK_EQUAL(true, tp.insert(txn, status));
+  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::NOT_PRESENT);
+
+  BOOST_CHECK_EQUAL(true, tp.insert(higherGasTxn, status));
+  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
+  BOOST_CHECK_EQUAL(status.second, txn.GetTranID());
+
+  ///
+
+  tp.clear();
+
+  /// Try inserting higher gas txn first and then lower gas
+
+  BOOST_CHECK_EQUAL(true, tp.insert(higherGasTxn, status));
+  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::NOT_PRESENT);
+
+  BOOST_CHECK_EQUAL(false, tp.insert(txn, status));
+  BOOST_CHECK_EQUAL(status.first, ErrTxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS);
+  BOOST_CHECK_EQUAL(status.second, txn.GetTranID());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

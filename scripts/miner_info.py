@@ -110,6 +110,8 @@ def make_options_dictionary(options_dict):
 	options_dict["register_extseed"] = "AddToExtSeedWhitelist"
 	options_dict["deregister_extseed"] = "RemoveFromExtSeedWhitelist"
 	options_dict["reglist_extseed"] = "GetWhitelistedExtSeed"
+	options_dict["seedswhitelist_add"] = "AddToSeedsWhitelist"
+	options_dict["seedswhitelist_remove"] = "RemoveFromSeedsWhitelist"
 	options_dict["ds_difficulty"] = "GetPrevDSDifficulty"
 	options_dict["difficulty"] = "GetPrevDifficulty"
 	options_dict["set_sendsccallstods"] = "ToggleSendSCCallsToDS"
@@ -140,7 +142,7 @@ def ProcessResponse(resp, params, batch):
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	option_param_required = ["checktxn","whitelist_add","whitelist_remove"]
+	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed"]
 	global DEBUG_MODE
 	args = parse_arguments(sorted(options_dictionary.keys()))
 	DEBUG_MODE = args.debug

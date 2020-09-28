@@ -218,6 +218,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       toAddr =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
+      // ** Remeber to call RemoveAccount if deployment failed halfway
       if (!this->AddAccount(toAddr, {0, 0})) {
         LOG_GENERAL(WARNING,
                     "AddAccount failed for contract address " << toAddr.hex());
@@ -250,18 +251,21 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
+          this->RemoveAccount(toAddr);
           error_code = ErrTxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         if (DISABLE_SCILLA_LIB && is_library) {
           LOG_GENERAL(WARNING, "ScillaLib disabled");
+          this->RemoveAccount(toAddr);
           error_code = ErrTxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
+          this->RemoveAccount(toAddr);
           error_code = ErrTxnStatus::FAIL_SCILLA_LIB;
           return false;
         }

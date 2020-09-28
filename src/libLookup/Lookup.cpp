@@ -112,6 +112,14 @@ void Lookup::InitSync() {
       SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
     }
 
+    // Send whitelist request to seeds, in case it was blacklisted if was
+    // restarted.
+    if (m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(
+            Node::LOOKUP)) {
+      this_thread::sleep_for(
+          chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
+    }
+
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
@@ -2252,11 +2260,12 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const bytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
-    LOG_GENERAL(WARNING,
-                "Requesting IP : "
-                    << from.GetPrintableIPAddress()
-                    << " is not in whitelisted IP list. Ignore the request");
+  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
     return false;
   }
 
@@ -3685,11 +3694,12 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
 
   // verify if sender is from whitelisted list
   uint128_t ipAddr = from.m_ipAddress;
-  if (!Blacklist::GetInstance().IsWhitelistedIP(ipAddr)) {
-    LOG_GENERAL(WARNING,
-                "Requesting IP : "
-                    << from.GetPrintableIPAddress()
-                    << " is not in whitelisted IP list. Ignore the request");
+  if (!Blacklist::GetInstance().IsWhitelistedSeed(ipAddr)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
     return false;
   }
 
