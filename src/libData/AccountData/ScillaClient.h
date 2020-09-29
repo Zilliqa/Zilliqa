@@ -31,6 +31,8 @@ class ScillaClient {
   std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
       m_connectors;
 
+  std::mutex m_mutexMain;
+
   ScillaClient(){};
   ~ScillaClient(){};
 

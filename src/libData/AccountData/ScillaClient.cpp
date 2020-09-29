@@ -145,6 +145,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
   }
 
   try {
+    std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
@@ -180,6 +181,7 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
   }
 
   try {
+    std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("run", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
