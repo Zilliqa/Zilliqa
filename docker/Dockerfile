@@ -59,6 +59,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install -r requirements3.txt
 
+# set python3 as default instead python2
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=v6.4.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
