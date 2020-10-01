@@ -16,6 +16,8 @@
 
 FROM zilliqa/scilla:v0.9.0
 
+COPY requirements3.cuda.txt ./
+
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
