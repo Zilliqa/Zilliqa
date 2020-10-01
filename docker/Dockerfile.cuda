@@ -14,13 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-<<<<<<< HEAD
 FROM zilliqa/scilla:v0.9.0-backport.16.04
-=======
-FROM zilliqa/scilla:v0.8.0-alpha.0
-
-COPY requirements3.cuda.txt ./
->>>>>>> f43806f84... modify docker files for ubuntu18 upgrade
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
