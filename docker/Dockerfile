@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.9.0-backport.16.04
+ARG BASE=zilliqa/scilla:v0.9.0
 FROM ${BASE}
 
 COPY requirements3.txt ./
