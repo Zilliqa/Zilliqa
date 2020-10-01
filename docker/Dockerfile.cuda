@@ -53,13 +53,7 @@ RUN apt-get update \
     python3-pip \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/* \
-<<<<<<< HEAD
-    && pip install 'setuptools<45' \
-    && pip install requests clint futures \
-    && pip3 install requests clint future
-=======
     && pip3 install -r requirements3.cuda.txt
->>>>>>> f43806f84... modify docker files for ubuntu18 upgrade
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 ############################### CUDA Installation ##############################
