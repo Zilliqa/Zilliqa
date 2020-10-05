@@ -452,6 +452,7 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
   uint64_t latestTxBlockNum = 0;
+  uint64_t count = 0;
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -459,7 +460,11 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
         m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
       uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
-      LOG_GENERAL(INFO, "txBlockNum: " << blockNum);
+      count++;
+      if (count % 1000 == 0) {
+        LOG_GENERAL(INFO, "txBlockNum: " << blockNum);
+        count = 0;
+      }
       if (blockNum > latestTxBlockNum) {
         latestTxBlockNum = blockNum;
       }
