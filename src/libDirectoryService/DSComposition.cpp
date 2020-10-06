@@ -61,7 +61,7 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
 
     if (showLogs) {
       LOG_GENERAL(
-          INFO,
+          DEBUG,
           "Shuffling non-performant node to the back of the DS Composition: "
               << RemovedNode);
     }
@@ -126,7 +126,7 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     // One item is always removed every winner, with removal priority given to
     // 'loser' candidates before expiring nodes.
     if (showLogs) {
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(DEBUG,
                   "Node dropped from DS Committee: " << dsComm.back().first);
     }
 
