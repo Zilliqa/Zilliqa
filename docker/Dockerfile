@@ -96,6 +96,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
        /usr/local/bin/isolatedServer \
        /usr/local/bin/getrewardhistory \
     #    /usr/local/bin/zilliqa \
+       /usr/local/bin/data_migrate \
        /usr/local/lib/libSchnorr.so \
        /usr/local/lib/libethash.so \
        /usr/local/lib/libNAT.so \
