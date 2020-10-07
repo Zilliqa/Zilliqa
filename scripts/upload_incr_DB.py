@@ -391,10 +391,6 @@ def shallStart():
 def main():
 	isVacaous = False
 	lastBlockNum = 0
-	# clear the entire incremental bucket now.
-	CleanS3EntirePersistence()
-	# clear the state-delta bucket now.
-	CleanS3StateDeltas()
 	shallStartFlag = False
 	blockNum = -1
 	global start
@@ -408,6 +404,10 @@ def main():
 					time.sleep(1)
 					continue
 				start = (int)(time.time()) # reset inactive start time since shall start is signaled
+				# clear the entire incremental bucket now.
+				CleanS3EntirePersistence()
+				# clear the state-delta bucket now.
+				CleanS3StateDeltas()
 			else:
 				blockNum = GetCurrentTxBlockNum()
 				if (blockNum == -1):

@@ -55,7 +55,6 @@ bool Node::GetLatestDSBlock() {
     m_synchronizer.FetchLatestDSBlocksSeed(
         m_mediator.m_lookup,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
-
     {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_mutexLatestDSBlockUpdation);

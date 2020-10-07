@@ -567,6 +567,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
+  m_mediator.m_lookup->m_confirmedLatestDSBlock = false;
+
   if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
     LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
     return false;
