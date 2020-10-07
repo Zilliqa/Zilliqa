@@ -841,7 +841,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if ((LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
        SyncType::NEW_LOOKUP_SYNC == syncType) ||
-      (LOOKUP_NODE_MODE && SyncType::RECOVERY_ALL_SYNC == syncType)) {
+      (LOOKUP_NODE_MODE && SyncType::RECOVERY_ALL_SYNC == syncType) ||
+      (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
+       SyncType::LOOKUP_SYNC == syncType)) {
     // Additional safe-guard mechanism, find if have not received any MBs from
     // last N txblks in persistence from S3.
     m_mediator.m_lookup->FindMissingMBsForLastNTxBlks(
@@ -902,7 +904,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
                                                !bDS) ||
       SyncType::NEW_LOOKUP_SYNC == syncType ||
       (rejoiningAfterRecover &&
-       (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType))) {
+       (SyncType::NORMAL_SYNC == syncType || SyncType::DS_SYNC == syncType ||
+        SyncType::LOOKUP_SYNC == syncType))) {
     return true;
   }
 
