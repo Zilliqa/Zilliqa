@@ -32,11 +32,7 @@ uint128_t DirectoryService::GetNewGasPrice() {
   uint64_t totalBlockNum = 0;
   uint64_t fullBlockNum = 0;
 
-  const uint128_t& minGasPrice =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-              GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS
-          ? GAS_PRICE_MIN_VALUE_NEW
-          : GAS_PRICE_MIN_VALUE;
+  const uint128_t& minGasPrice = GAS_PRICE_MIN_VALUE;
 
   for (uint64_t i = loBlockNum; i <= hiBlockNum; ++i) {
     uint128_t gasUsed =
@@ -139,11 +135,7 @@ uint128_t DirectoryService::GetIncreasedGasPrice() {
     median_val = *iter;
   }
 
-  const uint128_t& minGasPrice =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-              GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS
-          ? GAS_PRICE_MIN_VALUE_NEW
-          : GAS_PRICE_MIN_VALUE;
+  const uint128_t& minGasPrice = GAS_PRICE_MIN_VALUE;
 
   return max(max(lowerbound, min(median_val, upperbound)),
              max(PRECISION_MIN_VALUE, minGasPrice));
@@ -171,11 +163,7 @@ uint128_t DirectoryService::GetDecreasedGasPrice() {
     decreased_val = mean_val;
   }
 
-  const uint128_t& minGasPrice =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-              GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS
-          ? GAS_PRICE_MIN_VALUE_NEW
-          : GAS_PRICE_MIN_VALUE;
+  const uint128_t& minGasPrice = GAS_PRICE_MIN_VALUE;
 
   return max(max(PRECISION_MIN_VALUE, minGasPrice), decreased_val);
 }
