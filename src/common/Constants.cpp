@@ -277,10 +277,6 @@ const unsigned int MEAN_GAS_PRICE_DS_NUM{
     ReadConstantNumeric("MEAN_GAS_PRICE_DS_NUM", "node.gas.")};
 const string LEGAL_GAS_PRICE_IP{
     ReadConstantString("LEGAL_GAS_PRICE_IP", "node.gas.")};
-const unsigned int GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS{
-    ReadConstantNumeric("GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS", "node.gas.")};
-const uint128_t GAS_PRICE_MIN_VALUE_NEW{
-    ReadConstantNumeric("GAS_PRICE_MIN_VALUE_NEW", "node.gas.")};
 
 // Gossip constants
 const bool BROADCAST_GOSSIP_MODE{
@@ -644,14 +640,6 @@ const bool SHARDLDR_SAVE_TXN_LOCALLY{
     "true"};
 const double BLOOM_FILTER_FALSE_RATE{
     ReadConstantDouble("BLOOM_FILTER_FALSE_RATE", "node.transactions.")};
-const unsigned int COINBASE_UPDATE_TARGET_DS{
-    ReadConstantNumeric("COINBASE_UPDATE_TARGET_DS", "node.transactions.")};
-const uint128_t COINBASE_REWARD_PER_DS_NEW{
-    ReadConstantString("COINBASE_REWARD_PER_DS_NEW", "node.transactions.")};
-const unsigned int BASE_REWARD_IN_PERCENT_NEW{
-    ReadConstantNumeric("BASE_REWARD_IN_PERCENT_NEW", "node.transactions.")};
-const unsigned int LOOKUP_REWARD_IN_PERCENT_NEW{
-    ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT_NEW", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
