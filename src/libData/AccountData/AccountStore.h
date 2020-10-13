@@ -129,9 +129,6 @@ class AccountStore
   /// Reset the reference to underlying leveldb
   bool RefreshDB();
 
-  /// Use the states in Temp State DB to refresh the state merkle trie
-  bool UpdateStateTrieFromTempStateDB();
-
   /// commit the in-memory states into persistent storage
   bool MoveUpdatesToDisk();
 

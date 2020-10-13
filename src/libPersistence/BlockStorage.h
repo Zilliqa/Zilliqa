@@ -92,7 +92,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
-  std::shared_ptr<LevelDB> m_tempStateDB;
   std::shared_ptr<LevelDB> m_processedTxnTmpDB;
   // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
   // unit test and monitoring tools work with the default setting of
@@ -121,7 +120,6 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_tempStateDB(std::make_shared<LevelDB>("tempState")),
         m_processedTxnTmpDB(std::make_shared<LevelDB>("processedTxnTmp")),
         m_diagnosticDBNodes(
             std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
@@ -156,7 +154,6 @@ class BlockStorage : public Singleton<BlockStorage> {
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
-    TEMP_STATE,
     DIAGNOSTIC_NODES,
     DIAGNOSTIC_COINBASE,
     STATE_ROOT,
@@ -323,13 +320,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
-  /// Write state to tempState in batch
-  bool PutTempState(const std::unordered_map<Address, Account>& states);
-
-  /// Get state from tempState in batch
-  bool GetTempStateInBatch(leveldb::Iterator*& iter,
-                           std::vector<StateSharedPtr>& states);
-
   /// Save data for diagnostic / monitoring purposes (nodes in network)
   bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
                               const DequeOfShard& shards,
@@ -410,7 +400,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexBlockLink;
   mutable std::shared_timed_mutex m_mutexShardStructure;
   mutable std::shared_timed_mutex m_mutexStateDelta;
-  mutable std::shared_timed_mutex m_mutexTempState;
   mutable std::shared_timed_mutex m_mutexTxBody;
   mutable std::shared_timed_mutex m_mutexTxBodyTmp;
   mutable std::shared_timed_mutex m_mutexStateRoot;

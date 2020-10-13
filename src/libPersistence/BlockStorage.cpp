@@ -249,56 +249,6 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
   return true;
 }
 
-bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
-  // LOG_MARKER();
-
-  unordered_map<string, string> states_str;
-  for (const auto& state : states) {
-    bytes rawBytes;
-    if (!state.second.SerializeBase(rawBytes, 0)) {
-      LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
-      continue;
-    }
-    states_str.emplace(state.first.hex(),
-                       DataConversion::CharArrayToString(rawBytes));
-  }
-  unique_lock<shared_timed_mutex> g(m_mutexTempState);
-  return m_tempStateDB->BatchInsert(states_str);
-}
-
-bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
-                                       vector<StateSharedPtr>& states) {
-  // LOG_MARKER();
-
-  shared_lock<shared_timed_mutex> g(m_mutexTempState);
-
-  if (iter == nullptr) {
-    iter = m_tempStateDB->GetDB()->NewIterator(leveldb::ReadOptions());
-    iter->SeekToFirst();
-  }
-
-  unsigned int counter = 0;
-
-  for (; iter->Valid() && counter < ACCOUNT_IO_BATCH_SIZE;
-       iter->Next(), counter++) {
-    string addr_str = iter->key().ToString();
-    string acct_string = iter->value().ToString();
-    Address addr{addr_str};
-    Account acct;
-    if (!acct.DeserializeBase(bytes(acct_string.begin(), acct_string.end()),
-                              0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      continue;
-    }
-    StateSharedPtr state =
-        StateSharedPtr(new pair<Address, Account>(addr, acct));
-
-    states.emplace_back(state);
-  }
-
-  return true;
-}
-
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
                               DSBlockSharedPtr& block) {
   string blockString;
@@ -1524,11 +1474,6 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_stateDeltaDB->ResetDB();
       break;
     }
-    case TEMP_STATE: {
-      unique_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->ResetDB();
-      break;
-    }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
       ret = m_diagnosticDBNodes->ResetDB();
@@ -1662,11 +1607,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_stateRootDB->RefreshDB();
       break;
     }
-    case TEMP_STATE: {
-      unique_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->RefreshDB();
-      break;
-    }
     case PROCESSED_TEMP: {
       unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
       ret = m_processedTxnTmpDB->RefreshDB();
@@ -1757,11 +1697,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
     }
-    case TEMP_STATE: {
-      shared_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret.push_back(m_tempStateDB->GetDBName());
-      break;
-    }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
       ret.push_back(m_diagnosticDBNodes->GetDBName());
@@ -1809,20 +1744,19 @@ bool BlockStorage::ResetAll() {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
            ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
            ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
-           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS) &
-           ResetDB(EXTSEED_PUBKEYS);
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP) & ResetDB(MINER_INFO_DSCOMM) &
+           ResetDB(MINER_INFO_SHARDS) & ResetDB(EXTSEED_PUBKEYS);
   }
 }
 
@@ -1834,9 +1768,8 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
            RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
            RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
-           RefreshDB(PROCESSED_TEMP) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
            Contract::ContractStorage2::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
@@ -1844,11 +1777,10 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
            RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-           RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
-           RefreshDB(EXTSEED_PUBKEYS) &
+           RefreshDB(STATE_DELTA) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+           RefreshDB(PROCESSED_TEMP) & RefreshDB(MINER_INFO_DSCOMM) &
+           RefreshDB(MINER_INFO_SHARDS) & RefreshDB(EXTSEED_PUBKEYS) &
            Contract::ContractStorage2::GetContractStorage().RefreshAll();
   }
 }
