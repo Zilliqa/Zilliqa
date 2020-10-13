@@ -26,7 +26,6 @@
 #include "libData/AccountData/BloomFilter.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libData/MiningData/MinerInfo.h"
@@ -148,16 +147,6 @@ class Messenger {
   static bool GetVCBlock(const bytes& src, const unsigned int offset,
                          VCBlock& vcBlock);
 
-  static bool SetFallbackBlockHeader(
-      bytes& dst, const unsigned int offset,
-      const FallbackBlockHeader& fallbackBlockHeader);
-  static bool GetFallbackBlockHeader(const bytes& src,
-                                     const unsigned int offset,
-                                     FallbackBlockHeader& fallbackBlockHeader);
-  static bool SetFallbackBlock(bytes& dst, const unsigned int offset,
-                               const FallbackBlock& fallbackBlock);
-  static bool GetFallbackBlock(const bytes& src, const unsigned int offset,
-                               FallbackBlock& fallbackBlock);
   static bool SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
                                      const TransactionCoreInfo& transaction);
   static bool GetTransactionCoreInfo(const bytes& src,
@@ -211,13 +200,6 @@ class Messenger {
   static bool GetBlockLink(const bytes& src, const unsigned int offset,
                            std::tuple<uint32_t, uint64_t, uint64_t, BlockType,
                                       BlockHash>& blocklink);
-
-  static bool SetFallbackBlockWShardingStructure(
-      bytes& dst, const unsigned int offset, const FallbackBlock& fallbackblock,
-      const uint32_t& shardingStructureVersion, const DequeOfShard& shards);
-  static bool GetFallbackBlockWShardingStructure(
-      const bytes& src, const unsigned int offset, FallbackBlock& fallbackblock,
-      uint32_t& shardingStructureVersion, DequeOfShard& shards);
 
   static bool SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
                                      const uint32_t& shardingStructureVersion,
@@ -431,23 +413,6 @@ class Messenger {
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
       bytes& messageToCosign);
-
-  static bool SetNodeFallbackBlockAnnouncement(
-      bytes& dst, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const PairOfKey& leaderKey,
-      const FallbackBlock& fallbackBlock, bytes& messageToCosign);
-
-  static bool GetNodeFallbackBlockAnnouncement(
-      const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const PubKey& leaderKey,
-      FallbackBlock& fallbackBlock, bytes& messageToCosign);
-
-  static bool SetNodeFallbackBlock(bytes& dst, const unsigned int offset,
-                                   const FallbackBlock& fallbackBlock);
-  static bool GetNodeFallbackBlock(const bytes& src, const unsigned int offset,
-                                   FallbackBlock& fallbackBlock);
 
   static bool ShardStructureToArray(bytes& dst, const unsigned int offset,
                                     const uint32_t& version,
@@ -776,16 +741,12 @@ class Messenger {
   static bool SetLookupSetDirectoryBlocksFromSeed(
       bytes& dst, const unsigned int offset,
       const uint32_t& shardingStructureVersion,
-      const std::vector<
-          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-          directoryBlocks,
+      const std::vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
       const uint64_t& indexNum, const PairOfKey& lookupKey);
   static bool GetLookupSetDirectoryBlocksFromSeed(
       const bytes& src, const unsigned int offset,
       uint32_t& shardingStructureVersion,
-      std::vector<
-          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-          directoryBlocks,
+      std::vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
       uint64_t& indexNum, PubKey& pubKey);
 
   // ============================================================================

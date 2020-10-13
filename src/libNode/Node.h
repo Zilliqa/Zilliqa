@@ -55,8 +55,6 @@ class Node : public Executable {
     PROCESS_MICROBLOCKCONSENSUS,
     PROCESS_FINALBLOCK,
     PROCESS_TXNBODY,
-    PROCESS_FALLBACKCONSENSUS,
-    PROCESS_FALLBACKBLOCK,
     NUM_ACTIONS
   };
 
@@ -191,18 +189,6 @@ class Node : public Executable {
   std::mutex m_mutexSoftConfirmedTxns;
   std::unordered_map<TxnHash, TransactionWithReceipt> m_softConfirmedTxns;
 
-  // Fallback Consensus
-  std::mutex m_mutexFallbackTimer;
-  uint32_t m_fallbackTimer{};
-  bool m_fallbackTimerLaunched = false;
-  bool m_fallbackStarted{};
-  std::mutex m_mutexPendingFallbackBlock;
-  std::shared_ptr<FallbackBlock> m_pendingFallbackBlock;
-  std::mutex m_MutexCVFallbackBlock;
-  std::condition_variable cv_fallbackBlock;
-  std::mutex m_MutexCVFallbackConsensusObj;
-  std::condition_variable cv_fallbackConsensusObj;
-  bool m_runFallback{};
   // pair of proposal id and vote value and vote duration in epoch
   std::mutex m_mutexGovProposal;
   GovProposalInfo m_govProposalInfo;
@@ -321,6 +307,7 @@ class Node : public Executable {
 
   bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
                                       const Peer& from);
+  bool NoOp(const bytes& message, unsigned int offset, const Peer& from);
 
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
@@ -359,29 +346,7 @@ class Node : public Executable {
   bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
                           std::vector<TxnHash>& missingtranHashes);
 
-  // Fallback Consensus
-  void FallbackTimerLaunch();
-  void FallbackTimerPulse();
-  void FallbackStop();
-  bool FallbackValidator(const bytes& message, unsigned int offset,
-                         bytes& errorMsg, const uint32_t consensusID,
-                         const uint64_t blockNumber, const bytes& blockHash,
-                         const uint16_t leaderID, const PubKey& leaderKey,
-                         bytes& messageToCosign);
-  void UpdateFallbackConsensusLeader();
   void SetLastKnownGoodState();
-  bool ComposeFallbackBlock();
-  void RunConsensusOnFallback();
-  bool RunConsensusOnFallbackWhenLeader();
-  bool RunConsensusOnFallbackWhenBackup();
-  void ProcessFallbackConsensusWhenDone();
-  bool ProcessFallbackConsensus(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  // Fallback block processing
-  bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
-  bool ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
-                            const Peer& from);
-  bool ComposeFallbackBlockMessageForSender(bytes& fallbackblock_message) const;
 
   // Is Running from New Process
   bool m_fromNewProcess = true;
@@ -394,7 +359,6 @@ class Node : public Executable {
 
   void SendDSBlockToOtherShardNodes(const bytes& dsblock_message);
   void SendVCBlockToOtherShardNodes(const bytes& vcblock_message);
-  void SendFallbackBlockToOtherShardNodes(const bytes& fallbackblock_message);
   void SendBlockToOtherShardNodes(const bytes& message, uint32_t cluster_size,
                                   uint32_t num_of_child_clusters);
   void GetNodesToBroadCastUsingTreeBasedClustering(
@@ -425,9 +389,6 @@ class Node : public Executable {
     MICROBLOCK_CONSENSUS_PREP,
     MICROBLOCK_CONSENSUS,
     WAITING_FINALBLOCK,
-    FALLBACK_CONSENSUS_PREP,
-    FALLBACK_CONSENSUS,
-    WAITING_FALLBACKBLOCK,
     SYNC
   };
 
@@ -489,9 +450,6 @@ class Node : public Executable {
   // an indicator that whether the non-sync node is still doing mining
   // at standard difficulty
   std::atomic<bool> m_stillMiningPrimary{};
-
-  // a indicator of whether recovered from fallback just now
-  bool m_justDidFallback = false;
 
   // Is part of current sharding structure / dsCommittee
   std::atomic<bool> m_confirmedNotInNetwork{};
@@ -602,12 +560,6 @@ class Node : public Executable {
                                     const bool showLogs = true);
   void UpdateDSCommitteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock,
                                     MinerInfoDSComm& minerInfo);
-
-  void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
-                                      const PubKey& leaderPubKey,
-                                      const Peer& leaderNetworkInfo,
-                                      DequeOfNode& dsComm,
-                                      const DequeOfShard& shards);
 
   void CommitMBnForwardedTransactionBuffer();
 
@@ -782,9 +734,6 @@ class Node : public Executable {
 
   static std::map<Action, std::string> ActionStrings;
   std::string GetActionString(Action action) const;
-  /// Fallback Consensus Related
-  std::atomic<NodeState> m_fallbackState{};
-  bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
 
   void PutTxnsInTempDataBase(
       const std::unordered_map<TxnHash, TransactionWithReceipt>&

@@ -660,14 +660,13 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
     m_mediator.m_node->ComposeAndSendRemoveNodeFromBlacklist(Node::PEER);
     StartNextTxEpoch();
   } else {  // vacaous epoch
-    StartNewDSEpochConsensus(false, true);
+    StartNewDSEpochConsensus(true);
   }
 
   return true;
 }
 
-void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
-                                                bool isRejoin) {
+void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartNewDSEpochConsensus not "
@@ -718,13 +717,11 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
 
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                                (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+              "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
 
     this_thread::sleep_for(
-        chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                        (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+        chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
 
     // create and send POW submission packets
     auto func = [this]() mutable -> void {
@@ -748,15 +745,12 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
     if (cv_DSBlockConsensus.wait_for(
-            cv_lk,
-            std::chrono::seconds((isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
-                                 POW_WINDOW_IN_SECONDS +
-                                 (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
-        std::cv_status::timeout) {
+            cv_lk, std::chrono::seconds(
+                       (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
+                       POW_WINDOW_IN_SECONDS)) == std::cv_status::timeout) {
       LOG_GENERAL(INFO, "Woken up from the sleep of "
                             << (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
-                                   POW_WINDOW_IN_SECONDS +
-                                   (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                                   POW_WINDOW_IN_SECONDS
                             << " seconds");
       // if i am suppose to create pow submission packet for other DS members
       if (m_consensusMyID < POW_PACKET_SENDERS) {
