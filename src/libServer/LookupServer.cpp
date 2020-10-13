@@ -622,13 +622,7 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
       throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
     }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
-    bool isPresentHistorical = false;
-    if (m_mediator.m_lookup->m_historicalDB && !isPresent) {
-      isPresentHistorical =
-          BlockStorage::GetBlockStorage().GetTxnFromHistoricalDB(tranHash,
-                                                                 tptr);
-    }
-    if (isPresentHistorical || isPresent) {
+    if (isPresent) {
       Json::Value _json;
       return JSONConversion::convertTxtoJson(*tptr);
     } else {
@@ -1649,8 +1643,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-  return GetTransactionsForTxBlock(txBlock,
-                                   m_mediator.m_lookup->m_historicalDB);
+  return GetTransactionsForTxBlock(txBlock);
 }
 
 Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
@@ -1672,8 +1665,7 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
   try {
     auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-    auto const& hashes =
-        GetTransactionsForTxBlock(txBlock, m_mediator.m_lookup->m_historicalDB);
+    auto const& hashes = GetTransactionsForTxBlock(txBlock);
 
     if (hashes.empty()) {
       throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
@@ -1694,8 +1686,7 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
   return _json;
 }
 
-Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
-                                                    bool historicalDB) {
+Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock) {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1723,12 +1714,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
 
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        mbptr)) {
-      if (!historicalDB) {
-        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
-      } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
-                     mbInfo.m_microBlockHash, mbptr)) {
-        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
-      }
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
     }
 
     const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();

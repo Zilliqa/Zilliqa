@@ -1679,8 +1679,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
         const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
         Json::Value j_txnhashes;
         try {
-          j_txnhashes = LookupServer::GetTransactionsForTxBlock(
-              txBlock, m_mediator.m_lookup->m_historicalDB);
+          j_txnhashes = LookupServer::GetTransactionsForTxBlock(txBlock);
         } catch (...) {
           j_txnhashes = Json::arrayValue;
         }

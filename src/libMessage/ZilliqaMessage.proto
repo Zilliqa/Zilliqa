@@ -1200,19 +1200,6 @@ message NodeSetGuardNodeNetworkInfoUpdate
     ByteArray signature                    = 3;
 }
 
-message SeedSetHistoricalDB
-{
-    message Data
-    {
-        uint32 code            = 1;
-        string path            = 2;
-    }
-    Data data                  = 1;
-    ByteArray pubkey           = 2;
-    ByteArray signature        = 3;
-
-}
-
 // For removing sender from local blacklist
 message NodeRemoveFromBlacklist
 {

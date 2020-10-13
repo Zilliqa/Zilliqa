@@ -977,15 +977,6 @@ class Messenger {
       std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
       PubKey& lookupPubKey);
 
-  static bool SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
-                                      const PairOfKey& archivalKeys,
-                                      const uint32_t code,
-                                      const std::string& path);
-  static bool GetSeedNodeHistoricalDB(const bytes& src,
-                                      const unsigned int offset,
-                                      PubKey& archivalPubKey, uint32_t& code,
-                                      std::string& path);
-
   static bool SetNodeRemoveFromBlacklist(bytes& dst, const unsigned int offset,
                                          const PairOfKey& myKey,
                                          const uint128_t& ipAddress,

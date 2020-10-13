@@ -435,8 +435,5 @@ extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 
 // DBVerifier constants
-extern const std::string VERIFIER_PATH;
-extern const std::string VERIFIER_PUBKEY;
-extern const unsigned int SEED_PORT;
 extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_
