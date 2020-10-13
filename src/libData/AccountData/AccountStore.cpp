@@ -292,32 +292,6 @@ bool AccountStore::MoveUpdatesToDisk() {
   return true;
 }
 
-bool AccountStore::UpdateStateTrieFromTempStateDB() {
-  LOG_MARKER();
-
-  leveldb::Iterator* iter = nullptr;
-
-  while (iter == nullptr || iter->Valid()) {
-    vector<StateSharedPtr> states;
-    if (!BlockStorage::GetBlockStorage().GetTempStateInBatch(iter, states)) {
-      LOG_GENERAL(WARNING, "GetTempStateInBatch failed");
-      delete iter;
-      return false;
-    }
-    for (const auto& state : states) {
-      UpdateStateTrie(state->first, state->second);
-    }
-  }
-
-  delete iter;
-
-  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TEMP_STATE)) {
-    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TEMP_STATE) failed");
-    return false;
-  }
-  return true;
-}
-
 void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();
 
