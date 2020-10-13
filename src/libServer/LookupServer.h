@@ -278,8 +278,7 @@ class LookupServer : public Server,
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
 
-  static Json::Value GetTransactionsForTxBlock(const TxBlock& txBlock,
-                                               bool historicalDB);
+  static Json::Value GetTransactionsForTxBlock(const TxBlock& txBlock);
 
   Json::Value GetMinerInfo(const std::string& blockNum);
   Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum);

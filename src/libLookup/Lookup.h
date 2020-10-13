@@ -405,11 +405,10 @@ class Lookup : public Executable {
   bool ProcessGetDSGuardNetworkInfo(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
-  bool ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
-                              const Peer& from);
-
   bool ProcessGetCosigsRewardsFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from);
+
+  bool NoOp(const bytes& message, unsigned int offset, const Peer& from);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(
       const uint64_t& index_num, bool toSendSeed = true,
@@ -470,8 +469,6 @@ class Lookup : public Executable {
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;
   std::condition_variable cv_offlineLookups;
-
-  bool m_historicalDB = false;
 
   bool m_fetchedLatestDSBlock = false;
   std::mutex m_mutexLatestDSBlockUpdation;
