@@ -26,7 +26,6 @@
 #include "libData/BlockData/Block/BlockBase.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
-#include "libData/BlockData/BlockHeader/FallbackBlockHeader.h"
 #include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libData/BlockData/BlockHeader/VCBlockHeader.h"
@@ -61,7 +60,6 @@ DSBlockHeader GenerateRandomDSBlockHeader();
 MicroBlockHeader GenerateRandomMicroBlockHeader();
 TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
-FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 DSBlockHeader createDSBlockHeader(const uint64_t&);
 TxBlockHeader createTxBlockHeader(const uint64_t&);
 CoSignatures GenerateRandomCoSignatures();

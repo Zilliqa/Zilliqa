@@ -1069,8 +1069,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         true);  // except last block
   }
 
-  FallbackTimerPulse();
-
   return true;
 }
 

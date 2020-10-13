@@ -114,8 +114,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetDirectoryBlocksFromSeed) {
 
   // Get the approximate size each DSBlock adds to a SETDIRBLOCKSFROMSEED
   // message
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      directoryBlocks;
+  vector<boost::variant<DSBlock, VCBlock>> directoryBlocks;
   directoryBlocks.emplace_back(dsBlock);
   BOOST_CHECK(Messenger::SetLookupSetDirectoryBlocksFromSeed(
       dst, offset, shardingStructureVersion, directoryBlocks, indexNum,
@@ -150,8 +149,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetDirectoryBlocksFromSeed) {
   uint32_t dummyShardingStructureVersionDeserialized = 0;  // Unchecked
   uint64_t indexNumDeserialized = 0;
   PubKey lookupPubKeyDeserialized;
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      directoryBlocksDeserialized;
+  vector<boost::variant<DSBlock, VCBlock>> directoryBlocksDeserialized;
   BOOST_CHECK(Messenger::GetLookupSetDirectoryBlocksFromSeed(
       dst, offset, dummyShardingStructureVersionDeserialized,
       directoryBlocksDeserialized, indexNumDeserialized,

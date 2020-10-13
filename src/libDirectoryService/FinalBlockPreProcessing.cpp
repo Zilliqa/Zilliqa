@@ -1171,14 +1171,6 @@ void DirectoryService::RunConsensusOnFinalBlock() {
       return;
     }
 
-#ifdef FALLBACK_TEST
-    if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH &&
-        m_mediator.m_consensusID > 1) {
-      LOG_GENERAL(INFO, "Stop DS for testing fallback");
-      return;
-    }
-#endif  // FALLBACK_TEST
-
     if (m_doRejoinAtFinalConsensus) {
       RejoinAsDS();
     }

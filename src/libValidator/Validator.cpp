@@ -298,8 +298,7 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
 }
 
 bool Validator::CheckDirBlocks(
-    const vector<boost::variant<DSBlock, VCBlock,
-                                FallbackBlockWShardingStructure>>& dirBlocks,
+    const vector<boost::variant<DSBlock, VCBlock>>& dirBlocks,
     const DequeOfNode& initDsComm, const uint64_t& index_num,
     DequeOfNode& newDSComm) {
   DequeOfNode mutable_ds_comm = initDsComm;
@@ -417,85 +416,6 @@ bool Validator::CheckDirBlocks(
       }
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
-    } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
-      const auto& fallbackwshardingstructure =
-          get<FallbackBlockWShardingStructure>(dirBlock);
-
-      const auto& fallbackblock = fallbackwshardingstructure.m_fallbackblock;
-      const DequeOfShard& shards = fallbackwshardingstructure.m_shards;
-
-      if (fallbackblock.GetHeader().GetFallbackDSEpochNo() !=
-          prevdsblocknum + 1) {
-        LOG_GENERAL(WARNING,
-                    "Fallback block ds epoch number does not match the number "
-                    "being processed "
-                        << prevdsblocknum << " "
-                        << fallbackblock.GetHeader().GetFallbackDSEpochNo());
-        ret = false;
-        break;
-      }
-
-      if (fallbackblock.GetHeader().GetMyHash() !=
-          fallbackblock.GetBlockHash()) {
-        LOG_GENERAL(WARNING,
-                    "Fallbackblock in "
-                        << prevdsblocknum
-                        << " has different blockhash than stored "
-                        << " Stored: " << fallbackblock.GetBlockHash());
-        ret = false;
-        break;
-      }
-
-      if (prevHash != fallbackblock.GetHeader().GetPrevHash()) {
-        LOG_GENERAL(WARNING, "prevHash incorrect "
-                                 << prevHash << " "
-                                 << fallbackblock.GetHeader().GetPrevHash()
-                                 << "in FB block " << prevdsblocknum + 1);
-        ret = false;
-        break;
-      }
-
-      ShardingHash shardinghash;
-      if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
-                                               shards, shardinghash)) {
-        LOG_GENERAL(WARNING, "GetShardingStructureHash failed");
-        ret = false;
-        break;
-      }
-
-      if (shardinghash != prevShardingHash) {
-        LOG_GENERAL(WARNING, "ShardingHash does not match ");
-        ret = false;
-        break;
-      }
-
-      uint32_t shard_id = fallbackblock.GetHeader().GetShardId();
-
-      if (!CheckBlockCosignature(fallbackblock, shards.at(shard_id))) {
-        LOG_GENERAL(WARNING, "Co-sig verification of fallbackblock in "
-                                 << prevdsblocknum << " failed"
-                                 << totalIndex + 1);
-        ret = false;
-        break;
-      }
-      const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
-      const Peer& leaderNetworkInfo =
-          fallbackblock.GetHeader().GetLeaderNetworkInfo();
-      m_mediator.m_node->UpdateDSCommitteeAfterFallback(
-          shard_id, leaderPubKey, leaderNetworkInfo, mutable_ds_comm, shards);
-      m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
-                                               BlockType::FB,
-                                               fallbackblock.GetBlockHash());
-      bytes fallbackblockser;
-      fallbackwshardingstructure.Serialize(fallbackblockser, 0);
-      if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
-              fallbackblock.GetBlockHash(), fallbackblockser)) {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PutFallbackBlock failed " << fallbackblock);
-        return false;
-      }
-      prevHash = fallbackblock.GetBlockHash();
-      totalIndex++;
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }
@@ -506,8 +426,7 @@ bool Validator::CheckDirBlocks(
 }
 
 bool Validator::CheckDirBlocksNoUpdate(
-    const vector<boost::variant<DSBlock, VCBlock,
-                                FallbackBlockWShardingStructure>>& dirBlocks,
+    const vector<boost::variant<DSBlock, VCBlock>>& dirBlocks,
     const DequeOfNode& initDsComm, const uint64_t& index_num,
     DequeOfNode& newDSComm) {
   DequeOfNode mutable_ds_comm = initDsComm;
@@ -597,8 +516,6 @@ bool Validator::CheckDirBlocksNoUpdate(
           vcblock, mutable_ds_comm, false);
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
-    } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
-      // TODO
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }

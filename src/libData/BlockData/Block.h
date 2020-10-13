@@ -19,17 +19,15 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_H_
 
 #include "Block/DSBlock.h"
-#include "Block/FallbackBlock.h"
 #include "Block/MicroBlock.h"
 #include "Block/TxBlock.h"
 #include "Block/VCBlock.h"
 #include "BlockHeader/BlockHashSet.h"
 #include "BlockHeader/DSBlockHeader.h"
-#include "BlockHeader/FallbackBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
 #include "BlockHeader/VCBlockHeader.h"
 
-enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2, FB = 3 };
+enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_H_
