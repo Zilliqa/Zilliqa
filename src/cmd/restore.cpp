@@ -383,7 +383,7 @@ int main(int argc, char* argv[]) {
   // To construct base state
   ret.RetrieveStates();
   if ((latestDSIndex == latestDSIndexPruned)) {
-    ret.RetrieveTxBlocks(false);
+    ret.RetrieveTxBlocks();
   } else {
     PutStateDeltaInLocalPersistence(latestTxBlockNumPruned, txblocks);
   }
