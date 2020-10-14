@@ -60,18 +60,7 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
 }
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
-  // return PutBlock(blockNum, body, BlockType::DS);
-  bool ret = false;
-  if (PutBlock(blockNum, body, BlockType::DS)) {
-    if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})) {
-      ret = true;
-    } else {
-      if (!DeleteDSBlock(blockNum)) {
-        LOG_GENERAL(INFO, "FAIL: Delete DSBlock" << blockNum << "Failed");
-      }
-    }
-  }
-  return ret;
+  return PutBlock(blockNum, body, BlockType::DS);
 }
 
 bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
@@ -109,7 +98,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
   } else  // IS_LOOKUP_NODE
   {
     unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-    ret = m_txBodyDB->Insert(key, body) && m_txBodyTmpDB->Insert(key, body);
+    ret = m_txBodyDB->Insert(key, body);
   }
 
   return (ret == 0);
@@ -751,35 +740,6 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
     LOG_GENERAL(INFO, "Disk has no VCBlock");
   }
 
-  return true;
-}
-
-bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "BlockStorage::GetAllTxBodiesTmp not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  shared_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
-
-  leveldb::Iterator* it =
-      m_txBodyTmpDB->GetDB()->NewIterator(leveldb::ReadOptions());
-  for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    string hashString = it->key().ToString();
-    if (hashString.empty()) {
-      LOG_GENERAL(WARNING, "Lost one Tmp txBody Hash");
-      delete it;
-      return false;
-    }
-    TxnHash txnHash(hashString);
-    txnHashes.emplace_back(txnHash);
-  }
-
-  delete it;
   return true;
 }
 
@@ -1484,11 +1444,6 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_txBodyDB->ResetDB();
       break;
     }
-    case TX_BODY_TMP: {
-      unique_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
-      ret = m_txBodyTmpDB->ResetDB();
-      break;
-    }
     case MICROBLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
       ret = m_microBlockDB->ResetDB();
@@ -1599,11 +1554,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     case TX_BODY: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBody);
       ret = m_txBodyDB->RefreshDB();
-      break;
-    }
-    case TX_BODY_TMP: {
-      unique_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
-      ret = m_txBodyTmpDB->RefreshDB();
       break;
     }
     case MICROBLOCK: {
@@ -1717,11 +1667,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_txBodyDB->GetDBName());
       break;
     }
-    case TX_BODY_TMP: {
-      shared_lock<shared_timed_mutex> g(m_mutexTxBodyTmp);
-      ret.push_back(m_txBodyTmpDB->GetDBName());
-      break;
-    }
     case MICROBLOCK: {
       shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
       ret.push_back(m_microBlockDB->GetDBName());
@@ -1815,14 +1760,13 @@ bool BlockStorage::ResetAll() {
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
-           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
-           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
-           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS) &
-           ResetDB(EXTSEED_PUBKEYS);
+           ResetDB(TX_BODY) & ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
+           ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) &
+           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
+           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP) & ResetDB(MINER_INFO_DSCOMM) &
+           ResetDB(MINER_INFO_SHARDS) & ResetDB(EXTSEED_PUBKEYS);
   }
 }
 
@@ -1841,7 +1785,7 @@ bool BlockStorage::RefreshAll() {
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-           RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
+           RefreshDB(TX_BODY) & RefreshDB(MICROBLOCK) &
            RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
            RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
