@@ -213,39 +213,6 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
   BOOST_CHECK(vcBlock == vcBlockDeserialized);
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlockHeader) {
-  bytes dst;
-  unsigned int offset = 0;
-  FallbackBlockHeader fallbackBlockHeader =
-      TestUtils::GenerateRandomFallbackBlockHeader();
-
-  BOOST_CHECK(
-      Messenger::SetFallbackBlockHeader(dst, offset, fallbackBlockHeader));
-
-  FallbackBlockHeader fallbackBlockHeaderDeserialized;
-
-  BOOST_CHECK(Messenger::GetFallbackBlockHeader(
-      dst, offset, fallbackBlockHeaderDeserialized));
-
-  BOOST_CHECK(fallbackBlockHeader == fallbackBlockHeaderDeserialized);
-}
-
-BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlock) {
-  bytes dst;
-  unsigned int offset = 0;
-  FallbackBlock fallbackBlock(TestUtils::GenerateRandomFallbackBlockHeader(),
-                              TestUtils::GenerateRandomCoSignatures());
-
-  BOOST_CHECK(Messenger::SetFallbackBlock(dst, offset, fallbackBlock));
-
-  FallbackBlock fallbackBlockDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetFallbackBlock(dst, offset, fallbackBlockDeserialized));
-
-  BOOST_CHECK(fallbackBlock == fallbackBlockDeserialized);
-}
-
 BOOST_AUTO_TEST_CASE(test_CopyWithSizeCheck) {
   bytes arr;
   dev::h256 result;

@@ -147,12 +147,4 @@ class VCBlockChain : public BlockChain<VCBlock> {
   }
 };
 
-class FallbackBlockChain : public BlockChain<FallbackBlock> {
- public:
-  FallbackBlock GetBlockFromPersistentStorage([
-      [gnu::unused]] const uint64_t& blockNum) override {
-    throw "fallback block persistent storage not supported";
-  }
-};
-
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_

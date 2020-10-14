@@ -28,7 +28,6 @@
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/MiningData/MinerInfo.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
@@ -37,7 +36,6 @@ typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
-typedef std::shared_ptr<FallbackBlockWShardingStructure> FallbackBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
@@ -88,7 +86,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_txBodyTmpDB;
   std::shared_ptr<LevelDB> m_dsCommitteeDB;
   std::shared_ptr<LevelDB> m_VCBlockDB;
-  std::shared_ptr<LevelDB> m_fallbackBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
@@ -117,7 +114,6 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
-        m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
@@ -152,7 +148,6 @@ class BlockStorage : public Singleton<BlockStorage> {
     MICROBLOCK,
     DS_COMMITTEE,
     VC_BLOCK,
-    FB_BLOCK,
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
@@ -176,7 +171,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Adds a DS block to storage.
   bool PutDSBlock(const uint64_t& blockNum, const bytes& body);
   bool PutVCBlock(const BlockHash& blockhash, const bytes& body);
-  bool PutFallbackBlock(const BlockHash& blockhash, const bytes& body);
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
   bool InitiateHistoricalDB(const std::string& path);
@@ -196,9 +190,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
   bool GetVCBlock(const BlockHash& blockhash, VCBlockSharedPtr& block);
-  bool GetFallbackBlock(
-      const BlockHash& blockhash,
-      FallbackBlockSharedPtr& fallbackblockwshardingstructure);
   bool GetBlockLink(const uint64_t& index, BlockLinkSharedPtr& block);
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
@@ -242,8 +233,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool DeleteTxBody(const dev::h256& key);
 
   bool DeleteVCBlock(const BlockHash& blockhash);
-
-  bool DeleteFallbackBlock(const BlockHash& blockhash);
 
   bool DeleteStateDelta(const uint64_t& finalBlockNum);
 
@@ -406,7 +395,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexMicroBlock;
   mutable std::shared_timed_mutex m_mutexDsCommittee;
   mutable std::shared_timed_mutex m_mutexVCBlock;
-  mutable std::shared_timed_mutex m_mutexFallbackBlock;
   mutable std::shared_timed_mutex m_mutexBlockLink;
   mutable std::shared_timed_mutex m_mutexShardStructure;
   mutable std::shared_timed_mutex m_mutexStateDelta;

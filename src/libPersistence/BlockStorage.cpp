@@ -81,14 +81,6 @@ bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
   return (ret == 0);
 }
 
-bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
-                                    const bytes& body) {
-  int ret = -1;
-  unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-  ret = m_fallbackBlockDB->Insert(blockhash, body);
-  return (ret == 0);
-}
-
 bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
   int ret = -1;
   unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
@@ -361,10 +353,6 @@ bool BlockStorage::ReleaseDB() {
     m_dsBlockchainDB.reset();
   }
   {
-    unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-    m_fallbackBlockDB.reset();
-  }
-  {
     unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
     m_blockLinkDB.reset();
   }
@@ -376,29 +364,6 @@ bool BlockStorage::ReleaseDB() {
     unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
     m_minerInfoShardsDB.reset();
   }
-  return true;
-}
-
-bool BlockStorage::GetFallbackBlock(
-    const BlockHash& blockhash,
-    FallbackBlockSharedPtr& fallbackblockwsharding) {
-  string blockString;
-  {
-    shared_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-    blockString = m_fallbackBlockDB->Lookup(blockhash);
-  }
-
-  if (blockString.empty()) {
-    return false;
-  }
-
-  // LOG_GENERAL(INFO, blockString);
-  // LOG_GENERAL(INFO, blockString.length());
-
-  fallbackblockwsharding =
-      FallbackBlockSharedPtr(new FallbackBlockWShardingStructure(
-          bytes(blockString.begin(), blockString.end()), 0));
-
   return true;
 }
 
@@ -507,12 +472,6 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
 bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
   unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
   int ret = m_VCBlockDB->DeleteKey(blockhash);
-  return (ret == 0);
-}
-
-bool BlockStorage::DeleteFallbackBlock(const BlockHash& blockhash) {
-  unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-  int ret = m_fallbackBlockDB->DeleteKey(blockhash);
   return (ret == 0);
 }
 
@@ -1504,11 +1463,6 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_VCBlockDB->ResetDB();
       break;
     }
-    case FB_BLOCK: {
-      unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-      ret = m_fallbackBlockDB->ResetDB();
-      break;
-    }
     case BLOCKLINK: {
       unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
       ret = m_blockLinkDB->ResetDB();
@@ -1619,11 +1573,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     case VC_BLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->RefreshDB();
-      break;
-    }
-    case FB_BLOCK: {
-      unique_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-      ret = m_fallbackBlockDB->RefreshDB();
       break;
     }
     case BLOCKLINK: {
@@ -1737,11 +1686,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_VCBlockDB->GetDBName());
       break;
     }
-    case FB_BLOCK: {
-      shared_lock<shared_timed_mutex> g(m_mutexFallbackBlock);
-      ret.push_back(m_fallbackBlockDB->GetDBName());
-      break;
-    }
     case BLOCKLINK: {
       shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
       ret.push_back(m_blockLinkDB->GetDBName());
@@ -1808,7 +1752,7 @@ bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
-           ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
            ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
@@ -1816,13 +1760,12 @@ bool BlockStorage::ResetAll() {
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
-           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
-           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
-           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS) &
-           ResetDB(EXTSEED_PUBKEYS);
+           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(BLOCKLINK) &
+           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
+           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP) & ResetDB(MINER_INFO_DSCOMM) &
+           ResetDB(MINER_INFO_SHARDS) & ResetDB(EXTSEED_PUBKEYS);
   }
 }
 
@@ -1832,7 +1775,7 @@ bool BlockStorage::RefreshAll() {
   if (!LOOKUP_NODE_MODE) {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
-           RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) & RefreshDB(BLOCKLINK) &
+           RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
            RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
            RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
            RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
@@ -1842,7 +1785,7 @@ bool BlockStorage::RefreshAll() {
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(TX_BODY) & RefreshDB(TX_BODY_TMP) & RefreshDB(MICROBLOCK) &
-           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) & RefreshDB(FB_BLOCK) &
+           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) &
            RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
            RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
            RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &

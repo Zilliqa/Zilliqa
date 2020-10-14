@@ -37,7 +37,6 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -2805,8 +2804,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     // only process DS block for lookup nodes, otherwise for normal node
     // it's purpose is just for indication if new DS block is mined or not
     if (LOOKUP_NODE_MODE) {
-      vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-          dirBlocks;
+      vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
       for (const auto& dsblock : dsBlocks) {
         if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
           // skip as already I have them
@@ -4952,8 +4950,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   bytes msg = {MessageType::LOOKUP,
                LookupInstructionType::SETDIRBLOCKSFROMSEED};
 
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      dirBlocks;
+  vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
 
   for (uint64_t i = index_num;
        i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
@@ -4971,15 +4968,6 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
         continue;
       }
       dirBlocks.emplace_back(*vcblockptr);
-    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::FB) {
-      FallbackBlockSharedPtr fallbackwsharding;
-      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
-              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwsharding)) {
-        LOG_GENERAL(WARNING, "could not get fb block "
-                                 << get<BlockLinkIndex::BLOCKHASH>(b));
-        continue;
-      }
-      dirBlocks.emplace_back(*fallbackwsharding);
     }
   }
 
@@ -5051,8 +5039,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
 bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      dirBlocks;
+  vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
   PubKey senderPubKey;
