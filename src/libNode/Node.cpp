@@ -201,12 +201,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
     /// When non-rejoin mode, call wake-up or recovery
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
-      if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
-        WakeupAtDSEpoch();
-      } else {
-        WakeupAtTxEpoch();
-      }
-
+      WakeupAtTxEpoch();
       return true;
     }
   }
@@ -826,14 +821,11 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
-  bool ds_result =
-      m_retriever->RetrieveBlockLink(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-                                     SyncType::RECOVERY_ALL_SYNC == syncType);
+  bool ds_result = m_retriever->RetrieveBlockLink();
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result =
-      m_retriever->RetrieveTxBlocks(RECOVERY_TRIM_INCOMPLETED_BLOCK);
+  bool tx_result = m_retriever->RetrieveTxBlocks();
 
   if (!tx_result) {
     return false;
@@ -994,8 +986,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// However, if the last tx block is one from vacaous epoch, its already too
   /// late and coinbase info is of no use. so skip saving coinbase
   if (bDS &&
-      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-        SyncType::RECOVERY_ALL_SYNC == syncType) &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
               NUM_FINAL_BLOCK_PER_POW !=
           0) {
@@ -1100,8 +1090,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// However, if the last tx block is one from vacaous epoch, its already too
   /// late and coinbase info is of no use. so skip saving coinbase
   if (bDS &&
-      !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-        SyncType::RECOVERY_ALL_SYNC == syncType) &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
               NUM_FINAL_BLOCK_PER_POW !=
           0) {
@@ -1157,14 +1145,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   if (st_result && ds_result && tx_result) {
     if (m_retriever->ValidateStates()) {
-      if (LOOKUP_NODE_MODE && RECOVERY_TRIM_INCOMPLETED_BLOCK &&
-          !m_retriever->CleanExtraTxBodies()) {
-        LOG_GENERAL(WARNING, "CleanExtraTxBodies failed");
-      } else {
-        LOG_GENERAL(INFO, "RetrieveHistory Success");
-        m_mediator.m_isRetrievedHistory = true;
-        res = true;
-      }
+      LOG_GENERAL(INFO, "RetrieveHistory Success");
+      m_mediator.m_isRetrievedHistory = true;
+      res = true;
     }
   }
 
@@ -1173,10 +1156,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_currentEpochNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     m_mediator.IncreaseEpochNum();
-
-    if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
-      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-    }
 
     m_consensusLeaderID = 0;
     m_mediator.UpdateDSBlockRand();
