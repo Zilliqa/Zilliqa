@@ -62,10 +62,6 @@ do
         CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with HeartBeat test"
     ;;
-    fb)
-        CMAKE_EXTRA_OPTIONS="-DFALLBACKTEST=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with Fallback test"
-    ;;
     vc1)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 1 time (before DS block consensus)"
@@ -147,7 +143,7 @@ do
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;        
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"
         exit 1
     ;;
     esac

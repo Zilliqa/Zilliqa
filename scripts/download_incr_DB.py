@@ -140,7 +140,17 @@ def GetAllObjectsFromS3(url, folderName=""):
 def GetPersistenceKey(key_url):
 	retry_counter = 0
 	while True:
-		response = requests.get(key_url, stream=True)
+		try:
+		    response = requests.get(key_url, stream=True)
+		except Exception as e:
+			print("Exception occurred while downloading " + key_url + ": " + str(e))
+			retry_counter+=1
+			if retry_counter > 3:
+				print("Failed to download: " + key_url)
+				break
+			time.sleep(5)
+			print("[Retry: " + str(retry_counter) + "] Downloading again " + key_url)
+			continue
 		if response.status_code != 200:
 			break
 		filename = key_url.replace(key_url[:key_url.index(TESTNET_NAME+"/")+len(TESTNET_NAME+"/")],"").strip()
@@ -267,8 +277,9 @@ def run():
 			while(currTxBlk < newTxBlk):
 				lst.append(currTxBlk+1)
 				currTxBlk += 1
-			GetPersistenceDiffFromS3(lst)
-			GetStateDeltaDiffFromS3(lst)
+			if lst:
+				GetPersistenceDiffFromS3(lst)
+				GetStateDeltaDiffFromS3(lst)
 			break
 
 		except Exception as e:

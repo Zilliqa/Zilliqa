@@ -142,7 +142,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			CleanS3PersistenceDiffs()
 	elif (result == 0):
 		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
-		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'fallbackBlocks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' --include 'extSeedPubKeys/*' "
+		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlocks/*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txBodies/*' --include 'extSeedPubKeys/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		str_diff_output, error = process.communicate()
 		logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
@@ -391,10 +391,6 @@ def shallStart():
 def main():
 	isVacaous = False
 	lastBlockNum = 0
-	# clear the entire incremental bucket now.
-	CleanS3EntirePersistence()
-	# clear the state-delta bucket now.
-	CleanS3StateDeltas()
 	shallStartFlag = False
 	blockNum = -1
 	global start
@@ -408,6 +404,10 @@ def main():
 					time.sleep(1)
 					continue
 				start = (int)(time.time()) # reset inactive start time since shall start is signaled
+				# clear the entire incremental bucket now.
+				CleanS3EntirePersistence()
+				# clear the state-delta bucket now.
+				CleanS3StateDeltas()
 			else:
 				blockNum = GetCurrentTxBlockNum()
 				if (blockNum == -1):

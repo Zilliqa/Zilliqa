@@ -131,10 +131,6 @@ if(CUDA_MINE)
     add_definitions(-DCUDA_MINE)
 endif()
 
-if(FALLBACKTEST)
-    add_definitions(-DFALLBACK_TEST)
-endif()
-
 # VC related test scenario
 # For DS Block Consensus
 if(VC_TEST_DS_SUSPEND_1)

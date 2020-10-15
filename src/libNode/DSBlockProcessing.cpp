@@ -337,8 +337,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     }
   }
 
-  m_justDidFallback = false;
-
   if (BROADCAST_GOSSIP_MODE && !LOOKUP_NODE_MODE) {
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
@@ -357,9 +355,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
     DetachedFunction(1, main_func3);
   }
-
-  FallbackTimerLaunch();
-  FallbackTimerPulse();
 }
 
 void Node::ResetConsensusId() {
@@ -567,6 +562,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
 
+  m_mediator.m_lookup->m_confirmedLatestDSBlock = false;
+
   if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
     LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
     return false;
@@ -733,9 +730,6 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards);
     }
-
-    FallbackTimerLaunch();
-    FallbackTimerPulse();
   }
 
   if (!BlockStorage::GetBlockStorage().PutDSCommittee(

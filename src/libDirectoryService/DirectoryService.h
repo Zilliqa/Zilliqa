@@ -631,8 +631,7 @@ class DirectoryService : public Executable {
   void StartNextTxEpoch();
 
   /// Begin next round of DS consensus
-  void StartNewDSEpochConsensus(bool fromFallback = false,
-                                bool isRejoin = false);
+  void StartNewDSEpochConsensus(bool isRejoin = false);
 
   static uint8_t CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                             uint8_t minDifficulty,

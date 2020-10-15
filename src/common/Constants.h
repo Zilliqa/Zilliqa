@@ -142,7 +142,6 @@ extern const unsigned int DSBLOCK_VERSION;
 extern const unsigned int TXBLOCK_VERSION;
 extern const unsigned int MICROBLOCK_VERSION;
 extern const unsigned int VCBLOCK_VERSION;
-extern const unsigned int FALLBACKBLOCK_VERSION;
 extern const unsigned int BLOCKLINK_VERSION;
 extern const unsigned int DSCOMMITTEE_VERSION;
 extern const unsigned int SHARDINGSTRUCTURE_VERSION;
@@ -211,13 +210,6 @@ extern const unsigned int MAX_FETCHMISSINGMBS_NUM;
 extern const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS;
 extern const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS;
 
-// Fallback constants
-extern const bool ENABLE_FALLBACK;
-extern const unsigned int FALLBACK_CHECK_INTERVAL;
-extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int FALLBACK_INTERVAL_STARTED;
-extern const unsigned int FALLBACK_INTERVAL_WAITING;
-
 // Gas constants
 extern const unsigned int DS_MICROBLOCK_GAS_LIMIT;
 extern const unsigned int SHARD_MICROBLOCK_GAS_LIMIT;
@@ -228,8 +220,6 @@ extern const unsigned int GAS_CONGESTION_PERCENT;
 extern const unsigned int UNFILLED_PERCENT_LOW;
 extern const unsigned int UNFILLED_PERCENT_HIGH;
 extern const uint128_t GAS_PRICE_MIN_VALUE;
-extern const unsigned int GAS_PRICE_MIN_VALUE_UPDATE_TARGET_DS;
-extern const uint128_t GAS_PRICE_MIN_VALUE_NEW;
 extern const unsigned int GAS_PRICE_PRECISION;
 extern const uint128_t PRECISION_MIN_VALUE;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
@@ -387,9 +377,6 @@ extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
-#ifdef FALLBACK_TEST
-extern const unsigned int FALLBACK_TEST_EPOCH;
-#endif  // FALLBACK_TEST
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const bool ENABLE_ACCOUNTS_POPULATING;
 extern const bool UPDATE_PREGENED_ACCOUNTS;
@@ -423,10 +410,6 @@ extern const std::string TXN_PERSISTENCE_NAME;
 extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
-extern const unsigned int COINBASE_UPDATE_TARGET_DS;
-extern const uint128_t COINBASE_REWARD_PER_DS_NEW;
-extern const unsigned int BASE_REWARD_IN_PERCENT_NEW;
-extern const unsigned int LOOKUP_REWARD_IN_PERCENT_NEW;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

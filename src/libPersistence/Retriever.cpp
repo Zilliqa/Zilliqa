@@ -316,29 +316,6 @@ bool Retriever::RetrieveBlockLink() {
       }
       m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(*vcblock,
                                                                      dsComm);
-
-    } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
-               BlockType::FB) {
-      FallbackBlockSharedPtr fallbackwshardingstruct;
-      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
-              std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
-              fallbackwshardingstruct)) {
-        LOG_GENERAL(WARNING,
-                    "Could not find vc with blockHash "
-                        << std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
-        return false;
-      }
-      uint32_t shard_id =
-          fallbackwshardingstruct->m_fallbackblock.GetHeader().GetShardId();
-      const PubKey& leaderPubKey =
-          fallbackwshardingstruct->m_fallbackblock.GetHeader()
-              .GetLeaderPubKey();
-      const Peer& leaderNetworkInfo =
-          fallbackwshardingstruct->m_fallbackblock.GetHeader()
-              .GetLeaderNetworkInfo();
-      const DequeOfShard& shards = fallbackwshardingstruct->m_shards;
-      m_mediator.m_node->UpdateDSCommitteeAfterFallback(
-          shard_id, leaderPubKey, leaderNetworkInfo, dsComm, shards);
     }
 
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);

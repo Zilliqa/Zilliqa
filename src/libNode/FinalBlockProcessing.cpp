@@ -705,6 +705,43 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   if (committeeHash != txBlock.GetHeader().GetCommitteeHash()) {
     LOG_CHECK_FAIL("DS committee hash", txBlock.GetHeader().GetCommitteeHash(),
                    committeeHash);
+    // Lets check if its legitimate hash check failure, if i am lagging behind
+    // in prev ds epoch.
+    if (LOOKUP_NODE_MODE && !m_mediator.m_lookup->m_confirmedLatestDSBlock) {
+      // Check if I have a latest DS Info (but do it only once in current ds
+      // epoch)
+      uint64_t latestDSBlockNum =
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+      uint64_t recvdDsBlockNum = txBlock.GetHeader().GetDSBlockNum();
+      m_mediator.m_lookup->m_confirmedLatestDSBlock = true;
+
+      if ((recvdDsBlockNum > latestDSBlockNum) ||
+          (m_mediator.m_dsBlockChain.GetBlockCount() <= 1)) {
+        auto func = [this]() -> void {
+          if (ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+          } else {
+            m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
+          }
+          if (!m_mediator.m_lookup->GetDSInfo()) {
+            LOG_GENERAL(INFO,
+                        "I am lagging behind actual ds epoch. Will Rejoin!");
+            m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+            if (ARCHIVAL_LOOKUP) {
+              // Sync from S3
+              m_mediator.m_lookup->RejoinAsNewLookup(false);
+            } else  // Lookup - sync from S3
+            {
+              m_mediator.m_lookup->RejoinAsLookup(false);
+            }
+          } else {
+            m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+          }
+        };
+        DetachedFunction(1, func);
+      }
+    }
+
     return false;
   }
 
@@ -757,7 +794,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         m_mediator.m_lookup->RejoinAsNewLookup(false);
       } else  // Lookup
       {
-        m_mediator.m_lookup->RejoinAsLookup();
+        // Sync from S3
+        m_mediator.m_lookup->RejoinAsLookup(false);
       }
     }
     // Missed some final block, rejoin
@@ -784,6 +822,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         }
       } else  // Lookup
       {
+        // Sync from lookup
         m_mediator.m_lookup->RejoinAsLookup();
       }
     }
@@ -1029,8 +1068,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
         true);  // except last block
   }
-
-  FallbackTimerPulse();
 
   return true;
 }

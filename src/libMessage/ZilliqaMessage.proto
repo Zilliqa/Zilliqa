@@ -26,7 +26,7 @@ message ProtoBlockLink
     // Add new members here
 }
 
-// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks", and "Fallbackblock"
+// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks"
 message ProtoBlockBase
 {
     message CoSignatures
@@ -219,25 +219,6 @@ message ProtoVCBlock
     VCBlockHeader header                     = 1; // Added in: v1.0, Deprecated in: N/A
     ProtoBlockBase blockbase                 = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
-}
-
-message ProtoFallbackBlock
-{
-    message FallbackBlockHeader
-    {
-        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        uint64 fallbackdsepochno             = 2;  // Added in: v1.0, Deprecated in: N/A
-        uint64 fallbackepochno               = 3;  // Added in: v1.0, Deprecated in: N/A
-        uint32 fallbackstate                 = 4;  // Added in: v1.0, Deprecated in: N/A, only LSB used
-        bytes stateroothash                  = 5;  // Added in: v1.0, Deprecated in: N/A
-        uint32 leaderconsensusid             = 6;  // Added in: v1.0, Deprecated in: N/A, only lower 2 bytes used
-        ByteArray leadernetworkinfo          = 7;  // Added in: v1.0, Deprecated in: N/A
-        ByteArray leaderpubkey               = 8;  // Added in: v1.0, Deprecated in: N/A
-        uint32 shardid                       = 9;  // Added in: v1.0, Deprecated in: N/A
-        bytes prevhash                       = 10; // Added in: v1.0, Deprecated in: N/A
-    }
-    FallbackBlockHeader header      = 1;
-    ProtoBlockBase blockbase        = 2;
 }
 
 // Used in database "diagnosticNodes"
@@ -466,19 +447,12 @@ message ProtoSWInfo
     uint32 scillacommit               = 10;
 }
 
-message ProtoFallbackBlockWShardingStructure
-{
-    ProtoFallbackBlock fallbackblock   = 1;
-    ProtoShardingStructure sharding    = 2;
-}
-
 message ProtoSingleDirectoryBlock
 {
     oneof directoryblock
     {
         ProtoDSBlock dsblock                                     = 1;
         ProtoVCBlock vcblock                                     = 2;
-        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
     }
 }
 
@@ -654,16 +628,6 @@ message NodeMicroBlockAnnouncement
     ProtoMicroBlock microblock = 1;
 }
 
-message NodeFallbackBlockAnnouncement
-{
-    ByteArray fallbackblock = 1;
-}
-
-message NodeFallbackBlock
-{
-    ProtoFallbackBlock fallbackblock = 1;
-}
-
 message NodeMissingTxnsErrorMsg
 {
     repeated bytes txnhashes   = 1;
@@ -746,9 +710,9 @@ message LookupSetMinerInfoFromSeed
 // From new join lookup node or new join normal node to existing lookup node.
 message LookupGetTxBlockFromSeed
 {
-    uint64 lowblocknum  = 1;
-    uint64 highblocknum = 2;
-    uint32 listenport   = 3;
+    uint64 lowblocknum     = 1;
+    uint64 highblocknum    = 2;
+    uint32 listenport      = 3;
 }
 
 // From lookup nodes to new join lookup node or new join normal node.
@@ -999,7 +963,6 @@ message ConsensusAnnouncement
         NodeMicroBlockAnnouncement microblock = 5;
         DSFinalBlockAnnouncement finalblock   = 6;
         DSVCBlockAnnouncement vcblock         = 7;
-        NodeFallbackBlockAnnouncement fallbackblock = 8;
     }
     ByteArray finalsignature         = 9;
 }

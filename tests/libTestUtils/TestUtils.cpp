@@ -201,25 +201,6 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
                        prevHash);
 }
 
-FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
-  uint32_t version = DistUint32();
-  uint64_t fallbackDSEpochNo = DistUint32();
-  uint64_t fallbackEpochNo = DistUint32();
-  unsigned char fallbackState = DistUint8();
-  FallbackBlockHashSet hashset;
-  uint32_t leaderConsensusId = DistUint32();
-  Peer leaderNetworkInfo = GenerateRandomPeer();
-  PubKey leaderPubKey = GenerateRandomPubKey();
-  uint32_t shardId = DistUint32();
-  CommitteeHash committeeHash;
-  BlockHash prevHash;
-
-  return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
-                             hashset, leaderConsensusId, leaderNetworkInfo,
-                             leaderPubKey, shardId, version, committeeHash,
-                             prevHash);
-}
-
 DSBlockHeader createDSBlockHeader(const uint64_t& blockNum) {
   return DSBlockHeader(DistUint8(), DistUint8(), GenerateRandomPubKey(),
                        blockNum, DistUint64(), DistUint128(), SWInfo(),
