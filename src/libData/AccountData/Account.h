@@ -25,7 +25,6 @@
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libPersistence/ContractStorage.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libPersistence/ContractStorage.h"
-
 #include "libMessage/MessengerAccountStoreTrie.h"
 
 template <class DB, class MAP>
