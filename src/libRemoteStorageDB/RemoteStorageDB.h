@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 #define ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 
+#include "common/Singleton.h"
 #include "common/TxnStatus.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
