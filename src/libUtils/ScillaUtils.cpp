@@ -135,7 +135,6 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
                      boost::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
-  ret["argv"].append("-disable-validate-json");
   ret["argv"].append("-jsonerrors");
 
   return ret;
