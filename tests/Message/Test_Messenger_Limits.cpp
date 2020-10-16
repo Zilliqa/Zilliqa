@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetStateFromSeed) {
   AccountStore::GetInstance().Init();
   // Get the approximate size each account adds to a SETSTATEFROMSEED message
   AccountStore::GetInstance().AddAccount(Address(addressCounter++),
-                                         Account(0, 0));
+                                         make_shared<Account>(0, 0));
   AccountStore::GetInstance().UpdateStateTrieAll();
   BOOST_CHECK(Messenger::SetLookupSetStateFromSeed(
       dst, offset, lookupKey, AccountStore::GetInstance()));
@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetStateFromSeed) {
   const unsigned int sizeWithOneAccount = dst.size();
   dst.clear();
   AccountStore::GetInstance().AddAccount(Address(addressCounter++),
-                                         Account(0, 0));
+                                         make_shared<Account>(0, 0));
   AccountStore::GetInstance().UpdateStateTrieAll();
   BOOST_CHECK(Messenger::SetLookupSetStateFromSeed(
       dst, offset, lookupKey, AccountStore::GetInstance()));
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetStateFromSeed) {
   // Add the accounts to the list
   for (unsigned int i = 0; i < numAccountsToReachLimit; i++) {
     AccountStore::GetInstance().AddAccount(Address(addressCounter++),
-                                           Account(0, 0));
+                                           make_shared<Account>(0, 0));
   }
   AccountStore::GetInstance().UpdateStateTrieAll();
 
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetStateFromSeed) {
   // Test for above the limit. Let's add a few just to be sure.
   for (unsigned int i = 0; i < 10; i++) {
     AccountStore::GetInstance().AddAccount(Address(addressCounter++),
-                                           Account(0, 0));
+                                           make_shared<Account>(0, 0));
   }
   AccountStore::GetInstance().UpdateStateTrieAll();
   dst.clear();

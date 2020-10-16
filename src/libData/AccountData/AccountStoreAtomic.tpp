@@ -20,29 +20,30 @@ AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
     : m_parent(parent) {}
 
 template <class MAP>
-Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
-          address);
-  if (account != nullptr) {
-    // LOG_GENERAL(INFO, "Got From Temp");
-    return account;
+std::unique_lock<std::mutex> AccountStoreAtomic<MAP>::GetAccountWMutex(
+    const Address& address, std::shared_ptr<Account>& acc) {
+  std::unique_lock<std::mutex> g1(
+      AccountStoreBase<std::unordered_map<Address, std::shared_ptr<Account>>>::
+          GetAccountWMutex(address, acc));
+  if (acc != nullptr) {
+    return g1;
+  }
+  g1.unlock();
+
+  {
+    std::unique_lock<std::mutex> g2(m_parent.GetAccountWMutex(address, acc));
+    if (acc) {
+      this->AddAccount(address, acc);
+      return AccountStoreBase<std::unordered_map<
+          Address, std::shared_ptr<Account>>>::GetAccountWMutex(address, acc);
+    }
   }
 
-  account = m_parent.GetAccount(address);
-  if (account) {
-    // LOG_GENERAL(INFO, "Got From Parent");
-    m_addressToAccount->insert(std::make_pair(address, *account));
-    return &(m_addressToAccount->find(address))->second;
-  }
-
-  // LOG_GENERAL(INFO, "Got Nullptr");
-
-  return nullptr;
+  return g1;
 }
 
-template <class MAP>
-const std::shared_ptr<std::unordered_map<Address, Account>>&
-AccountStoreAtomic<MAP>::GetAddressToAccount() {
-  return this->m_addressToAccount;
-}
+// template <class MAP>
+// const std::shared_ptr<std::unordered_map<Address, Account>>&
+// AccountStoreAtomic<MAP>::GetAddressToAccount() {
+//   return this->m_addressToAccount;
+// }

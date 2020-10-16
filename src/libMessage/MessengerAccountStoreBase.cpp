@@ -36,21 +36,23 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
-template bool
-MessengerAccountStoreBase::SetAccountStore<unordered_map<Address, Account>>(
+template bool MessengerAccountStoreBase::SetAccountStore<
+    unordered_map<Address, std::shared_ptr<Account>>>(
     bytes& dst, const unsigned int offset,
-    const unordered_map<Address, Account>& addressToAccount);
-template bool
-MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
+    const unordered_map<Address, std::shared_ptr<Account>>& addressToAccount);
+template bool MessengerAccountStoreBase::GetAccountStore<
+    unordered_map<Address, std::shared_ptr<Account>>>(
     const bytes& src, const unsigned int offset,
-    unordered_map<Address, Account>& addressToAccount);
+    unordered_map<Address, std::shared_ptr<Account>>& addressToAccount);
 
-template bool MessengerAccountStoreBase::SetAccountStore<map<Address, Account>>(
+template bool MessengerAccountStoreBase::SetAccountStore<
+    map<Address, std::shared_ptr<Account>>>(
     bytes& dst, const unsigned int offset,
-    const map<Address, Account>& addressToAccount);
-template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
+    const map<Address, std::shared_ptr<Account>>& addressToAccount);
+template bool MessengerAccountStoreBase::GetAccountStore<
+    map<Address, std::shared_ptr<Account>>>(
     const bytes& src, const unsigned int offset,
-    map<Address, Account>& addressToAccount);
+    map<Address, std::shared_ptr<Account>>& addressToAccount);
 
 template <class MAP>
 bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
@@ -64,7 +66,7 @@ bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountToProtobuf(entry.second, *protoEntryAccount);
+    AccountToProtobuf(*(entry.second), *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
       return false;
@@ -108,7 +110,7 @@ bool MessengerAccountStoreBase::GetAccountStore(const bytes& src,
       return false;
     }
 
-    addressToAccount[address] = account;
+    addressToAccount[address] = std::make_shared<Account>(account);
   }
 
   return true;

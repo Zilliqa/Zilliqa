@@ -23,6 +23,7 @@
 #include <random>
 #include <tuple>
 #include "common/BaseType.h"
+#include "libData/AccountData/Account.h"
 #include "libData/BlockData/Block/BlockBase.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"

@@ -253,7 +253,9 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
                   break;
                 }
                 Address addr(addr_str);
-                Account* acc = AccountStore::GetInstance().GetAccount(addr);
+                shared_ptr<Account> acc;
+                unique_lock<mutex> g(
+                    AccountStore::GetInstance().GetAccountWMutex(addr, acc));
                 if (acc == nullptr || !acc->isContract()) {
                   continue;
                 }

@@ -92,11 +92,11 @@ void Node::PopulateAccounts(bool temp) {
       Address t_addr = Account::GetAddressFromPublicKey(
           PubKey::GetPubKeyFromString(key_pair[0]));
       if (temp) {
-        AccountStore::GetInstance().AddAccountTemp(t_addr,
-                                                   {TOTAL_GENESIS_TOKEN, 0});
+        AccountStore::GetInstance().AddAccountTemp(
+            t_addr, make_shared<Account>(TOTAL_GENESIS_TOKEN, 0));
       } else {
-        AccountStore::GetInstance().AddAccount(t_addr,
-                                               {TOTAL_GENESIS_TOKEN, 0});
+        AccountStore::GetInstance().AddAccount(
+            t_addr, make_shared<Account>(TOTAL_GENESIS_TOKEN, 0));
       }
       m_populatedAddresses.emplace_back(t_addr);
     }
@@ -130,14 +130,15 @@ void Node::AddBalanceToGenesisAccount() {
     } else {
       bal = balance_each;
     }
-    AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
+    AccountStore::GetInstance().AddAccount(addr,
+                                           make_shared<Account>(bal, nonce));
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
   }
 
   // Init account for issuing coinbase rewards
-  AccountStore::GetInstance().AddAccount(Address(),
-                                         {TOTAL_COINBASE_REWARD, nonce});
+  AccountStore::GetInstance().AddAccount(
+      Address(), make_shared<Account>(TOTAL_COINBASE_REWARD, nonce));
   PopulateAccounts();
 
   AccountStore::GetInstance().UpdateStateTrieAll();

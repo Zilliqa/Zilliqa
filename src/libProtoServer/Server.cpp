@@ -190,10 +190,9 @@ CreateTransactionResponse Server::CreateTransaction(
     uint64_t senderNonce;
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-
-      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      shared_ptr<Account> sender;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(fromAddr, sender));
 
       if (sender == nullptr) {
         ret.set_error("The sender of the txn is null");
@@ -223,11 +222,9 @@ CreateTransactionResponse Server::CreateTransaction(
 
       } else {
         {
-          shared_lock<shared_timed_mutex> lock(
-              AccountStore::GetInstance().GetPrimaryMutex());
-
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+          shared_ptr<Account> account;
+          unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutex(
+              tx.GetToAddr(), account));
 
           if (account == nullptr) {
             ret.set_error("To Addr is null");
@@ -254,11 +251,9 @@ CreateTransactionResponse Server::CreateTransaction(
       switch (Transaction::GetTransactionType(tx)) {
         case Transaction::CONTRACT_CALL: {
           {
-            shared_lock<shared_timed_mutex> lock(
-                AccountStore::GetInstance().GetPrimaryMutex());
-
-            const Account* account =
-                AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+            shared_ptr<Account> account;
+            unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutex(
+                tx.GetToAddr(), account));
 
             if (account == nullptr) {
               ret.set_error("To Addr is null");
@@ -502,9 +497,9 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     Address addr(tmpaddr);
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+      shared_ptr<Account> account;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
 
       if (account != nullptr) {
         const uint128_t& balance = account->GetBalance();
@@ -554,10 +549,9 @@ GetSmartContractStateResponse Server::GetSmartContractState(
 
     Address addr(tmpaddr);
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-
-      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+      shared_ptr<Account> account;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
 
       if (account == nullptr) {
         ret.set_error("Address does not exist");
@@ -612,10 +606,9 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
     Address addr(tmpaddr);
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-
-      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+      shared_ptr<Account> account;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
 
       if (account == nullptr) {
         ret.set_error("Address does not exist");
@@ -663,11 +656,12 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
 
     Address addr(tmpaddr);
 
-    {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
+    uint64_t nonce;
 
-      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    {
+      shared_ptr<Account> account;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
 
       if (account == nullptr) {
         ret.set_error("Address does not exist");
@@ -681,29 +675,29 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
 
       uint64_t nonce = account->GetNonce();
       //[TODO] find out a more efficient way (using storage)
-
-      for (uint64_t i = 0; i < nonce; i++) {
-        Address contractAddr = Account::GetAddressForContract(addr, i);
-        const Account* contractAccount =
-            AccountStore::GetInstance().GetAccount(contractAddr);
-
-        if (contractAccount == nullptr || !contractAccount->isContract()) {
-          continue;
-        }
-
-        auto protoContractAccount = ret.add_address();
-        protoContractAccount->set_address(contractAddr.hex());
-        Json::Value root;
-        if (!contractAccount->FetchStateJson(root)) {
-          ret.set_error("Unable to fetch state in JSON for contract " +
-                        contractAddr.hex());
-          continue;
-        }
-        protoContractAccount->set_state(
-            JSONUtils::GetInstance().convertJsontoStr(root));
-      }
     }
 
+    for (uint64_t i = 0; i < nonce; i++) {
+      Address contractAddr = Account::GetAddressForContract(addr, i);
+      shared_ptr<Account> contractAccount;
+      unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutex(
+          contractAddr, contractAccount));
+
+      if (contractAccount == nullptr || !contractAccount->isContract()) {
+        continue;
+      }
+
+      auto protoContractAccount = ret.add_address();
+      protoContractAccount->set_address(contractAddr.hex());
+      Json::Value root;
+      if (!contractAccount->FetchStateJson(root)) {
+        ret.set_error("Unable to fetch state in JSON for contract " +
+                      contractAddr.hex());
+        continue;
+      }
+      protoContractAccount->set_state(
+          JSONUtils::GetInstance().convertJsontoStr(root));
+    }
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());

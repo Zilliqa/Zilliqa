@@ -23,25 +23,28 @@ using namespace boost::multiprecision;
 
 AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
-Account* AccountStoreTemp::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase<map<Address, Account>>::GetAccount(address);
-  if (account != nullptr) {
-    // LOG_GENERAL(INFO, "Got From Temp");
-    return account;
+std::unique_lock<std::mutex> AccountStoreTemp::GetAccountWMutex(
+    const Address& address, std::shared_ptr<Account>& acc) {
+  std::unique_lock<std::mutex> g1(
+      AccountStoreBase<
+          map<Address, std::shared_ptr<Account>>>::GetAccountWMutex(address,
+                                                                    acc));
+  if (acc != nullptr) {
+    return g1;
+  }
+  g1.unlock();
+
+  {
+    std::unique_lock<std::mutex> g2(m_parent.GetAccountWMutex(address, acc));
+    if (acc) {
+      AddAccount(address, acc);
+      return AccountStoreBase<
+          map<Address, std::shared_ptr<Account>>>::GetAccountWMutex(address,
+                                                                    acc);
+    }
   }
 
-  account = m_parent.GetAccount(address);
-  if (account) {
-    // LOG_GENERAL(INFO, "Got From Parent");
-    Account newaccount(*account);
-    m_addressToAccount->insert(make_pair(address, newaccount));
-    return &(m_addressToAccount->find(address))->second;
-  }
-
-  // LOG_GENERAL(INFO, "Got Nullptr");
-
-  return nullptr;
+  return g1;
 }
 
 bool AccountStoreTemp::DeserializeDelta(const bytes& src, unsigned int offset) {

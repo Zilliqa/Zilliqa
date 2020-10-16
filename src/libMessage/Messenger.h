@@ -84,16 +84,7 @@ class Messenger {
   static bool GetAccount(const bytes& src, const unsigned int offset,
                          Account& account);
 
-  static bool SetAccountDelta(bytes& dst, const unsigned int offset,
-                              Account* oldAccount, const Account& newAccount);
-
   // These are called by AccountStoreBase template class
-  template <class MAP>
-  static bool SetAccountStore(bytes& dst, const unsigned int offset,
-                              const MAP& addressToAccount);
-  template <class MAP>
-  static bool GetAccountStore(const bytes& src, const unsigned int offset,
-                              MAP& addressToAccount);
   static bool GetAccountStore(const bytes& src, const unsigned int offset,
                               AccountStore& accountStore);
 

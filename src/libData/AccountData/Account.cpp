@@ -47,6 +47,23 @@ AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
       m_storageRoot(h256()),
       m_codeHash(h256()) {}
 
+AccountBase::AccountBase(const AccountBase& ab) {
+  SetVersion(ab.GetVersion());
+  SetBalance(ab.GetBalance());
+  SetNonce(ab.GetNonce());
+  SetStorageRoot(ab.GetStorageRoot());
+  SetCodeHash(ab.GetCodeHash());
+}
+
+AccountBase& AccountBase::operator=(const AccountBase& ab) {
+  SetVersion(ab.GetVersion());
+  SetBalance(ab.GetBalance());
+  SetNonce(ab.GetNonce());
+  SetStorageRoot(ab.GetStorageRoot());
+  SetCodeHash(ab.GetCodeHash());
+  return *this;
+}
+
 bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccountBase(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
@@ -67,15 +84,23 @@ bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
+void AccountBase::SetVersion(const uint32_t& version) {
+  lock_guard<mutex> g(m_mutexAccount);
+  m_version = version;
+}
 
-const uint32_t& AccountBase::GetVersion() const { return m_version; }
+const uint32_t& AccountBase::GetVersion() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_version;
+}
 
 bool AccountBase::IncreaseBalance(const uint128_t& delta) {
+  lock_guard<mutex> g(m_mutexAccount);
   return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
 }
 
 bool AccountBase::DecreaseBalance(const uint128_t& delta) {
+  lock_guard<mutex> g(m_mutexAccount);
   if (m_balance < delta) {
     return false;
   }
@@ -88,41 +113,72 @@ bool AccountBase::ChangeBalance(const int256_t& delta) {
                       : DecreaseBalance(uint128_t(-delta));
 }
 
-void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
+void AccountBase::SetBalance(const uint128_t& balance) {
+  lock_guard<mutex> g(m_mutexAccount);
+  m_balance = balance;
+}
 
-const uint128_t& AccountBase::GetBalance() const { return m_balance; }
+const uint128_t& AccountBase::GetBalance() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_balance;
+}
 
 bool AccountBase::IncreaseNonce() {
+  lock_guard<mutex> g(m_mutexAccount);
   return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
 }
 
 bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
+  lock_guard<mutex> g(m_mutexAccount);
   return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
 }
 
-void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
+void AccountBase::SetNonce(const uint64_t& nonce) {
+  lock_guard<mutex> g(m_mutexAccount);
+  m_nonce = nonce;
+}
 
-const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
+const uint64_t& AccountBase::GetNonce() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_nonce;
+}
 
 void Account::SetAddress(const Address& addr) {
+  lock_guard<mutex> g(m_mutexAccount);
   if (!m_address) {
     m_address = addr;
   }
 }
 
-const Address& Account::GetAddress() const { return m_address; }
+const Address& Account::GetAddress() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_address;
+}
 
-void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
+void AccountBase::SetStorageRoot(const h256& root) {
+  lock_guard<mutex> g(m_mutexAccount);
+  m_storageRoot = root;
+}
 
-const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
+const dev::h256& AccountBase::GetStorageRoot() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_storageRoot;
+}
 
 void AccountBase::SetCodeHash(const dev::h256& codeHash) {
+  lock_guard<mutex> g(m_mutexAccount);
   m_codeHash = codeHash;
 }
 
-const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
+const dev::h256& AccountBase::GetCodeHash() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_codeHash;
+}
 
-bool AccountBase::isContract() const { return m_codeHash != dev::h256(); }
+bool AccountBase::isContract() const {
+  lock_guard<mutex> g(m_mutexAccount);
+  return m_codeHash != dev::h256();
+}
 
 // =======================================
 // Account
@@ -347,6 +403,7 @@ void Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible, bool migrating) {
+  lock_guard<mutex> g(m_mutexAccount);
   ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
       addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible,
       migrating);
@@ -435,6 +492,7 @@ bool Account::SetCode(const bytes& code) {
     return false;
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   m_codeCache = code;
   return true;
 }
@@ -444,6 +502,7 @@ const bytes Account::GetCode() const {
     return {};
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   if (m_codeCache.empty()) {
     return ContractStorage2::GetContractStorage().GetContractCode(m_address);
   }
@@ -456,6 +515,7 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
     return false;
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   if (m_initDataJson == Json::nullValue) {
     if (!RetrieveContractAuxiliaries()) {
       LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
@@ -483,6 +543,7 @@ bool Account::RetrieveContractAuxiliaries() {
     return false;
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   return ParseInitData(m_initDataJson, m_scilla_version, m_is_library,
                        m_extlibs);
 }
@@ -495,6 +556,7 @@ bool Account::SetInitData(const bytes& initData) {
     return false;
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   m_initDataCache = initData;
   return true;
 }
@@ -504,6 +566,7 @@ const bytes Account::GetInitData() const {
     return {};
   }
 
+  lock_guard<mutex> g(m_mutexAccount);
   if (m_initDataCache.empty()) {
     return ContractStorage2::GetContractStorage().GetInitData(m_address);
   }

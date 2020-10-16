@@ -44,7 +44,8 @@ int readAccountJsonFromFile(const string& path) {
       Address addr(i);
       uint128_t balance(_json[i]["amount"].asString());
       if (AccountStore::GetInstance().AddAccount(
-              addr, {balance, _json[i]["nonce"].asUInt()})) {
+              addr,
+              make_shared<Account>(balance, _json[i]["nonce"].asUInt()))) {
         LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
       }
     }

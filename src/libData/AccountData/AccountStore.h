@@ -39,11 +39,10 @@
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
 
-using StateHash = dev::h256;
-
 class AccountStore;
 
-class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
+class AccountStoreTemp
+    : public AccountStoreSC<std::map<Address, std::shared_ptr<Account>>> {
   AccountStore& m_parent;
 
   friend class AccountStore;
@@ -53,51 +52,41 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
   bool DeserializeDelta(const bytes& src, unsigned int offset);
 
-  /// Returns the Account associated with the specified address.
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount() {
-    return this->m_addressToAccount;
-  }
-
-  void AddAccountDuringDeserialization(const Address& address,
-                                       const Account& account) {
-    (*m_addressToAccount)[address] = account;
-  }
+  std::unique_lock<std::mutex> GetAccountWMutex(
+      const Address& address, std::shared_ptr<Account>& acc) override;
 };
 
 // Singleton class for providing interface related Account System
-class AccountStore
-    : public AccountStoreTrie<dev::OverlayDB,
-                              std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+class AccountStore : public AccountStoreTrie<
+                         dev::OverlayDB,
+                         std::unordered_map<Address, std::shared_ptr<Account>>>,
+                     Singleton<AccountStore> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
   /// used for states reverting
-  std::unordered_map<Address, Account> m_addressToAccountRevChanged;
-  std::unordered_map<Address, Account> m_addressToAccountRevCreated;
-
-  /// primary mutex used by account store for protecting permanent states from
-  /// external access
-  mutable std::shared_timed_mutex m_mutexPrimary;
-  /// mutex used when manipulating with state delta
-  std::mutex m_mutexDelta;
+  std::unordered_map<Address, std::shared_ptr<Account>>
+      m_addressToAccountRevChanged;
+  std::unordered_map<Address, std::shared_ptr<Account>>
+      m_addressToAccountRevCreated;
   /// mutex related to revertibles
   std::mutex m_mutexRevertibles;
+
+  /// mutex used when manipulating with state delta
+  std::shared_timed_mutex m_mutexDelta;
   /// buffer for the raw bytes of state delta serialized
   bytes m_stateDeltaSerialized;
 
   /// Scilla IPC server related
+  std::mutex m_mutexIPC;
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
 
+  std::shared_timed_mutex m_mutexPrimary;
+
   AccountStore();
   ~AccountStore();
-
-  /// Store the trie root to leveldb
-  bool MoveRootToDisk(const dev::h256& root);
 
  public:
   /// Returns the singleton AccountStore instance.
@@ -126,24 +115,19 @@ class AccountStore
   /// empty states data in memory
   void InitSoft();
 
-  /// Reset the reference to underlying leveldb
-  bool RefreshDB();
-
   /// Use the states in Temp State DB to refresh the state merkle trie
   bool UpdateStateTrieFromTempStateDB();
+
+  /// repopulate the in-memory data structures from persistent storage
+  bool RetrieveFromDisk();
 
   /// commit the in-memory states into persistent storage
   bool MoveUpdatesToDisk();
 
-  /// discard all the changes in memory and reset the states from last
-  /// checkpoint in persistent storage
-  void DiscardUnsavedUpdates();
-  /// repopulate the in-memory data structures from persistent storage
-  bool RetrieveFromDisk();
-
   /// Get the instance of an account from AccountStoreTemp
   /// [[[WARNING]]] Test utility function, don't use in core protocol
-  Account* GetAccountTemp(const Address& address);
+  std::unique_lock<std::mutex> GetAccountWMutexTemp(
+      const Address& address, std::shared_ptr<Account>& acc);
 
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
@@ -152,14 +136,13 @@ class AccountStore
                           TransactionReceipt& receipt, TxnStatus& error_code);
 
   /// add account in AccountStoreTemp
-  void AddAccountTemp(const Address& address, const Account& account) {
-    std::lock_guard<std::mutex> g(m_mutexDelta);
+  void AddAccountTemp(const Address& address,
+                      const std::shared_ptr<Account>& account) {
     m_accountStoreTemp->AddAccount(address, account);
   }
 
   /// increase balance for account in AccountStoreTemp
   bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
-    std::lock_guard<std::mutex> g(m_mutexDelta);
     return m_accountStoreTemp->IncreaseBalance(address, delta);
   }
 
@@ -173,28 +156,24 @@ class AccountStore
 
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void ProcessStorageRootUpdateBufferTemp() {
-    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
   }
 
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void CleanStorageRootUpdateBufferTemp() {
-    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->CleanStorageRootUpdateBuffer();
   }
 
   void CleanNewLibrariesCacheTemp() {
-    std::lock_guard<std::mutex> g(m_mutexDelta);
     m_accountStoreTemp->CleanNewLibrariesCache();
   }
 
   /// used in deserialization
-  void AddAccountDuringDeserialization(const Address& address,
-                                       const Account& account,
-                                       const Account& oriAccount,
-                                       const bool fullCopy = false,
-                                       const bool revertible = false) {
-    (*m_addressToAccount)[address] = account;
+  void AddAccountDuringDeserialization(
+      const Address& address, const std::shared_ptr<Account>& account,
+      const std::shared_ptr<Account>& oriAccount, const bool fullCopy = false,
+      const bool revertible = false) {
+    AddAccount(address, account, true);
 
     if (revertible) {
       if (fullCopy) {

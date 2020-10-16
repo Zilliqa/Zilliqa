@@ -78,7 +78,8 @@ class IsolatedServer : public LookupServer,
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                   const Account* sender, const uint128_t& gasPrice);
+                   const std::shared_ptr<Account>& sender,
+                   const uint128_t& gasPrice);
   bool RetrieveHistory();
 };
 

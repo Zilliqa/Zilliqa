@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
   LOG_GENERAL(INFO, "Owner Address: " << ownerAddr);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-                                             {200000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(200000000000000000, nonce));
 
   contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "contrAddr0: " << contrAddr0);
@@ -191,7 +191,8 @@ BOOST_AUTO_TEST_CASE(salarybot) {
   employee2Addr = Account::GetAddressFromPublicKey(employee2.second);
   employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
 
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000, nonce));
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
@@ -260,8 +261,9 @@ BOOST_AUTO_TEST_CASE(salarybot) {
     nonce++;
   }
 
-  Account* e2 = AccountStore::GetInstance().GetAccountTemp(employee2Addr);
-  Account* e3 = AccountStore::GetInstance().GetAccountTemp(employee3Addr);
+  shared_ptr<Account> e2, e3;
+  (void)AccountStore::GetInstance().GetAccountWMutexTemp(employee2Addr, e2);
+  (void)AccountStore::GetInstance().GetAccountWMutexTemp(employee3Addr, e3);
 
   BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
                       "employee2 or 3 are not existing");
@@ -288,8 +290,8 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
 
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000000, nonce));
 
   /* ------------------------------------------------------------------- */
   // Deploying the library 1
@@ -320,10 +322,14 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
                                                  error_code);
-  Account* account1 = AccountStore::GetInstance().GetAccountTemp(libAddr1);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(account1 != nullptr,
-                      "Error with creation of contract account");
+  {
+    std::shared_ptr<Account> account1;
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(libAddr1, account1));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account1 != nullptr,
+                        "Error with creation of contract account");
+  }
   nonce++;
 
   /* ------------------------------------------------------------------- */
@@ -368,10 +374,15 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   TransactionReceipt tr2;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2,
                                                  error_code);
-  Account* account2 = AccountStore::GetInstance().GetAccountTemp(libAddr2);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(account2 != nullptr,
-                      "Error with creation of contract account");
+
+  {
+    shared_ptr<Account> account2;
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(libAddr2, account2));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account2 != nullptr,
+                        "Error with creation of contract account");
+  }
   nonce++;
 
   // Check whether cache of library 1 exists
@@ -424,10 +435,14 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   TransactionReceipt tr3;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum3, 1, true, tx3, tr3,
                                                  error_code);
-  Account* account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(account3 != nullptr,
-                      "Error with creation of contract account");
+  {
+    shared_ptr<Account> account3;
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr1, account3));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account3 != nullptr,
+                        "Error with creation of contract account");
+  }
   nonce++;
 
   // Check whether cache of library 1/2 exists
@@ -478,12 +493,12 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   donor1Addr = Account::GetAddressFromPublicKey(donor1.second);
   donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-                                             {2000000000000000, nonce});
-  AccountStore::GetInstance().AddAccountTemp(donor1Addr,
-                                             {2000000000000000, nonce});
-  AccountStore::GetInstance().AddAccountTemp(donor2Addr,
-                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000000, nonce));
+  AccountStore::GetInstance().AddAccountTemp(
+      donor1Addr, make_shared<Account>(2000000000000000, nonce));
+  AccountStore::GetInstance().AddAccountTemp(
+      donor2Addr, make_shared<Account>(2000000000000000, nonce));
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
@@ -516,10 +531,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
                                                  error_code);
-  Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(account != nullptr,
-                      "Error with creation of contract account");
+  {
+    shared_ptr<Account> account;
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, account));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account != nullptr,
+                        "Error with creation of contract account");
+  }
   nonce++;
 
   /* ------------------------------------------------------------------- */
@@ -536,20 +555,20 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
     nonce++;
   }
 
-  uint128_t contrBal =
-      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal;
 
-  LOG_GENERAL(INFO, "[Call1] Owner balance: " << AccountStore::GetInstance()
-                                                     .GetAccountTemp(ownerAddr)
-                                                     ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call1] Donor1 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor1Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call1] Donor2 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor2Addr)
-                                                ->GetBalance());
+  {
+    shared_ptr<Account> contract, owner, donor1, donor2;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, contract);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(ownerAddr, owner);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(donor1Addr, donor1);
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(donor2Addr, donor2));
+    contrBal = contract->GetBalance();
+    LOG_GENERAL(INFO, "[Call1] Owner balance: " << owner->GetBalance());
+    LOG_GENERAL(INFO, "[Call1] Donor1 balance: " << donor1->GetBalance());
+    LOG_GENERAL(INFO, "[Call1] Donor2 balance: " << donor2->GetBalance());
+  }
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
   BOOST_CHECK_MESSAGE(contrBal == amount, "Balance mis-match after Donate");
 
@@ -576,23 +595,23 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
     nonce++;
   }
 
-  uint128_t contrBal2 =
-      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal2;
+  {
+    shared_ptr<Account> contr, owner, donor1, donor2;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, contr);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(ownerAddr, owner);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(donor1Addr, donor1);
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(donor2Addr, donor2));
+    contrBal2 = contr->GetBalance();
 
-  LOG_GENERAL(INFO, "[Call2] Owner balance: " << AccountStore::GetInstance()
-                                                     .GetAccountTemp(ownerAddr)
-                                                     ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call2] Donor1 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor1Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call2] Donor2 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor2Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
-  BOOST_CHECK_MESSAGE(contrBal2 == amount + amount2,
-                      "Balance mis-match after Donate2");
+    LOG_GENERAL(INFO, "[Call2] Owner balance: " << owner->GetBalance());
+    LOG_GENERAL(INFO, "[Call2] Donor1 balance: " << donor1->GetBalance());
+    LOG_GENERAL(INFO, "[Call2] Donor2 balance: " << donor2->GetBalance());
+    LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
+    BOOST_CHECK_MESSAGE(contrBal2 == amount + amount2,
+                        "Balance mis-match after Donate2");
+  }
 
   /* ------------------------------------------------------------------- */
 
@@ -605,23 +624,25 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                                                      error_code)) {
     nonce++;
   }
-  uint128_t contrBal3 =
-      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
 
-  LOG_GENERAL(INFO, "[Call3] Owner balance: " << AccountStore::GetInstance()
-                                                     .GetAccountTemp(ownerAddr)
-                                                     ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call3] Donor1 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor1Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call3] Donor2 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor2Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
-  BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
-                      "Balance mis-match after Donate3");
+  uint128_t contrBal3;
+
+  {
+    shared_ptr<Account> contr, owner, donor1, donor2;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, contr);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(ownerAddr, owner);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(donor1Addr, donor1);
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(donor2Addr, donor2));
+    contrBal3 = contr->GetBalance();
+
+    LOG_GENERAL(INFO, "[Call3] Owner balance: " << owner->GetBalance());
+    LOG_GENERAL(INFO, "[Call3] Donor1 balance: " << donor1->GetBalance());
+    LOG_GENERAL(INFO, "[Call3] Donor2 balance: " << donor2->GetBalance());
+    LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
+    BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
+                        "Balance mis-match after Donate3");
+  }
 
   /* ------------------------------------------------------------------- */
 
@@ -645,23 +666,24 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
     nonce++;
   }
 
-  uint128_t contrBal4 =
-      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal4;
 
-  LOG_GENERAL(INFO, "[Call4] Owner balance: " << AccountStore::GetInstance()
-                                                     .GetAccountTemp(ownerAddr)
-                                                     ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call4] Donor1 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor1Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call4] Donor2 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor2Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
-  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3,
-                      "Balance mis-match after GetFunds");
+  {
+    shared_ptr<Account> contr, owner, donor1, donor2;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, contr);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(ownerAddr, owner);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(donor1Addr, donor1);
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(donor2Addr, donor2));
+    contrBal4 = contr->GetBalance();
+
+    LOG_GENERAL(INFO, "[Call4] Owner balance: " << owner->GetBalance());
+    LOG_GENERAL(INFO, "[Call4] Donor1 balance: " << donor1->GetBalance());
+    LOG_GENERAL(INFO, "[Call4] Donor2 balance: " << donor2->GetBalance());
+    LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal2);
+    BOOST_CHECK_MESSAGE(contrBal4 == contrBal3,
+                        "Balance mis-match after Donate4");
+  }
 
   /* ------------------------------------------------------------------- */
 
@@ -685,23 +707,24 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
     nonce++;
   }
 
-  uint128_t contrBal5 =
-      AccountStore::GetInstance().GetAccountTemp(contrAddr)->GetBalance();
+  uint128_t contrBal5;
 
-  LOG_GENERAL(INFO, "[Call5] Owner balance: " << AccountStore::GetInstance()
-                                                     .GetAccountTemp(ownerAddr)
-                                                     ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call5] Donor1 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor1Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO,
-              "[Call5] Donor2 balance: " << AccountStore::GetInstance()
-                                                .GetAccountTemp(donor2Addr)
-                                                ->GetBalance());
-  LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
-  BOOST_CHECK_MESSAGE(contrBal5 == contrBal4 - amount,
-                      "Balance mis-match after GetFunds");
+  {
+    shared_ptr<Account> contr, owner, donor1, donor2;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, contr);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(ownerAddr, owner);
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(donor1Addr, donor1);
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(donor2Addr, donor2));
+    contrBal5 = contr->GetBalance();
+
+    LOG_GENERAL(INFO, "[Call5] Owner balance: " << owner->GetBalance());
+    LOG_GENERAL(INFO, "[Call5] Donor1 balance: " << donor1->GetBalance());
+    LOG_GENERAL(INFO, "[Call5] Donor2 balance: " << donor2->GetBalance());
+    LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal2);
+    BOOST_CHECK_MESSAGE(contrBal5 == contrBal4 - amount,
+                        "Balance mis-match after Donate4");
+  }
 
   /* ------------------------------------------------------------------- */
 }
@@ -724,8 +747,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000000, nonce));
 
   pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
   pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -756,10 +779,14 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx0, tr0,
                                                  error_code);
-  Account* accountPing = AccountStore::GetInstance().GetAccountTemp(pingAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountPing != nullptr,
-                      "Error with creation of ping account");
+  shared_ptr<Account> accountPing;
+  {
+    unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutexTemp(
+        pingAddr, accountPing));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountPing != nullptr,
+                        "Error with creation of ping account");
+  }
   nonce++;
 
   // Deploying the contract can use data from the 0th Scilla test.
@@ -782,10 +809,15 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx1, tr1,
                                                  error_code);
-  Account* accountPong = AccountStore::GetInstance().GetAccountTemp(pongAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountPong != nullptr,
-                      "Error with creation of pong account");
+
+  shared_ptr<Account> accountPong;
+  {
+    unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutexTemp(
+        pongAddr, accountPong));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountPong != nullptr,
+                        "Error with creation of pong account");
+  }
   nonce++;
 
   LOG_GENERAL(INFO, "Deployed ping and pong contracts.");
@@ -889,8 +921,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().Init();
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
-                                             {2000000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000000, nonce));
 
   aAddr = Account::GetAddressForContract(ownerAddr, nonce);
   bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
@@ -922,9 +954,14 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
                                                  error_code);
-  Account* accountA = AccountStore::GetInstance().GetAccountTemp(aAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
+  shared_ptr<Account> accountA;
+  {
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(aAddr, accountA));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountA != nullptr,
+                        "Error with creation of contract A");
+  }
   nonce++;
 
   ScillaTestUtil::ScillaTest tContrB;
@@ -945,9 +982,14 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
                                                  error_code);
-  Account* accountB = AccountStore::GetInstance().GetAccountTemp(bAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
+  shared_ptr<Account> accountB;
+  {
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(bAddr, accountB));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountB != nullptr,
+                        "Error with creation of contract B");
+  }
   nonce++;
 
   ScillaTestUtil::ScillaTest tContrC;
@@ -968,9 +1010,15 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   TransactionReceipt tr2;
   AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2,
                                                  error_code);
-  Account* accountC = AccountStore::GetInstance().GetAccountTemp(cAddr);
-  // We should now have a new account.
-  BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
+
+  shared_ptr<Account> accountC;
+  {
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutexTemp(cAddr, accountC));
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountC != nullptr,
+                        "Error with creation of contract C");
+  }
   nonce++;
 
   LOG_GENERAL(INFO, "Deployed contracts A, B, and C.");
@@ -1031,12 +1079,9 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
     nonce++;
   }
 
-  uint128_t aBal =
-      AccountStore::GetInstance().GetAccountTemp(aAddr)->GetBalance();
-  uint128_t bBal =
-      AccountStore::GetInstance().GetAccountTemp(bAddr)->GetBalance();
-  uint128_t cBal =
-      AccountStore::GetInstance().GetAccountTemp(cAddr)->GetBalance();
+  uint128_t aBal = accountA->GetBalance();
+  uint128_t bBal = accountB->GetBalance();
+  uint128_t cBal = accountC->GetBalance();
 
   LOG_GENERAL(INFO, "Call chain balances obtained: A: "
                         << aBal << ". B: " << bBal << ". C: " << cBal);
@@ -1097,7 +1142,8 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
   }
 
   AccountStore::GetInstance().Init();
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             make_shared<Account>(bal, nonce));
 
   for (unsigned int i = 0; i < numDeployments; i++) {
     Address contractAddr = Account::GetAddressForContract(ownerAddr, nonce);
@@ -1134,11 +1180,15 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     nonce++;
 
-    Account* account = AccountStore::GetInstance().GetAccountTemp(contractAddr);
+    shared_ptr<Account> account;
+    {
+      unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutexTemp(
+          contractAddr, account));
 
-    // We should now have a new account.
-    BOOST_CHECK_MESSAGE(account != nullptr,
-                        "Error with creation of contract account");
+      // We should now have a new account.
+      BOOST_CHECK_MESSAGE(account != nullptr,
+                          "Error with creation of contract account");
+    }
 
     report << timeElapsedDeployment << "," << tr0.GetCumGas() << ",";
 
@@ -1238,7 +1288,8 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
     ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-    AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
+    AccountStore::GetInstance().AddAccountTemp(
+        ownerAddr, make_shared<Account>(bal, nonce));
 
     contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
     LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr.hex());
@@ -1274,11 +1325,15 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
                                                    error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-    Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
+    shared_ptr<Account> account;
+    {
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, account));
 
-    // We should now have a new account.
-    BOOST_CHECK_MESSAGE(account != nullptr,
-                        "Error with creation of contract account");
+      // We should now have a new account.
+      BOOST_CHECK_MESSAGE(account != nullptr,
+                          "Error with creation of contract account");
+    }
 
     LOG_GENERAL(INFO, "Contract size = "
                           << ScillaTestUtil::GetFileSize("input.scilla"));
@@ -1401,10 +1456,12 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, ownerNonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(bal, ownerNonce));
 
   senderAddr = Account::GetAddressFromPublicKey(sender.second);
-  AccountStore::GetInstance().AddAccountTemp(senderAddr, {bal, senderNonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      senderAddr, make_shared<Account>(bal, senderNonce));
 
   for (auto hodlers : numHodlers) {
     contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
@@ -1440,11 +1497,16 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
                                                    error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-    Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
-    // We should now have a new account.
-    BOOST_CHECK_MESSAGE(account != nullptr,
-                        "Error with creation of contract account");
+    shared_ptr<Account> account;
+    {
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutexTemp(contrAddr, account));
+      // We should now have a new account.
+      BOOST_CHECK_MESSAGE(account != nullptr,
+                          "Error with creation of contract account");
+    }
+
     LOG_GENERAL(INFO, "Contract size = "
                           << ScillaTestUtil::GetFileSize("input.scilla"));
     LOG_GENERAL(INFO, "Gas used (deployment) = " << tr0.GetCumGas());
@@ -2086,11 +2148,12 @@ BOOST_AUTO_TEST_CASE(simplemap) {
   for (unsigned int i = 0; i < num_sender; ++i) {
     Address senderAddr = Account::GetAddressFromPublicKey(senders[i].second);
     senderAddrs.emplace_back(senderAddr);
-    AccountStore::GetInstance().AddAccountTemp(senderAddr,
-                                               {2000000000000, nonce});
+    AccountStore::GetInstance().AddAccountTemp(
+        senderAddr, make_shared<Account>(2000000000000, nonce));
   }
 
-  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+  AccountStore::GetInstance().AddAccountTemp(
+      ownerAddr, make_shared<Account>(2000000000000, nonce));
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Simple-map Address: " << contrAddr);

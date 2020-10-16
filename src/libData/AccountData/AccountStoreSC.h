@@ -34,16 +34,15 @@ class AccountStoreSC;
 
 template <class MAP>
 class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
+    : public AccountStoreBase<
+          std::unordered_map<Address, std::shared_ptr<Account>>> {
   AccountStoreSC<MAP>& m_parent;
 
  public:
   AccountStoreAtomic(AccountStoreSC<MAP>& parent);
 
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
-  GetAddressToAccount();
+  std::unique_lock<std::mutex> GetAccountWMutex(
+      const Address& address, std::shared_ptr<Account>& acc) override;
 };
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL };
@@ -56,9 +55,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
-
-  /// the blocknum while executing each txn
-  uint64_t m_curBlockNum{0};
 
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
@@ -81,9 +77,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// whether is processed by ds node while executing each txn
   bool m_curIsDS{false};
-
-  /// the interpreter path for each hop of invoking
-  std::string m_root_w_version;
 
   /// the depth of chain call while executing the current txn
   unsigned int m_curEdges{0};
@@ -147,20 +140,18 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
   bool ExportContractFiles(
-      Account& contract, uint32_t scilla_version,
+      const Account& contract,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
   /// generate the files for message from txn for interpreter to call contract
   bool ExportCallContractFiles(
-      Account& contract, const Transaction& transaction,
-      uint32_t scilla_version,
+      const Account& contract, const Transaction& transaction,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
   /// generate the files for message from previous contract output for
   /// interpreter to call another contract
   bool ExportCallContractFiles(
-      Account& contract, const Json::Value& contractData,
-      uint32_t scilla_version,
+      const Account& contract, const Json::Value& contractData,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
 
@@ -179,17 +170,17 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
-      const Account& contract, bool is_library, uint32_t scilla_version,
+      const Account& contract, bool is_library,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_export);
 
   /// invoke scilla interpreter
-  void InvokeInterpreter(INVOKE_TYPE invoke_type,
+  bool InvokeInterpreter(INVOKE_TYPE invoke_type,
                          std::string& interprinterPrint,
                          const uint32_t& version, bool is_library,
                          const uint64_t& available_gas,
                          const boost::multiprecision::uint128_t& balance,
-                         bool& ret, TransactionReceipt& receipt);
+                         TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

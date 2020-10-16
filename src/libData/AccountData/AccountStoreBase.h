@@ -30,9 +30,9 @@
 
 template <class MAP>
 class AccountStoreBase : public SerializableDataBlock {
- protected:
   std::shared_ptr<MAP> m_addressToAccount;
 
+ protected:
   AccountStoreBase();
 
   bool CalculateGasRefund(const uint128_t& gasDeposit, const uint64_t& gasUnit,
@@ -40,6 +40,8 @@ class AccountStoreBase : public SerializableDataBlock {
 
   bool UpdateAccounts(const Transaction& transaction,
                       TransactionReceipt& receipt, TxnStatus& error_code);
+
+  mutable std::mutex m_mutexASBase;
 
  public:
   virtual void Init();
@@ -50,15 +52,20 @@ class AccountStoreBase : public SerializableDataBlock {
   /// Implements the Deserialize function inherited from Serializable.
   virtual bool Deserialize(const bytes& src, unsigned int offset);
 
-  virtual Account* GetAccount(const Address& address);
+  virtual std::unique_lock<std::mutex> GetAccountWMutex(
+      const Address& address, std::shared_ptr<Account>& acc);
+
+  const MAP& GetAccounts() const;
 
   /// Verifies existence of Account in the list.
   bool IsAccountExist(const Address& address);
 
   /// Adds an Account to the list.
-  bool AddAccount(const Address& address, const Account& account,
+  bool AddAccount(const Address& address,
+                  const std::shared_ptr<Account>& account,
                   bool toReplace = false);
-  bool AddAccount(const PubKey& pubKey, const Account& account);
+  bool AddAccount(const PubKey& pubKey,
+                  const std::shared_ptr<Account>& account);
 
   void RemoveAccount(const Address& address);
 

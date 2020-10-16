@@ -168,24 +168,29 @@ bool CreateContract(const int& blockNum, ResetType rType) {
                                              createTr, error_code);
 
   bool checkAddr = false;
-  Account* account = AccountStore::GetInstance().GetAccount(tAddress);
-  if (account != nullptr) {
-    checkAddr = true;
-    nonce++;
+  shared_ptr<Account> account;
+  {
+    unique_lock<mutex> g(
+        AccountStore::GetInstance().GetAccountWMutex(tAddress, account));
+    if (account != nullptr) {
+      checkAddr = true;
+      nonce++;
 
-    // if (rType == ICF)
-    // {
-    //     // transfer balance
-    //     LOG_GENERAL(INFO, "Try making normal transaction to invoker");
-    //     int amount = 122;
-    //     Transaction transferTx(1, nonce, tAddress, sender, amount, 1, 1, {},
-    //                            {});
-    //     if (AccountStore::GetInstance().UpdateAccounts(blockNum,
-    //                                                    transferTx))
-    //     {
-    //         nonce++;
-    //     }
-    // }
+      // if (rType == ICF)
+      // {
+      //     // transfer balance
+      //     LOG_GENERAL(INFO, "Try making normal transaction to invoker");
+      //     int amount = 122;
+      //     Transaction transferTx(1, nonce, tAddress, sender, amount, 1, 1,
+      //     {},
+      //                            {});
+      //     if (AccountStore::GetInstance().UpdateAccounts(blockNum,
+      //                                                    transferTx))
+      //     {
+      //         nonce++;
+      //     }
+      // }
+    }
   }
   BOOST_CHECK_MESSAGE(checkAddr, "Error with creation of contract account");
   return checkAddr;

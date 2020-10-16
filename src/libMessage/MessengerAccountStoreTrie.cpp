@@ -31,17 +31,17 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
 template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
-    dev::OverlayDB, std::unordered_map<Address, Account>>(
+    dev::OverlayDB, std::unordered_map<Address, std::shared_ptr<Account>>>(
     bytes& dst, const unsigned int offset,
     const dev::SpecificTrieDB<dev::GenericTrieDB<dev::OverlayDB>, Address>&
         stateTrie,
-    const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+    const unordered_map<Address, std::shared_ptr<Account>>& addressToAccount);
 
 template <class DB, class MAP>
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     bytes& dst, const unsigned int offset,
     const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie,
-    const shared_ptr<MAP>& addressToAccount) {
+    const MAP& addressToAccount) {
   ProtoAccountStore result;
 
   for (const auto& i : stateTrie) {
@@ -50,10 +50,9 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     protoEntry->set_address(address.data(), address.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
 
-    auto it = addressToAccount->find(address);
-    if (it != addressToAccount->end()) {
-      const Account& account = it->second;
-      AccountToProtobuf(account, *protoEntryAccount);
+    auto it = addressToAccount.find(address);
+    if (it != addressToAccount.end()) {
+      AccountToProtobuf(*(it->second), *protoEntryAccount);
     } else {
       Account account;
       if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),

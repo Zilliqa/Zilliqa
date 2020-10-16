@@ -23,16 +23,19 @@
 
 template <class MAP>
 AccountStoreBase<MAP>::AccountStoreBase() {
+  // m_mutexASBase = std::make_shared<std::shared_timed_mutex>();
   m_addressToAccount = std::make_shared<MAP>();
 }
 
 template <class MAP>
 void AccountStoreBase<MAP>::Init() {
+  std::lock_guard<std::mutex> g(m_mutexASBase);
   m_addressToAccount->clear();
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
+  std::lock_guard<std::mutex> g(m_mutexASBase);
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
@@ -44,6 +47,7 @@ bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
 
 template <class MAP>
 bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
+  std::lock_guard<std::mutex> g(m_mutexASBase);
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -63,11 +67,16 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   const uint128_t& amount = transaction.GetAmount();
   error_code = TxnStatus::NOT_PRESENT;
 
-  Account* fromAccount = this->GetAccount(fromAddr);
-  if (fromAccount == nullptr) {
-    LOG_GENERAL(WARNING, "sender " << fromAddr.hex() << " not exist");
-    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
-    return false;
+  uint128_t fromBalance = 0;
+  {
+    std::shared_ptr<Account> acc;
+    std::unique_lock<std::mutex> g(this->GetAccountWMutex(fromAddr, acc));
+    if (acc == nullptr) {
+      LOG_GENERAL(WARNING, "sender " << fromAddr.hex() << " not exist");
+      error_code = TxnStatus::INVALID_FROM_ACCOUNT;
+      return false;
+    }
+    fromBalance = acc->GetBalance();
   }
 
   if (transaction.GetGasLimit() < NORMAL_TRAN_GAS) {
@@ -90,10 +99,10 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit) {
+  if (fromBalance < transaction.GetAmount() + gasDeposit) {
     LOG_GENERAL(WARNING,
                 "The account (balance: "
-                    << fromAccount->GetBalance()
+                    << fromBalance
                     << ") "
                        "doesn't have enough balance to pay for the gas limit ("
                     << gasDeposit
@@ -163,17 +172,22 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
-  // LOG_MARKER();
-  return (nullptr != GetAccount(address));
+  LOG_MARKER();
+  std::shared_ptr<Account> acc;
+  std::unique_lock<std::mutex> g(this->GetAccountWMutex(address, acc));
+  return acc != nullptr;
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
-                                       const Account& account, bool toReplace) {
-  // LOG_MARKER();
+                                       const std::shared_ptr<Account>& account,
+                                       bool toReplace) {
+  LOG_MARKER();
 
   if (toReplace || !IsAccountExist(address)) {
-    m_addressToAccount->insert(std::make_pair(address, account));
+    LOG_GENERAL(INFO, "added account");
+    std::lock_guard<std::mutex> g(m_mutexASBase);
+    (*m_addressToAccount)[address] = account;
 
     return true;
   }
@@ -184,30 +198,43 @@ bool AccountStoreBase<MAP>::AddAccount(const Address& address,
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
-                                       const Account& account) {
+bool AccountStoreBase<MAP>::AddAccount(
+    const PubKey& pubKey, const std::shared_ptr<Account>& account) {
   return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
 template <class MAP>
 void AccountStoreBase<MAP>::RemoveAccount(const Address& address) {
   if (IsAccountExist(address)) {
+    std::lock_guard<std::mutex> g(m_mutexASBase);
     m_addressToAccount->erase(address);
   }
 }
 
 template <class MAP>
-Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
+std::unique_lock<std::mutex> AccountStoreBase<MAP>::GetAccountWMutex(
+    const Address& address, std::shared_ptr<Account>& acc) {
+  LOG_MARKER();
+  acc = nullptr;
+  std::unique_lock<std::mutex> g(m_mutexASBase);
   auto it = m_addressToAccount->find(address);
   if (it != m_addressToAccount->end()) {
-    return &it->second;
+    LOG_GENERAL(INFO, "found account");
+    acc = it->second;
   }
-  return nullptr;
+  return g;
+}
+
+template <class MAP>
+const MAP& AccountStoreBase<MAP>::GetAccounts() const {
+  std::lock_guard<std::mutex> g(m_mutexASBase);
+  return *m_addressToAccount;
 }
 
 template <class MAP>
 size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
   // LOG_MARKER();
+  std::lock_guard<std::mutex> g(m_mutexASBase);
   return m_addressToAccount->size();
 }
 
@@ -220,14 +247,14 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
     return true;
   }
 
-  Account* account = GetAccount(address);
+  std::shared_ptr<Account> account;
+  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
 
   if (account != nullptr && account->IncreaseBalance(delta)) {
     return true;
-  }
-
-  else if (account == nullptr) {
-    return AddAccount(address, {delta, 0});
+  } else if (account == nullptr) {
+    g.unlock();
+    return AddAccount(address, std::make_shared<Account>(delta, 0));
   }
 
   return false;
@@ -242,7 +269,8 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
     return true;
   }
 
-  Account* account = GetAccount(address);
+  std::shared_ptr<Account> account;
+  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
 
   if (nullptr == account) {
     LOG_GENERAL(WARNING, "Account " << address.hex() << " not exist");
@@ -280,7 +308,8 @@ template <class MAP>
 uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
   // LOG_MARKER();
 
-  const Account* account = GetAccount(address);
+  std::shared_ptr<Account> account;
+  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
 
   if (account != nullptr) {
     return account->GetBalance();
@@ -293,7 +322,8 @@ template <class MAP>
 bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
   // LOG_MARKER();
 
-  Account* account = GetAccount(address);
+  std::shared_ptr<Account> account;
+  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
 
   // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
@@ -317,7 +347,8 @@ template <class MAP>
 uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
   // LOG_MARKER();
 
-  Account* account = GetAccount(address);
+  std::shared_ptr<Account> account;
+  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
 
   if (account != nullptr) {
     return account->GetNonce();
@@ -329,6 +360,7 @@ uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
 template <class MAP>
 void AccountStoreBase<MAP>::PrintAccountState() {
   LOG_MARKER();
+  std::lock_guard<std::mutex> g(m_mutexASBase);
   for (const auto& entry : *m_addressToAccount) {
     LOG_GENERAL(INFO, entry.first << " " << entry.second);
   }

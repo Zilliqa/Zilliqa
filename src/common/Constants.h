@@ -21,6 +21,7 @@
 #include "depends/common/FixedHash.h"
 
 using BlockHash = dev::h256;
+using StateHash = dev::h256;
 
 // Data sizes
 const unsigned int COMMON_HASH_SIZE = 32;

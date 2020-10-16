@@ -610,15 +610,14 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
   return true;
 }
 
-void AccountDeltaToProtobuf(const Account* oldAccount,
-                            const Account& newAccount,
+void AccountDeltaToProtobuf(Account* oldAccount, const Account& newAccount,
                             ProtoAccount& protoAccount) {
-  Account acc(0, 0);
-
   bool fullCopy = false;
 
-  if (oldAccount == nullptr) {
-    oldAccount = &acc;
+  Account t_oldAccount;
+  if (oldAccount != nullptr) {
+    t_oldAccount = *oldAccount;
+  } else {
     fullCopy = true;
   }
 
@@ -627,12 +626,12 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   accbase.SetVersion(newAccount.GetVersion());
 
   int256_t balanceDelta =
-      int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
+      int256_t(newAccount.GetBalance()) - int256_t(t_oldAccount.GetBalance());
   protoAccount.set_numbersign(balanceDelta > 0);
   accbase.SetBalance(uint128_t(abs(balanceDelta)));
 
   uint64_t nonceDelta = 0;
-  if (!SafeMath<uint64_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
+  if (!SafeMath<uint64_t>::sub(newAccount.GetNonce(), t_oldAccount.GetNonce(),
                                nonceDelta)) {
     return;
   }
@@ -648,7 +647,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
     }
 
     if (fullCopy ||
-        newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
+        newAccount.GetStorageRoot() != t_oldAccount.GetStorageRoot()) {
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
       map<std::string, bytes> t_states;
@@ -2565,86 +2564,6 @@ bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
-                                Account* oldAccount,
-                                const Account& newAccount) {
-  ProtoAccount result;
-
-  AccountDeltaToProtobuf(oldAccount, newAccount, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-template <class MAP>
-bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
-                                const MAP& addressToAccount) {
-  ProtoAccountStore result;
-
-  LOG_GENERAL(INFO, "Accounts to serialize: " << addressToAccount.size());
-
-  for (const auto& entry : addressToAccount) {
-    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
-    protoEntry->set_address(entry.first.data(), entry.first.size);
-    ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountToProtobuf(entry.second, *protoEntryAccount);
-    if (!protoEntryAccount->IsInitialized()) {
-      LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
-      return false;
-    }
-  }
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-template <class MAP>
-bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
-                                MAP& addressToAccount) {
-  if (offset > src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoAccountStore result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
-
-  for (const auto& entry : result.entries()) {
-    Address address;
-    Account account;
-
-    copy(entry.address().begin(),
-         entry.address().begin() + min((unsigned int)entry.address().size(),
-                                       (unsigned int)address.size),
-         address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account, address)) {
-      LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
-                               << address.hex());
-      return false;
-    }
-
-    addressToAccount[address] = account;
-  }
-
-  return true;
-}
-
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
                                 AccountStore& accountStore) {
   if (offset >= src.size()) {
@@ -2677,7 +2596,8 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
       return false;
     }
 
-    accountStore.AddAccountDuringDeserialization(address, account, Account());
+    accountStore.AddAccountDuringDeserialization(
+        address, make_shared<Account>(account), make_shared<Account>());
   }
 
   return true;
@@ -2691,12 +2611,13 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
-  for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
+  for (const auto& entry : accountStoreTemp.GetAccounts()) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountDeltaToProtobuf(accountStore.GetAccount(entry.first), entry.second,
-                           *protoEntryAccount);
+    shared_ptr<Account> account;
+    unique_lock<mutex> g(accountStore.GetAccountWMutex(entry.first, account));
+    AccountDeltaToProtobuf(account.get(), *(entry.second), *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
       return false;
@@ -2769,30 +2690,34 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
   for (const auto& entry : result.entries()) {
     Address address;
-    Account account, t_account;
+    shared_ptr<Account> account, t_account;
+    bool fullCopy = false;
 
     copy(entry.address().begin(),
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
 
-    const Account* oriAccount = accountStore.GetAccount(address);
-    bool fullCopy = false;
-    if (oriAccount == nullptr) {
-      Account acc(0, 0);
-      accountStore.AddAccount(address, acc);
-      oriAccount = accountStore.GetAccount(address);
-      fullCopy = true;
-
+    {
+      shared_ptr<Account> oriAccount;
+      unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
       if (oriAccount == nullptr) {
-        LOG_GENERAL(WARNING, "Failed to create account for " << address);
-        return false;
-      }
-    }
+        g.unlock();
+        accountStore.AddAccount(address, make_shared<Account>(0, 0));
+        (void)accountStore.GetAccountWMutex(address, oriAccount);
+        g.lock();
+        fullCopy = true;
 
-    t_account = *oriAccount;
-    account = *oriAccount;
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
+        if (oriAccount == nullptr) {
+          LOG_GENERAL(WARNING, "Failed to create account for " << address);
+          return false;
+        }
+      }
+
+      t_account = make_shared<Account>(*oriAccount);
+      account = make_shared<Account>(*oriAccount);
+    }
+    if (!ProtobufToAccountDelta(entry.account(), *account, address, fullCopy,
                                 temp, revertible)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
@@ -2824,32 +2749,36 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
   for (const auto& entry : result.entries()) {
     Address address;
-    Account account;
+    shared_ptr<Account> account;
+    bool fullCopy = false;
 
     copy(entry.address().begin(),
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
 
-    const Account* oriAccount = accountStoreTemp.GetAccount(address);
-    bool fullCopy = false;
-    if (oriAccount == nullptr) {
-      Account acc(0, 0);
-      LOG_GENERAL(INFO, "Creating new account: " << address);
-      accountStoreTemp.AddAccount(address, acc);
-      fullCopy = true;
+    {
+      shared_ptr<Account> oriAccount;
+      unique_lock<mutex> g(
+          accountStoreTemp.GetAccountWMutex(address, oriAccount));
+      if (oriAccount == nullptr) {
+        LOG_GENERAL(INFO, "Creating new account: " << address);
+        g.unlock();
+        accountStoreTemp.AddAccount(address, make_shared<Account>(0, 0));
+        (void)accountStoreTemp.GetAccountWMutex(address, oriAccount);
+        g.lock();
+
+        fullCopy = true;
+        if (oriAccount == nullptr) {
+          LOG_GENERAL(WARNING, "Failed to create account for " << address);
+          return false;
+        }
+      }
+
+      account = make_shared<Account>(*oriAccount);
     }
 
-    oriAccount = accountStoreTemp.GetAccount(address);
-
-    if (oriAccount == nullptr) {
-      LOG_GENERAL(WARNING, "Failed to create account for " << address);
-      return false;
-    }
-
-    account = *oriAccount;
-
-    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy,
+    if (!ProtobufToAccountDelta(entry.account(), *account, address, fullCopy,
                                 temp)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
@@ -2857,7 +2786,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
       return false;
     }
 
-    accountStoreTemp.AddAccountDuringDeserialization(address, account);
+    accountStoreTemp.AddAccount(address, account, true);
   }
 
   return true;

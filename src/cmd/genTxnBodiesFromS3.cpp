@@ -25,6 +25,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libServer/JSONConversion.h"
 #include "libUtils/FileSystem.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 

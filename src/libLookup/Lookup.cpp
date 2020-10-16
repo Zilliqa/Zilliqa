@@ -379,12 +379,12 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
     uint64_t nonce;
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
+      shared_ptr<Account> account;
 
-      auto account = AccountStore::GetInstance().GetAccount(addr);
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
 
-      if (!account) {
+      if (account == nullptr) {
         LOG_GENERAL(WARNING, "Failed to get genesis account!");
         return false;
       }
@@ -449,9 +449,10 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     uint64_t nonce;
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-      nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+      shared_ptr<Account> account;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(addr, account));
+      nonce = account->GetNonce();
     }
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,

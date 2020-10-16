@@ -22,6 +22,7 @@
 #include <array>
 #include <vector>
 
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 

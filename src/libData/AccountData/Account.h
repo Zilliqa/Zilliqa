@@ -49,11 +49,17 @@ class AccountBase : public SerializableDataBlock {
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
 
+  mutable std::mutex m_mutexAccount;
+
  public:
   AccountBase() {}
 
   AccountBase(const uint128_t& balance, const uint64_t& nonce,
               const uint32_t& version);
+
+  AccountBase(const AccountBase& ab);
+
+  AccountBase& operator=(const AccountBase& ab);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;

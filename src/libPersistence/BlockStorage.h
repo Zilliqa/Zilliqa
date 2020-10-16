@@ -27,6 +27,8 @@
 #include "ContractStorage.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/MiningData/MinerInfo.h"
@@ -41,7 +43,8 @@ typedef std::shared_ptr<FallbackBlockWShardingStructure> FallbackBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
-typedef std::shared_ptr<std::pair<Address, Account>> StateSharedPtr;
+typedef std::shared_ptr<std::pair<Address, std::shared_ptr<Account>>>
+    StateSharedPtr;
 
 struct DiagnosticDataNodes {
   DequeOfShard shards;

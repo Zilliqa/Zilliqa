@@ -130,7 +130,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                                 const Account* sender,
+                                 const shared_ptr<Account>& sender,
                                  const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -241,10 +241,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     const Address fromAddr = tx.GetSenderAddr();
 
     {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-
-      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      shared_ptr<Account> sender;
+      unique_lock<mutex> g(
+          AccountStore::GetInstance().GetAccountWMutex(fromAddr, sender));
 
       if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
         return ret;
@@ -285,11 +284,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         }
 
         {
-          shared_lock<shared_timed_mutex> lock(
-              AccountStore::GetInstance().GetPrimaryMutex());
-
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+          shared_ptr<Account> account;
+          unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutex(
+              tx.GetToAddr(), account));
 
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,

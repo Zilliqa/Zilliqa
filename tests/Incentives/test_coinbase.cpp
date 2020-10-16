@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   auto dummyValidator = make_shared<Validator>(mediator);
   AccountStore::GetInstance().Init();
 
-  AccountStore::GetInstance().AddAccount(Address(),
-                                         {TOTAL_COINBASE_REWARD, nonce});
+  AccountStore::GetInstance().AddAccount(
+      Address(), make_shared<Account>(TOTAL_COINBASE_REWARD, nonce));
   AccountStore::GetInstance().UpdateStateTrieAll();
 
   const uint32_t min_ds_size = 600;
@@ -120,11 +120,15 @@ BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
     for (const auto& shardMember : shard) {
       const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardMember);
       const auto& address = Account::GetAddressFromPublicKey(pubKey);
-      const Account* account = AccountStore::GetInstance().GetAccount(address);
-      BOOST_CHECK_MESSAGE(account != nullptr,
-                          "Address: " << address << " PubKey: " << pubKey
-                                      << " did not get reward");
-      totalReward += account->GetBalance();
+      shared_ptr<Account> account;
+      {
+        unique_lock<mutex> g(
+            AccountStore::GetInstance().GetAccountWMutex(address, account));
+        BOOST_CHECK_MESSAGE(account != nullptr,
+                            "Address: " << address << " PubKey: " << pubKey
+                                        << " did not get reward");
+        totalReward += account->GetBalance();
+      }
     }
   };
 

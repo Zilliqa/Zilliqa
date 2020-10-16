@@ -284,14 +284,14 @@ bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
     string addr_str = iter->key().ToString();
     string acct_string = iter->value().ToString();
     Address addr{addr_str};
-    Account acct;
-    if (!acct.DeserializeBase(bytes(acct_string.begin(), acct_string.end()),
-                              0)) {
+    shared_ptr<Account> acct = make_shared<Account>();
+    if (!acct->DeserializeBase(bytes(acct_string.begin(), acct_string.end()),
+                               0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       continue;
     }
     StateSharedPtr state =
-        StateSharedPtr(new pair<Address, Account>(addr, acct));
+        StateSharedPtr(new pair<Address, std::shared_ptr<Account>>(addr, acct));
 
     states.emplace_back(state);
   }

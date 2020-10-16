@@ -24,19 +24,28 @@
 
 template <class DB, class MAP>
 class AccountStoreTrie : public AccountStoreSC<MAP> {
+  /// Store the trie root to leveldb
+  bool MoveRootToDisk(const dev::h256& root);
+
  protected:
   DB m_db;
   dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-  dev::h256 m_prevRoot;
+  dev::h256 m_prevRoot{dev::h256()};
 
-  // mutex for AccountStore DB related operations
-  std::mutex m_mutexDB;
-  mutable std::mutex m_mutexTrie;
+  // mutex for Trie related operations
+  mutable std::shared_timed_mutex m_mutexTrie;
 
   AccountStoreTrie();
 
-  bool UpdateStateTrie(const Address& address, const Account& account);
+  bool UpdateStateTrie(const Address& address,
+                       const std::shared_ptr<Account>& account);
   bool RemoveFromTrie(const Address& address);
+
+  /// repopulate the in-memory data structures from persistent storage
+  bool RetrieveFromDisk();
+
+  /// commit the in-memory states into persistent storage
+  bool MoveUpdatesToDisk();
 
  public:
   virtual void Init() override;
@@ -45,13 +54,22 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
 
   bool Serialize(bytes& dst, unsigned int offset) const override;
 
-  Account* GetAccount(const Address& address) override;
+  std::unique_lock<std::mutex> GetAccountWMutex(
+      const Address& address, std::shared_ptr<Account>& acc) override;
 
   dev::h256 GetStateRootHash() const;
   dev::h256 GetPrevRootHash() const;
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
+
+  bool RefreshDB();
+
+  void ResetDB();
+
+  /// discard all the changes in memory and reset the states from last
+  /// checkpoint in persistent storage
+  void DiscardUnsavedUpdates();
 };
 
 #include "AccountStoreTrie.tpp"
