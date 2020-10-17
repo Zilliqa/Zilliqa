@@ -929,14 +929,14 @@ void ContractStorage2::BufferCurrentState() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
   p_stateDataMap = t_stateDataMap;
-  p_indexToBeDeleted = m_indexToBeDeleted;
+  p_indexToBeDeleted = t_indexToBeDeleted;
 }
 
 void ContractStorage2::RevertPrevState() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
   t_stateDataMap = std::move(p_stateDataMap);
-  m_indexToBeDeleted = std::move(p_indexToBeDeleted);
+  t_indexToBeDeleted = std::move(p_indexToBeDeleted);
 }
 
 void ContractStorage2::RevertContractStates() {
