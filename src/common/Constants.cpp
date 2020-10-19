@@ -483,9 +483,6 @@ const string UPGRADE_HOST_ACCOUNT{
     ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
 const string UPGRADE_HOST_REPO{
     ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
-const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
-    ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
-    "true"};
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};

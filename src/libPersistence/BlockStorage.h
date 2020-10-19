@@ -83,7 +83,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_txBlockchainDB;
   std::shared_ptr<LevelDB> m_txBodyDB;
   std::shared_ptr<LevelDB> m_microBlockDB;
-  std::shared_ptr<LevelDB> m_txBodyTmpDB;
   std::shared_ptr<LevelDB> m_dsCommitteeDB;
   std::shared_ptr<LevelDB> m_VCBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
@@ -128,7 +127,6 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
-      m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
       m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
       m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
       m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -144,7 +142,6 @@ class BlockStorage : public Singleton<BlockStorage> {
     DS_BLOCK,
     TX_BLOCK,
     TX_BODY,
-    TX_BODY_TMP,
     MICROBLOCK,
     DS_COMMITTEE,
     VC_BLOCK,
@@ -252,9 +249,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves all the VCBlocks
   bool GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks);
-
-  /// Retrieves all the TxBodiesTmp
-  bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 
   /// Retrieve all the blocklink
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
@@ -400,7 +394,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexStateDelta;
   mutable std::shared_timed_mutex m_mutexTempState;
   mutable std::shared_timed_mutex m_mutexTxBody;
-  mutable std::shared_timed_mutex m_mutexTxBodyTmp;
   mutable std::shared_timed_mutex m_mutexStateRoot;
   mutable std::shared_timed_mutex m_mutexTxnHistorical;
   mutable std::shared_timed_mutex m_mutexMBHistorical;
