@@ -620,44 +620,6 @@ void Node::ClearAllPendingAndDroppedTxn() {
   }
 }
 
-// This version of ValidateDB was when we had a separate validating process
-// alongside zilliqa Deprecating it now for in-node validation by lookups/seeds
-// through StatusServer
-#if 0
-bool Node::ValidateDB() {
-  const string lookupIp = "127.0.0.1";
-  const unsigned int port = SEED_PORT;
-
-  if (!CheckIntegrity()) {
-    LOG_GENERAL(WARNING, "DB validation failed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "ValidateDB Success");
-
-  if (!BlockStorage::GetBlockStorage().ReleaseDB()) {
-    LOG_GENERAL(WARNING, "BlockStorage::ReleaseDB failed");
-    return false;
-  }
-
-  bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
-
-  if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
-                                          m_mediator.m_selfKey, 1,
-                                          PERSISTENCE_PATH)) {
-    LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
-    return false;
-  }
-
-  struct in_addr ip_addr {};
-  inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
-  Peer seed((uint128_t)ip_addr.s_addr, port);
-  P2PComm::GetInstance().SendMessage(seed, message);
-
-  return true;
-}
-#endif
-
 bool Node::ValidateDB() {
   LOG_MARKER();
 

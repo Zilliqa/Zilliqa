@@ -2629,6 +2629,13 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   return true;
 }
 
+bool Lookup::NoOp([[gnu::unused]] const bytes& message,
+                  [[gnu::unused]] unsigned int offset,
+                  [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+  return true;
+}
+
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   LOG_MARKER();
@@ -5265,7 +5272,7 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
-      &Lookup::ProcessSetHistoricalDB,
+      &Lookup::NoOp,  // Previously for SETHISTORICALDB
       &Lookup::ProcessGetCosigsRewardsFromSeed,
       &Lookup::ProcessSetMinerInfoFromSeed,
       &Lookup::ProcessGetDSBlockFromL2l,
@@ -5859,47 +5866,6 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
-  return true;
-}
-
-bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
-                                    [[gnu::unused]] const Peer& from) {
-  string path = "";
-  uint32_t code = 0;
-  PubKey archPubkey;
-
-  if (!Messenger::GetSeedNodeHistoricalDB(message, offset, archPubkey, code,
-                                          path)) {
-    LOG_GENERAL(WARNING, "GetSeedNodeHistoricalDB failed");
-    return false;
-  }
-
-  bytes verifierPubkeyBytes;
-  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)) {
-    LOG_GENERAL(WARNING, "VERIFIER_PUBKEY is not a hex str");
-    return false;
-  }
-
-  if (!(archPubkey == PubKey(verifierPubkeyBytes, 0))) {
-    LOG_GENERAL(WARNING, "PubKey not of verifier");
-    return false;
-  }
-
-  if (code == 1) {
-    if (!BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH +
-                                                              path)) {
-      LOG_GENERAL(WARNING,
-                  "BlockStorage::InitiateHistoricalDB failed, path: " << path);
-      return false;
-    }
-
-    m_historicalDB = true;
-  } else {
-    LOG_GENERAL(WARNING, "Code is errored " << code);
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "HistDB Success");
   return true;
 }
 

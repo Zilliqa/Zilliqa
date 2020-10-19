@@ -313,9 +313,6 @@
         <BLOOM_FILTER_FALSE_RATE>0.000001</BLOOM_FILTER_FALSE_RATE>
     </transactions>
     <verifier>
-        <VERIFIER_PATH>./historicalDB</VERIFIER_PATH>
-        <VERIFIER_PUBKEY/>
-        <SEED_PORT>33133</SEED_PORT>
         <exclusion_list>
             <entry>
                 <TXBLOCK>175334</TXBLOCK>

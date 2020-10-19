@@ -636,11 +636,5 @@ const vector<string> GENESIS_WALLETS{
 const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
 
 // Verifier
-const std::string VERIFIER_PATH{
-    ReadConstantString("VERIFIER_PATH", "node.verifier.")};
-const std::string VERIFIER_PUBKEY{
-    ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
-const unsigned int SEED_PORT{
-    ReadConstantNumeric("SEED_PORT", "node.verifier.")};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{
     ReadVerifierExclusionListFromConstantsFile()};

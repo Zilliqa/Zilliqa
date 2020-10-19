@@ -114,54 +114,6 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
   return (ret == 0);
 }
 
-bool BlockStorage::InitiateHistoricalDB(const string& path) {
-  // If not explicitly convert to string, calls the other constructor
-  {
-    unique_lock<shared_timed_mutex> g(m_mutexTxnHistorical);
-    m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
-  }
-  {
-    unique_lock<shared_timed_mutex> g(m_mutexMBHistorical);
-    m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
-  }
-
-  return true;
-}
-
-bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
-                                          TxBodySharedPtr& body) {
-  std::string bodyString;
-  {
-    shared_lock<shared_timed_mutex> g(m_mutexTxnHistorical);
-    bodyString = m_txnHistoricalDB->Lookup(key);
-  }
-  if (bodyString.empty()) {
-    return false;
-  }
-  body = make_shared<TransactionWithReceipt>(
-      bytes(bodyString.begin(), bodyString.end()), 0);
-
-  return true;
-}
-
-bool BlockStorage::GetHistoricalMicroBlock(const BlockHash& blockhash,
-                                           MicroBlockSharedPtr& microblock) {
-  string blockString;
-  {
-    shared_lock<shared_timed_mutex> g(m_mutexMBHistorical);
-    blockString = m_MBHistoricalDB->Lookup(blockhash);
-  }
-
-  if (blockString.empty()) {
-    return false;
-  }
-
-  microblock =
-      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
-
-  return true;
-}
-
 bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
   // LOG_MARKER();
