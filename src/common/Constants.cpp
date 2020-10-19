@@ -104,8 +104,6 @@ const unsigned int MICROBLOCK_VERSION{
     ReadConstantNumeric("MICROBLOCK_VERSION", "node.version.")};
 const unsigned int VCBLOCK_VERSION{
     ReadConstantNumeric("VCBLOCK_VERSION", "node.version.")};
-const unsigned int FALLBACKBLOCK_VERSION{
-    ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
 const unsigned int BLOCKLINK_VERSION{
     ReadConstantNumeric("BLOCKLINK_VERSION", "node.version.")};
 const unsigned int DSCOMMITTEE_VERSION{
@@ -229,18 +227,6 @@ const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(
     "LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS", "node.epoch_timing.")};
 const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
     "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
-
-// Fallback constants
-const bool ENABLE_FALLBACK{
-    ReadConstantString("ENABLE_FALLBACK", "node.fallback.") == "true"};
-const unsigned int FALLBACK_CHECK_INTERVAL{
-    ReadConstantNumeric("FALLBACK_CHECK_INTERVAL", "node.fallback.")};
-const unsigned int FALLBACK_EXTRA_TIME{
-    ReadConstantNumeric("FALLBACK_EXTRA_TIME", "node.fallback.")};
-const unsigned int FALLBACK_INTERVAL_STARTED{
-    ReadConstantNumeric("FALLBACK_INTERVAL_STARTED", "node.fallback.")};
-const unsigned int FALLBACK_INTERVAL_WAITING{
-    ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
 
 // Gas constants
 const unsigned int DS_MICROBLOCK_GAS_LIMIT{
@@ -565,10 +551,6 @@ const unsigned int SCILLA_SERVER_PENDING_IN_MS{
 const bool ENABLE_CHECK_PERFORMANCE_LOG{
     ReadConstantString("ENABLE_CHECK_PERFORMANCE_LOG", "node.tests.") ==
     "true"};
-#ifdef FALLBACK_TEST
-const unsigned int FALLBACK_TEST_EPOCH{
-    ReadConstantNumeric("FALLBACK_TEST_EPOCH", "node.tests.")};
-#endif  // FALLBACK_TEST
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
 const bool ENABLE_ACCOUNTS_POPULATING{

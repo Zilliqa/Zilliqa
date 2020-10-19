@@ -24,7 +24,6 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libNetwork/Peer.h"
 
 class Mediator;
@@ -51,14 +50,12 @@ class Validator {
                              const bool showLogs = true);
 
   bool CheckDirBlocks(
-      const std::vector<boost::variant<
-          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
+      const std::vector<boost::variant<DSBlock, VCBlock>>& dirBlocks,
       const DequeOfNode& initDsComm, const uint64_t& index_num,
       DequeOfNode& newDSComm);
 
   bool CheckDirBlocksNoUpdate(
-      const std::vector<boost::variant<
-          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
+      const std::vector<boost::variant<DSBlock, VCBlock>>& dirBlocks,
       const DequeOfNode& initDsComm, const uint64_t& index_num,
       DequeOfNode& newDSComm);
 
