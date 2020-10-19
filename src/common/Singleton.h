@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_COMMON_SINGLETON_H_
 #define ZILLIQA_SRC_COMMON_SINGLETON_H_
 
+#include <type_traits>
+
 template <typename T>
 class Singleton {
  protected:
