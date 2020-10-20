@@ -539,7 +539,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      DiscardTransferAtomic();
+      DiscardAtomics();
 
       if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
@@ -578,16 +578,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt,
                                     tree_depth, scilla_version)) {
-        Contract::ContractStorage2::GetContractStorage().RevertPrevState();
         receipt.RemoveAllTransitions();
         ret = false;
       }
       if (!ret) {
-        DiscardTransferAtomic();
+        Contract::ContractStorage2::GetContractStorage().RevertPrevState();
+        DiscardAtomics();
         gasRemained =
             std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
       } else {
-        CommitTransferAtomic();
+        CommitAtomics();
       }
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
@@ -649,9 +649,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CALL: {
-      /// since txn succeeded, commit the atomic buffer
-      m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                       m_storageRootUpdateBufferAtomic.end());
       LOG_GENERAL(INFO, "Executing contract transaction finished");
       break;
     }
@@ -1483,7 +1480,7 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::CommitTransferAtomic() {
+void AccountStoreSC<MAP>::CommitAtomics() {
   LOG_MARKER();
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
     Account* account = this->GetAccount(entry.first);
@@ -1495,12 +1492,16 @@ void AccountStoreSC<MAP>::CommitTransferAtomic() {
       this->AddAccount(entry.first, entry.second);
     }
   }
+  /// since txn succeeded, commit the atomic buffer
+  m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                   m_storageRootUpdateBufferAtomic.end());
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::DiscardTransferAtomic() {
+void AccountStoreSC<MAP>::DiscardAtomics() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
+  m_storageRootUpdateBufferAtomic.clear();
 }
 
 template <class MAP>
