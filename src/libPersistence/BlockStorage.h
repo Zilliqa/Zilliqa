@@ -96,9 +96,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_diagnosticDBNodes;
   std::shared_ptr<LevelDB> m_diagnosticDBCoinbase;
   std::shared_ptr<LevelDB> m_stateRootDB;
-  /// used for historical data
-  std::shared_ptr<LevelDB> m_txnHistoricalDB;
-  std::shared_ptr<LevelDB> m_MBHistoricalDB;
   /// used for miner nodes (DS committee) retrieval
   std::shared_ptr<LevelDB> m_minerInfoDSCommDB;
   /// used for miner nodes (shards) retrieval
@@ -170,8 +167,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutVCBlock(const BlockHash& blockhash, const bytes& body);
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
-  bool InitiateHistoricalDB(const std::string& path);
-
   /// Adds a Tx block to storage.
   bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
 
@@ -211,11 +206,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
-
-  bool GetTxnFromHistoricalDB(const dev::h256& key, TxBodySharedPtr& body);
-
-  bool GetHistoricalMicroBlock(const BlockHash& blockhash,
-                               MicroBlockSharedPtr& microblock);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);
@@ -395,8 +385,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexTempState;
   mutable std::shared_timed_mutex m_mutexTxBody;
   mutable std::shared_timed_mutex m_mutexStateRoot;
-  mutable std::shared_timed_mutex m_mutexTxnHistorical;
-  mutable std::shared_timed_mutex m_mutexMBHistorical;
   mutable std::shared_timed_mutex m_mutexProcessTx;
   mutable std::shared_timed_mutex m_mutexMinerInfoDSComm;
   mutable std::shared_timed_mutex m_mutexMinerInfoShards;
