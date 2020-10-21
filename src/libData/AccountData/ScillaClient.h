@@ -38,13 +38,13 @@ class ScillaClient {
 
   bool OpenServer(uint32_t version);
 
-  bool CheckClient(uint32_t version, bool enforce = false);
-
  public:
   static ScillaClient& GetInstance() {
     static ScillaClient scillaclient;
     return scillaclient;
   }
+
+  bool CheckClient(uint32_t version, bool enforce = false);
 
   void Init();
 

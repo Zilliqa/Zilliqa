@@ -222,6 +222,9 @@ class AccountStore
   /// revert the AccountStore if previously called CommitTempRevertible
   void RevertCommitTemp();
 
+  /// NotifyTimeout for AccountStoreTemp
+  void NotifyTimeoutTemp();
+
   /// clean the data for revert the AccountStore
   void InitRevertibles();
 

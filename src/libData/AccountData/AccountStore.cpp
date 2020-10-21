@@ -477,6 +477,8 @@ void AccountStore::RevertCommitTemp() {
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
 
+void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
+
 bool AccountStore::MigrateContractStates2(
     bool ignoreCheckerFailure, const string& contract_address_output_dir,
     const string& normal_address_output_dir) {
