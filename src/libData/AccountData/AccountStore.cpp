@@ -478,3 +478,5 @@ void AccountStore::RevertCommitTemp() {
 
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
+
+void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
