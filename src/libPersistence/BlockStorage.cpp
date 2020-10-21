@@ -107,22 +107,80 @@ bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
 }
 
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
-                                 const bytes& body) {
-  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-  int ret = m_microBlockDB->Insert(blockHash, body);
+                                 const uint64_t& epochNum,
+                                 const uint32_t& shardID, const bytes& body) {
+  bytes key;
+  if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
+    LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
+    return false;
+  }
 
-  return (ret == 0);
+  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+
+  // Store hash and key inside microBlockKeys DB
+  if (m_microBlockKeyDB->Insert(blockHash, key) != 0) {
+    LOG_GENERAL(WARNING, "Microblock key insertion failed. epoch="
+                             << epochNum << " shard=" << shardID);
+    return false;
+  }
+
+  // Store key and body inside microBlocks DB
+  if (m_microBlockDB->Insert(key, body) != 0) {
+    LOG_GENERAL(WARNING, "Microblock body insertion failed. epoch="
+                             << epochNum << " shard=" << shardID);
+    m_microBlockKeyDB->DeleteKey(blockHash);
+    return false;
+  }
+
+  return true;
 }
 
 bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
-  // LOG_MARKER();
+  string blockString;
+
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+
+#ifdef MIGRATE_MICROBLOCKS
+    blockString = m_microBlockOrigDB->Lookup(blockHash);
+#else   // MIGRATE_MICROBLOCKS
+    string keyString;
+
+    // Get key from microBlockKeys DB
+    keyString = m_microBlockKeyDB->Lookup(blockHash);
+    if (keyString.empty()) {
+      return false;
+    }
+
+    // Get body from microBlock DB
+    blockString = m_microBlockDB->Lookup(keyString);
+#endif  // MIGRATE_MICROBLOCKS
+  }
+
+  if (blockString.empty()) {
+    return false;
+  }
+  microblock =
+      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
+
+  return true;
+}
+
+bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
+                                 const uint32_t& shardID,
+                                 MicroBlockSharedPtr& microblock) {
+  bytes key;
+  if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
+    LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
+    return false;
+  }
 
   string blockString;
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-    blockString = m_microBlockDB->Lookup(blockHash);
+    blockString = m_microBlockDB->Lookup(key);
   }
 
   if (blockString.empty()) {
@@ -136,7 +194,9 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
 
 bool BlockStorage::CheckMicroBlock(const BlockHash& blockHash) {
   shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-  return m_microBlockDB->Exists(blockHash);
+  // Get key from microBlockKeys DB
+  string keyString = m_microBlockKeyDB->Lookup(blockHash);
+  return !keyString.empty() && m_microBlockDB->Exists(keyString);
 }
 
 bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
@@ -146,33 +206,16 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
                                        list<MicroBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
-  shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-
-  leveldb::Iterator* it =
-      m_microBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
-  for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    string bns = it->key().ToString();
-    string blockString = it->value().ToString();
-    if (blockString.empty()) {
-      LOG_GENERAL(WARNING, "Lost one block in the chain");
-      delete it;
-      return false;
+  MicroBlockSharedPtr block;
+  for (uint64_t epochNum = lowEpochNum; epochNum <= hiEpochNum; epochNum++) {
+    for (uint32_t shardID = loShardId; shardID <= hiShardId; shardID++) {
+      if (GetMicroBlock(epochNum, shardID, block)) {
+        blocks.emplace_back(block);
+        LOG_GENERAL(INFO, "Retrieved MicroBlock epoch=" << epochNum << " shard="
+                                                        << shardID);
+      }
     }
-    MicroBlockSharedPtr block = MicroBlockSharedPtr(
-        new MicroBlock(bytes(blockString.begin(), blockString.end()), 0));
-
-    if (block->GetHeader().GetEpochNum() < lowEpochNum ||
-        block->GetHeader().GetEpochNum() > hiEpochNum ||
-        block->GetHeader().GetShardId() < loShardId ||
-        block->GetHeader().GetShardId() > hiShardId) {
-      continue;
-    }
-
-    blocks.emplace_back(block);
-    LOG_GENERAL(INFO, "Retrievd MicroBlock Num:" << bns);
   }
-
-  delete it;
 
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no MicroBlock matching the criteria");
@@ -280,6 +323,7 @@ bool BlockStorage::ReleaseDB() {
   {
     unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
     m_microBlockDB.reset();
+    m_microBlockKeyDB.reset();
   }
   {
     unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
@@ -438,7 +482,20 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
 
 bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
   unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-  int ret = m_microBlockDB->DeleteKey(blockHash);
+
+  // Get key from microBlockKeys DB
+  string keyString = m_microBlockKeyDB->Lookup(blockHash);
+  if (keyString.empty()) {
+    return false;
+  }
+
+  // Delete key
+  int ret = m_microBlockKeyDB->DeleteKey(blockHash);
+
+  // Delete body
+  if (ret == 0) {
+    ret = m_microBlockDB->DeleteKey(keyString);
+  }
 
   return (ret == 0);
 }
@@ -1357,7 +1414,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     }
     case MICROBLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-      ret = m_microBlockDB->ResetDB();
+      ret = m_microBlockDB->ResetDB() & m_microBlockKeyDB->ResetDB();
       break;
     }
     case DS_COMMITTEE: {
@@ -1464,7 +1521,7 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     }
     case MICROBLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-      ret = m_microBlockDB->RefreshDB();
+      ret = m_microBlockDB->RefreshDB() & m_microBlockKeyDB->RefreshDB();
       break;
     }
     case DS_COMMITTEE: {

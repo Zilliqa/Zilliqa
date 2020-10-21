@@ -152,6 +152,19 @@ string LevelDB::Lookup(const std::string & key) const
     return value;
 }
 
+string LevelDB::Lookup(const vector<unsigned char>& key) const
+{
+    string value;
+    leveldb::Status s = m_db->Get(leveldb::ReadOptions(), leveldb::Slice(vector_ref<const unsigned char>(&key[0], key.size())), &value);
+    if (!s.ok())
+    {
+        // TODO
+        return "";
+    }
+
+    return value;
+}
+
 string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum) const
 {
     string value;
@@ -215,6 +228,22 @@ std::shared_ptr<leveldb::DB> LevelDB::GetDB()
 int LevelDB::Insert(const dev::h256 & key, dev::bytesConstRef value)
 {
     return Insert(key, value.toString());
+}
+
+int LevelDB::Insert(const vector<unsigned char>& key, const vector<unsigned char>& body)
+{
+    leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
+                                  leveldb::Slice(vector_ref<const unsigned char>(&key[0], key.size())),
+                                  leveldb::Slice(vector_ref<const unsigned char>(&body[0],
+                                                                                 body.size())));
+
+    if (!s.ok())
+    {
+        LOG_GENERAL(WARNING, "[Insert] Status: " << s.ToString());
+        return -1;
+    }
+
+    return 0;
 }
 
 int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,

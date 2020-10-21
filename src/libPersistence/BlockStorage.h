@@ -82,6 +82,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_txBlockchainDB;
   std::shared_ptr<LevelDB> m_txBodyDB;
   std::shared_ptr<LevelDB> m_microBlockDB;
+#ifdef MIGRATE_MICROBLOCKS
+  std::shared_ptr<LevelDB> m_microBlockOrigDB;
+#endif  // MIGRATE_MICROBLOCKS
+  std::shared_ptr<LevelDB> m_microBlockKeyDB;
   std::shared_ptr<LevelDB> m_dsCommitteeDB;
   std::shared_ptr<LevelDB> m_VCBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
@@ -106,7 +110,13 @@ class BlockStorage : public Singleton<BlockStorage> {
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
+#ifdef MIGRATE_MICROBLOCKS
+        m_microBlockDB(std::make_shared<LevelDB>("microBlocksNew")),
+        m_microBlockOrigDB(std::make_shared<LevelDB>("microBlocks")),
+#else   // MIGRATE_MICROBLOCKS
         m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
+#endif  // MIGRATE_MICROBLOCKS
+        m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
@@ -170,7 +180,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
 
   // /// Adds a micro block to storage.
-  bool PutMicroBlock(const BlockHash& blockHash, const bytes& body);
+  bool PutMicroBlock(const BlockHash& blockHash, const uint64_t& epochNum,
+                     const uint32_t& shardID, const bytes& body);
 
   /// Adds a transaction body to storage.
   bool PutTxBody(const dev::h256& key, const bytes& body);
@@ -191,8 +202,11 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   bool ReleaseDB();
 
-  /// Retrieves the requested Micro block
+  /// Retrieves the requested Micro block using hash
   bool GetMicroBlock(const BlockHash& blockHash,
+                     MicroBlockSharedPtr& microblock);
+  /// Retrieves the requested Micro block using epochNum+shardID
+  bool GetMicroBlock(const uint64_t& epochNum, const uint32_t& shardID,
                      MicroBlockSharedPtr& microblock);
 
   bool CheckMicroBlock(const BlockHash& blockHash);

@@ -59,7 +59,9 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     bytes body;
     m_mediator.m_node->m_microblock->Serialize(body, 0);
     if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
+            m_mediator.m_node->m_microblock->GetBlockHash(),
+            m_mediator.m_node->m_microblock->GetHeader().GetEpochNum(),
+            m_mediator.m_node->m_microblock->GetHeader().GetShardId(), body)) {
       LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       return false;
     }

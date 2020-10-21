@@ -310,8 +310,9 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   bytes body;
   microBlock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
-                                                     body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          microBlock.GetBlockHash(), microBlock.GetHeader().GetEpochNum(),
+          microBlock.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
     return false;
   }
@@ -658,7 +659,9 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       bytes body;
       microBlocks[i].Serialize(body, 0);
       if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-              microBlocks[i].GetBlockHash(), body)) {
+              microBlocks[i].GetBlockHash(),
+              microBlocks[i].GetHeader().GetEpochNum(),
+              microBlocks[i].GetHeader().GetShardId(), body)) {
         LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
         return false;
       }
