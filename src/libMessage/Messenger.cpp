@@ -9292,3 +9292,49 @@ bool Messenger::GetMinerInfoShards(const bytes& src, const unsigned int offset,
 
   return true;
 }
+
+bool Messenger::SetMicroBlockKey(bytes& dst, const unsigned int offset,
+                                 const uint64_t& epochNum,
+                                 const uint32_t& shardID) {
+  LOG_MARKER();
+
+  ProtoMicroBlockKey result;
+  result.set_epochnum(epochNum);
+  result.set_shardid(shardID);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlockKey initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetMicroBlockKey(const bytes& src, const unsigned int offset,
+                                 uint64_t& epochNum, uint32_t& shardID) {
+  LOG_MARKER();
+
+  if (src.size() == 0) {
+    LOG_GENERAL(INFO, "Empty ProtoMicroBlockKey");
+    return false;
+  }
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMicroBlockKey result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlockKey initialization failed");
+    return false;
+  }
+
+  epochNum = result.epochnum();
+  shardID = result.shardid();
+
+  return true;
+}

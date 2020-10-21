@@ -236,6 +236,11 @@ if(SJ_TEST_SJ_MISSING_MBTXNS)
     add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
 endif()
 
+if(MIGRATE_MICROBLOCKS)
+    message(STATUS "Migrate MBs enabled")
+    add_definitions(-DMIGRATE_MICROBLOCKS)
+endif()
+
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)

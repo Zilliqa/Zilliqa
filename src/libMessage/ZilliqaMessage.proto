@@ -276,6 +276,13 @@ message ProtoMinerInfoShards
     // Add new members here
 }
 
+// Used in database "microBlocks"
+message ProtoMicroBlockKey
+{
+    uint64 epochnum = 1;
+    uint32 shardid  = 2;
+}
+
 // ============================================================================
 // Primitives
 // ============================================================================

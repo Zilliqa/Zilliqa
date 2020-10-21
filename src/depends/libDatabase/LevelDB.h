@@ -71,6 +71,9 @@ public:
     std::string Lookup(const std::string & key) const;
 
     /// Returns the value at the specified key.
+    std::string Lookup(const std::vector<unsigned char>& key) const;
+
+    /// Returns the value at the specified key.
     std::string Lookup(const boost::multiprecision::uint256_t & blockNum) const;
 
     /// Returns the value at the specified key and also mark if key was found or not
@@ -84,6 +87,10 @@ public:
 
     /// Sets the value at the specified key.
     int Insert(const dev::h256 & key, dev::bytesConstRef value);
+
+    /// Sets the value at the specified key.
+    int Insert(const std::vector<unsigned char>& key,
+               const std::vector<unsigned char>& body);
 
     /// Sets the value at the specified key.
     int Insert(const boost::multiprecision::uint256_t & blockNum,
