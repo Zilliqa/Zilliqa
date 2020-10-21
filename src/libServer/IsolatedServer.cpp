@@ -485,7 +485,9 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 
   mb.Serialize(body, 0);
 
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(mb.GetBlockHash(), body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
+          mb.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
   }
   TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());

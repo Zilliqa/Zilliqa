@@ -2238,8 +2238,9 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
 
   bytes body;
   microblock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(),
-                                                     body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          microblock.GetBlockHash(), microblock.GetHeader().GetEpochNum(),
+          microblock.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
     return false;
   }
