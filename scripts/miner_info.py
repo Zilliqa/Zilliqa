@@ -123,6 +123,7 @@ def make_options_dictionary(options_dict):
 	options_dict["get_remotestorage"] = "GetRemoteStorage"
 	options_dict["set_remotestorage"] = "ToggleRemoteStorage"
 	options_dict["init_remotestorage"] = "InitRemoteStorage"
+	options_dict["blocktime"] = "GetAverageBlockTime"
 
 def ProcessResponseCore(resp, param):
 	if param:

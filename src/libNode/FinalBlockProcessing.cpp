@@ -77,6 +77,24 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
     return false;
   }
 
+  // Update average block time except when txblock is first block for the epoch
+  if ((txBlock.GetHeader().GetBlockNum() % NUM_FINAL_BLOCK_PER_POW) > 0) {
+    const uint64_t& timestampBef =
+        m_mediator.m_txBlockChain
+            .GetBlock(txBlock.GetHeader().GetBlockNum() - 1)
+            .GetTimestamp();
+    const uint64_t& timestampNow = txBlock.GetTimestamp();
+    const double lastBlockTimeInSeconds =
+        static_cast<double>(timestampNow - timestampBef) / 1000000;
+    double tmpAveBlockTimeInSeconds = m_mediator.m_aveBlockTimeInSeconds;
+    tmpAveBlockTimeInSeconds -=
+        tmpAveBlockTimeInSeconds / NUM_FINAL_BLOCK_PER_POW;
+    tmpAveBlockTimeInSeconds +=
+        lastBlockTimeInSeconds / NUM_FINAL_BLOCK_PER_POW;
+    m_mediator.m_aveBlockTimeInSeconds =
+        (tmpAveBlockTimeInSeconds < 1) ? 1 : tmpAveBlockTimeInSeconds;
+  }
+
   m_mediator.IncreaseEpochNum();
 
   LOG_STATE(

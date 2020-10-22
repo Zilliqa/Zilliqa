@@ -147,6 +147,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("InitRemoteStorage", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::InitRemoteStorageI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetAverageBlockTime", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetAverageBlockTimeI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -565,4 +569,9 @@ bool StatusServer::InitRemoteStorage() {
   }
 
   return true;
+}
+
+string StatusServer::AverageBlockTime() {
+  return to_string(
+      static_cast<unsigned int>(m_mediator.m_aveBlockTimeInSeconds));
 }
