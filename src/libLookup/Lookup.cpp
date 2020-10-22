@@ -5455,11 +5455,14 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS) {
   bool result = false;
 
   {
-    lock_guard<mutex> g1(m_txnShardMapMutex);
-    lock_guard<mutex> g2(m_txnShardMapGeneratedMutex);
-    if (shardId > m_txnShardMapGenerated.size()) {
+    unique_lock<mutex> g1(m_txnShardMapMutex, defer_lock);
+    unique_lock<mutex> g2(m_txnShardMapGeneratedMutex, defer_lock);
+    lock(g1, g2);
+
+    if (m_txnShardMapGenerated.find(shardId) == m_txnShardMapGenerated.end()) {
       return;
     }
+
     auto transactionNumber = m_txnShardMapGenerated[shardId].size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
@@ -5550,7 +5553,7 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS) {
         }
 
         if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
-          return;
+          break;
         }
       }
     }
@@ -5623,7 +5626,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
     return;
   }
 
-  SendTxnPacketToShard(oldNumShards, newNumShards);
+  SendTxnPacketPrepare(oldNumShards, newNumShards);
 
   for (unsigned int i = 0; i < newNumShards + 1; i++) {
     SendTxnPacketToShard(i, i == newNumShards);
