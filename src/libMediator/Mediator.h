@@ -103,6 +103,9 @@ class Mediator {
   /// ValidateDB state, used by StatusServer
   std::atomic<ValidateState> m_validateState;
 
+  /// Average TxBlock time in seconds, used by GetWorkServer
+  std::atomic<double> m_aveBlockTimeInSeconds;
+
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 
