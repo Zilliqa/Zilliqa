@@ -25,6 +25,7 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/TimeUtils.h"
 
 #include <boost/filesystem.hpp>
@@ -100,7 +101,8 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
     bytes serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+    BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash,
+                                              serializedTxBody);
 
     TxBodySharedPtr body2;
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash, body2);
@@ -195,19 +197,23 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
     bytes serializedTxBody;
 
     body1.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash1, serializedTxBody);
+    BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash1,
+                                              serializedTxBody);
 
     serializedTxBody.clear();
     body2.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash2, serializedTxBody);
+    BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash2,
+                                              serializedTxBody);
 
     serializedTxBody.clear();
     body3.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash3, serializedTxBody);
+    BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash3,
+                                              serializedTxBody);
 
     serializedTxBody.clear();
     body4.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash4, serializedTxBody);
+    BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash4,
+                                              serializedTxBody);
 
     TxBodySharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash2, blockRetrieved);

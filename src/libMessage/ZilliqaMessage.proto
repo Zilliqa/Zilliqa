@@ -283,6 +283,12 @@ message ProtoMicroBlockKey
     uint32 shardid  = 2;
 }
 
+// Used in database "txEpochs"
+message ProtoTxEpoch
+{
+    uint64 epochnum = 1;
+}
+
 // ============================================================================
 // Primitives
 // ============================================================================

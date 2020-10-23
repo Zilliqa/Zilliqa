@@ -236,9 +236,9 @@ if(SJ_TEST_SJ_MISSING_MBTXNS)
     add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
 endif()
 
-if(MIGRATE_MICROBLOCKS)
-    message(STATUS "Migrate MBs enabled")
-    add_definitions(-DMIGRATE_MICROBLOCKS)
+if(MIGRATE_MBS_TXNS)
+    message(STATUS "Migrate MBs and Txns enabled")
+    add_definitions(-DMIGRATE_MBS_TXNS)
 endif()
 
 include(FindProtobuf)

@@ -121,9 +121,11 @@ add_custom_command(TARGET zilliqa
 target_include_directories(websocketsubscriber PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(websocketsubscriber PUBLIC Utils Server)
 
-add_executable(migrate_mbs migrate_mbs.cpp)
+if(MIGRATE_MBS_TXNS)
+add_executable(migrate_mbs_txns migrate_mbs_txns.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:migrate_mbs> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(migrate_mbs PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(migrate_mbs PUBLIC Utils Server)
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:migrate_mbs_txns> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(migrate_mbs_txns PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(migrate_mbs_txns PUBLIC Message Utils Server)
+endif()
