@@ -1153,6 +1153,8 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               << "BGN")
   }
 
+  const uint64_t& epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
+
   for (const auto& twr : entry.m_transactions) {
     const auto& txhash = twr.GetTransaction().GetTranID();
     LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
@@ -1175,7 +1177,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     bytes serializedTxBody;
     twr.Serialize(serializedTxBody, 0);
     if (!BlockStorage::GetBlockStorage().PutTxBody(
-            twr.GetTransaction().GetTranID(), serializedTxBody)) {
+            epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
       return;
     }

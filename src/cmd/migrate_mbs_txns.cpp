@@ -16,6 +16,7 @@
  */
 
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/Retriever.h"
@@ -61,6 +62,34 @@ int main() {
                                                  << " for TxBlock "
                                                  << txBlockNum);
         return -1;
+      }
+      const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+      const uint64_t& epochNum = mbptr->GetHeader().GetEpochNum();
+      bytes epoch;
+      if (!Messenger::SetTxEpoch(epoch, 0, epochNum)) {
+        LOG_GENERAL(WARNING, "Messenger::SetTxEpoch failed.");
+        return -1;
+      }
+      if (tranHashes.size() > 0) {
+        for (const auto& tranHash : tranHashes) {
+          TxBodySharedPtr txBody;
+          if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, txBody)) {
+            LOG_GENERAL(WARNING, "Missing Tx " << tranHash << " for MB "
+                                               << mbInfo.m_microBlockHash
+                                               << " TxBlock " << txBlockNum);
+            continue;
+          }
+          bytes serializedTxBody;
+          txBody->Serialize(serializedTxBody, 0);
+          if (!BlockStorage::GetBlockStorage().PutTxBody(
+                  epoch, epochNum, tranHash, serializedTxBody)) {
+            LOG_GENERAL(FATAL, "Failed to write Tx " << tranHash << " for MB "
+                                                     << mbInfo.m_microBlockHash
+                                                     << " TxBlock "
+                                                     << txBlockNum);
+            return -1;
+          }
+        }
       }
     }
   }

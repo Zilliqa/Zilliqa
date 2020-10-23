@@ -142,9 +142,9 @@ do
         CMAKE_EXTRA_OPTIONS="-DSJ_TEST_SJ_MISSING_MBTXNS=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;
-    migrate_mbs)
-        CMAKE_EXTRA_OPTIONS="-DMIGRATE_MICROBLOCKS=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with microblock persistent migration"
+    migrate_mbs_txns)
+        CMAKE_EXTRA_OPTIONS="-DMIGRATE_MBS_TXNS=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with microblock and txbodies persistent storage migration"
     ;;
     *)
         echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"

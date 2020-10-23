@@ -108,6 +108,10 @@ int main(int argc, char* argv[]) {
       ifstream infile;
       LOG_GENERAL(INFO, "Parsing " << txns_filename << endl);
       try {
+        // Filename ends with "_<epochnum>"
+        uint64_t epochNum = boost::lexical_cast<uint64_t>(
+            txns_filename.substr(txns_filename.rfind('_') + 1));
+
         // Now read back file to see if the TransactionWithReceipt is good
         infile.open(txns_filename, ios::in | ios::binary);
         TxnHash r_txn_hash;
@@ -136,8 +140,9 @@ int main(int argc, char* argv[]) {
             continue;
           }
 
-          BlockStorage::GetBlockStorage().PutTxBody(r_txn_hash, buff);
-          LOG_GENERAL(INFO, "Inserted Txn : " << r_txn_hash << endl);
+          BlockStorage::GetBlockStorage().PutTxBody(epochNum, r_txn_hash, buff);
+          LOG_GENERAL(INFO, "Inserted Txn:" << r_txn_hash
+                                            << " Epoch: " << epochNum << endl);
           if (saveToJsonFormat) {
             Json::Value v = JSONConversion::convertTxtoJson(r_tr);
 
