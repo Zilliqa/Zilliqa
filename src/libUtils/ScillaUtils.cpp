@@ -102,6 +102,8 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                      boost::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append("-jsonerrors");
+  ret["argv"].append("-debuglevel");
+  ret["argv"].append("normal");
 
   return ret;
 }
@@ -137,6 +139,8 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                      EXTLIB_FOLDER);
   ret["argv"].append("-disable-validate-json");
   ret["argv"].append("-jsonerrors");
+  ret["argv"].append("-debuglevel");
+  ret["argv"].append("normal");
 
   return ret;
 }
