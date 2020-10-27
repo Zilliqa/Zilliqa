@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:c23e7f9
+ARG BASE=zilliqa/scilla:tmp_debuglevel
 FROM ${BASE}
 
 COPY requirements2.txt ./

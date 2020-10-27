@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM zilliqa/scilla:c23e7f9
+FROM zilliqa/scilla:tmp_debuglevel
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
