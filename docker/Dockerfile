@@ -24,7 +24,6 @@ COPY requirements3.txt ./
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:tah83/secp256k1 -y \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     build-essential \
