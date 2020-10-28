@@ -170,9 +170,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                              const uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
-  void CommitTransferAtomic();
+  void CommitAtomics();
   /// discard the existing transfers in m_accountStoreAtomic
-  void DiscardTransferAtomic();
+  void DiscardAtomics();
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,
