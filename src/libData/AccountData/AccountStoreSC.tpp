@@ -127,6 +127,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
+  m_curBlockNum = blockNum;
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 
@@ -294,10 +295,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
-
-        // Block Json
-        JSONUtils::GetInstance().writeJsontoFile(
-            INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(blockNum));
 
         if (init && !ExportCreateContractFiles(*toAccount, is_library,
                                                extlibs_exports)) {
@@ -533,56 +530,57 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      std::shared_ptr<Account> toAccount;
-      std::unique_lock<std::mutex> g(this->GetAccountWMutex(toAddr, toAccount));
-      if (toAccount == nullptr) {
-        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-        error_code = TxnStatus::INVALID_TO_ACCOUNT;
-        return false;
-      }
-
-      bool is_library;
       uint32_t scilla_version;
-      std::vector<Address> extlibs;
-      if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
-                                             extlibs)) {
-        LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
+      bool is_library;
+
+      {
+        std::shared_ptr<Account> toAccount;
+        std::unique_lock<std::mutex> g(this->GetAccountWMutex(toAddr, toAccount));
+        if (toAccount == nullptr) {
+          LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+          error_code = TxnStatus::INVALID_TO_ACCOUNT;
+          return false;
+        }
+ 
+        std::vector<Address> extlibs;
+        if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
+                                               extlibs)) {
+          LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
+          error_code = TxnStatus::FAIL_SCILLA_LIB;
+          return false;
+        }
+
+        if (is_library) {
+          LOG_GENERAL(WARNING, "Library being called");
+          error_code = TxnStatus::FAIL_SCILLA_LIB;
+          return false;
+        }
+
+        if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+          LOG_GENERAL(WARNING, "ScillaLib disabled");
+          error_code = TxnStatus::FAIL_SCILLA_LIB;
+          return false;
+        }
+
+        g.unlock();
+
+        std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
+        if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+          LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
+          error_code = TxnStatus::FAIL_SCILLA_LIB;
+          return false;
+        }
+
+        // Block Json
+        JSONUtils::GetInstance().writeJsontoFile(
+            INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(blockNum));
+
+        if (!ExportCallContractFiles(*toAccount, transaction, extlibs_exports)) {
+          LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+          error_code = TxnStatus::FAIL_SCILLA_LIB;
+          return false;
+        }
       }
-
-      g.unlock();
-
-      if (is_library) {
-        LOG_GENERAL(WARNING, "Library being called");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
-        LOG_GENERAL(WARNING, "ScillaLib disabled");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-      if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
-        LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      // Block Json
-      JSONUtils::GetInstance().writeJsontoFile(
-          INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(blockNum));
-
-      if (!ExportCallContractFiles(*toAccount, transaction, extlibs_exports)) {
-        LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      g.unlock();
 
       DiscardTransferAtomic();
 
@@ -853,6 +851,10 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     os << extlib_export.second.second;
     os.close();
   }
+
+  // Block Json
+  JSONUtils::GetInstance().writeJsontoFile(
+      INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(m_curBlockNum));
 }
 
 template <class MAP>
@@ -1303,15 +1305,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     ret = true;
   }
 
-  Address recipient;
-  std::shared_ptr<Account> account;
-
   if (!ret) {
     // Buffer the Addr for current caller
     Address curContractAddr = m_curContractAddr;
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
 
+      Address recipient;
+      std::shared_ptr<Account> account;
       // a buffer for `ret` flag to be reset per loop
       bool t_ret = ret;
 
@@ -1340,15 +1341,32 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      std::unique_lock<std::mutex> g(
-          m_accountStoreAtomic->GetAccountWMutex(recipient, account));
-
-      if (account == nullptr) {
-        this->AddAccount(recipient, std::make_shared<Account>(0, 0));
-        g.unlock();
-        (void)m_accountStoreAtomic->GetAccountWMutex(recipient, account);
-        g.lock();
+      bool exist = true;
+      {
+        std::unique_lock<std::mutex> g(
+            m_accountStoreAtomic->GetAccountWMutex(recipient, account));        
+        if (account == nullptr) {
+          exist = false;
+        }
       }
+
+      if (!exist) {
+        LOG_GENERAL(INFO, "started AddAccount");
+        m_accountStoreAtomic->AddAccount(recipient,
+                                         std::make_shared<Account>(0, 0));
+        LOG_GENERAL(INFO, "finished AddAccount");
+      }
+
+      // prepare IPC with the recipient contract address
+      bool is_library;
+      std::vector<Address> extlibs;
+      uint32_t scilla_version;
+      std::string runnerPrint;
+      bool result = true;
+      Json::Value input_message;
+
+      {
+      std::unique_lock<std::mutex> g(m_accountStoreAtomic->GetAccountWMutex(recipient, account));
 
       // Recipient is non-contract
       if (!account->isContract()) {
@@ -1359,6 +1377,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
           return false;
         } else {
           t_ret = true;
+          g.lock();
         }
       }
 
@@ -1418,22 +1437,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      Json::Value input_message;
       input_message["_sender"] = "0x" + curContractAddr.hex();
       input_message["_amount"] = msg["_amount"];
       input_message["_tag"] = msg["_tag"];
       input_message["params"] = msg["params"];
-
-      if (account == nullptr) {
-        LOG_GENERAL(WARNING, "account still null");
-        receipt.AddError(INTERNAL_ERROR);
-        return false;
-      }
-
-      // prepare IPC with the recipient contract address
-      bool is_library;
-      std::vector<Address> extlibs;
-      uint32_t scilla_version;
 
       if (!account->GetContractAuxiliaries(is_library, scilla_version,
                                            extlibs)) {
@@ -1461,12 +1468,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
+      g.unlock();
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
         LOG_GENERAL(WARNING, "PopulateExtlibsExports");
         receipt.AddError(LIBRARY_EXTRACTION_FAILED);
         return false;
       }
+      g.lock();
 
       if (!ExportCallContractFiles(*account, input_message, extlibs_exports)) {
         LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
@@ -1476,16 +1485,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with the recipient contract address
       m_scillaIPCServer->setContractAddressVer(recipient, scilla_version);
-      std::string runnerPrint;
-      bool result = true;
+
 
       if (!InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version,
                              is_library, gasRemained, account->GetBalance(),
                              receipt)) {
         result = false;
       }
-
-      g.unlock();
+      }
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
@@ -1499,6 +1506,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       m_curSenderAddr = curContractAddr;
       m_curContractAddr = recipient;
+
       if (!ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth + 1,
                              scilla_version)) {
         LOG_GENERAL(WARNING, "ParseCallContract failed of calling contract: "
@@ -1553,15 +1561,18 @@ template <class MAP>
 void AccountStoreSC<MAP>::CommitTransferAtomic() {
   LOG_MARKER();
   for (const auto& entry : m_accountStoreAtomic->GetAccounts()) {
-    std::shared_ptr<Account> account;
-    std::unique_lock<std::mutex> g(
-        this->GetAccountWMutex(entry.first, account));
-    if (account != nullptr) {
-      account = entry.second;
-    } else {
-      // this->m_addressToAccount.emplace(std::make_pair(entry.first,
-      // entry.second));
-      g.unlock();
+    bool addAccount = false;
+    {
+      std::shared_ptr<Account> account;
+      std::unique_lock<std::mutex> g(
+          this->GetAccountWMutex(entry.first, account));
+      if (account != nullptr) {
+        account = entry.second;
+      } else {
+        addAccount = true;
+      }
+    }
+    if (addAccount) {
       this->AddAccount(entry.first, entry.second);
     }
   }

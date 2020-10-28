@@ -25,6 +25,7 @@ AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
 std::unique_lock<std::mutex> AccountStoreTemp::GetAccountWMutex(
     const Address& address, std::shared_ptr<Account>& acc) {
+  LOG_MARKER();
   std::unique_lock<std::mutex> g1(
       AccountStoreBase<
           map<Address, std::shared_ptr<Account>>>::GetAccountWMutex(address,
@@ -32,11 +33,11 @@ std::unique_lock<std::mutex> AccountStoreTemp::GetAccountWMutex(
   if (acc != nullptr) {
     return g1;
   }
-  g1.unlock();
 
   {
     std::unique_lock<std::mutex> g2(m_parent.GetAccountWMutex(address, acc));
     if (acc) {
+      g1.unlock();
       AddAccount(address, acc);
       return AccountStoreBase<
           map<Address, std::shared_ptr<Account>>>::GetAccountWMutex(address,

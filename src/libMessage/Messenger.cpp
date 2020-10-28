@@ -2700,12 +2700,16 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     {
       shared_ptr<Account> oriAccount;
-      unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
-      if (oriAccount == nullptr) {
-        g.unlock();
+      bool exist = true;
+      {
+        unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
+        if (oriAccount == nullptr) {
+          exist = false;
+        }
+      }
+      if (!exist) {
         accountStore.AddAccount(address, make_shared<Account>(0, 0));
-        (void)accountStore.GetAccountWMutex(address, oriAccount);
-        g.lock();
+        unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
         fullCopy = true;
 
         if (oriAccount == nullptr) {

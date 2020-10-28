@@ -58,7 +58,7 @@ class AccountStoreBase : public SerializableDataBlock {
   const MAP& GetAccounts() const;
 
   /// Verifies existence of Account in the list.
-  bool IsAccountExist(const Address& address);
+  bool IsAccountExist(const Address& address, bool base = false);
 
   /// Adds an Account to the list.
   bool AddAccount(const Address& address,

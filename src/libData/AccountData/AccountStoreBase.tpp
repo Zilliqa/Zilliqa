@@ -70,7 +70,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   uint128_t fromBalance = 0;
   {
     std::shared_ptr<Account> acc;
-    std::unique_lock<std::mutex> g(this->GetAccountWMutex(fromAddr, acc));
+    std::unique_lock<std::mutex> g(GetAccountWMutex(fromAddr, acc));
     if (acc == nullptr) {
       LOG_GENERAL(WARNING, "sender " << fromAddr.hex() << " not exist");
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
@@ -171,11 +171,16 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
+bool AccountStoreBase<MAP>::IsAccountExist(const Address& address, bool base) {
   LOG_MARKER();
   std::shared_ptr<Account> acc;
-  std::unique_lock<std::mutex> g(this->GetAccountWMutex(address, acc));
-  return acc != nullptr;
+  if (base) {
+    std::unique_lock<std::mutex> g(AccountStoreBase<MAP>::GetAccountWMutex(address, acc));
+    return acc != nullptr;
+  } else {
+    std::unique_lock<std::mutex> g(GetAccountWMutex(address, acc));
+    return acc != nullptr;
+  }
 }
 
 template <class MAP>
@@ -184,7 +189,7 @@ bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        bool toReplace) {
   LOG_MARKER();
 
-  if (toReplace || !IsAccountExist(address)) {
+  if (toReplace || !IsAccountExist(address, true)) {
     LOG_GENERAL(INFO, "added account");
     std::lock_guard<std::mutex> g(m_mutexASBase);
     (*m_addressToAccount)[address] = account;
