@@ -610,11 +610,12 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
   return true;
 }
 
-void AccountDeltaToProtobuf(Account* oldAccount, const Account& newAccount,
+void AccountDeltaToProtobuf(const shared_ptr<Account>& oldAccount,
+                            const Account& newAccount,
                             ProtoAccount& protoAccount) {
   bool fullCopy = false;
 
-  Account t_oldAccount;
+  Account t_oldAccount(0, 0);
   if (oldAccount != nullptr) {
     t_oldAccount = *oldAccount;
   } else {
@@ -2611,17 +2612,26 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
-  for (const auto& entry : accountStoreTemp.GetAccounts()) {
+  std::shared_ptr<std::map<Address, std::shared_ptr<Account>>> accs;
+  std::unique_lock<mutex> g2(accountStoreTemp.GetAccounts(accs));
+  for (const auto& entry : *accs) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     shared_ptr<Account> account;
     unique_lock<mutex> g(accountStore.GetAccountWMutex(entry.first, account));
-    AccountDeltaToProtobuf(account.get(), *(entry.second), *protoEntryAccount);
+    if (account != nullptr) {
+      LOG_GENERAL(INFO, "ori account:" << *account);
+    } else {
+      LOG_GENERAL(INFO, "ori account: null");
+    }
+    LOG_GENERAL(INFO, "temp account:" << *(entry.second));
+    AccountDeltaToProtobuf(account, *(entry.second), *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
       return false;
     }
+    LOG_GENERAL(INFO, "protobuf:" << protoEntryAccount->DebugString());
   }
 
   if (!result.IsInitialized()) {
@@ -2693,6 +2703,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     shared_ptr<Account> account, t_account;
     bool fullCopy = false;
 
+    LOG_GENERAL(INFO, "entry: " << entry.DebugString());
+
     copy(entry.address().begin(),
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
@@ -2702,14 +2714,16 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
       shared_ptr<Account> oriAccount;
       bool exist = true;
       {
-        unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
+        unique_lock<mutex> g(
+            accountStore.GetAccountWMutex(address, oriAccount));
         if (oriAccount == nullptr) {
           exist = false;
         }
       }
       if (!exist) {
         accountStore.AddAccount(address, make_shared<Account>(0, 0));
-        unique_lock<mutex> g(accountStore.GetAccountWMutex(address, oriAccount));
+        unique_lock<mutex> g(
+            accountStore.GetAccountWMutex(address, oriAccount));
         fullCopy = true;
 
         if (oriAccount == nullptr) {

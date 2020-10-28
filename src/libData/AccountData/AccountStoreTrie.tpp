@@ -41,9 +41,11 @@ void AccountStoreTrie<DB, MAP>::InitTrie() {
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
                                           unsigned int offset) const {
-  std::shared_lock<std::shared_timed_mutex> g(m_mutexTrie);
+  std::shared_ptr<MAP> accs;
+  std::unique_lock<std::mutex> g2(this->GetAccounts(accs));
+  std::unique_lock<std::shared_timed_mutex> g(m_mutexTrie);
   if (!MessengerAccountStoreTrie::SetAccountStoreTrie(dst, offset, m_state,
-                                                      this->GetAccounts())) {
+                                                      *accs)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }
@@ -120,6 +122,19 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const {
 
   std::shared_lock<std::shared_timed_mutex> g(m_mutexTrie);
 
+  for (const auto& i : m_state) {
+    Address address(i.first);
+    LOG_GENERAL(INFO, "Address: " << address.hex());
+
+    std::shared_ptr<Account> account = std::make_shared<Account>();
+    if (!account->DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return dev::h256();
+    }
+
+    LOG_GENERAL(INFO, *account);
+  }
+
   return m_state.root();
 }
 
@@ -134,8 +149,10 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetPrevRootHash() const {
 
 template <class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
+  std::shared_ptr<MAP> accs;
+  std::unique_lock<std::mutex> g2(this->GetAccounts(accs));
   std::unique_lock<std::shared_timed_mutex> g(m_mutexTrie);
-  for (auto const& entry : this->GetAccounts()) {
+  for (auto const& entry : *accs) {
     bytes rawBytes;
     if (!entry.second->SerializeBase(rawBytes, 0)) {
       LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
@@ -185,7 +202,7 @@ bool AccountStoreTrie<DB, MAP>::MoveUpdatesToDisk() {
     return false;
   }
 
-  AccountStoreBase<MAP>::Init();
+  AccountStoreSC<MAP>::Init();
 
   return true;
 }

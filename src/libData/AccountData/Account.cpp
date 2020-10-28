@@ -517,16 +517,28 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexAccount);
-  if (m_initDataJson == Json::nullValue) {
+  bool retrieve = false;
+
+  {
+    lock_guard<mutex> g(m_mutexAccount);
+    if (m_initDataJson == Json::nullValue) {
+      retrieve = true;
+    }
+  }
+
+  if (retrieve) {
     if (!RetrieveContractAuxiliaries()) {
       LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
       return false;
     }
   }
-  is_library = m_is_library;
-  scilla_version = m_scilla_version;
-  extlibs = m_extlibs;
+
+  {
+    lock_guard<mutex> g(m_mutexAccount);
+    is_library = m_is_library;
+    scilla_version = m_scilla_version;
+    extlibs = m_extlibs;
+  }
   return true;
 }
 

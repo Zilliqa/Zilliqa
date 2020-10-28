@@ -175,7 +175,8 @@ bool AccountStoreBase<MAP>::IsAccountExist(const Address& address, bool base) {
   LOG_MARKER();
   std::shared_ptr<Account> acc;
   if (base) {
-    std::unique_lock<std::mutex> g(AccountStoreBase<MAP>::GetAccountWMutex(address, acc));
+    std::unique_lock<std::mutex> g(
+        AccountStoreBase<MAP>::GetAccountWMutex(address, acc));
     return acc != nullptr;
   } else {
     std::unique_lock<std::mutex> g(GetAccountWMutex(address, acc));
@@ -231,9 +232,12 @@ std::unique_lock<std::mutex> AccountStoreBase<MAP>::GetAccountWMutex(
 }
 
 template <class MAP>
-const MAP& AccountStoreBase<MAP>::GetAccounts() const {
-  std::lock_guard<std::mutex> g(m_mutexASBase);
-  return *m_addressToAccount;
+std::unique_lock<std::mutex> AccountStoreBase<MAP>::GetAccounts(
+    std::shared_ptr<MAP>& accs) const {
+  accs = nullptr;
+  std::unique_lock<std::mutex> g(m_mutexASBase);
+  accs = m_addressToAccount;
+  return g;
 }
 
 template <class MAP>

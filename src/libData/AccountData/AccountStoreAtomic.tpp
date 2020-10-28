@@ -35,8 +35,8 @@ std::unique_lock<std::mutex> AccountStoreAtomic<MAP>::GetAccountWMutex(
     std::unique_lock<std::mutex> g2(m_parent.GetAccountWMutex(address, acc));
     if (acc) {
       g1.unlock();
+      this->AddAccount(address, std::make_shared<Account>(*acc));
       g2.unlock();
-      this->AddAccount(address, acc);
       return AccountStoreBase<std::unordered_map<
           Address, std::shared_ptr<Account>>>::GetAccountWMutex(address, acc);
     }

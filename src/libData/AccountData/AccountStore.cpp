@@ -224,18 +224,26 @@ bool AccountStore::MoveUpdatesToDisk() {
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
 
-  for (const auto& i : GetAccounts()) {
-    if (i.second->isContract()) {
-      if (ContractStorage2::GetContractStorage()
-              .GetContractCode(i.first)
-              .empty()) {
-        code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
-                                              i.second->GetCode())});
-      }
+  {
+    std::shared_ptr<std::unordered_map<Address, std::shared_ptr<Account>>>
+        accounts;
+    unique_lock<mutex> g(GetAccounts(accounts));
+    for (const auto& i : *accounts) {
+      if (i.second->isContract()) {
+        if (ContractStorage2::GetContractStorage()
+                .GetContractCode(i.first)
+                .empty()) {
+          code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
+                                                i.second->GetCode())});
+        }
 
-      if (ContractStorage2::GetContractStorage().GetInitData(i.first).empty()) {
-        initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
-                                                  i.second->GetInitData())});
+        if (ContractStorage2::GetContractStorage()
+                .GetInitData(i.first)
+                .empty()) {
+          initdata_batch.insert(
+              {i.first.hex(),
+               DataConversion::CharArrayToString(i.second->GetInitData())});
+        }
       }
     }
   }
@@ -308,12 +316,16 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
 }
 
 uint128_t AccountStore::GetNonceTemp(const Address& address) {
-  if (m_accountStoreTemp->GetAccounts().find(address) !=
-      m_accountStoreTemp->GetAccounts().end()) {
-    return m_accountStoreTemp->GetNonce(address);
-  } else {
-    return this->GetNonce(address);
+  {
+    std::shared_ptr<std::map<Address, std::shared_ptr<Account>>> accs;
+    unique_lock<std::mutex> g(m_accountStoreTemp->GetAccounts(accs));
+    auto find = accs->find(address);
+    if (find != accs->end()) {
+      return find->second->GetNonce();
+    }
   }
+
+  return this->GetNonce(address);
 }
 
 StateHash AccountStore::GetStateDeltaHash() {

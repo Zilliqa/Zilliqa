@@ -55,7 +55,7 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual std::unique_lock<std::mutex> GetAccountWMutex(
       const Address& address, std::shared_ptr<Account>& acc);
 
-  const MAP& GetAccounts() const;
+  std::unique_lock<std::mutex> GetAccounts(std::shared_ptr<MAP>& accs) const;
 
   /// Verifies existence of Account in the list.
   bool IsAccountExist(const Address& address, bool base = false);

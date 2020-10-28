@@ -173,6 +173,7 @@ class AccountStore : public AccountStoreTrie<
       const Address& address, const std::shared_ptr<Account>& account,
       const std::shared_ptr<Account>& oriAccount, const bool fullCopy = false,
       const bool revertible = false) {
+    LOG_GENERAL(INFO, "Add account:" << *account);
     AddAccount(address, account, true);
 
     if (revertible) {
