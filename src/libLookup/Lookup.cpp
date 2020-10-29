@@ -3015,7 +3015,7 @@ bool Lookup::GetDSInfo() {
   LOG_MARKER();
   m_dsInfoWaitingNotifying = true;
 
-  if (ARCHIVAL_LOOKUP) {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
     GetDSInfoFromSeedNodes();
   } else {
     GetDSInfoFromLookupNodes();
