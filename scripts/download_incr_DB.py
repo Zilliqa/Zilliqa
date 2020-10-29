@@ -138,7 +138,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 		lastkey = ''
 		for key in tree[startInd:]:
 			key_url = key[0].text
-			if (not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlocks" in key_url) and not (Exclude_minerInfo and (("minerInfoDSComm" in key_url) or ("minerInfoShards" in key_url))) and not ("diff_persistence" in key_url)):
+			if (not (Exclude_txnBodies and "txEpochs" in key_url) and not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlock" in key_url) and not (Exclude_minerInfo and "minerInfo" in key_url) and not ("diff_persistence" in key_url)):
 				list_of_keyurls.append(url+"/"+key_url)
 				print(key_url)
 			lastkey = key_url

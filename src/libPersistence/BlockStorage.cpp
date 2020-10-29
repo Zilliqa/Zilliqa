@@ -135,7 +135,7 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
   }
 
   // Store txn hash and body inside txBodies DB
-  if (m_txBodyDB->Insert(keyBytes, body) != 0) {
+  if (GetTxBodyDB(epochNum)->Insert(keyBytes, body) != 0) {
     LOG_GENERAL(WARNING, "TxBody insertion failed. epoch=" << epochNum
                                                            << " key=" << key);
     m_txEpochDB->DeleteKey(key);
@@ -176,7 +176,7 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
   }
 
   // Store key and body inside microBlocks DB
-  if (m_microBlockDB->Insert(key, body) != 0) {
+  if (GetMicroBlockDB(epochNum)->Insert(key, body) != 0) {
     LOG_GENERAL(WARNING, "Microblock body insertion failed. epoch="
                              << epochNum << " shard=" << shardID);
     m_microBlockKeyDB->DeleteKey(blockHash);
@@ -202,8 +202,16 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
       return false;
     }
 
+    bytes keyBytes(keyString.begin(), keyString.end());
+    uint64_t epochNum = 0;
+    uint32_t shardID = 0;
+    if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
+      LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
+      return false;
+    }
+
     // Get body from microBlock DB
-    blockString = m_microBlockDB->Lookup(keyString);
+    blockString = GetMicroBlockDB(epochNum)->Lookup(keyString);
 #endif  // MIGRATE_MBS_TXNS
   }
 
@@ -229,7 +237,7 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-    blockString = m_microBlockDB->Lookup(key);
+    blockString = GetMicroBlockDB(epochNum)->Lookup(key);
   }
 
   if (blockString.empty()) {
@@ -245,7 +253,17 @@ bool BlockStorage::CheckMicroBlock(const BlockHash& blockHash) {
   shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
   // Get key from microBlockKeys DB
   string keyString = m_microBlockKeyDB->Lookup(blockHash);
-  return !keyString.empty() && m_microBlockDB->Exists(keyString);
+  if (keyString.empty()) {
+    return false;
+  }
+  bytes keyBytes(keyString.begin(), keyString.end());
+  uint64_t epochNum = 0;
+  uint32_t shardID = 0;
+  if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
+    LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
+    return false;
+  }
+  return GetMicroBlockDB(epochNum)->Exists(keyString);
 }
 
 bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
@@ -367,12 +385,16 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
 bool BlockStorage::ReleaseDB() {
   {
     unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-    m_txBodyDB.reset();
+    for (auto& txBodyDB : m_txBodyDBs) {
+      txBodyDB.reset();
+    }
     m_txEpochDB.reset();
   }
   {
     unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-    m_microBlockDB.reset();
+    for (auto& microBlockDB : m_microBlockDBs) {
+      microBlockDB.reset();
+    }
     m_microBlockKeyDB.reset();
   }
   {
@@ -476,14 +498,29 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
-  std::string bodyString;
+  string bodyString;
 
   {
 #ifdef MIGRATE_MBS_TXNS
     bodyString = m_txBodyOrigDB->Lookup(key);
 #else   // MIGRATE_MBS_TXNS
+    const bytes& keyBytes = key.asBytes();
+
     shared_lock<shared_timed_mutex> g(m_mutexTxBody);
-    bodyString = m_txBodyDB->Lookup(key.asBytes());
+
+    string epochString = m_txEpochDB->Lookup(keyBytes);
+    if (epochString.empty()) {
+      return false;
+    }
+
+    bytes epochBytes(epochString.begin(), epochString.end());
+    uint64_t epochNum = 0;
+    if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
+      LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+      return false;
+    }
+
+    bodyString = GetTxBodyDB(epochNum)->Lookup(keyBytes);
 #endif  // MIGRATE_MBS_TXNS
   }
 
@@ -497,9 +534,23 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
 }
 
 bool BlockStorage::CheckTxBody(const dev::h256& key) {
-  shared_lock<shared_timed_mutex> g(m_mutexTxBody);
   const bytes& keyBytes = key.asBytes();
-  return m_txEpochDB->Exists(keyBytes) && m_txBodyDB->Exists(keyBytes);
+
+  shared_lock<shared_timed_mutex> g(m_mutexTxBody);
+
+  string epochString = m_txEpochDB->Lookup(keyBytes);
+  if (epochString.empty()) {
+    return false;
+  }
+
+  bytes epochBytes(epochString.begin(), epochString.end());
+  uint64_t epochNum = 0;
+  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+    return false;
+  }
+
+  return GetTxBodyDB(epochNum)->Exists(keyBytes);
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
@@ -528,10 +579,24 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
     return false;
   }
 
-  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
   const bytes& keyBytes = key.asBytes();
+
+  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+
+  string epochString = m_txEpochDB->Lookup(keyBytes);
+  if (epochString.empty()) {
+    return false;
+  }
+
+  bytes epochBytes(epochString.begin(), epochString.end());
+  uint64_t epochNum = 0;
+  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+    return false;
+  }
+
   return (m_txEpochDB->DeleteKey(keyBytes) == 0) &&
-         (m_txBodyDB->DeleteKey(keyBytes) == 0);
+         (GetTxBodyDB(epochNum)->DeleteKey(keyBytes) == 0);
 }
 
 bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
@@ -548,7 +613,14 @@ bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
 
   // Delete body
   if (ret == 0) {
-    ret = m_microBlockDB->DeleteKey(keyString);
+    bytes keyBytes(keyString.begin(), keyString.end());
+    uint64_t epochNum = 0;
+    uint32_t shardID = 0;
+    if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
+      LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
+      return false;
+    }
+    ret = GetMicroBlockDB(epochNum)->DeleteKey(keyString);
   }
 
   return (ret == 0);
@@ -1446,12 +1518,18 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     }
     case TX_BODY: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-      ret = m_txEpochDB->ResetDB() && m_txBodyDB->ResetDB();
+      ret = m_txEpochDB->ResetDB();
+      for (auto& txBodyDB : m_txBodyDBs) {
+        ret &= txBodyDB->ResetDB();
+      }
       break;
     }
     case MICROBLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-      ret = m_microBlockDB->ResetDB() & m_microBlockKeyDB->ResetDB();
+      ret = m_microBlockKeyDB->ResetDB();
+      for (auto& microBlockDB : m_microBlockDBs) {
+        ret &= microBlockDB->ResetDB();
+      }
       break;
     }
     case DS_COMMITTEE: {
@@ -1553,12 +1631,18 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     }
     case TX_BODY: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-      ret = m_txEpochDB->RefreshDB() && m_txBodyDB->RefreshDB();
+      ret = m_txEpochDB->RefreshDB();
+      for (auto& txBodyDB : m_txBodyDBs) {
+        txBodyDB->RefreshDB();
+      }
       break;
     }
     case MICROBLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-      ret = m_microBlockDB->RefreshDB() & m_microBlockKeyDB->RefreshDB();
+      ret = m_microBlockKeyDB->RefreshDB();
+      for (auto& microBlockDB : m_microBlockDBs) {
+        ret &= microBlockDB->RefreshDB();
+      }
       break;
     }
     case DS_COMMITTEE: {
@@ -1659,12 +1743,12 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     }
     case TX_BODY: {
       shared_lock<shared_timed_mutex> g(m_mutexTxBody);
-      ret.push_back(m_txBodyDB->GetDBName());
+      ret.push_back(m_txBodyDBs.at(0)->GetDBName());
       break;
     }
     case MICROBLOCK: {
       shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
-      ret.push_back(m_microBlockDB->GetDBName());
+      ret.push_back(m_microBlockDBs.at(0)->GetDBName());
       break;
     }
     case DS_COMMITTEE: {
@@ -1785,4 +1869,22 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(EXTSEED_PUBKEYS) &
            Contract::ContractStorage2::GetContractStorage().RefreshAll();
   }
+}
+
+shared_ptr<LevelDB> BlockStorage::GetMicroBlockDB(const uint64_t& epochNum) {
+  const unsigned int dbindex = epochNum / NUM_EPOCHS_PER_PERSISTENT_DB;
+  while (m_microBlockDBs.size() <= dbindex) {
+    m_microBlockDBs.emplace_back(std::make_shared<LevelDB>(
+        string("microBlocks_") + to_string(m_microBlockDBs.size())));
+  }
+  return m_microBlockDBs.at(dbindex);
+}
+
+shared_ptr<LevelDB> BlockStorage::GetTxBodyDB(const uint64_t& epochNum) {
+  const unsigned int dbindex = epochNum / NUM_EPOCHS_PER_PERSISTENT_DB;
+  while (m_txBodyDBs.size() <= dbindex) {
+    m_txBodyDBs.emplace_back(std::make_shared<LevelDB>(
+        string("txBodies_") + to_string(m_txBodyDBs.size())));
+  }
+  return m_txBodyDBs.at(dbindex);
 }
