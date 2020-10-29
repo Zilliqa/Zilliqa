@@ -127,6 +127,7 @@ public:
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
     bool Exists(const std::string & key) const;
+    bool Exists(const std::vector<unsigned char> & key) const;
 
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
@@ -136,6 +137,9 @@ public:
 
     /// Deletes the value at the specified key.
     int DeleteKey(const std::string & key);
+
+    /// Deletes the value at the specified key.
+    int DeleteKey(const std::vector<unsigned char> & key);
 
     /// Deletes the entire database.
     int DeleteDB();
