@@ -36,6 +36,10 @@ class Retriever {
   bool ValidateStates();
   bool CleanExtraTxBodies();
   void CleanAll();
+  bool ConstructFromStateDeltas(const uint64_t& lastBlockNum,
+                                unsigned int extra_txblocks,
+                                std::vector<bytes>& extraStateDeltas,
+                                bool trimIncompletedBlocks);
 
  private:
   Mediator& m_mediator;

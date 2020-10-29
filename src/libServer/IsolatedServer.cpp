@@ -124,8 +124,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
         jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::GetLatestTxBlockI);
-
-    StartBlocknumIncrement();
   }
 }
 
@@ -215,6 +213,30 @@ bool IsolatedServer::RetrieveHistory() {
   } else {
     LOG_GENERAL(WARNING, "Could not retrieve latest block num");
     return false;
+  }
+
+  uint64_t lastBlockNum = txblock->GetHeader().GetBlockNum();
+  unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
+  vector<bytes> stateDeltas;
+
+  for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
+       blockNum <= lastBlockNum; blockNum++) {
+    bytes stateDelta;
+    if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
+      LOG_GENERAL(INFO,
+                  "Didn't find the state-delta for txBlkNum: " << blockNum);
+    }
+    stateDeltas.emplace_back(stateDelta);
+  }
+
+  m_retriever->ConstructFromStateDeltas(lastBlockNum, extra_txblocks,
+                                        stateDeltas, false);
+
+  // Delete State deltas as iso server loads from base state
+  unsigned int extra_delta_index = lastBlockNum - extra_txblocks + 1;
+  for (uint i = 0; i < stateDeltas.size(); i++) {
+    BlockStorage::GetBlockStorage().DeleteStateDelta(extra_delta_index);
+    extra_delta_index++;
   }
   m_currEpochGas = 0;
 
