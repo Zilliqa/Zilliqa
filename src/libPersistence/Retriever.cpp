@@ -30,63 +30,10 @@
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
-bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
-  LOG_MARKER();
-
-  std::vector<bytes> extraStateDeltas;
-
-  TxBlockSharedPtr latestTxBlock;
-  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
-    LOG_GENERAL(WARNING, "GetLatestTxBlock failed");
-    return false;
-  }
-
-  uint64_t lastBlockNum = latestTxBlock->GetHeader().GetBlockNum();
-
-  unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
-
-  for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
-       blockNum <= lastBlockNum; blockNum++) {
-    bytes stateDelta;
-    if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
-      LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
-                            << blockNum << ". Try fetching it from seeds");
-      unsigned int retry = 1;
-      while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
-        // Get the state-delta for this txBlock from random seed nodes
-        std::unique_lock<std::mutex> cv_lk(
-            m_mediator.m_lookup->m_mutexSetStateDeltaFromSeed);
-        m_mediator.m_lookup->m_skipAddStateDeltaToAccountStore = true;
-        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(blockNum);
-        if (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
-                cv_lk,
-                std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING,
-                      "[Retry: " << retry
-                                 << "] Didn't receive statedelta for txBlkNum: "
-                                 << blockNum << "! Will try again");
-          retry++;
-        } else {
-          break;
-        }
-      }
-      // if state-delta is still not fetched from extra txblocks set, simple
-      // skip all extra blocks
-      if (retry > RETRY_GETSTATEDELTAS_COUNT) {
-        extraStateDeltas.clear();
-        trimIncompletedBlocks = true;
-        break;
-      }
-
-      // got state-delta at last
-      BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
-      BlockStorage::GetBlockStorage().DeleteStateDelta(blockNum);
-    }
-    // store it.
-    extraStateDeltas.push_back(stateDelta);
-  }
-
+bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
+                                         unsigned int extra_txblocks,
+                                         std::vector<bytes>& extraStateDeltas,
+                                         bool trimIncompletedBlocks) {
   if ((lastBlockNum - extra_txblocks + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
       0) {
@@ -222,6 +169,71 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
       BlockStorage::GetBlockStorage().PutStateDelta(extra_delta_index++,
                                                     stateDelta);
     }
+  }
+
+  return true;
+}
+
+bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
+  LOG_MARKER();
+
+  std::vector<bytes> extraStateDeltas;
+
+  TxBlockSharedPtr latestTxBlock;
+  if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
+    LOG_GENERAL(WARNING, "GetLatestTxBlock failed");
+    return false;
+  }
+
+  uint64_t lastBlockNum = latestTxBlock->GetHeader().GetBlockNum();
+
+  unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
+
+  for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
+       blockNum <= lastBlockNum; blockNum++) {
+    bytes stateDelta;
+    if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
+      LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
+                            << blockNum << ". Try fetching it from seeds");
+      unsigned int retry = 1;
+      while (retry <= RETRY_GETSTATEDELTAS_COUNT) {
+        // Get the state-delta for this txBlock from random seed nodes
+        std::unique_lock<std::mutex> cv_lk(
+            m_mediator.m_lookup->m_mutexSetStateDeltaFromSeed);
+        m_mediator.m_lookup->m_skipAddStateDeltaToAccountStore = true;
+        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(blockNum);
+        if (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                cv_lk,
+                std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
+            std::cv_status::timeout) {
+          LOG_GENERAL(WARNING,
+                      "[Retry: " << retry
+                                 << "] Didn't receive statedelta for txBlkNum: "
+                                 << blockNum << "! Will try again");
+          retry++;
+        } else {
+          break;
+        }
+      }
+      // if state-delta is still not fetched from extra txblocks set, simple
+      // skip all extra blocks
+      if (retry > RETRY_GETSTATEDELTAS_COUNT) {
+        extraStateDeltas.clear();
+        trimIncompletedBlocks = true;
+        break;
+      }
+
+      // got state-delta at last
+      BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
+      BlockStorage::GetBlockStorage().DeleteStateDelta(blockNum);
+    }
+    // store it.
+    extraStateDeltas.push_back(stateDelta);
+  }
+
+  if (!ConstructFromStateDeltas(lastBlockNum, extra_txblocks, extraStateDeltas,
+                                trimIncompletedBlocks)) {
+    return false;
   }
 
   m_mediator.m_node->AddBlock(*latestTxBlock);

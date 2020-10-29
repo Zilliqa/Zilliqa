@@ -33,7 +33,6 @@ class IsolatedServer : public LookupServer,
   const PairOfKey m_key;
   uint64_t m_currEpochGas{0};
 
-  bool StartBlocknumIncrement();
   TxBlock GenerateTxBlock();
   void PostTxBlock();
 
@@ -80,6 +79,7 @@ class IsolatedServer : public LookupServer,
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
   bool RetrieveHistory();
+  bool StartBlocknumIncrement();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_

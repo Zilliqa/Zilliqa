@@ -183,6 +183,10 @@ int main(int argc, const char* argv[]) {
       cout << "Server listening on " << port << endl;
     }
 
+    if (timeDelta > 0) {
+      isolatedServer->StartBlocknumIncrement();
+    }
+
     if (ENABLE_WEBSOCKET) {
       if (timeDelta > 0) {
         LOG_GENERAL(INFO, "Starting websocket on port " << WEBSOCKET_PORT);
