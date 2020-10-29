@@ -232,6 +232,12 @@ bool IsolatedServer::RetrieveHistory() {
   m_retriever->ConstructFromStateDeltas(lastBlockNum, extra_txblocks,
                                         stateDeltas, false);
 
+  // Delete State deltas as iso server loads from base state
+  unsigned int extra_delta_index = lastBlockNum - extra_txblocks + 1;
+  for (uint i = 0; i < stateDeltas.size(); i++) {
+    BlockStorage::GetBlockStorage().DeleteStateDelta(extra_delta_index);
+    extra_delta_index++;
+  }
   m_currEpochGas = 0;
 
   return true;
