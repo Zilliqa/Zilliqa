@@ -139,7 +139,6 @@ class Lookup : public Executable {
   std::shared_ptr<StakingServer> m_stakingServer;
 
   bytes ComposeGetDSInfoMessage(bool initialDS = false);
-  bytes ComposeGetStateMessage();
 
   bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum,
                                  const bool includeMinerInfo = false);
@@ -244,7 +243,6 @@ class Lookup : public Executable {
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
   bool GetStateDeltasFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
 
-  bool GetStateFromSeedNodes();
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                [[gnu::unused]] unsigned int offset,
@@ -321,8 +319,6 @@ class Lookup : public Executable {
                                     const Peer& from);
   bool ProcessGetStateDeltasFromSeed(const bytes& message, unsigned int offset,
                                      const Peer& from);
-  bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
 
   bool ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
                                 const Peer& from);
@@ -372,8 +368,6 @@ class Lookup : public Executable {
                                     const Peer& from);
   bool ProcessSetStateDeltasFromSeed(const bytes& message, unsigned int offset,
                                      const Peer& from);
-  bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
 
   bool ProcessSetLookupOffline(const bytes& message, unsigned int offset,
                                const Peer& from);

@@ -654,23 +654,6 @@ bytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
   return getDSNodesMessage;
 }
 
-bytes Lookup::ComposeGetStateMessage() {
-  LOG_MARKER();
-
-  bytes getStateMessage = {MessageType::LOOKUP,
-                           LookupInstructionType::GETSTATEFROMSEED};
-
-  if (!Messenger::SetLookupGetStateFromSeed(
-          getStateMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetStateFromSeed failed.");
-    return {};
-  }
-
-  return getStateMessage;
-}
-
 bool Lookup::GetDSInfoFromSeedNodes() {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
@@ -684,11 +667,6 @@ bool Lookup::GetDSInfoFromSeedNodes() {
 bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   LOG_MARKER();
   SendMessageToRandomLookupNode(ComposeGetDSInfoMessage(initialDS));
-  return true;
-}
-
-bool Lookup::GetStateFromSeedNodes() {
-  SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
 }
 
@@ -1865,42 +1843,6 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   if (blockNum != highBlockNum + 1) {
     highBlockNum = blockNum - 1;
   }
-}
-
-bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
-                                     const Peer& from) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessGetStateFromSeed not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupGetStateFromSeed(message, offset, portNo)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetStateFromSeed failed.");
-    return false;
-  }
-
-  Peer requestingNode(from.m_ipAddress, portNo);
-  bytes setStateMessage = {MessageType::LOOKUP,
-                           LookupInstructionType::SETSTATEFROMSEED};
-
-  if (!Messenger::SetLookupSetStateFromSeed(
-          setStateMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-          AccountStore::GetInstance())) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupSetStateFromSeed failed.");
-    return false;
-  }
-
-  P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
-
-  return true;
 }
 
 // TODO: Refactor the code to remove the following assumption
@@ -3521,127 +3463,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
   return true;
 }
 
-bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
-                                     [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  if (AlreadyJoinedNetwork()) {
-    return true;
-  }
-
-  unique_lock<mutex> lock(m_mutexSetState);
-  PubKey senderPubKey;
-  bytes accountStoreBytes;
-  if (!Messenger::GetLookupSetStateFromSeed(message, offset, senderPubKey,
-                                            accountStoreBytes)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupSetStateFromSeed failed.");
-    return false;
-  }
-
-  if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << senderPubKey << " is not in my lookup node list.");
-    return false;
-  }
-
-  if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
-    LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
-    return false;
-  }
-
-  if (!LOOKUP_NODE_MODE) {
-    if (m_syncType == SyncType::NEW_SYNC ||
-        m_syncType == SyncType::NORMAL_SYNC) {
-      GetDSInfo();
-
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "DSInfo received -> Ask lookup to let me know when to "
-                "start PoW");
-
-      // Ask lookup to inform me when it's time to do PoW
-      bytes getpowsubmission_message = {
-          MessageType::LOOKUP, LookupInstructionType::GETSTARTPOWFROMSEED};
-
-      if (!Messenger::SetLookupGetStartPoWFromSeed(
-              getpowsubmission_message, MessageOffset::BODY,
-              m_mediator.m_selfPeer.m_listenPortHost,
-              m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetBlockNum(),
-              m_mediator.m_selfKey)) {
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "Messenger::SetLookupGetStartPoWFromSeed failed.");
-        return false;
-      }
-
-      m_mediator.m_lookup->SendMessageToRandomSeedNode(
-          getpowsubmission_message);
-    } else if (m_syncType == SyncType::DS_SYNC ||
-               m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired &&
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
-              m_mediator.m_currentEpochNum) {
-        m_isFirstLoop = true;
-        SetSyncType(SyncType::NO_SYNC);
-        m_mediator.m_ds->FinishRejoinAsDS();
-      }
-
-      m_currDSExpired = false;
-    }
-  } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-    if (!m_currDSExpired) {
-      if (FinishRejoinAsLookup()) {
-        SetSyncType(SyncType::NO_SYNC);
-
-        if (m_lookupServer) {
-          if (m_lookupServer->StartListening()) {
-            LOG_GENERAL(INFO, "API Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "API Server couldn't start");
-          }
-        }
-
-        if (m_stakingServer) {
-          if (m_stakingServer->StartListening()) {
-            LOG_GENERAL(INFO, "Staking Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "Staking Server couldn't start");
-          }
-        }
-      }
-    }
-    m_currDSExpired = false;
-  } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    GetDSInfo();
-
-    if (!m_currDSExpired) {
-      SetSyncType(SyncType::NO_SYNC);
-      m_isFirstLoop = true;
-
-      if (m_lookupServer) {
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
-        }
-      }
-
-      if (m_stakingServer) {
-        if (m_stakingServer->StartListening()) {
-          LOG_GENERAL(INFO, "Staking Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "Staking Server couldn't start");
-        }
-      }
-    }
-    m_currDSExpired = false;
-  }
-
-  return true;
-}
-
 bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from) {
@@ -5248,8 +5069,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessSetDSBlockFromSeed,
       &Lookup::ProcessGetTxBlockFromSeed,
       &Lookup::ProcessSetTxBlockFromSeed,
-      &Lookup::ProcessGetStateFromSeed,
-      &Lookup::ProcessSetStateFromSeed,
+      &Lookup::NoOp,  // Previously for GETSTATEFROMSEED
+      &Lookup::NoOp,  // Previously for SETSTATEFROMSEED
       &Lookup::ProcessSetLookupOffline,
       &Lookup::ProcessSetLookupOnline,
       &Lookup::ProcessGetOfflineLookups,
