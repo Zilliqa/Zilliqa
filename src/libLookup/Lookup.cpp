@@ -5209,8 +5209,6 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
     return true;
   }
 
-  lock_guard<mutex> g(m_txnShardMapMutex);
-
   m_txnShardMap[shardId].clear();
 
   return true;
@@ -5396,6 +5394,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
+      lock_guard<mutex> g(m_txnShardMapMutex);
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
       // To send DS
@@ -5431,6 +5430,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");
 
+      lock_guard<mutex> g(m_txnShardMapMutex);
       DeleteTxnShardMap(i);
     }
   }
