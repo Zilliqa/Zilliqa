@@ -578,18 +578,6 @@ class Messenger {
                                               uint64_t& highBlockNum,
                                               PubKey& lookupPubKey,
                                               std::vector<bytes>& stateDeltas);
-  static bool SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
-                                        const uint32_t listenPort);
-  static bool GetLookupGetStateFromSeed(const bytes& src,
-                                        const unsigned int offset,
-                                        uint32_t& listenPort);
-  static bool SetLookupSetStateFromSeed(bytes& dst, const unsigned int offset,
-                                        const PairOfKey& lookupKey,
-                                        const AccountStore& accountStore);
-  static bool GetLookupSetStateFromSeed(const bytes& src,
-                                        const unsigned int offset,
-                                        PubKey& lookupPubKey,
-                                        bytes& accountStoreBytes);
   static bool SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
                                         const uint8_t msgType,
                                         const uint32_t listenPort,
