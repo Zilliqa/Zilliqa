@@ -80,12 +80,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
-  std::shared_ptr<LevelDB> m_txBodyDB;
+  std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
 #ifdef MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
 #endif  // MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_txEpochDB;
-  std::shared_ptr<LevelDB> m_microBlockDB;
+  std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
 #ifdef MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
 #endif  // MIGRATE_MBS_TXNS
@@ -117,8 +117,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 #ifdef MIGRATE_MBS_TXNS
         m_microBlockDB(std::make_shared<LevelDB>("microBlocksNew")),
         m_microBlockOrigDB(std::make_shared<LevelDB>("microBlocks")),
-#else   // MIGRATE_MBS_TXNS
-        m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
 #endif  // MIGRATE_MBS_TXNS
         m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
@@ -140,13 +138,14 @@ class BlockStorage : public Singleton<BlockStorage> {
       m_txBodyDB = std::make_shared<LevelDB>("txBodiesNew");
       m_txBodyOrigDB = std::make_shared<LevelDB>("txBodies");
 #else   // MIGRATE_MBS_TXNS
-      m_txBodyDB = std::make_shared<LevelDB>("txBodies");
+      m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
 #endif  // MIGRATE_MBS_TXNS
       m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
       m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
       m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
       m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
     }
+    m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
   };
   ~BlockStorage() = default;
   bool PutBlock(const uint64_t& blockNum, const bytes& body,
@@ -414,6 +413,9 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   unsigned int m_diagnosticDBNodesCounter;
   unsigned int m_diagnosticDBCoinbaseCounter;
+
+  std::shared_ptr<LevelDB> GetMicroBlockDB(const uint64_t& epochNum);
+  std::shared_ptr<LevelDB> GetTxBodyDB(const uint64_t& epochNum);
 };
 
 #endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_
