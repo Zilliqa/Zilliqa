@@ -674,12 +674,10 @@ class Node : public Executable {
 
   std::unordered_map<TxnHash, TxnStatus> GetPendingTxns() const;
 
-  uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
-                                               uint32_t sizeOfShard,
-                                               const DequeOfNode& shardMembers);
-  uint32_t CalculateShardLeaderFromShard(uint16_t lastBlockHash,
-                                         uint32_t sizeOfShard,
-                                         const Shard& shardMembers);
+  inline uint32_t CalculateShardLeader(uint16_t lastBlockHash,
+                                       uint32_t sizeOfShard) const {
+    return lastBlockHash % sizeOfShard;
+  }
 
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
