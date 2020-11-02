@@ -349,14 +349,13 @@ bool LookupServer::StartCollectorThread() {
                     SEND_TYPE::ARCHIVAL_SEND_DS))) {
           continue;
         }
+        for (auto const& i :
+             {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
+          m_mediator.m_lookup->DeleteTxnShardMap(i);
+        }
       }
 
       m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
-
-      for (auto const& i :
-           {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
-        m_mediator.m_lookup->DeleteTxnShardMap(i);
-      }
     }
   };
   DetachedFunction(1, collectorThread);
