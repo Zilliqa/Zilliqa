@@ -258,7 +258,7 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
   if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
       cv_status::timeout) {
     txnProcTimeout = true;
-    AccountStore::GetInstance().NotifyTimeout();
+    AccountStore::GetInstance().NotifyTimeoutTemp();
   }
 }
 
