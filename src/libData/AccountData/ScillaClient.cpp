@@ -48,6 +48,7 @@ void ScillaClient::Init() {
           continue;
         }
       } catch (...) {
+        LOG_GENERAL(WARNING, "Not valid folder name");
         continue;
       }
     }
