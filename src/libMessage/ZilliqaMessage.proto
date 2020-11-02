@@ -767,18 +767,6 @@ message LookupSetStateDeltasFromSeed
     ByteArray signature = 3;
 }
 
-message LookupGetStateFromSeed
-{
-    uint32 listenport = 1;
-}
-
-message LookupSetStateFromSeed
-{
-    ByteArray accountstore          = 1;
-    ByteArray pubkey                = 2;
-    ByteArray signature             = 3;
-}
-
 // msgtype is used to prevent replay attacks
 message LookupSetLookupOffline
 {
