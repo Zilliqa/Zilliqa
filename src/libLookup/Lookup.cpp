@@ -5367,9 +5367,8 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
         uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
             m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-        uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
-            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size(),
-            m_mediator.m_ds->m_shards.at(i));
+        uint32_t leader_id = m_mediator.m_node->CalculateShardLeader(
+            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size());
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Shard leader id " << leader_id);
 
