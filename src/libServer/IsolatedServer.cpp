@@ -347,7 +347,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     m_currEpochGas += txreceipt.GetCumGas();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), twr_ser)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
+                                                   twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
     const auto& txHash = tx.GetTranID();
@@ -485,7 +486,9 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 
   mb.Serialize(body, 0);
 
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(mb.GetBlockHash(), body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
+          mb.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
   }
   TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());

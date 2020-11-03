@@ -12,6 +12,7 @@
         <UPGRADE_TARGET_DS_NUM>1</UPGRADE_TARGET_DS_NUM>
         <!-- Do not add a trailing "/" in the path-->
         <STORAGE_PATH>.</STORAGE_PATH>
+        <NUM_EPOCHS_PER_PERSISTENT_DB>1000000</NUM_EPOCHS_PER_PERSISTENT_DB>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>

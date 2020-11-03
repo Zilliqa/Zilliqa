@@ -71,6 +71,9 @@ public:
     std::string Lookup(const std::string & key) const;
 
     /// Returns the value at the specified key.
+    std::string Lookup(const std::vector<unsigned char>& key) const;
+
+    /// Returns the value at the specified key.
     std::string Lookup(const boost::multiprecision::uint256_t & blockNum) const;
 
     /// Returns the value at the specified key and also mark if key was found or not
@@ -84,6 +87,10 @@ public:
 
     /// Sets the value at the specified key.
     int Insert(const dev::h256 & key, dev::bytesConstRef value);
+
+    /// Sets the value at the specified key.
+    int Insert(const std::vector<unsigned char>& key,
+               const std::vector<unsigned char>& body);
 
     /// Sets the value at the specified key.
     int Insert(const boost::multiprecision::uint256_t & blockNum,
@@ -120,6 +127,7 @@ public:
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
     bool Exists(const std::string & key) const;
+    bool Exists(const std::vector<unsigned char> & key) const;
 
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
@@ -129,6 +137,9 @@ public:
 
     /// Deletes the value at the specified key.
     int DeleteKey(const std::string & key);
+
+    /// Deletes the value at the specified key.
+    int DeleteKey(const std::vector<unsigned char> & key);
 
     /// Deletes the entire database.
     int DeleteDB();

@@ -2180,8 +2180,9 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
 
   bytes body;
   microblock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(),
-                                                     body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          microblock.GetBlockHash(), microblock.GetHeader().GetEpochNum(),
+          microblock.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
     return false;
   }
@@ -3674,12 +3675,22 @@ bool Lookup::ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
   LOG_GENERAL(INFO,
               "Received " << txns.size() << " txns for microblock :" << mbHash);
 
+  uint64_t epochNum = 0;
+  {
+    MicroBlockSharedPtr microBlockPtr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbHash, microBlockPtr)) {
+      LOG_GENERAL(WARNING, "Failed to get MB with hash " << mbHash);
+      return false;
+    }
+    epochNum = microBlockPtr->GetHeader().GetEpochNum();
+  }
+
   for (const auto& txn : txns) {
     bytes serializedTxBody;
     txn.Serialize(serializedTxBody, 0);
 
     if (!BlockStorage::GetBlockStorage().PutTxBody(
-            txn.GetTransaction().GetTranID(), serializedTxBody)) {
+            epochNum, txn.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
                                << txn.GetTransaction().GetTranID());
       continue;  // Transaction already existed locally. Move on so as to delete

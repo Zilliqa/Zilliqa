@@ -966,5 +966,16 @@ class Messenger {
                                  const MinerInfoShards& minerInfo);
   static bool GetMinerInfoShards(const bytes& src, const unsigned int offset,
                                  MinerInfoShards& minerInfo);
+
+  static bool SetMicroBlockKey(bytes& dst, const unsigned int offset,
+                               const uint64_t& epochNum,
+                               const uint32_t& shardID);
+  static bool GetMicroBlockKey(const bytes& src, const unsigned int offset,
+                               uint64_t& epochNum, uint32_t& shardID);
+
+  static bool SetTxEpoch(bytes& dst, const unsigned int offset,
+                         const uint64_t& epochNum);
+  static bool GetTxEpoch(const bytes& src, const unsigned int offset,
+                         uint64_t& epochNum);
 };
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
