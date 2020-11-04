@@ -818,38 +818,6 @@ message LookupSetOfflineLookups
     ByteArray signature = 3;
 }
 
-// msgtype and blocknumber is used to prevent replay attacks
-message LookupRaiseStartPoW
-{
-    message Data
-    {
-        uint32 msgtype      = 1; // Only LSB used
-        uint64 blocknumber  = 2;
-    }
-    Data data           = 1;
-    ByteArray pubkey    = 2;
-    ByteArray signature = 3;
-}
-
-message LookupGetStartPoWFromSeed
-{
-    message Data
-    {
-        uint32 listenport  = 1;
-        uint64 blocknumber = 2;
-    }
-    Data data           = 1;
-    ByteArray pubkey    = 2;
-    ByteArray signature = 3;
-}
-
-message LookupSetStartPoWFromSeed
-{
-    uint64 blocknumber  = 1;
-    ByteArray pubkey    = 2;
-    ByteArray signature = 3;
-}
-
 // From archival node to lookup node.
 message LookupGetShardsFromSeed
 {

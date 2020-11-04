@@ -74,7 +74,6 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
       ignorable_syncTypes.end()) {
     m_syncType = syncType;
   }
-  m_receivedRaiseStartPoW.store(false);
   SetLookupNodes();
   SetAboveLayer(m_seedNodes, "node.upper_seed");
   if (!MULTIPLIER_SYNC_MODE) {
@@ -2990,32 +2989,16 @@ void Lookup::PrepareForStartPow() {
   LOG_MARKER();
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "At new DS epoch now, already have state. Getting ready to "
-            "know for pow");
+            "At new DS epoch now, already have state. Getting DSInfo.");
 
   if (!GetDSInfo()) {
+    LOG_GENERAL(WARNING, "DSInfo not received!");
     return;
   }
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "DSInfo received -> Ask lookup to let me know when to "
-            "start PoW");
+  LOG_GENERAL(INFO, "DSInfo received -> Starting PoW now");
 
-  // Ask lookup to inform me when it's time to do PoW
-  bytes getpowsubmission_message = {MessageType::LOOKUP,
-                                    LookupInstructionType::GETSTARTPOWFROMSEED};
-
-  if (!Messenger::SetLookupGetStartPoWFromSeed(
-          getpowsubmission_message, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost,
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetStartPoWFromSeed failed.");
-    return;
-  }
-
-  m_mediator.m_lookup->SendMessageToRandomSeedNode(getpowsubmission_message);
+  InitMining();
 }
 
 void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
@@ -3795,7 +3778,7 @@ bool Lookup::CheckStateRoot() {
   }
 }
 
-bool Lookup::InitMining(uint32_t lookupIndex) {
+bool Lookup::InitMining() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -3840,11 +3823,7 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
       curDsBlockNum + 1,
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
-      dsBlockRand, txBlockRand, lookupIndex);
-  //} else {
-  //  LOG_GENERAL(WARNING, "State root check failed");
-  //  return false;
-  //}
+      dsBlockRand, txBlockRand, 0);
 
   uint64_t lastTxBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -4077,195 +4056,6 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
     m_fetchedOfflineLookups = true;
     cv_offlineLookups.notify_all();
   }
-  return true;
-}
-
-bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
-                                  [[gnu::unused]] const Peer& from) {
-  // Message = empty
-
-  LOG_MARKER();
-
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessRaiseStartPoW not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  if (m_receivedRaiseStartPoW.load()) {
-    LOG_GENERAL(WARNING, "Already raised start pow");
-    return false;
-  }
-
-  uint8_t msgType;
-  uint64_t blockNumber;
-  PubKey dspubkey;
-  if (!Messenger::GetLookupSetRaiseStartPoW(message, offset, msgType,
-                                            blockNumber, dspubkey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupSetRaiseStartPoW failed.");
-    return false;
-  }
-
-  if ((unsigned char)msgType != LookupInstructionType::RAISESTARTPOW) {
-    LOG_GENERAL(WARNING,
-                "Current message does not belong to this instrunction handler. "
-                "There might be replay attack.");
-    return false;
-  }
-
-  if (blockNumber != m_mediator.m_currentEpochNum &&
-      blockNumber != m_mediator.m_currentEpochNum + 1) {
-    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
-    return false;
-  }
-
-  PairOfNode expectedDSLeader;
-  if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                         m_mediator.m_dsBlockChain.GetLastBlock(),
-                         *m_mediator.m_DSCommittee, expectedDSLeader)) {
-    LOG_GENERAL(WARNING, "Does not know expected ds leader");
-    return false;
-  }
-
-  if (expectedDSLeader.first != dspubkey) {
-    LOG_CHECK_FAIL("DS leader pubkey", dspubkey, expectedDSLeader.first);
-    return false;
-  }
-
-  // DS leader has informed me that it's time to start PoW
-  // Prevent processing another RaiseStartPoW message
-  m_receivedRaiseStartPoW.store(true);
-
-  // Tell the requesting nodes that it's time to start PoW
-  bytes setstartpow_message = {MessageType::LOOKUP,
-                               LookupInstructionType::SETSTARTPOWFROMSEED};
-  if (!Messenger::SetLookupSetStartPoWFromSeed(
-          setstartpow_message, MessageOffset::BODY,
-          m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupSetStartPoWFromSeed failed.");
-    return false;
-  }
-
-  {
-    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
-
-    vector<Peer> tempStartPoWPeerList;
-    std::copy(m_getStartPoWPeerSet.begin(), m_getStartPoWPeerSet.end(),
-              std::back_inserter(tempStartPoWPeerList));
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "SETSTARTPOW peer list size = " << tempStartPoWPeerList.size());
-    P2PComm::GetInstance().SendMessage(tempStartPoWPeerList,
-                                       setstartpow_message);
-    m_getStartPoWPeerSet.clear();
-  }
-
-  // Reset m_receivedRaiseStartPoW after PoW duration
-  this_thread::sleep_for(
-      chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
-  m_receivedRaiseStartPoW.store(false);
-
-  return true;
-}
-
-bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
-                                        unsigned int offset, const Peer& from) {
-  LOG_MARKER();
-
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessGetStartPoWFromSeed not expected to be "
-                "called from other than the LookUp node.");
-    return true;
-  }
-
-  uint32_t portNo = 0;
-  uint64_t blockNumber = 0;
-
-  if (!Messenger::GetLookupGetStartPoWFromSeed(message, offset, portNo,
-                                               blockNumber)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetStartPoWFromSeed failed.");
-    return false;
-  }
-
-  if (!IPCHECK::IsPortValid(portNo)) {
-    LOG_GENERAL(WARNING, "Invalid port number " << portNo);
-    return false;
-  }
-
-  if (blockNumber !=
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-    LOG_CHECK_FAIL(
-        "GetStartPoWFromSeed current DS block", blockNumber,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
-    return false;
-  }
-
-  // If already in PoW state, just respond immediately
-  // Otherwise, add this requesting peer to the list
-  if (m_receivedRaiseStartPoW.load()) {
-    bytes setstartpow_message = {MessageType::LOOKUP,
-                                 LookupInstructionType::SETSTARTPOWFROMSEED};
-    if (!Messenger::SetLookupSetStartPoWFromSeed(
-            setstartpow_message, MessageOffset::BODY,
-            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::SetLookupSetStartPoWFromSeed failed.");
-      return false;
-    }
-
-    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                       setstartpow_message);
-  } else {
-    lock_guard<mutex> g(m_mutexGetStartPoWPeerSet);
-    m_getStartPoWPeerSet.emplace(Peer(from.m_ipAddress, portNo));
-  }
-
-  return true;
-}
-
-bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
-                                        [[gnu::unused]] unsigned int offset,
-                                        [[gnu::unused]] const Peer& from) {
-  // Message = empty
-
-  LOG_MARKER();
-
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessSetStartPoWFromSeed not expected to be "
-                "called from the LookUp node.");
-    return true;
-  }
-
-  PubKey lookupPubKey;
-
-  if (!Messenger::GetLookupSetStartPoWFromSeed(message, offset, lookupPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetStartPoWFromSeed failed.");
-    return false;
-  }
-
-  auto vecLookupNodes = GetSeedNodes();
-  auto it = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
-                         [&lookupPubKey](const PairOfNode& node) {
-                           return node.first == lookupPubKey;
-                         });
-  uint32_t index;
-  if (it != vecLookupNodes.cend()) {
-    index = distance(vecLookupNodes.cbegin(), it);
-  } else {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
-    return false;
-  }
-
-  InitMining(index);
   return true;
 }
 
@@ -5086,9 +4876,9 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessSetLookupOnline,
       &Lookup::ProcessGetOfflineLookups,
       &Lookup::ProcessSetOfflineLookups,
-      &Lookup::ProcessRaiseStartPoW,
-      &Lookup::ProcessGetStartPoWFromSeed,
-      &Lookup::ProcessSetStartPoWFromSeed,
+      &Lookup::NoOp,  // Previously for ProcessRaiseStartPoW
+      &Lookup::NoOp,  // Previously for ProcessGetStartPoWFromSeed
+      &Lookup::NoOp,  // Previously for ProcessSetStartPoWFromSeed
       &Lookup::ProcessGetShardFromSeed,  // UNUSED
       &Lookup::ProcessSetShardFromSeed,  // UNUSED
       &Lookup::ProcessGetMicroBlockFromLookup,

@@ -42,7 +42,6 @@ class Synchronizer {
   bool FetchLatestDSBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
   bool FetchLatestDSBlocksSeed(Lookup* lookup, uint64_t currentBlockChainSize);
   bool FetchLatestTxBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
-  bool AttemptPoW(Lookup* lookup);
   bool FetchOfflineLookups(Lookup* lookup);
 
   bool FetchLatestTxBlockSeed(Lookup* lookup, uint64_t currentBlockChainSize);

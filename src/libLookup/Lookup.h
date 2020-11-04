@@ -100,9 +100,6 @@ class Lookup : public Executable {
 
   std::atomic<bool> m_startedFetchMissingMBsThread{};
 
-  // Start PoW variables
-  std::atomic<bool> m_receivedRaiseStartPoW{};
-
   // Store the StateRootHash of latest txBlock before States are repopulated.
   StateHash m_prevStateRootHashTemp;
 
@@ -377,13 +374,6 @@ class Lookup : public Executable {
   bool ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
                                 const Peer& from);
 
-  bool ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
-                            const Peer& from);
-  bool ProcessGetStartPoWFromSeed(const bytes& message, unsigned int offset,
-                                  const Peer& from);
-  bool ProcessSetStartPoWFromSeed(const bytes& message, unsigned int offset,
-                                  const Peer& from);
-
   bool ProcessGetDirectoryBlocksFromSeed(const bytes& message,
                                          unsigned int offset, const Peer& from);
 
@@ -478,7 +468,7 @@ class Lookup : public Executable {
   std::mutex m_mutexCVJoined;
   std::condition_variable cv_waitJoined;
 
-  bool InitMining(uint32_t lookupIndex);
+  bool InitMining();
 
   /// Helper variables used by new node synchronization
   bool m_startedPoW = false;
@@ -489,10 +479,6 @@ class Lookup : public Executable {
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
-
-  // Start PoW variables
-  std::set<Peer> m_getStartPoWPeerSet;
-  std::mutex m_mutexGetStartPoWPeerSet;
 
   // For use by lookup for dispatching transactions
   std::atomic<bool> m_sendSCCallsToDS{};

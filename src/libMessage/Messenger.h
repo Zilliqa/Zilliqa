@@ -606,30 +606,6 @@ class Messenger {
                                          const unsigned int offset,
                                          PubKey& lookupPubKey,
                                          VectorOfPeer& nodes);
-  static bool GetLookupSetRaiseStartPoW(const bytes& src,
-                                        const unsigned int offset,
-                                        uint8_t& msgType, uint64_t& blockNumber,
-                                        PubKey& dsPubKey);
-  static bool SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
-                                        const uint8_t msgType,
-                                        const uint64_t blockNumber,
-                                        const PairOfKey& dsKey);
-  static bool SetLookupGetStartPoWFromSeed(bytes& dst,
-                                           const unsigned int offset,
-                                           const uint32_t listenPort,
-                                           const uint64_t blockNumber,
-                                           const PairOfKey& keys);
-  static bool GetLookupGetStartPoWFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           uint32_t& listenPort,
-                                           uint64_t& blockNumber);
-  static bool SetLookupSetStartPoWFromSeed(bytes& dst,
-                                           const unsigned int offset,
-                                           const uint64_t blockNumber,
-                                           const PairOfKey& lookupKey);
-  static bool GetLookupSetStartPoWFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           PubKey& lookupPubKey);
   // UNUSED
   static bool SetLookupGetShardsFromSeed(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
