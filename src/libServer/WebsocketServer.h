@@ -163,6 +163,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
  private:
   /// Singleton constructor and start service immediately
   WebsocketServer() {
+    m_server.clear_access_channels(websocketpp::log::alevel::all);
     if (!start()) {
       LOG_GENERAL(FATAL, "WebsocketServer start failed");
       ENABLE_WEBSOCKET = false;
@@ -197,6 +198,7 @@ class WebsocketServer : public Singleton<WebsocketServer> {
                          const websocketserver::message_ptr& msg);
   // static void on_fail(const websocketpp::connection_hdl& hdl);
   static void on_close(const websocketpp::connection_hdl& hdl);
+  static void on_http(const websocketpp::connection_hdl& hdl);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
