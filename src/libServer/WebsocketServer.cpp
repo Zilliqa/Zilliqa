@@ -69,6 +69,7 @@ bool WebsocketServer::start() {
   m_server.set_message_handler(&WebsocketServer::on_message);
   // m_server.set_fail_handler(&WebsocketServer::on_fail);
   m_server.set_close_handler(&WebsocketServer::on_close);
+  m_server.set_http_handler(&WebsocketServer::on_http);
 
   try {
     m_server.listen(WEBSOCKET_PORT);
@@ -349,6 +350,25 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
 
 void WebsocketServer::on_close(const connection_hdl& hdl) {
   closeSocket(hdl, "connection closed", websocketpp::close::status::going_away);
+}
+
+void WebsocketServer::on_http(const connection_hdl& hdl) {
+  websocketserver::connection_ptr con = m_server.get_con_from_hdl(hdl);
+  // websocketpp::http::parser::request rt = con->get_request();
+  // const string& strUri = rt.get_uri();
+  // const string& strMethod = rt.get_method();
+  // const string& strBody = rt.get_body();
+  // const string& strVersion = rt.get_version();
+  // LOG_GENERAL(INFO, "received a" << strMethod << " of: " << strBody << " by:"
+  // << strUri.c_str());
+
+  string res = "got HTTP request with " +
+               to_string(con->get_request_body().size()) +
+               " bytes of body data.";
+  // LOG_GENERAL(INFO, res);
+
+  con->set_body(res);
+  con->set_status(websocketpp::http::status_code::ok);
 }
 
 void WebsocketServer::PrepareTxBlockAndTxHashes(
