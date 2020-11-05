@@ -176,23 +176,6 @@ bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
   return lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
 }
 
-bool Synchronizer::AttemptPoW(Lookup* lookup) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Synchronizer::AttemptPoW not expected to be called from "
-                "LookUp node.");
-    return true;
-  }
-
-  if (lookup->InitMining(uint32_t() - 1)) {
-    LOG_GENERAL(INFO, "new node attempted pow");
-    return true;
-  } else {
-    LOG_GENERAL(INFO, "new node did not attempt pow")
-    return false;
-  }
-}
-
 bool Synchronizer::FetchOfflineLookups(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

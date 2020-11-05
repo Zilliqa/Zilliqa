@@ -696,25 +696,9 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
       FULL_DATASET_MINE);
 
   if (m_mode == PRIMARY_DS) {
-    // Notify lookup that it's time to do PoW
-    bytes startpow_message = {MessageType::LOOKUP,
-                              LookupInstructionType::RAISESTARTPOW};
-
-    if (!Messenger::SetLookupSetRaiseStartPoW(
-            startpow_message, MessageOffset::BODY,
-            (uint8_t)LookupInstructionType::RAISESTARTPOW,
-            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
-      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                "Messenger::SetLookupSetRaiseStartPoW failed.");
-      return;
-    }
-
-    m_mediator.m_lookup->SendMessageToLookupNodes(startpow_message);
-
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
-    // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
-    // and submit a PoW
-
+    // So let's add that to our wait time to allow new nodes to get last TxBlock
+    // + DSInfo and submit a PoW
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
@@ -742,8 +726,8 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
     std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
-    // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
-    // and submit a PoW
+    // So let's add that to our wait time to allow new nodes to get last TxBlock
+    // + DSInfo and submit a PoW
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
