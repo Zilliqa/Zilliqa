@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(salarybot) {
   employee3Addr = Account::GetAddressFromPublicKey(employee3.second);
 
   AccountStore::GetInstance().AddAccountTemp(
-      ownerAddr, make_shared<Account>(2000000000000, nonce));
+      ownerAddr, make_shared<Account>(200000000000000, nonce));
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
@@ -259,6 +259,12 @@ BOOST_AUTO_TEST_CASE(salarybot) {
     TxnStatus ets;
     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr, ets);
     nonce++;
+    if (!deploy) {
+      shared_ptr<Account> contract;
+      unique_lock<mutex> g(AccountStore::GetInstance().GetAccountWMutexTemp(
+          recipient, contract));
+      LOG_GENERAL(INFO, "contract balance:" << contract->GetBalance());
+    }
   }
 
   shared_ptr<Account> e2, e3;
@@ -293,7 +299,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   AccountStore::GetInstance().AddAccountTemp(
       ownerAddr, make_shared<Account>(2000000000000000, nonce));
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
   // Deploying the library 1
   libAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Library 1 address: " << libAddr1);
@@ -332,7 +338,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   }
   nonce++;
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
   // Deploying the library 2
   libAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Library 2 address: " << libAddr2);
@@ -397,7 +403,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
                                 LIBRARY_CODE_EXTENSION),
       "libAddr1 cache still exists for libAddr2 deployment after cache clean");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
   // deploying contract
   contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "Contract address: " << contrAddr1);
@@ -453,7 +459,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
                                     libAddr2.hex() + LIBRARY_CODE_EXTENSION),
       "libAddr1/2 cache not exists for contAddr1 deployment");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
   // Execute message_1.
   bytes dataHi;
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t3.message, dataHi);
@@ -541,7 +547,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   }
   nonce++;
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Execute message_1, the Donate transaction.
   bytes dataDonate;
@@ -572,7 +578,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
   BOOST_CHECK_MESSAGE(contrBal == amount, "Balance mis-match after Donate");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Do another donation from donor2
   ScillaTestUtil::ScillaTest t2;
@@ -613,7 +619,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                         "Balance mis-match after Donate2");
   }
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Let's try donor1 donating again, it shouldn't have an impact.
   // Execute message_3, the unsuccessful Donate transaction.
@@ -644,7 +650,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                         "Balance mis-match after Donate3");
   }
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Owner tries to get fund, fails
   ScillaTestUtil::ScillaTest t4;
@@ -685,7 +691,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                         "Balance mis-match after Donate4");
   }
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Donor1 ClaimsBack his funds. Succeeds.
   ScillaTestUtil::ScillaTest t5;
@@ -726,7 +732,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                         "Balance mis-match after Donate4");
   }
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
@@ -756,7 +762,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   LOG_GENERAL(INFO,
               "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Deploying the contract can use data from the 0th Scilla test.
   ScillaTestUtil::ScillaTest t0ping;
@@ -822,7 +828,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   LOG_GENERAL(INFO, "Deployed ping and pong contracts.");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Set addresses of ping and pong in pong and ping respectively.
   bytes data;
@@ -860,7 +866,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   LOG_GENERAL(INFO, "Finished setting ping-pong addresses in both contracts.");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Let's just ping now and see the ping-pong bounces.
   ScillaTestUtil::ScillaTest t1ping;
@@ -899,7 +905,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   LOG_GENERAL(INFO, "Ping and pong bounced back to reach 0. Successful.");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 }
 
 BOOST_AUTO_TEST_CASE(testChainCalls) {
@@ -931,7 +937,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   LOG_GENERAL(INFO, "aAddr: " << aAddr << " ; bAddr: " << bAddr
                               << " ; cAddr: " << cAddr);
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   // Deploying the contract can use data from the 1st Scilla test.
   ScillaTestUtil::ScillaTest tContrA;
@@ -1023,9 +1029,9 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 
   LOG_GENERAL(INFO, "Deployed contracts A, B, and C.");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
   // Transfer 100 each to contracts A, B, and C.
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 
   {
     Json::Value m;
@@ -1091,7 +1097,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   BOOST_CHECK_MESSAGE(aBal == 100 && bBal == 150 && cBal == 100,
                       "Call chain balance test failed.");
 
-  /* ------------------------------------------------------------------- */
+  /////////////////////////////////////////////////////////////////////////
 }
 
 bool mapHandler([[gnu::unused]] const std::string& index, const Json::Value& s,
@@ -1645,434 +1651,434 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   }
 }
 
-// BOOST_AUTO_TEST_CASE(testDEX) {
-//   INIT_STDOUT_LOGGER();
-//   LOG_MARKER();
+/*
+BOOST_AUTO_TEST_CASE(testDEX) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
-//   // 1. Bootstrap test case
-//   const unsigned int numHodlers[] = {10, 20, 30, 40, 50};
-//   const unsigned int numOrders = 10;
-//   std::string numTokensOwned = "1";
+  // 1. Bootstrap test case
+  const unsigned int numHodlers[] = {10, 20, 30, 40, 50};
+  const unsigned int numOrders = 10;
+  std::string numTokensOwned = "1";
 
-//   PairOfKey ownerToken1(priv1, {priv1});
-//   PairOfKey ownerToken2(priv2, {priv2});
-//   PairOfKey ownerDex(priv3, {priv3});
+  PairOfKey ownerToken1(priv1, {priv1});
+  PairOfKey ownerToken2(priv2, {priv2});
+  PairOfKey ownerDex(priv3, {priv3});
 
-//   Address ownerToken1Addr, ownerToken2Addr, ownerDexAddr, token1Addr,
-//       token2Addr, dexAddr;
+  Address ownerToken1Addr, ownerToken2Addr, ownerDexAddr, token1Addr,
+      token2Addr, dexAddr;
 
-//   uint64_t ownerToken1Nonce = 0;
-//   uint64_t ownerToken2Nonce = 0;
-//   uint64_t ownerDexNonce = 0;
+  uint64_t ownerToken1Nonce = 0;
+  uint64_t ownerToken2Nonce = 0;
+  uint64_t ownerDexNonce = 0;
 
-//   if (SCILLA_ROOT.empty()) {
-//     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-//     return;
-//   }
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
 
-//   AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-//   const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
-//   ownerToken1Addr = Account::GetAddressFromPublicKey(ownerToken1.second);
-//   ownerToken2Addr = Account::GetAddressFromPublicKey(ownerToken2.second);
-//   ownerDexAddr = Account::GetAddressFromPublicKey(ownerDex.second);
-//   AccountStore::GetInstance().AddAccountTemp(ownerToken1Addr,
-//                                              {bal, ownerToken1Nonce});
-//   AccountStore::GetInstance().AddAccountTemp(ownerToken2Addr,
-//                                              {bal, ownerToken2Nonce});
-//   AccountStore::GetInstance().AddAccountTemp(ownerDexAddr,
-//                                              {bal, ownerDexNonce});
+  ownerToken1Addr = Account::GetAddressFromPublicKey(ownerToken1.second);
+  ownerToken2Addr = Account::GetAddressFromPublicKey(ownerToken2.second);
+  ownerDexAddr = Account::GetAddressFromPublicKey(ownerDex.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerToken1Addr,
+                                             make_shared<Account>(bal,
+ownerToken1Nonce)); AccountStore::GetInstance().AddAccountTemp(ownerToken2Addr,
+                                             make_shared<Account>(bal,
+ownerToken2Nonce)); AccountStore::GetInstance().AddAccountTemp(ownerDexAddr,
+                                             make_shared<Account>(bal,
+ownerDexNonce));
 
-//   for (auto hodlers : numHodlers) {
-//     LOG_GENERAL(INFO, "\n\n===START TEST ITERATION===\n\n");
-//     // Seller sells Token A for Token B. Buyer buys Token A with Token B.
-//     // Execute makeOrder with Seller's private key
-//     // Execute fillOrder with Buyer's private key
+  for (auto hodlers : numHodlers) {
+    LOG_GENERAL(INFO, "\n\n===START TEST ITERATION===\n\n");
+    // Seller sells Token A for Token B. Buyer buys Token A with Token B.
+    // Execute makeOrder with Seller's private key
+    // Execute fillOrder with Buyer's private key
 
-//     // Deploy the token contracts using the 5th Scilla test case for
-//     // fungible-token.
-//     ScillaTestUtil::ScillaTest fungibleTokenT5;
-//     if (!ScillaTestUtil::GetScillaTest(fungibleTokenT5, "fungible-token", 5))
-//     {
-//       LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_5;.");
-//       return;
-//     }
+    // Deploy the token contracts using the 5th Scilla test case for
+    // fungible-token.
+    ScillaTestUtil::ScillaTest fungibleTokenT5;
+    if (!ScillaTestUtil::GetScillaTest(fungibleTokenT5, "fungible-token", 5))
+    {
+      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_5;.");
+      return;
+    }
 
-//     ScillaTestUtil::RemoveThisAddressFromInit(fungibleTokenT5.init);
-//     ScillaTestUtil::RemoveCreationBlockFromInit(fungibleTokenT5.init);
-//     uint64_t bnum =
-//         ScillaTestUtil::GetBlockNumberFromJson(fungibleTokenT5.blockchain);
-//     std::string initStr =
-//         JSONUtils::GetInstance().convertJsontoStr(fungibleTokenT5.init);
+    ScillaTestUtil::RemoveThisAddressFromInit(fungibleTokenT5.init);
+    ScillaTestUtil::RemoveCreationBlockFromInit(fungibleTokenT5.init);
+    uint64_t bnum =
+        ScillaTestUtil::GetBlockNumberFromJson(fungibleTokenT5.blockchain);
+    std::string initStr =
+        JSONUtils::GetInstance().convertJsontoStr(fungibleTokenT5.init);
 
-//     bytes deployTokenData(initStr.begin(), initStr.end());
+    bytes deployTokenData(initStr.begin(), initStr.end());
 
-//     // Deploy TOKEN 1
-//     token1Addr =
-//         Account::GetAddressForContract(ownerToken1Addr, ownerToken1Nonce);
-//     Transaction txDeployToken1(1, ownerToken1Nonce, NullAddress, ownerToken1,
-//     0,
-//                                PRECISION_MIN_VALUE, 500000,
-//                                fungibleTokenT5.code, deployTokenData);
-//     TransactionReceipt trDeplyoToken1;
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         bnum, 1, true, txDeployToken1, trDeplyoToken1);
-//     Account* token1Account =
-//         AccountStore::GetInstance().GetAccountTemp(token1Addr);
-//     ownerToken1Nonce++;
-//     BOOST_CHECK_MESSAGE(token1Account != nullptr,
-//                         "Error with creation of token 1 account");
+    // Deploy TOKEN 1
+    token1Addr =
+        Account::GetAddressForContract(ownerToken1Addr, ownerToken1Nonce);
+    Transaction txDeployToken1(1, ownerToken1Nonce, NullAddress, ownerToken1,
+    0,
+                               PRECISION_MIN_VALUE, 500000,
+                               fungibleTokenT5.code, deployTokenData);
+    TransactionReceipt trDeployToken1;
+    TxnStatus error_code;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txDeployToken1, trDeployToken1, error_code);
+    shared_ptr<Account> token1Account;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(token1Addr,
+token1Account); ownerToken1Nonce++; BOOST_CHECK_MESSAGE(token1Account !=
+nullptr, "Error with creation of token 1 account");
 
-//     // Deploy TOKEN 2
-//     token2Addr =
-//         Account::GetAddressForContract(ownerToken2Addr, ownerToken2Nonce);
-//     Transaction txDeployToken2(1, ownerToken2Nonce, NullAddress, ownerToken2,
-//     0,
-//                                PRECISION_MIN_VALUE, 500000,
-//                                fungibleTokenT5.code, deployTokenData);
-//     TransactionReceipt trDeployToken2;
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         bnum, 1, true, txDeployToken2, trDeployToken2);
-//     Account* token2Account =
-//         AccountStore::GetInstance().GetAccountTemp(token2Addr);
-//     ownerToken2Nonce++;
-//     BOOST_CHECK_MESSAGE(token2Account != nullptr,
-//                         "Error with creation of token 2 account");
+    // Deploy TOKEN 2
+    token2Addr =
+        Account::GetAddressForContract(ownerToken2Addr, ownerToken2Nonce);
+    Transaction txDeployToken2(1, ownerToken2Nonce, NullAddress, ownerToken2,
+    0,
+                               PRECISION_MIN_VALUE, 500000,
+                               fungibleTokenT5.code, deployTokenData);
+    TransactionReceipt trDeployToken2;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txDeployToken2, trDeployToken2, error_code);
+    shared_ptr<Account> token2Account;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(token2Addr,
+token2Account); ownerToken2Nonce++; BOOST_CHECK_MESSAGE(token2Account !=
+nullptr, "Error with creation of token 2 account");
 
-//     // Insert hodlers artifically
-//     for (unsigned int i = 0; i < hodlers; i++) {
-//       bytes hodler(ACC_ADDR_SIZE);
-//       std::string hodlerAddr;
-//       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
-//       DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
-//       std::string hodlerNumTokens = "1";
+    // Insert hodlers artifically
+    for (unsigned int i = 0; i < hodlers; i++) {
+      bytes hodler(ACC_ADDR_SIZE);
+      std::string hodlerAddr;
+      RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
+      DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
+      std::string hodlerNumTokens = "1";
 
-//       Json::Value kvPair;
-//       kvPair["key"] = "0x" + hodlerAddr;
-//       kvPair["val"] = hodlerNumTokens;
+      Json::Value kvPair;
+      kvPair["key"] = "0x" + hodlerAddr;
+      kvPair["val"] = hodlerNumTokens;
 
-//       for (auto& it : fungibleTokenT5.state) {
-//         if (it["vname"] == "balances") {
-//           // we have to artifically insert the owner here
-//           if (i == 0) {
-//             Json::Value ownerBal;
-//             ownerBal["key"] = "0x" + ownerToken1Addr.hex();
-//             ownerBal["val"] = "88888888";
-//             it["value"][i] = ownerBal;
-//             continue;
-//           }
+      for (auto& it : fungibleTokenT5.state) {
+        if (it["vname"] == "balances") {
+          // we have to artifically insert the owner here
+          if (i == 0) {
+            Json::Value ownerBal;
+            ownerBal["key"] = "0x" + ownerToken1Addr.hex();
+            ownerBal["val"] = "88888888";
+            it["value"][i] = ownerBal;
+            continue;
+          }
 
-//           if (i == 1) {
-//             Json::Value ownerBal;
-//             ownerBal["key"] = "0x" + ownerToken2Addr.hex();
-//             ownerBal["val"] = "88888888";
-//             it["value"][i] = ownerBal;
-//             continue;
-//           }
+          if (i == 1) {
+            Json::Value ownerBal;
+            ownerBal["key"] = "0x" + ownerToken2Addr.hex();
+            ownerBal["val"] = "88888888";
+            it["value"][i] = ownerBal;
+            continue;
+          }
 
-//           it["value"][i] = kvPair;
-//         }
-//       }
-//     }
+          it["value"][i] = kvPair;
+        }
+      }
+    }
 
-//     std::map<std::string, bytes> token_state_entries_1;
-//     std::map<std::string, bytes> token_state_entries_2;
-//     // save the state
-//     for (auto& s : fungibleTokenT5.state) {
-//       std::string index = token1Addr.hex();
-//       if (s["vname"].asString() == "_balance") {
-//         continue;
-//       }
+    std::map<std::string, bytes> token_state_entries_1;
+    std::map<std::string, bytes> token_state_entries_2;
+    // save the state
+    for (auto& s : fungibleTokenT5.state) {
+      std::string index = token1Addr.hex();
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
 
-//       index += "." + s["vname"].asString();
-//       if (s["value"] == Json::arrayValue) {
-//         if (!mapHandler(index, s["value"], token_state_entries_1)) {
-//           LOG_GENERAL(WARNING, "state format is invalid");
-//           break;
-//         }
-//       } else {
-//         token_state_entries_1.emplace(
-//             index, DataConversion::StringToCharArray(
-//                        JSONUtils::GetInstance().convertJsontoStr(s["value"])));
-//       }
-//     }
-//     // save the state
-//     for (auto& s : fungibleTokenT5.state) {
-//       std::string index = token2Addr.hex();
-//       if (s["vname"].asString() == "_balance") {
-//         continue;
-//       }
+      index += "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], token_state_entries_1)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        token_state_entries_1.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
+    }
+    // save the state
+    for (auto& s : fungibleTokenT5.state) {
+      std::string index = token2Addr.hex();
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
 
-//       index += "." + s["vname"].asString();
-//       if (s["value"] == Json::arrayValue) {
-//         if (!mapHandler(index, s["value"], token_state_entries_2)) {
-//           LOG_GENERAL(WARNING, "state format is invalid");
-//           break;
-//         }
-//       } else {
-//         token_state_entries_2.emplace(
-//             index, DataConversion::StringToCharArray(
-//                        JSONUtils::GetInstance().convertJsontoStr(s["value"])));
-//       }
-//     }
-//     token1Account->UpdateStates(token1Addr, token_state_entries_1, {}, true);
-//     token2Account->UpdateStates(token2Addr, token_state_entries_2, {}, true);
+      index += "." + s["vname"].asString();
+      if (s["value"] == Json::arrayValue) {
+        if (!mapHandler(index, s["value"], token_state_entries_2)) {
+          LOG_GENERAL(WARNING, "state format is invalid");
+          break;
+        }
+      } else {
+        token_state_entries_2.emplace(
+            index, DataConversion::StringToCharArray(
+                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
+      }
+    }
+    token1Account->UpdateStates(token1Addr, token_state_entries_1, {}, true);
+    token2Account->UpdateStates(token2Addr, token_state_entries_2, {}, true);
 
-//     // Deploy DEX
-//     // Deploy the DEX contract with the 0th test case, but use custom
-//     // messages for makeOrder/fillOrder.
-//     ScillaTestUtil::ScillaTest dexT1;
-//     if (!ScillaTestUtil::GetScillaTest(dexT1, "simple-dex", 1)) {
-//       LOG_GENERAL(WARNING, "Unable to fetch test simple-dex_1.");
-//       return;
-//     }
+    // Deploy DEX
+    // Deploy the DEX contract with the 0th test case, but use custom
+    // messages for makeOrder/fillOrder.
+    ScillaTestUtil::ScillaTest dexT1;
+    if (!ScillaTestUtil::GetScillaTest(dexT1, "simple-dex", 1)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test simple-dex_1.");
+      return;
+    }
 
-//     // remove _creation_block (automatic insertion later).
-//     ScillaTestUtil::RemoveThisAddressFromInit(dexT1.init);
-//     ScillaTestUtil::RemoveCreationBlockFromInit(dexT1.init);
-//     for (auto& p : dexT1.init) {
-//       if (p["vname"].asString() == "contractOwner") {
-//         p["value"] = "0x" + ownerDexAddr.hex();
-//         break;
-//       }
-//     }
+    // remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveThisAddressFromInit(dexT1.init);
+    ScillaTestUtil::RemoveCreationBlockFromInit(dexT1.init);
+    for (auto& p : dexT1.init) {
+      if (p["vname"].asString() == "contractOwner") {
+        p["value"] = "0x" + ownerDexAddr.hex();
+        break;
+      }
+    }
 
-//     uint64_t dexBnum =
-//     ScillaTestUtil::GetBlockNumberFromJson(dexT1.blockchain); std::string
-//     dexInitStr =
-//         JSONUtils::GetInstance().convertJsontoStr(dexT1.init);
-//     bytes deployDexData(dexInitStr.begin(), dexInitStr.end());
+    uint64_t dexBnum =
+    ScillaTestUtil::GetBlockNumberFromJson(dexT1.blockchain); std::string
+    dexInitStr =
+        JSONUtils::GetInstance().convertJsontoStr(dexT1.init);
+    bytes deployDexData(dexInitStr.begin(), dexInitStr.end());
 
-//     dexAddr = Account::GetAddressForContract(ownerDexAddr, ownerDexNonce);
-//     Transaction txDeployDex(1, ownerDexNonce, NullAddress, ownerDex, 0,
-//                             PRECISION_MIN_VALUE, 500000, dexT1.code,
-//                             deployDexData);
-//     TransactionReceipt trDeployDex;
-//     auto startTimeDeployment = r_timer_start();
-//     AccountStore::GetInstance().UpdateAccountsTemp(dexBnum, 1, true,
-//                                                    txDeployDex, trDeployDex);
-//     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
-//     Account* dexAccount =
-//     AccountStore::GetInstance().GetAccountTemp(dexAddr);
-//     BOOST_CHECK_MESSAGE(dexAccount != nullptr,
-//                         "Error with creation of dex account");
-//     LOG_GENERAL(INFO, "\n\n=== Deployed DEX ===\n\n");
-//     LOG_GENERAL(INFO, "Contract size = "
-//                           << ScillaTestUtil::GetFileSize("input.scilla"));
-//     LOG_GENERAL(INFO, "Gas used (deployment) = " << trDeployDex.GetCumGas());
-//     LOG_GENERAL(INFO, "UpdateAccounts (deployment) (micro) = "
-//                           << timeElapsedDeployment);
-//     ownerDexNonce++;
+    dexAddr = Account::GetAddressForContract(ownerDexAddr, ownerDexNonce);
+    Transaction txDeployDex(1, ownerDexNonce, NullAddress, ownerDex, 0,
+                            PRECISION_MIN_VALUE, 500000, dexT1.code,
+                            deployDexData);
+    TransactionReceipt trDeployDex;
+    auto startTimeDeployment = r_timer_start();
+    AccountStore::GetInstance().UpdateAccountsTemp(dexBnum, 1, true,
+                                                   txDeployDex, trDeployDex,
+error_code); auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
+    shared_ptr<Account> dexAccount;
+    (void)AccountStore::GetInstance().GetAccountWMutexTemp(dexAddr, dexAccount);
+    BOOST_CHECK_MESSAGE(dexAccount != nullptr,
+                        "Error with creation of dex account");
+    LOG_GENERAL(INFO, "\n\n=== Deployed DEX ===\n\n");
+    LOG_GENERAL(INFO, "Contract size = "
+                          << ScillaTestUtil::GetFileSize("input.scilla"));
+    LOG_GENERAL(INFO, "Gas used (deployment) = " << trDeployDex.GetCumGas());
+    LOG_GENERAL(INFO, "UpdateAccounts (deployment) (micro) = "
+                          << timeElapsedDeployment);
+    ownerDexNonce++;
 
-//     // Artificially populate the order book
-//     Json::Value orderBook;
-//     Json::Value orderInfo;
-//     std::vector<Contract::StateEntry> dex_state_entries;
-//     for (unsigned int i = 0; i < numOrders; i++) {
-//       Json::Value info;
+    // Artificially populate the order book
+    Json::Value orderBook;
+    Json::Value orderInfo;
+    std::vector<Contract::StateEntry> dex_state_entries;
+    for (unsigned int i = 0; i < numOrders; i++) {
+      Json::Value info;
 
-//       bytes sender(ACC_ADDR_SIZE);
-//       std::string sender_str;
-//       DataConversion::Uint8VecToHexStr(sender, sender_str);
-//       RAND_bytes(sender.data(), ACC_ADDR_SIZE);
+      bytes sender(ACC_ADDR_SIZE);
+      std::string sender_str;
+      DataConversion::Uint8VecToHexStr(sender, sender_str);
+      RAND_bytes(sender.data(), ACC_ADDR_SIZE);
 
-//       bytes orderId(COMMON_HASH_SIZE);
-//       std::string orderId_str;
-//       DataConversion::Uint8VecToHexStr(orderId, orderId_str);
-//       RAND_bytes(orderId.data(), COMMON_HASH_SIZE);
-//       std::string orderIdHex = "0x" + orderId_str;
+      bytes orderId(COMMON_HASH_SIZE);
+      std::string orderId_str;
+      DataConversion::Uint8VecToHexStr(orderId, orderId_str);
+      RAND_bytes(orderId.data(), COMMON_HASH_SIZE);
+      std::string orderIdHex = "0x" + orderId_str;
 
-//       info["key"] = orderIdHex;
-//       info["val"]["constructor"] = "Pair";
-//       info["val"]["argtypes"][0] = "ByStr20";
-//       info["val"]["argtypes"][1] = "BNum";
-//       info["val"]["arguments"][0] = "0x" + sender_str;
-//       info["val"]["arguments"][1] = "168";
-//       orderInfo[i] = info;
+      info["key"] = orderIdHex;
+      info["val"]["constructor"] = "Pair";
+      info["val"]["argtypes"][0] = "ByStr20";
+      info["val"]["argtypes"][1] = "BNum";
+      info["val"]["arguments"][0] = "0x" + sender_str;
+      info["val"]["arguments"][1] = "168";
+      orderInfo[i] = info;
 
-//       // Token1
-//       Json::Value sell;
-//       sell["constructor"] = "Pair";
-//       sell["argtypes"][0] = "ByStr20";
-//       sell["argtypes"][1] = "Uint128";
-//       sell["arguments"][0] = "0x" + token1Addr.hex();
-//       sell["arguments"][1] = "1";
+      // Token1
+      Json::Value sell;
+      sell["constructor"] = "Pair";
+      sell["argtypes"][0] = "ByStr20";
+      sell["argtypes"][1] = "Uint128";
+      sell["arguments"][0] = "0x" + token1Addr.hex();
+      sell["arguments"][1] = "1";
 
-//       // Token 2
-//       Json::Value buy;
-//       buy["constructor"] = "Pair";
-//       buy["argtypes"][0] = "ByStr20";
-//       buy["argtypes"][1] = "Uint128";
-//       buy["arguments"][0] = "0x" + token2Addr.hex();
-//       buy["arguments"][1] = "1";
+      // Token 2
+      Json::Value buy;
+      buy["constructor"] = "Pair";
+      buy["argtypes"][0] = "ByStr20";
+      buy["argtypes"][1] = "Uint128";
+      buy["arguments"][0] = "0x" + token2Addr.hex();
+      buy["arguments"][1] = "1";
 
-//       Json::Value order;
-//       order["key"] = orderIdHex;
-//       order["val"]["constructor"] = "Pair";
-//       order["val"]["argtypes"][0] = "Pair (ByStr20) (Uint128)";
-//       order["val"]["argtypes"][1] = "Pair (ByStr20) (Uint128)";
-//       order["val"]["arguments"][0] = sell;
-//       order["val"]["arguments"][1] = buy;
+      Json::Value order;
+      order["key"] = orderIdHex;
+      order["val"]["constructor"] = "Pair";
+      order["val"]["argtypes"][0] = "Pair (ByStr20) (Uint128)";
+      order["val"]["argtypes"][1] = "Pair (ByStr20) (Uint128)";
+      order["val"]["arguments"][0] = sell;
+      order["val"]["arguments"][1] = buy;
 
-//       orderBook[i] = order;
-//     }
+      orderBook[i] = order;
+    }
 
-//     std::map<std::string, bytes> state_entries;
-//     std::string index = dexAddr.hex();
-//     std::string orderbook_index = index + "." + "orderbook";
-//     mapHandler(orderbook_index, orderBook, state_entries);
-//     std::string orderinfo_index = index + "." + "orderInfo";
-//     mapHandler(orderinfo_index, orderInfo, state_entries);
+    std::map<std::string, bytes> state_entries;
+    std::string index = dexAddr.hex();
+    std::string orderbook_index = index + "." + "orderbook";
+    mapHandler(orderbook_index, orderBook, state_entries);
+    std::string orderinfo_index = index + "." + "orderInfo";
+    mapHandler(orderinfo_index, orderInfo, state_entries);
 
-//     dexAccount->UpdateStates(dexAddr, state_entries, {}, true);
+    dexAccount->UpdateStates(dexAddr, state_entries, {}, true);
 
-//     // Approve DEX on Token A and Token B respectively
-//     Json::Value dataApprove = fungibleTokenT5.message;
-//     dataApprove["params"][0]["value"] = "0x" + dexAddr.hex();
-//     bytes dataApproveBytes;
-//     ScillaTestUtil::PrepareMessageData(dataApprove, dataApproveBytes);
+    // Approve DEX on Token A and Token B respectively
+    Json::Value dataApprove = fungibleTokenT5.message;
+    dataApprove["params"][0]["value"] = "0x" + dexAddr.hex();
+    bytes dataApproveBytes;
+    ScillaTestUtil::PrepareMessageData(dataApprove, dataApproveBytes);
 
-//     // Execute Approve on Token A in favour of DEX
-//     Transaction txApproveToken1(1, ownerToken1Nonce, token1Addr, ownerToken1,
-//     0,
-//                                 PRECISION_MIN_VALUE, 88888888, {},
-//                                 dataApproveBytes);
-//     TransactionReceipt trApproveToken1;
+    // Execute Approve on Token A in favour of DEX
+    Transaction txApproveToken1(1, ownerToken1Nonce, token1Addr, ownerToken1,
+    0,
+                                PRECISION_MIN_VALUE, 88888888, {},
+                                dataApproveBytes);
+    TransactionReceipt trApproveToken1;
 
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         bnum, 1, true, txApproveToken1, trApproveToken1);
-//     ownerToken1Nonce++;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txApproveToken1, trApproveToken1, error_code);
+    ownerToken1Nonce++;
 
-//     // Execute Approve on Token B in favour of DEX
-//     Transaction txApproveToken2(1, ownerToken2Nonce, token2Addr, ownerToken2,
-//     0,
-//                                 PRECISION_MIN_VALUE, 88888888, {},
-//                                 dataApproveBytes);
-//     TransactionReceipt trApproveToken2;
+    // Execute Approve on Token B in favour of DEX
+    Transaction txApproveToken2(1, ownerToken2Nonce, token2Addr, ownerToken2,
+    0,
+                                PRECISION_MIN_VALUE, 88888888, {},
+                                dataApproveBytes);
+    TransactionReceipt trApproveToken2;
 
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         bnum, 1, true, txApproveToken2, trApproveToken2);
-//     ownerToken2Nonce++;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txApproveToken2, trApproveToken2, error_code);
+    ownerToken2Nonce++;
 
-//     // Execute updateAddress as dexOwner
-//     Json::Value dataUpdateAddress = dexT1.message;
-//     dataUpdateAddress["params"][0]["value"] = "0x" + ownerDexAddr.hex();
+    // Execute updateAddress as dexOwner
+    Json::Value dataUpdateAddress = dexT1.message;
+    dataUpdateAddress["params"][0]["value"] = "0x" + ownerDexAddr.hex();
 
-//     bytes dataUpdateAddressBytes;
-//     ScillaTestUtil::PrepareMessageData(dataUpdateAddress,
-//                                        dataUpdateAddressBytes);
+    bytes dataUpdateAddressBytes;
+    ScillaTestUtil::PrepareMessageData(dataUpdateAddress,
+                                       dataUpdateAddressBytes);
 
-//     Transaction txUpdateAddress(1, ownerDexNonce, dexAddr, ownerDex, 0,
-//                                 PRECISION_MIN_VALUE, 88888888, {},
-//                                 dataUpdateAddressBytes);
-//     TransactionReceipt trUpdateAddress;
+    Transaction txUpdateAddress(1, ownerDexNonce, dexAddr, ownerDex, 0,
+                                PRECISION_MIN_VALUE, 88888888, {},
+                                dataUpdateAddressBytes);
+    TransactionReceipt trUpdateAddress;
 
-//     AccountStore::GetInstance().UpdateAccountsTemp(
-//         bnum, 1, true, txUpdateAddress, trUpdateAddress);
-//     ownerDexNonce++;
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txUpdateAddress, trUpdateAddress, error_code);
+    ownerDexNonce++;
 
-//     // Execute makeOrder as ownerToken1
-//     Json::Value dataMakeOrder = dexT1.message;
-//     Json::Value dataMakeOrderParams;
+    // Execute makeOrder as ownerToken1
+    Json::Value dataMakeOrder = dexT1.message;
+    Json::Value dataMakeOrderParams;
 
-//     dataMakeOrder["_tag"] = "makeOrder";
+    dataMakeOrder["_tag"] = "makeOrder";
 
-//     dataMakeOrderParams[0]["vname"] = "tokenA";
-//     dataMakeOrderParams[0]["type"] = "ByStr20";
-//     dataMakeOrderParams[0]["value"] = "0x" + token1Addr.hex();
+    dataMakeOrderParams[0]["vname"] = "tokenA";
+    dataMakeOrderParams[0]["type"] = "ByStr20";
+    dataMakeOrderParams[0]["value"] = "0x" + token1Addr.hex();
 
-//     dataMakeOrderParams[1]["vname"] = "tokenB";
-//     dataMakeOrderParams[1]["type"] = "ByStr20";
-//     dataMakeOrderParams[1]["value"] = "0x" + token2Addr.hex();
+    dataMakeOrderParams[1]["vname"] = "tokenB";
+    dataMakeOrderParams[1]["type"] = "ByStr20";
+    dataMakeOrderParams[1]["value"] = "0x" + token2Addr.hex();
 
-//     dataMakeOrderParams[2]["vname"] = "valueA";
-//     dataMakeOrderParams[2]["type"] = "Uint128";
-//     dataMakeOrderParams[2]["value"] = "168";
+    dataMakeOrderParams[2]["vname"] = "valueA";
+    dataMakeOrderParams[2]["type"] = "Uint128";
+    dataMakeOrderParams[2]["value"] = "168";
 
-//     dataMakeOrderParams[3]["vname"] = "valueB";
-//     dataMakeOrderParams[3]["type"] = "Uint128";
-//     dataMakeOrderParams[3]["value"] = "168";
+    dataMakeOrderParams[3]["vname"] = "valueB";
+    dataMakeOrderParams[3]["type"] = "Uint128";
+    dataMakeOrderParams[3]["value"] = "168";
 
-//     dataMakeOrderParams[4]["vname"] = "expirationBlock";
-//     dataMakeOrderParams[4]["type"] = "BNum";
-//     dataMakeOrderParams[4]["value"] = "200";
+    dataMakeOrderParams[4]["vname"] = "expirationBlock";
+    dataMakeOrderParams[4]["type"] = "BNum";
+    dataMakeOrderParams[4]["value"] = "200";
 
-//     dataMakeOrder["params"] = dataMakeOrderParams;
+    dataMakeOrder["params"] = dataMakeOrderParams;
 
-//     bytes dataMakeOrderBytes;
-//     ScillaTestUtil::PrepareMessageData(dataMakeOrder, dataMakeOrderBytes);
+    bytes dataMakeOrderBytes;
+    ScillaTestUtil::PrepareMessageData(dataMakeOrder, dataMakeOrderBytes);
 
-//     Transaction txMakeOrder(1, ownerToken1Nonce, dexAddr, ownerToken1, 0,
-//                             PRECISION_MIN_VALUE, 88888888, {},
-//                             dataMakeOrderBytes);
-//     TransactionReceipt trMakeOrder;
+    Transaction txMakeOrder(1, ownerToken1Nonce, dexAddr, ownerToken1, 0,
+                            PRECISION_MIN_VALUE, 88888888, {},
+                            dataMakeOrderBytes);
+    TransactionReceipt trMakeOrder;
 
-//     LOG_GENERAL(INFO, "\n\n=== EXECUTING makeOrder ===\n\n");
-//     auto startMakeOrder = r_timer_start();
-//     AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true,
-//     txMakeOrder,
-//                                                    trMakeOrder);
-//     auto timeMakeOrder = r_timer_end(startMakeOrder);
-//     ownerToken1Nonce++;
+    LOG_GENERAL(INFO, "\n\n=== EXECUTING makeOrder ===\n\n");
+    auto startMakeOrder = r_timer_start();
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txMakeOrder,
+trMakeOrder, error_code); auto timeMakeOrder = r_timer_end(startMakeOrder);
+    ownerToken1Nonce++;
 
-//     // At this point:
-//     // - sender's balance should have decreased, because the DEX contract
-//     // will have taken custody of the token.
-//     // - there should be an additional order in simple-dex.
-//     Json::Value token1State;
-//     BOOST_CHECK_MESSAGE(
-//         token1Account->FetchStateJson(token1State, "", {}, true),
-//         "Fetch token1State failed");
-//     for (auto& s : token1State) {
-//       if (s["vname"] == "balances") {
-//         for (auto& hodl : s["value"]) {
-//           if (hodl["key"] == "0x" + ownerToken1Addr.hex()) {
-//             BOOST_CHECK_MESSAGE(hodl["val"] == "88888720",
-//                                 "Owner 1's balance did not decrease!");
-//             LOG_GENERAL(INFO, "Owner 1 balance = " << hodl["val"]);
-//           }
-//         }
-//       }
-//     }
+    // At this point:
+    // - sender's balance should have decreased, because the DEX contract
+    // will have taken custody of the token.
+    // - there should be an additional order in simple-dex.
+    Json::Value token1State;
+    BOOST_CHECK_MESSAGE(
+        token1Account->FetchStateJson(token1State, "", {}, true),
+        "Fetch token1State failed");
+    for (auto& s : token1State) {
+      if (s["vname"] == "balances") {
+        for (auto& hodl : s["value"]) {
+          if (hodl["key"] == "0x" + ownerToken1Addr.hex()) {
+            BOOST_CHECK_MESSAGE(hodl["val"] == "88888720",
+                                "Owner 1's balance did not decrease!");
+            LOG_GENERAL(INFO, "Owner 1 balance = " << hodl["val"]);
+          }
+        }
+      }
+    }
 
-//     Json::Value logs = trMakeOrder.GetJsonValue();
-//     std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
-//     LOG_GENERAL(INFO, "New order ID = " << id);
+    Json::Value logs = trMakeOrder.GetJsonValue();
+    std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
+    LOG_GENERAL(INFO, "New order ID = " << id);
 
-//     Json::Value simpleDexState;
-//     BOOST_CHECK_MESSAGE(
-//         dexAccount->FetchStateJson(simpleDexState, "", {}, true),
-//         "Fetch token1State failed");
-//     bool hasNewOrder = false;
+    Json::Value simpleDexState;
+    BOOST_CHECK_MESSAGE(
+        dexAccount->FetchStateJson(simpleDexState, "", {}, true),
+        "Fetch token1State failed");
+    bool hasNewOrder = false;
 
-//     for (auto& s : simpleDexState) {
-//       LOG_GENERAL(INFO, "s: " <<
-//       JSONUtils::GetInstance().convertJsontoStr(s));
-//       // if (s["vname"] == "orderbook") {
-//       //   for (auto& ord : s["value"]) {
-//       //     if (ord["key"] == id) {
-//       //       hasNewOrder = true;
-//       //       LOG_GENERAL(INFO, "New order = " << ord["val"]);
-//       //     }
-//       //   }
-//       // }
-//     }
+    for (auto& s : simpleDexState) {
+      LOG_GENERAL(INFO, "s: " <<
+      JSONUtils::GetInstance().convertJsontoStr(s));
+      // if (s["vname"] == "orderbook") {
+      //   for (auto& ord : s["value"]) {
+      //     if (ord["key"] == id) {
+      //       hasNewOrder = true;
+      //       LOG_GENERAL(INFO, "New order = " << ord["val"]);
+      //     }
+      //   }
+      // }
+    }
 
-//     BOOST_CHECK_MESSAGE(hasNewOrder == true,
-//                         "Did not receive a new order in simple-dex!");
+    BOOST_CHECK_MESSAGE(hasNewOrder == true,
+                        "Did not receive a new order in simple-dex!");
 
-//     LOG_GENERAL(
-//         INFO, "Size of output = " <<
-//         ScillaTestUtil::GetFileSize("output.json"))
-//     LOG_GENERAL(INFO, "Size of map (Token A) = " << hodlers);
-//     LOG_GENERAL(INFO, "Size of map (Token B) = " << hodlers);
-//     LOG_GENERAL(INFO, "Receipt makeOrder = " << trMakeOrder.GetString());
-//     LOG_GENERAL(INFO, "Gas used (makeOrder) = " << trMakeOrder.GetCumGas());
-//     LOG_GENERAL(INFO, "Time elapsed (updateAccount) = " << timeMakeOrder);
-//     LOG_GENERAL(INFO, "\n\n=== END TEST ITERATION ===\n\n");
-//   }
-// }
+    LOG_GENERAL(
+        INFO, "Size of output = " <<
+        ScillaTestUtil::GetFileSize("output.json"))
+    LOG_GENERAL(INFO, "Size of map (Token A) = " << hodlers);
+    LOG_GENERAL(INFO, "Size of map (Token B) = " << hodlers);
+    LOG_GENERAL(INFO, "Receipt makeOrder = " << trMakeOrder.GetString());
+    LOG_GENERAL(INFO, "Gas used (makeOrder) = " << trMakeOrder.GetCumGas());
+    LOG_GENERAL(INFO, "Time elapsed (updateAccount) = " << timeMakeOrder);
+    LOG_GENERAL(INFO, "\n\n=== END TEST ITERATION ===\n\n");
+  }
+}
+*/
 
 BOOST_AUTO_TEST_CASE(testCreateContractJsonOutput) {
   std::string scillaOutput =
@@ -2114,6 +2120,7 @@ BOOST_AUTO_TEST_CASE(testCreateContractJsonOutput) {
   }
 }
 
+/*
 BOOST_AUTO_TEST_CASE(simplemap) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
@@ -2281,5 +2288,6 @@ BOOST_AUTO_TEST_CASE(simplemap) {
   //   12000,
   //                       "multi message failed");
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()

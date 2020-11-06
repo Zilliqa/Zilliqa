@@ -303,13 +303,17 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
                                       const uint128_t& amount) {
+  bool addAccount = false;
   {
     std::shared_ptr<Account> acc;
     unique_lock<std::mutex> g(GetAccountWMutexTemp(rewardee, acc));
     if (acc == nullptr) {
-      g.unlock();
-      m_accountStoreTemp->AddAccount(rewardee, make_shared<Account>(0, 0));
+      addAccount = true;
     }
+  }
+
+  if (addAccount) {
+    m_accountStoreTemp->AddAccount(rewardee, make_shared<Account>(0, 0));
   }
 
   return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee, amount);

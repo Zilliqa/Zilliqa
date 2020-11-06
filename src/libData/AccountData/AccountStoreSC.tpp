@@ -1315,7 +1315,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       LOG_GENERAL(INFO, "Process new message");
 
       Address recipient;
-      std::shared_ptr<Account> account;
+
       // a buffer for `ret` flag to be reset per loop
       bool t_ret = ret;
 
@@ -1346,6 +1346,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       bool exist = true;
       {
+        std::shared_ptr<Account> account;
         std::unique_lock<std::mutex> g(
             m_accountStoreAtomic->GetAccountWMutex(recipient, account));
         if (account == nullptr) {
@@ -1368,83 +1369,93 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       bool result = true;
       Json::Value input_message;
 
+      bool non_contract_recipient = false;
       {
+        std::shared_ptr<Account> account;
         std::unique_lock<std::mutex> g(
             m_accountStoreAtomic->GetAccountWMutex(recipient, account));
 
         // Recipient is non-contract
         if (!account->isContract()) {
+          non_contract_recipient = true;
           LOG_GENERAL(INFO, "The recipient is non-contract");
-          g.unlock();
-          if (!TransferBalanceAtomic(curContractAddr, recipient, m_curAmount)) {
-            receipt.AddError(BALANCE_TRANSFER_FAILED);
-            return false;
-          } else {
-            t_ret = true;
-            g.lock();
-          }
         }
+      }
 
-        // Recipient is contract
-        // _tag field is empty
-        if (msg["_tag"].asString().empty()) {
-          LOG_GENERAL(INFO,
-                      "_tag in the scilla output is empty when invoking a "
-                      "contract, transaction finished");
-          t_ret = true;
-        }
-
-        m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
-        receipt.AddTransition(curContractAddr, msg, tree_depth);
-
-        if (ENABLE_CHECK_PERFORMANCE_LOG) {
-          LOG_GENERAL(DEBUG,
-                      "LDB Write (microseconds) = " << r_timer_end(tpStart));
-          LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
-        }
-
-        if (t_ret) {
-          // return true;
-          continue;
-        }
-
-        LOG_GENERAL(INFO, "Call another contract in chain");
-        receipt.AddEdge();
-        ++m_curEdges;
-
-        // deduct scilla runner invoke gas
-        if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
-          LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
-          receipt.AddError(GAS_NOT_SUFFICIENT);
+      if (non_contract_recipient) {
+        if (!TransferBalanceAtomic(curContractAddr, recipient, m_curAmount)) {
+          receipt.AddError(BALANCE_TRANSFER_FAILED);
           return false;
         } else {
-          gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+          t_ret = true;
         }
+      }
 
-        // check whether the recipient contract is in the same shard with the
-        // current contract
-        if (!m_curIsDS &&
-            (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
-             Transaction::GetShardIndex(recipient, m_curNumShards))) {
-          LOG_GENERAL(WARNING,
-                      "another contract doesn't belong to the same shard with "
-                      "current contract");
-          receipt.AddError(CHAIN_CALL_DIFF_SHARD);
-          return false;
-        }
+      // Recipient is contract
+      // _tag field is empty
+      if (msg["_tag"].asString().empty()) {
+        LOG_GENERAL(INFO,
+                    "_tag in the scilla output is empty when invoking a "
+                    "contract, transaction finished");
+        t_ret = true;
+      }
 
-        if (m_curEdges > MAX_CONTRACT_EDGES) {
-          LOG_GENERAL(
-              WARNING,
-              "maximum contract edges reached, cannot call another contract");
-          receipt.AddError(MAX_EDGES_REACHED);
-          return false;
-        }
+      m_storageRootUpdateBufferAtomic.emplace(curContractAddr);
+      receipt.AddTransition(curContractAddr, msg, tree_depth);
 
-        input_message["_sender"] = "0x" + curContractAddr.hex();
-        input_message["_amount"] = msg["_amount"];
-        input_message["_tag"] = msg["_tag"];
-        input_message["params"] = msg["params"];
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        LOG_GENERAL(DEBUG,
+                    "LDB Write (microseconds) = " << r_timer_end(tpStart));
+        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
+      }
+
+      if (t_ret) {
+        // return true;
+        continue;
+      }
+
+      LOG_GENERAL(INFO, "Call another contract in chain");
+      receipt.AddEdge();
+      ++m_curEdges;
+
+      // deduct scilla runner invoke gas
+      if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
+        receipt.AddError(GAS_NOT_SUFFICIENT);
+        return false;
+      } else {
+        gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+      }
+
+      // check whether the recipient contract is in the same shard with the
+      // current contract
+      if (!m_curIsDS &&
+          (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
+           Transaction::GetShardIndex(recipient, m_curNumShards))) {
+        LOG_GENERAL(WARNING,
+                    "another contract doesn't belong to the same shard with "
+                    "current contract");
+        receipt.AddError(CHAIN_CALL_DIFF_SHARD);
+        return false;
+      }
+
+      if (m_curEdges > MAX_CONTRACT_EDGES) {
+        LOG_GENERAL(
+            WARNING,
+            "maximum contract edges reached, cannot call another contract");
+        receipt.AddError(MAX_EDGES_REACHED);
+        return false;
+      }
+
+      input_message["_sender"] = "0x" + curContractAddr.hex();
+      input_message["_amount"] = msg["_amount"];
+      input_message["_tag"] = msg["_tag"];
+      input_message["params"] = msg["params"];
+
+      {
+        std::shared_ptr<Account> account;
+        std::unique_lock<std::mutex> g(
+            m_accountStoreAtomic->GetAccountWMutex(recipient, account));
 
         if (!account->GetContractAuxiliaries(is_library, scilla_version,
                                              extlibs)) {
@@ -1452,35 +1463,38 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
           receipt.AddError(INTERNAL_ERROR);
           return false;
         }
+      }
 
-        m_scillaIPCServer->setContractAddressVer(recipient, scilla_version);
+      m_scillaIPCServer->setContractAddressVer(recipient, scilla_version);
 
-        if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
-          LOG_GENERAL(WARNING, "ScillaLib disabled");
-          return false;
-        }
+      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+        LOG_GENERAL(WARNING, "ScillaLib disabled");
+        return false;
+      }
 
-        if (scilla_version != pre_scilla_version) {
-          LOG_GENERAL(WARNING, "Scilla version inconsistent");
-          receipt.AddError(VERSION_INCONSISTENT);
-          return false;
-        }
+      if (scilla_version != pre_scilla_version) {
+        LOG_GENERAL(WARNING, "Scilla version inconsistent");
+        receipt.AddError(VERSION_INCONSISTENT);
+        return false;
+      }
 
-        if (is_library) {
-          LOG_GENERAL(WARNING, "Library being called");
-          receipt.AddError(LIBRARY_AS_RECIPIENT);
-          return false;
-        }
+      if (is_library) {
+        LOG_GENERAL(WARNING, "Library being called");
+        receipt.AddError(LIBRARY_AS_RECIPIENT);
+        return false;
+      }
 
-        g.unlock();
-        std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-        if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
-          LOG_GENERAL(WARNING, "PopulateExtlibsExports");
-          receipt.AddError(LIBRARY_EXTRACTION_FAILED);
-          return false;
-        }
-        g.lock();
+      std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
+      if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+        LOG_GENERAL(WARNING, "PopulateExtlibsExports");
+        receipt.AddError(LIBRARY_EXTRACTION_FAILED);
+        return false;
+      }
 
+      {
+        std::shared_ptr<Account> account;
+        std::unique_lock<std::mutex> g(
+            m_accountStoreAtomic->GetAccountWMutex(recipient, account));
         if (!ExportCallContractFiles(*account, input_message,
                                      extlibs_exports)) {
           LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
@@ -1567,20 +1581,7 @@ void AccountStoreSC<MAP>::CommitTransferAtomic() {
   std::shared_ptr<std::unordered_map<Address, std::shared_ptr<Account>>> accs;
   std::unique_lock<std::mutex> g(m_accountStoreAtomic->GetAccounts(accs));
   for (const auto& entry : *accs) {
-    bool addAccount = false;
-    {
-      std::shared_ptr<Account> account;
-      std::unique_lock<std::mutex> g(
-          this->GetAccountWMutex(entry.first, account));
-      if (account != nullptr) {
-        account = entry.second;
-      } else {
-        addAccount = true;
-      }
-    }
-    if (addAccount) {
-      this->AddAccount(entry.first, entry.second);
-    }
+    this->AddAccount(entry.first, entry.second, true);
   }
 }
 

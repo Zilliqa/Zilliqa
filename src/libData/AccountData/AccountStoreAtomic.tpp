@@ -22,8 +22,6 @@ AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
 template <class MAP>
 std::unique_lock<std::mutex> AccountStoreAtomic<MAP>::GetAccountWMutex(
     const Address& address, std::shared_ptr<Account>& acc) {
-  LOG_MARKER();
-
   std::unique_lock<std::mutex> g1(
       AccountStoreBase<std::unordered_map<Address, std::shared_ptr<Account>>>::
           GetAccountWMutex(address, acc));
@@ -44,9 +42,3 @@ std::unique_lock<std::mutex> AccountStoreAtomic<MAP>::GetAccountWMutex(
 
   return g1;
 }
-
-// template <class MAP>
-// const std::shared_ptr<std::unordered_map<Address, Account>>&
-// AccountStoreAtomic<MAP>::GetAddressToAccount() {
-//   return this->m_addressToAccount;
-// }

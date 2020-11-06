@@ -56,11 +56,9 @@ bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
 template <class DB, class MAP>
 std::unique_lock<std::mutex> AccountStoreTrie<DB, MAP>::GetAccountWMutex(
     const Address& address, std::shared_ptr<Account>& acc) {
-  LOG_MARKER();
   std::unique_lock<std::mutex> g1(
       AccountStoreBase<MAP>::GetAccountWMutex(address, acc));
   if (acc != nullptr) {
-    LOG_GENERAL(INFO, "found in base");
     return g1;
   }
   g1.unlock();
@@ -122,19 +120,6 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const {
 
   std::shared_lock<std::shared_timed_mutex> g(m_mutexTrie);
 
-  for (const auto& i : m_state) {
-    Address address(i.first);
-    LOG_GENERAL(INFO, "Address: " << address.hex());
-
-    std::shared_ptr<Account> account = std::make_shared<Account>();
-    if (!account->DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      return dev::h256();
-    }
-
-    LOG_GENERAL(INFO, *account);
-  }
-
   return m_state.root();
 }
 
@@ -166,7 +151,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
 
 template <class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::PrintAccountState() {
-  this->PrintAccountState();
+  AccountStoreBase<MAP>::PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
 
@@ -228,7 +213,7 @@ void AccountStoreTrie<DB, MAP>::DiscardUnsavedUpdates() {
       m_state.db()->rollback();
       m_state.setRoot(m_prevRoot);
     }
-    AccountStoreBase<MAP>::Init();
+    AccountStoreSC<MAP>::Init();
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
                              << boost::diagnostic_information(e));

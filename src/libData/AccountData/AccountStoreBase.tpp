@@ -22,10 +22,8 @@
 #include "libUtils/SafeMath.h"
 
 template <class MAP>
-AccountStoreBase<MAP>::AccountStoreBase() {
-  // m_mutexASBase = std::make_shared<std::shared_timed_mutex>();
-  m_addressToAccount = std::make_shared<MAP>();
-}
+AccountStoreBase<MAP>::AccountStoreBase()
+    : m_addressToAccount(std::make_shared<MAP>()) {}
 
 template <class MAP>
 void AccountStoreBase<MAP>::Init() {
@@ -172,7 +170,6 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IsAccountExist(const Address& address, bool base) {
-  LOG_MARKER();
   std::shared_ptr<Account> acc;
   if (base) {
     std::unique_lock<std::mutex> g(
@@ -188,10 +185,7 @@ template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const std::shared_ptr<Account>& account,
                                        bool toReplace) {
-  LOG_MARKER();
-
   if (toReplace || !IsAccountExist(address, true)) {
-    LOG_GENERAL(INFO, "added account");
     std::lock_guard<std::mutex> g(m_mutexASBase);
     (*m_addressToAccount)[address] = account;
 
@@ -220,12 +214,10 @@ void AccountStoreBase<MAP>::RemoveAccount(const Address& address) {
 template <class MAP>
 std::unique_lock<std::mutex> AccountStoreBase<MAP>::GetAccountWMutex(
     const Address& address, std::shared_ptr<Account>& acc) {
-  LOG_MARKER();
   acc = nullptr;
   std::unique_lock<std::mutex> g(m_mutexASBase);
   auto it = m_addressToAccount->find(address);
   if (it != m_addressToAccount->end()) {
-    LOG_GENERAL(INFO, "found account");
     acc = it->second;
   }
   return g;
@@ -256,13 +248,20 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
     return true;
   }
 
-  std::shared_ptr<Account> account;
-  std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
+  bool addAccount = false;
 
-  if (account != nullptr && account->IncreaseBalance(delta)) {
-    return true;
-  } else if (account == nullptr) {
-    g.unlock();
+  {
+    std::shared_ptr<Account> account;
+    std::unique_lock<std::mutex> g(GetAccountWMutex(address, account));
+
+    if (account != nullptr && account->IncreaseBalance(delta)) {
+      return true;
+    } else if (account == nullptr) {
+      addAccount = true;
+    }
+  }
+
+  if (addAccount) {
     return AddAccount(address, std::make_shared<Account>(delta, 0));
   }
 

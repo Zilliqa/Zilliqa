@@ -2620,18 +2620,11 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     shared_ptr<Account> account;
     unique_lock<mutex> g(accountStore.GetAccountWMutex(entry.first, account));
-    if (account != nullptr) {
-      LOG_GENERAL(INFO, "ori account:" << *account);
-    } else {
-      LOG_GENERAL(INFO, "ori account: null");
-    }
-    LOG_GENERAL(INFO, "temp account:" << *(entry.second));
     AccountDeltaToProtobuf(account, *(entry.second), *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
       return false;
     }
-    LOG_GENERAL(INFO, "protobuf:" << protoEntryAccount->DebugString());
   }
 
   if (!result.IsInitialized()) {
