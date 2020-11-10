@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cstdlib>
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
@@ -26,14 +27,20 @@
 
 using namespace std;
 
-int main() {
+int main(int argc, const char* argv[]) {
   TxBlockSharedPtr txBlockPtr;
   if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(txBlockPtr)) {
     LOG_GENERAL(WARNING, "BlockStorage::GetLatestTxBlock failed");
     return -1;
   }
-  const uint64_t lastTxBlockNum = txBlockPtr->GetHeader().GetBlockNum();
-  for (uint64_t txBlockNum = 0; txBlockNum <= lastTxBlockNum; txBlockNum++) {
+  const uint64_t fromBlock = argc > 1 ? strtol(argv[1], NULL, 10) : 0;
+  const uint64_t toBlock = argc > 2 ? strtol(argv[2], NULL, 10)
+                                    : txBlockPtr->GetHeader().GetBlockNum();
+  LOG_GENERAL(INFO, "Migrating from TxBlock=" << fromBlock
+                                              << " to TxBlock=" << toBlock);
+  cout << "Migrating from TxBlock=" << fromBlock << " to TxBlock=" << toBlock
+       << endl;
+  for (uint64_t txBlockNum = fromBlock; txBlockNum <= toBlock; txBlockNum++) {
     if ((txBlockNum % 1000) == 0) {
       cout << "At TxBlock " << txBlockNum << endl;
     }
