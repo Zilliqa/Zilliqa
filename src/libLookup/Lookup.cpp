@@ -4560,7 +4560,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
           LOG_GENERAL(INFO,
                       "I am lagging behind by ds epoch! Will rejoin again!");
           m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-          RejoinAsLookup(false);
+          RejoinAsNewLookup(false);
         }
       };
       DetachedFunction(1, func2);
