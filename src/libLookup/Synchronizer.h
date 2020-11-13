@@ -28,13 +28,13 @@ class Synchronizer {
                                      const DSBlock& dsBlock);
   bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
 
-  TxBlock ConstructGenesisTxBlock();
   bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
                                      const TxBlock& txBlock);
   bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
 
  public:
   static DSBlock ConstructGenesisDSBlock();
+  static TxBlock ConstructGenesisTxBlock();
   bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                TxBlockChain& txBlockChain);
 
