@@ -26,11 +26,15 @@ import math
 import shutil
 import logging
 from logging import handlers
+import requests
+import xml.etree.ElementTree as ET
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
 BUCKET_NAME='BUCKET_NAME'
 AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
+AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
+AWS_S3_URL= "http://"+BUCKET_NAME+".s3.amazonaws.com"
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
@@ -110,8 +114,11 @@ def GetCurrentTxBlockNum():
     return blockNum + 1
 
 def CreateTempPersistence():
+    static_folders = GetStaticFoldersFromS3(AWS_S3_URL, AWS_BLOCKCHAINDATA_FOLDERNAME)
+    exclusion_string = ' '.join(['--exclude ' + s for s in static_folders])
+    bashCommand = "rsync --recursive --inplace --delete -a " + exclusion_string + " persistence tempbackup"
+    logging.info("Command = " + bashCommand)
     for i in range(2):
-        bashCommand = "rsync --recursive --inplace --delete -a persistence tempbackup"
         process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
     logging.info("Copied local persistence to temporary")
@@ -130,6 +137,31 @@ def backUp(curr_blockNum):
     os.remove(TESTNET_NAME + ".tar.gz")
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     return None
+
+def GetStaticFoldersFromS3(url, folderName):
+    list_of_folders = []
+    MARKER = ""
+    # Try get the entire persistence keys.
+    # S3 limitation to get only max 1000 keys. so work around using marker.
+    while True:
+        response = requests.get(url, params={"prefix":folderName, "max-keys":1000, "marker":MARKER, "delimiter":"/"})
+        tree = ET.fromstring(response.text)
+        if(tree[6:] == []):
+            print("Empty response")
+            break
+        lastkey = ''
+        for key in tree[6:]:
+            key_url = key[0].text.split(folderName,1)[1].replace('/', '')
+            if key_url != '':
+                list_of_folders.append(key_url)
+            lastkey = key_url
+        istruncated=tree[5].text
+        if istruncated == 'true':
+            MARKER=lastkey
+            print(istruncated)
+        else:
+            break
+    return list_of_folders
 
 def main():
     setup_logging()
