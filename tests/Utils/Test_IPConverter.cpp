@@ -48,4 +48,14 @@ BOOST_AUTO_TEST_CASE(test_IPStringToNumerical) {
                                               result.convert_to<std::string>());
 }
 
+BOOST_AUTO_TEST_CASE(test_ResolveDNS) {
+  INIT_STDOUT_LOGGER();
+
+  uint128_t result;
+  BOOST_CHECK_MESSAGE(IPConverter::ResolveDNS("localhost", 80, 2, result),
+                      "DNS resolution from localhost failed");
+  BOOST_CHECK_MESSAGE(result == 16777343, "Expected: 16777343. Result: " +
+                                              result.convert_to<std::string>());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
