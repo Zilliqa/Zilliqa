@@ -307,6 +307,7 @@ extern const unsigned int BLACKLIST_NUM_TO_POP;
 extern const unsigned int MAX_PEER_CONNECTION;
 extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
+extern const unsigned int DNS_RESOLVER_TIMEOUT;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
