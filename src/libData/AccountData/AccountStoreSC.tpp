@@ -767,6 +767,10 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
+    std::ofstream os2("contracts/" + contract.GetAddress().hex() + CONTRACT_FILE_EXTENSION);
+    os2 << DataConversion::CharArrayToString(contract.GetCode());
+    os2.close();
+
     ExportCommonFiles(os, contract, extlibs_exports);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
