@@ -19,6 +19,7 @@ import hashlib
 import os
 import re
 import requests
+import shutil
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -39,6 +40,7 @@ STORAGE_PATH = BASE_PATH+'/persistence'
 mutex = Lock()
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
+CREATED_FOLDER_LIST = []
 
 def getURL():
 	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
@@ -81,6 +83,7 @@ def calculate_multipart_etag(source_path, chunk_size):
 def GetPersistenceKey(key_url):
 	global DOWNLOADED_LIST
 	global DOWNLOAD_STARTED_LIST
+	global CREATED_FOLDER_LIST
 	retry_counter = 0
 	mutex.acquire()
 	DOWNLOAD_STARTED_LIST.append(key_url)
@@ -105,8 +108,12 @@ def GetPersistenceKey(key_url):
 		dirname = os.path.dirname(filename).strip()
 		if dirname != "":
 			mutex.acquire()
+			# Create subfolder only if (1) it does not exist or (2) it exists and we did not create it ourself
 			if not os.path.exists(dirname):
 				os.makedirs(dirname)
+			elif dirname not in CREATED_FOLDER_LIST:
+				shutil.rmtree(dirname)
+				CREATED_FOLDER_LIST.append(dirname)
 			mutex.release()
 
 		with open(filename,'wb') as f:
@@ -143,8 +150,10 @@ def GetAllObjectsFromS3(url, folderName=""):
 	MARKER = ''
 	global DOWNLOADED_LIST
 	global DOWNLOAD_STARTED_LIST
+	global CREATED_FOLDER_LIST
 	DOWNLOADED_LIST = []
 	DOWNLOAD_STARTED_LIST = []
+	CREATED_FOLDER_LIST = []
 	list_of_keyurls = []
 	failed_list_of_keyurls = []
 	prefix = ""
@@ -221,14 +230,18 @@ def run():
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 	return True
 
-def start():
-	if len(sys.argv) >= 2:
-		if os.path.isabs(sys.argv[1]):
-			STORAGE_PATH = sys.argv[1] + "/persistence"
+def start(new_storage_path):
+	global STORAGE_PATH
+	if new_storage_path:
+		if os.path.isabs(new_storage_path):
+			STORAGE_PATH = new_storage_path + "/persistence"
 		else:
 			# Get absolute path w.r.t to script
-			STORAGE_PATH = os.path.join(BASE_PATH, sys.argv[1]) + "/persistence"
+			STORAGE_PATH = os.path.join(BASE_PATH, new_storage_path) + "/persistence"
+	# Create persistence folder if it does not exist
+	if not os.path.exists(STORAGE_PATH):
+		os.makedirs(STORAGE_PATH)
 	return run()
 
 if __name__ == "__main__":
-	start()
+	start(sys.argv[1] if len(sys.argv) >= 2 else '')
