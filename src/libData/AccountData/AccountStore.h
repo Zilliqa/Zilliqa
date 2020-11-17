@@ -240,6 +240,8 @@ class AccountStore
   bool MigrateContractStates2(bool ignoreCheckerFailure,
                               const std::string& contract_address_output_dir,
                               const std::string& normal_address_output_dir);
+
+  bool DumpCode();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

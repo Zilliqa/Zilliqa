@@ -38,6 +38,7 @@ class Retriever {
                              const std::string& contract_address_output_dir,
                              const std::string& normal_address_output_dir);
   void CleanAll();
+  bool DumpCode();
 
  private:
   Mediator& m_mediator;

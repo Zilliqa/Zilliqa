@@ -43,6 +43,9 @@ int main(int argc, const char* argv[]) {
   string ignore_checker_str;
   string contract_address_output_dir;
   string normal_address_output_dir;
+  bool migrate = false;
+  bool dump_code = false;
+  bool fix_block = false;
 
   try {
     po::options_description desc("Options");
@@ -50,12 +53,17 @@ int main(int argc, const char* argv[]) {
     desc.add_options()("help,h", "Print help messages")(
         "ignore_checker,i", po::value<string>(&ignore_checker_str),
         "whether ignore scilla checker result (true to ignore, default false)")(
-        "contract_addresses,c", po::value<string>(&contract_address_output_dir),
+        "contract_addresses,a", po::value<string>(&contract_address_output_dir),
         "indicate the path to output the contract addresses, no output if "
         "empty")("normal_addresses,n",
                  po::value<string>(&normal_address_output_dir),
                  "indicate the path to output the contract addresses, no "
-                 "output if empty");
+                 "output if empty")("migrate,m", po::bool_switch(&migrate),
+                                    "To migrate into new states")(
+        "code,c", po::bool_switch(&dump_code),
+        "To export the code of contracts")("fix_block,b",
+                                           po::bool_switch(&fix_block),
+                                           "To fix the genesis blocks");
 
     po::variables_map vm;
     try {
@@ -85,7 +93,7 @@ int main(int argc, const char* argv[]) {
     Mediator mediator(key, peer);
     Retriever retriever(mediator);
 
-    {
+    if (fix_block) {
       TxBlockSharedPtr txBlock0;
       if (!BlockStorage::GetBlockStorage().GetTxBlock(0, txBlock0)) {
         LOG_GENERAL(WARNING, "Missing Tx Block 0");
@@ -132,12 +140,22 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, "finished RetrieveStates");
 
-    if (!retriever.MigrateContractStates(ignore_checker,
-                                         contract_address_output_dir,
-                                         normal_address_output_dir)) {
-      LOG_GENERAL(WARNING, "MigrateContractStates failed");
-    } else {
-      LOG_GENERAL(INFO, "Migrate contract data finished");
+    if (dump_code) {
+      if (!retriever.DumpCode()) {
+        LOG_GENERAL(WARNING, "MigrateContractStates failed");
+      } else {
+        LOG_GENERAL(INFO, "Migrate contract data finished");
+      }
+    }
+
+    if (migrate) {
+      if (!retriever.MigrateContractStates(ignore_checker,
+                                           contract_address_output_dir,
+                                           normal_address_output_dir)) {
+        LOG_GENERAL(WARNING, "MigrateContractStates failed");
+      } else {
+        LOG_GENERAL(INFO, "Migrate contract data finished");
+      }
     }
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()

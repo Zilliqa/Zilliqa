@@ -610,3 +610,42 @@ bool AccountStore::MigrateContractStates2(
 
   return true;
 }
+
+bool AccountStore::DumpCode() {
+  LOG_MARKER();
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return false;
+    }
+
+    if (account.isContract()) {
+      account.SetAddress(address);
+
+      // adding new metadata
+      std::map<std::string, bytes> t_metadata;
+      bool is_library;
+      uint32_t scilla_version;
+      std::vector<Address> extlibs;
+      if (!account.GetContractAuxiliaries(is_library, scilla_version,
+                                          extlibs)) {
+        LOG_GENERAL(WARNING, "GetScillaVersion failed");
+        return false;
+      }
+
+      std::ofstream os(
+          "contracts/" + account.GetAddress().hex() +
+          (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
+      os << DataConversion::CharArrayToString(account.GetCode());
+      os.close();
+    } else {
+      continue;
+    }
+  }
+
+  return true;
+}

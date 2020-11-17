@@ -380,3 +380,5 @@ bool Retriever::MigrateContractStates(
   return AccountStore::GetInstance().MigrateContractStates2(
       ignore_checker, contract_address_output_dir, normal_address_output_dir);
 }
+
+bool Retriever::DumpCode() { return AccountStore::GetInstance().DumpCode(); }
