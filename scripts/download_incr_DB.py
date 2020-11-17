@@ -28,13 +28,14 @@ from threading import Thread, Lock
 import hashlib
 from distutils.dir_util import copy_tree
 from pprint import pformat
+import download_static_DB
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
+TESTNET_NAME= 'TEST_NET_NAME'
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
-TESTNET_NAME= 'TEST_NET_NAME'
 MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
@@ -334,6 +335,11 @@ def run():
 			continue
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
+
+	if(Exclude_microBlocks == False and Exclude_txnBodies == False):
+		# download the static db
+		download_static_DB.start(STORAGE_PATH)
+
 	return True
 def start():
 	global Exclude_txnBodies
