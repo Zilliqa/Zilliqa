@@ -138,6 +138,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     return;
   }
 
+  lock_guard<mutex> g(m_mutexFinalBlock);
+
+  if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Not in PROCESS_FINALBLOCKCONSENSUS state");
+    return;
+  }
+
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Final block consensus DONE");
 
   // Clear microblock(s)
@@ -154,13 +162,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                1
         << "] DONE");
   }
-
-  // Update the final block with the co-signatures from the consensus
-  m_finalBlock->SetCoSignatures(*m_consensusObject);
-
-  // Update the DS microblock with the same co-signatures from the consensus
-  // If we don't do this, DataSender won't be able to process it
-  m_mediator.m_node->m_microblock->SetCoSignatures(*m_consensusObject);
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
@@ -278,6 +279,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     m_mediator.m_node->SendPendingTxnToLookup();
   }
   m_mediator.m_node->ClearUnconfirmedTxn();
+
+  this_thread::sleep_for(chrono::seconds(FB_DONE_SET_STATE_DELAY_IN_SECONDS));
 
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitRevertibles();
@@ -558,7 +561,16 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   if (state == ConsensusCommon::State::DONE) {
     cv_viewChangeFinalBlock.notify_all();
     m_viewChangeCounter = 0;
-    ProcessFinalBlockConsensusWhenDone();
+    // Update the final block with the co-signatures from the consensus
+    m_finalBlock->SetCoSignatures(*m_consensusObject);
+
+    // Update the DS microblock with the same co-signatures from the consensus
+    // If we don't do this, DataSender won't be able to process it
+    m_mediator.m_node->m_microblock->SetCoSignatures(*m_consensusObject);
+
+    auto func = [this]() -> void { ProcessFinalBlockConsensusWhenDone(); };
+
+    DetachedFunction(1, func);
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Oops, no consensus reached - consensus error. "

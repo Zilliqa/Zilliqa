@@ -229,6 +229,8 @@ const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(
     "LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS", "node.epoch_timing.")};
 const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
     "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int FB_DONE_SET_STATE_DELAY_IN_SECONDS{ReadConstantNumeric(
+    "FB_DONE_SET_STATE_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Gas constants
 const unsigned int DS_MICROBLOCK_GAS_LIMIT{

@@ -153,6 +153,7 @@ class DirectoryService : public Executable {
   std::mutex m_mutexPendingDSBlock;
 
   // Final block consensus variables
+  std::mutex m_mutexFinalBlock;
   std::shared_ptr<TxBlock> m_finalBlock;
 
   struct MBSubmissionBufferEntry {

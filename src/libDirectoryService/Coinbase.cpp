@@ -160,9 +160,10 @@ void DirectoryService::InitCoinbase() {
       ++it;
   }
 
-  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
   const auto& epochNum = m_mediator.m_currentEpochNum;
 
+  m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].clear();
+  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
   for (const auto& lookupNode : vecLookup) {
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
         lookupNode.first);
