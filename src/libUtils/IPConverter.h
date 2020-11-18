@@ -77,7 +77,8 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
 
 bool ToNumericalIPFromStr(const std::string&, uint128_t&);
 
-bool ResolveDNS(const std::string& url, const uint32_t& port, uint128_t& ipInt);
+bool ResolveDNS(const std::string& url, const uint32_t& port,
+                const uint32_t& timeout, uint128_t& ipInt);
 }  // namespace IPConverter
 
 #endif  // ZILLIQA_SRC_LIBUTILS_IPCONVERTER_H_
