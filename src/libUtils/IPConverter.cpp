@@ -17,10 +17,69 @@
 
 #include "IPConverter.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 using namespace std;
+using boost::asio::ip::tcp;
 
 namespace IPConverter {
+
+void log(const std::string& msg) {
+  std::cout << boost::posix_time::second_clock::local_time() << ' ' << msg
+            << '\n';
+}
+
+class Resolver {
+  tcp::resolver resolver_;
+  boost::asio::deadline_timer timer_;
+  string ipString;
+  bool status;
+
+  void handle_resolve(const boost::system::error_code& err,
+                      tcp::resolver::iterator iterator) {
+    if (err.value() == boost::system::errc::success) {
+      boost::asio::ip::tcp::resolver::iterator end;  // End marker.
+      while (iterator != end) {
+        boost::asio::ip::tcp::endpoint endpoint = *iterator++;
+        if (endpoint.address().is_v4()) {
+          ipString = endpoint.address().to_string();
+          status = true;
+          break;
+        }
+      }
+    }
+    timer_.cancel();
+  }
+
+  void handle_timeout(const boost::system::error_code& err) {
+    if (err.value() == boost::system::errc::success) {
+      log("Resolver Timer expired");
+      resolver_.cancel();
+    }
+  }
+
+ public:
+  Resolver(boost::asio::io_service& ios, const string& url,
+           const uint32_t& port, const uint32_t& timeout)
+      : resolver_(ios), timer_(ios), status(false) {
+    tcp::resolver::query query(url, boost::lexical_cast<std::string>(port));
+    resolver_.async_resolve(query,
+                            boost::bind(&Resolver::handle_resolve, this,
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::iterator));
+
+    timer_.expires_from_now(boost::posix_time::seconds(timeout));
+    // non-blocking wait until timer expires or cancelled
+    timer_.async_wait(boost::bind(&Resolver::handle_timeout, this,
+                                  boost::asio::placeholders::error));
+    ios.run();
+  }
+
+  bool getStatus() { return status; }
+
+  string getIpString() { return ipString; }
+};
 
 bool GetIPPortFromSocket(string socket, string& ip, int& port) {
   std::vector<std::string> addr_parts;
@@ -107,19 +166,13 @@ bool ToNumericalIPFromStr(const std::string& ipStr, uint128_t& ipInt) {
 }
 
 bool ResolveDNS(const std::string& url, const uint32_t& port,
-                uint128_t& ipInt) {
+                const uint32_t& timeout, uint128_t& ipInt) {
   try {
     boost::asio::io_service my_io_service;
-    boost::asio::ip::tcp::resolver resolver(my_io_service);
-    boost::asio::ip::tcp::resolver::query query(
-        url, boost::lexical_cast<std::string>(port));
-    boost::asio::ip::tcp::resolver::iterator iter = resolver.resolve(query);
-    boost::asio::ip::tcp::resolver::iterator end;  // End marker.
-    while (iter != end) {
-      boost::asio::ip::tcp::endpoint endpoint = *iter++;
-      if (endpoint.address().is_v4()) {
-        return ToNumericalIPFromStr(endpoint.address().to_string(), ipInt);
-      }
+    Resolver resolver(my_io_service, url, port, timeout);
+    if (resolver.getStatus()) {
+      ToNumericalIPFromStr(resolver.getIpString(), ipInt);
+      return true;
     }
   } catch (std::exception& e) {
     return false;

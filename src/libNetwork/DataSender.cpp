@@ -43,7 +43,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     if (!url.empty()) {
       uint128_t tmpIp;
       if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                  tmpIp)) {
+                                  DNS_RESOLVER_TIMEOUT, tmpIp)) {
         resolved_ip = tmpIp;  // resolved one
       } else {
         LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
