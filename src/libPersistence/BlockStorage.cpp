@@ -1634,7 +1634,7 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       unique_lock<shared_timed_mutex> g(m_mutexTxBody);
       ret = m_txEpochDB->RefreshDB();
       for (auto& txBodyDB : m_txBodyDBs) {
-        txBodyDB->RefreshDB();
+        ret &= txBodyDB->RefreshDB();
       }
       break;
     }
