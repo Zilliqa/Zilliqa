@@ -111,8 +111,10 @@ def GetPersistenceKey(key_url):
 			# Create subfolder only if (1) it does not exist or (2) it exists and we did not create it ourself
 			if not os.path.exists(dirname):
 				os.makedirs(dirname)
+				CREATED_FOLDER_LIST.append(dirname)
 			elif dirname not in CREATED_FOLDER_LIST:
 				shutil.rmtree(dirname)
+				os.makedirs(dirname)
 				CREATED_FOLDER_LIST.append(dirname)
 			mutex.release()
 
