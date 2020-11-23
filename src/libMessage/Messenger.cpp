@@ -9329,6 +9329,7 @@ bool Messenger::GetMicroBlockKey(const bytes& src, const unsigned int offset,
     return false;
   }
 
+  epochNum = result.epochnum();
   shardID = result.shardid();
 
   return true;

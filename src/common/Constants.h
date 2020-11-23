@@ -352,6 +352,7 @@ extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 extern const bool CONTRACT_STATES_MIGRATED;
 extern const unsigned int MAX_IPCHANGE_REQUEST_LIMIT;
+extern const bool MIGRATE_MBS_TXNS;
 
 // Smart contract constants
 extern const bool ENABLE_SC;

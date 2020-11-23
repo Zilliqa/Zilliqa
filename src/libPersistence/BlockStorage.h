@@ -81,14 +81,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
-#ifdef MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
-#endif  // MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_txEpochDB;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
-#ifdef MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
-#endif  // MIGRATE_MBS_TXNS
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
   std::shared_ptr<LevelDB> m_dsCommitteeDB;
   std::shared_ptr<LevelDB> m_VCBlockDB;
@@ -114,10 +110,6 @@ class BlockStorage : public Singleton<BlockStorage> {
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
-#ifdef MIGRATE_MBS_TXNS
-        m_microBlockDB(std::make_shared<LevelDB>("microBlocksNew")),
-        m_microBlockOrigDB(std::make_shared<LevelDB>("microBlocks")),
-#endif  // MIGRATE_MBS_TXNS
         m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
@@ -134,18 +126,23 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_diagnosticDBNodesCounter(0),
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
-#ifdef MIGRATE_MBS_TXNS
-      m_txBodyDB = std::make_shared<LevelDB>("txBodiesNew");
-      m_txBodyOrigDB = std::make_shared<LevelDB>("txBodies");
-#else   // MIGRATE_MBS_TXNS
-      m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
-#endif  // MIGRATE_MBS_TXNS
+      if (MIGRATE_MBS_TXNS) {
+        m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodiesNew"));
+        m_txBodyOrigDB = std::make_shared<LevelDB>("txBodies");
+      } else {
+        m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
+      }
       m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
       m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
       m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
       m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
     }
-    m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
+    if (MIGRATE_MBS_TXNS) {
+      m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocksNew"));
+      m_microBlockOrigDB = std::make_shared<LevelDB>("microBlocks");
+    } else {
+      m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
+    }
   };
   ~BlockStorage() = default;
   bool PutBlock(const uint64_t& blockNum, const bytes& body,
@@ -193,10 +190,8 @@ class BlockStorage : public Singleton<BlockStorage> {
                      const uint32_t& shardID, const bytes& body);
 
   /// Adds a transaction body to storage.
-#ifdef MIGRATE_MBS_TXNS
   bool PutTxBody(const bytes& epoch, const uint64_t& epochNum,
                  const dev::h256& key, const bytes& body);
-#endif  // MIGRATE_MBS_TXNS
   bool PutTxBody(const uint64_t& epochNum, const dev::h256& key,
                  const bytes& body);
 
