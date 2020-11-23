@@ -15,7 +15,8 @@
 Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
 * If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/.
-* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
+* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://dev.zilliqa.com/docs/apis/api-introduction.
+* If you’re interested more about the core protocol, see the [developer portal](https://dev.zilliqa.com/docs/contributors/contribute-buildzil).
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
 > **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v6.4.2`)
@@ -25,38 +26,44 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://viewblock.io/zilliqa) |
+| **Block Explorer** | [**Viewblock**](https://viewblock.io/zilliqa) <br> [**DEVEX**](https://devex.zilliqa.com/) |
 
 ## Developer Testnet
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://dev-api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://dev-explorer.zilliqa.com) |
+| **Block Explorer** | [**Viewblock**](https://dev-explorer.zilliqa.com) <br> [**DEVEX**](https://devex.zilliqa.com/?network=https%3A%2F%2Fdev-api.zilliqa.com) |
 | **Faucet** | [**Link**](https://dev-wallet.zilliqa.com) |
+
+## Zilliqa improvement proposal (ZIP)
+
+The Zilliqa Improvement Proposals (ZIPs) are the core protocol standards for the Zilliqa platform.To view or contribute to ZIP, please visit https://github.com/Zilliqa/zip
 
 ## Available features
 
 The current release has the following features implemented:
 
-* Network sharding
-* Transaction sharding
-* Ethash Proof of Work (PoW) for joining the network
-* GPU (OpenCL and CUDA) for PoW
-* Gas rewards and pricer
-* Coinbase rewards
-* [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
-* pBFT Consensus mechanism
+* [Network sharding](https://dev.zilliqa.com/docs/basics/basics-zil-sharding#network-sharding)
+* [Transaction sharding](https://dev.zilliqa.com/docs/basics/basics-zil-sharding#transaction-sharding)
+* [Ethash Proof of Work (PoW) for joining the network](https://dev.zilliqa.com/docs/contributors/core-gossip)
+* [GPU (OpenCL and CUDA) for PoW](https://dev.zilliqa.com/docs/contributors/core-pow#gpu-mine)
+* [Block rewarding mechanism](https://dev.zilliqa.com/docs/contributors/core-coinbase)
+* [Gas pricer](https://dev.zilliqa.com/docs/contributors/core-global-gas-price)
+* [Coinbase rewards](https://dev.zilliqa.com/docs/contributors/core-global-gas-price)
+* [EC-Schnorr signature](https://github.com/Zilliqa/schnorr)
+* [pBFT Consensus mechanism](https://dev.zilliqa.com/docs/contributors/core-consensus)
 * Data layer and accounts store
 * [Smart contract layer](https://scilla.readthedocs.io)
 * State delta forwarding
 * Lookup nodes and Seed nodes for receiving and dispatching transactions
 * Persistent storage for transactions and state
 * S3 storage retrieval from archival nodes
-* View change mechanism
+* [View change mechanism](https://dev.zilliqa.com/docs/contributors/core-view-change)
 * Node recovery mechanism
 * Protocol upgrade mechanism
-* Gossip protocol for network message broadcasting
+* [Gossip protocol for network message broadcasting](https://dev.zilliqa.com/docs/contributors/core-gossip)
+* [Seed Node Staking](https://dev.zilliqa.com/docs/staking/staking-overview)
 
 In the coming months, we plan to have the following features:
 
@@ -157,4 +164,4 @@ $ ./build.sh style
 | **Development discussion (discord)** | <a href="https://discord.gg/XMRE9tt" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
-| **Security bug bounty** | https://bugcrowd.com/zilliqa |
+| **Security bug bounty** | Contact security` :globe_with_meridians: `zilliqa.com` for early access to our new security bug bounty program |
