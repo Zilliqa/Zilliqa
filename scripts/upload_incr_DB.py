@@ -29,6 +29,8 @@ import argparse
 from urllib import request, parse
 import logging
 from logging import handlers
+import requests
+import xml.etree.ElementTree as ET
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -37,6 +39,8 @@ NUM_TXBLOCK = 2
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
 TESTNET_NAME= "TEST_NET_NAME"
+AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
+AWS_S3_URL= "http://"+BUCKET_NAME+".s3.amazonaws.com"
 SYNC_INTERVAL = 1
 
 FORMATTER = logging.Formatter(
@@ -76,7 +80,10 @@ def getBucketString(subFolder):
 	return "s3://"+BUCKET_NAME+"/"+subFolder+"/"+TESTNET_NAME
 
 def CreateTempPersistence():
-	bashCommand = "rsync --recursive --delete -a persistence temp"
+	static_folders = GetStaticFoldersFromS3(AWS_S3_URL, AWS_BLOCKCHAINDATA_FOLDERNAME)
+	exclusion_string = ' '.join(['--exclude ' + s for s in static_folders])
+	bashCommand = "rsync --recursive --inplace --delete -a " + exclusion_string + " persistence temp"
+	logging.info("Command = " + bashCommand)	
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
 	logging.info("Copied local persistence to temporary")
@@ -244,6 +251,31 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 0 #success
 	return 1
+
+def GetStaticFoldersFromS3(url, folderName):
+    list_of_folders = []
+    MARKER = ""
+    # Try get the entire persistence keys.
+    # S3 limitation to get only max 1000 keys. so work around using marker.
+    while True:
+        response = requests.get(url, params={"prefix":folderName, "max-keys":1000, "marker":MARKER, "delimiter":"/"})
+        tree = ET.fromstring(response.text)
+        if(tree[6:] == []):
+            print("Empty response")
+            break
+        lastkey = ''
+        for key in tree[6:]:
+            key_url = key[0].text.split(folderName,1)[1].replace('/', '')
+            if key_url != '':
+                list_of_folders.append(key_url)
+            lastkey = key[0].text
+        istruncated=tree[5].text
+        if istruncated == 'true':
+            MARKER=lastkey
+            print(istruncated)
+        else:
+            break
+    return list_of_folders
 
 def CleanupDir(folderName):
         if os.path.exists("./"+folderName):
