@@ -161,9 +161,6 @@ int main(int argc, const char* argv[]) {
     auto microBlockInfos = txBlockPtr->GetMicroBlockInfos();
     for (auto const& mbInfo : microBlockInfos) {
       MicroBlockSharedPtr mbptr;
-      if (mbInfo.m_txnRootHash == TxnHash()) {
-        continue;
-      }
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
               mbInfo.m_microBlockHash, mbptr)) {
         LOG_GENERAL(WARNING, "Missing MB " << mbInfo.m_microBlockHash

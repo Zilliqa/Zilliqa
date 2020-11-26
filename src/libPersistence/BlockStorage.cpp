@@ -128,7 +128,7 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
 
   const bytes& keyBytes = key.asBytes();
 
-  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+  lock_guard<mutex> g(m_mutexTxBody);
 
   // Store txn hash and epoch inside txEpochs DB
   if (m_txEpochDB->Insert(keyBytes, epoch) != 0) {
@@ -167,7 +167,7 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
     return false;
   }
 
-  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+  lock_guard<mutex> g(m_mutexMicroBlock);
 
   // Store hash and key inside microBlockKeys DB
   if (m_microBlockKeyDB->Insert(blockHash, key) != 0) {
@@ -195,11 +195,12 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
     if (MIGRATE_MBS_TXNS) {
       blockString = m_microBlockOrigDB->Lookup(blockHash);
     } else {
-      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+      lock_guard<mutex> g(m_mutexMicroBlock);
 
       // Get key from microBlockKeys DB
       const string& keyString = m_microBlockKeyDB->Lookup(blockHash);
       if (keyString.empty()) {
+        LOG_GENERAL(WARNING, "MB key not found.");
         return false;
       }
 
@@ -237,7 +238,7 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
   string blockString;
 
   {
-    unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+    lock_guard<mutex> g(m_mutexMicroBlock);
     blockString = GetMicroBlockDB(epochNum)->Lookup(key);
   }
 
@@ -251,7 +252,7 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
 }
 
 bool BlockStorage::CheckMicroBlock(const BlockHash& blockHash) {
-  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+  lock_guard<mutex> g(m_mutexMicroBlock);
   // Get key from microBlockKeys DB
   string keyString = m_microBlockKeyDB->Lookup(blockHash);
   if (keyString.empty()) {
@@ -274,9 +275,9 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
                                        list<MicroBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
-  MicroBlockSharedPtr block;
   for (uint64_t epochNum = lowEpochNum; epochNum <= hiEpochNum; epochNum++) {
     for (uint32_t shardID = loShardId; shardID <= hiShardId; shardID++) {
+      MicroBlockSharedPtr block;
       if (GetMicroBlock(epochNum, shardID, block)) {
         blocks.emplace_back(block);
         LOG_GENERAL(INFO, "Retrieved MicroBlock epoch=" << epochNum << " shard="
@@ -385,7 +386,7 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
 
 bool BlockStorage::ReleaseDB() {
   {
-    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+    lock_guard<mutex> g(m_mutexTxBody);
     for (auto& txBodyDB : m_txBodyDBs) {
       txBodyDB.reset();
     }
@@ -393,7 +394,7 @@ bool BlockStorage::ReleaseDB() {
     m_txEpochDB.reset();
   }
   {
-    unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+    lock_guard<mutex> g(m_mutexMicroBlock);
     for (auto& microBlockDB : m_microBlockDBs) {
       microBlockDB.reset();
     }
@@ -508,7 +509,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   } else {
     const bytes& keyBytes = key.asBytes();
 
-    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+    lock_guard<mutex> g(m_mutexTxBody);
 
     string epochString = m_txEpochDB->Lookup(keyBytes);
     if (epochString.empty()) {
@@ -537,7 +538,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
 bool BlockStorage::CheckTxBody(const dev::h256& key) {
   const bytes& keyBytes = key.asBytes();
 
-  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+  lock_guard<mutex> g(m_mutexTxBody);
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
@@ -582,7 +583,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
 
   const bytes& keyBytes = key.asBytes();
 
-  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+  lock_guard<mutex> g(m_mutexTxBody);
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
@@ -601,7 +602,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
 }
 
 bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
-  unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+  lock_guard<mutex> g(m_mutexMicroBlock);
 
   // Get key from microBlockKeys DB
   string keyString = m_microBlockKeyDB->Lookup(blockHash);
@@ -1518,7 +1519,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     }
     case TX_BODY: {
-      unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+      lock_guard<mutex> g(m_mutexTxBody);
       ret = m_txEpochDB->ResetDB();
       for (auto& txBodyDB : m_txBodyDBs) {
         ret &= txBodyDB->ResetDB();
@@ -1526,7 +1527,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     }
     case MICROBLOCK: {
-      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+      lock_guard<mutex> g(m_mutexMicroBlock);
       ret = m_microBlockKeyDB->ResetDB();
       for (auto& microBlockDB : m_microBlockDBs) {
         ret &= microBlockDB->ResetDB();
@@ -1631,7 +1632,7 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       break;
     }
     case TX_BODY: {
-      unique_lock<shared_timed_mutex> g(m_mutexTxBody);
+      lock_guard<mutex> g(m_mutexTxBody);
       ret = m_txEpochDB->RefreshDB();
       for (auto& txBodyDB : m_txBodyDBs) {
         ret &= txBodyDB->RefreshDB();
@@ -1639,7 +1640,7 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       break;
     }
     case MICROBLOCK: {
-      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+      lock_guard<mutex> g(m_mutexMicroBlock);
       ret = m_microBlockKeyDB->RefreshDB();
       for (auto& microBlockDB : m_microBlockDBs) {
         ret &= microBlockDB->RefreshDB();
@@ -1743,12 +1744,12 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       break;
     }
     case TX_BODY: {
-      shared_lock<shared_timed_mutex> g(m_mutexTxBody);
+      lock_guard<mutex> g(m_mutexTxBody);
       ret.push_back(m_txBodyDBs.at(0)->GetDBName());
       break;
     }
     case MICROBLOCK: {
-      shared_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+      lock_guard<mutex> g(m_mutexMicroBlock);
       ret.push_back(m_microBlockDBs.at(0)->GetDBName());
       break;
     }
