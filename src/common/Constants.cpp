@@ -408,8 +408,6 @@ const unsigned int MAX_WHITELISTREQ_LIMIT{
     ReadConstantNumeric("MAX_WHITELISTREQ_LIMIT", "node.p2pcomm.")};
 const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
-const unsigned int DNS_RESOLVER_TIMEOUT{
-    ReadConstantNumeric("DNS_RESOLVER_TIMEOUT", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
