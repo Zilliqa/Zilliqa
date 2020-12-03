@@ -30,6 +30,7 @@ class IsolatedServer : public LookupServer,
   std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
   std::mutex mutable m_txnBlockNumMapMutex;
   std::mutex mutable m_blockMutex;
+  bool m_stateReinit;
   const PairOfKey m_key;
   uint64_t m_currEpochGas{0};
 
@@ -39,7 +40,8 @@ class IsolatedServer : public LookupServer,
 
  public:
   IsolatedServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server,
-                 const uint64_t& blocknum, const uint32_t& timeDelta);
+                 const uint64_t& blocknum, const uint32_t& timeDelta,
+                 bool stateReinit);
   ~IsolatedServer() = default;
 
   inline virtual void CreateTransactionI(const Json::Value& request,
@@ -70,6 +72,15 @@ class IsolatedServer : public LookupServer,
                                                  Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
+  inline virtual void ExportPersistenceI(const Json::Value& request,
+                                         Json::Value& response) {
+    response = this->ExportPersistence(request[0u].asString());
+  }
+  inline virtual void ReinitStateI(const Json::Value& request,
+                                   Json::Value& response) {
+    response =
+        this->ReinitState(request[0u].asString(), request[1u].asString());
+  }
 
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
@@ -80,6 +91,8 @@ class IsolatedServer : public LookupServer,
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
   bool RetrieveHistory();
+  bool ReinitState(const std::string& contractString, const std::string& path);
+  bool ExportPersistence(const std::string& path);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_

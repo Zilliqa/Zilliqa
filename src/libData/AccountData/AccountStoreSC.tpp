@@ -58,9 +58,10 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt) {
+    TransactionReceipt& receipt, const std::string& user_state_path) {
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt]() mutable -> void {
+                &available_gas, &balance, &ret, &receipt,
+                &user_state_path]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
@@ -83,6 +84,14 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 version,
                 ScillaUtils::GetCallContractJson(m_root_w_version,
                                                  available_gas, balance),
+                interprinterPrint)) {
+        }
+        break;
+      case REINIT_CALL:
+        if (!ScillaClient::GetInstance().CallRunner(
+                version,
+                ScillaUtils::GetReinitContractJson(
+                    m_root_w_version, available_gas, balance, user_state_path),
                 interprinterPrint)) {
         }
         break;
@@ -114,6 +123,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
   // LOG_MARKER();
+
+  // is_reinit -> flag for reinitializing the state of a specifc accoun
+  // Only use it with isolated server
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
@@ -499,93 +511,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      Account* toAccount = this->GetAccount(toAddr);
-      if (toAccount == nullptr) {
-        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-        error_code = TxnStatus::INVALID_TO_ACCOUNT;
-        return false;
-      }
-
-      bool is_library;
-      uint32_t scilla_version;
-      std::vector<Address> extlibs;
-      if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
-                                             extlibs)) {
-        LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      if (is_library) {
-        LOG_GENERAL(WARNING, "Library being called");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
-        LOG_GENERAL(WARNING, "ScillaLib disabled");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-      if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
-        LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      m_curBlockNum = blockNum;
-      if (!ExportCallContractFiles(*toAccount, transaction, scilla_version,
-                                   extlibs_exports)) {
-        LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
-      }
-
-      DiscardTransferAtomic();
-
-      if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
-        LOG_GENERAL(WARNING, "DecreaseBalance failed");
-        error_code = TxnStatus::MATH_ERROR;
-        return false;
-      }
-
-      m_curGasLimit = transaction.GetGasLimit();
-      m_curGasPrice = transaction.GetGasPrice();
-      m_curContractAddr = toAddr;
-      m_curAmount = amount;
-      m_curNumShards = numShards;
-
-      std::chrono::system_clock::time_point tpStart;
-      if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        tpStart = r_timer_start();
-      }
-
-      // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVer(toAddr, scilla_version);
-      Contract::ContractStorage2::GetContractStorage()
-          .ResetBufferedAtomicState();
-
-      std::string runnerPrint;
       bool ret = true;
 
-      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                        gasRemained, this->GetBalance(toAddr), ret, receipt);
-
-      if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG, "Executed root transition in "
-                               << r_timer_end(tpStart) << " microseconds");
+      if (!InvokeContractCall(toAddr, fromAddr, blockNum, transaction, amount,
+                              numShards, error_code, receipt, gasDeposit,
+                              gasRemained, ret)) {
+        return false;
       }
 
-      uint32_t tree_depth = 0;
-
-      if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt,
-                                    tree_depth, scilla_version)) {
-        Contract::ContractStorage2::GetContractStorage().RevertAtomicState();
-        receipt.RemoveAllTransitions();
-        ret = false;
-      }
       if (!ret) {
         DiscardTransferAtomic();
         gasRemained =
@@ -593,6 +526,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       } else {
         CommitTransferAtomic();
       }
+
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
@@ -671,6 +605,114 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
+  return true;
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::InvokeContractCall(
+    const Address& toAddr, const Address& fromAddr, const uint64_t& blockNum,
+    const Transaction& transaction, const uint128_t& amount,
+    const unsigned int& numShards, TxnStatus& error_code,
+    TransactionReceipt& receipt, uint128_t& gasDeposit, uint64_t& gasRemained,
+    bool& ret, const std::string& user_state_path) {
+  Account* toAccount = this->GetAccount(toAddr);
+
+  if (toAccount == nullptr) {
+    LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+    error_code = TxnStatus::INVALID_TO_ACCOUNT;
+    return false;
+  }
+
+  bool is_library;
+  uint32_t scilla_version;
+  std::vector<Address> extlibs;
+  if (!toAccount->GetContractAuxiliaries(is_library, scilla_version, extlibs)) {
+    LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
+    error_code = TxnStatus::FAIL_SCILLA_LIB;
+    return false;
+  }
+
+  if (is_library) {
+    LOG_GENERAL(WARNING, "Library being called");
+    error_code = TxnStatus::FAIL_SCILLA_LIB;
+    return false;
+  }
+
+  if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+    LOG_GENERAL(WARNING, "ScillaLib disabled");
+    error_code = TxnStatus::FAIL_SCILLA_LIB;
+    return false;
+  }
+
+  std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
+  if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+    LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
+    error_code = TxnStatus::FAIL_SCILLA_LIB;
+    return false;
+  }
+
+  m_curBlockNum = blockNum;
+  if (!ExportCallContractFiles(*toAccount, transaction, scilla_version,
+                               extlibs_exports)) {
+    LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
+    error_code = TxnStatus::FAIL_SCILLA_LIB;
+    return false;
+  }
+
+  DiscardTransferAtomic();
+
+  if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+    LOG_GENERAL(WARNING, "DecreaseBalance failed");
+    error_code = TxnStatus::MATH_ERROR;
+    return false;
+  }
+
+  m_curGasLimit = transaction.GetGasLimit();
+  m_curGasPrice = transaction.GetGasPrice();
+  m_curContractAddr = toAddr;
+  m_curAmount = amount;
+  m_curNumShards = numShards;
+
+  std::chrono::system_clock::time_point tpStart;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = r_timer_start();
+  }
+
+  // prepare IPC with current contract address
+  m_scillaIPCServer->setContractAddressVer(toAddr, scilla_version);
+  Contract::ContractStorage2::GetContractStorage().ResetBufferedAtomicState();
+
+  std::string runnerPrint;
+
+  if (!user_state_path.empty()) {
+    InvokeInterpreter(REINIT_CALL, runnerPrint, scilla_version, is_library,
+                      gasRemained, this->GetBalance(toAddr), ret, receipt,
+                      user_state_path);
+    return true;
+  }
+
+  else {
+    InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
+                      gasRemained, this->GetBalance(toAddr), ret, receipt);
+  }
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(DEBUG, "Executed root transition in " << r_timer_end(tpStart)
+                                                      << " microseconds");
+  }
+
+  uint32_t tree_depth = 0;
+
+  if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth,
+                                scilla_version)) {
+    Contract::ContractStorage2::GetContractStorage().RevertAtomicState();
+    receipt.RemoveAllTransitions();
+    ret = false;
+  }
+  if (ret && !user_state_path.empty()) {
+    m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                     m_storageRootUpdateBufferAtomic.end());
+  }
   return true;
 }
 
