@@ -829,7 +829,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
 
   struct evconnlistener* listener = evconnlistener_new_bind(
       base, AcceptConnectionCallback, nullptr,
-      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE_PORT, -1,
       (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
 
   if (listener == NULL) {
