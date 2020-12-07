@@ -75,6 +75,15 @@ bool MicroBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool MicroBlockHeader::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetMicroBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetMicroBlockHeader failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const uint32_t& MicroBlockHeader::GetShardId() const { return m_shardId; }
 
 const uint64_t& MicroBlockHeader::GetGasLimit() const { return m_gasLimit; }

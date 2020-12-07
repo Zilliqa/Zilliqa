@@ -47,6 +47,10 @@ class VCBlock : public BlockBase {
   /// Return 0 if successed, -1 if failed
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  /// Return 0 if successed, -1 if failed
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   /// Returns the reference to the VCBlockHeader part of the VC block.
   const VCBlockHeader& GetHeader() const;
 

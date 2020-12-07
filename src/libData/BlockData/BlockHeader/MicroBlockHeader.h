@@ -61,6 +61,9 @@ class MicroBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
   // no need to add Doxygen tags for now
   const uint32_t& GetShardId() const;

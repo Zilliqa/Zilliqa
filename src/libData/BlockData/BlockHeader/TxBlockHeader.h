@@ -60,6 +60,9 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset) override;
+
   /// Returns the current limit for gas expenditure per block.
   const uint64_t& GetGasLimit() const;
 

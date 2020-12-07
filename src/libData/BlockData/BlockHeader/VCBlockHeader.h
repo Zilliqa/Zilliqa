@@ -63,6 +63,9 @@ class VCBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetViewChangeDSEpochNo() const;
 

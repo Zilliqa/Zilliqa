@@ -42,6 +42,15 @@ bool TxBlock::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool TxBlock::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetTxBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxBlock failed.");
+    return false;
+  }
+
+  return true;
+}
+
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 TxBlock::TxBlock() {}
 

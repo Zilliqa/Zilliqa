@@ -70,6 +70,15 @@ bool VCBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool VCBlockHeader::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetVCBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetVCBlockHeader failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const uint64_t& VCBlockHeader::GetViewChangeDSEpochNo() const {
   return m_VieWChangeDSEpochNo;
 }

@@ -73,6 +73,15 @@ bool TxBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool TxBlockHeader::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetTxBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxBlockHeader failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const uint64_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
 
 const uint64_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }

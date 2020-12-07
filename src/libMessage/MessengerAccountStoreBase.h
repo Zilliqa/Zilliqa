@@ -38,6 +38,9 @@ class MessengerAccountStoreBase {
   template <class MAP>
   static bool GetAccountStore(const bytes& src, const unsigned int offset,
                               MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::string& src, const unsigned int offset,
+                              MAP& addressToAccount);
 };
 
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTOREBASE_H_

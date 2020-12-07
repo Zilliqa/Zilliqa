@@ -57,6 +57,15 @@ bool VCBlock::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool VCBlock::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetVCBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetVCBlock failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
 
 bool VCBlock::operator==(const VCBlock& block) const {

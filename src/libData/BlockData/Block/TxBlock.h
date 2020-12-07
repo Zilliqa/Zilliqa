@@ -80,6 +80,9 @@ class TxBlock : public BlockBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   /// Returns the reference to the TxBlockHeader part of the Tx block.
   const TxBlockHeader& GetHeader() const;
 

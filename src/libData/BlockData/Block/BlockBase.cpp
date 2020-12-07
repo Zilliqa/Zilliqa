@@ -36,6 +36,11 @@ bool BlockBase::Deserialize([[gnu::unused]] const bytes& src,
   return true;
 }
 
+bool BlockBase::Deserialize([[gnu::unused]] const string& src,
+                            [[gnu::unused]] unsigned int offset) {
+  return true;
+}
+
 const uint64_t& BlockBase::GetTimestamp() const { return m_timestamp; }
 
 void BlockBase::SetTimestamp(const uint64_t& timestamp) {

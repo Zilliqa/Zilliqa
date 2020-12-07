@@ -54,6 +54,18 @@ bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
 }
 
 template <class MAP>
+bool AccountStoreBase<MAP>::Deserialize(const std::string& src,
+                                        unsigned int offset) {
+  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
+                                                  *m_addressToAccount)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+    return false;
+  }
+
+  return true;
+}
+
+template <class MAP>
 bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                                            TransactionReceipt& receipt,
                                            TxnStatus& error_code) {

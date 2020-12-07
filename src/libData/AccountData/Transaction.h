@@ -104,6 +104,9 @@ class Transaction : public SerializableDataBlock {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset) override;
+
   /// Returns the transaction ID.
   const TxnHash& GetTranID() const;
 

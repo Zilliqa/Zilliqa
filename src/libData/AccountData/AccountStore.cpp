@@ -144,6 +144,21 @@ bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool AccountStore::Deserialize(const string& src, unsigned int offset) {
+  LOG_MARKER();
+
+  this->Init();
+
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+
+  if (!Messenger::GetAccountStore(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+    return false;
+  }
+
+  return true;
+}
+
 bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 

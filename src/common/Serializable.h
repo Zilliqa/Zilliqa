@@ -80,6 +80,10 @@ class SerializableDataBlock {
   /// Deserializes source byte stream into internal state.
   virtual bool Deserialize(const bytes& src, unsigned int offset) = 0;
 
+  /// Deserializes source string stream into internal state (used by
+  /// libMessage).
+  virtual bool Deserialize(const std::string& src, unsigned int offset) = 0;
+
   /// Virtual destructor.
   virtual ~SerializableDataBlock() {}
 

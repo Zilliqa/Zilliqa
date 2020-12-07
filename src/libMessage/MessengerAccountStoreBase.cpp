@@ -44,12 +44,19 @@ template bool
 MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
     const bytes& src, const unsigned int offset,
     unordered_map<Address, Account>& addressToAccount);
+template bool
+MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
+    const string& src, const unsigned int offset,
+    unordered_map<Address, Account>& addressToAccount);
 
 template bool MessengerAccountStoreBase::SetAccountStore<map<Address, Account>>(
     bytes& dst, const unsigned int offset,
     const map<Address, Account>& addressToAccount);
 template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
     const bytes& src, const unsigned int offset,
+    map<Address, Account>& addressToAccount);
+template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
+    const string& src, const unsigned int offset,
     map<Address, Account>& addressToAccount);
 
 template <class MAP>
@@ -81,6 +88,41 @@ bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
 
 template <class MAP>
 bool MessengerAccountStoreBase::GetAccountStore(const bytes& src,
+                                                const unsigned int offset,
+                                                MAP& addressToAccount) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+    if (!ProtobufToAccount(entry.account(), account, address)) {
+      LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
+                               << entry.address());
+      return false;
+    }
+
+    addressToAccount[address] = account;
+  }
+
+  return true;
+}
+
+template <class MAP>
+bool MessengerAccountStoreBase::GetAccountStore(const string& src,
                                                 const unsigned int offset,
                                                 MAP& addressToAccount) {
   ProtoAccountStore result;
