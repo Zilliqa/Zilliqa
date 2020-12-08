@@ -124,6 +124,8 @@ def make_options_dictionary(options_dict):
 	options_dict["set_remotestorage"] = "ToggleRemoteStorage"
 	options_dict["init_remotestorage"] = "InitRemoteStorage"
 	options_dict["blocktime"] = "GetAverageBlockTime"
+	options_dict["blacklist_check"] = "IsIPInBlacklist"
+	options_dict["blacklist_remove"] = "RemoveIPFromBlacklist"
 
 def ProcessResponseCore(resp, param):
 	if param:
@@ -148,7 +150,7 @@ def ProcessResponse(resp, params, batch):
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed"]
+	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed", "blacklist_check", "blacklist_remove"]
 	global DEBUG_MODE
 	args = parse_arguments(sorted(options_dictionary.keys()))
 	DEBUG_MODE = args.debug
