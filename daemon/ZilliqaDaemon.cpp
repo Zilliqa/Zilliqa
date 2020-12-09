@@ -23,7 +23,7 @@ namespace po = boost::program_options;
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
 
-const vector<string> programName = {"zilliqa"};
+const vector<string> programName = {"zilliqa", "scilla-server"};
 const string SYNCTYPE_OPT = "--synctype";
 const char* synctype_descr =
     "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
@@ -352,14 +352,19 @@ void ZilliqaDaemon::StartScripts() {
 }
 
 void ZilliqaDaemon::KillProcess() {
-  const string name = programName[0];
-  vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(name);
+  vector<pair<string, pid_t>> procIds;
+  for (const auto& name : programName) {
+    auto procs = ZilliqaDaemon::GetProcIdByName(name);
+    for (const auto& p : procs) {
+      procIds.push_back(make_pair(name, p));
+    }
+  }
 
-  for (const auto& pid : pids) {
-    ZilliqaDaemon::LOG(
-        m_log, "Killing " + name + " process before launching daemon...");
-    kill(pid, SIGTERM);
-    ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
+  for (const auto& procId : procIds) {
+    ZilliqaDaemon::LOG(m_log, "Killing " + procId.first +
+                                  " process before launching daemon...");
+    kill(procId.second, SIGKILL);
+    ZilliqaDaemon::LOG(m_log, procId.first + " process killed successfully.");
   }
 }
 
