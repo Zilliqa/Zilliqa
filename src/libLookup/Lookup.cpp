@@ -516,8 +516,7 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
   auto resolved_ip = peer.GetIpAddress();  // existing one
   if (!url.empty()) {
     uint128_t tmpIp;
-    if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(),
-                                DNS_RESOLVER_TIMEOUT, tmpIp)) {
+    if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
       resolved_ip = tmpIp;  // resolved one
     } else {
       LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
