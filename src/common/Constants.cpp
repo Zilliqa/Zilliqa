@@ -494,8 +494,6 @@ const bool CONTRACT_STATES_MIGRATED{
     ReadConstantString("CONTRACT_STATES_MIGRATED", "node.recovery.") == "true"};
 const unsigned int MAX_IPCHANGE_REQUEST_LIMIT{
     ReadConstantNumeric("MAX_IPCHANGE_REQUEST_LIMIT", "node.recovery.")};
-const bool MIGRATE_MBS_TXNS{
-    ReadConstantString("MIGRATE_MBS_TXNS", "node.recovery.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
