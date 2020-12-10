@@ -23,7 +23,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 
 ## Zilliqa Mainnet
 
-The current live version on the Zilliqa Mainnet is [Zilliqa v6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2) and [Scilla v0.9.0](https://github.com/Zilliqa/scilla/releases/tag/v0.9.0-backport.16.04).
+The current live version on the Zilliqa Mainnet is Zilliqa [v6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2) and Scilla [v0.9.0](https://github.com/Zilliqa/scilla/releases/tag/v0.9.0-backport.16.04).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -32,7 +32,7 @@ The current live version on the Zilliqa Mainnet is [Zilliqa v6.4.2](https://gith
 
 ## Developer Testnet
 
-The current live version on the Developer Testnet is [Zilliqa v7.0.0-beta.4](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0-beta.4) and [Scilla v0.9.1-alpha.0](https://github.com/Zilliqa/scilla/releases/tag/v0.9.1-alpha.0).
+The current live version on the Developer Testnet is Zilliqa [v7.0.0-beta.4](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0-beta.4) and Scilla [v0.9.1-alpha.0](https://github.com/Zilliqa/scilla/releases/tag/v0.9.1-alpha.0).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -82,9 +82,9 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
 
 ## Build Dependencies
 
-The officially supported operating system is **Ubuntu 16.04**, until Zilliqa version [6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2).
+The officially supported operating system is **Ubuntu 16.04**, until Zilliqa [v6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2).
 
-Effective Zilliqa version [7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0), the officially supported operating system is **Ubuntu 18.04**. Although Zilliqa continues to be backward compatible with Ubuntu 16.04, we recommend users to upgrade to Ubuntu 18.04 moving forward.
+Effective Zilliqa [v7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0), the officially supported operating system is **Ubuntu 18.04**. Although Zilliqa continues to be backward compatible with Ubuntu 16.04, we recommend users to upgrade to Ubuntu 18.04 moving forward.
 
 Run the following to install the build dependencies:
 
