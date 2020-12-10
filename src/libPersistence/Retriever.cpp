@@ -285,6 +285,10 @@ bool Retriever::RetrieveBlockLink() {
     lastDsIndex--;
   }
 
+  LOG_GENERAL(INFO,
+              "Reconstructing DS committee from blocklinks (this may take some "
+              "time)...");
+
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
        ++blocklinkItr) {
@@ -300,7 +304,7 @@ bool Retriever::RetrieveBlockLink() {
         return false;
       }
 
-      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock);
+      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock, false);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
@@ -314,8 +318,8 @@ bool Retriever::RetrieveBlockLink() {
                         << std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
         return false;
       }
-      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(*vcblock,
-                                                                     dsComm);
+      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
+          *vcblock, dsComm, false);
     }
 
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
@@ -324,8 +328,10 @@ bool Retriever::RetrieveBlockLink() {
         std::get<BlockLinkIndex::INDEX>(blocklink),
         std::get<BlockLinkIndex::DSINDEX>(blocklink),
         std::get<BlockLinkIndex::BLOCKTYPE>(blocklink),
-        std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
+        std::get<BlockLinkIndex::BLOCKHASH>(blocklink), false);
   }
+
+  LOG_GENERAL(INFO, "Reconstructing DS committee done");
 
   return true;
 }
