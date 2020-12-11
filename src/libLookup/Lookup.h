@@ -34,6 +34,7 @@
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
+#include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
@@ -246,11 +247,13 @@ class Lookup : public Executable {
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                [[gnu::unused]] unsigned int offset,
-                               [[gnu::unused]] const Peer& from);
+                               const Peer& from,
+                               const unsigned char& startByte);
   // UNUSED
   bool ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
                                [[gnu::unused]] unsigned int offset,
-                               [[gnu::unused]] const Peer& from);
+                               [[gnu::unused]] const Peer& from,
+                               [[gnu::unused]] const unsigned char& startByte);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum,
                                const bool includeMinerInfo = false);
 
@@ -261,13 +264,17 @@ class Lookup : public Executable {
   bool GetPendingTxnFromL2lDataProvider(uint64_t blockNum, uint32_t shardId);
 
   bool ProcessGetDSBlockFromL2l(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                const unsigned char& startByte);
   bool ProcessGetVCFinalBlockFromL2l(const bytes& message, unsigned int offset,
-                                     const Peer& from);
+                                     const Peer& from,
+                                     const unsigned char& startByte);
   bool ProcessGetMBnForwardTxnFromL2l(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+                                      const Peer& from,
+                                      const unsigned char& startByte);
   bool ProcessGetPendingTxnFromL2l(const bytes& message, unsigned int offset,
-                                   const Peer& from);
+                                   const Peer& from,
+                                   const unsigned char& startByte);
 
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -310,24 +317,31 @@ class Lookup : public Executable {
   void SendTxnPacketToNodes(const uint32_t, const uint32_t);
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                const unsigned char& startByte);
   bool ProcessGetDSBlockFromSeed(const bytes& message, unsigned int offset,
-                                 const Peer& from);
+                                 const Peer& from,
+                                 const unsigned char& startByte);
   bool ProcessGetTxBlockFromSeed(const bytes& message, unsigned int offset,
-                                 const Peer& from);
+                                 const Peer& from,
+                                 const unsigned char& startByte);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
-                                    const Peer& from);
+                                    const Peer& from,
+                                    const unsigned char& startByte);
   bool ProcessGetStateDeltasFromSeed(const bytes& message, unsigned int offset,
-                                     const Peer& from);
+                                     const Peer& from,
+                                     const unsigned char& startByte);
 
   bool ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                const unsigned char& startByte);
 
   bool ProcessGetTxnsFromL2l(const bytes& message, unsigned int offset,
-                             const Peer& from);
+                             const Peer& from, const unsigned char& startByte);
 
   bool ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                [[gnu::unused]] const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
 
   void SendGetTxnsFromLookup(const BlockHash& mbHash,
                              const std::vector<TxnHash>& txnhashes);
@@ -340,69 +354,98 @@ class Lookup : public Executable {
   void SendGetMicroBlockFromL2l(const std::vector<BlockHash>& mbHashes);
 
   bool ProcessGetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+                                      const Peer& from,
+                                      const unsigned char& startByte);
 
   bool ProcessGetMicroBlockFromL2l(const bytes& message, unsigned int offset,
-                                   const Peer& from);
+                                   const Peer& from,
+                                   const unsigned char& startByte);
 
-  bool ProcessSetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+  bool ProcessSetMicroBlockFromLookup(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                const unsigned char& startByte);
 
   bool ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  bool ProcessSetDSBlockFromSeed(const bytes& message, unsigned int offset,
-                                 const Peer& from);
-  bool ProcessSetMinerInfoFromSeed(const bytes& message, unsigned int offset,
-                                   const Peer& from);
-  bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
-                                 const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessSetDSBlockFromSeed(
+      const bytes& message, unsigned int offset,
+      [[gnu::unused]] const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessSetMinerInfoFromSeed(
+      const bytes& message, unsigned int offset,
+      [[gnu::unused]] const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessSetTxBlockFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   void PrepareForStartPow();
   bool GetDSInfo();
-  bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
-                                    const Peer& from);
-  bool ProcessSetStateDeltasFromSeed(const bytes& message, unsigned int offset,
-                                     const Peer& from);
+  bool ProcessSetStateDeltaFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessSetStateDeltasFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessSetLookupOffline(const bytes& message, unsigned int offset,
-                               const Peer& from);
+                               const Peer& from,
+                               [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSetLookupOnline(const bytes& message, unsigned int offset,
-                              const Peer& from);
+                              const Peer& from,
+                              [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
-                            const Peer& from);
+                            const Peer& from,
+                            [[gnu::unused]] const unsigned char& startByte);
   bool ProcessGetStartPoWFromSeed(const bytes& message, unsigned int offset,
-                                  const Peer& from);
-  bool ProcessSetStartPoWFromSeed(const bytes& message, unsigned int offset,
-                                  const Peer& from);
+                                  const Peer& from,
+                                  const unsigned char& startByte);
+  bool ProcessSetStartPoWFromSeed(
+      const bytes& message, unsigned int offset,
+      [[gnu::unused]] const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessGetDirectoryBlocksFromSeed(const bytes& message,
-                                         unsigned int offset, const Peer& from);
+                                         unsigned int offset, const Peer& from,
+                                         const unsigned char& startByte);
 
-  bool ProcessSetDirectoryBlocksFromSeed(const bytes& message,
-                                         unsigned int offset, const Peer& from);
+  bool ProcessSetDirectoryBlocksFromSeed(
+      const bytes& message, unsigned int offset,
+      [[gnu::unused]] const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessVCGetLatestDSTxBlockFromSeed(const bytes& message,
                                            unsigned int offset,
-                                           const Peer& from);
+                                           const Peer& from,
+                                           const unsigned char& startByte);
   bool ProcessForwardTxn(const bytes& message, unsigned int offset,
-                         const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
 
-  bool ProcessGetDSGuardNetworkInfo(const bytes& message, unsigned int offset,
-                                    const Peer& from);
+  bool ProcessGetDSGuardNetworkInfo(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessGetCosigsRewardsFromSeed(const bytes& message,
-                                       unsigned int offset, const Peer& from);
+                                       unsigned int offset, const Peer& from,
+                                       const unsigned char& startByte);
 
-  bool NoOp(const bytes& message, unsigned int offset, const Peer& from);
+  bool NoOp([[gnu::unused]] const bytes& message,
+            [[gnu::unused]] unsigned int offset,
+            [[gnu::unused]] const Peer& from,
+            [[gnu::unused]] const unsigned char& startByte);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(
       const uint64_t& index_num, bool toSendSeed = true,
@@ -435,7 +478,8 @@ class Lookup : public Executable {
   /// m_unavailableMicroBlocks
   void FindMissingMBsForLastNTxBlks(const uint32_t& num);
 
-  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from,
+               const unsigned char& startByte);
 
   inline SyncType GetSyncType() const { return m_syncType.load(); }
   void SetSyncType(SyncType syncType);

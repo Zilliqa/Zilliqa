@@ -386,9 +386,9 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
   }
 }
 
-bool DirectoryService::ProcessViewChangeConsensus(const bytes& message,
-                                                  unsigned int offset,
-                                                  const Peer& from) {
+bool DirectoryService::ProcessViewChangeConsensus(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessViewChangeConsensus not expected "

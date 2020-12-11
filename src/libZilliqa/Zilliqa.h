@@ -39,7 +39,9 @@ class Zilliqa {
   Node m_n;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
-  boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
+  boost::lockfree::queue<
+      std::pair<bytes, std::pair<Peer, const unsigned char>>*>
+      m_msgQueue;
 
   std::shared_ptr<LookupServer> m_lookupServer;
   std::shared_ptr<StakingServer> m_stakingServer;
@@ -50,7 +52,8 @@ class Zilliqa {
 
   ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
-  void ProcessMessage(std::pair<bytes, Peer>* message);
+  void ProcessMessage(
+      std::pair<bytes, std::pair<Peer, const unsigned char>>* message);
 
  public:
   /// Constructor.
@@ -65,7 +68,8 @@ class Zilliqa {
   void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.
-  void Dispatch(std::pair<bytes, Peer>* message);
+  void Dispatch(
+      std::pair<bytes, std::pair<Peer, const unsigned char>>* message);
 
   static std::string FormatMessageName(unsigned char msgType,
                                        unsigned char instruction);

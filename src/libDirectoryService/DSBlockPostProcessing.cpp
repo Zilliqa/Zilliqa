@@ -829,8 +829,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    const bytes& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessDSBlockConsensus not expected to "

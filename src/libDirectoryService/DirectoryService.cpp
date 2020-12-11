@@ -153,9 +153,9 @@ uint32_t DirectoryService::GetNumShards() const {
   return m_shards.size();
 }
 
-bool DirectoryService::ProcessSetPrimary(const bytes& message,
-                                         unsigned int offset,
-                                         [[gnu::unused]] const Peer& from) {
+bool DirectoryService::ProcessSetPrimary(
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessSetPrimary not "
@@ -888,8 +888,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 }
 
 bool DirectoryService::ProcessNewDSGuardNetworkInfo(
-    const bytes& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   if (!GUARD_MODE) {
@@ -1010,8 +1010,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 }
 
 bool DirectoryService::ProcessCosigsRewardsFromSeed(
-    const bytes& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1060,13 +1060,14 @@ void DirectoryService::GetCoinbaseRewardees(
 }
 
 bool DirectoryService::Execute(const bytes& message, unsigned int offset,
-                               const Peer& from) {
+                               const Peer& from,
+                               const unsigned char& startByte) {
   // LOG_MARKER();
 
   bool result = false;
 
   typedef bool (DirectoryService::*InstructionHandler)(
-      const bytes&, unsigned int, const Peer&);
+      const bytes&, unsigned int, const Peer&, const unsigned char&);
 
   std::vector<InstructionHandler> ins_handlers;
 
@@ -1092,7 +1093,8 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
   }
 
   if (ins_byte < ins_handlers_count) {
-    result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
+    result =
+        (this->*ins_handlers[ins_byte])(message, offset + 1, from, startByte);
 
     if (!result) {
       // To-do: Error recovery

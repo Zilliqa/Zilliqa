@@ -129,6 +129,11 @@ const unsigned int SEED_SYNC_SMALL_PULL_INTERVAL{
     ReadConstantNumeric("SEED_SYNC_SMALL_PULL_INTERVAL", "node.seed.")};
 const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL{
     ReadConstantNumeric("SEED_SYNC_LARGE_PULL_INTERVAL", "node.seed.")};
+const bool ENABLE_SEED_TO_SEED_COMMUNICATION{
+    ReadConstantString("ENABLE_SEED_TO_SEED_COMMUNICATION", "node.seed.") ==
+    "true"};
+const unsigned int P2P_SEED_CONNECT_PORT{
+    ReadConstantNumeric("P2P_SEED_CONNECT_PORT", "node.seed.")};
 
 // RemotestorageDB constants
 const string REMOTESTORAGE_DB_HOST{

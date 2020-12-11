@@ -466,7 +466,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
 
 bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

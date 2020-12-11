@@ -84,8 +84,8 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
 }
 
 bool DirectoryService::ProcessPoWPacketSubmission(
-    const bytes& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
@@ -128,9 +128,9 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   return true;
 }
 
-bool DirectoryService::ProcessPoWSubmission(const bytes& message,
-                                            unsigned int offset,
-                                            const Peer& from) {
+bool DirectoryService::ProcessPoWSubmission(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   static const string EXPECTED_VERSION =
