@@ -449,6 +449,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
+      m_originAddr = fromAddr;
+
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -882,6 +884,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     msgObj["_sender"] =
         prepend +
         Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+    msgObj["_origin"] = prepend + m_originAddr.hex();
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
@@ -1378,6 +1381,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       Json::Value input_message;
       input_message["_sender"] = "0x" + curContractAddr.hex();
+      input_message["_origin"] = "0x" + m_originAddr.hex();
       input_message["_amount"] = msg["_amount"];
       input_message["_tag"] = msg["_tag"];
       input_message["params"] = msg["params"];
