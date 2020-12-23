@@ -298,6 +298,11 @@ class Node : public Executable {
   bool ProcessNewShardNodeNetworkInfo(const bytes& message, unsigned int offset,
                                       const Peer& from);
 
+  bool ProcessGetVersion(const bytes& message, unsigned int offset,
+                         const Peer& from);
+  bool ProcessSetVersion(const bytes& message, unsigned int offset,
+                         const Peer& from);
+
   // bool ProcessCreateAccounts(const bytes & message,
   // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const bytes& message, unsigned int cur_offset,
@@ -493,6 +498,8 @@ class Node : public Executable {
   // current dsepoch only)
   std::mutex m_mutexIPChangeRequestStore;
   std::map<PubKey, uint32_t> m_ipChangeRequestStore;
+
+  std::atomic<bool> m_versionChecked{false};
 
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
@@ -726,6 +733,8 @@ class Node : public Executable {
                          const std::string& remainingVoteCount,
                          const std::string& startDSEpoch,
                          const std::string& endDSEpoch);
+
+  void CheckPeers(const std::vector<Peer>& peers);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

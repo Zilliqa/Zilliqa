@@ -2584,6 +2584,45 @@ bool Node::ProcessNewShardNodeNetworkInfo(const bytes& message,
   return true;
 }
 
+bool Node::ProcessGetVersion(const bytes& message, unsigned int offset,
+                             const Peer& from) {
+  LOG_MARKER();
+
+  if (!m_versionChecked) {
+    uint32_t portNo = 0;
+    if (!Messenger::GetNodeGetVersion(message, offset, portNo)) {
+      LOG_GENERAL(WARNING, "Messenger::GetNodeGetVersion failed");
+      return false;
+    }
+    bytes response = {MessageType::NODE, NodeInstructionType::SETVERSION};
+    if (!Messenger::SetNodeSetVersion(response, MessageOffset::BODY,
+                                      VERSION_TAG)) {
+      LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
+      return false;
+    }
+    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+                                       response);
+    m_versionChecked = true;
+  }
+
+  return true;
+}
+
+bool Node::ProcessSetVersion(const bytes& message, unsigned int offset,
+                             const Peer& from) {
+  LOG_MARKER();
+
+  string version_tag;
+  if (!Messenger::GetNodeSetVersion(message, offset, version_tag)) {
+    LOG_GENERAL(WARNING, "Messenger::GetNodeSetVersion failed");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Peer=" << from.GetPrintableIPAddress()
+                            << " Version=" << version_tag);
+
+  return true;
+}
+
 bool Node::ValidateAndUpdateIPChangeRequestStore(
     const PubKey& shardNodePubkey) {
   if (Guard::GetInstance().IsNodeInShardGuardList(shardNodePubkey)) {
@@ -2903,7 +2942,9 @@ bool Node::Execute(const bytes& message, unsigned int offset,
       &Node::ProcessRemoveNodeFromBlacklist,
       &Node::ProcessPendingTxn,
       &Node::ProcessVCFinalBlock,
-      &Node::ProcessNewShardNodeNetworkInfo};
+      &Node::ProcessNewShardNodeNetworkInfo,
+      &Node::ProcessGetVersion,
+      &Node::ProcessSetVersion};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
@@ -3128,4 +3169,15 @@ bool Node ::StoreVoteUntilPow(const std::string& proposalId,
     return false;
   }
   return true;
+}
+
+void Node::CheckPeers(const vector<Peer>& peers) {
+  LOG_MARKER();
+
+  bytes message = {MessageType::NODE, NodeInstructionType::GETVERSION};
+  if (!Messenger::SetNodeGetVersion(message, MessageOffset::BODY,
+                                    m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
+  }
+  P2PComm::GetInstance().SendMessage(peers, message);
 }

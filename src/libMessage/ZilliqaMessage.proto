@@ -648,6 +648,16 @@ message NodeMissingTxnsErrorMsg
     uint32 listenport = 3;
 }
 
+message NodeGetVersion
+{
+    uint32 listenport = 1;
+}
+
+message NodeSetVersion
+{
+    string version = 1;
+}
+
 // ============================================================================
 // Lookup messages
 // ============================================================================
