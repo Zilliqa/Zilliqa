@@ -430,6 +430,15 @@ class Messenger {
                                          uint64_t& epochNum,
                                          uint32_t& listenPort);
 
+  static bool SetNodeGetVersion(bytes& dst, const unsigned int offset,
+                                const uint32_t listenPort);
+  static bool GetNodeGetVersion(const bytes& src, const unsigned int offset,
+                                uint32_t& listenPort);
+  static bool SetNodeSetVersion(bytes& dst, const unsigned int offset,
+                                const std::string& version);
+  static bool GetNodeSetVersion(const bytes& src, const unsigned int offset,
+                                std::string& version);
+
   // ============================================================================
   // Lookup messages
   // ============================================================================

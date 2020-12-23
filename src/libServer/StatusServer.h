@@ -140,6 +140,11 @@ class StatusServer : public Server,
     (void)request;
     response = this->ToggleGetSmartContractState();
   }
+  inline virtual void AuditShardI(const Json::Value& request,
+                                  Json::Value& response) {
+    (void)request;
+    response = this->AuditShard(request[0u].asString());
+  }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
@@ -168,6 +173,7 @@ class StatusServer : public Server,
   bool InitRemoteStorage();
   std::string AverageBlockTime();
   bool ToggleGetSmartContractState();
+  bool AuditShard(const std::string& shardIDStr);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
