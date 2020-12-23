@@ -161,6 +161,11 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetAverageBlockTime", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetAverageBlockTimeI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("AuditShard", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &StatusServer::AuditShardI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -621,4 +626,38 @@ bool StatusServer::InitRemoteStorage() {
 string StatusServer::AverageBlockTime() {
   return to_string(
       static_cast<unsigned int>(m_mediator.m_aveBlockTimeInSeconds));
+}
+
+bool StatusServer::AuditShard(const std::string& shardIDStr) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+
+  const uint32_t shardID = stoul(shardIDStr);
+  LOG_GENERAL(INFO, "Auditing shard " << shardID);
+
+  try {
+    const auto shards = m_mediator.m_lookup->GetShardPeers();
+    if (shards.size() <= shardID) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER, "Invalid shardID");
+    }
+
+    const auto& shard = shards.at(shardID);
+    vector<Peer> peersVec;
+    for (const auto& peer : shard) {
+      LOG_GENERAL(INFO,
+                  "Checking " << std::get<1>(peer).GetPrintableIPAddress());
+      peersVec.emplace_back(std::get<1>(peer));
+    }
+
+    m_mediator.m_node->CheckPeers(peersVec);
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "[Error] " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+
+  return true;
 }

@@ -5064,6 +5064,80 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
   return true;
 }
 
+bool Messenger::SetNodeGetVersion(bytes& dst, const unsigned int offset,
+                                  const uint32_t listenPort) {
+  LOG_MARKER();
+
+  NodeGetVersion result;
+  result.set_listenport(listenPort);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeGetVersion initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeGetVersion(const bytes& src, const unsigned int offset,
+                                  uint32_t& listenPort) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeGetVersion result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeGetVersion initialization failed");
+    return false;
+  }
+
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetNodeSetVersion(bytes& dst, const unsigned int offset,
+                                  const std::string& version) {
+  LOG_MARKER();
+
+  NodeSetVersion result;
+  result.set_version(version);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeSetVersion initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeSetVersion(const bytes& src, const unsigned int offset,
+                                  std::string& version) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeSetVersion result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeSetVersion initialization failed");
+    return false;
+  }
+
+  version = result.version();
+
+  return true;
+}
+
 // ============================================================================
 // Lookup messages
 // ============================================================================
