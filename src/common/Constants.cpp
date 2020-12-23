@@ -163,6 +163,8 @@ const unsigned int COMMIT_TOLERANCE_PERCENT{
     ReadConstantNumeric("COMMIT_TOLERANCE_PERCENT", "node.consensus.")};
 const unsigned int SUBSET0_RESPONSE_DELAY_IN_MS{
     ReadConstantNumeric("SUBSET0_RESPONSE_DELAY_IN_MS", "node.consensus.")};
+const unsigned int LEADER_SELECTION_TARGET_DS{
+    ReadConstantNumeric("LEADER_SELECTION_TARGET_DS", "node.consensus.")};
 
 // Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
@@ -323,6 +325,8 @@ const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
 const double SHARD_GUARD_TOL{
     ReadConstantDouble("SHARD_GUARD_TOL", "node.guard_mode.")};
+const unsigned int SHARD_LEADER_SELECT_TOL{
+    ReadConstantNumeric("SHARD_LEADER_SELECT_TOL", "node.guard_mode.")};
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};

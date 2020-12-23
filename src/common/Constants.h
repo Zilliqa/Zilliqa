@@ -174,6 +174,7 @@ extern const unsigned int DS_NUM_CONSENSUS_SUBSETS;
 extern const unsigned int SHARD_NUM_CONSENSUS_SUBSETS;
 extern const unsigned int COMMIT_TOLERANCE_PERCENT;
 extern const unsigned int SUBSET0_RESPONSE_DELAY_IN_MS;
+extern const unsigned int LEADER_SELECTION_TARGET_DS;
 
 // Data sharing constants
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
@@ -260,6 +261,7 @@ extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE;
 extern const double SHARD_GUARD_TOL;
+extern const unsigned int SHARD_LEADER_SELECT_TOL;
 
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
