@@ -84,6 +84,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
     SetDSCommitteInfo();
   }
   m_sendSCCallsToDS = false;
+  m_sendAllToDS = false;
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
     m_extSeedKey = std::move(extSeedKey);
@@ -5598,6 +5599,10 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       for (const auto& txn : txnsShard) {
         unsigned int shard = txn.GetShardIndex(shard_size);
         AddToTxnShardMap(txn, shard);
+      }
+    } else if (m_sendAllToDS) {
+      for (const auto& txn : txnsShard) {
+        AddToTxnShardMap(txn, shard_size);
       }
     } else {
       LOG_GENERAL(INFO, "Sending all contract calls to DS committee");

@@ -497,6 +497,9 @@ class Lookup : public Executable {
   // For use by lookup for dispatching transactions
   std::atomic<bool> m_sendSCCallsToDS{};
 
+  // For use by lookup for sending all transactions
+  std::atomic<bool> m_sendAllToDS;
+
   // extseed key
   PairOfKey m_extSeedKey;
 

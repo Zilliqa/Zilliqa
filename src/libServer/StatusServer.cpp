@@ -116,6 +116,14 @@ StatusServer::StatusServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetSendSCCallsToDSI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleSendAllToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ToggleSendAllToDSI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetSendAllToDS", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetSendAllToDSI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("DisablePoW", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::DisablePoWI);
@@ -439,6 +447,23 @@ bool StatusServer::GetSendSCCallsToDS() {
                            "Not to be queried on non-lookup");
   }
   return m_mediator.m_lookup->m_sendSCCallsToDS;
+}
+
+bool StatusServer::ToggleSendAllToDS() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  m_mediator.m_lookup->m_sendAllToDS = !(m_mediator.m_lookup->m_sendAllToDS);
+  return m_mediator.m_lookup->m_sendAllToDS;
+}
+
+bool StatusServer::GetSendAllToDS() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  return m_mediator.m_lookup->m_sendAllToDS;
 }
 
 bool StatusServer::DisablePoW() {

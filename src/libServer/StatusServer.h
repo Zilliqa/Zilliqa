@@ -93,6 +93,18 @@ class StatusServer : public Server,
     (void)request;
     response = this->DisablePoW();
   }
+  inline virtual void GetSendAllToDSI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->GetSendAllToDS();
+  }
+
+  inline virtual void ToggleSendAllToDSI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->ToggleSendAllToDS();
+  }
+
   inline virtual void ToggleDisableTxnsI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
@@ -160,6 +172,8 @@ class StatusServer : public Server,
   Json::Value GetDSCommittee();
   bool ToggleSendSCCallsToDS();
   bool GetSendSCCallsToDS();
+  bool ToggleSendAllToDS();
+  bool GetSendAllToDS();
   bool DisablePoW();
   bool ToggleDisableTxns();
   std::string SetValidateDB();

@@ -512,6 +512,7 @@ Json::Value LookupServer::CreateTransaction(
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int mapIndex = shard;
+
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         if (ARCHIVAL_LOOKUP) {
@@ -590,6 +591,13 @@ Json::Value LookupServer::CreateTransaction(
         break;
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
+    }
+    if (m_mediator.m_lookup->m_sendAllToDS) {
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      } else {
+        mapIndex = num_shards;
+      }
     }
     if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
