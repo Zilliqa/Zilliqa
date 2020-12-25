@@ -116,6 +116,8 @@ def make_options_dictionary(options_dict):
 	options_dict["difficulty"] = "GetPrevDifficulty"
 	options_dict["set_sendsccallstods"] = "ToggleSendSCCallsToDS"
 	options_dict["get_sendsccallstods"] = "GetSendSCCallsToDS"
+	options_dict["set_sendalltods"]="ToggleSendAllToDS"
+	options_dict["get_sendalltods"] = "GetSendAllToDS"
 	options_dict["disable_pow"] = "DisablePoW"
 	options_dict["disabletxns"] = "ToggleDisableTxns"
 	options_dict["set_validatedb"] = "SetValidateDB"

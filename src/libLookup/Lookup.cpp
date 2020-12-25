@@ -5595,7 +5595,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       return false;
     }
 
-    if (!m_sendSCCallsToDS) {
+    if (!(m_sendSCCallsToDS || m_sendAllToDS)) {
       for (const auto& txn : txnsShard) {
         unsigned int shard = txn.GetShardIndex(shard_size);
         AddToTxnShardMap(txn, shard);
