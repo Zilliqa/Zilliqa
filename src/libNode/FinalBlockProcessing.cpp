@@ -875,6 +875,18 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
         LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+
+        // I am shard leader and we failed to finish consensus before receiving
+        // FB
+        lock_guard<mutex> g(m_mutexConsensus);
+        if ((m_mediator.m_ds->m_mode == DirectoryService::IDLE) &&
+            (m_isPrimary)) {
+          ConsensusLeader* cl =
+              dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+          if (cl != nullptr) {
+            cl->Audit();
+          }
+        }
       }
     }
 
