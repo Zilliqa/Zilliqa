@@ -47,7 +47,8 @@ class BlockLinkChain {
   BlockLink GetBlockLink(const uint64_t& index);
 
   bool AddBlockLink(const uint64_t& index, const uint64_t& dsindex,
-                    const BlockType blocktype, const BlockHash& blockhash);
+                    const BlockType blocktype, const BlockHash& blockhash,
+                    const bool showLogs = true);
   uint64_t GetLatestIndex();
 
   const DequeOfNode& GetBuiltDSComm();

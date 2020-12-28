@@ -477,7 +477,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
   uint64_t latestTxBlockNum = 0;
-  uint64_t count = 0;
+
+  LOG_GENERAL(INFO, "Retrieving latest Tx block...");
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -485,11 +486,6 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
         m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
       uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
-      count++;
-      if (count % 1000 == 0) {
-        LOG_GENERAL(INFO, "txBlockNum: " << blockNum);
-        count = 0;
-      }
       if (blockNum > latestTxBlockNum) {
         latestTxBlockNum = blockNum;
       }
@@ -497,6 +493,7 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
     delete it;
   }
 
+  LOG_GENERAL(INFO, "Latest Tx block = " << latestTxBlockNum);
   return GetTxBlock(latestTxBlockNum, block);
 }
 
@@ -824,6 +821,8 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
 bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
   LOG_MARKER();
 
+  LOG_GENERAL(INFO, "Retrieving blocklinks...");
+
   shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
 
   leveldb::Iterator* it =
@@ -850,13 +849,13 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       return false;
     }
     blocklinks.emplace_back(blcklink);
-    LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
   }
   delete it;
   if (blocklinks.empty()) {
     LOG_GENERAL(INFO, "Disk has no blocklink");
     return false;
   }
+  LOG_GENERAL(INFO, "Retrieving blocklinks done");
   return true;
 }
 
