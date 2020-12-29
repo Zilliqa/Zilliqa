@@ -6,7 +6,7 @@ cache:
 matrix:
   include:
     - os: linux
-      dist: xenial
+      dist: bionic
     # - os: osx
     #  osx_image: xcode10.1
 
@@ -14,7 +14,7 @@ addons:
   apt:
     update: true
     packages:
-    # APT packages are organized into two groups, build dependency and 
+    # APT packages are organized into two groups, build dependency and
     # development dependency, where the former is necessary for users who
     # want to build Zilliqa whereas the latter is only for CI.
     # Note that the names are sorted in each group.
@@ -47,8 +47,9 @@ addons:
     - git
     - lcov
     - libxml2-utils
-    - python-pip
-
+    - python-dev
+    - python3-dev
+    - libsecp256k1-dev
 script:
   - ./scripts/ci_build.sh;
 
