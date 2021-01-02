@@ -52,9 +52,9 @@ The current release has the following features implemented:
 * [Transaction sharding](https://dev.zilliqa.com/docs/basics/basics-zil-sharding#transaction-sharding)
 * [Ethash Proof of Work (PoW) for joining the network](https://dev.zilliqa.com/docs/contributors/core-gossip)
 * [GPU (OpenCL and CUDA) for PoW](https://dev.zilliqa.com/docs/contributors/core-pow#gpu-mine)
-* [Block rewarding mechanism](https://dev.zilliqa.com/docs/contributors/core-coinbase)
+* [Block rewarding mechanism](https://dev.zilliqa.com/docs/basics/basics-zil-reward/)
 * [Gas pricer](https://dev.zilliqa.com/docs/contributors/core-global-gas-price)
-* [Coinbase rewards](https://dev.zilliqa.com/docs/contributors/core-global-gas-price)
+* [Coinbase rewards](https://dev.zilliqa.com/docs/contributors/core-coinbase)
 * [EC-Schnorr signature](https://github.com/Zilliqa/schnorr)
 * [pBFT Consensus mechanism](https://dev.zilliqa.com/docs/contributors/core-consensus)
 * Data layer and accounts store
