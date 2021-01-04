@@ -649,9 +649,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // If a guard belongs to just subset 0, introduce artificial delay to give
     // other subsets higher chance of completing first
     if (GUARD_MODE && (subsetID == 0) && !guardInOtherSubsets &&
-        ((m_DS && (backupID < Guard::GetInstance().GetNumOfDSGuard())) ||
-         (!m_DS && Guard::GetInstance().IsNodeInShardGuardList(
-                       m_committee.at(backupID).first)))) {
+        ((m_DS && (backupID < Guard::GetInstance().GetNumOfDSGuard())))) {
       const unsigned int delay =
           RandomGenerator::GetRandomInt(SUBSET0_RESPONSE_DELAY_IN_MS) + 1;
       LOG_GENERAL(INFO, "Delay guard " << backupID << " by " << delay << "ms");
