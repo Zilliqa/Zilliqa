@@ -81,38 +81,6 @@ bool BlockStorage::PutTxBlock(const uint64_t& blockNum, const bytes& body) {
   return PutBlock(blockNum, body, BlockType::Tx);
 }
 
-bool BlockStorage::PutTxBody(const bytes& epoch, const uint64_t& epochNum,
-                             const dev::h256& key, const bytes& body) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
-    return false;
-  }
-
-  if (!MIGRATE_MBS_TXNS) {
-    LOG_GENERAL(WARNING, "This function is only used for MIGRATE_MBS_TXNS.");
-    return false;
-  }
-
-  const bytes& keyBytes = key.asBytes();
-
-  // Store txn hash and epoch inside txEpochs DB
-  if (m_txEpochDB->Insert(keyBytes, epoch) != 0) {
-    LOG_GENERAL(WARNING, "TxBody epoch insertion failed. epoch="
-                             << epochNum << " key=" << key);
-    return false;
-  }
-
-  // Store txn hash and body inside txBodies DB
-  if (GetTxBodyDB(epochNum)->Insert(keyBytes, body) != 0) {
-    LOG_GENERAL(WARNING, "TxBody insertion failed. epoch=" << epochNum
-                                                           << " key=" << key);
-    m_txEpochDB->DeleteKey(key);
-    return false;
-  }
-
-  return true;
-}
-
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
                              const bytes& body) {
   if (!LOOKUP_NODE_MODE) {
@@ -192,28 +160,24 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   string blockString;
 
   {
-    if (MIGRATE_MBS_TXNS) {
-      blockString = m_microBlockOrigDB->Lookup(blockHash);
-    } else {
-      unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
+    unique_lock<shared_timed_mutex> g(m_mutexMicroBlock);
 
-      // Get key from microBlockKeys DB
-      const string& keyString = m_microBlockKeyDB->Lookup(blockHash);
-      if (keyString.empty()) {
-        return false;
-      }
-
-      bytes keyBytes(keyString.begin(), keyString.end());
-      uint64_t epochNum = 0;
-      uint32_t shardID = 0;
-      if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
-        LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
-        return false;
-      }
-
-      // Get body from microBlock DB
-      blockString = GetMicroBlockDB(epochNum)->Lookup(keyBytes);
+    // Get key from microBlockKeys DB
+    const string& keyString = m_microBlockKeyDB->Lookup(blockHash);
+    if (keyString.empty()) {
+      return false;
     }
+
+    bytes keyBytes(keyString.begin(), keyString.end());
+    uint64_t epochNum = 0;
+    uint32_t shardID = 0;
+    if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
+      LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
+      return false;
+    }
+
+    // Get body from microBlock DB
+    blockString = GetMicroBlockDB(epochNum)->Lookup(keyBytes);
   }
 
   if (blockString.empty()) {
@@ -498,29 +462,23 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
-  string bodyString;
+  const bytes& keyBytes = key.asBytes();
 
-  if (MIGRATE_MBS_TXNS) {
-    bodyString = m_txBodyOrigDB->Lookup(key);
-  } else {
-    const bytes& keyBytes = key.asBytes();
+  unique_lock<shared_timed_mutex> g(m_mutexTxBody);
 
-    unique_lock<shared_timed_mutex> g(m_mutexTxBody);
-
-    string epochString = m_txEpochDB->Lookup(keyBytes);
-    if (epochString.empty()) {
-      return false;
-    }
-
-    bytes epochBytes(epochString.begin(), epochString.end());
-    uint64_t epochNum = 0;
-    if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
-      LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
-      return false;
-    }
-
-    bodyString = GetTxBodyDB(epochNum)->Lookup(keyBytes);
+  string epochString = m_txEpochDB->Lookup(keyBytes);
+  if (epochString.empty()) {
+    return false;
   }
+
+  bytes epochBytes(epochString.begin(), epochString.end());
+  uint64_t epochNum = 0;
+  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+    return false;
+  }
+
+  string bodyString = GetTxBodyDB(epochNum)->Lookup(keyBytes);
 
   if (bodyString.empty()) {
     return false;
