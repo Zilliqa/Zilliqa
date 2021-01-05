@@ -814,6 +814,11 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const Json::Value& indices) {
   LOG_MARKER();
 
+  if (Mediator::m_disableGetSmartContractState) {
+    LOG_GENERAL(WARNING, "API disabled");
+    throw JsonRpcException(RPC_INVALID_REQUEST, "API disabled");
+  }
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
