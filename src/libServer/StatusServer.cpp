@@ -161,6 +161,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetAverageBlockTime", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetAverageBlockTimeI);
+  this->bindAndAddMethod(jsonrpc::Procedure("ToggleGetSmartContractState",
+                                            jsonrpc::PARAMS_BY_POSITION,
+                                            jsonrpc::JSON_OBJECT, NULL),
+                         &StatusServer::ToggleGetSmartContractStateI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("AuditShard", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
@@ -626,6 +630,17 @@ bool StatusServer::InitRemoteStorage() {
 string StatusServer::AverageBlockTime() {
   return to_string(
       static_cast<unsigned int>(m_mediator.m_aveBlockTimeInSeconds));
+}
+
+bool StatusServer::ToggleGetSmartContractState() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+
+  m_mediator.m_disableGetSmartContractState =
+      !m_mediator.m_disableGetSmartContractState;
+  return m_mediator.m_disableGetSmartContractState;
 }
 
 bool StatusServer::AuditShard(const std::string& shardIDStr) {

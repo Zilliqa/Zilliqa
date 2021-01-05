@@ -476,6 +476,10 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
                            << RRS::Message::s_enumKeyToString[t]);
   } else if (RRS::Message::Type::LAZY_PUSH == t ||
              RRS::Message::Type::LAZY_PULL == t) {
+    if (message_wo_keysig.size() != COMMON_HASH_SIZE) {
+      LOG_CHECK_FAIL("Hash Size", message_wo_keysig.size(), COMMON_HASH_SIZE);
+      return {false, {}};
+    }
     auto it = m_rumorIdHashBimap.right.find(message_wo_keysig);
     if (it == m_rumorIdHashBimap.right.end()) {
       recvdRumorId = ++m_rumorIdGenerator;

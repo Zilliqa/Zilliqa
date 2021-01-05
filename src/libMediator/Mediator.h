@@ -100,6 +100,9 @@ class Mediator {
   /// Prevent transactions from being created, forwarded, and dispatched
   static std::atomic<bool> m_disableTxns;
 
+  /// Prevent use of GetSmartContractState API
+  static std::atomic<bool> m_disableGetSmartContractState;
+
   /// ValidateDB state, used by StatusServer
   std::atomic<ValidateState> m_validateState;
 

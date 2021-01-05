@@ -1126,6 +1126,16 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   uint32_t portNo = 0;
   bool initialDS;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetDSInfoFromSeed(message, offset, portNo,
                                              initialDS)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1704,6 +1714,16 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
   uint32_t portNo = 0;
   bool includeMinerInfo = false;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetDSBlockFromSeed(message, offset, lowBlockNum,
                                               highBlockNum, portNo,
                                               includeMinerInfo)) {
@@ -1864,6 +1884,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetTxBlockFromSeed(message, offset, lowBlockNum,
                                               highBlockNum, portNo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1976,6 +2006,16 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
   uint64_t blockNum = 0;
   uint32_t portNo = 0;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetStateDeltaFromSeed(message, offset, blockNum,
                                                  portNo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -2029,6 +2069,16 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
+
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
 
   if (!Messenger::GetLookupGetStateDeltasFromSeed(message, offset, lowBlockNum,
                                                   highBlockNum, portNo)) {
@@ -5367,8 +5417,9 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
         uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
             m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-        uint32_t leader_id = m_mediator.m_node->CalculateShardLeader(
-            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size());
+        uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
+            lastBlockHash, m_mediator.m_ds->m_shards.at(i).size(),
+            m_mediator.m_ds->m_shards.at(i));
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Shard leader id " << leader_id);
 

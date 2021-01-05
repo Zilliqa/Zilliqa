@@ -278,7 +278,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
         *m_mediator.m_DSCommittee);
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
-  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  Blacklist::GetInstance().Clear();
   P2PComm::ClearPeerConnectionCount();
 
   CleanWhitelistReqs();
@@ -296,8 +296,8 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
       m_consensusLeaderID =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     } else {
-      m_consensusLeaderID =
-          CalculateShardLeader(lastBlockHash, m_myShardMembers->size());
+      m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
+          lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
     }
 
     // If node was restarted consensusID needs to be calculated ( will not be 1)

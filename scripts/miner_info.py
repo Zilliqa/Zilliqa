@@ -126,6 +126,7 @@ def make_options_dictionary(options_dict):
 	options_dict["blocktime"] = "GetAverageBlockTime"
 	options_dict["blacklist_check"] = "IsIPInBlacklist"
 	options_dict["blacklist_remove"] = "RemoveIPFromBlacklist"
+	options_dict["disablegetstate"] = "ToggleGetSmartContractState"
 	options_dict["audit_shard"] = "AuditShard"
 
 def ProcessResponseCore(resp, param):

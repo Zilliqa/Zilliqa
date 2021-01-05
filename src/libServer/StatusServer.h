@@ -143,6 +143,11 @@ class StatusServer : public Server,
     (void)request;
     response = this->AverageBlockTime();
   }
+  inline virtual void ToggleGetSmartContractStateI(const Json::Value& request,
+                                                   Json::Value& response) {
+    (void)request;
+    response = this->ToggleGetSmartContractState();
+  }
   inline virtual void AuditShardI(const Json::Value& request,
                                   Json::Value& response) {
     (void)request;
@@ -177,6 +182,7 @@ class StatusServer : public Server,
   bool GetRemoteStorage();
   bool InitRemoteStorage();
   std::string AverageBlockTime();
+  bool ToggleGetSmartContractState();
   bool AuditShard(const std::string& shardIDStr);
 };
 

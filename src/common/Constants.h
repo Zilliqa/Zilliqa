@@ -260,6 +260,7 @@ extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE;
 extern const double SHARD_GUARD_TOL;
+extern const unsigned int SHARD_LEADER_SELECT_TOL;
 
 // Heartbeat constants
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
@@ -351,7 +352,6 @@ extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 extern const bool CONTRACT_STATES_MIGRATED;
 extern const unsigned int MAX_IPCHANGE_REQUEST_LIMIT;
-extern const bool MIGRATE_MBS_TXNS;
 
 // Smart contract constants
 extern const bool ENABLE_SC;

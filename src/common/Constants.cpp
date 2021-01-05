@@ -323,6 +323,8 @@ const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
 const double SHARD_GUARD_TOL{
     ReadConstantDouble("SHARD_GUARD_TOL", "node.guard_mode.")};
+const unsigned int SHARD_LEADER_SELECT_TOL{
+    ReadConstantNumeric("SHARD_LEADER_SELECT_TOL", "node.guard_mode.")};
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
@@ -494,8 +496,6 @@ const bool CONTRACT_STATES_MIGRATED{
     ReadConstantString("CONTRACT_STATES_MIGRATED", "node.recovery.") == "true"};
 const unsigned int MAX_IPCHANGE_REQUEST_LIMIT{
     ReadConstantNumeric("MAX_IPCHANGE_REQUEST_LIMIT", "node.recovery.")};
-const bool MIGRATE_MBS_TXNS{
-    ReadConstantString("MIGRATE_MBS_TXNS", "node.recovery.") == "true"};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

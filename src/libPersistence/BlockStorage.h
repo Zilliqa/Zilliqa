@@ -126,23 +126,13 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_diagnosticDBNodesCounter(0),
         m_diagnosticDBCoinbaseCounter(0) {
     if (LOOKUP_NODE_MODE) {
-      if (MIGRATE_MBS_TXNS) {
-        m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodiesNew"));
-        m_txBodyOrigDB = std::make_shared<LevelDB>("txBodies");
-      } else {
-        m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
-      }
+      m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
       m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
       m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
       m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
       m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
     }
-    if (MIGRATE_MBS_TXNS) {
-      m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocksNew"));
-      m_microBlockOrigDB = std::make_shared<LevelDB>("microBlocks");
-    } else {
-      m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
-    }
+    m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
   };
   ~BlockStorage() = default;
   bool PutBlock(const uint64_t& blockNum, const bytes& body,
@@ -190,8 +180,6 @@ class BlockStorage : public Singleton<BlockStorage> {
                      const uint32_t& shardID, const bytes& body);
 
   /// Adds a transaction body to storage.
-  bool PutTxBody(const bytes& epoch, const uint64_t& epochNum,
-                 const dev::h256& key, const bytes& body);
   bool PutTxBody(const uint64_t& epochNum, const dev::h256& key,
                  const bytes& body);
 
@@ -392,14 +380,14 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexMetadata;
   mutable std::shared_timed_mutex m_mutexDsBlockchain;
   mutable std::shared_timed_mutex m_mutexTxBlockchain;
-  mutable std::shared_timed_mutex m_mutexMicroBlock;
+  mutable std::mutex m_mutexMicroBlock;
   mutable std::shared_timed_mutex m_mutexDsCommittee;
   mutable std::shared_timed_mutex m_mutexVCBlock;
   mutable std::shared_timed_mutex m_mutexBlockLink;
   mutable std::shared_timed_mutex m_mutexShardStructure;
   mutable std::shared_timed_mutex m_mutexStateDelta;
   mutable std::shared_timed_mutex m_mutexTempState;
-  mutable std::shared_timed_mutex m_mutexTxBody;
+  mutable std::mutex m_mutexTxBody;
   mutable std::shared_timed_mutex m_mutexStateRoot;
   mutable std::shared_timed_mutex m_mutexProcessTx;
   mutable std::shared_timed_mutex m_mutexMinerInfoDSComm;
