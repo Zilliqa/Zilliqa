@@ -127,6 +127,7 @@ def make_options_dictionary(options_dict):
 	options_dict["blacklist_check"] = "IsIPInBlacklist"
 	options_dict["blacklist_remove"] = "RemoveIPFromBlacklist"
 	options_dict["disablegetstate"] = "ToggleGetSmartContractState"
+	options_dict["audit_shard"] = "AuditShard"
 
 def ProcessResponseCore(resp, param):
 	if param:
@@ -151,7 +152,7 @@ def ProcessResponse(resp, params, batch):
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed", "blacklist_check", "blacklist_remove"]
+	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed", "blacklist_check", "blacklist_remove", "audit_shard"]
 	global DEBUG_MODE
 	args = parse_arguments(sorted(options_dictionary.keys()))
 	DEBUG_MODE = args.debug

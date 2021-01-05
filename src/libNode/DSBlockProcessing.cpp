@@ -269,6 +269,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
 
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
+  m_versionChecked = false;
   ResetConsensusId();
   // blacklist pop for shard nodes
   {
