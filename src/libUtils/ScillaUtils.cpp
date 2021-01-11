@@ -139,3 +139,41 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
 
   return ret;
 }
+
+Json::Value ScillaUtils::GetReinitContractJson(const string& root_w_version,
+                                               const uint64_t& available_gas,
+                                               const uint128_t& balance,
+                                               const string& user_state_path) {
+  Json::Value ret;
+  ret["argv"].append("-init");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INIT_JSON);
+  ret["argv"].append("-ipcaddress");
+  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
+  ret["argv"].append("-iblockchain");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_BLOCKCHAIN_JSON);
+  ret["argv"].append("-imessage");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_MESSAGE_JSON);
+  ret["argv"].append("-o");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     OUTPUT_JSON);
+  ret["argv"].append("-i");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_CODE + CONTRACT_FILE_EXTENSION);
+  ret["argv"].append("-gaslimit");
+  ret["argv"].append(to_string(available_gas));
+  ret["argv"].append("-balance");
+  ret["argv"].append(balance.convert_to<string>());
+  ret["argv"].append("-libdir");
+  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
+                     boost::filesystem::current_path().string() + '/' +
+                     EXTLIB_FOLDER);
+  ret["argv"].append("-jsonerrors");
+  ret["argv"].append("-reinit");
+  ret["argv"].append("-istate");
+  ret["argv"].append(user_state_path);
+
+  return ret;
+}
