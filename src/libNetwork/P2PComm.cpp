@@ -133,45 +133,41 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
     ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                       message_length - written_length);
     LOG_GENERAL(DEBUG, "Sent chunk of " << n << " bytes");
-    if (P2PComm::IsHostHavingNetworkIssue()) {
-      if (Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding seed "
-                                 << from.GetPrintableIPAddress()
-                                 << " as relaxed blacklisted");
-        // Add this seed node to relaxed blacklist even if it is whitelisted in
-        // general.
-        Blacklist::GetInstance().Add(from.m_ipAddress, false, true);
-      } else {
+    if (n <= 0) {
+      if (P2PComm::IsHostHavingNetworkIssue()) {
+        if (Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+          LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                   << errno << " (" << std::strerror(errno)
+                                   << "). Adding seed "
+                                   << from.GetPrintableIPAddress()
+                                   << " as relaxed blacklisted");
+          // Add this seed node to relaxed blacklist even if it is whitelisted
+          // in general.
+          Blacklist::GetInstance().Add(from.m_ipAddress, false, true);
+        } else {
+          LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                   << errno << " (" << std::strerror(errno)
+                                   << "). Adding "
+                                   << from.GetPrintableIPAddress()
+                                   << " as strictly blacklisted");
+          Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
+        }
+      } else if (P2PComm::IsNodeNotRunning()) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << errno << " (" << std::strerror(errno)
                                  << "). Adding " << from.GetPrintableIPAddress()
-                                 << " as strictly blacklisted");
-        Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
+                                 << " as relaxed blacklisted");
+        Blacklist::GetInstance().Add(from.m_ipAddress, false);  // relaxed
+      } else if (errno == EPIPE) {
+        LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
+                                 << errno << " Desc: " << std::strerror(errno));
+        // No retry as it is likely the other end terminate the conn due to
+        // duplicated msg.
+      } else {
+        LOG_GENERAL(WARNING, "Socket write failed in message header. Code = "
+                                 << errno << " Desc: " << std::strerror(errno)
+                                 << ". IP address:" << from);
       }
-      return written_length;
-    } else if (P2PComm::IsNodeNotRunning()) {
-      LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << " (" << std::strerror(errno)
-                               << "). Adding " << from.GetPrintableIPAddress()
-                               << " as relaxed blacklisted");
-      Blacklist::GetInstance().Add(from.m_ipAddress, false);  // relaxed
-      return written_length;
-    }
-
-    if (errno == EPIPE) {
-      LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
-                               << errno << " Desc: " << std::strerror(errno));
-      return written_length;
-      // No retry as it is likely the other end terminate the conn due to
-      // duplicated msg.
-    }
-
-    if (n <= 0) {
-      LOG_GENERAL(WARNING, "Socket write failed in message header. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address:" << from);
       return written_length;
     }
 
