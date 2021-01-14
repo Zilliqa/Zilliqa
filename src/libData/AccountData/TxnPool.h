@@ -66,7 +66,8 @@ struct TxnPool {
     return true;
   }
 
-  bool insert(const Transaction& t, MempoolInsertionStatus& status) {
+  bool insert(const Transaction& t, MempoolInsertionStatus& status,
+              const uint64_t& targetDSNum = 1) {
     if (exist(t.GetTranID())) {
       status = {TxnStatus::MEMPOOL_ALREADY_PRESENT, t.GetTranID()};
       return false;
@@ -84,12 +85,17 @@ struct TxnPool {
           HashIndex.erase(searchHash);
         }
         // erase from GasIdxTxns
+        auto smallerGasPrice = searchNonce->second.GetGasPrice();
         auto searchGas = GasIndex.find(searchNonce->second.GetGasPrice());
         if (searchGas != GasIndex.end()) {
           auto searchGasHash =
               searchGas->second.find(searchNonce->second.GetTranID());
           if (searchGasHash != searchGas->second.end()) {
             searchGas->second.erase(searchGasHash);
+          }
+          if ((targetDSNum >= V710_TARGET_DS_NUM) &&
+              GasIndex[smallerGasPrice].empty()) {
+            GasIndex.erase(smallerGasPrice);
           }
         }
         HashIndex[t.GetTranID()] = t;
