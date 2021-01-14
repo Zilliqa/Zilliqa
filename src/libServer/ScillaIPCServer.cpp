@@ -17,7 +17,7 @@
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 
 #include "ScillaIPCServer.h"
@@ -27,7 +27,9 @@ using namespace Contract;
 using namespace jsonrpc;
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
+    // GetAccountFunc accountGetter)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
+  // m_accountGetter(move(accountGetter)) {
   // These JSON signatures match that of the actual functions below.
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),
@@ -41,10 +43,12 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                    &ScillaIPCServer::updateStateValueI);
 }
 
-void ScillaIPCServer::setContractAddressVer(const Address &address,
-                                            uint32_t version) {
+void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
+                                                uint32_t version,
+                                                const dev::h256 &rootHash) {
   m_contrAddr = address;
   m_version = version;
+  m_rootHash = rootHash;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -93,7 +97,7 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
   bytes destination;
 
-  if (!ContractStorage2::GetContractStorage().FetchStateValue(
+  if (!ContractStorage::GetContractStorage().FetchStateValue(
           m_contrAddr, DataConversion::StringToCharArray(query), 0, destination,
           0, found)) {
     return false;
@@ -110,7 +114,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               string &type) {
   bytes destination;
 
-  if (!ContractStorage2::GetContractStorage().FetchExternalStateValue(
+  if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
           m_contrAddr, Address(addr), DataConversion::StringToCharArray(query),
           0, destination, 0, found, type)) {
     return false;
@@ -120,10 +124,9 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
   return true;
 }
-
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
-  return ContractStorage2::GetContractStorage().UpdateStateValue(
+  return ContractStorage::GetContractStorage().UpdateStateValue(
       m_contrAddr, DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }

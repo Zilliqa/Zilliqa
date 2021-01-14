@@ -71,7 +71,7 @@ bool parseStateJSON(
     std::unordered_map<Address, uint64_t> &nonces);
 
 // Change the format of a state JSON from the Scilla style to
-// the style returned by ContractStorage2::FetchStateJsonForContract().
+// the style returned by ContractStorage::FetchStateJsonForContract().
 bool TransformStateJsonFormat(const Json::Value &input, Json::Value &output);
 
 }  // end namespace ScillaTestUtil

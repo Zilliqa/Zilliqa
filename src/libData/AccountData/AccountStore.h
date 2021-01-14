@@ -66,10 +66,11 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   }
 };
 
+static uint64_t epoch_place_holder = 0;
+
 // Singleton class for providing interface related Account System
 class AccountStore
-    : public AccountStoreTrie<dev::OverlayDB,
-                              std::unordered_map<Address, Account>>,
+    : public AccountStoreTrie<std::unordered_map<Address, Account>>,
       Singleton<AccountStore> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
@@ -103,7 +104,7 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  bool Serialize(bytes& src, unsigned int offset) const override;
+  bool Serialize(bytes& src, unsigned int offset);
 
   bool Deserialize(const bytes& src, unsigned int offset) override;
 
@@ -135,7 +136,10 @@ class AccountStore
   bool UpdateStateTrieFromTempStateDB();
 
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk();
+  bool MoveUpdatesToDisk(
+      const uint64_t& dsBlockNum = 0,
+      const uint64_t& initTrieSnapshotDSEpoch = 0,
+      uint64_t& earliestTrieSnapshotDSEpoch = epoch_place_holder);
 
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
@@ -224,7 +228,7 @@ class AccountStore
   void CommitTempRevertible();
 
   /// revert the AccountStore if previously called CommitTempRevertible
-  void RevertCommitTemp();
+  bool RevertCommitTemp();
 
   /// NotifyTimeout for AccountStoreTemp
   void NotifyTimeoutTemp();
@@ -233,11 +237,6 @@ class AccountStore
   void InitRevertibles();
 
   std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
-
-  bool MigrateContractStates(
-      bool ignoreCheckerFailure, bool disambiguation,
-      const std::string& contract_address_output_filename,
-      const std::string& normal_address_output_filename);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

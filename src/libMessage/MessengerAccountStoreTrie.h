@@ -20,6 +20,7 @@
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Account.h"
+#include "libData/DataStructures/TraceableDB.h"
 
 // This class is only used by AccountStoreTrie template class
 // If AccountStoreBase.tpp included Messenger.h, we enter into some circular
@@ -31,10 +32,10 @@ class MessengerAccountStoreTrie {
   // ============================================================================
   // Primitives
   // ============================================================================
-  template <class DB, class MAP>
+  template <class MAP>
   static bool SetAccountStoreTrie(
       bytes& dst, const unsigned int offset,
-      const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie,
+      const dev::GenericTrieDB<TraceableDB>& stateTrie,
       const std::shared_ptr<MAP>& addressToAccount);
 };
 

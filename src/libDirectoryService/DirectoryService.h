@@ -741,7 +741,7 @@ class DirectoryService : public Executable {
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool CheckIfDSNode(const PubKey& submitterPubKey);
-  void RemoveDSMicroBlock();
+  bool RemoveDSMicroBlock();
 };
 
 #endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_

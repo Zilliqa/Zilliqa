@@ -23,11 +23,14 @@
 
 #include "depends/common/FixedHash.h"
 
-#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Account.h"
+
+typedef std::function<Account*(const Address& addr)> GetAccountFunc;
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
   ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
+  // GetAccountFunc accountGetter);
   ~ScillaIPCServer() = default;
 
   inline virtual void fetchStateValueI(const Json::Value& request,
@@ -44,11 +47,19 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                        std::string& type);
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
-  void setContractAddressVer(const Address& address, uint32_t version);
+  void setContractAddressVerRoot(const Address& address, uint32_t version,
+                                 const dev::h256& rootHash);
+
+  // bool fetchExternalStateValue(const std::string& addr,
+  //                              const std::string& query, std::string& value,
+  //                              bool& found, std::string& type);
 
  private:
   Address m_contrAddr = Address();
   uint32_t m_version = std::numeric_limits<uint32_t>::max();
+  dev::h256 m_rootHash = dev::h256();
+
+  // GetAccountFunc m_accountGetter;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_

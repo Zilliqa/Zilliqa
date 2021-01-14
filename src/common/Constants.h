@@ -21,6 +21,8 @@
 #include "depends/common/FixedHash.h"
 
 using BlockHash = dev::h256;
+const size_t BLOCK_NUMERIC_DIGITS =
+    std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
 // Data sizes
 const unsigned int COMMON_HASH_SIZE = 32;
@@ -85,6 +87,7 @@ enum MetaType : unsigned char {
   WAKEUPFORUPGRADE,
   LATEST_EPOCH_STATES_UPDATED,  // [deprecated soon]
   EPOCHFIN,
+  EARLIEST_HISTORY_STATE_EPOCH,
 };
 
 // Sync Type
@@ -151,6 +154,8 @@ extern const std::string GENESIS_PUBKEY;
 extern const unsigned int UPGRADE_TARGET_DS_NUM;
 extern const std::string STORAGE_PATH;
 extern const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB;
+extern const bool KEEP_HISTORICAL_STATE;
+extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -410,6 +415,13 @@ const std::string SCILLA_VERSION_INDICATOR = "_version";
 const std::string TYPE_INDICATOR = "_type";
 const std::string HAS_MAP_INDICATOR = "_hasmap";
 const std::string CONTRACT_ADDR_INDICATOR = "_addr";
+
+// TODO : replace the above with belows
+const char FIELDS_MAP_DEPTH_SIGN = 0x10;
+const char MAP_DEPTH_SIGN = 0x11;
+const char SCILLA_VERSION_SIGN = 0x12;
+const char TYPE_SIGN = 0x13;
+const char CONTRACT_ADDR_SIGN = 0x14;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;

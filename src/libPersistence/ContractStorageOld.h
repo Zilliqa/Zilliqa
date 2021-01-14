@@ -15,13 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
-#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_
 
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
+#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -33,43 +34,63 @@
 
 #include "depends/libTrie/TrieDB.h"
 
-class ProtoScillaQuery;
+class ProtoScillaVal;
 
 namespace Contract {
 
-static std::string type_placeholder;
+using DefaultAddDeleteMap =
+    AddDeleteMap<std::unordered_map<dev::h256, bytes>, std::set<dev::h256>>;
+using RevertableAddDeleteMap =
+    RecordableAddDeleteMap<std::unordered_map<dev::h256, bytes>,
+                           std::set<dev::h256>>;
 
-enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
+using PermOverlayMap = OverlayMap<std::shared_ptr<RevertableAddDeleteMap>,
+                                  std::shared_ptr<LevelDBMap>>;
+using TempOverlayMap = OverlayMap<std::shared_ptr<DefaultAddDeleteMap>,
+                                  std::shared_ptr<RevertableAddDeleteMap>,
+                                  std::shared_ptr<LevelDBMap>>;
 
-Index GetIndex(const dev::h160& address, const std::string& key);
+class ContractStorageOld : public Singleton<ContractStorageOld> {
+  static std::string type_placeholder;
 
-class ContractStorage2 : public Singleton<ContractStorage2> {
-  LevelDB m_codeDB;
-  LevelDB m_initDataDB;
   LevelDB m_stateDataDB;
+
+  std::shared_ptr<LevelDB> mp_stateDataDB;
 
   // Used by AccountStore
   std::map<std::string, bytes> m_stateDataMap;
+  std::set<std::string> m_indexToBeDeleted;
+
+  std::shared_ptr<std::unordered_map<dev::h256, bytes>> mp_stateDataMap;
+  std::shared_ptr<std::set<dev::h256>> mp_indexToBeDeleted;
 
   // Used by AccountStoreTemp for StateDelta
   std::map<std::string, bytes> t_stateDataMap;
+  std::set<std::string> t_indexToBeDeleted;
+  std::shared_ptr<std::unordered_map<dev::h256, bytes>> tp_stateDataMap;
+  std::shared_ptr<std::set<dev::h256>> tp_indexToBeDeleted;
 
   // Used for revert state due to failure in chain call
-  std::map<std::string, bytes> p_stateDataMap;
-  std::set<std::string> p_indexToBeDeleted;
+  std::unordered_map<std::string, bytes> p_stateDataMap;
+  std::unordered_map<std::string, bool> p_indexToBeDeleted;
 
   // Used for RevertCommitTemp
   std::unordered_map<std::string, bytes> r_stateDataMap;
   // value being true for newly added, false for newly deleted
   std::unordered_map<std::string, bool> r_indexToBeDeleted;
 
-  // Used for delete map index
-  std::set<std::string> m_indexToBeDeleted;
-  std::set<std::string> t_indexToBeDeleted;
+  std::shared_ptr<DefaultAddDeleteMap> m_tempADMap;
+  std::shared_ptr<RevertableAddDeleteMap> m_permADMap;
+  std::shared_ptr<LevelDBMap> m_levelDBMap;
 
-  mutable std::mutex m_codeMutex;
-  mutable std::mutex m_initDataMutex;
-  mutable std::mutex m_stateDataMutex;
+  PermOverlayMap m_permOM;
+  TempOverlayMap m_tempOM;
+
+  dev::GenericTrieDB<PermOverlayMap> m_permTrie;
+  dev::GenericTrieDB<TempOverlayMap> m_tempTrie;
+
+  std::mutex m_stateDataMutex;
+  std::mutex m_stateMPTMutex;
 
   void DeleteByPrefix(const std::string& prefix);
 
@@ -80,46 +101,32 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
 
-  dev::h256 GetContractStateHashCore(const dev::h160& address, bool temp);
+  void UnquoteString(std::string& input);
 
-  void InitTempStateCore();
+  bool CheckHasMap(const dev::h160& addr, bool temp);
 
-  ContractStorage2()
-      : m_codeDB("contractCode"),
-        m_initDataDB("contractInitState2"),
-        m_stateDataDB("contractStateData2"){};
+  dev::h256 UpdateContractTrie(const dev::h256& root,
+                               const std::map<std::string, bytes>& states,
+                               const std::vector<std::string>& toDeletedIndices,
+                               bool temp, bool revertible);
 
-  ~ContractStorage2() = default;
+  dev::h256 GetContractStateHashForMergingDelta(
+      const dev::h160& addr, const dev::h256& root,
+      const std::map<std::string, bytes>& states,
+      const std::vector<std::string>& toDeleteIndices);
+
+  dev::h256 DirectHashState(const std::map<std::string, bytes>& states);
+
+  ContractStorageOld();
+
+  ~ContractStorageOld() = default;
 
  public:
   /// Returns the singleton ContractStorage instance.
-  static ContractStorage2& GetContractStorage() {
-    static ContractStorage2 cs;
+  static ContractStorageOld& GetContractStorage() {
+    static ContractStorageOld cs;
     return cs;
   }
-
-  /// Adds a contract code to persistence
-  bool PutContractCode(const dev::h160& address, const bytes& code);
-
-  /// Adds contract codes to persistence in batch
-  bool PutContractCodeBatch(
-      const std::unordered_map<std::string, std::string>& batch);
-
-  /// Get the desired code from persistence
-  bytes GetContractCode(const dev::h160& address);
-
-  /// Delete the contract code in persistence
-  bool DeleteContractCode(const dev::h160& address);
-
-  /////////////////////////////////////////////////////////////////////////////
-  bool PutInitData(const dev::h160& address, const bytes& initData);
-
-  bool PutInitDataBatch(
-      const std::unordered_map<std::string, std::string>& batch);
-
-  bytes GetInitData(const dev::h160& address);
-
-  bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
   static std::string GenerateStorageKey(
@@ -128,16 +135,9 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   std::string RemoveAddrFromKey(const std::string& key);
 
-  bool IsReservedVName(const std::string& name);
-
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal, bool getType = false,
-                       std::string& type = type_placeholder);
-
-  bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,
-                       bytes& dst, unsigned int d_offset, bool& foundVal,
-                       bool getType = false,
                        std::string& type = type_placeholder);
 
   bool FetchExternalStateValue(
@@ -165,35 +165,33 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                                  bool temp = true);
 
   void FetchUpdatedStateValuesForAddress(
-      const dev::h160& address, std::map<std::string, bytes>& t_states,
+      const dev::h160& address, std::map<std::string, bytes>& states,
       std::vector<std::string>& toDeletedIndices, bool temp = false);
 
   bool UpdateStateValue(const dev::h160& addr, const bytes& q,
                         unsigned int q_offset, const bytes& v,
                         unsigned int v_offset);
 
-  bool CheckIfKeyIsEmpty(const std::string& key, bool temp);
-
   void UpdateStateDatasAndToDeletes(
-      const dev::h160& addr, const std::map<std::string, bytes>& t_states,
+      const dev::h160& addr, const std::map<std::string, bytes>& states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
-      bool temp, bool revertible);
+      bool temp, bool revertible, bool migrating);
 
   /// Buffer the current t_map into p_map
-  void BufferCurrentState();
+  void ResetBufferedAtomicState();
 
   /// Revert the t_map from the p_map just buffered
-  void RevertPrevState();
+  void RevertAtomicState();
 
   /// Put the in-memory m_map into database
   bool CommitStateDB();
 
   /// Clean t_maps
-  void InitTempState(bool callFromExternal = false);
+  void InitTempState();
 
   /// Get the state hash of a contract account
-  dev::h256 GetContractStateHash(const dev::h160& address, bool temp,
-                                 bool callFromExternal = false);
+  dev::h256 GetContractStateHash(const dev::h160& addr, const dev::h256& root,
+                                 bool temp, bool revertible = false);
 
   /// Clean the databases
   void Reset();
@@ -210,4 +208,4 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
 }  // namespace Contract
 
-#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_
