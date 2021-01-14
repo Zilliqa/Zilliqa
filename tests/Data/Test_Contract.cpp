@@ -36,7 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -1886,7 +1886,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
       BOOST_REQUIRE_EQUAL(expOutput, outState);
     }
     LOG_GENERAL(WARNING, "remote_state_reads_" << i << " succeeded");
-    Contract::ContractStorage2::GetContractStorage().Reset();
+    Contract::ContractStorage::GetContractStorage().Reset();
   }
 
   // ---------------- test other deployments ---------------------------- //

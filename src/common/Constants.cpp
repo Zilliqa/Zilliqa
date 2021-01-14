@@ -97,6 +97,10 @@ const unsigned int UPGRADE_TARGET_DS_NUM{
 const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB{
     ReadConstantNumeric("NUM_EPOCHS_PER_PERSISTENT_DB")};
+const bool KEEP_HISTORICAL_STATE{ReadConstantString("KEEP_HISTORICAL_STATE") ==
+                                 "true"};
+const unsigned int NUM_DS_EPOCHS_STATE_HISTORY{
+    ReadConstantNumeric("NUM_DS_EPOCHS_STATE_HISTORY")};
 
 // Version constants
 const unsigned int MSG_VERSION{

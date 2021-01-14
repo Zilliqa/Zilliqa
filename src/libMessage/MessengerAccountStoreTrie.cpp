@@ -26,21 +26,20 @@ using namespace ZilliqaMessage;
 template <class T = ProtoAccountStore>
 bool SerializeToArray(const T& protoMessage, bytes& dst,
                       const unsigned int offset);
-void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
+bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
 template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
-    dev::OverlayDB, std::unordered_map<Address, Account>>(
+    std::unordered_map<Address, Account>>(
     bytes& dst, const unsigned int offset,
-    const dev::SpecificTrieDB<dev::GenericTrieDB<dev::OverlayDB>, Address>&
-        stateTrie,
+    const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
 
-template <class DB, class MAP>
+template <class MAP>
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     bytes& dst, const unsigned int offset,
-    const dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>& stateTrie,
+    const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const shared_ptr<MAP>& addressToAccount) {
   ProtoAccountStore result;
 
@@ -53,7 +52,10 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     auto it = addressToAccount->find(address);
     if (it != addressToAccount->end()) {
       const Account& account = it->second;
-      AccountToProtobuf(account, *protoEntryAccount);
+      if (!AccountToProtobuf(account, *protoEntryAccount)) {
+        LOG_GENERAL(WARNING, "AccountToProtobuf failed");
+        return false;
+      }
     } else {
       Account account;
       if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
@@ -64,7 +66,10 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
       if (account.GetCodeHash() != dev::h256()) {
         account.SetAddress(address);
       }
-      AccountToProtobuf(account, *protoEntryAccount);
+      if (!AccountToProtobuf(account, *protoEntryAccount)) {
+        LOG_GENERAL(WARNING, "AccountToProtobuf failed");
+        return false;
+      }
     }
 
     if (!protoEntryAccount->IsInitialized()) {

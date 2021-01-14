@@ -31,7 +31,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -184,7 +184,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   if (isVacuousEpoch) {
     auto writeStateToDisk = [this]() -> void {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum(),
+              m_mediator.m_initTrieSnapshotDSEpoch,
+              m_mediator.m_earliestTrieSnapshotDSEpoch)) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       } else {

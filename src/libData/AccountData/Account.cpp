@@ -24,7 +24,7 @@
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -347,22 +347,28 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
-void Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
-                               std::vector<std::string>& toDeleteIndices,
+bool Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
+                               std::set<std::string>& toDeleteIndices,
                                bool temp) const {
-  ContractStorage2::GetContractStorage().FetchUpdatedStateValuesForAddress(
+  ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
       GetAddress(), t_states, toDeleteIndices, temp);
+
+  return true;
 }
 
-void Account::UpdateStates(const Address& addr,
+bool Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
-  ContractStorage2::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, t_states, toDeleteIndices, m_storageRoot, temp, revertible);
+  ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
+      addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
+      revertible);
+
   if (!m_address) {
     SetAddress(addr);
   }
+
+  return true;
 }
 
 bool Account::FetchStateJson(Json::Value& root, const string& vname,
@@ -374,10 +380,9 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
   }
 
   if (vname != "_balance") {
-    if (!ContractStorage2::GetContractStorage().FetchStateJsonForContract(
+    if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
             root, GetAddress(), vname, indices, temp)) {
-      LOG_GENERAL(WARNING,
-                  "ContractStorage2::FetchStateJsonForContract failed");
+      LOG_GENERAL(WARNING, "ContractStorage::FetchStateJsonForContract failed");
       return false;
     }
   }
@@ -455,7 +460,7 @@ const bytes Account::GetCode() const {
   }
 
   if (m_codeCache.empty()) {
-    return ContractStorage2::GetContractStorage().GetContractCode(m_address);
+    return ContractStorage::GetContractStorage().GetContractCode(m_address);
   }
   return m_codeCache;
 }
@@ -515,7 +520,7 @@ const bytes Account::GetInitData() const {
   }
 
   if (m_initDataCache.empty()) {
-    return ContractStorage2::GetContractStorage().GetInitData(m_address);
+    return ContractStorage::GetContractStorage().GetInitData(m_address);
   }
   return m_initDataCache;
 }

@@ -231,6 +231,7 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetCurrentDSComm();
   }
+
   inline virtual void GetTotalCoinSupplyI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
@@ -249,12 +250,20 @@ class LookupServer : public Server,
                                             Json::Value& response) {
     response = this->GetTransactionStatus(request[0u].asString());
   }
+  inline virtual void GetStateProofI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetStateProof(
+        request[0u].asString(), request[1u].asString(), request[2u].asString());
+  }
 
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
+  Json::Value GetStateProof(const std::string& address,
+                            const Json::Value& request,
+                            const uint64_t& blockNum);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum, bool verbose = false);
@@ -306,6 +315,8 @@ class LookupServer : public Server,
   Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum,
                                      const std::string& pageNumber);
   Json::Value GetTransactionStatus(const std::string& txnhash);
+  Json::Value GetStateProof(const std::string& address, const std::string& key,
+                            const std::string& txBlockNumOrTag = "latest");
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

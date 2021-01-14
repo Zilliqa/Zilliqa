@@ -15,13 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
-#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
 
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
+#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -32,6 +33,7 @@
 #pragma GCC diagnostic pop
 
 #include "depends/libTrie/TrieDB.h"
+#include "libData/DataStructures/TraceableDB.h"
 
 class ProtoScillaQuery;
 
@@ -42,11 +44,13 @@ static std::string type_placeholder;
 enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
 
 Index GetIndex(const dev::h160& address, const std::string& key);
-
-class ContractStorage2 : public Singleton<ContractStorage2> {
+class ContractStorage : public Singleton<ContractStorage> {
+  LevelDB m_stateDataDB;
   LevelDB m_codeDB;
   LevelDB m_initDataDB;
-  LevelDB m_stateDataDB;
+  TraceableDB m_trieDB;
+
+  dev::GenericTrieDB<TraceableDB> m_stateTrie;
 
   // Used by AccountStore
   std::map<std::string, bytes> m_stateDataMap;
@@ -59,7 +63,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   std::set<std::string> p_indexToBeDeleted;
 
   // Used for RevertCommitTemp
-  std::unordered_map<std::string, bytes> r_stateDataMap;
+  std::unordered_map<dev::h256, std::unordered_map<std::string, bytes>>
+      r_stateDataMap;
   // value being true for newly added, false for newly deleted
   std::unordered_map<std::string, bool> r_indexToBeDeleted;
 
@@ -80,25 +85,25 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
 
-  dev::h256 GetContractStateHashCore(const dev::h160& address, bool temp);
+  void UnquoteString(std::string& input);
 
-  void InitTempStateCore();
+  bool CheckHasMap(const dev::h160& addr, bool temp);
 
-  ContractStorage2()
-      : m_codeDB("contractCode"),
-        m_initDataDB("contractInitState2"),
-        m_stateDataDB("contractStateData2"){};
+  void FetchProofForKey(std::set<std::string>& proof, const dev::h256& key);
 
-  ~ContractStorage2() = default;
+  ContractStorage();
+
+  ~ContractStorage() = default;
 
  public:
   /// Returns the singleton ContractStorage instance.
-  static ContractStorage2& GetContractStorage() {
-    static ContractStorage2 cs;
+  static ContractStorage& GetContractStorage() {
+    static ContractStorage cs;
     return cs;
   }
 
-  /// Adds a contract code to persistence
+  /////////////////////////////////////////////////////////////////////////////
+
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
   /// Adds contract codes to persistence in batch
@@ -165,8 +170,11 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                                  bool temp = true);
 
   void FetchUpdatedStateValuesForAddress(
-      const dev::h160& address, std::map<std::string, bytes>& t_states,
-      std::vector<std::string>& toDeletedIndices, bool temp = false);
+      const dev::h160& address, std::map<std::string, bytes>& states,
+      std::set<std::string>& toDeletedIndices, bool temp = false);
+  bool FetchStateProofForContract(std::set<std::string>& proof,
+                                  const dev::h256& rootHash,
+                                  const dev::h256& key);
 
   bool UpdateStateValue(const dev::h160& addr, const bytes& q,
                         unsigned int q_offset, const bytes& v,
@@ -175,7 +183,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool CheckIfKeyIsEmpty(const std::string& key, bool temp);
 
   void UpdateStateDatasAndToDeletes(
-      const dev::h160& addr, const std::map<std::string, bytes>& t_states,
+      const dev::h160& addr, const dev::h256& rootHash,
+      const std::map<std::string, bytes>& states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
       bool temp, bool revertible);
 
@@ -186,14 +195,12 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   void RevertPrevState();
 
   /// Put the in-memory m_map into database
-  bool CommitStateDB();
+  bool CommitStateDB(const uint64_t& dsBlockNum);
 
   /// Clean t_maps
   void InitTempState(bool callFromExternal = false);
 
-  /// Get the state hash of a contract account
-  dev::h256 GetContractStateHash(const dev::h160& address, bool temp,
-                                 bool callFromExternal = false);
+  void InitTempStateCore();
 
   /// Clean the databases
   void Reset();
@@ -210,4 +217,4 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
 }  // namespace Contract
 
-#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_

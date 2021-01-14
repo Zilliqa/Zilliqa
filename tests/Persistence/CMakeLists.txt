@@ -14,7 +14,7 @@ target_link_libraries(Test_MetaPersistence PUBLIC Utils Persistence Message)
 
 add_executable(Test_TrieDB Test_TrieDB.cpp)
 target_include_directories(Test_TrieDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_TrieDB PUBLIC Utils Trie Persistence)
+target_link_libraries(Test_TrieDB PUBLIC Utils Trie AccountData Persistence)
 
 add_executable(Test_DSPersistence Test_DSPersistence.cpp)
 target_include_directories(Test_DSPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
@@ -48,6 +48,10 @@ target_link_libraries(ReadBlock PUBLIC AccountData Utils Persistence)
 add_executable(Test_ExtSeedPubKeys Test_ExtSeedPubKeys.cpp)
 target_include_directories(Test_ExtSeedPubKeys PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_ExtSeedPubKeys PUBLIC Utils Persistence TestUtils)
+
+add_executable(Test_ContractStorage Test_ContractStorage.cpp)
+target_include_directories(Test_ContractStorage PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_ContractStorage PUBLIC AccountData Utils Persistence Message TestUtils)
 
 set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody Test_Diagnostic Test_ExtSeedPubKeys)
 

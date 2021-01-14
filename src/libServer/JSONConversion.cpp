@@ -436,6 +436,64 @@ const vector<string> JSONConversion::convertJsonArrayToVector(
   return vec;
 }
 
+const vector<pair<string, vector<string>>>
+JSONConversion::convertJsonArrayToKeys(const Json::Value& _json) {
+  if (!_json.isArray()) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Expected Array type");
+  }
+
+  vector<pair<string, vector<string>>> ret;
+
+  std::function<bool(const Json::Value&, const string&, vector<string>,
+                     vector<pair<string, vector<string>>>&)>
+      nestHandler = [&](const Json::Value& _json, const string& entryKey,
+                        vector<string> indices,
+                        vector<pair<string, vector<string>>>& keys) -> bool {
+    for (const auto& ele : _json) {
+      if (ele.isString()) {
+        indices.emplace_back(ele.asString());
+        keys.push_back({entryKey, indices});
+      } else if (ele.isObject()) {
+        for (const auto& id : ele.getMemberNames()) {
+          if (!ele[id].isArray()) {
+            return false;
+          }
+          indices.emplace_back(id);
+          if (!nestHandler(ele[id], entryKey, indices, keys)) {
+            return false;
+          }
+        }
+      } else {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  for (const auto& ele : _json) {
+    if (ele.isString()) {
+      ret.push_back({ele.asString(), {}});
+    } else if (ele.isObject()) {
+      for (const auto& id : ele.getMemberNames()) {
+        if (!ele[id].isArray()) {
+          throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                          "Invalid request format for key");
+        }
+        if (!nestHandler(ele[id], id, {}, ret)) {
+          throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                          "Invalid request format for key");
+        }
+      }
+    } else {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Invalid request format for key");
+    }
+  }
+
+  return ret;
+}
+
 const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
   Json::Value _json;
   _json["ID"] = txn.GetTranID().hex();

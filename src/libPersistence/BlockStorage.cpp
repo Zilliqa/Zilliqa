@@ -1813,7 +1813,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
            RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
            RefreshDB(PROCESSED_TEMP) &
-           Contract::ContractStorage2::GetContractStorage().RefreshAll();
+           Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
@@ -1825,7 +1825,7 @@ bool BlockStorage::RefreshAll() {
            RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
            RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
            RefreshDB(EXTSEED_PUBKEYS) &
-           Contract::ContractStorage2::GetContractStorage().RefreshAll();
+           Contract::ContractStorage::GetContractStorage().RefreshAll();
   }
 }
 

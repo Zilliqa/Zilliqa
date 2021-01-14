@@ -32,7 +32,7 @@ using namespace ZilliqaMessage;
 template <class T = ProtoAccountStore>
 bool SerializeToArray(const T& protoMessage, bytes& dst,
                       const unsigned int offset);
-void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
+bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
@@ -71,7 +71,10 @@ bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountToProtobuf(entry.second, *protoEntryAccount);
+    if (!AccountToProtobuf(entry.second, *protoEntryAccount)) {
+      LOG_GENERAL(WARNING, "AccountToProtobuf failed");
+      return false;
+    }
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
       return false;

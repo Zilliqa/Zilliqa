@@ -21,6 +21,7 @@
 #include "depends/common/CommonData.h"
 #include "MemoryDB.h"
 #include "libUtils/Logger.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 using namespace dev;
@@ -96,8 +97,9 @@ namespace dev
             it->second.first = _v.toString();
             it->second.second++;
         }
-        else
+        else {
             m_main[_h] = make_pair(_v.toString(), 1);
+        }
     }
 
     bool MemoryDB::kill(h256 const& _h)
@@ -152,7 +154,6 @@ namespace dev
                 if (it->second.second) {
                     ++it;
                 } else {
-                    // LOG_GENERAL(INFO, "purged: " << it->first.hex())
                     purged.emplace_back(it->first);
                     it = m_main.erase(it);
                 }

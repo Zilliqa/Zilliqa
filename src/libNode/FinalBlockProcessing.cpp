@@ -1035,7 +1035,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
 
     auto writeStateToDisk = [this]() -> void {
-      if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+      if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+              m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum(),
+              m_mediator.m_initTrieSnapshotDSEpoch,
+              m_mediator.m_earliestTrieSnapshotDSEpoch)) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         // return false;
       } else {
