@@ -35,6 +35,7 @@ namespace dev
 	void OverlayDB::ResetDB()
 	{
 		m_levelDB.ResetDB();
+		clear();
 	}
 
 	bool OverlayDB::RefreshDB()
@@ -42,7 +43,7 @@ namespace dev
 		return m_levelDB.RefreshDB();
 	}
 
-	bool OverlayDB::commit()
+	bool OverlayDB::commit(bool keepHistory, std::vector<h256>& toPurge)
 	{
 		LOG_MARKER();
 	// #if DEV_GUARDED_DB
@@ -52,9 +53,10 @@ namespace dev
 			shared_lock<shared_timed_mutex> lock(x_this);
 
 			/// delete removed nodes in both mem and disk
-			std::vector<h256> purged;
-			purge(purged, false);
-			m_levelDB.BatchDelete(purged);
+			purge(toPurge, false);
+			if (!keepHistory) {
+				m_levelDB.BatchDelete(toPurge);
+			}
 
 			/// add newly created nodes in disk
 			if (!m_levelDB.BatchInsert(m_main, m_aux)) {

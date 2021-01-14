@@ -19,15 +19,14 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
+#include "libData/DataStructures/TraceableDB.h"
 
-template <class DB, class MAP>
+template <class MAP>
 class AccountStoreTrie : public AccountStoreSC<MAP> {
  protected:
-  DB m_db;
-  dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-  dev::h256 m_prevRoot;
+  TraceableDB m_db;
+  dev::GenericTrieDB<TraceableDB> m_state;
+  dev::h256 m_prevRoot = dev::h256();
 
   // mutex for AccountStore DB related operations
   std::mutex m_mutexDB;
@@ -43,15 +42,21 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
 
   void InitTrie();
 
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(bytes& dst, unsigned int offset);
 
-  Account* GetAccount(const Address& address) override;
+  Account* GetAccount(const Address& address,
+                      const dev::h256& rootHash = dev::h256(),
+                      bool resetRoot = true);
+
+  bool GetProof(const Address& address, const dev::h256& rootHash,
+                Account& account, std::set<std::string>& nodes);
 
   dev::h256 GetStateRootHash() const;
   dev::h256 GetPrevRootHash() const;
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
+  void PrintTrie();
 };
 
 #include "AccountStoreTrie.tpp"

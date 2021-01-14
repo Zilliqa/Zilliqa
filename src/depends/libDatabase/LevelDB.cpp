@@ -24,6 +24,7 @@
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
 #include "depends/common/FixedHash.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
@@ -199,6 +200,7 @@ string LevelDB::Lookup(const dev::h256 & key) const
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), leveldb::Slice(key.hex()), &value);
     if (!s.ok())
     {
+        LOG_GENERAL(INFO, "status: " <<  s.ToString() << " key: " << key.hex());
         // TODO
         return "";
     }
@@ -344,7 +346,8 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
 
     for (const auto & i: m_main) {
         if (i.second.second) {
-            // LOG_GENERAL(INFO, "addkey: " << i.first.hex() << " counter: " << i.second.second);
+            std::string hex;
+            DataConversion::StringToHexStr(i.second.first, hex);
             batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
@@ -354,6 +357,10 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
         if (i.second.second) {
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
+
+            std::string hex;
+            DataConversion::Uint8VecToHexStr(i.second.first, hex);
+
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
         }
     }
@@ -431,7 +438,6 @@ bool LevelDB::Exists(const std::string & key) const
 
 int LevelDB::DeleteKey(const dev::h256 & key)
 {
-    // LOG_GENERAL(INFO, "delete: " << key.hex());
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
     if (!s.ok())
     {
@@ -586,7 +592,6 @@ int LevelDB::DeleteDBForLookupNode()
 
     return 0;
 }
-
 
 bool LevelDB::ResetDBForLookupNode()
 {

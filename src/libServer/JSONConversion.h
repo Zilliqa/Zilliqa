@@ -64,6 +64,9 @@ class JSONConversion {
       const std::tuple<PubKey, Peer, uint16_t>& node);
   // Convert Deque of Node to Json
   static const Json::Value convertDequeOfNode(const DequeOfNode& nodes);
+  // Convert Json to keys for getting merkle proof
+  static const std::vector<std::pair<std::string, std::vector<std::string>>>
+  convertJsonArrayToKeys(const Json::Value& _json);
   // Convert Software Info to Json
   static const Json::Value convertSWInfotoJson(const SWInfo& swInfo);
 };

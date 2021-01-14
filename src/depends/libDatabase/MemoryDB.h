@@ -35,7 +35,7 @@ namespace dev
     public:
         MemoryDB() {}
         MemoryDB(MemoryDB const& _c) { operator=(_c); }
-        explicit MemoryDB(const std::string & _s) {}
+        explicit MemoryDB(const std::string & _s, bool keepHistory = false) {}
 
         MemoryDB& operator=(MemoryDB const& _c);
 

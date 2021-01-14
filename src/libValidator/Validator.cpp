@@ -77,13 +77,17 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     return false;
   }
 
-  // Check if from account exists in local storage
-  if (!AccountStore::GetInstance().IsAccountExist(fromAddr)) {
-    LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
-                                                << ". Transaction rejected: "
-                                                << tx.GetTranID());
-    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
-    return false;
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
+    if (account == nullptr) {
+      LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
+                                                  << ". Transaction rejected: "
+                                                  << tx.GetTranID());
+      error_code = TxnStatus::INVALID_FROM_ACCOUNT;
+      return false;
+    }
   }
 
   // Check if transaction amount is valid
@@ -216,13 +220,17 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     return false;
   }
 
-  // Check if from account exists in local storage
-  if (!AccountStore::GetInstance().IsAccountExist(fromAddr)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "fromAddr not found: " << fromAddr << ". Transaction rejected: "
-                                     << tx.GetTranID());
-    error_code = TxnStatus::INVALID_FROM_ACCOUNT;
-    return false;
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
+    if (account == nullptr) {
+      LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
+                                                  << ". Transaction rejected: "
+                                                  << tx.GetTranID());
+      error_code = TxnStatus::INVALID_FROM_ACCOUNT;
+      return false;
+    }
   }
 
   // Check if transaction amount is valid
