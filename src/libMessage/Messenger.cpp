@@ -487,7 +487,7 @@ bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
   return true;
 }
 
-void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
+bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   ZilliqaMessage::ProtoAccountBase* protoAccountBase =
       protoAccount.mutable_base();
 
@@ -503,8 +503,11 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
     // set data
     map<std::string, bytes> t_states;
-    vector<std::string> deletedIndices;
-    account.GetUpdatedStates(t_states, deletedIndices, false);
+    set<std::string> deletedIndices;
+    if (!account.GetUpdatedStates(t_states, deletedIndices, false)) {
+      LOG_GENERAL(WARNING, "Account::GetUpdatedStates failed");
+      return false;
+    }
     for (const auto& state : t_states) {
       ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
       entry->set_key(state.first);
@@ -514,6 +517,7 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
       protoAccount.add_todelete(todelete);
     }
   }
+  return true;
 }
 
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
@@ -569,7 +573,9 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       toDeleteIndices.emplace_back(entry);
     }
 
-    account.UpdateStates(addr, t_states, toDeleteIndices, false);
+    if (!account.UpdateStates(addr, t_states, toDeleteIndices, false)) {
+      LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+    }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
       LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
@@ -582,7 +588,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
   return true;
 }
 
-void AccountDeltaToProtobuf(const Account* oldAccount,
+bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
   Account acc(0, 0);
@@ -606,7 +612,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   uint64_t nonceDelta = 0;
   if (!SafeMath<uint64_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
                                nonceDelta)) {
-    return;
+    return false;
   }
   accbase.SetNonce(nonceDelta);
 
@@ -624,8 +630,10 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
       map<std::string, bytes> t_states;
-      vector<std::string> deletedIndices;
-      newAccount.GetUpdatedStates(t_states, deletedIndices, true);
+      set<std::string> deletedIndices;
+      if (!newAccount.GetUpdatedStates(t_states, deletedIndices, true)) {
+        return false;
+      }
       for (const auto& state : t_states) {
         ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
         entry->set_key(state.first);
@@ -641,6 +649,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
       protoAccount.mutable_base();
 
   AccountBaseToProtobuf(accbase, *protoAccountBase);
+
+  return true;
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
@@ -718,7 +728,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       }
     }
 
-    if (accbase.GetStorageRoot() != account.GetStorageRoot()) {
+    if (accbase.GetStorageRoot() == dev::h256()) {
       dev::h256 tmpHash;
 
       map<string, bytes> t_states;
@@ -733,16 +743,20 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         toDeleteIndices.emplace_back(entry);
       }
 
-      account.UpdateStates(addr, t_states, toDeleteIndices, temp, revertible);
-
-      if ((!t_states.empty() || !toDeleteIndices.empty()) &&
-          accbase.GetStorageRoot() != account.GetStorageRoot()) {
-        LOG_GENERAL(WARNING,
-                    "Storage root mismatch. Expected: "
-                        << account.GetStorageRoot().hex()
-                        << " Actual: " << accbase.GetStorageRoot().hex());
+      if (!account.UpdateStates(addr, t_states, toDeleteIndices, temp,
+                                revertible)) {
+        LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
+
+      // if (!revertible && (!t_states.empty() || !toDeleteIndices.empty()) &&
+      //     accbase.GetStorageRoot() != account.GetStorageRoot()) {
+      //   LOG_GENERAL(WARNING,
+      //               "Storage root mismatch. Expected: "
+      //                   << account.GetStorageRoot().hex()
+      //                   << " Actual: " << accbase.GetStorageRoot().hex());
+      //   return false;
+      // }
     }
   }
 
@@ -2368,7 +2382,10 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
                            const Account& account) {
   ProtoAccount result;
 
-  AccountToProtobuf(account, result);
+  if (!AccountToProtobuf(account, result)) {
+    LOG_GENERAL(WARNING, "AccountToProtobuf failed");
+    return false;
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
@@ -2409,7 +2426,9 @@ bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
                                 const Account& newAccount) {
   ProtoAccount result;
 
-  AccountDeltaToProtobuf(oldAccount, newAccount, result);
+  if (!AccountDeltaToProtobuf(oldAccount, newAccount, result)) {
+    LOG_GENERAL(WARNING, "AccountDeltaToProtobuf failed");
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
@@ -2430,7 +2449,10 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountToProtobuf(entry.second, *protoEntryAccount);
+    if (!AccountToProtobuf(entry.second, *protoEntryAccount)) {
+      LOG_GENERAL(WARNING, "AccountToProtobuf failed");
+      return false;
+    }
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
       return false;
@@ -2534,8 +2556,11 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountDeltaToProtobuf(accountStore.GetAccount(entry.first), entry.second,
-                           *protoEntryAccount);
+    if (!AccountDeltaToProtobuf(accountStore.GetAccount(entry.first),
+                                entry.second, *protoEntryAccount)) {
+      LOG_GENERAL(WARNING, "AccountDeltaToProtobuf failed");
+      return false;
+    }
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
       return false;

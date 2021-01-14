@@ -451,7 +451,11 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
-      nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+      Account* account = AccountStore::GetInstance().GetAccount(addr);
+      if (!account) {
+        continue;
+      }
+      nonce = account->GetNonce();
     }
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
@@ -3502,8 +3506,11 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
 
     if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
       if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(false) failed");
+        if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+                txBlkNum / NUM_FINAL_BLOCK_PER_POW,
+                m_mediator.m_initTrieSnapshotDSEpoch,
+                m_mediator.m_earliestTrieSnapshotDSEpoch)) {
+          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
           return false;
         }
       }

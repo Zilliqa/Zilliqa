@@ -17,30 +17,32 @@
 
 #include "libMessage/MessengerAccountStoreTrie.h"
 
-template <class DB, class MAP>
-AccountStoreTrie<DB, MAP>::AccountStoreTrie()
-    : m_db(std::is_same<DB, dev::OverlayDB>::value ? "state" : "") {
-  std::lock_guard<std::mutex> g(m_mutexTrie);
-  m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
-}
+template <class MAP>
+AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state_t"), m_state(&m_db) {}
 
-template <class DB, class MAP>
-void AccountStoreTrie<DB, MAP>::Init() {
+template <class MAP>
+void AccountStoreTrie<MAP>::Init() {
   AccountStoreSC<MAP>::Init();
   InitTrie();
 }
 
-template <class DB, class MAP>
-void AccountStoreTrie<DB, MAP>::InitTrie() {
+template <class MAP>
+void AccountStoreTrie<MAP>::InitTrie() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state.init();
   m_prevRoot = m_state.root();
 }
 
-template <class DB, class MAP>
-bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
-                                          unsigned int offset) const {
+template <class MAP>
+bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) {
   std::lock_guard<std::mutex> g(m_mutexTrie);
+  if (m_prevRoot != dev::h256()) {
+    try {
+      m_state.setRoot(m_prevRoot);
+    } catch (...) {
+      return false;
+    }
+  }
   if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
           dst, offset, m_state, this->m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
@@ -50,8 +52,9 @@ bool AccountStoreTrie<DB, MAP>::Serialize(bytes& dst,
   return true;
 }
 
-template <class DB, class MAP>
-Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
+template <class MAP>
+Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
+                                           const dev::h256& rootHash) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
@@ -61,14 +64,33 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
   }
 
   std::string rawAccountBase;
+
+  dev::h256 t_rootHash = rootHash;
+
+  if (rootHash == dev::h256()) {
+    LOG_GENERAL(INFO, "using m_prevRoot: " << m_prevRoot.hex());
+    t_rootHash = m_prevRoot;
+  }
+
   {
     std::lock(m_mutexTrie, m_mutexDB);
     std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
     std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
 
-    rawAccountBase = m_state.at(address);
+    if (t_rootHash != dev::h256()) {
+      try {
+        m_state.setRoot(t_rootHash);
+      } catch (...) {
+        LOG_GENERAL(WARNING, "setRoot failed: " << t_rootHash);
+        return nullptr;
+      }
+    }
+
+    rawAccountBase =
+        m_state.at(DataConversion::StringToCharArray(address.hex()));
   }
   if (rawAccountBase.empty()) {
+    LOG_GENERAL(WARNING, "rawAccountBase is empty");
     return nullptr;
   }
 
@@ -91,10 +113,55 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
   return &it2.first->second;
 }
 
-template <class DB, class MAP>
-bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
-                                                const Account& account) {
-  // LOG_MARKER();
+template <class MAP>
+bool AccountStoreTrie<MAP>::GetProof(const Address& address,
+                                     const dev::h256& rootHash,
+                                     Account& account,
+                                     std::set<std::string>& nodes) {
+  std::string rawAccountBase;
+
+  dev::h256 t_rootHash = (rootHash == dev::h256()) ? m_prevRoot : rootHash;
+
+  {
+    std::lock(m_mutexTrie, m_mutexDB);
+    std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+    std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+
+    if (t_rootHash != dev::h256()) {
+      try {
+        m_state.setRoot(t_rootHash);
+      } catch (...) {
+        return false;
+      }
+    }
+
+    rawAccountBase = m_state.getProof(address.asBytes(), nodes);
+  }
+
+  if (rawAccountBase.empty()) {
+    return false;
+  }
+
+  Account t_account;
+  if (!t_account.DeserializeBase(
+          bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+    LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+    return false;
+  }
+
+  if (t_account.isContract()) {
+    t_account.SetAddress(address);
+  }
+
+  account = std::move(t_account);
+
+  return true;
+}
+
+template <class MAP>
+bool AccountStoreTrie<MAP>::UpdateStateTrie(const Address& address,
+                                            const Account& account) {
+  LOG_MARKER();
   bytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
@@ -102,23 +169,23 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
   }
 
   std::lock_guard<std::mutex> g(m_mutexTrie);
-  m_state.insert(address, rawBytes);
+  m_state.insert(DataConversion::StringToCharArray(address.hex()), rawBytes);
 
   return true;
 }
 
-template <class DB, class MAP>
-bool AccountStoreTrie<DB, MAP>::RemoveFromTrie(const Address& address) {
+template <class MAP>
+bool AccountStoreTrie<MAP>::RemoveFromTrie(const Address& address) {
   // LOG_MARKER();
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
-  m_state.remove(address);
+  m_state.remove(DataConversion::StringToCharArray(address.hex()));
 
   return true;
 }
 
-template <class DB, class MAP>
-dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const {
+template <class MAP>
+dev::h256 AccountStoreTrie<MAP>::GetStateRootHash() const {
   LOG_MARKER();
 
   std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -126,8 +193,8 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const {
   return m_state.root();
 }
 
-template <class DB, class MAP>
-dev::h256 AccountStoreTrie<DB, MAP>::GetPrevRootHash() const {
+template <class MAP>
+dev::h256 AccountStoreTrie<MAP>::GetPrevRootHash() const {
   LOG_MARKER();
 
   std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -135,23 +202,65 @@ dev::h256 AccountStoreTrie<DB, MAP>::GetPrevRootHash() const {
   return m_prevRoot;
 }
 
-template <class DB, class MAP>
-bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll() {
+template <class MAP>
+bool AccountStoreTrie<MAP>::UpdateStateTrieAll() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
+  if (m_prevRoot != dev::h256()) {
+    try {
+      m_state.setRoot(m_prevRoot);
+    } catch (...) {
+      return false;
+    }
+  }
   for (auto const& entry : *(this->m_addressToAccount)) {
     bytes rawBytes;
     if (!entry.second.SerializeBase(rawBytes, 0)) {
       LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
       return false;
     }
-    m_state.insert(entry.first, rawBytes);
+    m_state.insert(DataConversion::StringToCharArray(entry.first.hex()),
+                   rawBytes);
   }
+
+  m_prevRoot = m_state.root();
 
   return true;
 }
 
-template <class DB, class MAP>
-void AccountStoreTrie<DB, MAP>::PrintAccountState() {
+template <class MAP>
+void AccountStoreTrie<MAP>::PrintAccountState() {
   AccountStoreBase<MAP>::PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
+}
+
+template <class MAP>
+void AccountStoreTrie<MAP>::PrintTrie() {
+  m_state.db()->printDB();
+
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+  if (m_prevRoot != dev::h256()) {
+    try {
+      LOG_GENERAL(INFO, "prevRoot: " << m_prevRoot.hex());
+      m_state.setRoot(m_prevRoot);
+    } catch (...) {
+      LOG_GENERAL(INFO, "setRoot failed");
+      return;
+    }
+  }
+
+  LOG_GENERAL(INFO, "setRoot finished");
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    LOG_GENERAL(INFO, "Address: " << address.hex());
+
+    AccountBase ab;
+    if (!ab.Deserialize(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return;
+    }
+
+    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
+  }
 }

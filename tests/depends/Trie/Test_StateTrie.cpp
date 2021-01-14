@@ -27,7 +27,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorageOld.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -146,33 +146,34 @@ BOOST_AUTO_TEST_CASE(state_trie_test) {
 
   // addr1
   m_permTrie.insert(
-      DataConversion::StringToCharArray(ContractStorage2::GenerateStorageKey(
-          addr1, FIELDS_MAP_DEPTH_INDICATOR, {})),
+      DataConversion::StringToCharArray(
+          ContractStorage2::GenerateStorageKey(FIELDS_MAP_DEPTH_INDICATOR, {})),
       DataConversion::StringToCharArray(
           JSONUtils::GetInstance().convertJsontoStr(addr1_depth)));
   m_permTrie.insert(DataConversion::StringToCharArray(
-                        ContractStorage2::GenerateStorageKey(addr1, "a", {})),
+                        Contract::ContractStorage2::GenerateStorageKey(
+                            CONTRACT_ADDR_INDICATOR, {})),
+                    addr1.asBytes());
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("a", {})),
                     DataConversion::StringToCharArray("1"));
 
   addr1Root = m_permTrie.root();
   m_permTrie.init();
   m_permTrie.setRoot(addr1Root);
-  LOG_GENERAL(
-      INFO,
-      "addr1-a result: " << m_permTrie.at(DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr1, "a", {}))));
+  LOG_GENERAL(INFO, "addr1-a result: "
+                        << m_permTrie.at(DataConversion::StringToCharArray(
+                               ContractStorage2::GenerateStorageKey("a", {}))));
 
   m_permTrie.insert(DataConversion::StringToCharArray(
-                        ContractStorage2::GenerateStorageKey(addr1, "b", {})),
+                        ContractStorage2::GenerateStorageKey("b", {})),
                     DataConversion::StringToCharArray("{}"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr1, "b", {"a"})),
-      DataConversion::StringToCharArray("2"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr1, "b", {"b"})),
-      DataConversion::StringToCharArray("3"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"a"})),
+                    DataConversion::StringToCharArray("2"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"b"})),
+                    DataConversion::StringToCharArray("3"));
 
   addr1Root = m_permTrie.root();
   m_permTrie.init();
@@ -190,65 +191,63 @@ BOOST_AUTO_TEST_CASE(state_trie_test) {
   //	}
 
   m_permTrie.insert(
-      DataConversion::StringToCharArray(ContractStorage2::GenerateStorageKey(
-          addr2, FIELDS_MAP_DEPTH_INDICATOR, {})),
+      DataConversion::StringToCharArray(
+          ContractStorage2::GenerateStorageKey(FIELDS_MAP_DEPTH_INDICATOR, {})),
       DataConversion::StringToCharArray(
           JSONUtils::GetInstance().convertJsontoStr(addr2_depth)));
   m_permTrie.insert(DataConversion::StringToCharArray(
-                        ContractStorage2::GenerateStorageKey(addr2, "a", {})),
+                        Contract::ContractStorage2::GenerateStorageKey(
+                            CONTRACT_ADDR_INDICATOR, {})),
+                    addr2.asBytes());
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("a", {})),
                     DataConversion::StringToCharArray("4"));
 
   addr2Root = m_permTrie.root();
   m_permTrie.init();
   m_permTrie.setRoot(addr2Root);
-  LOG_GENERAL(
-      INFO,
-      "addr2-a result: " << m_permTrie.at(DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr2, "a", {}))));
+  LOG_GENERAL(INFO, "addr2-a result: "
+                        << m_permTrie.at(DataConversion::StringToCharArray(
+                               ContractStorage2::GenerateStorageKey("a", {}))));
 
   m_permTrie.insert(DataConversion::StringToCharArray(
-                        ContractStorage2::GenerateStorageKey(addr1, "b", {})),
+                        ContractStorage2::GenerateStorageKey("b", {})),
                     DataConversion::StringToCharArray("{}"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr2, "b", {"a"})),
-      DataConversion::StringToCharArray("5"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr2, "b", {"b"})),
-      DataConversion::StringToCharArray("{}"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr2, "b", {"b", "a"})),
-      DataConversion::StringToCharArray("6"));
-  m_permTrie.insert(
-      DataConversion::StringToCharArray(
-          ContractStorage2::GenerateStorageKey(addr2, "b", {"b", "b"})),
-      DataConversion::StringToCharArray("7"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"a"})),
+                    DataConversion::StringToCharArray("5"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"b"})),
+                    DataConversion::StringToCharArray("{}"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"b", "a"})),
+                    DataConversion::StringToCharArray("6"));
+  m_permTrie.insert(DataConversion::StringToCharArray(
+                        ContractStorage2::GenerateStorageKey("b", {"b", "b"})),
+                    DataConversion::StringToCharArray("7"));
 
   addr2Root = m_permTrie.root();
 
   m_permTrie.init();
   m_permTrie.setRoot(addr2Root);
-  LOG_GENERAL(INFO, "[m_permTrie] addr2-b-b-b result: "
-                        << m_permTrie.at(DataConversion::StringToCharArray(
-                               ContractStorage2::GenerateStorageKey(
-                                   addr2, "b", {"b", "b"}))));
+  LOG_GENERAL(
+      INFO, "[m_permTrie] addr2-b-b-b result: "
+                << m_permTrie.at(DataConversion::StringToCharArray(
+                       ContractStorage2::GenerateStorageKey("b", {"b", "b"}))));
 
   m_tempTrie.setRoot(addr2Root);
-  LOG_GENERAL(INFO, "[m_tempTrie] addr2-b-b-b result: "
-                        << m_tempTrie.at(DataConversion::StringToCharArray(
-                               ContractStorage2::GenerateStorageKey(
-                                   addr2, "b", {"b", "b"}))));
+  LOG_GENERAL(
+      INFO, "[m_tempTrie] addr2-b-b-b result: "
+                << m_tempTrie.at(DataConversion::StringToCharArray(
+                       ContractStorage2::GenerateStorageKey("b", {"b", "b"}))));
 
   m_superTrie.setRoot(addr2Root);
-  LOG_GENERAL(INFO, "[m_superTrie] addr2-b-b-b result: "
-                        << m_superTrie.at(DataConversion::StringToCharArray(
-                               ContractStorage2::GenerateStorageKey(
-                                   addr2, "b", {"b", "b"}))));
+  LOG_GENERAL(
+      INFO, "[m_superTrie] addr2-b-b-b result: "
+                << m_superTrie.at(DataConversion::StringToCharArray(
+                       ContractStorage2::GenerateStorageKey("b", {"b", "b"}))));
 
-  string addr2_b_b_str =
-      ContractStorage2::GenerateStorageKey(addr2, "b", {"b"});
+  string addr2_b_b_str = ContractStorage2::GenerateStorageKey("b", {"b"});
   bytes addr2_b_b = DataConversion::StringToCharArray(addr2_b_b_str);
 
   for (auto iter = m_permTrie.lower_bound(&addr2_b_b);

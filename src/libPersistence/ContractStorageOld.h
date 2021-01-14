@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
-#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_
 
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
-#include "ContractStorage2Data.h"
+#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -50,15 +50,9 @@ using TempOverlayMap = OverlayMap<std::shared_ptr<DefaultAddDeleteMap>,
                                   std::shared_ptr<RevertableAddDeleteMap>,
                                   std::shared_ptr<LevelDBMap>>;
 
-static std::string type_placeholder;
+class ContractStorageOld : public Singleton<ContractStorageOld> {
+  static std::string type_placeholder;
 
-enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
-
-Index GetIndex(const dev::h160& address, const std::string& key);
-
-class ContractStorage2 : public Singleton<ContractStorage2> {
-  LevelDB m_codeDB;
-  LevelDB m_initDataDB;
   LevelDB m_stateDataDB;
 
   std::shared_ptr<LevelDB> mp_stateDataDB;
@@ -95,8 +89,6 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   dev::GenericTrieDB<PermOverlayMap> m_permTrie;
   dev::GenericTrieDB<TempOverlayMap> m_tempTrie;
 
-  std::mutex m_codeMutex;
-  std::mutex m_initDataMutex;
   std::mutex m_stateDataMutex;
   std::mutex m_stateMPTMutex;
 
@@ -108,6 +100,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                        bool cleanEmpty = false);
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
+
+  void UnquoteString(std::string& input);
 
   bool CheckHasMap(const dev::h160& addr, bool temp);
 
@@ -123,39 +117,16 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
   dev::h256 DirectHashState(const std::map<std::string, bytes>& states);
 
-  ContractStorage2();
+  ContractStorageOld();
 
-  ~ContractStorage2() = default;
+  ~ContractStorageOld() = default;
 
  public:
   /// Returns the singleton ContractStorage instance.
-  static ContractStorage2& GetContractStorage() {
-    static ContractStorage2 cs;
+  static ContractStorageOld& GetContractStorage() {
+    static ContractStorageOld cs;
     return cs;
   }
-
-  /// Adds a contract code to persistence
-  bool PutContractCode(const dev::h160& address, const bytes& code);
-
-  /// Adds contract codes to persistence in batch
-  bool PutContractCodeBatch(
-      const std::unordered_map<std::string, std::string>& batch);
-
-  /// Get the desired code from persistence
-  bytes GetContractCode(const dev::h160& address);
-
-  /// Delete the contract code in persistence
-  bool DeleteContractCode(const dev::h160& address);
-
-  /////////////////////////////////////////////////////////////////////////////
-  bool PutInitData(const dev::h160& address, const bytes& initData);
-
-  bool PutInitDataBatch(
-      const std::unordered_map<std::string, std::string>& batch);
-
-  bytes GetInitData(const dev::h160& address);
-
-  bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
   static std::string GenerateStorageKey(
@@ -194,7 +165,7 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                                  bool temp = true);
 
   void FetchUpdatedStateValuesForAddress(
-      const dev::h160& address, std::map<std::string, bytes>& t_states,
+      const dev::h160& address, std::map<std::string, bytes>& states,
       std::vector<std::string>& toDeletedIndices, bool temp = false);
 
   bool UpdateStateValue(const dev::h160& addr, const bytes& q,
@@ -237,4 +208,4 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
 
 }  // namespace Contract
 
-#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE2_H_
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGEOLD_H_

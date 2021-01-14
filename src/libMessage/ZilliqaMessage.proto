@@ -304,15 +304,9 @@ message ProtoAccountBase
 
 message ProtoAccount
 {
-    message StorageData
-    {
-        bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
-        string data         = 2; // Added in: v1.0, Deprecated in: N/A
-    }
     ProtoAccountBase base = 1; // Added in: v1.0, Deprecated in: N/A
 
     bytes code                      = 2; // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage    = 3; // Added in: v1.0, Deprecated in: N/A
     bool numbersign                 = 4; // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
     message StorageData2
     {

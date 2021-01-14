@@ -59,6 +59,9 @@ class JSONConversion {
       const std::tuple<PubKey, Peer, uint16_t>& node);
   // Convert Deque of Node to Json
   static const Json::Value convertDequeOfNode(const DequeOfNode& nodes);
+  // Convert Json to keys for getting merkle proof
+  static const std::vector<std::pair<std::string, std::vector<std::string>>>
+  convertJsonArrayToKeys(const Json::Value& _json);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_JSONCONVERSION_H_

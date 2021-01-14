@@ -29,6 +29,8 @@
 
 namespace dev
 {
+	static std::vector<h256> list_placeholder;
+
 	// TODO: change inheritance from MemoryDB to composition
 	class OverlayDB: public MemoryDB
 	{
@@ -39,7 +41,7 @@ namespace dev
 		void ResetDB();
 		bool RefreshDB();
 
-		bool commit();
+		bool commit(bool keepHistory = false, std::vector<h256>& toPurge = list_placeholder);
 		void rollback();
 
 		std::string lookup(h256 const& _h) const;
@@ -48,8 +50,18 @@ namespace dev
 
 		bytes lookupAux(h256 const& _h) const;
 
-	private:
-		using MemoryDB::clear;
+		void printDB() {
+		  LOG_MARKER();
+		  std::unique_ptr<leveldb::Iterator> it(
+		      m_levelDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+		  it->SeekToFirst();
+		  for (; it->Valid(); it->Next()) {
+		  	LOG_GENERAL(INFO, "key: " << it->key().ToString() << " value: " << it->value().ToString());
+		  }
+		}
+
+	protected:
+		// using MemoryDB::clear;
 
 		LevelDB m_levelDB;
 	};

@@ -17,7 +17,7 @@
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
-#include "libPersistence/ContractStorage2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 
 #include "ScillaIPCServer.h"
@@ -27,7 +27,9 @@ using namespace Contract;
 using namespace jsonrpc;
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
+    // GetAccountFunc accountGetter)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
+  // m_accountGetter(move(accountGetter)) {
   // These JSON signatures match that of the actual functions below.
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),
@@ -37,10 +39,12 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                    &ScillaIPCServer::updateStateValueI);
 }
 
-void ScillaIPCServer::setContractAddressVer(const Address &address,
-                                            uint32_t version) {
+void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
+                                                uint32_t version,
+                                                const dev::h256 &rootHash) {
   m_contrAddr = address;
   m_version = version;
+  m_rootHash = rootHash;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -72,9 +76,9 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
   bytes destination;
 
-  if (!ContractStorage2::GetContractStorage().FetchStateValue(
-          m_contrAddr, DataConversion::StringToCharArray(query), 0, destination,
-          0, found)) {
+  if (!ContractStorage::GetContractStorage().FetchStateValue(
+          m_contrAddr, m_rootHash, DataConversion::StringToCharArray(query), 0,
+          destination, 0, found)) {
     return false;
   }
 
@@ -83,26 +87,33 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
   return true;
 }
 
-bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
-                                              const string &query,
-                                              string &value, bool &found,
-                                              string &type) {
-  bytes destination;
+// bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
+//                                               const string &query,
+//                                               string &value, bool &found,
+//                                               string &type) {
+//   bytes destination;
 
-  if (!ContractStorage2::GetContractStorage().FetchExternalStateValue(
-          m_contrAddr, Address(addr), DataConversion::StringToCharArray(query),
-          0, destination, 0, found, type)) {
-    return false;
-  }
+//   Address targetAddr(addr);
+//   Account *acc = m_accountGetter(targetAddr);
 
-  value = DataConversion::CharArrayToString(destination);
+//   if (!acc) {
+//     return false;
+//   }
+//   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
+//           m_contrAddr, m_rootHash, targetAddr, acc->GetStorageRoot(),
+//           DataConversion::StringToCharArray(query), 0, destination, 0, found,
+//           type, m_version)) {
+//     return false;
+//   }
 
-  return true;
-}
+//   value = DataConversion::CharArrayToString(destination);
+
+//   return true;
+// }
 
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
-  return ContractStorage2::GetContractStorage().UpdateStateValue(
-      m_contrAddr, DataConversion::StringToCharArray(query), 0,
+  return ContractStorage::GetContractStorage().UpdateStateValue(
+      m_contrAddr, m_rootHash, DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }

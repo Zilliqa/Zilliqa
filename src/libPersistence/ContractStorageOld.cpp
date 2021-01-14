@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ContractStorage2.h"
+#include "ContractStorageOld.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -35,10 +35,8 @@ using namespace ZilliqaMessage;
 
 namespace Contract {
 
-ContractStorage2::ContractStorage2()
-    : m_codeDB("contractCode"),
-      m_initDataDB("contractInitState2"),
-      m_stateDataDB("contractStateData2"),
+ContractStorageOld::ContractStorageOld()
+    : m_stateDataDB("contractStateData2"),
       mp_stateDataDB(make_shared<LevelDB>("contractStateData2Trie")),
       mp_stateDataMap(make_shared<std::unordered_map<dev::h256, bytes>>()),
       mp_indexToBeDeleted(make_shared<std::set<dev::h256>>()),
@@ -54,54 +52,6 @@ ContractStorage2::ContractStorage2()
       m_permTrie(&m_permOM),
       m_tempTrie(&m_tempOM) {}
 
-// Code
-// ======================================
-
-bool ContractStorage2::PutContractCode(const dev::h160& address,
-                                       const bytes& code) {
-  lock_guard<mutex> g(m_codeMutex);
-  return m_codeDB.Insert(address.hex(), code) == 0;
-}
-
-bool ContractStorage2::PutContractCodeBatch(
-    const unordered_map<string, string>& batch) {
-  lock_guard<mutex> g(m_codeMutex);
-  return m_codeDB.BatchInsert(batch);
-}
-
-bytes ContractStorage2::GetContractCode(const dev::h160& address) {
-  lock_guard<mutex> g(m_codeMutex);
-  return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
-}
-
-bool ContractStorage2::DeleteContractCode(const dev::h160& address) {
-  lock_guard<mutex> g(m_codeMutex);
-  return m_codeDB.DeleteKey(address.hex()) == 0;
-}
-
-// InitData
-// ========================================
-bool ContractStorage2::PutInitData(const dev::h160& address,
-                                   const bytes& initData) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return m_initDataDB.Insert(address.hex(), initData) == 0;
-}
-
-bool ContractStorage2::PutInitDataBatch(
-    const unordered_map<string, string>& batch) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return m_initDataDB.BatchInsert(batch);
-}
-
-bytes ContractStorage2::GetInitData(const dev::h160& address) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
-}
-
-bool ContractStorage2::DeleteInitData(const dev::h160& address) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return m_initDataDB.DeleteKey(address.hex()) == 0;
-}
 // State
 // ========================================
 template <class T>
@@ -115,9 +65,9 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
                                        protoMessage.ByteSize());
 }
 
-string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
-                                            const string& vname,
-                                            const vector<string>& indices) {
+string ContractStorageOld::GenerateStorageKey(const dev::h160& addr,
+                                              const string& vname,
+                                              const vector<string>& indices) {
   LOG_MARKER();
   string ret = addr.hex();
   if (!vname.empty()) {
@@ -132,7 +82,7 @@ string ContractStorage2::GenerateStorageKey(const dev::h160& addr,
 const size_t addr_separator_size =
     (ACC_ADDR_SIZE * 2) + 1 /*SCILLA_INDEX_SEPARATOR*/;
 
-string ContractStorage2::RemoveAddrFromKey(const std::string& key) {
+string ContractStorageOld::RemoveAddrFromKey(const std::string& key) {
   string ret;
 
   try {
@@ -144,10 +94,11 @@ string ContractStorage2::RemoveAddrFromKey(const std::string& key) {
   return ret;
 }
 
-bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
-                                       unsigned int s_offset, bytes& dst,
-                                       unsigned int d_offset, bool& foundVal,
-                                       bool getType, string& type) {
+bool ContractStorageOld::FetchStateValue(const dev::h160& addr,
+                                         const bytes& src,
+                                         unsigned int s_offset, bytes& dst,
+                                         unsigned int d_offset, bool& foundVal,
+                                         bool getType, string& type) {
   LOG_MARKER();
 
   foundVal = true;
@@ -397,7 +348,7 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
   return SerializeToArray(value, dst, 0);
 }
 
-bool ContractStorage2::FetchExternalStateValue(
+bool ContractStorageOld::FetchExternalStateValue(
     const dev::h160& caller, const dev::h160& target, const bytes& src,
     unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
     string& type, uint32_t caller_version) {
@@ -449,7 +400,7 @@ bool ContractStorage2::FetchExternalStateValue(
                          type);
 }
 
-void ContractStorage2::DeleteByPrefix(const string& prefix) {
+void ContractStorageOld::DeleteByPrefix(const string& prefix) {
   lock_guard<mutex> g(m_stateDataMutex);
 
   auto p = t_stateDataMap.lower_bound(prefix);
@@ -485,7 +436,7 @@ void ContractStorage2::DeleteByPrefix(const string& prefix) {
   }
 }
 
-void ContractStorage2::DeleteByIndex(const string& index) {
+void ContractStorageOld::DeleteByIndex(const string& index) {
   lock_guard<mutex> g(m_stateDataMutex);
 
   if (t_stateDataMap.find(index) != t_stateDataMap.end() ||
@@ -496,7 +447,7 @@ void ContractStorage2::DeleteByIndex(const string& index) {
   }
 }
 
-void UnquoteString(string& input) {
+void ContractStorageOld::UnquoteString(string& input) {
   if (input.empty()) {
     return;
   }
@@ -508,9 +459,9 @@ void UnquoteString(string& input) {
   }
 }
 
-void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
-                                              string value, bool unquote,
-                                              bool nokey) {
+void ContractStorageOld::InsertValueToStateJson(Json::Value& _json, string key,
+                                                string value, bool unquote,
+                                                bool nokey) {
   if (unquote) {
     // unquote key
     UnquoteString(key);
@@ -541,11 +492,9 @@ void ContractStorage2::InsertValueToStateJson(Json::Value& _json, string key,
   }
 }
 
-bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
-                                                 const dev::h160& address,
-                                                 const string& vname,
-                                                 const vector<string>& indices,
-                                                 bool temp) {
+bool ContractStorageOld::FetchStateJsonForContract(
+    Json::Value& _json, const dev::h160& address, const string& vname,
+    const vector<string>& indices, bool temp) {
   LOG_MARKER();
 
   std::map<std::string, bytes> states;
@@ -631,8 +580,8 @@ bool ContractStorage2::FetchStateJsonForContract(Json::Value& _json,
   return true;
 }
 
-void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
-                                            const string& key, bool temp) {
+void ContractStorageOld::FetchStateDataForKey(map<string, bytes>& states,
+                                              const string& key, bool temp) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_stateDataMutex);
@@ -693,16 +642,14 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
   }
 }
 
-void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
-                                                 const dev::h160& address,
-                                                 const string& vname,
-                                                 const vector<string>& indices,
-                                                 bool temp) {
+void ContractStorageOld::FetchStateDataForContract(
+    map<string, bytes>& states, const dev::h160& address, const string& vname,
+    const vector<string>& indices, bool temp) {
   string key = GenerateStorageKey(address, vname, indices);
   FetchStateDataForKey(states, key, temp);
 }
 
-void ContractStorage2::FetchUpdatedStateValuesForAddress(
+void ContractStorageOld::FetchUpdatedStateValuesForAddress(
     const dev::h160& address, map<string, bytes>& t_states,
     vector<std::string>& toDeletedIndices, bool temp) {
   LOG_MARKER();
@@ -776,7 +723,7 @@ void ContractStorage2::FetchUpdatedStateValuesForAddress(
   }
 }
 
-bool ContractStorage2::CleanEmptyMapPlaceholders(const string& key) {
+bool ContractStorageOld::CleanEmptyMapPlaceholders(const string& key) {
   // key = 0xabc.vname.[index1.index2.[...].indexn.
   vector<string> indices;
   boost::split(indices, key,
@@ -799,8 +746,8 @@ bool ContractStorage2::CleanEmptyMapPlaceholders(const string& key) {
   return true;
 }
 
-void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
-                                       bool cleanEmpty) {
+void ContractStorageOld::UpdateStateData(const string& key, const bytes& value,
+                                         bool cleanEmpty) {
   if (LOG_SC) {
     LOG_GENERAL(INFO, "key: " << key << " value: "
                               << DataConversion::CharArrayToString(value));
@@ -829,9 +776,9 @@ void ContractStorage2::UpdateStateData(const string& key, const bytes& value,
   t_stateDataMap[key] = value;
 }
 
-bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
-                                        unsigned int q_offset, const bytes& v,
-                                        unsigned int v_offset) {
+bool ContractStorageOld::UpdateStateValue(const dev::h160& addr, const bytes& q,
+                                          unsigned int q_offset, const bytes& v,
+                                          unsigned int v_offset) {
   LOG_MARKER();
 
   if (q_offset > q.size()) {
@@ -965,7 +912,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
   return true;
 }
 
-void ContractStorage2::UpdateStateDatasAndToDeletes(
+void ContractStorageOld::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible, bool migrating) {
@@ -1022,7 +969,7 @@ void ContractStorage2::UpdateStateDatasAndToDeletes(
   }
 }
 
-void ContractStorage2::ResetBufferedAtomicState() {
+void ContractStorageOld::ResetBufferedAtomicState() {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_stateDataMutex);
@@ -1030,7 +977,7 @@ void ContractStorage2::ResetBufferedAtomicState() {
   p_indexToBeDeleted.clear();
 }
 
-void ContractStorage2::RevertAtomicState() {
+void ContractStorageOld::RevertAtomicState() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
 
@@ -1056,7 +1003,7 @@ void ContractStorage2::RevertAtomicState() {
   }
 }
 
-void ContractStorage2::RevertContractStates() {
+void ContractStorageOld::RevertContractStates() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
 
@@ -1084,7 +1031,7 @@ void ContractStorage2::RevertContractStates() {
   m_permADMap->revert();
 }
 
-void ContractStorage2::InitRevertibles() {
+void ContractStorageOld::InitRevertibles() {
   LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
   r_stateDataMap.clear();
@@ -1093,7 +1040,7 @@ void ContractStorage2::InitRevertibles() {
   m_permADMap->reset_recordings();
 }
 
-bool ContractStorage2::CommitStateDB() {
+bool ContractStorageOld::CommitStateDB() {
   LOG_MARKER();
 
   {
@@ -1158,7 +1105,7 @@ bool ContractStorage2::CommitStateDB() {
   return true;
 }
 
-void ContractStorage2::InitTempState() {
+void ContractStorageOld::InitTempState() {
   lock_guard<mutex> g(m_stateDataMutex);
 
   t_stateDataMap.clear();
@@ -1167,7 +1114,7 @@ void ContractStorage2::InitTempState() {
   m_tempADMap->reset();
 }
 
-dev::h256 ContractStorage2::DirectHashState(
+dev::h256 ContractStorageOld::DirectHashState(
     const std::map<std::string, bytes>& states) {
   LOG_MARKER();
 
@@ -1189,7 +1136,7 @@ dev::h256 ContractStorage2::DirectHashState(
   return ret;
 }
 
-dev::h256 ContractStorage2::UpdateContractTrie(
+dev::h256 ContractStorageOld::UpdateContractTrie(
     const dev::h256& root, const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeletedIndices, bool temp,
     bool revertible) {
@@ -1270,7 +1217,7 @@ dev::h256 ContractStorage2::UpdateContractTrie(
   }
 }
 
-bool ContractStorage2::CheckHasMap(const dev::h160& addr, bool temp) {
+bool ContractStorageOld::CheckHasMap(const dev::h160& addr, bool temp) {
   std::map<std::string, bytes> t_hasMap;
   std::string hasMap_key = GenerateStorageKey(addr, HAS_MAP_INDICATOR, {});
 
@@ -1290,7 +1237,7 @@ bool ContractStorage2::CheckHasMap(const dev::h160& addr, bool temp) {
   return false;
 }
 
-dev::h256 ContractStorage2::GetContractStateHashForMergingDelta(
+dev::h256 ContractStorageOld::GetContractStateHashForMergingDelta(
     const dev::h160& addr, const dev::h256& root,
     const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeleteIndices) {
@@ -1309,9 +1256,9 @@ dev::h256 ContractStorage2::GetContractStateHashForMergingDelta(
   }
 }
 
-dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& addr,
-                                                 const dev::h256& root,
-                                                 bool temp, bool revertible) {
+dev::h256 ContractStorageOld::GetContractStateHash(const dev::h160& addr,
+                                                   const dev::h256& root,
+                                                   bool temp, bool revertible) {
   if (IsNullAddress(addr)) {
     LOG_GENERAL(WARNING, "Null address rejected");
     return dev::h256();
@@ -1329,15 +1276,7 @@ dev::h256 ContractStorage2::GetContractStateHash(const dev::h160& addr,
   }
 }
 
-void ContractStorage2::Reset() {
-  {
-    lock_guard<mutex> g(m_codeMutex);
-    m_codeDB.ResetDB();
-  }
-  {
-    lock_guard<mutex> g(m_initDataMutex);
-    m_initDataDB.ResetDB();
-  }
+void ContractStorageOld::Reset() {
   {
     lock_guard<mutex> g(m_stateDataMutex);
     m_stateDataDB.ResetDB();
@@ -1362,21 +1301,10 @@ void ContractStorage2::Reset() {
   }
 }
 
-bool ContractStorage2::RefreshAll() {
-  bool ret;
-  {
-    lock_guard<mutex> g(m_codeMutex);
-    ret = m_codeDB.RefreshDB();
-  }
-  if (ret) {
-    lock_guard<mutex> g(m_initDataMutex);
-    ret = m_initDataDB.RefreshDB();
-  }
-  if (ret) {
-    lock_guard<mutex> g(m_stateDataMutex);
-    ret = m_stateDataDB.RefreshDB();
-    ret = ret && mp_stateDataDB->RefreshDB();
-  }
+bool ContractStorageOld::RefreshAll() {
+  lock_guard<mutex> g(m_stateDataMutex);
+  bool ret = m_stateDataDB.RefreshDB();
+  ret = ret && mp_stateDataDB->RefreshDB();
 
   return ret;
 }

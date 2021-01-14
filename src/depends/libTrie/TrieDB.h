@@ -20,10 +20,12 @@
 #define __TRIEDB_H__
 
 #include <memory>
+#include <map>
 
 #include "depends/common/Exceptions.h"
 #include "depends/common/SHA3.h"
 #include "TrieCommon.h"
+#include "libUtils/DataConversion.h"
 
 namespace dev
 {
@@ -149,6 +151,13 @@ namespace dev
         bool contains(bytes const& _key) const { return contains(&_key); }
         bool contains(bytesConstRef _key) const { return !at(_key).empty(); }
 
+        std::string getProof(bytes const& _key, std::set<std::string>& nodes) const
+        {
+            return getProof(&_key, nodes);
+        }
+
+        std::string getProof(bytesConstRef _key, std::set<std::string>& nodes) const;
+
         class iterator
         {
         public:
@@ -158,10 +167,16 @@ namespace dev
             explicit iterator(GenericTrieDB const* _db);
             iterator(GenericTrieDB const* _db, bytesConstRef _key);
 
-            iterator& operator++() { next(); return *this; }
+            iterator& operator++() {
+              next(); return *this; 
+            }
 
-            value_type operator*() const { return at(); }
-            value_type operator->() const { return at(); }
+            value_type operator*() const {
+              return at(); 
+            }
+            value_type operator->() const { 
+              return at(); 
+            }
 
             bool operator==(iterator const& _c) const { return _c.m_trail == m_trail; }
             bool operator!=(iterator const& _c) const { return _c.m_trail != m_trail; }
@@ -279,6 +294,8 @@ namespace dev
 
         std::string atAux(RLP const& _here, NibbleSlice _key) const;
 
+        std::string getProof(RLP const& _here, NibbleSlice _key, std::set<std::string>& nodes) const;
+
         void mergeAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key, bytesConstRef _value);
         bytes mergeAt(RLP const& _replace, NibbleSlice _k, bytesConstRef _v, bool _inLine = false);
         bytes mergeAt(RLP const& _replace, h256 const& _replaceHash, NibbleSlice _k, bytesConstRef _v, bool _inLine = false);
@@ -326,7 +343,11 @@ namespace dev
         bool isTwoItemNode(RLP const& _n) const;
         std::string deref(RLP const& _n) const;
 
-        std::string node(h256 const& _h) const { return m_db->lookup(_h); }
+        std::string node(h256 const& _h) const {
+          std::string ret = m_db->lookup(_h);
+          LOG_GENERAL(INFO, "ret: " << ret);
+          return ret; 
+        }
 
         // These are low-level node insertion functions that just go straight through into the DB.
         h256 forceInsertNode(bytesConstRef _v) { auto h = sha3(_v); forceInsertNode(h, _v); return h; }
@@ -374,6 +395,13 @@ namespace dev
             bytesConstRef((byte const*)&_k, sizeof(KeyType));
              
             return Generic::at(bytesConstRef((byte const*)&_k, sizeof(KeyType)));
+        }
+
+        std::string getProof(KeyType _k, std::set<std::string>& nodes) const
+        {
+            bytesConstRef((byte const*)&_k, sizeof(KeyType));
+
+            return Generic::getProof(bytesConstRef((byte const*)&_k, sizeof(KeyType)), nodes);
         }
 
         void insert(KeyType _k, bytesConstRef _value)
@@ -588,6 +616,11 @@ namespace dev
                                              << __FUNCTION__ << ")");
         }
 
+        std::string hex;
+        DataConversion::StringToHexStr(b.key, hex);
+        LOG_GENERAL(INFO, "b.key: " << hex);
+        LOG_GENERAL(INFO, "size: " << b.key.size());
+
         if((b.key[0] & 0x10) != 0)
         {
             LOG_GENERAL(FATAL,
@@ -615,9 +648,11 @@ namespace dev
 
             if (m_trail.back().child == 255)
             {
+                LOG_GENERAL(INFO, "marker");
                 // Entering. Look for first...
                 if (rlp.isEmpty())
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // Kill our search as soon as we hit an empty node.
                     k.clear();
                     m_trail.pop_back();
@@ -625,11 +660,13 @@ namespace dev
                 }
                 if (!rlp.isList() || (rlp.itemCount() != 2 && rlp.itemCount() != 17))
                 {
+                    LOG_GENERAL(INFO, "marker");
                     m_that = nullptr;
                     return;
                 }
                 if (rlp.itemCount() == 2)
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // Just turn it into a valid Branch
                     auto keyOfRLP = keyOf(rlp);
 
@@ -640,8 +677,10 @@ namespace dev
 
                     if (!k.contains(keyOfRLP))
                     {
+                        LOG_GENERAL(INFO, "marker");
                         if (!k.isEarlierThan(keyOfRLP))
                         {
+                            LOG_GENERAL(INFO, "marker");
                             k.clear();
                             m_trail.pop_back();
                             continue;
@@ -653,9 +692,11 @@ namespace dev
                     m_trail.back().key = hexPrefixEncode(keyOf(m_trail.back().key), keyOfRLP, false);
                     if (isLeaf(rlp))
                     {
+                        LOG_GENERAL(INFO, "marker");
                         // leaf - exit now.
                         if (k.empty())
                         {
+                            LOG_GENERAL(INFO, "marker");
                             m_trail.back().child = 0;
                             return;
                         }
@@ -672,22 +713,28 @@ namespace dev
                 }
                 else
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // Already a branch - look for first valid.
                     if (k.size())
                     {
+                        LOG_GENERAL(INFO, "marker");
                         m_trail.back().setChild(k[0]);
                         k = k.mid(1);
                     }
-                    else
+                    else {
+                        LOG_GENERAL(INFO, "marker");
                         m_trail.back().setChild(16);
+                    }
                     // run through to...
                 }
             }
             else
             {
+                LOG_GENERAL(INFO, "marker");
                 // Continuing/exiting. Look for next...
                 if (!(rlp.isList() && rlp.itemCount() == 17))
                 {
+                    LOG_GENERAL(INFO, "marker");
                     k.clear();
                     m_trail.pop_back();
                     continue;
@@ -704,9 +751,11 @@ namespace dev
                                                  << __FUNCTION__ << ")");
             }
 
-            for (;; m_trail.back().incrementChild())
+            for (;; m_trail.back().incrementChild()) {
+                LOG_GENERAL(INFO, "marker");
                 if (m_trail.back().child == 17)
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // finished here.
                     k.clear();
                     m_trail.pop_back();
@@ -714,10 +763,14 @@ namespace dev
                 }
                 else if (!rlp[m_trail.back().child].isEmpty())
                 {
-                    if (m_trail.back().child == 16)
+                    LOG_GENERAL(INFO, "marker");
+                    if (m_trail.back().child == 16) {
+                        LOG_GENERAL(INFO, "marker");
                         return;	// have a value at this node - exit now.
+                    }
                     else
                     {
+                        LOG_GENERAL(INFO, "marker");
                         // lead-on to another node - enter child.
                         // fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
                         Node const& back = m_trail.back();
@@ -729,8 +782,11 @@ namespace dev
                         break;
                     }
                 }
-                else
+                else {
+                    LOG_GENERAL(INFO, "marker");
                     k.clear();
+                }
+            }
         }
     }
 
@@ -740,6 +796,7 @@ namespace dev
         {
             if (m_trail.empty())
             {
+                LOG_GENERAL(INFO, "marker");
                 m_that = nullptr;
                 return;
             }
@@ -749,23 +806,28 @@ namespace dev
 
             if (m_trail.back().child == 255)
             {
+                LOG_GENERAL(INFO, "marker");
                 // Entering. Look for first...
                 if (rlp.isEmpty())
                 {
+                    LOG_GENERAL(INFO, "marker");
                     m_trail.pop_back();
                     continue;
                 }
                 if (!(rlp.isList() && (rlp.itemCount() == 2 || rlp.itemCount() == 17)))
                 {
+                    LOG_GENERAL(INFO, "marker");
                     m_that = nullptr;
                     return;
                 }
                 if (rlp.itemCount() == 2)
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // Just turn it into a valid Branch
                     m_trail.back().key = hexPrefixEncode(keyOf(m_trail.back().key), keyOf(rlp), false);
                     if (isLeaf(rlp))
                     {
+                        LOG_GENERAL(INFO, "marker");
                         // leaf - exit now.
                         m_trail.back().child = 0;
                         return;
@@ -778,6 +840,7 @@ namespace dev
                 }
                 else
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // Already a branch - look for first valid.
                     m_trail.back().setFirstChild();
                     // run through to...
@@ -785,9 +848,11 @@ namespace dev
             }
             else
             {
+                LOG_GENERAL(INFO, "marker");
                 // Continuing/exiting. Look for next...
                 if (!(rlp.isList() && rlp.itemCount() == 17))
                 {
+                    LOG_GENERAL(INFO, "marker");
                     m_trail.pop_back();
                     continue;
                 }
@@ -803,22 +868,32 @@ namespace dev
                                                  << __FUNCTION__ << ")");
             }
 
-            for (;; m_trail.back().incrementChild())
+            for (;; m_trail.back().incrementChild()) {
+                LOG_GENERAL(INFO, "marker");
                 if (m_trail.back().child == 17)
                 {
+                    LOG_GENERAL(INFO, "marker");
                     // finished here.
                     m_trail.pop_back();
                     break;
                 }
                 else if (!rlp[m_trail.back().child].isEmpty())
                 {
-                    if (m_trail.back().child == 16)
+                    LOG_GENERAL(INFO, "marker");
+                    if (m_trail.back().child == 16) {
+                        LOG_GENERAL(INFO, "marker");
                         return;	// have a value at this node - exit now.
+                    }
                     else
                     {
+                        LOG_GENERAL(INFO, "marker");
                         // lead-on to another node - enter child.
                         // fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
                         Node const& back = m_trail.back();
+                        LOG_GENERAL(INFO, "back.rlp: " << back.rlp);
+                        LOG_GENERAL(INFO, "back.key: " << back.key);
+                        LOG_GENERAL(INFO, "back.child: " << back.child);
+                        LOG_GENERAL(INFO, "rlp[child]: " << rlp[back.child].toString());
                         m_trail.push_back(Node{
                                 m_that->deref(rlp[back.child]),
                                 hexPrefixEncode(keyOf(back.key), NibbleSlice(bytesConstRef(&back.child, 1), 1), false),
@@ -827,6 +902,7 @@ namespace dev
                         break;
                     }
                 }
+            }
         }
     }
 
@@ -912,6 +988,59 @@ namespace dev
                 return atAux(n.isList() ? n : RLP(node(n.toHash<h256>())), _key.mid(1));
         }
     }
+
+    template <class DB> std::string GenericTrieDB<DB>::getProof(bytesConstRef _key, std::set<std::string>& nodes) const {
+        LOG_MARKER();
+        return getProof(RLP(node(m_root)), _key, nodes);
+    }
+
+    template <class DB> std::string GenericTrieDB<DB>::getProof(RLP const& _here, NibbleSlice _key, std::set<std::string>& nodes) const {
+        LOG_MARKER();
+        if (_here.isEmpty() || _here.isNull())
+            // not found.
+            return std::string();
+        unsigned itemCount = _here.itemCount();
+
+        if(!_here.isList() || (itemCount != 2 && itemCount != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
+        if (itemCount == 2)
+        {
+            nodes.emplace(_here.data().toString());
+            auto k = keyOf(_here);
+            if (_key == k && isLeaf(_here)) {
+                // reached leaf and it's us
+                return _here[1].toString(); }
+            else if (_key.contains(k) && !isLeaf(_here)) {
+                // not yet at leaf and it might yet be us. onwards...
+                return getProof(_here[1].isList() ? _here[1] : RLP(node(_here[1].toHash<h256>())), _key.mid(k.size()), nodes);
+            }
+            else {
+                // not us.
+                return std::string();
+            }
+        }
+        else
+        {
+            // nodes.emplace(sha3(_here.data()), _here.data().toBytes());
+            nodes.emplace(_here.data().toString());
+            if (_key.size() == 0) {
+                return getProof(_here[16], _key, nodes);
+            }
+            auto n = _here[_key[0]];
+            if (n.isEmpty()) {
+                return std::string();
+            } else {
+                return getProof(n.isList() ? n : RLP(node(n.toHash<h256>())), _key.mid(1), nodes);
+            }
+        }
+    }
+
+
 
     template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, NibbleSlice _k, bytesConstRef _v, bool _inLine)
     {
@@ -1041,6 +1170,7 @@ namespace dev
 
     template <class DB> std::string GenericTrieDB<DB>::deref(RLP const& _n) const
     {
+        LOG_MARKER();
         return _n.isList() ? _n.data().toString() : node(_n.toHash<h256>());
     }
 

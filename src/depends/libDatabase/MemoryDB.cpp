@@ -57,6 +57,7 @@ namespace dev
 
     std::string MemoryDB::lookup(h256 const& _h) const
     {
+        LOG_GENERAL(INFO, "marker");
 // #if DEV_GUARDED_DB
        // ReadGuard l(x_this);
         shared_lock<shared_timed_mutex> lock(x_this);

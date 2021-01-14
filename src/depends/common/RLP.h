@@ -303,6 +303,7 @@ namespace dev
             auto l = p.size();
             if (!isData() || (l > _N::size && (_flags & FailIfTooBig)) || (l < _N::size && (_flags & FailIfTooSmall)))
             {
+                LOG_GENERAL(INFO, "marker");
                 if (_flags & ThrowOnFail)
                     BOOST_THROW_EXCEPTION(BadCast());
                 else

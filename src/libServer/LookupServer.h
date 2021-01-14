@@ -229,12 +229,19 @@ class LookupServer : public Server,
                                             Json::Value& response) {
     response = this->GetTransactionStatus(request[0u].asString());
   }
+  inline virtual void GetProofI(const Json::Value& request,
+                                Json::Value& response) {
+    response = this->GetProof(request[0u].asString(), request[1u],
+                              request[2u].asString());
+  }
 
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
+  Json::Value GetProof(const std::string& address, const Json::Value& request,
+                       const uint64_t& blockNum);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum);
@@ -283,6 +290,8 @@ class LookupServer : public Server,
   Json::Value GetMinerInfo(const std::string& blockNum);
   Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum);
   Json::Value GetTransactionStatus(const std::string& txnhash);
+  Json::Value GetProof(const std::string& address, const Json::Value& _json,
+                       const std::string& txBlockNumOrTag);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

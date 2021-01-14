@@ -29,6 +29,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -2039,4 +2040,106 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }
+}
+
+Json::Value LookupServer::GetProof(const string& address,
+                                   [[gnu::unused]] const Json::Value& _json,
+                                   const string& txBlockNumOrTag) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  if (!KEEP_HISTORICAL_STATE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Historical state not enabled for this lookup");
+  }
+
+  if (txBlockNumOrTag == "latest") {
+  } else {
+    uint64_t requestedTxBlockNum;
+    try {
+      // blockNum check
+      requestedTxBlockNum = stoull(txBlockNumOrTag);
+    } catch (runtime_error& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlockNum not valid");
+    } catch (invalid_argument& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    } catch (out_of_range& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
+    } catch (exception& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    }
+
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+        requestedTxBlockNum) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Requested txBlock not mined yet");
+    }
+
+    if ((requestedTxBlockNum / NUM_FINAL_BLOCK_PER_POW) <
+        m_mediator.m_earliestTrieSnapshotDSEpoch) {
+      throw JsonRpcException(
+          RPC_MISC_ERROR,
+          "Proof from requested txBlock is expired, earliest: " +
+              boost::lexical_cast<std::string>(
+                  (m_mediator.m_earliestTrieSnapshotDSEpoch - 1) *
+                  NUM_FINAL_BLOCK_PER_POW));
+    }
+
+    // address check
+    if (address.size() != ACC_ADDR_SIZE * 2) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
+    }
+
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
+    }
+    Address addr(tmpaddr);
+
+    // get root hash
+    const dev::h256& rootHash =
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash();
+
+    // get account info & proof
+    std::set<std::string> t_accountProof;
+    Account account;
+    if (!AccountStore::GetInstance().GetProof(addr, rootHash, account,
+                                              t_accountProof)) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist in requested epoch");
+    }
+
+    if (!account.isContract()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
+    }
+
+    // get proof
+    std::set<std::string> t_stateProof;
+    if (!Contract::ContractStorage::GetContractStorage()
+             .FetchStateProofForContract(
+                 t_stateProof, account.GetStorageRoot(),
+                 JSONConversion::convertJsonArrayToKeys(_json))) {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Proof not found");
+    }
+  }
+
+  // } catch (const JsonRpcException& je) {
+  //   throw je;
+  // } catch (runtime_error& e) {
+  //   LOG_GENERAL(INFO, "[Error]" << e.what() << " TxBlockNum: " <<
+  //   txBlockNumOrTag); throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlockNum
+  //   not valid");
+  // }
+
+  return Json::Value();
 }

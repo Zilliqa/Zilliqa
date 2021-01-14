@@ -47,6 +47,9 @@ class DataConversion {
   static bool HexStrToStdArray64(const std::string& hex_input,
                                  std::array<uint8_t, 64>& d);
 
+  /// Converts string to alphanumeric hex string.
+  static bool StringToHexStr(const std::string& hex_str, std::string& str);
+
   /// Converts byte vector to alphanumeric hex string.
   static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
 
