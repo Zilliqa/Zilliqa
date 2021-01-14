@@ -22,18 +22,16 @@
 
 using namespace jsonrpc;
 using namespace std;
-namespace fs = boost::filesystem;
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
-                               const uint32_t& timeDelta, bool stateReinit)
+                               const uint32_t& timeDelta)
     : LookupServer(mediator, server),
       jsonrpc::AbstractServer<IsolatedServer>(server,
                                               jsonrpc::JSONRPC_SERVER_V2),
       m_blocknum(blocknum),
       m_timeDelta(timeDelta),
-      m_stateReinit(stateReinit),
       m_key(Schnorr::GenKeyPair()) {
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
@@ -109,16 +107,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("ExportPersistence", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_BOOLEAN, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &IsolatedServer::ExportPersistenceI);
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("ReinitState", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &IsolatedServer::ReinitStateI);
 
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -436,64 +424,6 @@ string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
   m_blocknum += delta;
 
   return to_string(m_blocknum);
-}
-
-bool IsolatedServer::ReinitState(const string& contractString,
-                                 const string& path) {
-  if (!(fs::exists(path) && fs::is_regular_file(path))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
-                           "Path to json file corrupted");
-  }
-
-  if (!m_stateReinit) {
-    throw JsonRpcException(RPC_MISC_ERROR, "State reinit disable");
-  }
-
-  const Address contractAddr(contractString);
-
-  const Account* contractAccount =
-      AccountStore::GetInstance().GetAccount(contractAddr);
-
-  if (!contractAccount || !contractAccount->isContract()) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, "Contract Address invalid");
-  }
-
-  Transaction tx;
-  TxnStatus error_code;
-  TransactionReceipt tx_receipt;
-  uint128_t gasDeposit = 0;
-  uint64_t gasRemained = 0;
-  bool ret;
-
-  if (!AccountStore::GetInstance().InvokeContractCall(
-          contractAddr, NullAddress, m_blocknum, tx, 0, 3, error_code,
-          tx_receipt, gasDeposit, gasRemained, ret, path)) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to set state");
-  }
-  if (!ret) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to re-init");
-  }
-
-  return true;
-}
-
-bool IsolatedServer::ExportPersistence(const string& path) {
-  if (!(fs::exists(path) && fs::is_directory(path))) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
-                           "Path does not point to valid directory");
-  }
-
-  string name = "persistence_" + to_string(m_blocknum) + ".tar.gz";
-
-  string tar_cmd = "tar -cvzf " + path + "/" + name + " -C " + STORAGE_PATH +
-                   " " + PERSISTENCE_PATH.substr(1);
-
-  if (!SysCommand::ExecuteCmd(SysCommand::WITH_OUTPUT, tar_cmd)) {
-    throw JsonRpcException(RPC_INTERNAL_ERROR,
-                           "Error during tar-ing the persistence");
-  }
-
-  return true;
 }
 
 string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }

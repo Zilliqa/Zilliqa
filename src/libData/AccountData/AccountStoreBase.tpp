@@ -169,10 +169,10 @@ bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
 
 template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
-                                       const Account& account, bool toReplace) {
+                                       const Account& account) {
   // LOG_MARKER();
 
-  if (toReplace || !IsAccountExist(address)) {
+  if (!IsAccountExist(address)) {
     m_addressToAccount->insert(std::make_pair(address, account));
 
     return true;
