@@ -512,6 +512,7 @@ message DSPoWSubmission
         uint32 lookupid             = 8;
         ByteArray gasprice          = 9;
         GovernanceData govdata      = 10;
+        string version              = 11;
     }
     Data data                       = 1;
     ByteArray signature             = 2;

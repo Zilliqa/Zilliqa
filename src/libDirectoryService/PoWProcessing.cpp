@@ -158,12 +158,18 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
   Signature signature;
   uint32_t govProposalId;
   uint32_t govVoteValue;
+  string version;
   if (!Messenger::GetDSPoWSubmission(
           message, offset, blockNumber, difficultyLevel, submitterPeer,
           submitterKey, nonce, resultingHash, mixHash, signature, lookupId,
-          gasPrice, govProposalId, govVoteValue)) {
+          gasPrice, govProposalId, govVoteValue, version)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ProcessPowSubmission failed.");
+    return false;
+  }
+
+  if (version != VERSION_TAG) {
+    LOG_CHECK_FAIL("Version", version, VERSION_TAG);
     return false;
   }
 

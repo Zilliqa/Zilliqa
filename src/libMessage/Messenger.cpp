@@ -3628,7 +3628,7 @@ bool Messenger::SetDSPoWSubmission(
     const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
     const uint32_t& lookupId, const uint128_t& gasPrice,
-    const GovProposalIdVotePair& govProposal) {
+    const GovProposalIdVotePair& govProposal, const string& version) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -3663,6 +3663,8 @@ bool Messenger::SetDSPoWSubmission(
     }
   }
 
+  result.mutable_data()->set_version(version);
+
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
@@ -3689,7 +3691,7 @@ bool Messenger::GetDSPoWSubmission(
     uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
     uint64_t& nonce, string& resultingHash, string& mixHash,
     Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
-    uint32_t& govProposalId, uint32_t& govVoteValue) {
+    uint32_t& govProposalId, uint32_t& govVoteValue, string& version) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3726,6 +3728,8 @@ bool Messenger::GetDSPoWSubmission(
   }
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  version = result.data().version();
 
   // We use MultiSig::VerifyKey to emphasize that this is for the
   // Proof-of-Possession (PoP) phase (refer to #1097)

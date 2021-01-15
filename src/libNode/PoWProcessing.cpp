@@ -336,10 +336,11 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
   bytes powmessage = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
 
-  if (!Messenger::SetDSPoWSubmission(
-          powmessage, MessageOffset::BODY, block_num, difficultyLevel,
-          m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
-          powResultHash, powMixhash, lookupId, gasPrice, govProposal)) {
+  if (!Messenger::SetDSPoWSubmission(powmessage, MessageOffset::BODY, block_num,
+                                     difficultyLevel, m_mediator.m_selfPeer,
+                                     m_mediator.m_selfKey, winningNonce,
+                                     powResultHash, powMixhash, lookupId,
+                                     gasPrice, govProposal, VERSION_TAG)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSPoWSubmission failed.");
     return false;
