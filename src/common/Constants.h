@@ -135,6 +135,7 @@ extern const std::string GENESIS_PUBKEY;
 extern const unsigned int UPGRADE_TARGET_DS_NUM;
 extern const std::string STORAGE_PATH;
 extern const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB;
+extern const unsigned int V710_TARGET_DS_NUM;
 
 // Version constants
 extern const unsigned int MSG_VERSION;

@@ -236,6 +236,12 @@ if(SJ_TEST_SJ_MISSING_MBTXNS)
     add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
 endif()
 
+# For testing version field in PoW submission
+if(POW_TEST_VERSION_CHECK)
+    message(STATUS "PoW version check test enabled")
+    add_definitions(-DPOW_TEST_VERSION_CHECK)
+endif()
+
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)

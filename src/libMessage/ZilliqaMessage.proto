@@ -512,6 +512,27 @@ message DSPoWSubmission
         uint32 lookupid             = 8;
         ByteArray gasprice          = 9;
         GovernanceData govdata      = 10;
+        string version              = 11;
+    }
+    Data data                       = 1;
+    ByteArray signature             = 2;
+}
+
+// Only used for testing
+message DSPoWSubmissionOld
+{
+    message Data
+    {
+        uint64 blocknumber          = 1;
+        uint32 difficultylevel      = 2; // only LSB used
+        ByteArray submitterpeer     = 3;
+        ByteArray submitterpubKey   = 4;
+        uint64 nonce                = 5;
+        string resultinghash        = 6;
+        string mixhash              = 7;
+        uint32 lookupid             = 8;
+        ByteArray gasprice          = 9;
+        GovernanceData govdata      = 10;
     }
     Data data                       = 1;
     ByteArray signature             = 2;

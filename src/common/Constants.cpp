@@ -92,6 +92,8 @@ const unsigned int UPGRADE_TARGET_DS_NUM{
 const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB{
     ReadConstantNumeric("NUM_EPOCHS_PER_PERSISTENT_DB")};
+const unsigned int V710_TARGET_DS_NUM{
+    ReadConstantNumeric("V710_TARGET_DS_NUM")};
 
 // Version constants
 const unsigned int MSG_VERSION{
