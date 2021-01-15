@@ -28,7 +28,6 @@
 
 using namespace std;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
 
 int readAccountJsonFromFile(const string& path) {
   ifstream in(path.c_str());
@@ -72,23 +71,12 @@ void help(const char* argv[]) {
        << endl;
 }
 
-void RefreshPersistence() {
-  if (!BlockStorage::GetBlockStorage().RefreshAll()) {
-    LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
-  }
-  if (!AccountStore::GetInstance().RefreshDB()) {
-    LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
-  }
-}
-
 int main(int argc, const char* argv[]) {
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
-  bool reinitState{false};
-  string persistence_path{};
   try {
     po::options_description desc("Options");
 
@@ -103,11 +91,7 @@ int main(int argc, const char* argv[]) {
         "the automatic blocktime for incrementing block number (in ms)  "
         "(Disabled by default)")(
         "load,l", po::bool_switch()->default_value(false),
-        "Load from persistence folder (False by default)")(
-        "path", po::value<string>(&persistence_path),
-        "path for loading persistence")("reinit,r",
-                                        po::bool_switch()->default_value(false),
-                                        "enable state reinitilization");
+        "Load from persistence folder (False by default)");
 
     po::variables_map vm;
 
@@ -121,7 +105,6 @@ int main(int argc, const char* argv[]) {
       }
       po::notify(vm);
       loadPersistence = vm["load"].as<bool>();
-      reinitState = vm["reinit"].as<bool>();
     } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
@@ -145,7 +128,13 @@ int main(int argc, const char* argv[]) {
     Lookup lk(mediator, NO_SYNC);
     auto vd = make_shared<Validator>(mediator);
 
-    RefreshPersistence();
+    if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+      LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+    }
+    if (!AccountStore::GetInstance().RefreshDB()) {
+      LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+    }
+
     mediator.RegisterColleagues(nullptr, &node, &lk, vd.get());
 
     AccountStore::GetInstance().InitSoft();
@@ -176,29 +165,10 @@ int main(int argc, const char* argv[]) {
     }
     auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
     auto isolatedServer = make_shared<IsolatedServer>(
-        mediator, *isolatedServerConnector, blocknum, timeDelta, reinitState);
+        mediator, *isolatedServerConnector, blocknum, timeDelta);
 
     if (loadPersistence) {
       LOG_GENERAL(INFO, "Trying to load persistence.. ");
-      if (!persistence_path.empty()) {
-        if (!fs::exists(persistence_path)) {
-          LOG_GENERAL(INFO, "Persistence path is not correct");
-          return ERROR_IN_COMMAND_LINE;
-        }
-        LOG_GENERAL(INFO, "Using path " << persistence_path);
-        string remove = "rm -rf " + PERSISTENCE_PATH.substr(1);
-        string untar =
-            "tar -xvzf " + persistence_path + " --directory " + STORAGE_PATH;
-        if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, remove)) {
-          LOG_GENERAL(INFO, "Unable to load persistence from path");
-          return ERROR_UNHANDLED_EXCEPTION;
-        }
-        if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, untar)) {
-          LOG_GENERAL(INFO, "Unable to load persistence from path");
-          return ERROR_UNHANDLED_EXCEPTION;
-        }
-        RefreshPersistence();
-      }
       if (!isolatedServer->RetrieveHistory()) {
         LOG_GENERAL(WARNING, "RetrieveHistory Failed");
         return ERROR_UNHANDLED_EXCEPTION;
