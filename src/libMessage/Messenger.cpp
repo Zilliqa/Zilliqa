@@ -3628,7 +3628,7 @@ bool Messenger::SetDSPoWSubmission(
     const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
     const uint32_t& lookupId, const uint128_t& gasPrice,
-    const GovProposalIdVotePair& govProposal) {
+    const GovProposalIdVotePair& govProposal, const string& version) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -3663,6 +3663,8 @@ bool Messenger::SetDSPoWSubmission(
     }
   }
 
+  result.mutable_data()->set_version(version);
+
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
@@ -3689,7 +3691,7 @@ bool Messenger::GetDSPoWSubmission(
     uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
     uint64_t& nonce, string& resultingHash, string& mixHash,
     Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
-    uint32_t& govProposalId, uint32_t& govVoteValue) {
+    uint32_t& govProposalId, uint32_t& govVoteValue, string& version) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3727,6 +3729,8 @@ bool Messenger::GetDSPoWSubmission(
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
+  version = result.data().version();
+
   // We use MultiSig::VerifyKey to emphasize that this is for the
   // Proof-of-Possession (PoP) phase (refer to #1097)
   if (!MultiSig::VerifyKey(tmp, signature, submitterPubKey)) {
@@ -3736,6 +3740,71 @@ bool Messenger::GetDSPoWSubmission(
 
   return true;
 }
+
+#ifdef POW_TEST_VERSION_CHECK
+bool Messenger::SetDSPoWSubmissionOld(
+    bytes& dst, const unsigned int offset, const uint64_t blockNumber,
+    const uint8_t difficultyLevel, const Peer& submitterPeer,
+    const PairOfKey& submitterKey, const uint64_t nonce,
+    const string& resultingHash, const string& mixHash,
+    const uint32_t& lookupId, const uint128_t& gasPrice,
+    const GovProposalIdVotePair& govProposal) {
+  LOG_MARKER();
+
+  DSPoWSubmissionOld result;
+
+  result.mutable_data()->set_blocknumber(blockNumber);
+  result.mutable_data()->set_difficultylevel(difficultyLevel);
+
+  SerializableToProtobufByteArray(
+      submitterPeer, *result.mutable_data()->mutable_submitterpeer());
+  SerializableToProtobufByteArray(
+      submitterKey.second, *result.mutable_data()->mutable_submitterpubkey());
+
+  result.mutable_data()->set_nonce(nonce);
+  result.mutable_data()->set_resultinghash(resultingHash);
+  result.mutable_data()->set_mixhash(mixHash);
+  result.mutable_data()->set_lookupid(lookupId);
+
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      gasPrice, *result.mutable_data()->mutable_gasprice());
+
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSPoWSubmissionOld.Data initialization failed");
+    return false;
+  }
+
+  // [Gov] first=proposalId,second=votevalue
+  if (govProposal.first > 0 && govProposal.second > 0) {
+    result.mutable_data()->mutable_govdata()->set_proposalid(govProposal.first);
+    result.mutable_data()->mutable_govdata()->set_votevalue(govProposal.second);
+    if (!result.data().govdata().IsInitialized()) {
+      LOG_GENERAL(WARNING,
+                  "DSPoWSubmissionOld [Gov] data initialization failed");
+    }
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  // We use MultiSig::SignKey to emphasize that this is for the
+  // Proof-of-Possession (PoP) phase (refer to #1097)
+  Signature signature;
+  if (!MultiSig::SignKey(tmp, submitterKey, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign PoW");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSPoWSubmission initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+#endif  // POW_TEST_VERSION_CHECK
 
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,

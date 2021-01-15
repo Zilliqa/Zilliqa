@@ -13,6 +13,7 @@
         <!-- Do not add a trailing "/" in the path-->
         <STORAGE_PATH>.</STORAGE_PATH>
         <NUM_EPOCHS_PER_PERSISTENT_DB>250000</NUM_EPOCHS_PER_PERSISTENT_DB>
+        <V710_TARGET_DS_NUM>1</V710_TARGET_DS_NUM>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>

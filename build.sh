@@ -142,6 +142,10 @@ do
         CMAKE_EXTRA_OPTIONS="-DSJ_TEST_SJ_MISSING_MBTXNS=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;
+    powver)
+        CMAKE_EXTRA_OPTIONS="-DPOW_TEST_VERSION_CHECK=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with PoW test - Version check"
+    ;;
     *)
         echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"
         exit 1
