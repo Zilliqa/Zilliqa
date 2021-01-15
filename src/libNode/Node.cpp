@@ -1583,9 +1583,11 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
   }
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
+  auto dsnum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   for (const auto& submittedTxn : txns) {
     MempoolInsertionStatus status;
-    m_createdTxns.insert(submittedTxn, status);
+    m_createdTxns.insert(submittedTxn, status, dsnum);
   }
 
   cv_MicroBlockMissingTxn.notify_all();
@@ -1932,10 +1934,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     lock_guard<mutex> g(m_mutexCreatedTransactions);
     LOG_GENERAL(INFO,
                 "TxnPool size before processing: " << m_createdTxns.size());
-
+    auto dsnum =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     for (const auto& txn : checkedTxns) {
       MempoolInsertionStatus status;
-      if (!m_createdTxns.insert(txn, status)) {
+      if (!m_createdTxns.insert(txn, status, dsnum)) {
         {
           if (status.first != TxnStatus::MEMPOOL_ALREADY_PRESENT) {
             // Skipping MEMPOOL_ALREADY_PRESENT because this is a duplicate

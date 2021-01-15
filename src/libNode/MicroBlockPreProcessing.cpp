@@ -840,10 +840,12 @@ void Node::ReinstateMemPool(
   unique_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   MempoolInsertionStatus status;
+  auto dsnum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   // Put remaining txns back in pool
   for (const auto& kv : addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
-      t_createdTxns.insert(nonceTxn.second, status);
+      t_createdTxns.insert(nonceTxn.second, status, dsnum);
       LOG_GENERAL(INFO, "Txn " << nonceTxn.second.GetTranID() << ", Status: "
                                << status.first << "  " << status.second);
       m_unconfirmedTxns.emplace(nonceTxn.second.GetTranID(),
@@ -852,7 +854,7 @@ void Node::ReinstateMemPool(
   }
 
   for (const auto& t : gasLimitExceededTxnBuffer) {
-    t_createdTxns.insert(t, status);
+    t_createdTxns.insert(t, status, dsnum);
     LOG_GENERAL(INFO, "Txn " << t.GetTranID() << ", Status: " << status.first
                              << "  " << status.second);
     m_unconfirmedTxns.emplace(t.GetTranID(), TxnStatus::PRESENT_GAS_EXCEEDED);
