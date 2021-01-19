@@ -91,10 +91,20 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetDsBlockI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetDsBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetDsBlockVerboseI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTxBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetTxBlockVerboseI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetLatestDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
@@ -688,7 +698,7 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
   }
 }
 
-Json::Value LookupServer::GetDsBlock(const string& blockNum) {
+Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -696,7 +706,7 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum) {
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertDSblocktoJson(
-        m_mediator.m_dsBlockChain.GetBlock(BlockNum));
+        m_mediator.m_dsBlockChain.GetBlock(BlockNum), verbose);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (runtime_error& e) {
@@ -714,7 +724,7 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum) {
   }
 }
 
-Json::Value LookupServer::GetTxBlock(const string& blockNum) {
+Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -722,7 +732,7 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum) {
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertTxBlocktoJson(
-        m_mediator.m_txBlockChain.GetBlock(BlockNum));
+        m_mediator.m_txBlockChain.GetBlock(BlockNum), verbose);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (runtime_error& e) {
