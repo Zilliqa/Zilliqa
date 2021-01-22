@@ -570,7 +570,7 @@ Json::Value LookupServer::CreateTransaction(
           }
           ret["Info"] =
               "Contract Txn, Shards Match of the sender "
-              "and reciever";
+              "and receiver";
         } else {
           if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
             throw JsonRpcException(RPC_INVALID_PARAMETER,

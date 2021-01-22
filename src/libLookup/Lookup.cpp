@@ -5581,11 +5581,6 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
   if (!ARCHIVAL_LOOKUP) {
     uint32_t shard_size = m_mediator.m_ds->GetNumShards();
 
-    if (shard_size == 0) {
-      LOG_GENERAL(WARNING, "Shard size 0");
-      return false;
-    }
-
     if (!m_sendSCCallsToDS) {
       for (const auto& txn : txnsShard) {
         unsigned int shard = txn.GetShardIndex(shard_size);
