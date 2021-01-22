@@ -84,12 +84,16 @@ struct TxnPool {
           HashIndex.erase(searchHash);
         }
         // erase from GasIdxTxns
+        auto smallerGasPrice = searchNonce->second.GetGasPrice();
         auto searchGas = GasIndex.find(searchNonce->second.GetGasPrice());
         if (searchGas != GasIndex.end()) {
           auto searchGasHash =
               searchGas->second.find(searchNonce->second.GetTranID());
           if (searchGasHash != searchGas->second.end()) {
             searchGas->second.erase(searchGasHash);
+          }
+          if (GasIndex[smallerGasPrice].empty()) {
+            GasIndex.erase(smallerGasPrice);
           }
         }
         HashIndex[t.GetTranID()] = t;
