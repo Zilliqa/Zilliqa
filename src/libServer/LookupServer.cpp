@@ -591,6 +591,13 @@ Json::Value LookupServer::CreateTransaction(
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
+    if (m_mediator.m_lookup->m_sendAllToDS) {
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      } else {
+        mapIndex = num_shards;
+      }
+    }
     if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
