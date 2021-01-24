@@ -22,8 +22,9 @@
 #include <iostream>
 
 #include "common/Serializable.h"
-#include "depends/libethash/include/ethash/ethash.hpp"
-#include "depends/libethash/lib/ethash/ethash-internal.hpp"
+#include "ethash/ethash.hpp"
+// TODO: Move contents of internal to ethash.hpp
+#include "depends/cryptoutils/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"

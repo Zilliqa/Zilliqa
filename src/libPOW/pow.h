@@ -32,7 +32,7 @@
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
-#include "depends/libethash/include/ethash/ethash.hpp"
+#include "ethash/ethash.hpp"
 //#include "ethash/ethash.hpp"
 #include <Schnorr.h>
 #include "libNetwork/Peer.h"

@@ -241,7 +241,7 @@ set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
 include_directories(${PROTOBUF_INSTALL_DIR}/include)
 
-include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
+include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
 
 include_directories(${G3LOG_INCLUDE_DIR})
 
@@ -307,7 +307,7 @@ if (LIBFUZZER_SANITIZER)
     message(STATUS "Libfuzzer with address and undefined behavior sanitizer enabled")
 endif()
 
-
+set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
 if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     if (NOT TESTS)
         message(FATAL_ERROR "TESTS is not ON")
@@ -333,7 +333,7 @@ endif()
 set_target_properties(zilliqa sendcmd genaccounts genkeypair getpub getaddr gentxn signmultisig verifymultisig zilliqad gensigninitialds grepperf getnetworkhistory getrewardhistory validateDB restore genTxnBodiesFromS3 isolatedServer data_migrate
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie ethash NAT
+set_target_properties(Common Trie CryptoUtils NAT
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 if(OPENCL_MINE)

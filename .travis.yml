@@ -53,6 +53,13 @@ addons:
 script:
   - ./scripts/ci_build.sh;
 
+install:
+  - wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+  - mkdir -p "${HOME}"/.local
+  - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+  - cmake --version
+  - rm cmake-3.19.3-Linux-x86_64.sh
+
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
   - ./scripts/ci_report_coverage.sh
