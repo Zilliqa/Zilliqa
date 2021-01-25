@@ -243,16 +243,14 @@ class Messenger {
       const PairOfKey& submitterKey, const uint64_t nonce,
       const std::string& resultingHash, const std::string& mixHash,
       const uint32_t& lookupId, const uint128_t& gasPrice,
-      const GovProposalIdVotePair& govProposal);
+      const GovProposalIdVotePair& govProposal, const std::string& version);
 
-  static bool GetDSPoWSubmission(const bytes& src, const unsigned int offset,
-                                 uint64_t& blockNumber,
-                                 uint8_t& difficultyLevel, Peer& submitterPeer,
-                                 PubKey& submitterPubKey, uint64_t& nonce,
-                                 std::string& resultingHash,
-                                 std::string& mixHash, Signature& signature,
-                                 uint32_t& lookupId, uint128_t& gasPrice,
-                                 uint32_t& proposalId, uint32_t& voteValue);
+  static bool GetDSPoWSubmission(
+      const bytes& src, const unsigned int offset, uint64_t& blockNumber,
+      uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
+      uint64_t& nonce, std::string& resultingHash, std::string& mixHash,
+      Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
+      uint32_t& proposalId, uint32_t& voteValue, std::string& version);
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,
