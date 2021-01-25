@@ -471,6 +471,8 @@ const unsigned int PRIORITY_TOLERANCE_IN_PERCENT{
 const bool SKIP_POW_REATTEMPT_FOR_DS_DIFF{
     ReadConstantString("SKIP_POW_REATTEMPT_FOR_DS_DIFF", "node.pow.") ==
     "true"};
+const string POW_SUBMISSION_VERSION_TAG{
+    ReadConstantString("POW_SUBMISSION_VERSION_TAG", "node.pow.")};
 
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{

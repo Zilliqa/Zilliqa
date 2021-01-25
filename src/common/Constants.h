@@ -339,6 +339,7 @@ extern const unsigned int TXN_DS_TARGET_DIFFICULTY;
 extern const unsigned int TXN_DS_TARGET_NUM;
 extern const unsigned int PRIORITY_TOLERANCE_IN_PERCENT;
 extern const bool SKIP_POW_REATTEMPT_FOR_DS_DIFF;
+extern const std::string POW_SUBMISSION_VERSION_TAG;
 
 // Recovery and upgrading constants
 extern const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS;

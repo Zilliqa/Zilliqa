@@ -132,6 +132,11 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
                                             unsigned int offset,
                                             const Peer& from) {
   LOG_MARKER();
+
+  static const string EXPECTED_VERSION =
+      (POW_SUBMISSION_VERSION_TAG == "" ? VERSION_TAG
+                                        : POW_SUBMISSION_VERSION_TAG);
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessPoWSubmission not expected to be "
@@ -168,8 +173,8 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
     return false;
   }
 
-  if (version != VERSION_TAG) {
-    LOG_CHECK_FAIL("Version", version, VERSION_TAG);
+  if (version != EXPECTED_VERSION) {
+    LOG_CHECK_FAIL("Version", version, EXPECTED_VERSION);
     return false;
   }
 
