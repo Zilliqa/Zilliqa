@@ -1260,10 +1260,18 @@ void ProtobufToTransactionOffset(const ProtoTxnFileOffset& protoTxnFileOffset,
   }
 }
 
-void TransactionArrayToProtobuf(const std::vector<Transaction>& txns,
+void TransactionArrayToProtobuf(const vector<Transaction>& txns,
                                 ProtoTransactionArray& protoTransactionArray) {
   for (const auto& txn : txns) {
     TransactionToProtobuf(txn, *protoTransactionArray.add_transactions());
+  }
+}
+
+void TransactionArrayToProtobuf(const deque<pair<Transaction, uint32_t>>& txns,
+                                ProtoTransactionArray& protoTransactionArray) {
+  for (const auto& txn_and_count : txns) {
+    TransactionToProtobuf(txn_and_count.first,
+                          *protoTransactionArray.add_transactions());
   }
 }
 
@@ -4981,8 +4989,9 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
 bool Messenger::SetNodeForwardTxnBlock(
     bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
     const uint64_t& dsBlockNum, const uint32_t& shardId,
-    const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
-    const std::vector<Transaction>& txnsGenerated) {
+    const PairOfKey& lookupKey,
+    deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
+    deque<std::pair<Transaction, uint32_t>>& txnsGenerated) {
   LOG_MARKER();
 
   NodeForwardTxnBlock result;
@@ -4994,38 +5003,54 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   unsigned int txnsCurrentCount = 0, txnsGeneratedCount = 0, msg_size = 0;
 
-  for (const auto& txn : txnsCurrent) {
+  for (auto txn = txnsCurrent.begin(); txn != txnsCurrent.end();) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
-    TransactionToProtobuf(txn, *protoTxn);
+    TransactionToProtobuf(txn->first, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
+      if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
+        LOG_GENERAL(WARNING,
+                    "Failed to dispatch txn " << txn->first.GetTranID());
+        txn = txnsCurrent.erase(txn);
+      } else {
+        txn++;
+      }
       continue;
     }
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
     msg_size += protoTxn->ByteSize();
+    txn = txnsCurrent.erase(txn);
   }
 
-  for (const auto& txn : txnsGenerated) {
+  for (auto txn = txnsGenerated.begin(); txn != txnsGenerated.end();) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
-    TransactionToProtobuf(txn, *protoTxn);
+    TransactionToProtobuf(txn->first, *protoTxn);
     unsigned txn_size = protoTxn->ByteSize();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
+      if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
+        LOG_GENERAL(WARNING,
+                    "Failed to dispatch txn " << txn->first.GetTranID());
+        txn = txnsCurrent.erase(txn);
+      } else {
+        txn++;
+      }
       continue;
     }
     *result.add_transactions() = *protoTxn;
     txnsGeneratedCount++;
     msg_size += txn_size;
+    txn = txnsGenerated.erase(txn);
   }
 
   Signature signature;
@@ -7158,8 +7183,8 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
 
 bool Messenger::SetForwardTxnBlockFromSeed(
     bytes& dst, const unsigned int offset,
-    const vector<Transaction>& shardTransactions,
-    const vector<Transaction>& dsTransactions) {
+    const deque<pair<Transaction, uint32_t>>& shardTransactions,
+    const deque<pair<Transaction, uint32_t>>& dsTransactions) {
   LookupForwardTxnsFromSeed result;
 
   if (!shardTransactions.empty()) {

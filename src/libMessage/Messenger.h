@@ -418,8 +418,9 @@ class Messenger {
   static bool SetNodeForwardTxnBlock(
       bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
       const uint64_t& dsBlockNum, const uint32_t& shardId,
-      const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
-      const std::vector<Transaction>& txnsGenerated);
+      const PairOfKey& lookupKey,
+      std::deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
+      std::deque<std::pair<Transaction, uint32_t>>& txnsGenerated);
   static bool SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
                                      const uint64_t& epochNumber,
                                      const uint64_t& dsBlockNum,
@@ -690,8 +691,8 @@ class Messenger {
 
   static bool SetForwardTxnBlockFromSeed(
       bytes& dst, const unsigned int offset,
-      const std::vector<Transaction>& shardTransactions,
-      const std::vector<Transaction>& dsTransactions);
+      const std::deque<std::pair<Transaction, uint32_t>>& shardTransactions,
+      const std::deque<std::pair<Transaction, uint32_t>>& dsTransactions);
 
   static bool GetForwardTxnBlockFromSeed(
       const bytes& src, const unsigned int offset,

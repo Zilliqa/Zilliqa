@@ -54,7 +54,8 @@ class StakingServer;
 // The "first" element in the pair is a map of shard to its transactions
 // The "second" element in the pair counts the total number of transactions in
 // the whole map
-using TxnShardMap = std::map<uint32_t, std::vector<Transaction>>;
+using TxnShardMap =
+    std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>;
 
 // Enum used to tell send type to seed node
 enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
@@ -193,7 +194,7 @@ class Lookup : public Executable {
 
   std::mutex m_txnShardMapMutex;
 
-  const std::vector<Transaction>& GetTxnFromShardMap(
+  std::deque<std::pair<Transaction, uint32_t>>& GetTxnFromShardMap(
       uint32_t index);  // Use m_txnShardMapMutex with this function
 
   std::mutex m_mutexShardStruct;
@@ -206,9 +207,10 @@ class Lookup : public Executable {
   bool IsLookupNode(const Peer& peerInfo) const;
 
   // Gen n valid txns
-  bool GenTxnToSend(size_t num_txn,
-                    std::map<uint32_t, std::vector<Transaction>>& mp,
-                    uint32_t numShards);
+  bool GenTxnToSend(
+      size_t num_txn,
+      std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>& mp,
+      uint32_t numShards);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& shardTxn,
                     std::vector<Transaction>& DSTxn);
 
