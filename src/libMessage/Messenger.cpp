@@ -48,15 +48,15 @@ void SerializableToProtobufByteArray(const T& serializable,
 
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      Serializable& serializable) {
-  bytes tmp;
-  copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
+  bytes tmp(byteArray.data().size());
+  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   return serializable.Deserialize(tmp, 0) == 0;
 }
 
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      SerializableCrypto& serializable) {
-  bytes tmp;
-  copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
+  bytes tmp(byteArray.data().size());
+  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   return serializable.Deserialize(tmp, 0);
 }
 
@@ -71,9 +71,7 @@ void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
 // Temporary function for use by data blocks
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      SerializableDataBlock& serializable) {
-  bytes tmp;
-  copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
-  return serializable.Deserialize(tmp, 0);
+  return serializable.Deserialize(byteArray.data(), 0);
 }
 
 template <class T, size_t S>
@@ -85,8 +83,8 @@ void NumberToProtobufByteArray(const T& number, ByteArray& byteArray) {
 
 template <class T, size_t S>
 void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
-  bytes tmp;
-  copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
+  bytes tmp(byteArray.data().size());
+  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   number = Serializable::GetNumber<T>(tmp, 0, S);
 }
 
@@ -2364,6 +2362,30 @@ bool Messenger::GetAccountBase(const bytes& src, const unsigned int offset,
   return true;
 }
 
+bool Messenger::GetAccountBase(const string& src, const unsigned int offset,
+                               AccountBase& accountbase) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoAccountBase result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed");
+    return false;
+  }
+
+  if (!ProtobufToAccountBase(result, accountbase)) {
+    LOG_GENERAL(WARNING, "ProtobufToAccountBase failed");
+    return false;
+  }
+
+  return true;
+}
+
 bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
                            const Account& account) {
   ProtoAccount result;
@@ -2485,6 +2507,44 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
+                                AccountStore& accountStore) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoAccountStore result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+    if (!ProtobufToAccount(entry.account(), account, address)) {
+      LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
+                               << address.hex());
+      return false;
+    }
+
+    accountStore.AddAccountDuringDeserialization(address, account, Account());
+  }
+
+  return true;
+}
+
+bool Messenger::GetAccountStore(const string& src, const unsigned int offset,
                                 AccountStore& accountStore) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2769,6 +2829,25 @@ bool Messenger::GetDSBlockHeader(const bytes& src, const unsigned int offset,
   return ProtobufToDSBlockHeader(result, dsBlockHeader);
 }
 
+bool Messenger::GetDSBlockHeader(const string& src, const unsigned int offset,
+                                 DSBlockHeader& dsBlockHeader) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoDSBlock::DSBlockHeader result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
+    return false;
+  }
+
+  return ProtobufToDSBlockHeader(result, dsBlockHeader);
+}
+
 bool Messenger::SetDSBlock(bytes& dst, const unsigned int offset,
                            const DSBlock& dsBlock) {
   ProtoDSBlock result;
@@ -2784,6 +2863,25 @@ bool Messenger::SetDSBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetDSBlock(const bytes& src, const unsigned int offset,
+                           DSBlock& dsBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoDSBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSBlock initialization failed");
+    return false;
+  }
+
+  return ProtobufToDSBlock(result, dsBlock);
+}
+
+bool Messenger::GetDSBlock(const string& src, const unsigned int offset,
                            DSBlock& dsBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2837,6 +2935,27 @@ bool Messenger::GetMicroBlockHeader(const bytes& src, const unsigned int offset,
   return ProtobufToMicroBlockHeader(result, microBlockHeader);
 }
 
+bool Messenger::GetMicroBlockHeader(const string& src,
+                                    const unsigned int offset,
+                                    MicroBlockHeader& microBlockHeader) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMicroBlock::MicroBlockHeader result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoMicroBlock::MicroBlockHeader initialization failed");
+    return false;
+  }
+
+  return ProtobufToMicroBlockHeader(result, microBlockHeader);
+}
+
 bool Messenger::SetMicroBlock(bytes& dst, const unsigned int offset,
                               const MicroBlock& microBlock) {
   ProtoMicroBlock result;
@@ -2852,6 +2971,25 @@ bool Messenger::SetMicroBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetMicroBlock(const bytes& src, const unsigned int offset,
+                              MicroBlock& microBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMicroBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
+    return false;
+  }
+
+  return ProtobufToMicroBlock(result, microBlock);
+}
+
+bool Messenger::GetMicroBlock(const string& src, const unsigned int offset,
                               MicroBlock& microBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2903,6 +3041,25 @@ bool Messenger::GetTxBlockHeader(const bytes& src, const unsigned int offset,
   return ProtobufToTxBlockHeader(result, txBlockHeader);
 }
 
+bool Messenger::GetTxBlockHeader(const string& src, const unsigned int offset,
+                                 TxBlockHeader& txBlockHeader) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTxBlock::TxBlockHeader result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
+    return false;
+  }
+
+  return ProtobufToTxBlockHeader(result, txBlockHeader);
+}
+
 bool Messenger::SetTxBlock(bytes& dst, const unsigned int offset,
                            const TxBlock& txBlock) {
   ProtoTxBlock result;
@@ -2918,6 +3075,25 @@ bool Messenger::SetTxBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetTxBlock(const bytes& src, const unsigned int offset,
+                           TxBlock& txBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTxBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTxBlock initialization failed");
+    return false;
+  }
+
+  return ProtobufToTxBlock(result, txBlock);
+}
+
+bool Messenger::GetTxBlock(const string& src, const unsigned int offset,
                            TxBlock& txBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2969,6 +3145,25 @@ bool Messenger::GetVCBlockHeader(const bytes& src, const unsigned int offset,
   return ProtobufToVCBlockHeader(result, vcBlockHeader);
 }
 
+bool Messenger::GetVCBlockHeader(const string& src, const unsigned int offset,
+                                 VCBlockHeader& vcBlockHeader) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoVCBlock::VCBlockHeader result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
+    return false;
+  }
+
+  return ProtobufToVCBlockHeader(result, vcBlockHeader);
+}
+
 bool Messenger::SetVCBlock(bytes& dst, const unsigned int offset,
                            const VCBlock& vcBlock) {
   ProtoVCBlock result;
@@ -2984,6 +3179,25 @@ bool Messenger::SetVCBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetVCBlock(const bytes& src, const unsigned int offset,
+                           VCBlock& vcBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoVCBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
+    return false;
+  }
+
+  return ProtobufToVCBlock(result, vcBlock);
+}
+
+bool Messenger::GetVCBlock(const string& src, const unsigned int offset,
                            VCBlock& vcBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3049,6 +3263,25 @@ bool Messenger::SetTransaction(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetTransaction(const bytes& src, const unsigned int offset,
+                               Transaction& transaction) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTransaction result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTransaction initialization failed");
+    return false;
+  }
+
+  return ProtobufToTransaction(result, transaction);
+}
+
+bool Messenger::GetTransaction(const string& src, const unsigned int offset,
                                Transaction& transaction) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3164,6 +3397,26 @@ bool Messenger::GetTransactionReceipt(const bytes& src,
   return ProtobufToTransactionReceipt(result, transactionReceipt);
 }
 
+bool Messenger::GetTransactionReceipt(const string& src,
+                                      const unsigned int offset,
+                                      TransactionReceipt& transactionReceipt) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTransactionReceipt result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTransactionReceipt initialization failed");
+    return false;
+  }
+
+  return ProtobufToTransactionReceipt(result, transactionReceipt);
+}
+
 bool Messenger::SetTransactionWithReceipt(
     bytes& dst, const unsigned int offset,
     const TransactionWithReceipt& transactionWithReceipt) {
@@ -3180,6 +3433,26 @@ bool Messenger::SetTransactionWithReceipt(
 
 bool Messenger::GetTransactionWithReceipt(
     const bytes& src, const unsigned int offset,
+    TransactionWithReceipt& transactionWithReceipt) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTransactionWithReceipt result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTransactionWithReceipt initialization failed");
+    return false;
+  }
+
+  return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
+}
+
+bool Messenger::GetTransactionWithReceipt(
+    const string& src, const unsigned int offset,
     TransactionWithReceipt& transactionWithReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3897,10 +4170,10 @@ bool Messenger::GetDSMicroBlockSubmission(
     ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(move(microBlock));
   }
+
   for (const auto& proto_delta : result.data().statedeltas()) {
-    stateDeltas.emplace_back();
-    copy(proto_delta.begin(), proto_delta.end(),
-         std::back_inserter(stateDeltas.back()));
+    stateDeltas.emplace_back(bytes(proto_delta.size()));
+    copy(proto_delta.begin(), proto_delta.end(), stateDeltas.back().begin());
   }
 
   return true;

@@ -107,6 +107,8 @@ class AccountStore
 
   bool Deserialize(const bytes& src, unsigned int offset) override;
 
+  bool Deserialize(const std::string& src, unsigned int offset) override;
+
   /// generate serialized raw bytes for StateDelta
   bool SerializeDelta();
 

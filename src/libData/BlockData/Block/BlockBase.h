@@ -58,6 +58,9 @@ class BlockBase : public SerializableDataBlock {
   /// Implements the Deserialize function inherited from Serializable.
   virtual bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  virtual bool Deserialize(const std::string& src, unsigned int offset);
+
   /// Returns the block hash
   const BlockHash& GetBlockHash() const;
 

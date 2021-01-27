@@ -71,6 +71,9 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset) override;
+
   /// Implements the GetHash function for serializing based on concrete vars
   /// only, primarily used for generating randomness seed
   BlockHash GetHashForRandom() const;

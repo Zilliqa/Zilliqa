@@ -97,6 +97,15 @@ bool DSBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool DSBlockHeader::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetDSBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const uint8_t& DSBlockHeader::GetDSDifficulty() const { return m_dsDifficulty; }
 
 const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }

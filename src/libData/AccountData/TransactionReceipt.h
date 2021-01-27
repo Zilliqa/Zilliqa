@@ -69,6 +69,7 @@ class TransactionReceipt : public SerializableDataBlock {
   TransactionReceipt();
   bool Serialize(bytes& dst, unsigned int offset) const override;
   bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const std::string& src, unsigned int offset) override;
   void SetResult(const bool& result);
   void AddError(const unsigned int& errCode);
   void AddException(const Json::Value& jsonException);
@@ -109,6 +110,9 @@ class TransactionWithReceipt : public SerializableDataBlock {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;
+
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset) override;
 
   const Transaction& GetTransaction() const { return m_transaction; }
   const TransactionReceipt& GetTransactionReceipt() const {

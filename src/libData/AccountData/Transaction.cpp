@@ -128,6 +128,15 @@ bool Transaction::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool Transaction::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetTransaction(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const TxnHash& Transaction::GetTranID() const { return m_tranID; }
 
 const TransactionCoreInfo& Transaction::GetCoreInfo() const {

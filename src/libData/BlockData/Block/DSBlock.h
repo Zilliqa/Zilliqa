@@ -48,6 +48,9 @@ class DSBlock : public BlockBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   /// Returns the reference to the DSBlockHeader part of the DS block.
   const DSBlockHeader& GetHeader() const;
 

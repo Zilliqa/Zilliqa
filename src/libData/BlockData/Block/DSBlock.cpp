@@ -59,6 +59,15 @@ bool DSBlock::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool DSBlock::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetDSBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDSBlock failed.");
+    return false;
+  }
+
+  return true;
+}
+
 const DSBlockHeader& DSBlock::GetHeader() const { return m_header; }
 
 bool DSBlock::operator==(const DSBlock& block) const {

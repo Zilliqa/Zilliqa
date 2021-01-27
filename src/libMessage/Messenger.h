@@ -77,6 +77,8 @@ class Messenger {
                              const AccountBase& accountbase);
   static bool GetAccountBase(const bytes& src, const unsigned int offset,
                              AccountBase& accountbase);
+  static bool GetAccountBase(const std::string& src, const unsigned int offset,
+                             AccountBase& accountbase);
 
   static bool SetAccount(bytes& dst, const unsigned int offset,
                          const Account& account);
@@ -94,6 +96,8 @@ class Messenger {
   static bool GetAccountStore(const bytes& src, const unsigned int offset,
                               MAP& addressToAccount);
   static bool GetAccountStore(const bytes& src, const unsigned int offset,
+                              AccountStore& accountStore);
+  static bool GetAccountStore(const std::string& src, const unsigned int offset,
                               AccountStore& accountStore);
 
   // These are called by AccountStore class
@@ -115,36 +119,56 @@ class Messenger {
                                bool concreteVarsOnly = false);
   static bool GetDSBlockHeader(const bytes& src, const unsigned int offset,
                                DSBlockHeader& dsBlockHeader);
+  static bool GetDSBlockHeader(const std::string& src,
+                               const unsigned int offset,
+                               DSBlockHeader& dsBlockHeader);
   static bool SetDSBlock(bytes& dst, const unsigned int offset,
                          const DSBlock& dsBlock);
   static bool GetDSBlock(const bytes& src, const unsigned int offset,
+                         DSBlock& dsBlock);
+  static bool GetDSBlock(const std::string& src, const unsigned int offset,
                          DSBlock& dsBlock);
 
   static bool SetMicroBlockHeader(bytes& dst, const unsigned int offset,
                                   const MicroBlockHeader& microBlockHeader);
   static bool GetMicroBlockHeader(const bytes& src, const unsigned int offset,
                                   MicroBlockHeader& microBlockHeader);
+  static bool GetMicroBlockHeader(const std::string& src,
+                                  const unsigned int offset,
+                                  MicroBlockHeader& microBlockHeader);
   static bool SetMicroBlock(bytes& dst, const unsigned int offset,
                             const MicroBlock& microBlock);
   static bool GetMicroBlock(const bytes& src, const unsigned int offset,
+                            MicroBlock& microBlock);
+  static bool GetMicroBlock(const std::string& src, const unsigned int offset,
                             MicroBlock& microBlock);
 
   static bool SetTxBlockHeader(bytes& dst, const unsigned int offset,
                                const TxBlockHeader& txBlockHeader);
   static bool GetTxBlockHeader(const bytes& src, const unsigned int offset,
                                TxBlockHeader& txBlockHeader);
+  static bool GetTxBlockHeader(const std::string& src,
+                               const unsigned int offset,
+                               TxBlockHeader& txBlockHeader);
   static bool SetTxBlock(bytes& dst, const unsigned int offset,
                          const TxBlock& txBlock);
   static bool GetTxBlock(const bytes& src, const unsigned int offset,
+                         TxBlock& txBlock);
+  static bool GetTxBlock(const std::string& src, const unsigned int offset,
                          TxBlock& txBlock);
 
   static bool SetVCBlockHeader(bytes& dst, const unsigned int offset,
                                const VCBlockHeader& vcBlockHeader);
   static bool GetVCBlockHeader(const bytes& src, const unsigned int offset,
                                VCBlockHeader& vcBlockHeader);
+  static bool GetVCBlockHeader(const std::string& src,
+                               const unsigned int offset,
+                               VCBlockHeader& vcBlockHeader);
   static bool SetVCBlock(bytes& dst, const unsigned int offset,
                          const VCBlock& vcBlock);
   static bool GetVCBlock(const bytes& src, const unsigned int offset,
+                         VCBlock& vcBlock);
+  static bool GetVCBlock(const std::string& src, const unsigned int offset,
                          VCBlock& vcBlock);
 
   static bool SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
@@ -155,6 +179,8 @@ class Messenger {
   static bool SetTransaction(bytes& dst, const unsigned int offset,
                              const Transaction& transaction);
   static bool GetTransaction(const bytes& src, const unsigned int offset,
+                             Transaction& transaction);
+  static bool GetTransaction(const std::string& src, const unsigned int offset,
                              Transaction& transaction);
   static bool SetTransactionFileOffset(bytes& dst, const unsigned int offset,
                                        const std::vector<uint32_t>& txnOffsets);
@@ -170,12 +196,18 @@ class Messenger {
       const TransactionReceipt& transactionReceipt);
   static bool GetTransactionReceipt(const bytes& src, const unsigned int offset,
                                     TransactionReceipt& transactionReceipt);
+  static bool GetTransactionReceipt(const std::string& src,
+                                    const unsigned int offset,
+                                    TransactionReceipt& transactionReceipt);
 
   static bool SetTransactionWithReceipt(
       bytes& dst, const unsigned int offset,
       const TransactionWithReceipt& transactionWithReceipt);
   static bool GetTransactionWithReceipt(
       const bytes& src, const unsigned int offset,
+      TransactionWithReceipt& transactionWithReceipt);
+  static bool GetTransactionWithReceipt(
+      const std::string& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
 
   static bool SetStateIndex(bytes& dst, const unsigned int offset,

@@ -57,6 +57,22 @@ bool MicroBlock::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool MicroBlock::Deserialize(const string& src, unsigned int offset) {
+  if (!Messenger::GetMicroBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetMicroBlock failed.");
+    return false;
+  }
+
+  if (m_header.GetNumTxs() != m_tranHashes.size()) {
+    LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
+                                              << ") != txn hash count ("
+                                              << m_tranHashes.size() << ")");
+    return false;
+  }
+
+  return true;
+}
+
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 MicroBlock::MicroBlock() {}
 

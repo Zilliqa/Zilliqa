@@ -60,6 +60,9 @@ class AccountBase : public SerializableDataBlock {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
 
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
+
   void SetVersion(const uint32_t& version);
 
   const uint32_t& GetVersion() const;
