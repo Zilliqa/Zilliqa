@@ -98,7 +98,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     #    /usr/local/bin/zilliqa \
        /usr/local/bin/data_migrate \
        /usr/local/lib/libSchnorr.so \
-       /usr/local/lib/libethash.so \
+       /usr/local/lib/libCryptoUtils.so \
        /usr/local/lib/libNAT.so \
        /usr/local/lib/libCommon.so \
        /usr/local/lib/libTrie.so
