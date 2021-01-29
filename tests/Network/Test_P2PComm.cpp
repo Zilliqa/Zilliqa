@@ -25,14 +25,16 @@
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
-void process_message(pair<bytes, Peer>* message) {
+void process_message(
+    pair<bytes, std::pair<Peer, const unsigned char>>* message) {
   LOG_MARKER();
 
   if (message->first.size() < 10) {
     LOG_GENERAL(INFO, "Received message '"
                           << (char*)&message->first.at(0) << "' at port "
-                          << message->second.m_listenPortHost
-                          << " from address " << message->second.m_ipAddress);
+                          << message->second.first.m_listenPortHost
+                          << " from address "
+                          << message->second.first.m_ipAddress);
   } else {
     chrono::duration<double, std::milli> time_span =
         chrono::high_resolution_clock::now() - startTime;
@@ -185,7 +187,8 @@ int main() {
   INIT_STDOUT_LOGGER();
 
   auto func = []() mutable -> void {
-    P2PComm::GetInstance().StartMessagePump(33133, process_message);
+    P2PComm::GetInstance().StartMessagePump(process_message);
+    P2PComm::GetInstance().EnableListener(33133, false);
   };
 
   DetachedFunction(1, func);

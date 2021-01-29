@@ -362,9 +362,10 @@ void Node::ResetConsensusId() {
   m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
-bool Node::ProcessVCDSBlocksMessage(const bytes& message,
-                                    unsigned int cur_offset,
-                                    [[gnu::unused]] const Peer& from) {
+bool Node::ProcessVCDSBlocksMessage(
+    const bytes& message, unsigned int cur_offset,
+    [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   unsigned int oldNumShards = m_mediator.m_ds->GetNumShards();

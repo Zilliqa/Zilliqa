@@ -228,35 +228,48 @@ class DirectoryService : public Executable {
 
   // Message handlers
   bool ProcessSetPrimary(const bytes& message, unsigned int offset,
-                         const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
   bool ProcessPoWSubmission(const bytes& message, unsigned int offset,
-                            const Peer& from);
-  bool ProcessPoWPacketSubmission(const bytes& message, unsigned int offset,
-                                  const Peer& from);
+                            const Peer& from,
+                            [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessPoWPacketSubmission(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   bool VerifyPoWSubmission(const DSPowSolution& sol);
 
   bool ProcessDSBlockConsensus(const bytes& message, unsigned int offset,
-                               const Peer& from);
-  bool ProcessMicroblockSubmission(const bytes& message, unsigned int offset,
-                                   const Peer& from);
+                               const Peer& from,
+                               [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessMicroblockSubmission(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlockConsensus(const bytes& message, unsigned int offset,
-                                  const Peer& from);
-  bool ProcessFinalBlockConsensusCore(const bytes& message, unsigned int offset,
-                                      const Peer& from);
-  bool ProcessViewChangeConsensus(const bytes& message, unsigned int offset,
-                                  const Peer& from);
+                                  const Peer& from,
+                                  const unsigned char& startByte);
+  bool ProcessFinalBlockConsensusCore(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessViewChangeConsensus(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   bool ProcessPushLatestDSBlock(const bytes& message, unsigned int offset,
-                                const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
   bool ProcessPushLatestTxBlock(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  bool ProcessVCPushLatestDSTxBlock(const bytes& message, unsigned int offset,
-                                    const Peer& from);
-  bool ProcessNewDSGuardNetworkInfo(const bytes& message, unsigned int offset,
-                                    const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessVCPushLatestDSTxBlock(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessNewDSGuardNetworkInfo(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   // Get cosig and rewards for given epoch
-  bool ProcessCosigsRewardsFromSeed(const bytes& message, unsigned int offset,
-                                    const Peer& from);
+  bool ProcessCosigsRewardsFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -616,7 +629,8 @@ class DirectoryService : public Executable {
           coinbase_rewardees);
 
   /// Implements the Execute function inherited from Executable.
-  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from,
+               const unsigned char& startByte);
 
   /// Used by PoW winner to configure sharding variables as the next DS leader
   bool ProcessShardingStructure(

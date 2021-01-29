@@ -554,7 +554,8 @@ void Node::PrepareGoodStateForFinalBlock() {
 }
 
 bool Node::ProcessVCFinalBlock(const bytes& message, unsigned int offset,
-                               [[gnu::unused]] const Peer& from) {
+                               const Peer& from,
+                               const unsigned char& startByte) {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP || MULTIPLIER_SYNC_MODE) {
     LOG_GENERAL(
@@ -563,11 +564,12 @@ bool Node::ProcessVCFinalBlock(const bytes& message, unsigned int offset,
         "called by other than seed node without multiplier syncing mode.");
     return false;
   }
-  return ProcessVCFinalBlockCore(message, offset, from);
+  return ProcessVCFinalBlockCore(message, offset, from, startByte);
 }
 
-bool Node::ProcessVCFinalBlockCore(const bytes& message, unsigned int offset,
-                                   [[gnu::unused]] const Peer& from) {
+bool Node::ProcessVCFinalBlockCore(
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
@@ -608,7 +610,8 @@ bool Node::ProcessVCFinalBlockCore(const bytes& message, unsigned int offset,
 }
 
 bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
-                             [[gnu::unused]] const Peer& from) {
+                             [[gnu::unused]] const Peer& from,
+                             [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   uint64_t dsBlockNumber = 0;
@@ -1297,9 +1300,9 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
   }
 }
 
-bool Node::ProcessMBnForwardTransaction(const bytes& message,
-                                        unsigned int cur_offset,
-                                        const Peer& from) {
+bool Node::ProcessMBnForwardTransaction(
+    const bytes& message, unsigned int cur_offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMBnForwardTransaction not expected to be "
@@ -1523,7 +1526,8 @@ bool Node::SendPendingTxnToLookup() {
 }
 
 bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
-                             [[gnu::unused]] const Peer& from) {
+                             [[gnu::unused]] const Peer& from,
+                             [[gnu::unused]] const unsigned char& startByte) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Node::ProcessPendingTxn called from Normal node");
     return false;

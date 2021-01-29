@@ -37,6 +37,8 @@ struct evconnlistener;
 
 extern const unsigned char START_BYTE_NORMAL;
 extern const unsigned char START_BYTE_GOSSIP;
+extern const unsigned char START_BYTE_SEED_TO_SEED_REQUEST;
+extern const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE;
 
 class SendJob {
  protected:
@@ -85,7 +87,14 @@ class P2PComm {
 
   const static uint32_t MAXPUMPMESSAGE = 128;
 
+  struct event_base* m_base{};
+
   void ClearBroadcastHashAsync(const bytes& message_hash);
+  void SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
+                               const bytes& message,
+                               const unsigned char& startByteType);
+  void WriteMsgOnBufferEvent(struct bufferevent* bev, const bytes& message,
+                             const unsigned char& startByteType);
 
   P2PComm();
   ~P2PComm();
@@ -112,18 +121,35 @@ class P2PComm {
   static void ProcessGossipMsg(bytes& message, Peer& from);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
+  static void EventCbServerSeed(struct bufferevent* bev, short events,
+                                [[gnu::unused]] void* ctx);
+  static void EventCbClientSeed([[gnu::unused]] struct bufferevent* bev,
+                                short events, [[gnu::unused]] void* ctx);
   static void ReadCallback(struct bufferevent* bev, void* ctx);
+  static void ReadCbServerSeed(struct bufferevent* bev,
+                               [[gnu::unused]] void* ctx);
+  static void ReadCbClientSeed(struct bufferevent* bev,
+                               [[gnu::unused]] void* ctx);
+
   static void AcceptConnectionCallback(evconnlistener* listener,
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr, int socklen,
                                        void* arg);
+  static void AcceptCbServerSeed(evconnlistener* listener,
+                                 evutil_socket_t cli_sock,
+                                 struct sockaddr* cli_addr, int socklen,
+                                 void* arg);
   static void CloseAndFreeBufferEvent(struct bufferevent* bufev);
+  static void CloseAndFreeBevP2PSeedConn(struct bufferevent* bufev);
 
  public:
+  static std::mutex m_mutexBufferEvent;
+  static std::map<std::string, struct bufferevent*> m_bufferEventMap;
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Dispatcher = std::function<void(std::pair<bytes, Peer>*)>;
+  using Dispatcher = std::function<void(
+      std::pair<bytes, std::pair<Peer, const unsigned char>>*)>;
 
   using BroadcastListFunc = std::function<VectorOfPeer(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
@@ -136,6 +162,7 @@ class P2PComm {
   inline static bool IsHostHavingNetworkIssue();
   inline static bool IsNodeNotRunning();
   static void ClearPeerConnectionCount();
+  static void RemoveBevFromMap(const Peer& peer);
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
@@ -150,7 +177,11 @@ class P2PComm {
                                void* arg);
 
   /// Listens for incoming socket connections.
-  void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher);
+  void StartMessagePump(Dispatcher dispatcher);
+
+  void EnableListener(uint32_t listenPort, bool startSeedNodeListener = false);
+  // start event loop
+  void EnableConnect();
 
   /// Multicasts message to specified list of peers.
   void SendMessage(const VectorOfPeer& peers, const bytes& message,
@@ -163,6 +194,11 @@ class P2PComm {
 
   /// Sends normal message to specified peer.
   void SendMessage(const Peer& peer, const bytes& message,
+                   const unsigned char& startByteType = START_BYTE_NORMAL);
+
+  // Overloadeded version of SendMessage for p2pseed comm.
+  void SendMessage(const Peer& msgPeer, const Peer& fromPeer,
+                   const bytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Multicasts message of type=broadcast to specified list of peers.

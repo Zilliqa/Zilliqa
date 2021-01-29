@@ -79,7 +79,8 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
          MessageTypeInstructionStrings[msgType][instruction];
 }
 
-void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
+void Zilliqa::ProcessMessage(
+    pair<bytes, pair<Peer, const unsigned char>>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
@@ -106,9 +107,9 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
 
         tpStart = std::chrono::high_resolution_clock::now();
       }
-
       bool result = msg_handlers[msg_type]->Execute(
-          message->first, MessageOffset::INST, message->second);
+          message->first, MessageOffset::INST, message->second.first,
+          message->second.second);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         auto tpNow = std::chrono::high_resolution_clock::now();
@@ -121,6 +122,11 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
 
       if (!result) {
         // To-do: Error recovery
+        if (message->second.second == START_BYTE_SEED_TO_SEED_REQUEST) {
+          Peer requestorPeer(message->second.first.GetIpAddress(),
+                             message->second.first.GetListenPortHost());
+          P2PComm::GetInstance().RemoveBevFromMap(requestorPeer);
+        }
       }
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
@@ -149,7 +155,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
-    pair<bytes, Peer>* message = NULL;
+    pair<bytes, std::pair<Peer, const unsigned char>>* message = NULL;
     while (true) {
       while (m_msgQueue.pop(message)) {
         // For now, we use a thread pool to handle this message
@@ -469,7 +475,8 @@ Zilliqa::~Zilliqa() {
   }
 }
 
-void Zilliqa::Dispatch(pair<bytes, Peer>* message) {
+void Zilliqa::Dispatch(
+    pair<bytes, std::pair<Peer, const unsigned char>>* message) {
   // LOG_MARKER();
 
   // Queue message

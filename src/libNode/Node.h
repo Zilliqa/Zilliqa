@@ -257,32 +257,42 @@ class Node : public Executable {
 
   // Message handlers
   bool ProcessStartPoW(const bytes& message, unsigned int offset,
-                       const Peer& from);
+                       const Peer& from,
+                       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSharding(const bytes& message, unsigned int offset,
-                       const Peer& from);
+                       const Peer& from,
+                       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSubmitTransaction(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  bool ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
-                                  const Peer& from);
-  bool ProcessMicroBlockConsensusCore(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessMicroBlockConsensus(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessMicroBlockConsensusCore(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte = START_BYTE_NORMAL);
   bool ProcessVCFinalBlock(const bytes& message, unsigned int offset,
-                           const Peer& from);
+                           const Peer& from, const unsigned char& startByte);
   bool ProcessVCFinalBlockCore(const bytes& message, unsigned int offset,
-                               const Peer& from);
+                               const Peer& from,
+                               [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlock(const bytes& message, unsigned int offset,
-                         const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, bytes& stateDelta,
                              const uint64_t& messageSize);
-  bool ProcessMBnForwardTransaction(const bytes& message,
-                                    unsigned int cur_offset, const Peer& from);
+  bool ProcessMBnForwardTransaction(
+      const bytes& message, unsigned int cur_offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   bool ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry);
 
   bool ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
-                         const Peer& from);
-  bool ProcessTxnPacketFromLookup(const bytes& message, unsigned int offset,
-                                  const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessTxnPacketFromLookup(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
   bool ProcessTxnPacketFromLookupCore(const bytes& message,
                                       const uint64_t& epochNum,
                                       const uint64_t& dsBlockNum,
@@ -290,29 +300,38 @@ class Node : public Executable {
                                       const PubKey& lookupPubKey,
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const bytes& message, unsigned int offset,
-                              const Peer& from);
+                              [[gnu::unused]] const Peer& from,
+                              [[gnu::unused]] const unsigned char& startByte);
 
-  bool ProcessDSGuardNetworkInfoUpdate(const bytes& message,
-                                       unsigned int offset, const Peer& from);
+  bool ProcessDSGuardNetworkInfoUpdate(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
-  bool ProcessNewShardNodeNetworkInfo(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+  bool ProcessNewShardNodeNetworkInfo(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
 
   bool ProcessGetVersion(const bytes& message, unsigned int offset,
-                         const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
   bool ProcessSetVersion(const bytes& message, unsigned int offset,
-                         const Peer& from);
+                         const Peer& from,
+                         [[gnu::unused]] const unsigned char& startByte);
 
   // bool ProcessCreateAccounts(const bytes & message,
   // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const bytes& message, unsigned int cur_offset,
-                                const Peer& from);
+                                const Peer& from,
+                                [[gnu::unused]] const unsigned char& startByte);
   bool ProcessDoRejoin(const bytes& message, unsigned int offset,
-                       const Peer& from);
+                       const Peer& from,
+                       [[gnu::unused]] const unsigned char& startByte);
 
-  bool ProcessRemoveNodeFromBlacklist(const bytes& message, unsigned int offset,
-                                      const Peer& from);
-  bool NoOp(const bytes& message, unsigned int offset, const Peer& from);
+  bool ProcessRemoveNodeFromBlacklist(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool NoOp(const bytes& message, unsigned int offset, const Peer& from,
+            [[gnu::unused]] const unsigned char& startByte);
 
   bool ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message);
 
@@ -324,7 +343,8 @@ class Node : public Executable {
 
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const bytes& message, unsigned int cur_offset,
-                      const Peer& from);
+                      const Peer& from,
+                      [[gnu::unused]] const unsigned char& startByte);
   bool ProcessVCBlockCore(const VCBlock& vcblock);
   // Transaction functions
   bool OnCommitFailure(const std::map<unsigned int, bytes>&);
@@ -535,7 +555,8 @@ class Node : public Executable {
   void SetState(NodeState state);
 
   /// Implements the Execute function inherited from Executable.
-  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from,
+               const unsigned char& startByte = START_BYTE_NORMAL);
 
   Mediator& GetMediator() { return m_mediator; }
 

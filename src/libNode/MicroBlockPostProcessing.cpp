@@ -76,8 +76,9 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
   return true;
 }
 
-bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
-                                      const Peer& from) {
+bool Node::ProcessMicroBlockConsensus(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessMicroBlockConsensus not expected to be "
@@ -123,7 +124,8 @@ bool Node::ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
       AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                      from, senderPubKey);
     } else {
-      return ProcessMicroBlockConsensusCore(reserialized_message, offset, from);
+      return ProcessMicroBlockConsensusCore(reserialized_message, offset, from,
+                                            startByte);
     }
   }
 
@@ -182,9 +184,9 @@ void Node::CleanMicroblockConsensusBuffer() {
   m_microBlockConsensusBuffer.clear();
 }
 
-bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
-                                          unsigned int offset,
-                                          const Peer& from) {
+bool Node::ProcessMicroBlockConsensusCore(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
@@ -355,9 +357,9 @@ bool Node::ProcessMicroBlockConsensusCore(const bytes& message,
         m_consensusObject->RecoveryAndProcessFromANewState(
             ConsensusCommon::INITIAL);
 
-        auto reprocessconsensus = [this, message, offset, from]() {
+        auto reprocessconsensus = [this, message, offset, from, startByte]() {
           ProcessTransactionWhenShardBackup(SHARD_MICROBLOCK_GAS_LIMIT);
-          ProcessMicroBlockConsensusCore(message, offset, from);
+          ProcessMicroBlockConsensusCore(message, offset, from, startByte);
         };
         DetachedFunction(1, reprocessconsensus);
         return true;

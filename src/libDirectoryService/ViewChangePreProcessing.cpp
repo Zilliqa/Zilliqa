@@ -744,8 +744,8 @@ bytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
 }
 
 bool DirectoryService::ProcessVCPushLatestDSTxBlock(
-    const bytes& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

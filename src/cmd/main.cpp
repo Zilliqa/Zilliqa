@@ -230,13 +230,21 @@ int main(int argc, const char* argv[]) {
                     (SyncType)syncType, vm.count("recovery"),
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
-    auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
-      zilliqa.Dispatch(message);
-    };
+    auto dispatcher =
+        [&zilliqa](
+            pair<bytes, std::pair<Peer, const unsigned char>>* message) mutable
+        -> void { zilliqa.Dispatch(message); };
+    // Only start the incoming message queue
+    P2PComm::GetInstance().StartMessagePump(dispatcher);
 
-    P2PComm::GetInstance().StartMessagePump(my_network_info.m_listenPortHost,
-                                            dispatcher);
-
+    if (ENABLE_SEED_TO_SEED_COMMUNICATION && !MULTIPLIER_SYNC_MODE) {
+      LOG_GENERAL(DEBUG, "P2PSeed Do not open listener");
+      // Do not open listener
+      P2PComm::GetInstance().EnableConnect();
+    } else {
+      P2PComm::GetInstance().EnableListener(my_network_info.m_listenPortHost,
+                                            ENABLE_SEED_TO_SEED_COMMUNICATION);
+    }
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;

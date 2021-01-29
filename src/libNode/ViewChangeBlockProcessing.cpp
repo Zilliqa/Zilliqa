@@ -100,7 +100,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
 }
 
 bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
-                          [[gnu::unused]] const Peer& from) {
+                          [[gnu::unused]] const Peer& from,
+                          [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexVCBlock);
