@@ -26,6 +26,7 @@
 #include "depends/common/RLP.h"
 #include "LevelDB.h"
 #include "MemoryDB.h"
+#include "libUtils/DataConversion.h"
 
 namespace dev
 {
@@ -56,7 +57,9 @@ namespace dev
 		      m_levelDB.GetDB()->NewIterator(leveldb::ReadOptions()));
 		  it->SeekToFirst();
 		  for (; it->Valid(); it->Next()) {
-		  	LOG_GENERAL(INFO, "key: " << it->key().ToString() << " value: " << it->value().ToString());
+		  	std::string hex;
+		  	DataConversion::StringToHexStr(it->value().ToString(), hex);
+		  	LOG_GENERAL(INFO, "key: " << it->key().ToString() << " value: " << hex);
 		  }
 		}
 

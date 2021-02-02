@@ -345,7 +345,9 @@ namespace dev
 
         std::string node(h256 const& _h) const {
           std::string ret = m_db->lookup(_h);
-          LOG_GENERAL(INFO, "ret: " << ret);
+          std::string hex;
+          DataConversion::StringToHexStr(ret, hex);
+          LOG_GENERAL(INFO, "ret: " << hex);
           return ret; 
         }
 
@@ -890,10 +892,15 @@ namespace dev
                         // lead-on to another node - enter child.
                         // fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
                         Node const& back = m_trail.back();
-                        LOG_GENERAL(INFO, "back.rlp: " << back.rlp);
-                        LOG_GENERAL(INFO, "back.key: " << back.key);
-                        LOG_GENERAL(INFO, "back.child: " << back.child);
-                        LOG_GENERAL(INFO, "rlp[child]: " << rlp[back.child].toString());
+                        std::string rlp_hex, child_hex, rlp_child_hex, key_hex;
+                        DataConversion::StringToHexStr(back.rlp, rlp_hex);
+                        DataConversion::StringToHexStr(std::to_string(back.child), child_hex);
+                        DataConversion::StringToHexStr(rlp[back.child].toString(), rlp_child_hex);
+                        DataConversion::StringToHexStr(back.key, key_hex);
+                        LOG_GENERAL(INFO, "back.rlp: " << rlp_hex);
+                        LOG_GENERAL(INFO, "back.key: " << key_hex);
+                        LOG_GENERAL(INFO, "back.child: " << child_hex);
+                        LOG_GENERAL(INFO, "rlp[child]: " << rlp_child_hex);
                         m_trail.push_back(Node{
                                 m_that->deref(rlp[back.child]),
                                 hexPrefixEncode(keyOf(back.key), NibbleSlice(bytesConstRef(&back.child, 1), 1), false),
