@@ -420,11 +420,10 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
   m_commitCounter++;
 
-  // SW edit
-  // if (m_commitCounter % 10 == 0) {
-  LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
-                                          << m_numForConsensus);
-  // }
+  if (m_commitCounter % 10 == 0) {
+    LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
+                                            << m_numForConsensus);
+  }
 
   if (m_numOfSubsets > 1) {
     // notify the waiting thread to start with subset creations and subset
