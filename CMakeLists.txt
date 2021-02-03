@@ -43,6 +43,8 @@ endif()
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
+include(InstallCryptoUtils)
+
 include(InstallMongo)
 find_package(mongocxx CONFIG REQUIRED)
  
