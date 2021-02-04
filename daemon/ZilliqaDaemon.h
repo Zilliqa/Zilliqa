@@ -45,12 +45,14 @@
 class ZilliqaDaemon {
  public:
   ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log);
-  void MonitorProcess(const std::string& name);
+  void MonitorProcess(const std::string& name,
+                      const bool startNewByDaemon = false);
   static void LOG(std::ofstream& log, const std::string& msg);
 
  private:
   std::ofstream& m_log;
   std::unordered_map<std::string, std::vector<pid_t>> m_pids;
+  std::unordered_map<std::string, unsigned int> m_failedMonitorProcessCount;
   std::unordered_map<pid_t, bool> m_died;
   std::string m_privKey, m_pubKey, m_ip, m_logPath, m_nodeType, m_curPath;
   int m_port, m_recovery, m_nodeIndex;
@@ -62,9 +64,9 @@ class ZilliqaDaemon {
   bool DownloadPersistenceFromS3();
 
   std::vector<pid_t> GetProcIdByName(const std::string& procName);
-  void StartNewProcess();
+  void StartNewProcess(bool cleanPersistence = false);
   void StartScripts();
-  void KillProcess();
+  void KillProcess(const std::string& procName);
   int ReadInputs(int argc, const char* argv[]);
 };
 
