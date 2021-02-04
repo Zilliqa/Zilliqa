@@ -102,12 +102,12 @@ namespace dev
 
 	std::string OverlayDB::lookup(h256 const& _h) const
 	{
-		LOG_GENERAL(INFO, "marker");
 		std::string ret = MemoryDB::lookup(_h);
 	
 		if (ret.empty())
 			ret = m_levelDB.Lookup(_h);
 	
+		LOG_GENERAL(INFO, "_h: " << _h.hex() << " ret: " << ret);
 		return ret;
 	}
 

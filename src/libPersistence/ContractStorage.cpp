@@ -150,7 +150,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
     return false;
   }
 
-  shared_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   if (reloadRootHash) {
     if (rootHash == dev::h256()) {
@@ -351,7 +351,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 //     src, unsigned int s_offset, bytes& dst, unsigned int d_offset, bool&
 //     foundVal, string& type, uint32_t caller_version) {
 //   // get caller version if not available
-//   shared_lock<shared_timed_mutex> g(m_stateDataMutex);
+//   lock_guard<mutex> g(m_stateDataMutex);
 
 //   if (caller_version == std::numeric_limits<uint32_t>::max()) {
 //     std::map<std::string, bytes> t_caller_version;
@@ -455,14 +455,19 @@ void ContractStorage::DeleteByPrefix(const dev::h160& addr,
 
 void ContractStorage::DeleteByIndex(const dev::h160& addr,
                                     const string& index) {
+  LOG_GENERAL(INFO, "DeleteByIndex addr: " << addr.hex() << " index: " << index);
+  bool found = false;
   if (t_stateDataMap.find(addr) != t_stateDataMap.end()) {
-    if (t_stateDataMap[addr].find(index) == t_stateDataMap[addr].end()) {
-      // didn't found in t_stateDataMap
-      std::string sval = m_stateTrie.at(dev::bytesConstRef(index));
-      if (sval.empty()) {
-        // still not found;
-        return;
-      }
+    if (t_stateDataMap[addr].find(index) != t_stateDataMap[addr].end()) {
+      found = true;
+    }
+  }
+
+  if (!found) {
+    std::string sval = m_stateTrie.at(DataConversion::StringToCharArray(index));
+    if (sval.empty()) {
+      // still not found;
+      return;
     }
   }
 
@@ -518,7 +523,7 @@ void ContractStorage::InsertValueToStateJson(Json::Value& _json, string key,
 bool ContractStorage::FetchStateJsonForContract(
     Json::Value& _json, const dev::h160& addr, const dev::h256& rootHash,
     const string& vname, const vector<string>& indices, bool temp) {
-  shared_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   if (rootHash == dev::h256()) {
     m_stateTrie.init();
@@ -611,7 +616,7 @@ bool ContractStorage::FetchStateJsonForContract(
 bool ContractStorage::FetchStateProofForContract(
     std::set<string>& proof, const dev::h256& rootHash,
     const std::vector<std::pair<std::string, std::vector<std::string>>>& keys) {
-  shared_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   if (rootHash == dev::h256()) {
     return false;
@@ -722,6 +727,8 @@ bool ContractStorage::FetchUpdatedStateValuesForAddr(
     return false;
   }
 
+  lock_guard<mutex> g(m_stateDataMutex);
+
   if (temp) {
     if (t_stateDataMap.find(addr) != t_stateDataMap.end()) {
       t_states = t_stateDataMap[addr];
@@ -729,6 +736,9 @@ bool ContractStorage::FetchUpdatedStateValuesForAddr(
 
     if (t_indexToBeDeleted.find(addr) != t_indexToBeDeleted.end()) {
       toDeletedIndices = t_indexToBeDeleted[addr];
+      for (const auto& deleted : toDeletedIndices) {
+        LOG_GENERAL(INFO, "deleted: " << deleted);
+      }
     }
   } else {
     if (rootHash == dev::h256()) {
@@ -808,6 +818,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
                                        const dev::h256& rootHash,
                                        const bytes& q, unsigned int q_offset,
                                        const bytes& v, unsigned int v_offset) {
+  LOG_MARKER();
   if (q_offset > q.size()) {
     LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
                              << q.size() << ", offset " << q_offset);
@@ -842,7 +853,12 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
     return false;
   }
 
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  LOG_GENERAL(INFO, "query: " << query.DebugString());
+  LOG_GENERAL(INFO, "value: " << value.DebugString());
+
+  lock_guard<mutex> g(m_stateDataMutex);
+
+  LOG_GENERAL(INFO, "process");
 
   if (rootHash == dev::h256()) {
     m_stateTrie.init();
@@ -857,7 +873,8 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
 
   string key = query.name() + SCILLA_INDEX_SEPARATOR;
 
-  if (query.ignoreval()) {
+  if (query.ignoreval()) { 
+    LOG_GENERAL(INFO, "marker");
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
@@ -873,6 +890,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
     }
     DeleteByPrefix(addr, key);
 
+    // [TODO]: should be handled recursively
     map<string, bytes> t_states;
     FetchStateDataForKey(t_states, addr, parent_key, true);
     if (t_states.empty()) {
@@ -902,6 +920,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
                       DataConversion::StringToCharArray(value.bval()), true);
       return true;
     } else {
+      // key is in middle layer of map
       DeleteByPrefix(addr, key);
 
       std::function<bool(const dev::h160&, const dev::h256&, const string&,
@@ -958,7 +977,7 @@ bool ContractStorage::UpdateStateDatasAndToDeletes(
     const std::map<std::string, bytes>& states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible) {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   if (temp) {
     for (const auto& state : states) {
@@ -1016,13 +1035,13 @@ bool ContractStorage::UpdateStateDatasAndToDeletes(
 }
 
 void ContractStorage::ResetBufferedAtomicState() {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   p_stateDataMap.clear();
   p_indexToBeDeleted.clear();
 }
 
 void ContractStorage::RevertAtomicState() {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   for (const auto& entry : p_stateDataMap) {
     for (const auto& data : entry.second) {
@@ -1059,7 +1078,7 @@ void ContractStorage::RevertAtomicState() {
 }
 
 bool ContractStorage::RevertContractStates() {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   for (const auto& entry : r_stateDataMap) {
     if (entry.first == dev::h256()) {
@@ -1085,13 +1104,13 @@ bool ContractStorage::RevertContractStates() {
 }
 
 void ContractStorage::InitRevertibles() {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
   r_stateDataMap.clear();
 }
 
 bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
   {
-    unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+    lock_guard<mutex> g(m_stateDataMutex);
     m_stateTrie.db()->commit(dsBlockNum);
   }
 
@@ -1101,7 +1120,7 @@ bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
 }
 
 void ContractStorage::InitTempState() {
-  unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+  lock_guard<mutex> g(m_stateDataMutex);
 
   t_stateDataMap.clear();
   t_indexToBeDeleted.clear();
@@ -1117,7 +1136,7 @@ void ContractStorage::Reset() {
     m_initDataDB.ResetDB();
   }
   {
-    unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+    lock_guard<mutex> g(m_stateDataMutex);
 
     p_stateDataMap.clear();
     p_indexToBeDeleted.clear();
@@ -1143,7 +1162,7 @@ bool ContractStorage::RefreshAll() {
     ret = m_initDataDB.RefreshDB();
   }
   if (ret) {
-    unique_lock<shared_timed_mutex> g(m_stateDataMutex);
+    lock_guard<mutex> g(m_stateDataMutex);
     ret = m_trieDB.RefreshDB();
   }
 

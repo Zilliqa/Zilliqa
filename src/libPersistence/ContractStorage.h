@@ -62,7 +62,7 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   std::shared_timed_mutex m_codeMutex;
   std::shared_timed_mutex m_initDataMutex;
-  std::shared_timed_mutex m_stateDataMutex;
+  std::mutex m_stateDataMutex;
 
   void DeleteByPrefix(const dev::h160& addr, const std::string& prefix);
 

@@ -56,7 +56,8 @@ bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) {
 
 template <class MAP>
 Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
-                                           const dev::h256& rootHash) {
+                                           const dev::h256& rootHash,
+                                           bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
@@ -70,7 +71,6 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
   dev::h256 t_rootHash = rootHash;
 
   if (LOOKUP_NODE_MODE && rootHash == dev::h256()) {
-    LOG_GENERAL(INFO, "using m_prevRoot: " << m_prevRoot.hex());
     t_rootHash = m_prevRoot;
   }
 
@@ -79,7 +79,7 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
     std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
 
-    if (LOOKUP_NODE_MODE) {
+    if (LOOKUP_NODE_MODE && resetRoot) {
       if (t_rootHash != dev::h256()) {
         try {
           m_state.setRoot(t_rootHash);
@@ -170,7 +170,6 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
 template <class MAP>
 bool AccountStoreTrie<MAP>::UpdateStateTrie(const Address& address,
                                             const Account& account) {
-  LOG_MARKER();
   bytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
@@ -195,8 +194,6 @@ bool AccountStoreTrie<MAP>::RemoveFromTrie(const Address& address) {
 
 template <class MAP>
 dev::h256 AccountStoreTrie<MAP>::GetStateRootHash() const {
-  LOG_MARKER();
-
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_state.root();
@@ -204,8 +201,6 @@ dev::h256 AccountStoreTrie<MAP>::GetStateRootHash() const {
 
 template <class MAP>
 dev::h256 AccountStoreTrie<MAP>::GetPrevRootHash() const {
-  LOG_MARKER();
-
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_prevRoot;

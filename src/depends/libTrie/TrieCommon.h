@@ -95,7 +95,6 @@ namespace dev
 
     inline bool isLeaf(RLP const& _twoItem)
     {
-        LOG_MARKER();
         if(!_twoItem.isList() || _twoItem.itemCount() != 2)
         {
             LOG_GENERAL(FATAL,
@@ -109,7 +108,6 @@ namespace dev
 
     inline NibbleSlice keyOf(bytesConstRef _hpe)
     {
-        LOG_MARKER();
         if (!_hpe.size())
             return NibbleSlice(_hpe, 0);
         if (_hpe[0] & 0x10)

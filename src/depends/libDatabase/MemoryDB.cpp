@@ -58,7 +58,6 @@ namespace dev
 
     std::string MemoryDB::lookup(h256 const& _h) const
     {
-        LOG_GENERAL(INFO, "marker");
 // #if DEV_GUARDED_DB
        // ReadGuard l(x_this);
         shared_lock<shared_timed_mutex> lock(x_this);
@@ -90,7 +89,7 @@ namespace dev
     {
         std::string hex;
         DataConversion::StringToHexStr(_v.toString(), hex);
-        LOG_GENERAL(INFO, "_h: " << _h.hex() << " _v: " << hex);
+        // LOG_GENERAL(INFO, "_h: " << _h.hex() << " _v: " << hex);
 // #if DEV_GUARDED_DB
         // WriteGuard l(x_this);
         unique_lock<shared_timed_mutex> lock(x_this);
@@ -100,11 +99,11 @@ namespace dev
         {
             it->second.first = _v.toString();
             it->second.second++;
-            LOG_GENERAL(INFO, "counter: " << it->second.second)
+            // LOG_GENERAL(INFO, "counter: " << it->second.second)
         }
         else {
             m_main[_h] = make_pair(_v.toString(), 1);
-            LOG_GENERAL(INFO, "added");
+            // LOG_GENERAL(INFO, "added");
         }
     }
 
@@ -112,7 +111,7 @@ namespace dev
     {
 // #if DEV_GUARDED_DB
         // ReadGuard l(x_this);
-        LOG_GENERAL(INFO, "kill: " << _h.hex());
+        // LOG_GENERAL(INFO, "kill: " << _h.hex());
         shared_lock<shared_timed_mutex> lock(x_this);
 // #endif
         if (m_main.count(_h))
@@ -161,7 +160,7 @@ namespace dev
                 if (it->second.second) {
                     ++it;
                 } else {
-                    LOG_GENERAL(INFO, "purged: " << it->first.hex())
+                    // LOG_GENERAL(INFO, "purged: " << it->first.hex())
                     purged.emplace_back(it->first);
                     it = m_main.erase(it);
                 }

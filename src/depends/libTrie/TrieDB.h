@@ -350,7 +350,6 @@ namespace dev
           std::string ret = m_db->lookup(_h);
           std::string hex;
           DataConversion::StringToHexStr(ret, hex);
-          LOG_GENERAL(INFO, "ret: " << hex);
           return ret; 
         }
 
@@ -621,11 +620,6 @@ namespace dev
                                              << __FUNCTION__ << ")");
         }
 
-        std::string hex;
-        DataConversion::StringToHexStr(b.key, hex);
-        LOG_GENERAL(INFO, "b.key: " << hex);
-        LOG_GENERAL(INFO, "size: " << b.key.size());
-
         if((b.key[0] & 0x10) != 0)
         {
             LOG_GENERAL(FATAL,
@@ -653,11 +647,9 @@ namespace dev
 
             if (m_trail.back().child == 255)
             {
-                LOG_GENERAL(INFO, "marker");
                 // Entering. Look for first...
                 if (rlp.isEmpty())
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // Kill our search as soon as we hit an empty node.
                     k.clear();
                     m_trail.pop_back();
@@ -665,13 +657,11 @@ namespace dev
                 }
                 if (!rlp.isList() || (rlp.itemCount() != 2 && rlp.itemCount() != 17))
                 {
-                    LOG_GENERAL(INFO, "marker");
                     m_that = nullptr;
                     return;
                 }
                 if (rlp.itemCount() == 2)
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // Just turn it into a valid Branch
                     auto keyOfRLP = keyOf(rlp);
 
@@ -682,10 +672,8 @@ namespace dev
 
                     if (!k.contains(keyOfRLP))
                     {
-                        LOG_GENERAL(INFO, "marker");
                         if (!k.isEarlierThan(keyOfRLP))
                         {
-                            LOG_GENERAL(INFO, "marker");
                             k.clear();
                             m_trail.pop_back();
                             continue;
@@ -697,11 +685,9 @@ namespace dev
                     m_trail.back().key = hexPrefixEncode(keyOf(m_trail.back().key), keyOfRLP, false);
                     if (isLeaf(rlp))
                     {
-                        LOG_GENERAL(INFO, "marker");
                         // leaf - exit now.
                         if (k.empty())
                         {
-                            LOG_GENERAL(INFO, "marker");
                             m_trail.back().child = 0;
                             return;
                         }
@@ -718,16 +704,13 @@ namespace dev
                 }
                 else
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // Already a branch - look for first valid.
                     if (k.size())
                     {
-                        LOG_GENERAL(INFO, "marker");
                         m_trail.back().setChild(k[0]);
                         k = k.mid(1);
                     }
                     else {
-                        LOG_GENERAL(INFO, "marker");
                         m_trail.back().setChild(16);
                     }
                     // run through to...
@@ -735,11 +718,9 @@ namespace dev
             }
             else
             {
-                LOG_GENERAL(INFO, "marker");
                 // Continuing/exiting. Look for next...
                 if (!(rlp.isList() && rlp.itemCount() == 17))
                 {
-                    LOG_GENERAL(INFO, "marker");
                     k.clear();
                     m_trail.pop_back();
                     continue;
@@ -757,10 +738,8 @@ namespace dev
             }
 
             for (;; m_trail.back().incrementChild()) {
-                LOG_GENERAL(INFO, "marker");
                 if (m_trail.back().child == 17)
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // finished here.
                     k.clear();
                     m_trail.pop_back();
@@ -768,14 +747,11 @@ namespace dev
                 }
                 else if (!rlp[m_trail.back().child].isEmpty())
                 {
-                    LOG_GENERAL(INFO, "marker");
                     if (m_trail.back().child == 16) {
-                        LOG_GENERAL(INFO, "marker");
                         return;	// have a value at this node - exit now.
                     }
                     else
                     {
-                        LOG_GENERAL(INFO, "marker");
                         // lead-on to another node - enter child.
                         // fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
                         Node const& back = m_trail.back();
@@ -788,7 +764,6 @@ namespace dev
                     }
                 }
                 else {
-                    LOG_GENERAL(INFO, "marker");
                     k.clear();
                 }
             }
@@ -801,7 +776,6 @@ namespace dev
         {
             if (m_trail.empty())
             {
-                LOG_GENERAL(INFO, "marker");
                 m_that = nullptr;
                 return;
             }
@@ -811,28 +785,23 @@ namespace dev
 
             if (m_trail.back().child == 255)
             {
-                LOG_GENERAL(INFO, "marker");
                 // Entering. Look for first...
                 if (rlp.isEmpty())
                 {
-                    LOG_GENERAL(INFO, "marker");
                     m_trail.pop_back();
                     continue;
                 }
                 if (!(rlp.isList() && (rlp.itemCount() == 2 || rlp.itemCount() == 17)))
                 {
-                    LOG_GENERAL(INFO, "marker");
                     m_that = nullptr;
                     return;
                 }
                 if (rlp.itemCount() == 2)
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // Just turn it into a valid Branch
                     m_trail.back().key = hexPrefixEncode(keyOf(m_trail.back().key), keyOf(rlp), false);
                     if (isLeaf(rlp))
                     {
-                        LOG_GENERAL(INFO, "marker");
                         // leaf - exit now.
                         m_trail.back().child = 0;
                         return;
@@ -845,7 +814,6 @@ namespace dev
                 }
                 else
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // Already a branch - look for first valid.
                     m_trail.back().setFirstChild();
                     // run through to...
@@ -853,11 +821,9 @@ namespace dev
             }
             else
             {
-                LOG_GENERAL(INFO, "marker");
                 // Continuing/exiting. Look for next...
                 if (!(rlp.isList() && rlp.itemCount() == 17))
                 {
-                    LOG_GENERAL(INFO, "marker");
                     m_trail.pop_back();
                     continue;
                 }
@@ -874,36 +840,22 @@ namespace dev
             }
 
             for (;; m_trail.back().incrementChild()) {
-                LOG_GENERAL(INFO, "marker");
                 if (m_trail.back().child == 17)
                 {
-                    LOG_GENERAL(INFO, "marker");
                     // finished here.
                     m_trail.pop_back();
                     break;
                 }
                 else if (!rlp[m_trail.back().child].isEmpty())
                 {
-                    LOG_GENERAL(INFO, "marker");
                     if (m_trail.back().child == 16) {
-                        LOG_GENERAL(INFO, "marker");
                         return;	// have a value at this node - exit now.
                     }
                     else
                     {
-                        LOG_GENERAL(INFO, "marker");
                         // lead-on to another node - enter child.
                         // fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
                         Node const& back = m_trail.back();
-                        std::string rlp_hex, child_hex, rlp_child_hex, key_hex;
-                        DataConversion::StringToHexStr(back.rlp, rlp_hex);
-                        DataConversion::StringToHexStr(std::to_string(back.child), child_hex);
-                        DataConversion::StringToHexStr(rlp[back.child].toString(), rlp_child_hex);
-                        DataConversion::StringToHexStr(back.key, key_hex);
-                        LOG_GENERAL(INFO, "back.rlp: " << rlp_hex);
-                        LOG_GENERAL(INFO, "back.key: " << key_hex);
-                        LOG_GENERAL(INFO, "back.child: " << child_hex);
-                        LOG_GENERAL(INFO, "rlp[child]: " << rlp_child_hex);
                         m_trail.push_back(Node{
                                 m_that->deref(rlp[back.child]),
                                 hexPrefixEncode(keyOf(back.key), NibbleSlice(bytesConstRef(&back.child, 1), 1), false),

@@ -293,10 +293,6 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
     }
   }
 
-  PrintAccountState();
-
-  PrintTrie();
-
   try {
     lock_guard<mutex> g(m_mutexTrie);
     if (!m_state.db()->commit(dsBlockNum)) {
@@ -331,8 +327,6 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
   }
 
   m_addressToAccount->clear();
-
-  PrintTrie();
 
   return true;
 }

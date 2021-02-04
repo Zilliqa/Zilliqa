@@ -150,7 +150,7 @@ string LevelDB::Lookup(const std::string & key) const
         return "";
     }
 
-    LOG_GENERAL(INFO, "key: " << key << " val: " << value);
+    // LOG_GENERAL(INFO, "key: " << key << " val: " << value);
 
     return value;
 }
@@ -165,7 +165,7 @@ string LevelDB::Lookup(const vector<unsigned char>& key) const
         return "";
     }
 
-    LOG_GENERAL(INFO, "key: " << DataConversion::CharArrayToString(key) << " val: " << value);
+    // LOG_GENERAL(INFO, "key: " << DataConversion::CharArrayToString(key) << " val: " << value);
 
     return value;
 }
@@ -205,8 +205,7 @@ string LevelDB::Lookup(const dev::h256 & key) const
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), leveldb::Slice(key.hex()), &value);
     if (!s.ok())
     {
-        LOG_GENERAL(INFO, "status: " <<  s.ToString());
-        LOG_GENERAL(INFO, "key: " << key.hex());
+        LOG_GENERAL(INFO, "status: " <<  s.ToString() << " key: " << key.hex());
         // TODO
         return "";
     }
@@ -229,7 +228,7 @@ string LevelDB::Lookup(const dev::bytesConstRef & key) const
         return "";
     }
 
-    LOG_GENERAL(INFO, "key: " << key.toString() << " val: " << value);
+    // LOG_GENERAL(INFO, "key: " << key.toString() << " val: " << value);
 
     return value;
 }
@@ -360,7 +359,7 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
         if (i.second.second) {
             std::string hex;
             DataConversion::StringToHexStr(i.second.first, hex);
-            LOG_GENERAL(INFO, "addkey: " << i.first.hex() << " val: " << hex);
+            // LOG_GENERAL(INFO, "addkey: " << i.first.hex() << " val: " << hex);
             batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
@@ -373,7 +372,7 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
 
             std::string hex;
             DataConversion::Uint8VecToHexStr(i.second.first, hex);
-            LOG_GENERAL(INFO, "addAuxkey: " << DataConversion::CharArrayToString(b) << " val: " << hex);
+            // LOG_GENERAL(INFO, "addAuxkey: " << DataConversion::CharArrayToString(b) << " val: " << hex);
 
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
         }
