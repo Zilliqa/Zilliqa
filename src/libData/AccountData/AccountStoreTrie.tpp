@@ -36,11 +36,13 @@ void AccountStoreTrie<MAP>::InitTrie() {
 template <class MAP>
 bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) {
   std::lock_guard<std::mutex> g(m_mutexTrie);
-  if (m_prevRoot != dev::h256()) {
-    try {
-      m_state.setRoot(m_prevRoot);
-    } catch (...) {
-      return false;
+  if (LOOKUP_NODE_MODE) {
+    if (m_prevRoot != dev::h256()) {
+      try {
+        m_state.setRoot(m_prevRoot);
+      } catch (...) {
+        return false;
+      }
     }
   }
   if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
@@ -67,7 +69,7 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
 
   dev::h256 t_rootHash = rootHash;
 
-  if (rootHash == dev::h256()) {
+  if (LOOKUP_NODE_MODE && rootHash == dev::h256()) {
     LOG_GENERAL(INFO, "using m_prevRoot: " << m_prevRoot.hex());
     t_rootHash = m_prevRoot;
   }
@@ -77,12 +79,14 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
     std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
 
-    if (t_rootHash != dev::h256()) {
-      try {
-        m_state.setRoot(t_rootHash);
-      } catch (...) {
-        LOG_GENERAL(WARNING, "setRoot failed: " << t_rootHash);
-        return nullptr;
+    if (LOOKUP_NODE_MODE) {
+      if (t_rootHash != dev::h256()) {
+        try {
+          m_state.setRoot(t_rootHash);
+        } catch (...) {
+          LOG_GENERAL(WARNING, "setRoot failed: " << t_rootHash);
+          return nullptr;
+        }
       }
     }
 
@@ -118,6 +122,11 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
                                      const dev::h256& rootHash,
                                      Account& account,
                                      std::set<std::string>& nodes) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "not lookup node");
+    return false;
+  }
+
   std::string rawAccountBase;
 
   dev::h256 t_rootHash = (rootHash == dev::h256()) ? m_prevRoot : rootHash;
@@ -237,14 +246,16 @@ template <class MAP>
 void AccountStoreTrie<MAP>::PrintTrie() {
   m_state.db()->printDB();
 
-  std::lock_guard<std::mutex> g(m_mutexTrie);
-  if (m_prevRoot != dev::h256()) {
-    try {
-      LOG_GENERAL(INFO, "prevRoot: " << m_prevRoot.hex());
-      m_state.setRoot(m_prevRoot);
-    } catch (...) {
-      LOG_GENERAL(INFO, "setRoot failed");
-      return;
+  if (LOOKUP_NODE_MODE) {
+    std::lock_guard<std::mutex> g(m_mutexTrie);
+    if (m_prevRoot != dev::h256()) {
+      try {
+        LOG_GENERAL(INFO, "prevRoot: " << m_prevRoot.hex());
+        m_state.setRoot(m_prevRoot);
+      } catch (...) {
+        LOG_GENERAL(INFO, "setRoot failed");
+        return;
+      }
     }
   }
 

@@ -141,8 +141,6 @@ void DirectoryService::InitCoinbase() {
 
   LOG_MARKER();
 
-  return;
-
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   // cleanup - entries from older ds epoch

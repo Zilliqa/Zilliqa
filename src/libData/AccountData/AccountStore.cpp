@@ -183,7 +183,7 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
                                     bool revertible) {
   LOG_MARKER();
 
-  {
+  if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
     if (m_prevRoot != dev::h256()) {
       try {
@@ -523,11 +523,13 @@ bool AccountStore::RevertCommitTemp() {
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-  if (m_prevRoot != dev::h256()) {
-    try {
-      m_state.setRoot(m_prevRoot);
-    } catch (...) {
-      return false;
+  if (LOOKUP_NODE_MODE) {
+    if (m_prevRoot != dev::h256()) {
+      try {
+        m_state.setRoot(m_prevRoot);
+      } catch (...) {
+        return false;
+      }
     }
   }
 

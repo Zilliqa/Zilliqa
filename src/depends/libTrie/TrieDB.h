@@ -91,11 +91,14 @@ namespace dev
 
         void setRoot(h256 const& _root, Verification _v = Verification::Normal)
         {
+            LOG_GENERAL(INFO, "setRoot, m_root: " << m_root.hex() << " _root: " << _root.hex());
             m_root = _root;
             if (_v == Verification::Normal)
             {
-                if (m_root == EmptyTrie && !m_db->exists(m_root))
+                if (m_root == EmptyTrie && !m_db->exists(m_root)) {
+                    LOG_GENERAL(INFO, "init");
                     init();
+                }
             }
             /*std::cout << "Setting root to " << _root << " (patched to " << m_root << ")" << std::endl;*/
 #if ETH_DEBUG
