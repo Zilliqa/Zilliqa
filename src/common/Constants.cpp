@@ -626,6 +626,8 @@ const bool SHARDLDR_SAVE_TXN_LOCALLY{
     "true"};
 const double BLOOM_FILTER_FALSE_RATE{
     ReadConstantDouble("BLOOM_FILTER_FALSE_RATE", "node.transactions.")};
+const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT{
+    ReadConstantNumeric("TXN_DISPATCH_ATTEMPT_LIMIT", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

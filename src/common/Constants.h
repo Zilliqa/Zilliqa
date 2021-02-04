@@ -420,6 +420,7 @@ extern const std::string TXN_PERSISTENCE_NAME;
 extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
+extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
 
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;

@@ -72,7 +72,7 @@ bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
       LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
       return false;
     }
-    txns.push_back(txn);
+    txns.emplace_back(txn);
   }
 
   return true;

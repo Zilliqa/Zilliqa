@@ -429,7 +429,7 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn,
-                          map<uint32_t, vector<Transaction>>& mp,
+                          map<uint32_t, deque<pair<Transaction, uint32_t>>>& mp,
                           uint32_t numShards) {
   LOG_MARKER();
   vector<Transaction> txns;
@@ -472,7 +472,9 @@ bool Lookup::GenTxnToSend(size_t num_txn,
       continue;
     }
 
-    copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
+    for (const auto& txn : txns) {
+      mp[txnShard].emplace_back(make_pair(txn, 0));
+    }
 
     LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
                           << nonce + num_txn << " of Addr " << addr.hex());
@@ -488,7 +490,9 @@ bool Lookup::GenTxnToSend(size_t num_txn,
       LOG_GENERAL(WARNING, "Failed to get txns for DS");
     }
 
-    copy(txns.begin(), txns.end(), back_inserter(mp[numShards]));
+    for (const auto& txn : txns) {
+      mp[numShards].emplace_back(make_pair(txn, 0));
+    }
   }
 
   return true;
@@ -3429,7 +3433,7 @@ void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
   }
 }
 
-const vector<Transaction>& Lookup::GetTxnFromShardMap(uint32_t index) {
+deque<pair<Transaction, uint32_t>>& Lookup::GetTxnFromShardMap(uint32_t index) {
   return m_txnShardMap[index];
 }
 
@@ -5287,14 +5291,14 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
 
   // case where txn already exist
   if (find_if(txnShardMap[shardId].begin(), txnShardMap[shardId].end(),
-              [tx](const Transaction& txn) {
-                return tx.GetTranID() == txn.GetTranID();
+              [tx](const pair<Transaction, uint32_t>& txn_and_count) {
+                return tx.GetTranID() == txn_and_count.first.GetTranID();
               }) != txnShardMap[shardId].end()) {
     LOG_GENERAL(WARNING, "Same hash present " << tx.GetTranID());
     return false;
   }
 
-  txnShardMap[shardId].push_back(tx);
+  txnShardMap[shardId].emplace_back(make_pair(tx, 0));
   LOG_GENERAL(INFO, "Added Txn " << tx.GetTranID().hex() << " to shard "
                                  << shardId << " of fromAddr "
                                  << tx.GetSenderAddr());
@@ -5366,7 +5370,7 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
 
   auto t_start = std::chrono::high_resolution_clock::now();
 
-  map<uint, vector<Transaction>> tempTxnShardMap;
+  map<uint, deque<pair<Transaction, uint32_t>>> tempTxnShardMap;
 
   lock_guard<mutex> g(m_txnShardMapMutex);
 
@@ -5378,21 +5382,22 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
       // ds txns
       continue;
     }
-    for (const auto& tx : shard.second) {
-      unsigned int fromShard = tx.GetShardIndex(newNumShards);
+    for (const auto& tx_and_count : shard.second) {
+      unsigned int fromShard = tx_and_count.first.GetShardIndex(newNumShards);
 
-      if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL) {
+      if (Transaction::GetTransactionType(tx_and_count.first) ==
+          Transaction::CONTRACT_CALL) {
         // if shard do not match directly send to ds
-        unsigned int toShard =
-            Transaction::GetShardIndex(tx.GetToAddr(), newNumShards);
+        unsigned int toShard = Transaction::GetShardIndex(
+            tx_and_count.first.GetToAddr(), newNumShards);
         if (toShard != fromShard) {
           // later would be placed in the new ds shard
-          m_txnShardMap[oldNumShards].emplace_back(tx);
+          m_txnShardMap[oldNumShards].emplace_back(tx_and_count);
           continue;
         }
       }
 
-      tempTxnShardMap[fromShard].emplace_back(tx);
+      tempTxnShardMap[fromShard].emplace_back(tx_and_count);
     }
   }
   tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);
@@ -5427,7 +5432,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
   const uint32_t numShards = newNumShards;
 
-  map<uint32_t, vector<Transaction>> mp;
+  map<uint32_t, deque<pair<Transaction, uint32_t>>> mp;
 
   if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards)) {
     LOG_GENERAL(WARNING, "GenTxnToSend failed");
@@ -5450,6 +5455,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
     {
       lock_guard<mutex> g(m_txnShardMapMutex);
+
       auto transactionNumber = mp[i].size();
 
       LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
@@ -5477,6 +5483,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
       LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
       continue;
     }
+
     vector<Peer> toSend;
     if (i < numShards) {
       {
@@ -5509,9 +5516,6 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-
-      lock_guard<mutex> g(m_txnShardMapMutex);
-      DeleteTxnShardMap(i);
     } else if (i == numShards) {
       // To send DS
       {
@@ -5545,9 +5549,6 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");
-
-      lock_guard<mutex> g(m_txnShardMapMutex);
-      DeleteTxnShardMap(i);
     }
   }
 }
