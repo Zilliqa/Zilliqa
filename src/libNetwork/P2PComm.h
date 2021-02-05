@@ -124,12 +124,11 @@ class P2PComm {
   static void EventCbServerSeed(struct bufferevent* bev, short events,
                                 [[gnu::unused]] void* ctx);
   static void EventCbClientSeed([[gnu::unused]] struct bufferevent* bev,
-                                short events, [[gnu::unused]] void* ctx);
+                                short events, void* ctx);
   static void ReadCallback(struct bufferevent* bev, void* ctx);
   static void ReadCbServerSeed(struct bufferevent* bev,
                                [[gnu::unused]] void* ctx);
-  static void ReadCbClientSeed(struct bufferevent* bev,
-                               [[gnu::unused]] void* ctx);
+  static void ReadCbClientSeed(struct bufferevent* bev, void* ctx);
 
   static void AcceptConnectionCallback(evconnlistener* listener,
                                        evutil_socket_t cli_sock,
@@ -140,7 +139,9 @@ class P2PComm {
                                  struct sockaddr* cli_addr, int socklen,
                                  void* arg);
   static void CloseAndFreeBufferEvent(struct bufferevent* bufev);
-  static void CloseAndFreeBevP2PSeedConn(struct bufferevent* bufev);
+  static void CloseAndFreeBevP2PSeedConnServer(struct bufferevent* bufev);
+  static void CloseAndFreeBevP2PSeedConnClient(struct bufferevent* bufev,
+                                               void* ctx);
 
  public:
   static std::mutex m_mutexBufferEvent;
