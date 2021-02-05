@@ -23,6 +23,8 @@ namespace po = boost::program_options;
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
 
+#define MONITORING_FAIL_COUNT 10
+
 const vector<string> programName = {"zilliqa"};
 const string SYNCTYPE_OPT = "--synctype";
 const char* synctype_descr =
@@ -72,10 +74,26 @@ ZilliqaDaemon::ZilliqaDaemon(int argc, const char* argv[], std::ofstream& log)
   StartNewProcess();
 }
 
-void ZilliqaDaemon::MonitorProcess(const string& name) {
+void ZilliqaDaemon::MonitorProcess(const string& name,
+                                   const bool startNewByDaemon) {
   if (m_pids[name].empty()) {
     ZilliqaDaemon::LOG(m_log, "Looking for new " + name + " process...");
     vector<pid_t> tmp = ZilliqaDaemon::GetProcIdByName(name);
+    if (tmp.empty()) {
+      if (!startNewByDaemon &&
+          (m_nodeType == "dsguard" || m_nodeType == "normal")) {
+        auto it = m_failedMonitorProcessCount.find(name);
+        if (it == m_failedMonitorProcessCount.end()) {
+          m_failedMonitorProcessCount[name] = 1;
+        } else {
+          m_failedMonitorProcessCount[name]++;
+        }
+        if (m_failedMonitorProcessCount[name] >= MONITORING_FAIL_COUNT) {
+          StartNewProcess(true);
+          m_failedMonitorProcessCount[name] = 0;
+        }
+      }
+    }
 
     for (const pid_t& i : tmp) {
       m_died[i] = false;
@@ -83,7 +101,6 @@ void ZilliqaDaemon::MonitorProcess(const string& name) {
       ZilliqaDaemon::LOG(m_log, "Started monitoring new process " + name +
                                     " with PiD: " + to_string(i));
     }
-
     return;
   }
 
@@ -230,8 +247,10 @@ vector<pid_t> ZilliqaDaemon::GetProcIdByName(const string& procName) {
   return result;
 }
 
-void ZilliqaDaemon::StartNewProcess() {
-  KillProcess();
+void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
+  // Kill running processes ( zilliqa & scilla) if any
+  KillProcess(programName[0]);
+  KillProcess("scilla-server");
 
   ZilliqaDaemon::LOG(m_log, "Create new Zilliqa process...");
   signal(SIGCHLD, SIG_IGN);
@@ -275,12 +294,20 @@ void ZilliqaDaemon::StartNewProcess() {
       /// For recover-all scenario, a SUSPEND_LAUNCH file wil be created prior
       /// to Zilliqa process being killed. Thus, we can use the variable
       /// 'bSuspend' to distinguish syncType as RECOVERY_ALL_SYNC or NO_SYNC.
-      m_syncType = bSuspend ? RECOVERY_ALL_SYNC : m_syncType;
+      m_syncType =
+          (bSuspend || cleanPersistence) ? RECOVERY_ALL_SYNC : m_syncType;
       strSyncType = to_string(m_syncType);
       m_recovery = m_syncType == RECOVERY_ALL_SYNC ? 1 : m_recovery;
       ZilliqaDaemon::LOG(m_log, "Suspend launch is " + to_string(bSuspend) +
                                     ", set syncType = " + strSyncType +
                                     ", recovery = " + to_string(m_recovery));
+    }
+
+    if (!bSuspend && cleanPersistence) {
+      ZilliqaDaemon::LOG(m_log, "Start to run command: rm -rf persistence");
+      ZilliqaDaemon::LOG(
+          m_log,
+          "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
     }
 
     string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
@@ -351,14 +378,13 @@ void ZilliqaDaemon::StartScripts() {
   }
 }
 
-void ZilliqaDaemon::KillProcess() {
-  const string name = programName[0];
-  vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(name);
+void ZilliqaDaemon::KillProcess(const string& procName) {
+  vector<pid_t> pids = ZilliqaDaemon::GetProcIdByName(procName);
   for (const auto& pid : pids) {
     ZilliqaDaemon::LOG(
-        m_log, "Killing " + name + " process before launching daemon...");
+        m_log, "Killing " + procName + " process before launching daemon...");
     kill(pid, SIGTERM);
-    ZilliqaDaemon::LOG(m_log, name + " process killed successfully.");
+    ZilliqaDaemon::LOG(m_log, procName + " process killed successfully.");
   }
 }
 
@@ -441,13 +467,15 @@ int main(int argc, const char* argv[]) {
   close(STDOUT_FILENO);
   close(STDERR_FILENO);
   ZilliqaDaemon daemon(argc, argv, log);
-
+  bool startNewByDaemon = true;
   while (1) {
     for (const auto& name : programName) {
-      daemon.MonitorProcess(name);
+      daemon.MonitorProcess(name, startNewByDaemon);
     }
 
     sleep(5);
+
+    startNewByDaemon = false;
   }
 
   exit(EXIT_SUCCESS);
