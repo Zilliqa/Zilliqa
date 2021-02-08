@@ -748,15 +748,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
-
-      // if (!revertible && (!t_states.empty() || !toDeleteIndices.empty()) &&
-      //     accbase.GetStorageRoot() != account.GetStorageRoot()) {
-      //   LOG_GENERAL(WARNING,
-      //               "Storage root mismatch. Expected: "
-      //                   << account.GetStorageRoot().hex()
-      //                   << " Actual: " << accbase.GetStorageRoot().hex());
-      //   return false;
-      // }
     }
   }
 
@@ -2567,8 +2558,6 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
     }
   }
 
-  LOG_GENERAL(INFO, "delta: " << result.DebugString());
-
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
     return false;
@@ -2642,7 +2631,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
                                        (unsigned int)address.size),
          address.asArray().begin());
 
-    const Account* oriAccount = accountStore.GetAccount(address, dev::h256(), false);
+    const Account* oriAccount =
+        accountStore.GetAccount(address, dev::h256(), false);
     bool fullCopy = false;
     if (oriAccount == nullptr) {
       Account acc(0, 0);

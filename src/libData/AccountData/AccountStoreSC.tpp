@@ -1528,10 +1528,6 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
       if (account == nullptr) {
         continue;
       }
-      // account->SetStorageRoot(
-      //     Contract::ContractStorage::GetContractStorage().GetContractStateHash(
-      //         addr, account->GetStorageRoot(), true /*temp*/,
-      //         false /*revertible*/));
 
       // *** IMPORTANT ***
       // Setting storageRoot to empty to represent the states get changed

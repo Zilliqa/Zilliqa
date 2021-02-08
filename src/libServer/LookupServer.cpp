@@ -248,6 +248,13 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionStatusI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetStateProof", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_ARRAY, "param04", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetStateProofI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -2042,9 +2049,10 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
   }
 }
 
-Json::Value LookupServer::GetProof(const string& address,
-                                   [[gnu::unused]] const Json::Value& _json,
-                                   const string& txBlockNumOrTag) {
+Json::Value LookupServer::GetStateProof(const string& address,
+                                        const string& vname,
+                                        const Json::Value& indices,
+                                        const string& txBlockNumOrTag) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -2054,7 +2062,9 @@ Json::Value LookupServer::GetProof(const string& address,
                            "Historical state not enabled for this lookup");
   }
 
+  dev::h256 rootHash;
   if (txBlockNumOrTag == "latest") {
+    rootHash = dev::h256();
   } else {
     uint64_t requestedTxBlockNum;
     try {
@@ -2093,53 +2103,63 @@ Json::Value LookupServer::GetProof(const string& address,
                   NUM_FINAL_BLOCK_PER_POW));
     }
 
-    // address check
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
-    }
-    Address addr(tmpaddr);
-
-    // get root hash
-    const dev::h256& rootHash =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash();
-
-    // get account info & proof
-    std::set<std::string> t_accountProof;
-    Account account;
-    if (!AccountStore::GetInstance().GetProof(addr, rootHash, account,
-                                              t_accountProof)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist in requested epoch");
-    }
-
-    if (!account.isContract()) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address not contract address");
-    }
-
-    // get proof
-    std::set<std::string> t_stateProof;
-    if (!Contract::ContractStorage::GetContractStorage()
-             .FetchStateProofForContract(
-                 t_stateProof, account.GetStorageRoot(),
-                 JSONConversion::convertJsonArrayToKeys(_json))) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "Proof not found");
-    }
+    rootHash = m_mediator.m_txBlockChain.GetBlock(requestedTxBlockNum)
+                   .GetHeader()
+                   .GetStateRootHash();
   }
 
-  // } catch (const JsonRpcException& je) {
-  //   throw je;
-  // } catch (runtime_error& e) {
-  //   LOG_GENERAL(INFO, "[Error]" << e.what() << " TxBlockNum: " <<
-  //   txBlockNumOrTag); throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlockNum
-  //   not valid");
-  // }
+  // address check
+  if (address.size() != ACC_ADDR_SIZE * 2) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Address size not appropriate");
+  }
 
-  return Json::Value();
+  bytes tmpaddr;
+  if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
+  }
+  Address addr(tmpaddr);
+
+  // get account info & proof
+  std::set<std::string> t_accountProof;
+  Account account;
+  if (!AccountStore::GetInstance().GetProof(addr, rootHash, account,
+                                            t_accountProof)) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Address does not exist in requested epoch");
+  }
+
+  if (!account.isContract()) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Address not contract address");
+  }
+
+  // get proof
+  std::set<std::string> t_stateProof;
+  if (!Contract::ContractStorage::GetContractStorage()
+           .FetchStateProofForContract(
+               t_stateProof, account.GetStorageRoot(), vname,
+               JSONConversion::convertJsonArrayToVector(indices))) {
+    throw JsonRpcException(RPC_DATABASE_ERROR, "Proof not found");
+  }
+
+  Json::Value ret;
+  for (const auto& ap : t_accountProof) {
+    string hexstr;
+    if (!DataConversion::StringToHexStr(ap, hexstr)) {
+      LOG_GENERAL(INFO, "StringToHexStr failed");
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "Hex encoding failed");
+    }
+    ret["accountProof"].append(hexstr);
+  }
+  for (const auto& sp : t_stateProof) {
+    string hexstr;
+    if (!DataConversion::StringToHexStr(sp, hexstr)) {
+      LOG_GENERAL(INFO, "StringToHexStr failed");
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "Hex encoding failed");
+    }
+    ret["stateProof"].append(hexstr);
+  }
+
+  return ret;
 }

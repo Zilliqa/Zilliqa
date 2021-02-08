@@ -188,8 +188,8 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
     if (m_prevRoot != dev::h256()) {
       try {
         m_state.setRoot(m_prevRoot);
-      } catch (const std::exception& ex) {
-        LOG_GENERAL(WARNING, "setRoot failed: " << ex.what());
+      } catch (...) {
+        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
         return false;
       }
     }
@@ -216,7 +216,6 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   }
 
   m_prevRoot = GetStateRootHash();
-  LOG_GENERAL(INFO, "m_prevRoot: " << m_prevRoot.hex());
 
   return true;
 }
@@ -372,6 +371,7 @@ void AccountStore::DiscardUnsavedUpdates() {
         try {
           m_state.setRoot(m_prevRoot);
         } catch (...) {
+          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
           return;
         }
       }
@@ -418,6 +418,7 @@ bool AccountStore::RetrieveFromDisk() {
         m_state.setRoot(root);
         m_prevRoot = m_state.root();
       } catch (...) {
+        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
         return false;
       }
     }
@@ -522,6 +523,7 @@ bool AccountStore::RevertCommitTemp() {
       try {
         m_state.setRoot(m_prevRoot);
       } catch (...) {
+        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
         return false;
       }
     }
@@ -590,11 +592,6 @@ bool AccountStore::MigrateContractStates2(
     std::map<std::string, bytes> states;
     ContractStorageOld::GetContractStorage().FetchStateDataForContract(
         states, address, "", {}, false);
-
-    // for (& state : states) {
-    //   state.first =
-    //   ContractStorageOld::GetContractStorage().RemoveAddrFromKey(state.first);
-    // }
 
     auto iter = states.begin();
     std::map<std::string, bytes> t_states;

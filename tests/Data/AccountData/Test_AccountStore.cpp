@@ -36,10 +36,19 @@ BOOST_AUTO_TEST_SUITE(accountstoretest)
 BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().Init();
 
+  std::vector<PairOfKey> kps;
+
   for (unsigned int i = 0; i < 20; i++) {
     PairOfKey kpair = Schnorr::GenKeyPair();
+    kps.push_back(kpair);
     Address addr = Account::GetAddressFromPublicKey(kpair.second);
     AccountStore::GetInstance().AddAccount(addr, {500, 0});
+  }
+
+  std::vector<Address> adrs;
+  for (unsigned int i = 0; i < 20; i++) {
+    PairOfKey kpair = Schnorr::GenKeyPair();
+    adrs.push_back(Account::GetAddressFromPublicKey(kpair.second));
   }
 
   Address addr1, addr2;
@@ -62,7 +71,6 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().CommitTempRevertible();
 
   {
-    bytes _bytes;
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 1, addr2, kpair1, 10,
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
@@ -70,6 +78,12 @@ BOOST_AUTO_TEST_CASE(rwtest) {
     AccountStore::GetInstance().UpdateAccountsTemp(0, 1, false, tx, tr,
                                                    error_code);
   }
+
+  for (unsigned int i = 0; i < 20; i++) {
+    Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 1, adrs[i], kps[i], 10,
+                   PRECISION_MIN_VALUE, 1);
+  }
+
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
   bytes delta1;
   AccountStore::GetInstance().GetSerializedDelta(delta1);
@@ -89,7 +103,6 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   LOG_GENERAL(INFO, "acct2: " << acct2->GetBalance());
 
   {
-    bytes _bytes;
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), 2, addr2, kpair1, 100,
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;

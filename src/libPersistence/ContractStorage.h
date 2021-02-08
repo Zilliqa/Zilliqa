@@ -150,10 +150,10 @@ class ContractStorage : public Singleton<ContractStorage> {
                                  const std::vector<std::string>& indices = {},
                                  bool temp = false);
 
-  bool FetchStateProofForContract(
-      std::set<std::string>& proof, const dev::h256& rootHash,
-      const std::vector<std::pair<std::string, std::vector<std::string>>>&
-          keys);
+  bool FetchStateProofForContract(std::set<std::string>& proof,
+                                  const dev::h256& rootHash,
+                                  const std::string& vname,
+                                  const std::vector<std::string>& indices);
 
   bool FetchUpdatedStateValuesForAddr(const dev::h160& addr,
                                       const dev::h256& rootHash,

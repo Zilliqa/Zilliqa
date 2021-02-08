@@ -159,7 +159,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       try {
         m_stateTrie.setRoot(rootHash);
       } catch (...) {
-        LOG_GENERAL(WARNING, "root not found");
+        LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
         return false;
       }
     }
@@ -301,7 +301,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 
     std::vector<string> indices;
     // remove the prefixes, as shown below surrounded by []
-    // [address.vname.index0.index1.(...).]indexN0.indexN1.(...).indexNn
+    // [vname.index0.index1.(...).]indexN0.indexN1.(...).indexNn
     if (!boost::starts_with(entry.first, key)) {
       LOG_GENERAL(WARNING, "Key is not a prefix of stored entry");
       return false;
@@ -455,7 +455,8 @@ void ContractStorage::DeleteByPrefix(const dev::h160& addr,
 
 void ContractStorage::DeleteByIndex(const dev::h160& addr,
                                     const string& index) {
-  LOG_GENERAL(INFO, "DeleteByIndex addr: " << addr.hex() << " index: " << index);
+  LOG_GENERAL(INFO,
+              "DeleteByIndex addr: " << addr.hex() << " index: " << index);
   bool found = false;
   if (t_stateDataMap.find(addr) != t_stateDataMap.end()) {
     if (t_stateDataMap[addr].find(index) != t_stateDataMap[addr].end()) {
@@ -531,7 +532,7 @@ bool ContractStorage::FetchStateJsonForContract(
     try {
       m_stateTrie.setRoot(rootHash);
     } catch (...) {
-      LOG_GENERAL(WARNING, "root not found");
+      LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
       return false;
     }
   }
@@ -552,7 +553,7 @@ bool ContractStorage::FetchStateJsonForContract(
       continue;
     }
 
-    /// addr+vname+[indices...]
+    /// vname+[indices...]
     vector<string> map_indices(fragments.begin() + 1, fragments.end());
 
     std::function<void(Json::Value&, const vector<string>&, const bytes&,
@@ -615,30 +616,31 @@ bool ContractStorage::FetchStateJsonForContract(
 
 bool ContractStorage::FetchStateProofForContract(
     std::set<string>& proof, const dev::h256& rootHash,
-    const std::vector<std::pair<std::string, std::vector<std::string>>>& keys) {
+    const std::string& vname, const std::vector<std::string>& indices) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_stateDataMutex);
 
   if (rootHash == dev::h256()) {
+    LOG_GENERAL(INFO, "stateRoot is empty");
     return false;
   } else {
     try {
       m_stateTrie.setRoot(rootHash);
     } catch (...) {
-      LOG_GENERAL(WARNING, "root not found");
+      LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
       return false;
     }
   }
 
-  for (const auto& key : keys) {
-    string keyStr = GenerateStorageKey(key.first, key.second);
-    FetchProofForKey(proof, keyStr);
-  }
+  string keyStr = GenerateStorageKey(vname, indices);
+  FetchProofForKey(proof, keyStr);
 
   return true;
 }
 
 void ContractStorage::FetchProofForKey(std::set<string>& proof,
                                        const string& key) {
+  LOG_MARKER();
   std::set<std::string> t_keys;
   dev::GenericTrieDB<TraceableDB>::iterator p;
   if (!key.empty()) {
@@ -646,13 +648,10 @@ void ContractStorage::FetchProofForKey(std::set<string>& proof,
   } else {
     p = m_stateTrie.begin();
   }
-  while (p != m_stateTrie.end()) {
+  while (p != m_stateTrie.end() &&
+         p.at().first.toString().compare(0, key.size(), key) == 0) {
     // TODO: remove metadata
-    string t_key = p.at().first.toString();
-    if (t_key.compare(0, key.size(), key) != 0) {
-      break;
-    }
-    t_keys.emplace(std::move(t_key));
+    t_keys.emplace(p.at().first.toString());
     ++p;
   }
 
@@ -747,7 +746,7 @@ bool ContractStorage::FetchUpdatedStateValuesForAddr(
       try {
         m_stateTrie.setRoot(rootHash);
       } catch (...) {
-        LOG_GENERAL(WARNING, "root not found");
+        LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
         return false;
       }
     }
@@ -761,7 +760,7 @@ bool ContractStorage::FetchUpdatedStateValuesForAddr(
 
 bool ContractStorage::CleanEmptyMapPlaceholders(const dev::h160& addr,
                                                 const string& key) {
-  // key = 0xabc.vname.[index1.index2.[...].indexn.
+  // key = vname.[index1.index2.[...].indexn.
   vector<string> indices;
   boost::split(indices, key,
                bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
@@ -853,12 +852,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
     return false;
   }
 
-  LOG_GENERAL(INFO, "query: " << query.DebugString());
-  LOG_GENERAL(INFO, "value: " << value.DebugString());
-
   lock_guard<mutex> g(m_stateDataMutex);
-
-  LOG_GENERAL(INFO, "process");
 
   if (rootHash == dev::h256()) {
     m_stateTrie.init();
@@ -866,15 +860,14 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
     try {
       m_stateTrie.setRoot(rootHash);
     } catch (...) {
-      LOG_GENERAL(WARNING, "root not found");
+      LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
       return false;
     }
   }
 
   string key = query.name() + SCILLA_INDEX_SEPARATOR;
 
-  if (query.ignoreval()) { 
-    LOG_GENERAL(INFO, "marker");
+  if (query.ignoreval()) {
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
@@ -885,9 +878,6 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
     string parent_key = key;
     key += query.indices().Get(query.indices().size() - 1) +
            SCILLA_INDEX_SEPARATOR;
-    if (LOG_SC) {
-      LOG_GENERAL(INFO, "Delete key: " << key);
-    }
     DeleteByPrefix(addr, key);
 
     // [TODO]: should be handled recursively
@@ -953,11 +943,6 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr,
             }
           } else {
             // DB Put
-            if (LOG_SC) {
-              LOG_GENERAL(INFO, "mval().m() first: " << entry.first
-                                                     << " second: "
-                                                     << entry.second.bval());
-            }
             UpdateStateData(
                 addr, index,
                 DataConversion::StringToCharArray(entry.second.bval()), true);
@@ -1003,7 +988,7 @@ bool ContractStorage::UpdateStateDatasAndToDeletes(
       try {
         m_stateTrie.setRoot(rootHash);
       } catch (...) {
-        LOG_GENERAL(WARNING, "root not found");
+        LOG_GENERAL(WARNING, "setRoot for " << rootHash.hex() << " failed");
         return false;
       }
     }
@@ -1087,7 +1072,7 @@ bool ContractStorage::RevertContractStates() {
       try {
         m_stateTrie.setRoot(entry.first);
       } catch (...) {
-        LOG_GENERAL(WARNING, "root not found");
+        LOG_GENERAL(WARNING, "setRoot for " << entry.first.hex() << " failed");
         return false;
       }
     }

@@ -91,12 +91,10 @@ namespace dev
 
         void setRoot(h256 const& _root, Verification _v = Verification::Normal)
         {
-            LOG_GENERAL(INFO, "setRoot, m_root: " << m_root.hex() << " _root: " << _root.hex());
             m_root = _root;
             if (_v == Verification::Normal)
             {
                 if (m_root == EmptyTrie && !m_db->exists(m_root)) {
-                    LOG_GENERAL(INFO, "init");
                     init();
                 }
             }
@@ -347,10 +345,7 @@ namespace dev
         std::string deref(RLP const& _n) const;
 
         std::string node(h256 const& _h) const {
-          std::string ret = m_db->lookup(_h);
-          std::string hex;
-          DataConversion::StringToHexStr(ret, hex);
-          return ret; 
+          return m_db->lookup(_h);
         }
 
         // These are low-level node insertion functions that just go straight through into the DB.

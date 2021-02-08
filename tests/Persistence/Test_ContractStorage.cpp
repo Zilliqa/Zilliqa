@@ -76,12 +76,8 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
   BOOST_CHECK(ContractStorage::GetContractStorage().CommitStateDB(dsBlockNum));
 
   set<string> proof;
-  std::vector<std::pair<std::string, std::vector<std::string>>> keys;
-  keys.push_back({"bbb", {}});
-  keys.push_back({"1", {"1"}});
-  keys.push_back({"500", {"500"}});
   BOOST_CHECK(ContractStorage::GetContractStorage().FetchStateProofForContract(
-      proof, root1, keys));
+      proof, root1, "aaa", {"1"}));
 
   dev::MemoryDB t_db;
   size_t size = 0;

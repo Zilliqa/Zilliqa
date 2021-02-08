@@ -84,7 +84,7 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
         try {
           m_state.setRoot(t_rootHash);
         } catch (...) {
-          LOG_GENERAL(WARNING, "setRoot failed: " << t_rootHash);
+          LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed");
           return nullptr;
         }
       }
@@ -140,11 +140,13 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
       try {
         m_state.setRoot(t_rootHash);
       } catch (...) {
+        LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed");
         return false;
       }
     }
 
-    rawAccountBase = m_state.getProof(address.asBytes(), nodes);
+    rawAccountBase = m_state.getProof(
+        DataConversion::StringToCharArray(address.hex()), nodes);
   }
 
   if (rawAccountBase.empty()) {
@@ -213,6 +215,7 @@ bool AccountStoreTrie<MAP>::UpdateStateTrieAll() {
     try {
       m_state.setRoot(m_prevRoot);
     } catch (...) {
+      LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
       return false;
     }
   }
@@ -239,8 +242,6 @@ void AccountStoreTrie<MAP>::PrintAccountState() {
 
 template <class MAP>
 void AccountStoreTrie<MAP>::PrintTrie() {
-  m_state.db()->printDB();
-
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
     if (m_prevRoot != dev::h256()) {
@@ -248,7 +249,7 @@ void AccountStoreTrie<MAP>::PrintTrie() {
         LOG_GENERAL(INFO, "prevRoot: " << m_prevRoot.hex());
         m_state.setRoot(m_prevRoot);
       } catch (...) {
-        LOG_GENERAL(INFO, "setRoot failed");
+        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
         return;
       }
     }

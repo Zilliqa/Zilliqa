@@ -51,18 +51,6 @@ namespace dev
 
 		bytes lookupAux(h256 const& _h) const;
 
-		void printDB() {
-		  LOG_MARKER();
-		  std::unique_ptr<leveldb::Iterator> it(
-		      m_levelDB.GetDB()->NewIterator(leveldb::ReadOptions()));
-		  it->SeekToFirst();
-		  for (; it->Valid(); it->Next()) {
-		  	std::string hex;
-		  	DataConversion::StringToHexStr(it->value().ToString(), hex);
-		  	LOG_GENERAL(INFO, "key: " << it->key().ToString() << " value: " << hex);
-		  }
-		}
-
 	protected:
 		// using MemoryDB::clear;
 

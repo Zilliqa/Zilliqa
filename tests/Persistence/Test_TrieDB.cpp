@@ -45,89 +45,88 @@ using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-// dev::h256 root1, root2;
-// // bytesConstRef k, k1;
-// string k1, k2;
-// h256 h;
+dev::h256 root1, root2;
+// bytesConstRef k, k1;
+string k1, k2;
+h256 h;
 
-// BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
-//   INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
+  INIT_STDOUT_LOGGER();
 
-//   LOG_MARKER();
+  LOG_MARKER();
 
-//   dev::OverlayDB m_db("trieDB");
-//   m_db.ResetDB();
+  dev::OverlayDB m_db("trieDB");
+  m_db.ResetDB();
 
-//   SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie1(&m_db);
-//   m_trie1.init();
+  SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie1(&m_db);
+  m_trie1.init();
 
-//   k1 = "TestA";
-//   dev::RLPStream rlpStream1(2);
-//   rlpStream1 << "aaa"
-//              << "AAA";
-//   m_trie1.insert(k1, rlpStream1.out());
-//   k2 = "TestB";
-//   dev::RLPStream rlpStream2(2);
-//   rlpStream2 << "bbb"
-//              << "BBB";
-//   m_trie1.insert(k2, rlpStream2.out());
-//   m_trie1.db()->commit();
-//   root1 = m_trie1.root();
-//   LOG_GENERAL(INFO, "root1 = " << root1);
+  k1 = "TestA";
+  dev::RLPStream rlpStream1(2);
+  rlpStream1 << "aaa"
+             << "AAA";
+  m_trie1.insert(k1, rlpStream1.out());
+  k2 = "TestB";
+  dev::RLPStream rlpStream2(2);
+  rlpStream2 << "bbb"
+             << "BBB";
+  m_trie1.insert(k2, rlpStream2.out());
+  m_trie1.db()->commit();
+  root1 = m_trie1.root();
+  LOG_GENERAL(INFO, "root1 = " << root1);
 
-//   for (auto i : m_trie1) {
-//     dev::RLP rlp(i.second);
-//     LOG_GENERAL(INFO, "ITERATE k: " << i.first.toString()
-//                                     << " v: " << rlp[0].toString() << " "
-//                                     << rlp[1].toString());
-//   }
+  for (auto i : m_trie1) {
+    dev::RLP rlp(i.second);
+    LOG_GENERAL(INFO, "ITERATE k: " << i.first.toString()
+                                    << " v: " << rlp[0].toString() << " "
+                                    << rlp[1].toString());
+  }
 
-//   BOOST_CHECK_MESSAGE(m_trie1.contains(k1),
-//                       "ERROR: Trie1 cannot get the element in Trie1");
+  BOOST_CHECK_MESSAGE(m_trie1.contains(k1),
+                      "ERROR: Trie1 cannot get the element in Trie1");
 
-//   SecureTrieDB<h256, dev::OverlayDB> m_trie2(&m_db);
-//   m_trie2.init();
-//   h = dev::h256::random();
-//   m_trie2.insert(h, string("hhh"));
+  SecureTrieDB<h256, dev::OverlayDB> m_trie2(&m_db);
+  m_trie2.init();
+  h = dev::h256::random();
+  m_trie2.insert(h, string("hhh"));
 
-//   m_trie2.db()->commit();
-//   root2 = m_trie2.root();
-//   LOG_GENERAL(INFO, "root2 = " << root2);
-//   LOG_GENERAL(INFO, "h: " << h << " v: " << m_trie2.at(h));
+  m_trie2.db()->commit();
+  root2 = m_trie2.root();
+  LOG_GENERAL(INFO, "root2 = " << root2);
+  LOG_GENERAL(INFO, "h: " << h << " v: " << m_trie2.at(h));
 
-//   BOOST_CHECK_MESSAGE(m_trie2.contains(h),
-//                       "ERROR: Trie2 cannot get the element in Trie2");
+  BOOST_CHECK_MESSAGE(m_trie2.contains(h),
+                      "ERROR: Trie2 cannot get the element in Trie2");
 
-//   // Test Rollback
-//   h256 t = dev::h256::random();
-//   m_trie2.insert(t, string("ttt"));
-//   BOOST_CHECK_MESSAGE(m_trie2.contains(t),
-//                       "ERROR: Trie2 cannot get the element not committed");
-//   BOOST_CHECK_MESSAGE(
-//       root2 != m_trie2.root(),
-//       "ERROR, Trie2 still has the same root after insert and before commit");
-//   m_trie2.db()->rollback();
-//   BOOST_CHECK_MESSAGE(!m_trie2.contains(t),
-//                       "ERROR: Trie2 still have the new element after
-//                       rollback");
-//   m_trie2.setRoot(root2);
-//   BOOST_CHECK_MESSAGE(m_trie2.contains(h),
-//                       "ERROR: Trie2 still cannot get the the old element "
-//                       "after reset the root to the old one");
-// }
+  // Test Rollback
+  h256 t = dev::h256::random();
+  m_trie2.insert(t, string("ttt"));
+  BOOST_CHECK_MESSAGE(m_trie2.contains(t),
+                      "ERROR: Trie2 cannot get the element not committed");
+  BOOST_CHECK_MESSAGE(
+      root2 != m_trie2.root(),
+      "ERROR, Trie2 still has the same root after insert and before commit");
+  m_trie2.db()->rollback();
+  BOOST_CHECK_MESSAGE(!m_trie2.contains(t),
+                      "ERROR: Trie2 still have the new element after rollback");
+  m_trie2.setRoot(root2);
+  BOOST_CHECK_MESSAGE(m_trie2.contains(h),
+                      "ERROR: Trie2 still cannot get the the old element "
+                      "after reset the root to the old one");
+}
 
-// BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie) {
-//   dev::OverlayDB m_db("trieDB");
-//   SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie3(&m_db);
-//   SecureTrieDB<h256, dev::OverlayDB> m_trie4(&m_db);
-//   m_trie3.setRoot(root1);
-//   m_trie4.setRoot(root2);
+BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie) {
+  dev::OverlayDB m_db("trieDB");
+  SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie3(&m_db);
+  SecureTrieDB<h256, dev::OverlayDB> m_trie4(&m_db);
+  m_trie3.setRoot(root1);
+  m_trie4.setRoot(root2);
 
-//   BOOST_CHECK_MESSAGE(m_trie3.contains(k1),
-//                       "ERROR: Trie3 cannot get the element in Trie1");
-//   BOOST_CHECK_MESSAGE(m_trie4.contains(h),
-//                       "ERROR: Trie4 cannot get the element in Trie2");
-// }
+  BOOST_CHECK_MESSAGE(m_trie3.contains(k1),
+                      "ERROR: Trie3 cannot get the element in Trie1");
+  BOOST_CHECK_MESSAGE(m_trie4.contains(h),
+                      "ERROR: Trie4 cannot get the element in Trie2");
+}
 
 BOOST_AUTO_TEST_CASE(proof) {
   INIT_STDOUT_LOGGER();
@@ -226,41 +225,55 @@ BOOST_AUTO_TEST_CASE(proof) {
   LOG_GENERAL(INFO, JSONUtils::GetInstance().convertJsontoStr(j_value));
 }
 
-BOOST_AUTO_TEST_CASE(snapshot) {
-  INIT_STDOUT_LOGGER();
-  dev::OverlayDB m_db1("trieDB1");
-  GenericTrieDB<dev::OverlayDB> m_trie1(&m_db1);
-  m_trie1.init();
+/*
+  No longer applicable since we introduce TraceableDB
+*/
+// BOOST_AUTO_TEST_CASE(snapshot) {
+//   INIT_STDOUT_LOGGER();
+//   dev::OverlayDB m_db1("trieDB1");
+//   GenericTrieDB<dev::OverlayDB> m_trie1(&m_db1);
+//   m_trie1.init();
 
-  m_trie1.insert(DataConversion::StringToCharArray("aaa"),
-                 DataConversion::StringToCharArray("111"));
-  m_trie1.db()->commit();
-  dev::h256 root1 = m_trie1.root();
-  LOG_GENERAL(
-      INFO, "1.aaa: " << m_trie1.at(DataConversion::StringToCharArray("aaa")));
-  m_trie1.insert(DataConversion::StringToCharArray("aaa"),
-                 DataConversion::StringToCharArray("222"));
-  m_trie1.db()->commit();
-  // dev::h256 root2 = m_trie1.root();
-  LOG_GENERAL(
-      INFO, "2.aaa: " << m_trie1.at(DataConversion::StringToCharArray("aaa")));
-  m_trie1.remove(DataConversion::StringToCharArray("aaa"));
-  m_trie1.db()->commit();
-  dev::h256 root2 = m_trie1.root();
-  LOG_GENERAL(
-      INFO, "3.aaa: " << m_trie1.at(DataConversion::StringToCharArray("aaa")));
+//   m_trie1.insert(DataConversion::StringToCharArray("aaa"),
+//                  DataConversion::StringToCharArray("111"));
+//   m_trie1.db()->commit();
+//   dev::h256 root1 = m_trie1.root();
+//   LOG_GENERAL(
+//       INFO, "1.aaa: " <<
+//       m_trie1.at(DataConversion::StringToCharArray("aaa")));
+//   m_trie1.insert(DataConversion::StringToCharArray("aaa"),
+//                  DataConversion::StringToCharArray("222"));
+//   m_trie1.db()->commit();
+//   // dev::h256 root2 = m_trie1.root();
+//   LOG_GENERAL(
+//       INFO, "2.aaa: " <<
+//       m_trie1.at(DataConversion::StringToCharArray("aaa")));
+//   m_trie1.remove(DataConversion::StringToCharArray("aaa"));
+//   m_trie1.db()->commit();
+//   dev::h256 root2 = m_trie1.root();
+//   LOG_GENERAL(
+//       INFO, "3.aaa: " <<
+//       m_trie1.at(DataConversion::StringToCharArray("aaa")));
 
-  GenericTrieDB<dev::OverlayDB> m_trie2(&m_db1);
-  m_trie2.setRoot(root1);
-  LOG_GENERAL(
-      INFO, "4.aaa: " << m_trie2.at(DataConversion::StringToCharArray("aaa")));
+//   GenericTrieDB<dev::OverlayDB> m_trie2(&m_db1);
+//   m_trie2.setRoot(root1);
+//   LOG_GENERAL(
+//       INFO, "4.aaa: " <<
+//       m_trie2.at(DataConversion::StringToCharArray("aaa")));
 
-  GenericTrieDB<dev::OverlayDB> m_trie3(&m_db1);
-  m_trie2.setRoot(root2);
-  LOG_GENERAL(
-      INFO, "5.aaa: " << m_trie3.at(DataConversion::StringToCharArray("aaa")));
-}
+//   GenericTrieDB<dev::OverlayDB> m_trie3(&m_db1);
+//   m_trie2.setRoot(root2);
+//   LOG_GENERAL(
+//       INFO, "5.aaa: " <<
+//       m_trie3.at(DataConversion::StringToCharArray("aaa")));
+// }
 
+/*
+  Only success with following constants.xml settings:
+  1. KEEP_HISTORICAL_STATE -> true
+  2. NUM_DS_EPOCHS_STATE_HISTORY < 100
+*/
+/*
 BOOST_AUTO_TEST_CASE(traceabledb) {
   INIT_STDOUT_LOGGER();
   TraceableDB db("traceabledb");
@@ -298,7 +311,9 @@ BOOST_AUTO_TEST_CASE(traceabledb) {
   dev::h256 root2 = m_state.root();
 
   // check historical state
+  LOG_GENERAL(INFO, "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
   m_state.setRoot(root1);
+  LOG_GENERAL(INFO, "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
   BOOST_CHECK_MESSAGE(
       m_state.at(DataConversion::StringToCharArray("aaa")) == "111",
       "Unable to fetch state for aaa");
@@ -325,5 +340,6 @@ BOOST_AUTO_TEST_CASE(traceabledb) {
     LOG_GENERAL(INFO, "It's normal to fail here")
   }
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()

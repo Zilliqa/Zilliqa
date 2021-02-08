@@ -123,14 +123,14 @@ bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
     }
   }
 
-// #ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
+#ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
   if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Leader compose wrong state root (DM_TEST_DM_BAD_MB_ANNOUNCE)");
     tranHashes.clear();
   }
-// #endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
+#endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Creating new micro block")
   m_microblock.reset(new MicroBlock(

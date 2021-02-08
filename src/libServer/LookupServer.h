@@ -229,10 +229,11 @@ class LookupServer : public Server,
                                             Json::Value& response) {
     response = this->GetTransactionStatus(request[0u].asString());
   }
-  inline virtual void GetProofI(const Json::Value& request,
-                                Json::Value& response) {
-    response = this->GetProof(request[0u].asString(), request[1u],
-                              request[2u].asString());
+  inline virtual void GetStateProofI(const Json::Value& request,
+                                     Json::Value& response) {
+    response =
+        this->GetStateProof(request[0u].asString(), request[1u].asString(),
+                            request[2u], request[3u].asString());
   }
 
   std::string GetNetworkId();
@@ -240,8 +241,9 @@ class LookupServer : public Server,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
-  Json::Value GetProof(const std::string& address, const Json::Value& request,
-                       const uint64_t& blockNum);
+  Json::Value GetStateProof(const std::string& address,
+                            const Json::Value& request,
+                            const uint64_t& blockNum);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum);
@@ -290,8 +292,10 @@ class LookupServer : public Server,
   Json::Value GetMinerInfo(const std::string& blockNum);
   Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum);
   Json::Value GetTransactionStatus(const std::string& txnhash);
-  Json::Value GetProof(const std::string& address, const Json::Value& _json,
-                       const std::string& txBlockNumOrTag);
+  Json::Value GetStateProof(const std::string& address,
+                            const std::string& vname = "",
+                            const Json::Value& indices = Json::arrayValue,
+                            const std::string& txBlockNumOrTag = "latest");
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_

@@ -64,7 +64,7 @@ namespace dev
 				return false;
 			}
 			/// clean temp files in leveldb
-			// m_levelDB.Reopen();
+			m_levelDB.Reopen();
 		}
 			
 	// #if DEV_GUARDED_DB
@@ -107,7 +107,6 @@ namespace dev
 		if (ret.empty())
 			ret = m_levelDB.Lookup(_h);
 	
-		LOG_GENERAL(INFO, "_h: " << _h.hex() << " ret: " << ret);
 		return ret;
 	}
 
