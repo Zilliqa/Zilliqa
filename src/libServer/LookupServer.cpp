@@ -216,9 +216,15 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetSmartContractInitI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionsForTxBlock",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTransactionsForTxBlockEx",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetTransactionsForTxBlockExI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
@@ -239,9 +245,15 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetMinerInfoI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxnBodiesForTxBlock", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxnBodiesForTxBlockI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTxnBodiesForTxBlockEx",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetTxnBodiesForTxBlockExI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionStatus", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
@@ -1640,52 +1652,74 @@ string LookupServer::GetNumTxnsDSEpoch() {
   }
 }
 
-Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum) {
-  LOG_MARKER();
+Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum,
+                                                    const string& pageNumber) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   uint64_t txNum;
+  uint64_t pageNum = 0;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+    pageNum = (pageNumber != "") ? strtoull(pageNumber.c_str(), NULL, 0)
+                                 : std::numeric_limits<uint32_t>::max();
   } catch (exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
   }
 
   auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
 
-  return GetTransactionsForTxBlock(txBlock);
+  return GetTransactionsForTxBlock(txBlock, pageNum);
 }
 
-Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
-  LOG_MARKER();
+Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
+                                                 const string& pageNumber) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
   if (!ENABLE_GETTXNBODIESFORTXBLOCK) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "GetTxnForTxBlock not enabled");
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "GetTxnBodiesForTxBlock not enabled");
   }
   uint64_t txNum;
+  uint32_t pageNum = 0;
   Json::Value _json = Json::arrayValue;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+    pageNum = (pageNumber != "") ? strtoull(pageNumber.c_str(), NULL, 0)
+                                 : std::numeric_limits<uint32_t>::max();
   } catch (exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
   }
 
+  uint32_t numTransactions = 0;
   try {
     auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
+    numTransactions = txBlock.GetHeader().GetNumTxs();
 
-    auto const& hashes = GetTransactionsForTxBlock(txBlock);
+    auto const& hashes = GetTransactionsForTxBlock(txBlock, pageNum);
 
-    if (hashes.empty()) {
-      throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
-    }
+    if (pageNumber != "") {
+      if (hashes["Transactions"].empty()) {
+        throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+      }
 
-    for (const auto& shard_txn : hashes) {
-      for (const auto& txn_hash : shard_txn) {
-        auto json_txn = GetTransaction(txn_hash.asString());
-        _json.append(json_txn);
+      for (const auto& shard_txn : hashes["Transactions"]) {
+        for (const auto& txn_hash : shard_txn) {
+          auto json_txn = GetTransaction(txn_hash.asString());
+          _json.append(json_txn);
+        }
+      }
+    } else {
+      if (hashes.empty()) {
+        throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+      }
+
+      for (const auto& shard_txn : hashes) {
+        for (const auto& txn_hash : shard_txn) {
+          auto json_txn = GetTransaction(txn_hash.asString());
+          _json.append(json_txn);
+        }
       }
     }
   } catch (const JsonRpcException& je) {
@@ -1694,11 +1728,25 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
-  return _json;
+
+  if (pageNumber == "") {
+    // Backward compatibility: return array of txns if no page number was
+    // specified
+    return _json;
+  }
+
+  // For GetTxnBodiesForTxBlockEx: return map{Transactions:[], CurrPage:int,
+  // NumPages:int}
+  Json::Value _json2;
+  _json2["Transactions"] = move(_json);
+  _json2["CurrPage"] = pageNum;
+  _json2["NumPages"] = (numTransactions / NUM_TXNS_PER_PAGE) +
+                       ((numTransactions % NUM_TXNS_PER_PAGE) ? 1 : 0);
+  return _json2;
 }
 
-Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock) {
-  LOG_MARKER();
+Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
+                                                    const uint32_t pageNumber) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1714,6 +1762,15 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock) {
   auto microBlockInfos = txBlock.GetMicroBlockInfos();
   Json::Value _json = Json::arrayValue;
   bool hasTransactions = false;
+  const uint32_t transactionBeg =
+      (pageNumber != std::numeric_limits<uint32_t>::max())
+          ? (pageNumber * NUM_TXNS_PER_PAGE)
+          : 0;
+  const uint32_t transactionEnd =
+      (pageNumber != std::numeric_limits<uint32_t>::max())
+          ? transactionBeg + NUM_TXNS_PER_PAGE - 1
+          : std::numeric_limits<uint32_t>::max();
+  uint32_t transactionCur = 0;
 
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
@@ -1730,9 +1787,29 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock) {
 
     const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
     if (tranHashes.size() > 0) {
-      hasTransactions = true;
+      // Skip this microblock's transactions since it is before transactionBeg
+      if ((transactionCur + tranHashes.size() + 1) < transactionBeg) {
+        transactionCur += tranHashes.size();
+        continue;
+      }
+      // Skip this microblock's transactions since we've reached transactionEnd
+      if (transactionCur >= transactionEnd) {
+        continue;
+      }
       for (const auto& tranHash : tranHashes) {
+        // Skip the first transactions until we reach transactionBeg
+        if (transactionCur < transactionBeg) {
+          transactionCur++;
+          continue;
+        }
         _json[mbInfo.m_shardId].append(tranHash.hex());
+        hasTransactions = true;
+        // Stop fetching remaining transactions since we've reached
+        // transactionEnd
+        if (transactionCur >= transactionEnd) {
+          break;
+        }
+        transactionCur++;
       }
     }
   }
@@ -1741,7 +1818,21 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock) {
     throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
   }
 
-  return _json;
+  if (pageNumber == std::numeric_limits<uint32_t>::max()) {
+    // Backward compatibility: return array of txns if no page number was
+    // specified
+    return _json;
+  }
+
+  // For GetTransactionsForTxBlockEx and GetTxnBodiesForTxBlockEx: return
+  // map{Transactions:[], CurrPage:int, NumPages:int}
+  Json::Value _json2;
+  _json2["Transactions"] = move(_json);
+  _json2["CurrPage"] = pageNumber;
+  _json2["NumPages"] =
+      (txBlock.GetHeader().GetNumTxs() / NUM_TXNS_PER_PAGE) +
+      ((txBlock.GetHeader().GetNumTxs() % NUM_TXNS_PER_PAGE) ? 1 : 0);
+  return _json2;
 }
 
 vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {

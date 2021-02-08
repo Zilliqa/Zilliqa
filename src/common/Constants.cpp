@@ -365,6 +365,8 @@ const unsigned int NUM_TTL_PENDING_TXN{
     ReadConstantNumeric("NUM_TTL_PENDING_TXN", "node.jsonrpc.pending_txn.")};
 const unsigned int NUM_TTL_DROPPED_TXN{
     ReadConstantNumeric("NUM_TTL_DROPPED_TXN", "node.jsonrpc.pending_txn.")};
+const unsigned int NUM_TXNS_PER_PAGE{
+    ReadConstantNumeric("NUM_TXNS_PER_PAGE", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
