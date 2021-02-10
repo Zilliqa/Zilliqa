@@ -283,6 +283,7 @@ extern const unsigned int WEBSOCKET_PORT;
 extern const bool ENABLE_GETTXNBODIESFORTXBLOCK;
 extern const unsigned int NUM_TTL_PENDING_TXN;
 extern const unsigned int NUM_TTL_DROPPED_TXN;
+extern const unsigned int NUM_TXNS_PER_PAGE;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

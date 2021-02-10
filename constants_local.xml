@@ -171,6 +171,7 @@
             <NUM_TTL_PENDING_TXN>1</NUM_TTL_PENDING_TXN>
             <NUM_TTL_DROPPED_TXN>5</NUM_TTL_DROPPED_TXN>
         </pending_txn>
+        <NUM_TXNS_PER_PAGE>2500</NUM_TXNS_PER_PAGE>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
