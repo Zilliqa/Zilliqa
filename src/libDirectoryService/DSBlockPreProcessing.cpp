@@ -30,6 +30,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
@@ -304,6 +305,12 @@ void DirectoryService::InjectPoWForDSNode(
       LOG_GENERAL(INFO, "Injecting into PoW connections " << rit->second);
     }
 
+    if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+        UPGRADE_TARGET_DS_NUM) {
+      // Remove this node from blacklist if it exists
+      Peer& p = rit->second;
+      Blacklist::GetInstance().Remove(p.GetIpAddress());
+    }
     ++counter;
   }
 
