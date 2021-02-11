@@ -553,7 +553,8 @@ class Lookup : public Executable {
   std::unordered_set<PubKey> m_extSeedWhitelisted;
   bool AddToWhitelistExtSeed(const PubKey& pubKey);
   bool RemoveFromWhitelistExtSeed(const PubKey& pubKey);
-  bool IsWhitelistedExtSeed(const PubKey& pubKey);
+  bool IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
+                            const unsigned char& startByte);
 
   // VCDSblock processed variables - used by seed nodes using PULL P1 option
   std::mutex m_mutexVCDSBlockProcessed;
