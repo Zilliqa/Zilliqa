@@ -37,10 +37,8 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                    &ScillaIPCServer::updateStateValueI);
 }
 
-void ScillaIPCServer::setContractAddressVer(const Address &address,
-                                            uint32_t version) {
+void ScillaIPCServer::setContractAddress(const Address &address) {
   m_contrAddr = address;
-  m_version = version;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -80,23 +78,6 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
 
   string value_new = DataConversion::CharArrayToString(destination);
   value.swap(value_new);
-  return true;
-}
-
-bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
-                                              const string &query,
-                                              string &value, bool &found,
-                                              string &type) {
-  bytes destination;
-
-  if (!ContractStorage2::GetContractStorage().FetchExternalStateValue(
-          m_contrAddr, Address(addr), DataConversion::StringToCharArray(query),
-          0, destination, 0, found, type)) {
-    return false;
-  }
-
-  value = DataConversion::CharArrayToString(destination);
-
   return true;
 }
 
