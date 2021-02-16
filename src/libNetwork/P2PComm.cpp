@@ -265,19 +265,19 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     }
     // Transmission format:
     // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
     // 0x11 - start byte
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
     // <message>
 
     // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
     // 0x22 - start byte (broadcast)
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
     // <32-byte hash> <message>
 
     // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
     // 0x33 - start byte (report)
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
@@ -288,8 +288,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     }
 
     unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
-                                  (unsigned char)((CHAIN_ID >> 8) & 0XFF),
-                                  (unsigned char)(CHAIN_ID & 0xFF),
+                                  (unsigned char)((NETWORK_ID >> 8) & 0XFF),
+                                  (unsigned char)(NETWORK_ID & 0xFF),
                                   start_byte,
                                   (unsigned char)((length >> 24) & 0xFF),
                                   (unsigned char)((length >> 16) & 0xFF),
@@ -645,26 +645,26 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
   // Reception format:
   // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
   // 0x11 - start byte
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
   // <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
   // 0x22 - start byte (broadcast)
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
   // <32-byte hash> <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
   // 0x33 - start byte (gossip)
   // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
   // 0x01 ~ 0x04 - Gossip_Message_Type
   // <4-byte Age> <message>
 
   // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte CHAIN_ID, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
   // 0x33 - start byte (report)
   // 0x00 0x00 0x00 0x01 - 4-byte length of message
   // 0x00
@@ -685,10 +685,10 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     return;
   }
 
-  const uint16_t chainId = (message[1] << 8) + message[2];
-  if (chainId != CHAIN_ID) {
-    LOG_GENERAL(WARNING, "Header chainid wrong, received ["
-                             << chainId << "] while expected [" << CHAIN_ID
+  const uint16_t networkid = (message[1] << 8) + message[2];
+  if (networkid != NETWORK_ID) {
+    LOG_GENERAL(WARNING, "Header networkid wrong, received ["
+                             << networkid << "] while expected [" << NETWORK_ID
                              << "].");
     return;
   }
@@ -882,10 +882,10 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     return;
   }
 
-  const uint16_t chainId = (message[1] << 8) + message[2];
-  if (chainId != CHAIN_ID) {
-    LOG_GENERAL(WARNING, "Header chainid wrong, received ["
-                             << chainId << "] while expected [" << CHAIN_ID
+  const uint16_t networkid = (message[1] << 8) + message[2];
+  if (networkid != NETWORK_ID) {
+    LOG_GENERAL(WARNING, "Header networkid wrong, received ["
+                             << networkid << "] while expected [" << NETWORK_ID
                              << "].");
     CloseAndFreeBevP2PSeedConnServer(bev);
     return;
@@ -1133,10 +1133,10 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
     return;
   }
 
-  const uint16_t chainId = (message[1] << 8) + message[2];
-  if (chainId != CHAIN_ID) {
-    LOG_GENERAL(WARNING, "Header chainid wrong, received ["
-                             << chainId << "] while expected [" << CHAIN_ID
+  const uint16_t networkid = (message[1] << 8) + message[2];
+  if (networkid != NETWORK_ID) {
+    LOG_GENERAL(WARNING, "Header networkid wrong, received ["
+                             << networkid << "] while expected [" << NETWORK_ID
                              << "].");
     CloseAndFreeBevP2PSeedConnClient(bev, ctx);
     return;
@@ -1358,8 +1358,8 @@ void P2PComm::WriteMsgOnBufferEvent(struct bufferevent* bev,
   LOG_MARKER();
   uint32_t length = message.size();
   unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
-                                (unsigned char)((CHAIN_ID >> 8) & 0XFF),
-                                (unsigned char)(CHAIN_ID & 0xFF),
+                                (unsigned char)((NETWORK_ID >> 8) & 0XFF),
+                                (unsigned char)(NETWORK_ID & 0xFF),
                                 startByte,
                                 (unsigned char)((length >> 24) & 0xFF),
                                 (unsigned char)((length >> 16) & 0xFF),
@@ -1392,8 +1392,8 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
       }
       uint32_t length = message.size();
       unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
-                                    (unsigned char)((CHAIN_ID >> 8) & 0XFF),
-                                    (unsigned char)(CHAIN_ID & 0xFF),
+                                    (unsigned char)((NETWORK_ID >> 8) & 0XFF),
+                                    (unsigned char)(NETWORK_ID & 0xFF),
                                     START_BYTE_SEED_TO_SEED_REQUEST,
                                     (unsigned char)((length >> 24) & 0xFF),
                                     (unsigned char)((length >> 16) & 0xFF),
