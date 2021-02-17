@@ -26,6 +26,7 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     cmake \
+    wget \
     # curl is not a build dependency
     curl \
     git \
@@ -57,7 +58,19 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install -r requirements3.cuda.txt
 
+# Install cmake 3.19
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh \
+    && mkdir -p "${HOME}"/.local \
+    && bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+
+# Include path to refer to latest version of cmake
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN cmake --version \
+    && rm cmake-3.19.3-Linux-x86_64.sh
+
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
 ############################### CUDA Installation ##############################
 # taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu18.04/10.0/base/Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
