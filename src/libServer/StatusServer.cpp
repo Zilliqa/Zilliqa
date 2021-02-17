@@ -178,6 +178,10 @@ StatusServer::StatusServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &StatusServer::AuditShardI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleNumPages", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::ToggleNumPagesI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -700,4 +704,14 @@ bool StatusServer::AuditShard(const std::string& shardIDStr) {
   }
 
   return true;
+}
+
+bool StatusServer::ToggleNumPages() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+  m_mediator.m_lookup->m_enableNumPages =
+      !(m_mediator.m_lookup->m_enableNumPages);
+  return m_mediator.m_lookup->m_enableNumPages;
 }

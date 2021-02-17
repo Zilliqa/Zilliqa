@@ -508,7 +508,9 @@ void IsolatedServer::PostTxBlock() {
       j_txnhashes = Json::arrayValue;
     }
     WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+        JSONConversion::convertTxBlocktoJson(
+            txBlock, m_mediator.m_lookup->m_enableNumPages),
+        j_txnhashes);
 
     // send event logs
     WebsocketServer::GetInstance().SendOutMessages();

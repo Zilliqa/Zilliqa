@@ -49,7 +49,8 @@ const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
   return mbInfosJson;
 }
 
-const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
+const Json::Value JSONConversion::convertTxBlocktoJson(
+    const TxBlock& txblock, const bool enableNumPages) {
   Json::Value ret;
   Json::Value ret_head;
   Json::Value ret_body;
@@ -72,8 +73,10 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
   ret_head["StateDeltaHash"] = txheader.GetStateDeltaHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
-  ret_head["NumPages"] = (txheader.GetNumTxs() / NUM_TXNS_PER_PAGE) +
-                         ((txheader.GetNumTxs() % NUM_TXNS_PER_PAGE) ? 1 : 0);
+  if (enableNumPages) {
+    ret_head["NumPages"] = (txheader.GetNumTxs() / NUM_TXNS_PER_PAGE) +
+                           ((txheader.GetNumTxs() % NUM_TXNS_PER_PAGE) ? 1 : 0);
+  }
   ret_head["NumMicroBlocks"] =
       static_cast<uint32_t>(txblock.GetMicroBlockInfos().size());
 
