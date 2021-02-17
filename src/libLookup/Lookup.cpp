@@ -1257,9 +1257,19 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 
-bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey) {
-  lock_guard<mutex> g(m_mutexExtSeedWhitelisted);
-  return m_extSeedWhitelisted.end() != m_extSeedWhitelisted.find(pubKey);
+bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
+                                  const unsigned char& startByte) {
+  bool isWhiteListed = false;
+  {
+    lock_guard<mutex> g(m_mutexExtSeedWhitelisted);
+    isWhiteListed =
+        (m_extSeedWhitelisted.end() != m_extSeedWhitelisted.find(pubKey));
+  }
+  // Close connection if key is not whitelisted for p2pseed
+  if (!isWhiteListed) {
+    P2PComm::GetInstance().RemoveBevAndCloseP2PConnServer(from, startByte);
+  }
+  return isWhiteListed;
 }
 
 bool Lookup::ProcessGetDSBlockFromL2l(const bytes& message, unsigned int offset,
@@ -1298,7 +1308,7 @@ bool Lookup::ProcessGetDSBlockFromL2l(const bytes& message, unsigned int offset,
   }
 
   // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
@@ -1381,7 +1391,7 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const bytes& message,
   }
 
   // check is requester's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
@@ -1465,7 +1475,7 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const bytes& message,
   }
 
   // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
@@ -1702,7 +1712,7 @@ bool Lookup::ProcessGetPendingTxnFromL2l(const bytes& message,
   }
 
   // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
@@ -2395,7 +2405,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(const bytes& message,
   }
 
   // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
@@ -3683,7 +3693,7 @@ bool Lookup::ProcessGetTxnsFromL2l(const bytes& message, unsigned int offset,
   }
 
   // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey)) {
+  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
     LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
     return false;
   }
