@@ -546,6 +546,9 @@ class Lookup : public Executable {
   // For use by lookup for sending all transactions
   std::atomic<bool> m_sendAllToDS{};
 
+  // For use by API seed nodes for GetTxBlock response data
+  std::atomic<bool> m_enableNumPages{true};
+
   // extseed key
   PairOfKey m_extSeedKey;
 

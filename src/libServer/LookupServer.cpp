@@ -722,7 +722,8 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum) {
   try {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertTxBlocktoJson(
-        m_mediator.m_txBlockChain.GetBlock(BlockNum));
+        m_mediator.m_txBlockChain.GetBlock(BlockNum),
+        m_mediator.m_lookup->m_enableNumPages);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (runtime_error& e) {
@@ -779,7 +780,8 @@ Json::Value LookupServer::GetLatestTxBlock() {
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        " << Latest.GetTimestamp());
 
-  return JSONConversion::convertTxBlocktoJson(Latest);
+  return JSONConversion::convertTxBlocktoJson(
+      Latest, m_mediator.m_lookup->m_enableNumPages);
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {

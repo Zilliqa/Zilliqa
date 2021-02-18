@@ -163,6 +163,11 @@ class StatusServer : public Server,
     (void)request;
     response = this->AuditShard(request[0u].asString());
   }
+  inline virtual void ToggleNumPagesI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->ToggleNumPages();
+  }
 
   Json::Value IsTxnInMemPool(const std::string& tranID);
   bool AddToBlacklistExclusion(const std::string& ipAddr);
@@ -196,6 +201,7 @@ class StatusServer : public Server,
   std::string AverageBlockTime();
   bool ToggleGetSmartContractState();
   bool AuditShard(const std::string& shardIDStr);
+  bool ToggleNumPages();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
