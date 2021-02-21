@@ -1223,10 +1223,12 @@ void Node::WakeupAtDSEpoch() {
     auto func = [this]() mutable -> void {
       if ((m_consensusMyID < POW_PACKET_SENDERS) ||
           (m_mediator.m_ds->m_mode == DirectoryService::PRIMARY_DS)) {
+        m_mediator.m_ds->m_powSubmissionWindowExpired = false;
         LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Waiting " << POW_WINDOW_IN_SECONDS
                              << " seconds, accepting PoW submissions...");
         this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+        m_mediator.m_ds->m_powSubmissionWindowExpired = true;
 
         // create and send POW submission packets
         auto func2 = [this]() mutable -> void {
@@ -2217,6 +2219,7 @@ bool Node::CleanVariables() {
     m_mediator.m_lookup->m_fetchedOfflineLookups = false;
   }
   m_mediator.m_lookup->m_startedPoW = false;
+  m_mediator.m_ds->m_powSubmissionWindowExpired = false;
 
   CleanWhitelistReqs();
 
