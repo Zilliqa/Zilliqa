@@ -151,6 +151,12 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
+  if (m_powSubmissionWindowExpired) {
+    LOG_GENERAL(INFO, "Submission recvd too late from "
+                          << from.GetPrintableIPAddress());
+    return true;
+  }
+
   uint64_t blockNumber;
   uint8_t difficultyLevel;
   Peer submitterPeer;

@@ -488,6 +488,9 @@ class DirectoryService : public Executable {
     DSFBMISSINGMB = 0x03
   };
 
+  /// whether should accept pow submissions from miner
+  std::atomic_bool m_powSubmissionWindowExpired = {false};
+
   /// Sharing assignment for state delta
   VectorOfPeer m_sharingAssignment;
 
