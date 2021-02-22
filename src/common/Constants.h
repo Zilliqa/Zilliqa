@@ -65,6 +65,10 @@ const unsigned int INIT_DS_EPOCH_NUM = 2;
 
 const unsigned int MAINNET_CHAIN_ID = 1;
 
+// ISOLATED SERVER TOGGLE
+
+extern bool ISOLATED_SERVER;
+
 // Testing parameters
 
 // Metadata type

@@ -36,7 +36,7 @@ using namespace Contract;
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
 
-  if (ENABLE_SC && !LOOKUP_NODE_MODE) {
+  if (ENABLE_SC && (!LOOKUP_NODE_MODE || ISOLATED_SERVER)) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
