@@ -118,6 +118,8 @@ int main(int argc, const char* argv[]) {
 
     LOG_MARKER();
 
+    ISOLATED_SERVER = true;
+
     createConfigFile();
 
     PairOfKey key;
