@@ -78,6 +78,8 @@ ReadVerifierExclusionListFromConstantsFile() {
   return result;
 }
 
+bool ISOLATED_SERVER = false;
+
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
