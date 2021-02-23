@@ -77,9 +77,17 @@ class LookupServer : public Server,
                                   Json::Value& response) {
     response = this->GetDsBlock(request[0u].asString());
   }
+  inline virtual void GetDsBlockVerboseI(const Json::Value& request,
+                                         Json::Value& response) {
+    response = this->GetDsBlock(request[0u].asString(), true);
+  }
   inline virtual void GetTxBlockI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetTxBlock(request[0u].asString());
+  }
+  inline virtual void GetTxBlockVerboseI(const Json::Value& request,
+                                         Json::Value& response) {
+    response = this->GetTxBlock(request[0u].asString(), true);
   }
   inline virtual void GetLatestDsBlockI(const Json::Value& request,
                                         Json::Value& response) {
@@ -248,8 +256,8 @@ class LookupServer : public Server,
                                 const CreateTransactionTargetFunc& targetFunc);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
-  Json::Value GetDsBlock(const std::string& blockNum);
-  Json::Value GetTxBlock(const std::string& blockNum);
+  Json::Value GetDsBlock(const std::string& blockNum, bool verbose = false);
+  Json::Value GetTxBlock(const std::string& blockNum, bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalance(const std::string& address);
