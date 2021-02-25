@@ -99,8 +99,9 @@ namespace dev
 #if ETH_DEBUG
             if (_v == Verification::Normal)
 #endif
-            if (!node(m_root).size())
+            if (!node(m_root).size()) {
                 BOOST_THROW_EXCEPTION(RootNotFound());
+            }
         }
 
         /// True if the trie is uninitialised (i.e. that the DB doesn't contain the root node).
