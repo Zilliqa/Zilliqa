@@ -8,6 +8,12 @@ endif(CMAKE_CONFIGURATION_TYPES)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
+
+add_executable (Test_AddressConversion Test_AddressConversion.cpp)
+target_include_directories (Test_AddressConversion PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_AddressConversion PUBLIC Utils)
+add_test(NAME Test_AddressConversion COMMAND Test_AddressConversion)
+
 add_executable (Test_TimeLockedFunction Test_TimeLockedFunction.cpp)
 target_include_directories (Test_TimeLockedFunction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_TimeLockedFunction PUBLIC Utils)
