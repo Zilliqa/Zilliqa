@@ -66,6 +66,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the current sender address for each hop of invoking
   Address m_curSenderAddr;
 
+  /// the address of transaction sender
+  Address m_originAddr;
+
   /// the transfer amount while executing each txn
   uint128_t m_curAmount{0};
 

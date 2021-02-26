@@ -120,7 +120,7 @@ uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
   return bnum;
 }
 
-// Return the _amount in message.json. Remove that and _sender.
+// Return the _amount in message.json. Remove _amount, _sender and _origin.
 uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
   LOG_GENERAL(INFO, JSONUtils::GetInstance().convertJsontoStr(message));
   uint64_t amount;
@@ -129,9 +129,10 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
   } catch (...) {
     amount = boost::lexical_cast<uint64_t>(message["_amount"].asString());
   }
-  // Remove _amount and _sender as they will be automatically inserted.
+  // Remove _amount, _sender and _origin as they will be automatically inserted.
   message.removeMember("_amount");
   message.removeMember("_sender");
+  message.removeMember("_origin");
 
   std::string msgStr = JSONUtils::GetInstance().convertJsontoStr(message);
   data = bytes(msgStr.begin(), msgStr.end());

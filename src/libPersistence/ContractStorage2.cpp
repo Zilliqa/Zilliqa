@@ -118,6 +118,22 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
                                        unsigned int s_offset, bytes& dst,
                                        unsigned int d_offset, bool& foundVal,
                                        bool getType, string& type) {
+  if (s_offset > src.size()) {
+    LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
+                             << src.size() << ", offset " << s_offset);
+    return false;
+  }
+
+  ProtoScillaQuery query;
+  query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
+  return FetchStateValue(addr, query, dst, d_offset, foundVal, getType, type);
+}
+
+bool ContractStorage2::FetchStateValue(const dev::h160& addr,
+                                       const ProtoScillaQuery& query,
+                                       bytes& dst, unsigned int d_offset,
+                                       bool& foundVal, bool getType,
+                                       string& type) {
   if (LOG_SC) {
     LOG_MARKER();
   }
@@ -126,17 +142,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
 
   foundVal = true;
 
-  if (s_offset > src.size()) {
-    LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
-                             << src.size() << ", offset " << s_offset);
-  }
   if (d_offset > dst.size()) {
     LOG_GENERAL(WARNING, "Invalid dst data and offset, data size "
                              << dst.size() << ", offset " << d_offset);
   }
-
-  ProtoScillaQuery query;
-  query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
   if (!query.IsInitialized()) {
     LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaQuery failed");
@@ -160,7 +169,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
     if (t_type.empty()) {
       LOG_GENERAL(WARNING, "Failed to fetch type for addr: "
                                << addr.hex() << " vname: " << query.name());
-      return false;
+      foundVal = false;
+      return true;
     }
     try {
       type = DataConversion::CharArrayToString(t_type[type_key]);
@@ -168,7 +178,10 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
       LOG_GENERAL(WARNING, "Invalid type fetched for key="
                                << type_key << " for addr=" << addr.hex() << ": "
                                << e.what());
+      return false;
     }
+    // If not interested in the value, exit early.
+    if (query.indices().empty() && query.ignoreval()) return true;
   }
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
@@ -228,14 +241,8 @@ bool ContractStorage2::FetchStateValue(const dev::h160& addr, const bytes& src,
         }
         bval = DataConversion::StringToCharArray(m_stateDataDB.Lookup(key));
       } else {
-        if (query.mapdepth() == 0) {
-          // for non-map value, should be existing in db otherwise error
-          return false;
-        } else {
-          // for in-map value, it's okay if cannot find
-          foundVal = false;
-          return true;
-        }
+        foundVal = false;
+        return true;
       }
     }
 
@@ -391,12 +398,14 @@ bool ContractStorage2::FetchExternalStateValue(
     }
   }
 
-  // get target version if not available
+  // get target version
   std::map<std::string, bytes> t_target_version;
   string version_key = GenerateStorageKey(target, SCILLA_VERSION_INDICATOR, {});
   FetchStateDataForKey(t_target_version, version_key, true);
   if (t_target_version.empty()) {
-    return false;
+    // It looks like the target contract doesn't exist.
+    foundVal = false;
+    return true;
   }
 
   uint32_t target_version;
@@ -415,9 +424,60 @@ bool ContractStorage2::FetchExternalStateValue(
     return false;
   }
 
+  // External state queries don't have map depth set. Get it from the database.
+  if (s_offset > src.size() || d_offset > dst.size()) {
+    LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
+    return false;
+  }
+
+  ProtoScillaQuery query;
+  query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
+
+  std::string special_query;
+  if (query.name() == "_balance") {
+    uint128_t balance = AccountStore::GetInstance().GetBalance(target);
+    special_query = balance.convert_to<string>();
+    type = "Uint128";
+  } else if (query.name() == "_nonce") {
+    uint128_t nonce = AccountStore::GetInstance().GetNonceTemp(target);
+    special_query = nonce.convert_to<string>();
+    type = "Uint128";
+  } else if (query.name() == "_this_address") {
+    special_query = target.hex();
+    type = "ByStr20";
+  } else if (query.name() == "_scilla_version") {
+    special_query = std::to_string(target_version);
+    type = "Uint32";
+  }
+
+  if (!special_query.empty()) {
+    ProtoScillaVal value;
+    value.set_bval(special_query.data(), special_query.size());
+    return SerializeToArray(value, dst, 0);
+    foundVal = true;
+    return true;
+  }
+
+  map<string, bytes> map_depth;
+  string map_depth_key =
+      GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
+  FetchStateDataForKey(map_depth, map_depth_key, true);
+
+  int map_depth_val;
+  try {
+    map_depth_val = !map_depth.empty()
+                        ? std::stoi(DataConversion::CharArrayToString(
+                              map_depth[map_depth_key]))
+                        : -1;
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "invalid map depth: " << version_key << endl
+                                               << e.what());
+    return false;
+  }
+  query.set_mapdepth(map_depth_val);
+
   // get value
-  return FetchStateValue(target, src, s_offset, dst, d_offset, foundVal, true,
-                         type);
+  return FetchStateValue(target, query, dst, d_offset, foundVal, true, type);
 }
 
 void ContractStorage2::DeleteByPrefix(const string& prefix) {
