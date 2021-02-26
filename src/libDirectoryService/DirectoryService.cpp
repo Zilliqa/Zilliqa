@@ -311,11 +311,13 @@ bool DirectoryService::ProcessSetPrimary(
 
   if ((m_consensusMyID < POW_PACKET_SENDERS) ||
       (primary == m_mediator.m_selfPeer)) {
+    m_powSubmissionWindowExpired = false;
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+    m_powSubmissionWindowExpired = true;
 
     // create and send POW submission packets
     auto func = [this]() mutable -> void {
@@ -473,6 +475,8 @@ bool DirectoryService::CleanVariables() {
   m_mediator.m_consensusID = 0;
 
   m_forceMulticast = false;
+
+  m_powSubmissionWindowExpired = false;
 
   return true;
 }
@@ -714,7 +718,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
-
+    m_powSubmissionWindowExpired = false;
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
@@ -722,7 +726,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
 
     this_thread::sleep_for(
         chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
-
+    m_powSubmissionWindowExpired = true;
     // create and send POW submission packets
     auto func = [this]() mutable -> void {
       this->SendPoWPacketSubmissionToOtherDSComm();
@@ -744,6 +748,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
+    m_powSubmissionWindowExpired = false;
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
@@ -752,6 +757,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool isRejoin) {
                             << (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
                                    POW_WINDOW_IN_SECONDS
                             << " seconds");
+      m_powSubmissionWindowExpired = true;
       // if i am suppose to create pow submission packet for other DS members
       if (m_consensusMyID < POW_PACKET_SENDERS) {
         // create and send POW submission packets
