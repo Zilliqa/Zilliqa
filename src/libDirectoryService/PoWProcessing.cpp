@@ -535,7 +535,7 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
   }
 }
 
-void DirectoryService::ClearReputationOfNodeFailToJoin(
+void DirectoryService::RemoveReputationOfNodeFailToJoin(
     const DequeOfShard& shards, std::map<PubKey, uint16_t>& mapNodeReputation) {
   std::set<PubKey> allShardNodePubKey;
   for (const auto& shard : shards) {
@@ -544,42 +544,80 @@ void DirectoryService::ClearReputationOfNodeFailToJoin(
     }
   }
 
-  for (auto& kv : mapNodeReputation) {
-    if (allShardNodePubKey.find(kv.first) == allShardNodePubKey.end()) {
-      kv.second = 0;
+  for (auto iter = mapNodeReputation.begin();
+       iter != mapNodeReputation.end();) {
+    if (allShardNodePubKey.find(iter->first) == allShardNodePubKey.end()) {
+      iter = mapNodeReputation.erase(iter);
+    } else {
+      ++iter;
     }
   }
 }
 
 std::set<PubKey> DirectoryService::FindTopPriorityNodes(
     uint8_t& lowestPriority) {
-  std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
-  vecNodePriority.reserve(m_allPoWs.size());
+  std::list<std::pair<PubKey, uint8_t>> listNodePriority;
+  std::list<std::pair<PubKey, uint8_t>> listNewNodes;
+  // Iterate PoWs based on key ordering in the map
   for (const auto& kv : m_allPoWs) {
     const auto& pubKey = kv.first;
-    auto reputation = m_mapNodeReputation[pubKey];
-    auto priority = CalculateNodePriority(reputation);
-    vecNodePriority.emplace_back(pubKey, priority);
-    LOG_GENERAL(INFO, "Node " << pubKey << " reputation " << reputation
-                              << " priority " << std::to_string(priority));
+    auto reputation = m_mapNodeReputation.find(pubKey);
+    if (reputation != m_mapNodeReputation.end()) {
+      // listNodePriority is now ordered by key and contains only entries in
+      // m_allPoWs with reputation in m_mapNodeReputation
+      auto priority = CalculateNodePriority(reputation->second);
+      listNodePriority.emplace_back(pubKey, priority);
+      LOG_GENERAL(INFO, "Node=" << pubKey
+                                << " Reputation=" << reputation->second
+                                << " Priority=" << std::to_string(priority));
+    } else {
+      // listNewNodes is now ordered by key and contains only entries in
+      // m_allPoWs with no reputation (i.e., new miners)
+      listNewNodes.emplace_back(pubKey, MIN_NODE_REPUTATION_PRIORITY);
+      LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(none)");
+    }
   }
 
-  std::sort(vecNodePriority.begin(), vecNodePriority.end(),
-            [](const std::pair<PubKey, uint8_t>& kv1,
-               const std::pair<PubKey, uint8_t>& kv2) {
-              return kv1.second > kv2.second;
-            });
+  // listNodePriority is now ordered by priority (descending), then by key (for
+  // those with same priority)
+  listNodePriority.sort([](const std::pair<PubKey, uint8_t>& kv1,
+                           const std::pair<PubKey, uint8_t>& kv2) {
+    return kv1.second > kv2.second;
+  });
 
+  // Find the first node with priority < MIN_NODE_REPUTATION_PRIORITY
+  auto cutoffNode =
+      std::find_if(listNodePriority.begin(), listNodePriority.end(),
+                   [](const std::pair<PubKey, uint8_t>& kv) {
+                     return kv.second < MIN_NODE_REPUTATION_PRIORITY;
+                   });
+  const unsigned int numLoPriorityNodes =
+      std::distance(cutoffNode, listNodePriority.end());
+  const unsigned int numHiPriorityNodes =
+      listNodePriority.size() - numLoPriorityNodes;
+
+  LOG_GENERAL(INFO, "PoW count = " << m_allPoWs.size());
+  LOG_GENERAL(INFO, "Nodes with hi rep = " << numHiPriorityNodes);
+  LOG_GENERAL(INFO, "Nodes with lo rep = " << numLoPriorityNodes);
+  LOG_GENERAL(INFO, "Nodes with no rep = " << listNewNodes.size());
+
+  // Insert the new miners ahead of the low-priority nodes
+  // List order is now:
+  // (1) Existing miners with priority >= MIN_NODE_REPUTATION_PRIORITY
+  // (2) New miners with dummy priority = MIN_NODE_REPUTATION_PRIORITY
+  // (3) Existing miners with priority < MIN_NODE_REPUTATION_PRIORITY
+  listNodePriority.splice(cutoffNode, listNewNodes);
+
+  // Convert the list into set and reduce to MAX_SHARD_NODE_NUM
   std::set<PubKey> setTopPriorityNodes;
-  for (size_t i = 0; i < MAX_SHARD_NODE_NUM && i < vecNodePriority.size();
-       ++i) {
-    setTopPriorityNodes.insert(vecNodePriority[i].first);
-    lowestPriority = vecNodePriority[i].second;
+  auto iterCopyEnd = listNodePriority.begin();
+  std::advance(iterCopyEnd, listNodePriority.size() > MAX_SHARD_NODE_NUM
+                                ? MAX_SHARD_NODE_NUM
+                                : listNodePriority.size());
+  for (auto iter = listNodePriority.begin(); iter != iterCopyEnd; iter++) {
+    setTopPriorityNodes.insert(iter->first);
+    lowestPriority = iter->second;
   }
 
-  // Because the oldest DS commitee member still need to keep in the network as
-  // shard node even it didn't do PoW, so also put it into the priority node
-  // list.
-  setTopPriorityNodes.insert(m_mediator.m_DSCommittee->back().first);
   return setTopPriorityNodes;
 }

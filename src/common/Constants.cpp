@@ -464,6 +464,8 @@ const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadConstantNumeric("MAX_SHARD_NODE_NUM", "node.pow.")};
+const uint8_t MIN_NODE_REPUTATION_PRIORITY{static_cast<uint8_t>(
+    ReadConstantNumeric("MIN_NODE_REPUTATION_PRIORITY", "node.pow."))};
 const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("MISORDER_TOLERANCE_IN_PERCENT", "node.pow.")};
 const unsigned int DSBLOCK_EXTRA_WAIT_TIME{
