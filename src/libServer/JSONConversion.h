@@ -30,12 +30,17 @@ class JSONConversion {
   // converts a uint32_t array to JSON array containing shard ids
   static const Json::Value convertMicroBlockInfoArraytoJson(
       const std::vector<MicroBlockInfo>& v);
+  // convert a boolean vector to a json boolean vector
+  static const Json::Value convertBooleanVectorToJson(
+      const std::vector<bool>& B);
   // converts a TxBlock to JSON object
-  static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
+  static const Json::Value convertTxBlocktoJson(const TxBlock& txblock,
+                                                bool verbose = false);
   // converts raw TxBlock to JSON object (for staking)
   static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);
   // converts a DSBlocck to JSON object
-  static const Json::Value convertDSblocktoJson(const DSBlock& dsblock);
+  static const Json::Value convertDSblocktoJson(const DSBlock& dsblock,
+                                                bool verbose = false);
   // converts raw DSBlock to JSON object (for staking)
   static const Json::Value convertRawDSBlocktoJson(const DSBlock& dsblock);
   // converts a JSON to Tx
@@ -62,6 +67,8 @@ class JSONConversion {
   // Convert Json to keys for getting merkle proof
   static const std::vector<std::pair<std::string, std::vector<std::string>>>
   convertJsonArrayToKeys(const Json::Value& _json);
+  // Convert Software Info to Json
+  static const Json::Value convertSWInfotoJson(const SWInfo& swInfo);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_JSONCONVERSION_H_
