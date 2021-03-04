@@ -123,11 +123,15 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
-const char SCILLA_INDEX_SEPARATOR = 0x16;
+constexpr char SCILLA_INDEX_SEPARATOR = 0x16;
 
-const float ONE_HUNDRED_PERCENT = 100.f;
+constexpr float ONE_HUNDRED_PERCENT = 100.f;
 
-const unsigned int GENESIS_DSBLOCK_VERSION = 1;
+constexpr unsigned int GENESIS_DSBLOCK_VERSION = 1;
+
+constexpr uint16_t MAX_REPUTATION =
+    4096;  // This means the max priority is 12. A node need to continually
+           // run for 5 days to achieve this reputation.
 
 // General constants
 extern const unsigned int DEBUG_LEVEL;

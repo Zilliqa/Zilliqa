@@ -556,25 +556,50 @@ void DirectoryService::RemoveReputationOfNodeFailToJoin(
 
 std::set<PubKey> DirectoryService::FindTopPriorityNodes(
     uint8_t& lowestPriority) {
+  LOG_MARKER();
+
   std::list<std::pair<PubKey, uint8_t>> listNodePriority;
   std::list<std::pair<PubKey, uint8_t>> listNewNodes;
+
+  const auto size =
+      std::min(MAX_SHARD_NODE_NUM, (unsigned int)m_allPoWs.size());
+  const auto maxPriority = CalculateNodePriority(MAX_REPUTATION);
+
+  // maxShardGuards will be >= to trimmedGuardCount in SortPoWSoln
+  // But trimming in SortPoWSoln ensures there will be no more than
+  // SHARD_GUARD_TOL percent of shard guards
+  auto maxShardGuards = std::ceil(SHARD_GUARD_TOL * size);
+  uint32_t guardCounts = 0;
+
   // Iterate PoWs based on key ordering in the map
   for (const auto& kv : m_allPoWs) {
     const auto& pubKey = kv.first;
-    auto reputation = m_mapNodeReputation.find(pubKey);
-    if (reputation != m_mapNodeReputation.end()) {
-      // listNodePriority is now ordered by key and contains only entries in
-      // m_allPoWs with reputation in m_mapNodeReputation
-      auto priority = CalculateNodePriority(reputation->second);
-      listNodePriority.emplace_back(pubKey, priority);
-      LOG_GENERAL(INFO, "Node=" << pubKey
-                                << " Reputation=" << reputation->second
-                                << " Priority=" << std::to_string(priority));
+
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
+      if (guardCounts >= maxShardGuards) {
+        LOG_GENERAL(INFO, "Enough shard guards, skipping " << pubKey);
+        continue;
+      }
+      LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(shard guard)");
+      listNodePriority.emplace_back(pubKey, maxPriority);
+      ++guardCounts;
+
     } else {
-      // listNewNodes is now ordered by key and contains only entries in
-      // m_allPoWs with no reputation (i.e., new miners)
-      listNewNodes.emplace_back(pubKey, MIN_NODE_REPUTATION_PRIORITY);
-      LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(none)");
+      auto reputation = m_mapNodeReputation.find(pubKey);
+      if (reputation != m_mapNodeReputation.end()) {
+        uint8_t priority = CalculateNodePriority(reputation->second);
+        LOG_GENERAL(INFO, "Node=" << pubKey
+                                  << " Reputation=" << reputation->second
+                                  << " Priority=" << std::to_string(priority));
+        // listNodePriority is now ordered by key and contains only entries in
+        // m_allPoWs with reputation in m_mapNodeReputation
+        listNodePriority.emplace_back(pubKey, priority);
+      } else {
+        // listNewNodes is now ordered by key and contains only entries in
+        // m_allPoWs with no reputation (i.e., new miners)
+        listNewNodes.emplace_back(pubKey, MIN_NODE_REPUTATION_PRIORITY);
+        LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(none)");
+      }
     }
   }
 
