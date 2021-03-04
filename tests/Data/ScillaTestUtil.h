@@ -19,6 +19,7 @@
 #define __SCILLATESTUTIL_H__
 
 #include "boost/multiprecision/cpp_int.hpp"
+#include "libData/AccountData/Address.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 
@@ -42,6 +43,14 @@ uint64_t GetFileSize(const std::string &filename);
 // "version" is used only if ENABLE_SCILLA_MULTI_VERSION is set.
 bool GetScillaTest(ScillaTest &t, const std::string &contrName, unsigned int i,
                    const std::string &version = "0", bool isLibrary = false);
+
+bool GetScillaDeployment(ScillaTest &t, const std::string &contrName,
+                         const std::string &estatej_file,
+                         const std::string &initj_file,
+                         const std::string &blockchainj_file,
+                         const std::string &outputj_file,
+                         const std::string &version);
+
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.
@@ -50,6 +59,21 @@ uint64_t PrepareMessageData(Json::Value &message, bytes &data);
 bool RemoveCreationBlockFromInit(Json::Value &init);
 // Remove _this_address field from init JSON.
 bool RemoveThisAddressFromInit(Json::Value &init);
+
+// Parse a state JSON into a C++ map, for current contract address
+// and all the external addresses it may interact with.
+bool parseStateJSON(
+    const Address &contrAddr, const Json::Value &state,
+    const std::unordered_map<Address, std::unordered_map<std::string, int>>
+        &mapdepths,
+    std::map<Address, std::map<std::string, bytes>> &state_entries,
+    std::unordered_map<Address, uint128_t> &balances,
+    std::unordered_map<Address, uint64_t> &nonces);
+
+// Change the format of a state JSON from the Scilla style to
+// the style returned by ContractStorage2::FetchStateJsonForContract().
+bool TransformStateJsonFormat(const Json::Value &input, Json::Value &output);
+
 }  // end namespace ScillaTestUtil
 
 #endif  // __SCILLATESTUTIL_H__

@@ -379,52 +379,6 @@ bool ContractStorage2::FetchExternalStateValue(
     const dev::h160& caller, const dev::h160& target, const bytes& src,
     unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
     string& type, uint32_t caller_version) {
-  // get caller version if not available
-  if (caller_version == std::numeric_limits<uint32_t>::max()) {
-    std::map<std::string, bytes> t_caller_version;
-    string version_key =
-        GenerateStorageKey(caller, SCILLA_VERSION_INDICATOR, {});
-    FetchStateDataForKey(t_caller_version, version_key, true);
-    if (t_caller_version.empty()) {
-      return false;
-    }
-    try {
-      caller_version = std::stoul(
-          DataConversion::CharArrayToString(t_caller_version[version_key]));
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "invalid caller_version " << version_key << endl
-                                                     << e.what());
-      return false;
-    }
-  }
-
-  // get target version
-  std::map<std::string, bytes> t_target_version;
-  string version_key = GenerateStorageKey(target, SCILLA_VERSION_INDICATOR, {});
-  FetchStateDataForKey(t_target_version, version_key, true);
-  if (t_target_version.empty()) {
-    // It looks like the target contract doesn't exist.
-    foundVal = false;
-    return true;
-  }
-
-  uint32_t target_version;
-  try {
-    target_version = std::stoul(
-        DataConversion::CharArrayToString(t_target_version[version_key]));
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "invalid target_version: " << version_key << endl
-                                                    << e.what());
-    return false;
-  }
-
-  if (target_version != caller_version) {
-    LOG_GENERAL(WARNING, "Caller(" << caller_version << ") target("
-                                   << target_version << ") version mismatch");
-    return false;
-  }
-
-  // External state queries don't have map depth set. Get it from the database.
   if (s_offset > src.size() || d_offset > dst.size()) {
     LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
     return false;
@@ -434,30 +388,35 @@ bool ContractStorage2::FetchExternalStateValue(
   query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
   std::string special_query;
+  Account* account = AccountStore::GetInstance().GetAccountTemp(target);
+  if (!account) {
+    foundVal = false;
+    return true;
+  }
   if (query.name() == "_balance") {
-    uint128_t balance = AccountStore::GetInstance().GetBalance(target);
-    special_query = balance.convert_to<string>();
+    uint128_t balance = account->GetBalance();
+    special_query = "\"" + balance.convert_to<string>() + "\"";
     type = "Uint128";
   } else if (query.name() == "_nonce") {
-    uint128_t nonce = AccountStore::GetInstance().GetNonceTemp(target);
-    special_query = nonce.convert_to<string>();
-    type = "Uint128";
+    uint128_t nonce = account->GetNonce();
+    special_query = "\"" + nonce.convert_to<string>() + "\"";
+    type = "Uint64";
   } else if (query.name() == "_this_address") {
-    special_query = target.hex();
-    type = "ByStr20";
-  } else if (query.name() == "_scilla_version") {
-    special_query = std::to_string(target_version);
-    type = "Uint32";
+    if (account->isContract()) {
+      special_query = "\"0x" + target.hex() + "\"";
+      type = "ByStr20";
+    }
   }
 
   if (!special_query.empty()) {
     ProtoScillaVal value;
     value.set_bval(special_query.data(), special_query.size());
-    return SerializeToArray(value, dst, 0);
+    SerializeToArray(value, dst, 0);
     foundVal = true;
     return true;
   }
 
+  // External state queries don't have map depth set. Get it from the database.
   map<string, bytes> map_depth;
   string map_depth_key =
       GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
@@ -470,8 +429,7 @@ bool ContractStorage2::FetchExternalStateValue(
                               map_depth[map_depth_key]))
                         : -1;
   } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "invalid map depth: " << version_key << endl
-                                               << e.what());
+    LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
     return false;
   }
   query.set_mapdepth(map_depth_val);
