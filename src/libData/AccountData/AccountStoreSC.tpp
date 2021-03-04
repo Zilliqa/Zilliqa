@@ -449,6 +449,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
+      m_originAddr = fromAddr;
+
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -879,6 +881,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     msgObj["_sender"] =
         prepend +
         Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+    msgObj["_origin"] = prepend + m_originAddr.hex();
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
@@ -971,8 +974,13 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 
       bool hasMap = false;
 
-      if (root["contract_info"].isMember("fields")) {
-        for (const auto& field : root["contract_info"]["fields"]) {
+      auto handleTypeForStateVar = [&](const Json::Value& stateVars) {
+        if (!stateVars.isArray()) {
+          LOG_GENERAL(WARNING, "An array of state variables expected."
+                                   << stateVars.toStyledString());
+          return false;
+        }
+        for (const auto& field : stateVars) {
           if (field.isMember("vname") && field.isMember("depth") &&
               field["depth"].isNumeric() && field.isMember("type")) {
             metadata.emplace(
@@ -993,6 +1001,19 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
                         "Unexpected field detected" << field.toStyledString());
             return false;
           }
+        }
+        return true;
+      };
+
+      // We include contract parameters along with the mutable state.
+      if (root["contract_info"].isMember("params")) {
+        if (!handleTypeForStateVar(root["contract_info"]["params"])) {
+          return false;
+        }
+      }
+      if (root["contract_info"].isMember("fields")) {
+        if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
+          return false;
         }
       }
 
@@ -1376,6 +1397,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       Json::Value input_message;
       input_message["_sender"] = "0x" + curContractAddr.hex();
+      input_message["_origin"] = "0x" + m_originAddr.hex();
       input_message["_amount"] = msg["_amount"];
       input_message["_tag"] = msg["_tag"];
       input_message["params"] = msg["params"];

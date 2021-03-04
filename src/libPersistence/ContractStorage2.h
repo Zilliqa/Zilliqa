@@ -33,7 +33,7 @@
 
 #include "depends/libTrie/TrieDB.h"
 
-class ProtoScillaVal;
+class ProtoScillaQuery;
 
 namespace Contract {
 
@@ -133,6 +133,11 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
                        bool& foundVal, bool getType = false,
+                       std::string& type = type_placeholder);
+
+  bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,
+                       bytes& dst, unsigned int d_offset, bool& foundVal,
+                       bool getType = false,
                        std::string& type = type_placeholder);
 
   bool FetchExternalStateValue(

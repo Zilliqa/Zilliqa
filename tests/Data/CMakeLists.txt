@@ -29,7 +29,7 @@ add_test(NAME Test_TxnOrder COMMAND Test_TxnOrder)
 
 add_executable(Test_Contract Test_Contract.cpp ScillaTestUtil.cpp)
 target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_Contract PUBLIC AccountData Trie Utils Persistence)
+target_link_libraries(Test_Contract PUBLIC AccountData Trie Utils Persistence Message)
 add_test(NAME Test_Contract COMMAND Test_Contract)
 
 add_executable(Test_EIP Test_EIP.cpp)
@@ -39,7 +39,7 @@ add_test(NAME Test_EIP COMMAND Test_EIP)
 
 add_executable(Test_DSPowSolution Test_DSPowSolution.cpp)
 target_include_directories(Test_DSPowSolution PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_DSPowSolution PUBLIC TestUtils MiningData)
+target_link_libraries(Test_DSPowSolution PUBLIC TestUtils AccountData MiningData)
 add_test(NAME Test_DSPowSolution COMMAND Test_DSPowSolution)
 
 #add_executable(Test_ContractInvoke Test_ContractInvoke.cpp)
