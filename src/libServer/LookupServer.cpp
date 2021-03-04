@@ -701,8 +701,18 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
 
   try {
     uint64_t BlockNum = stoull(blockNum);
-    return JSONConversion::convertDSblocktoJson(
+    auto _json = JSONConversion::convertDSblocktoJson(
         m_mediator.m_dsBlockChain.GetBlock(BlockNum), verbose);
+    if (verbose) {
+      // also add last ds block hash
+      BlockHash prevDSHash;
+      if (BlockNum > 1) {
+        prevDSHash =
+            m_mediator.m_dsBlockChain.GetBlock(BlockNum - 1).GetBlockHash();
+      }
+      _json["PrevDSHash"] = prevDSHash.hex();
+    }
+    return _json;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (runtime_error& e) {
