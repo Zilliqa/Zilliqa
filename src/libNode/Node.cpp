@@ -1442,11 +1442,11 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
 
 uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
                                              uint32_t sizeOfShard,
-                                             const Shard& shardMembers) {
+                                             const Shard& shardMembers,
+                                             PairOfNode& shardLeader) {
   LOG_MARKER();
+  uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
   if (GUARD_MODE) {
-    uint32_t consensusLeaderIndex = lastBlockHash % sizeOfShard;
-
     unsigned int iterationCount = 0;
     while (!Guard::GetInstance().IsNodeInShardGuardList(
                std::get<SHARD_NODE_PUBKEY>(
@@ -1462,9 +1462,15 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       consensusLeaderIndex = lastBlockHash % sizeOfShard;
       iterationCount++;
     }
+    shardLeader = make_pair(
+        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
+        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
     return consensusLeaderIndex;
   } else {
-    return lastBlockHash % sizeOfShard;
+    shardLeader = make_pair(
+        std::get<SHARD_NODE_PUBKEY>(shardMembers.at(consensusLeaderIndex)),
+        std::get<SHARD_NODE_PEER>(shardMembers.at(consensusLeaderIndex)));
+    return consensusLeaderIndex;
   }
 }
 

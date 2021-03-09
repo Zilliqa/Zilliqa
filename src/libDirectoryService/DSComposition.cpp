@@ -135,11 +135,9 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
       minerInfo.m_dsNodesEjected.emplace_back(dsComm.back().first);
     }
 
-    if (dsblock.GetHeader().GetBlockNum() >= UPGRADE_TARGET_DS_NUM) {
-      // Remove this node from blacklist if it exists
-      Peer& p = dsComm.back().second;
-      Blacklist::GetInstance().Remove(p.GetIpAddress());
-    }
+    // Remove this node from blacklist if it exists
+    Peer& p = dsComm.back().second;
+    Blacklist::GetInstance().Remove(p.GetIpAddress());
     dsComm.pop_back();
   }
 

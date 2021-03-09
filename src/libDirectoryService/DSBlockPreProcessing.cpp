@@ -305,12 +305,10 @@ void DirectoryService::InjectPoWForDSNode(
       LOG_GENERAL(INFO, "Injecting into PoW connections " << rit->second);
     }
 
-    if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
-        UPGRADE_TARGET_DS_NUM) {
-      // Remove this node from blacklist if it exists
-      Peer& p = rit->second;
-      Blacklist::GetInstance().Remove(p.GetIpAddress());
-    }
+    // Remove this node from blacklist if it exists
+    Peer& p = rit->second;
+    Blacklist::GetInstance().Remove(p.GetIpAddress());
+
     ++counter;
   }
 
