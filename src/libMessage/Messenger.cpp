@@ -5041,7 +5041,7 @@ bool Messenger::SetNodeForwardTxnBlock(
       if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
         LOG_GENERAL(WARNING,
                     "Failed to dispatch txn " << txn->first.GetTranID());
-        txn = txnsCurrent.erase(txn);
+        txn = txnsGenerated.erase(txn);
       } else {
         txn++;
       }
