@@ -28,6 +28,22 @@
 
 using namespace boost::filesystem;
 
+ScillaClient::~ScillaClient() {
+  std::string cmdStr = "pkill " + SCILLA_SERVER_BINARY + " >/dev/null &";
+  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
+
+  try {
+    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
+  }
+}
+
 void ScillaClient::Init() {
   LOG_MARKER();
   if (ENABLE_SCILLA_MULTI_VERSION) {

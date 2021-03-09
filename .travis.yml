@@ -14,44 +14,42 @@ addons:
   apt:
     update: true
     packages:
-    # APT packages are organized into two groups, build dependency and
-    # development dependency, where the former is necessary for users who
-    # want to build Zilliqa whereas the latter is only for CI.
-    # Note that the names are sorted in each group.
-    #
-    # Build dependency
-    - build-essential
-    - cmake
-    - libboost-filesystem-dev
-    - libboost-program-options-dev
-    - libboost-system-dev
-    - libboost-test-dev
-    - libboost-python-dev
-    - libcurl4-openssl-dev
-    - libevent-dev
-    - libjsoncpp-dev
-    - libjsonrpccpp-dev
-    - libleveldb-dev
-    - libmicrohttpd-dev
-    - libminiupnpc-dev
-    - libsnappy-dev
-    - libssl-dev
-    - pkg-config
-    # Development dependency
-    - ccache
-    - clang-5.0
-    - clang-format-5.0
-    - clang-tidy-5.0
-    - curl
-    - gawk
-    - git
-    - lcov
-    - libxml2-utils
-    - python-dev
-    - python3-dev
-    - libsecp256k1-dev
-script:
-  - ./scripts/ci_build.sh;
+      # APT packages are organized into two groups, build dependency and
+      # development dependency, where the former is necessary for users who
+      # want to build Zilliqa whereas the latter is only for CI.
+      # Note that the names are sorted in each group.
+      #
+      # Build dependency
+      - build-essential
+      - cmake
+      - libboost-filesystem-dev
+      - libboost-program-options-dev
+      - libboost-system-dev
+      - libboost-test-dev
+      - libboost-python-dev
+      - libcurl4-openssl-dev
+      - libevent-dev
+      - libjsoncpp-dev
+      - libjsonrpccpp-dev
+      - libleveldb-dev
+      - libmicrohttpd-dev
+      - libminiupnpc-dev
+      - libsnappy-dev
+      - libssl-dev
+      - pkg-config
+      # Development dependency
+      - ccache
+      - clang-5.0
+      - clang-format-5.0
+      - clang-tidy-5.0
+      - curl
+      - gawk
+      - git
+      - lcov
+      - libxml2-utils
+      - python-dev
+      - python3-dev
+      - libsecp256k1-dev
 
 install:
   - wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
@@ -59,6 +57,11 @@ install:
   - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
   - cmake --version
   - rm cmake-3.19.3-Linux-x86_64.sh
+  - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:latest cp -r /scilla /root/
+  - ls /scilla/0/
+
+script:
+  - ./scripts/ci_build.sh;
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
