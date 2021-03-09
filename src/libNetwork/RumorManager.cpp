@@ -425,8 +425,11 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
                                  SIGNATURE_RESPONSE_SIZE,
                              message.end());
 
-    if (!P2PComm::GetInstance().VerifyMessage(message_wo_keysig, toVerify,
-                                              senderPubKey)) {
+    RawBytes tmp;
+    tmp.push_back((unsigned char)(CHAIN_ID >> 8) & 0XFF);
+    tmp.push_back((unsigned char)(CHAIN_ID & 0xFF));
+    tmp.insert(tmp.end(), message_wo_keysig.begin(), message_wo_keysig.end());
+    if (!P2PComm::GetInstance().VerifyMessage(tmp, toVerify, senderPubKey)) {
       LOG_GENERAL(WARNING,
                   "Signature verification failed. so ignoring message");
       return {false, {}};
@@ -603,11 +606,16 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
 
 void RumorManager::AppendKeyAndSignature(RawBytes& result,
                                          const RawBytes& messageToSig) {
-  // Add pubkey and signature before message body
+  // Add pubkey and signature before chainid + message body
   RawBytes tmp;
   m_selfKey.second.Serialize(tmp, 0);
 
-  Signature sig = P2PComm::GetInstance().SignMessage(messageToSig);
+  RawBytes tmp2;
+  tmp2.push_back((unsigned char)(CHAIN_ID >> 8) & 0XFF);
+  tmp2.push_back((unsigned char)(CHAIN_ID & 0xFF));
+  tmp2.insert(tmp2.end(), messageToSig.begin(), messageToSig.end());
+
+  Signature sig = P2PComm::GetInstance().SignMessage(tmp2);
   sig.Serialize(tmp, PUB_KEY_SIZE);
 
   result.insert(result.end(), tmp.begin(), tmp.end());

@@ -30,6 +30,7 @@
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
@@ -40,9 +41,32 @@ using namespace std;
 CircularArray<std::string> LookupServer::m_RecentTransactions;
 std::mutex LookupServer::m_mutexRecentTxns;
 
+namespace {
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
+
+Address ToBase16AddrHelper(const std::string& addr) {
+  using RpcEC = ServerBase::RPCErrorCode;
+
+  Address convertedAddr;
+  auto retCode = ToBase16Addr(addr, convertedAddr);
+
+  if (retCode == AddressConversionCode::INVALID_ADDR) {
+    throw JsonRpcException(RpcEC::RPC_INVALID_ADDRESS_OR_KEY,
+                           "invalid address");
+  } else if (retCode == AddressConversionCode::INVALID_BECH32_ADDR) {
+    throw JsonRpcException(RpcEC::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Bech32 address is invalid");
+  } else if (retCode == AddressConversionCode::WRONG_ADDR_SIZE) {
+    throw JsonRpcException(RpcEC::RPC_INVALID_PARAMETER,
+                           "Address size not appropriate");
+  }
+
+  return convertedAddr;
+}
+
+}  // namespace
 
 //[warning] do not make this constant too big as it loops over blockchain
 const unsigned int REF_BLOCK_DIFF = 1;
@@ -800,17 +824,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 
   try {
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
-    }
-    Address addr(tmpaddr);
-
+    Address addr{ToBase16AddrHelper(address)};
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
@@ -853,18 +867,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
   }
 
   try {
-    Json::Value _json;
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
-    }
-
-    Address addr(tmpaddr);
-
+    Address addr{ToBase16AddrHelper(address)};
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
@@ -903,19 +906,7 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
   }
 
   try {
-    Json::Value _json;
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
-    }
-
-    Address addr(tmpaddr);
-
+    Address addr{ToBase16AddrHelper(address)};
     bytes initData;
 
     {
@@ -959,16 +950,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
   }
 
   try {
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
-    }
-    Address addr(tmpaddr);
-
+    Address addr{ToBase16AddrHelper(address)};
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
@@ -1003,17 +985,7 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
   }
 
   try {
-    if (address.size() != ACC_ADDR_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Address size not appropriate");
-    }
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address is not a hex string");
-    }
-
-    Address addr(tmpaddr);
+    Address addr{ToBase16AddrHelper(address)};
 
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
