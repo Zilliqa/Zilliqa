@@ -76,10 +76,14 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
   // =======================================
 
   bytes errorMsg;
-  if (!m_msgContentValidator(announcement, offset, errorMsg, m_consensusID,
-                             m_blockNumber, m_blockHash, m_leaderID,
-                             GetCommitteeMember(m_leaderID).first,
-                             m_messageToCosign)) {
+  // Following will get us m_prePrepMicroblock.
+  MsgContentValidatorFunc func = m_msgContentValidator;
+  if (m_prePrepMsgContentValidator) {
+    func = m_prePrepMsgContentValidator;
+  }
+  if (!func(announcement, offset, errorMsg, m_consensusID, m_blockNumber,
+            m_blockHash, m_leaderID, GetCommitteeMember(m_leaderID).first,
+            m_messageToCosign)) {
     LOG_GENERAL(WARNING, "Message validation failed");
 
     if (!errorMsg.empty()) {
@@ -107,6 +111,12 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
     }
 
     return false;
+  }
+
+  // Validation of round 1 announcement is successful. Start executing
+  // background task if any.
+  if (m_postPrePrepContentValidation) {
+    m_postPrePrepContentValidation();
   }
 
   // Generate commit
@@ -314,10 +324,11 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
   m_responseMap.clear();
 
+  bytes newAnnouncementMsg;
   if (!Messenger::GetConsensusCollectiveSig(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, m_responseMap, m_collectiveSig,
-          GetCommitteeMember(m_leaderID).first)) {
+          GetCommitteeMember(m_leaderID).first, newAnnouncementMsg)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed");
     return false;
   }
@@ -339,7 +350,27 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
   if (action == PROCESS_COLLECTIVESIG) {
     // First round: consensus over part of message (e.g., DS block header)
-    // Second round: consensus over part of message + CS1 + B1
+    // Second round: consensus over part of new message + (CS1 + B1 for part of
+    // older message)
+    if (m_readinessFunc) {
+      // wait for readiness signal to start with collective sig processing.
+      if (!m_readinessFunc()) {
+        return false;
+      }
+    }
+    if (!newAnnouncementMsg.empty()) {
+      bytes errorMsg;
+      // Following will get us m_microblock.
+      bytes newMessageToCosig;
+      if (!m_msgContentValidator(
+              newAnnouncementMsg, offset, errorMsg, m_consensusID,
+              m_blockNumber, m_blockHash, m_leaderID,
+              GetCommitteeMember(m_leaderID).first, m_messageToCosign)) {
+        LOG_GENERAL(WARNING, "Message validation failed");
+        m_state = ERROR;
+        return false;
+      }
+    }
     m_collectiveSig.Serialize(m_messageToCosign, m_messageToCosign.size());
     BitVector::SetBitVector(m_messageToCosign, m_messageToCosign.size(),
                             m_responseMap);
@@ -400,16 +431,21 @@ bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
                                          PROCESS_FINALCOLLECTIVESIG, DONE);
 }
 
-ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
-                                 const bytes& block_hash, uint16_t node_id,
-                                 uint16_t leader_id, const PrivKey& privkey,
-                                 const DequeOfNode& committee,
-                                 uint8_t class_byte, uint8_t ins_byte,
-                                 MsgContentValidatorFunc msg_validator)
+ConsensusBackup::ConsensusBackup(
+    uint32_t consensus_id, uint64_t block_number, const bytes& block_hash,
+    uint16_t node_id, uint16_t leader_id, const PrivKey& privkey,
+    const DequeOfNode& committee, uint8_t class_byte, uint8_t ins_byte,
+    MsgContentValidatorFunc msg_validator,
+    MsgContentValidatorFunc preprep_msg_validator,
+    PostPrePrepValidationFunc post_preprep_validation,
+    CollectiveSigReadinessFunc collsig_readiness_func)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
                       committee, class_byte, ins_byte),
       m_leaderID(leader_id),
-      m_msgContentValidator(move(msg_validator)) {
+      m_msgContentValidator(move(msg_validator)),
+      m_prePrepMsgContentValidator(move(preprep_msg_validator)),
+      m_postPrePrepContentValidation(move(post_preprep_validation)),
+      m_readinessFunc(move(collsig_readiness_func)) {
   LOG_MARKER();
   m_state = INITIAL;
 

@@ -400,7 +400,7 @@ void Node::BeginNextConsensusRound() {
 
   ScheduleMicroBlockConsensus();
 
-  CommitTxnPacketBuffer();
+  // CommitTxnPacketBuffer();
 }
 
 bool Node::FindTxnInProcessedTxnsList(
@@ -711,7 +711,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   if (!VerifyTimestamp(
           txBlock.GetTimestamp(),
           CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
-              (TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000)) {
+              (TX_DISTRIBUTE_TIME_IN_MS + DS_ANNOUNCEMENT_DELAY_IN_MS) /
+                  1000)) {
     return false;
   }
 
@@ -1081,7 +1082,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     CommitPendingTxnBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
-        ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
+        ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
       m_mediator.m_lookup->SenderTxnBatchThread(numShards);
     }
@@ -1337,9 +1338,16 @@ bool Node::ProcessMBnForwardTransaction(
     return false;
   }
 
+  bool isDSMB = false;
+
+  {
+    std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    isDSMB = entry.m_microBlock.GetHeader().GetShardId() ==
+             m_mediator.m_ds->m_shards.size();
+  }
+
   // Verify the co-signature if not DS MB
-  if (entry.m_microBlock.GetHeader().GetShardId() !=
-          m_mediator.m_ds->m_shards.size() &&
+  if (!isDSMB &&
       !m_mediator.m_ds->VerifyMicroBlockCoSignature(
           entry.m_microBlock, entry.m_microBlock.GetHeader().GetShardId())) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -1413,20 +1421,23 @@ bool Node::ProcessMBnForwardTransaction(
                           << " shard "
                           << entry.m_microBlock.GetHeader().GetShardId());
 
-    {
-      // skip for DS microblock submission
-      std::lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-      if (entry.m_microBlock.GetHeader().GetShardId() ==
-          m_mediator.m_ds->m_shards.size()) {
-        return true;
-      }
+    // skip soft confirmation for DSMB
+    if (isDSMB) {
+      return true;
     }
 
     // shard microblock only:
     // pre-process of early MBnForwardTxn submission
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
-    // [TODO] invoke txn distribution
+    // invoke txn distribution
+    if (!m_mediator.GetIsVacuousEpoch() &&
+        ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
+             NUM_FINAL_BLOCK_PER_POW !=
+         0)) {
+      m_mediator.m_lookup->SendTxnPacketToShard(
+          entry.m_microBlock.GetHeader().GetShardId(), false, true);
+    }
 
     return true;
   }

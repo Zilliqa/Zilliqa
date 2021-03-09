@@ -83,6 +83,8 @@ class Lookup : public Executable {
   // This is used only for testing with gentxn
   std::vector<Address> m_myGenesisAccounts1;
   std::vector<Address> m_myGenesisAccounts2;
+  std::vector<Address> m_myDSGenesisAccounts1;
+  std::vector<Address> m_myDSGenesisAccounts2;
 
   // To ensure that the confirm of DS node rejoin won't be later than
   // It receiving a new DS block
@@ -129,6 +131,8 @@ class Lookup : public Executable {
   std::mutex m_mutexMicroBlocksBuffer;
 
   TxnShardMap m_txnShardMap;
+  TxnShardMap m_txnShardMapGenerated;
+  std::map<Address, uint64_t> m_gentxnAddrLatestNonceSent;
 
   // Get StateDeltas from seed
   std::mutex m_mutexSetStateDeltasFromSeed;
@@ -193,6 +197,7 @@ class Lookup : public Executable {
   VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
+  std::mutex m_txnShardMapGeneratedMutex;
 
   std::deque<std::pair<Transaction, uint32_t>>& GetTxnFromShardMap(
       uint32_t index);  // Use m_txnShardMapMutex with this function
@@ -314,9 +319,17 @@ class Lookup : public Executable {
 
   bool GetIsServer();
 
-  void SenderTxnBatchThread(const uint32_t);
+  void SenderTxnBatchThread(const uint32_t, bool newDSEpoch = false);
 
-  void SendTxnPacketToNodes(const uint32_t, const uint32_t);
+  void SendTxnPacketPrepare(const uint32_t oldNumShards,
+                            const uint32_t newNumShards);
+  void SendTxnPacketToNodes(const uint32_t oldNumShards,
+                            const uint32_t newNumShards);
+  void SendTxnPacketToDS(const uint32_t oldNumShards,
+                         const uint32_t newNumShards);
+  void SendTxnPacketToShard(const uint32_t shardId, bool toDS,
+                            bool afterSoftConfirmation = false);
+
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from,

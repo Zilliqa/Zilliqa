@@ -102,6 +102,8 @@ class ConsensusLeader : public ConsensusCommon {
   NodeCommitFailureHandlerFunc m_nodeCommitFailureHandlerFunc;
   ShardCommitFailureHandlerFunc m_shardCommitFailureHandlerFunc;
 
+  AnnouncementGeneratorFunc m_collSigAnnouncementGeneratorFunc;
+
   // Internal functions
   bool CheckState(Action action);
   bool CheckStateSubset(uint16_t subsetID, Action action);
@@ -156,6 +158,7 @@ class ConsensusLeader : public ConsensusCommon {
 
   bool StartConsensus(
       const AnnouncementGeneratorFunc& announcementGeneratorFunc,
+      const AnnouncementGeneratorFunc& newAnnouncementGeneratorFunc = nullptr,
       bool useGossipProto = false);
 
   /// Function to process any consensus message received.

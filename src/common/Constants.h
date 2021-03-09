@@ -200,7 +200,8 @@ extern const std::string TXN_PATH;
 // Epoch timing constants
 extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
-extern const unsigned int ANNOUNCEMENT_DELAY_IN_MS;
+extern const unsigned int DS_ANNOUNCEMENT_DELAY_IN_MS;
+extern const unsigned int SHARD_ANNOUNCEMENT_DELAY_IN_MS;
 extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
@@ -209,6 +210,7 @@ extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
 extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
+extern const unsigned int DS_TX_PROCESSING_TIMEOUT;
 extern const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS;
 extern const unsigned int GETSHARD_TIMEOUT_IN_SECONDS;
 extern const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS;
@@ -413,6 +415,7 @@ extern const unsigned int SCILLA_CHECKER_INVOKE_GAS;
 extern const unsigned int SCILLA_RUNNER_INVOKE_GAS;
 extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int TXNS_MISSING_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
 extern const unsigned int PACKET_BYTESIZE_LIMIT;
 extern const unsigned int SMALL_TXN_SIZE;
@@ -437,6 +440,10 @@ extern const unsigned int VIEWCHANGE_TIME;
 // Genesis accounts
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
+
+// Genesis accounts for ds txn dispatching ( TEST Purpose Only )
+extern const std::vector<std::string> DS_GENESIS_WALLETS;
+extern const std::vector<std::string> DS_GENESIS_KEYS;
 
 // DBVerifier constants
 extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;

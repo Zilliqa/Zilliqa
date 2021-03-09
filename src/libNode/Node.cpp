@@ -111,13 +111,21 @@ void Node::PopulateAccounts(bool temp) {
 void Node::AddBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint128_t balance_each = TOTAL_GENESIS_TOKEN / GENESIS_WALLETS.size();
-  const uint128_t balance_left = TOTAL_GENESIS_TOKEN % (GENESIS_WALLETS.size());
+  dev::strings allGenesis;
+  allGenesis.reserve(GENESIS_WALLETS.size() +
+                     DS_GENESIS_WALLETS.size());  // preallocate memory
+  allGenesis.insert(allGenesis.end(), GENESIS_WALLETS.begin(),
+                    GENESIS_WALLETS.end());
+  allGenesis.insert(allGenesis.end(), DS_GENESIS_WALLETS.begin(),
+                    DS_GENESIS_WALLETS.end());
+
+  const uint128_t balance_each = TOTAL_GENESIS_TOKEN / allGenesis.size();
+  const uint128_t balance_left = TOTAL_GENESIS_TOKEN % (allGenesis.size());
 
   const uint64_t nonce{0};
   bool moduloCredited = false;
 
-  for (auto& walletHexStr : GENESIS_WALLETS) {
+  for (auto& walletHexStr : allGenesis) {
     bytes addrBytes;
     if (!DataConversion::HexStrToUint8Vec(walletHexStr, addrBytes)) {
       continue;
@@ -1584,6 +1592,40 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     return false;
   }
 
+  if (m_prePrepRunning) {
+    lock_guard<mutex> g(m_mutexPrePrepMissingTxnhashes);
+    if (txns.size() != m_prePrepMissingTxnhashes.size()) {
+      LOG_GENERAL(WARNING,
+                  "Expected and received number of missing txns mismatched!");
+      return false;
+    }
+
+    std::sort(m_prePrepMissingTxnhashes.begin(),
+              m_prePrepMissingTxnhashes.end());
+    std::sort(txns.begin(), txns.end(), [](const auto& l, const auto& r) {
+      return l.GetTranID() < r.GetTranID();
+    });
+    vector<TxnHash> receivedTxnHashes;
+    receivedTxnHashes.reserve(txns.size());
+    for (auto& h : txns) {
+      receivedTxnHashes.emplace_back(h.GetTranID());
+    }
+
+    if (!std::equal(m_prePrepMissingTxnhashes.begin(),
+                    m_prePrepMissingTxnhashes.end(),
+                    receivedTxnHashes.begin())) {
+      LOG_GENERAL(WARNING, "Didn't received all missing txns!");
+      return false;
+    }
+
+    m_prePrepMissingTxnhashes.clear();
+  } else {
+    LOG_GENERAL(WARNING,
+                "Submission of missing txns expected only in preprepare phase "
+                "- Rejecting submission");
+    return false;
+  }
+
   lock_guard<mutex> g(m_mutexCreatedTransactions);
   for (const auto& submittedTxn : txns) {
     MempoolInsertionStatus status;
@@ -1681,17 +1723,6 @@ bool Node::ProcessTxnPacketFromLookup(
 
   LOG_GENERAL(INFO, "Received from " << from);
 
-  // Avoid using the original message for broadcasting in case it contains
-  // excess data beyond the TxnPacket
-  bytes message2 = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
-  if (!Messenger::SetNodeForwardTxnBlock(
-          message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
-          lookupPubKey, transactions, signature)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetNodeForwardTxnBlock failed.");
-    return false;
-  }
-
   {
     // The check here is in case the lookup send the packet
     // earlier than the node receiving DS block, need to wait the
@@ -1713,13 +1744,26 @@ bool Node::ProcessTxnPacketFromLookup(
          (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
           0))) {
       SHA2<HashType::HASH_VARIANT_256> sha256;
-      sha256.Update(message2);  // message hash
+      sha256.Update(message);  // message hash
       bytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace(msg_hash, message2);
+      m_txnPacketBuffer.emplace(msg_hash, message);
       return true;
     }
   }
+
+  // for shard:
+  // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
+  // mb consensus started.
+  // 2. FB epoch: saying the 2nd epoch after ds epoch, lookup dispatch txn upon
+  // mb soft confirmation. Shard node then distribute right away until mb
+  // consensus started. During the mb consensus, all the packet received should
+  // be buffered
+
+  // for DS:
+  // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
+  // DSMB started, during DSMB and FB consensus, all packet should be buffered
+  // until the next epoch
 
   bool fromLookup = m_mediator.m_lookup->IsLookupNode(from) &&
                     from.GetPrintableIPAddress() != "127.0.0.1";
@@ -1727,41 +1771,46 @@ bool Node::ProcessTxnPacketFromLookup(
   bool properState =
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_ds->m_state == DirectoryService::MICROBLOCK_SUBMISSION) ||
+
       (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
        m_mediator.m_node->m_myshardId == 0 && m_txn_distribute_window_open &&
        m_mediator.m_ds->m_state ==
            DirectoryService::FINALBLOCK_CONSENSUS_PREP) ||
+
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
        m_txn_distribute_window_open &&
        (m_state == MICROBLOCK_CONSENSUS_PREP ||
-        m_state == MICROBLOCK_CONSENSUS));
+        m_state == MICROBLOCK_CONSENSUS || m_state == WAITING_FINALBLOCK));
 
-  if (fromLookup || !properState) {
+  if (!properState) {
     if ((epochNumber + (fromLookup ? 0 : 1)) < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    LOG_GENERAL(INFO, string(fromLookup ? "Received txn packet from lookup"
-                                        : "Received not in the proper state") +
-                          ", store txn packet to buffer");
+    LOG_GENERAL(INFO,
+                "Received not in the proper state, store txn packet to buffer");
     if (fromLookup) {
       LOG_STATE("[TXNPKTPROC]["
                 << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                 << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-                << string(lookupPubKey).substr(0, 6) << "][" << message2.size()
+                << string(lookupPubKey).substr(0, 6) << "][" << message.size()
                 << "] RECVFROMLOOKUP");
     }
     SHA2<HashType::HASH_VARIANT_256> sha256;
-    sha256.Update(message2);  // message hash
+    sha256.Update(message);  // message hash
     bytes msg_hash = sha256.Finalize();
-    m_txnPacketBuffer.emplace(msg_hash, message2);
+    m_txnPacketBuffer.emplace(msg_hash, message);
   } else {
-    LOG_GENERAL(INFO,
-                "Packet received from a non-lookup node, "
-                "should be from gossip neighbor and process it");
-    return ProcessTxnPacketFromLookupCore(message2, epochNumber, dsBlockNum,
+    // not from lookup and in proper state
+    if (fromLookup) {
+      LOG_GENERAL(INFO, "Packet received from a lookup node");
+    } else {
+      LOG_GENERAL(INFO, "Packet received from a non-lookup node");
+    }
+
+    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }
 
@@ -1783,9 +1832,30 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
     return true;
   }
 
+  SHA2<HashType::HASH_VARIANT_256> sha256;
+  sha256.Update(message);  // message hash
+  bytes msg_hash = sha256.Finalize();
+
+  {
+    lock_guard<mutex> g(m_mutexTxnPktInProcess);
+    if (!m_txnPktInProcess.emplace(msg_hash).second) {
+      // Already added to buffer until ready to be processed.
+      // This message could be duplicate one received from peer
+      // while we were waiting for original one to be signalled(cv_txnPacket)
+      // after FB is received.
+      LOG_GENERAL(
+          INFO,
+          "Already have txnpkt to be processed. So ignoring duplicate one!")
+      return false;
+    }
+  }
+
   if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPKT-BEG]["
-              << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
+    int64_t epoch = (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+                        ? epochNum
+                        : m_mediator.m_currentEpochNum;
+    LOG_STATE("[TXNPKT-RCVD]["
+              << epoch << "] PktEpoch=" << epochNum
               << " PktSize=" << message.size() << " Shard=" << shardId
               << " Lookup=" << string(lookupPubKey).substr(0, 8));
   }
@@ -1816,6 +1886,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   if (shardId != m_myshardId) {
     LOG_GENERAL(WARNING, "Wrong Shard (" << shardId << "), m_myshardId ("
                                          << m_myshardId << ")");
+    return false;
+  }
+
+  if (m_mediator.GetIsVacuousEpoch()) {
+    LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
     return false;
   }
 
@@ -1905,6 +1980,24 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 #endif  // DM_TEST_DM_MORETXN_HALF
 
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
+      m_state != MICROBLOCK_CONSENSUS_PREP) {
+    unique_lock<mutex> lk(m_mutexCVTxnPacket);
+    m_txnPacketThreadOnHold++;
+    cv_txnPacket.wait(lk,
+                      [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
+  }
+
+  if (LOG_PARAMETERS) {
+    int64_t epoch = (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+                        ? epochNum
+                        : m_mediator.m_currentEpochNum;
+    LOG_STATE("[TXNPKTPROC-BEG]["
+              << epoch << "] PktEpoch=" << epochNum
+              << " PktSize=" << message.size() << " Shard=" << shardId
+              << " Lookup=" << string(lookupPubKey).substr(0, 8));
+  }
+
   // Process the txns
   unsigned int processed_count = 0;
 
@@ -1913,10 +2006,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   std::vector<Transaction> checkedTxns;
   vector<pair<TxnHash, TxnStatus>> rejectTxns;
   for (const auto& txn : txns) {
-    if (m_mediator.GetIsVacuousEpoch()) {
-      LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
-      return false;
-    }
     TxnStatus error;
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn, error)) {
       checkedTxns.push_back(txn);
@@ -1977,7 +2066,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 
   if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPKT-END]["
+    LOG_STATE("[TXNPKTPROC-END]["
               << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
               << " PktSize=" << message.size() << " Shard=" << shardId
               << " Lookup=" << string(lookupPubKey).substr(0, 8));
@@ -1988,6 +2077,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
                               << shardId << "]["
                               << string(lookupPubKey).substr(0, 6) << "] DONE ["
                               << processed_count << "]");
+  }
+
+  if (m_txnPacketThreadOnHold > 0) {
+    m_txnPacketThreadOnHold--;
   }
 
   return true;
@@ -2261,6 +2354,10 @@ void Node::CleanCreatedTransaction() {
   {
     std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     m_txnPacketBuffer.clear();
+  }
+  {
+    std::lock_guard<mutex> g(m_mutexTxnPktInProcess);
+    m_txnPktInProcess.clear();
   }
   {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);

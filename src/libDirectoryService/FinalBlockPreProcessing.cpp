@@ -184,8 +184,42 @@ bool DirectoryService::ComposeFinalBlock() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "][" << m_finalBlock->GetHeader().GetNumTxs() << "] FINAL");
 
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Final block Composed: " << *m_finalBlock);
+  if (m_mediator.m_node->m_prePrepRunning) {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "PrePrep Final block Composed: " << *m_finalBlock);
+  } else {
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Final block Composed: " << *m_finalBlock);
+  }
+
+  m_completeFinalBlockReady = true;
+  m_cvCompleteFinalBlockReady.notify_all();
+
+  return true;
+}
+
+bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
+  LOG_MARKER();
+  unique_lock<mutex> lock(m_mediator.m_node->m_mutexMicroBlock);
+  int timeout_time = (int)DS_TX_PROCESSING_TIMEOUT;
+  LOG_GENERAL(INFO,
+              "The overall timeout for creating complete microblock and final "
+              "block will be "
+                  << timeout_time << " seconds");
+
+  // wait for final block ( with complete microblock ) to be ready
+  if (!m_completeFinalBlockReady) {
+    if (m_cvCompleteFinalBlockReady.wait_for(
+            lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
+      // timed out
+      LOG_GENERAL(INFO,
+                  "Timed out waiting for complete finalblock being ready.");
+      m_completeFinalBlockReady = false;
+      return false;
+    }
+  }
+  LOG_GENERAL(DEBUG,
+              "Complete Final Block is ready to be sent for round 2 consensus");
 
   return true;
 }
@@ -213,30 +247,30 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating final block");
 
-  if (m_mediator.ToProcessTransaction()) {
-    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
-    if (!AccountStore::GetInstance().SerializeDelta()) {
-      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
-      return false;
-    }
-  }
-  AccountStore::GetInstance().CommitTempRevertible();
-
-  if (!m_mediator.m_node->ComposeMicroBlock(m_microBlockGasLimit)) {
-    LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
-    m_mediator.m_node->m_microblock = nullptr;
+  if (!m_mediator.m_node->ComposePrePrepMicroBlock(m_microBlockGasLimit)) {
+    LOG_GENERAL(WARNING, "DS ComposePrePrepMicroBlock Failed");
+    m_mediator.m_node->m_prePrepMicroblock = nullptr;
   } else {
     lock_guard<mutex> g(m_mutexMicroBlocks);
     m_microBlocks[m_mediator.m_currentEpochNum].emplace(
-        *(m_mediator.m_node->m_microblock));
+        *(m_mediator.m_node->m_prePrepMicroblock));
   }
 
-  // stores it in m_finalBlock
+  // stores it in m_finalBlock with preprep microblock
   if (!ComposeFinalBlock()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary failed");
+              "DS ComposeFinalBlock (pre-prep) failed");
     return false;
   }
+
+  // Remove the preprep microblock from microblocks list now
+  if (m_mediator.m_node->m_prePrepMicroblock) {
+    m_microBlocks[m_mediator.m_currentEpochNum].erase(
+        *(m_mediator.m_node->m_prePrepMicroblock));
+  }
+
+  m_mediator.m_node->m_prePrepRunning = false;
+  m_completeFinalBlockReady = false;
 
 #ifdef VC_TEST_FB_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
@@ -290,17 +324,63 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
         << "] BEGIN");
   }
 
-  auto announcementGeneratorFunc =
+  auto preprepFBAnnouncementGeneratorFunc =
       [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
              const uint64_t blockNumber, const bytes& blockHash,
              const uint16_t leaderID, const PairOfKey& leaderKey,
              bytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSFinalBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
-        *m_finalBlock, m_mediator.m_node->m_microblock, messageToCosign);
+        *m_finalBlock, m_mediator.m_node->m_prePrepMicroblock, messageToCosign);
   };
 
-  cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
+  auto newFBAnnouncementReadinessFunc =
+      [this](bytes& newAnnouncement, unsigned int offset,
+             const uint32_t consensusID, const uint64_t blockNumber,
+             const bytes& blockHash, const uint16_t leaderID,
+             const PairOfKey& leaderKey,
+             bytes& messageToCosign) mutable -> bool {
+    // wait for complete final block (with complete microblock) being ready by
+    // me (leader)
+    if (!WaitUntilCompleteFinalBlockIsReady()) {
+      return false;
+    }
+
+    return Messenger::SetDSFinalBlockAnnouncement(
+        newAnnouncement, offset, consensusID, blockNumber, blockHash, leaderID,
+        leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
+        messageToCosign);
+  };
+
+  cl->StartConsensus(preprepFBAnnouncementGeneratorFunc,
+                     newFBAnnouncementReadinessFunc, BROADCAST_GOSSIP_MODE);
+
+  SetState(FINALBLOCK_CONSENSUS);
+
+  if (m_mediator.ToProcessTransaction()) {
+    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
+      return false;
+    }
+  }
+  AccountStore::GetInstance().CommitTempRevertible();
+
+  if (!m_mediator.m_node->ComposeMicroBlock(m_microBlockGasLimit)) {
+    LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
+    m_mediator.m_node->m_microblock = nullptr;
+  } else {
+    lock_guard<mutex> g(m_mutexMicroBlocks);
+    m_microBlocks[m_mediator.m_currentEpochNum].emplace(
+        *(m_mediator.m_node->m_microblock));
+  }
+
+  // stores it in m_finalBlock
+  if (!ComposeFinalBlock()) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "DS ComposeFinalBlock failed");
+    return false;
+  }
 
   return true;
 }
@@ -727,7 +807,7 @@ bool DirectoryService::CheckMicroBlockInfo() {
   const auto& microBlockInfos = m_finalBlock->GetMicroBlockInfos();
 
   LOG_GENERAL(INFO,
-              "Total num of microblocks to check: " << microBlockInfos.size())
+              "Total num of microblocks to check: " << microBlockInfos.size());
 
   for (unsigned int i = 0; i < microBlockInfos.size(); i++) {
     // LOG_GENERAL(INFO,
@@ -926,9 +1006,11 @@ bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
   if (!ret) {
     m_mediator.m_node->m_microblock = nullptr;
   } else {
-    lock_guard<mutex> g(m_mutexMicroBlocks);
-    m_microBlocks[m_mediator.m_currentEpochNum].emplace(
-        *(m_mediator.m_node->m_microblock));
+    if (!m_mediator.m_node->m_prePrepRunning) {
+      lock_guard<mutex> g(m_mutexMicroBlocks);
+      m_microBlocks[m_mediator.m_currentEpochNum].emplace(
+          *(m_mediator.m_node->m_microblock));
+    }
   }
 
   return ret;
@@ -1016,6 +1098,84 @@ bool DirectoryService::FinalBlockValidator(
   return true;
 }
 
+bool DirectoryService::PrePrepFinalBlockValidator(
+    const bytes& message, unsigned int offset, bytes& errorMsg,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    bytes& messageToCosign) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::PrePrepFinalBlockValidator not expected to be "
+        "called from LookUp node");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  m_finalBlock.reset(new TxBlock);
+
+  m_mediator.m_node->m_microblock.reset(new MicroBlock());
+
+  if (!Messenger::GetDSFinalBlockAnnouncement(
+          message, offset, consensusID, blockNumber, blockHash, leaderID,
+          leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
+          messageToCosign)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetDSFinalBlockAnnouncement failed");
+    m_mediator.m_node->m_microblock = nullptr;
+    return false;
+  }
+
+  if (!CheckMicroBlocks(errorMsg, false,
+                        true)) {  // Firstly check whether the leader
+                                  // has any mb that I don't have
+    m_mediator.m_node->m_microblock = nullptr;
+    AccountStore::GetInstance().InitTemp();
+    AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
+    AccountStore::GetInstance().SerializeDelta();
+
+    LOG_GENERAL(WARNING, "Proposed Preprep finalblock is not valid");
+    if (m_consensusObject->GetConsensusErrorCode() ==
+        ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
+      errorMsg.insert(errorMsg.begin(), DSFBMISSINGMB);
+    }
+
+    return false;
+  }
+
+  errorMsg.clear();
+  // check if the DS microblock is valid
+  if (m_mediator.m_node->m_microblock != nullptr) {
+    if (!CheckMicroBlockValidity(errorMsg)) {
+      LOG_GENERAL(WARNING, "PrePrep - DS CheckMicroBlockValidity Failed");
+      if (m_consensusObject->GetConsensusErrorCode() ==
+          ConsensusCommon::MISSING_TXN) {
+        errorMsg.insert(errorMsg.begin(), DSMBMISSINGTXN);
+      } else {
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_DS_MICROBLOCK);
+        errorMsg.insert(errorMsg.begin(), CHECKMICROBLOCK);
+      }
+      return false;
+    }
+    m_mediator.m_node->m_microblock = nullptr;
+  }
+
+  string finalblockPrevHashStr;
+  if (!DataConversion::charArrToHexStr(
+          m_finalBlock->GetHeader().GetPrevHash().asArray(),
+          finalblockPrevHashStr)) {
+    return false;
+  }
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "PrePrep Final block " << m_finalBlock->GetHeader().GetBlockNum()
+                                   << " received with prevhash 0x"
+                                   << finalblockPrevHashStr);
+
+  return true;
+}
+
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   LOG_MARKER();
 
@@ -1051,37 +1211,56 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
 
-  if (m_mediator.ToProcessTransaction()) {
-    m_mediator.m_node->ProcessTransactionWhenShardBackup(m_microBlockGasLimit);
-  }
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "I am a backup DS node. Waiting for final block announcement. "
-            "Leader is at index  "
-                << GetConsensusLeaderID() << " "
-                << m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).second
-                << " my consensus id is " << m_consensusMyID);
+  LOG_EPOCH(
+      INFO, m_mediator.m_currentEpochNum,
+      "I am a backup DS node. Waiting for PrePrep Final block announcement. "
+      "Leader is at index  "
+          << GetConsensusLeaderID() << " "
+          << m_mediator.m_DSCommittee->at(GetConsensusLeaderID()).second
+          << " my consensus id is " << m_consensusMyID);
 
   // Create new consensus object
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
-                     const uint32_t consensusID, const uint64_t blockNumber,
-                     const bytes& blockHash, const uint16_t leaderID,
-                     const PubKey& leaderKey,
-                     bytes& messageToCosign) mutable -> bool {
+  auto completeFBValidatorFunc =
+      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+             const uint32_t consensusID, const uint64_t blockNumber,
+             const bytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
     return FinalBlockValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);
   };
+
+  auto preprepFBValidatorFunc =
+      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+             const uint32_t consensusID, const uint64_t blockNumber,
+             const bytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
+    return PrePrepFinalBlockValidator(input, offset, errorMsg, consensusID,
+                                      blockNumber, blockHash, leaderID,
+                                      leaderKey, messageToCosign);
+  };
+
+  auto postPreprepValidationFunc = [this]() -> void {
+    m_mediator.m_node->StartTxnProcessingThread();
+  };
+
+  auto txnProcessingReadinessfunc = [this]() -> bool {
+    return m_mediator.m_node->WaitUntilTxnProcessingDone();
+  };
+
+  m_mediator.m_node->m_prePrepRunning = true;
 
   m_consensusObject.reset(new ConsensusBackup(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, GetConsensusLeaderID(),
       m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
       static_cast<uint8_t>(DIRECTORY),
-      static_cast<uint8_t>(FINALBLOCKCONSENSUS), func));
+      static_cast<uint8_t>(FINALBLOCKCONSENSUS), completeFBValidatorFunc,
+      preprepFBValidatorFunc, postPreprepValidationFunc,
+      txnProcessingReadinessfunc));
 
   m_mediator.m_node->m_consensusObject = m_consensusObject;
 
@@ -1090,6 +1269,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
               "Unable to create consensus object");
     return false;
   }
+
+  SetState(FINALBLOCK_CONSENSUS);
 
   return true;
 }
@@ -1196,7 +1377,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // function, but rather wait for view change.
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
-      this_thread::sleep_for(chrono::milliseconds(ANNOUNCEMENT_DELAY_IN_MS));
+      this_thread::sleep_for(chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
       ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,
@@ -1210,10 +1391,6 @@ void DirectoryService::RunConsensusOnFinalBlock() {
                     "Consensus failed at "
                     "RunConsensusOnFinalBlockWhenDSBackup");
       }
-    }
-
-    if (ConsensusObjCreation) {
-      SetState(FINALBLOCK_CONSENSUS);
     }
 
     m_startedRunFinalblockConsensus = true;

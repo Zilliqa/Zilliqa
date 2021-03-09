@@ -661,7 +661,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
         *m_pendingVCBlock, messageToCosign);
   };
 
-  cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
+  cl->StartConsensus(announcementGeneratorFunc, nullptr, BROADCAST_GOSSIP_MODE);
 
   return true;
 }
