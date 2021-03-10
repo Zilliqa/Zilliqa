@@ -736,7 +736,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
     m_mapNodeReputation = move(m_tempMapNodeReputation);
   } else if (m_mode == PRIMARY_DS) {
-    ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
+    RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
 
   m_mediator.m_node->m_myshardId = m_shards.size();

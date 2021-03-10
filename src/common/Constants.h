@@ -341,6 +341,7 @@ extern const unsigned int POW_CHANGE_TO_ADJ_DS_DIFF;
 extern const unsigned int DIFFICULTY_DIFF_TOL;
 extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
+extern const uint8_t MIN_NODE_REPUTATION_PRIORITY;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;

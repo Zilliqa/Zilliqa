@@ -236,6 +236,7 @@
         <EXPECTED_SHARD_NODE_NUM>160</EXPECTED_SHARD_NODE_NUM>
         <!-- If PoW submissions over this number, will select nodes by reputation -->
         <MAX_SHARD_NODE_NUM>180</MAX_SHARD_NODE_NUM>
+        <MIN_NODE_REPUTATION_PRIORITY>4</MIN_NODE_REPUTATION_PRIORITY>
         <MISORDER_TOLERANCE_IN_PERCENT>5</MISORDER_TOLERANCE_IN_PERCENT>
         <!-- To avoid premature rejoining, set this to a value such as several Tx epochs after DS epoch -->
         <DSBLOCK_EXTRA_WAIT_TIME>15</DSBLOCK_EXTRA_WAIT_TIME>

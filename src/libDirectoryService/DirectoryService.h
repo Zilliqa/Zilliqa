@@ -286,7 +286,7 @@ class DirectoryService : public Executable {
   void UpdatePoWSubmissionCounterforNode(const PubKey& key);
   void ResetPoWSubmissionCounter();
   void ClearReputationOfNodeWithoutPoW();
-  static void ClearReputationOfNodeFailToJoin(
+  static void RemoveReputationOfNodeFailToJoin(
       const DequeOfShard& shards,
       std::map<PubKey, uint16_t>& mapNodeReputation);
   std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);

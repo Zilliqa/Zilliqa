@@ -717,12 +717,15 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
     for (const auto& shardNode : shard) {
       const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
       if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end()) {
-        auto reputation = m_mapNodeReputation[toFind];
-        auto priority = CalculateNodePriority(reputation);
-        if (priority < lowestPriority) {
-          ++numOutOfMyPriorityList;
-          LOG_GENERAL(WARNING,
-                      "Node " << toFind << " is not in my top priority list");
+        auto reputation = m_mapNodeReputation.find(toFind);
+        // New miners have no priority record and cannot be checked here
+        if (reputation != m_mapNodeReputation.end()) {
+          auto priority = CalculateNodePriority(reputation->second);
+          if (priority < lowestPriority) {
+            ++numOutOfMyPriorityList;
+            LOG_GENERAL(WARNING,
+                        "Node " << toFind << " is not in my top priority list");
+          }
         }
       }
     }
