@@ -5523,32 +5523,37 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
       lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
       uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+
+      if (m_mediator.m_ds->m_shards.at(shardId).empty()) {
+        return;
+      }
+
+      // Lookup sends to NUM_NODES_TO_SEND_LOOKUP including Leader
+
+      PairOfNode shardLeader;
       uint32_t leader_id = m_mediator.m_node->CalculateShardLeaderFromShard(
           lastBlockHash, m_mediator.m_ds->m_shards.at(shardId).size(),
-          m_mediator.m_ds->m_shards.at(shardId));
+          m_mediator.m_ds->m_shards.at(shardId), shardLeader);
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Shard leader id " << leader_id);
 
       auto it = m_mediator.m_ds->m_shards.at(shardId).begin();
-      // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
-      unsigned int num_node_to_send = NUM_NODES_TO_SEND_LOOKUP;
-      for (unsigned int j = 0;
-           j < num_node_to_send &&
-           it != m_mediator.m_ds->m_shards.at(shardId).end();
-           j++, it++) {
-        if (distance(m_mediator.m_ds->m_shards.at(shardId).begin(), it) ==
-            leader_id) {
-          num_node_to_send++;
-        } else {
+
+      // Send to the leader
+      toSend.push_back(shardLeader.second);
+
+      // Send to remaining ones
+      for (; it != m_mediator.m_ds->m_shards.at(shardId).end(); it++) {
+        if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
+            std::get<SHARD_NODE_PUBKEY>(*it) != shardLeader.first) {
           toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-          LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
+        }
+
+        if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
+          break;
         }
       }
-      if (m_mediator.m_ds->m_shards.at(shardId).empty()) {
-        return;
-      }
     }
-
     P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
     DeleteTxnShardMap(shardId);
