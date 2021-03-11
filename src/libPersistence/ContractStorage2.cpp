@@ -394,7 +394,7 @@ bool ContractStorage2::FetchExternalStateValue(
     return true;
   }
   if (query.name() == "_balance") {
-    uint128_t balance = account->GetBalance();
+    const uint128_t& balance = account->GetBalance();
     special_query = "\"" + balance.convert_to<string>() + "\"";
     type = "Uint128";
   } else if (query.name() == "_nonce") {
