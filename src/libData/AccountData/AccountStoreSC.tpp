@@ -1004,13 +1004,6 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
         }
         return true;
       };
-
-      // We include contract parameters along with the mutable state.
-      if (root["contract_info"].isMember("params")) {
-        if (!handleTypeForStateVar(root["contract_info"]["params"])) {
-          return false;
-        }
-      }
       if (root["contract_info"].isMember("fields")) {
         if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
           return false;

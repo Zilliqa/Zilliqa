@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/ContractStorage2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -1048,32 +1049,6 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   /* ------------------------------------------------------------------- */
 }
 
-bool mapHandler([[gnu::unused]] const std::string& index, const Json::Value& s,
-                [[gnu::unused]] std::map<std::string, bytes> state_entries) {
-  LOG_MARKER();
-
-  LOG_GENERAL(INFO, "s: " << JSONUtils::GetInstance().convertJsontoStr(s));
-
-  for (const auto& v : s) {
-    if (!v.isMember("key") || v.isMember("val")) {
-      return false;
-    }
-
-    string t_index = index + "." + v["key"].asString();
-    if (v["val"] == Json::arrayValue) {
-      for (const auto& u : v["val"]) {
-        mapHandler(t_index, u, state_entries);
-      }
-    } else {
-      state_entries.emplace(
-          t_index, DataConversion::StringToCharArray(
-                       JSONUtils::GetInstance().convertJsontoStr(v["val"])));
-    }
-  }
-
-  return true;
-}
-
 // Comment due to deprecated function used
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
@@ -1170,30 +1145,19 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 
     LOG_GENERAL(INFO, "marker1");
 
-    std::map<std::string, bytes> state_entries;
-    // save the state
-    for (auto& s : t2.state) {
-      std::string index = contractAddr.hex();
-      if (s["vname"].asString() == "_balance") {
-        continue;
-      }
+    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::unordered_map<Address, uint128_t> balances;
+    std::unordered_map<Address, uint64_t> nonces;
+    std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
+    mapdepths[contractAddr]["balances"] = 1;
+    mapdepths[contractAddr]["allowed"] = 2;
 
-      index += "." + s["vname"].asString();
-      if (s["value"] == Json::arrayValue) {
-        if (!mapHandler(index, s["value"], state_entries)) {
-          LOG_GENERAL(WARNING, "state format is invalid");
-          break;
-        }
-      } else {
-        state_entries.emplace(
-            index, DataConversion::StringToCharArray(
-                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
-      }
+    if (!ScillaTestUtil::parseStateJSON(contractAddr, t2.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
     }
-
     LOG_GENERAL(INFO, "marker2");
-
-    account->UpdateStates(contractAddr, state_entries, {}, true);
+    account->UpdateStates(contractAddr, state_entries[contractAddr], {}, true);
 
     bytes dataTransfer;
     uint64_t amount =
@@ -1314,27 +1278,18 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       }
     }
 
-    std::map<std::string, bytes> state_entries;
-    // save the state
-    for (auto& s : t2.state) {
-      std::string index = contrAddr.hex();
-      if (s["vname"].asString() == "_balance") {
-        continue;
-      }
+    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::unordered_map<Address, uint128_t> balances;
+    std::unordered_map<Address, uint64_t> nonces;
+    std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
+    mapdepths[contrAddr]["balances"] = 1;
+    mapdepths[contrAddr]["allowed"] = 2;
 
-      index += "." + s["vname"].asString();
-      if (s["value"] == Json::arrayValue) {
-        if (!mapHandler(index, s["value"], state_entries)) {
-          LOG_GENERAL(WARNING, "state format is invalid");
-          break;
-        }
-      } else {
-        state_entries.emplace(
-            index, DataConversion::StringToCharArray(
-                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
-      }
+    if (!ScillaTestUtil::parseStateJSON(contrAddr, t2.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
     }
-    account->UpdateStates(contrAddr, state_entries, {}, true);
+    account->UpdateStates(contrAddr, state_entries[contrAddr], {}, true);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -1509,6 +1464,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
       if (vname == "ownedTokenCount") {
         it["value"] = ownedTokenCount;
+        continue;
       }
 
       if (vname == "operatorApprovals") {
@@ -1517,27 +1473,20 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       }
     }
 
-    std::map<std::string, bytes> state_entries;
-    // save the state
-    for (auto& s : t10.state) {
-      std::string index = contrAddr.hex();
-      if (s["vname"].asString() == "_balance") {
-        continue;
-      }
+    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::unordered_map<Address, uint128_t> balances;
+    std::unordered_map<Address, uint64_t> nonces;
+    std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
+    mapdepths[contrAddr]["tokenOwnerMap"] = 1;
+    mapdepths[contrAddr]["ownedTokenCount"] = 1;
+    mapdepths[contrAddr]["tokenApprovals"] = 1;
+    mapdepths[contrAddr]["operatorApprovals"] = 1;
 
-      index += "." + s["vname"].asString();
-      if (s["value"] == Json::arrayValue) {
-        if (!mapHandler(index, s["value"], state_entries)) {
-          LOG_GENERAL(WARNING, "state format is invalid");
-          break;
-        }
-      } else {
-        state_entries.emplace(
-            index, DataConversion::StringToCharArray(
-                       JSONUtils::GetInstance().convertJsontoStr(s["value"])));
-      }
+    if (!ScillaTestUtil::parseStateJSON(contrAddr, t10.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
     }
-    account->UpdateStates(contrAddr, state_entries, {}, true);
+    account->UpdateStates(contrAddr, state_entries[contrAddr], {}, true);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -1548,14 +1497,17 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     for (auto& p : t10.message["params"]) {
       if (p["vname"] == "tokenId") {
         p["value"] = "1";
+        continue;
       }
 
       if (p["vname"] == "from") {
         p["value"] = "0x" + ownerAddr.hex();
+        continue;
       }
 
       if (p["vname"] == "to") {
         p["value"] = randomReceiver["val"];
+        continue;
       }
     }
 
@@ -1572,6 +1524,13 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
                                                    error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
+    Json::Value outputState;
+    BOOST_CHECK_MESSAGE(account->FetchStateJson(outputState, "", {}, true),
+                        "Fetch output state failed");
+    BOOST_CHECK_MESSAGE(
+        outputState["tokenOwnerMap"]["1"] == randomReceiver["val"],
+        "transferFrom transition did not transfer token");
+
     LOG_GENERAL(
         INFO, "Size of output = " << ScillaTestUtil::GetFileSize("output.json"))
     LOG_GENERAL(INFO, "Size of map (inner) = " << numOperators);
@@ -1580,6 +1539,319 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     LOG_GENERAL(INFO, "UpdateAccounts (micro) = " << timeElapsedCall);
     senderNonce++;
   }
+}
+
+BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  // Disable pretty printing of Scilla literals. This will ensure
+  // that Scilla Lists are not printed using JSON arrays, enabling
+  // us to ensure that JSON arrays only represent Scilla maps.
+  SCILLA_PPLIT_FLAG = false;
+
+  setup();
+
+  PairOfKey owner(priv1, PubKey(priv1));
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  // Setup all accounts we interact with.
+  auto ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  LOG_GENERAL(INFO, "Owner address: " << ownerAddr);
+  std::vector<Address> remoteAddrs(
+      {Address("0x1234567890123456789012345678901234567889"),
+       Address("0x1234567890123456789012345678901234567890"),
+       Address("0xabfeccdc9012345678901234567890f777564323"),
+       Address("0xabfeccdc9012345678901234567890f777564324"),
+       Address("0xabfeccdc9012345678901234567890f777564325"),
+       Address("0xabfeccdc9012345678901234567890f777564326")});
+
+  uint64_t ownerNonce = 0;
+  auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+  LOG_GENERAL(INFO, "Contract will be deployed at address " << contrAddr);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, ownerNonce});
+  ownerNonce++;
+  for (size_t i = 0; i < remoteAddrs.size(); i++) {
+    AccountStore::GetInstance().AddAccountTemp(remoteAddrs[i],
+                                               Account({0, ownerNonce}));
+    // A dummy hash to mark the account as containing a contract.
+    AccountStore::GetInstance()
+        .GetAccountTemp(remoteAddrs[i])
+        ->SetCodeHash(dev::h256(i + 1));
+  }
+
+  std::map<Address, std::map<std::string, bytes>> state_entries;
+  std::unordered_map<Address, uint128_t> balances;
+  std::unordered_map<Address, uint64_t> nonces;
+  std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
+
+  // ----------------- map depths ------------------------------------ //
+
+  mapdepths[Address("0x1234567890123456789012345678901234567890")]
+           ["transactionCount"] = 0;
+  mapdepths[Address("0x1234567890123456789012345678901234567890")]["admin"] = 0;
+  mapdepths[Address("0x1234567890123456789012345678901234567890")]["owners"] =
+      1;
+  mapdepths[Address("0x1234567890123456789012345678901234567890")]
+           ["other_map"] = 1;
+  mapdepths[Address("0x1234567890123456789012345678901234567890")]
+           ["signatures"] = 2;
+  mapdepths[Address("0x1234567890123456789012345678901234567889")]
+           ["transactionCount"] = 0;
+  mapdepths[Address("0x1234567890123456789012345678901234567889")]["admin"] = 0;
+  mapdepths[Address("0x1234567890123456789012345678901234567889")]["owners"] =
+      0;
+  mapdepths[Address("0x1234567890123456789012345678901234567889")]
+           ["other_map"] = 1;
+  mapdepths[Address("0x1234567890123456789012345678901234567889")]
+           ["signatures"] = 2;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564323")]["f"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564323")]["g"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564324")]["admin"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564324")]["g"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]
+           ["transactionCount"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]["admin"] = 0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]["admin2"] =
+      0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]["owners"] =
+      1;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]
+           ["signatures"] = 2;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564325")]["h"] = 1;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564326")]["paused"] =
+      0;
+  mapdepths[Address("0xabfeccdc9012345678901234567890f777564326")]["admin"] = 0;
+
+  auto& contrMapDepths = mapdepths[contrAddr];
+  contrMapDepths["assign_test_1"] = 0;
+  contrMapDepths["assign_test_2"] = 0;
+  contrMapDepths["assign_test_3"] = 0;
+  contrMapDepths["assign_test_4"] = 0;
+  contrMapDepths["assign_test_5"] = 0;
+  contrMapDepths["assign_test_6"] = 0;
+  contrMapDepths["assign_test_7"] = 0;
+  contrMapDepths["assign_test_8"] = 0;
+  contrMapDepths["assign_test_9"] = 0;
+  contrMapDepths["assign_test_10"] = 2;
+  contrMapDepths["remote_reads_test_res_1_1"] = 0;
+  contrMapDepths["remote_reads_test_res_2_1"] = 0;
+  contrMapDepths["remote_reads_test_res_2_2"] = 0;
+  contrMapDepths["remote_reads_test_res_3_1"] = 0;
+  contrMapDepths["remote_reads_test_res_3_2"] = 0;
+  contrMapDepths["remote_reads_test_res_3_3"] = 0;
+  contrMapDepths["remote_reads_test_res_3_4"] = 0;
+  contrMapDepths["remote_reads_test_res_3_5"] = 0;
+  contrMapDepths["remote_reads_test_res_3_6"] = 1;
+  contrMapDepths["remote_reads_test_res_3_7"] = 0;
+  contrMapDepths["remote_reads_test_res_3_8"] = 0;
+  contrMapDepths["remote_reads_test_res_3_9"] = 2;
+  contrMapDepths["remote_reads_test_res_3_10"] = 0;
+  contrMapDepths["remote_reads_test_res_3_11"] = 0;
+  contrMapDepths["remote_reads_test_res_3_12"] = 0;
+  contrMapDepths["remote_reads_test_res_3_13"] = 0;
+  contrMapDepths["sender_balance_pre"] = 0;
+  contrMapDepths["sender_balance_mid"] = 0;
+  contrMapDepths["sender_balance_post"] = 0;
+
+  // ----------------- map depths ------------------------------------ //
+
+  // ------------------- deploy ---------------------------------------//
+
+  ScillaTestUtil::ScillaTest rsr_dep1;
+  if (!ScillaTestUtil::GetScillaDeployment(
+          rsr_dep1, "remote_state_reads", "init_state.json", "init.json",
+          "blockchain_1.json", "init_output.json", "0")) {
+    BOOST_FAIL("Unable to fetch test remote_state_reads: deployment.");
+  }
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(rsr_dep1.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(rsr_dep1.init);
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(rsr_dep1.blockchain);
+
+  // We need some account handle to set the state. The actual account whose
+  // state is being updated is passed as an argument to UpdateStates.
+  Account* account = AccountStore::GetInstance().GetAccountTemp(ownerAddr);
+  if (!ScillaTestUtil::parseStateJSON(contrAddr, rsr_dep1.state, mapdepths,
+                                      state_entries, balances, nonces)) {
+    BOOST_FAIL("parseStateJSON failed");
+  }
+  for (const auto& itr : state_entries) {
+    // Contract not deployed yet, just set the state for its external contracts.
+    if (itr.first != contrAddr) {
+      account->UpdateStates(itr.first, itr.second, {}, true);
+    }
+  }
+  for (const auto& addrBal : balances) {
+    if (addrBal.first != contrAddr) {
+      LOG_GENERAL(INFO, "Setting balance of " << addrBal.first.hex() << " to "
+                                              << addrBal.second);
+      account = AccountStore::GetInstance().GetAccountTemp(addrBal.first);
+      account->SetBalance(addrBal.second);
+    }
+  }
+  for (const auto& addrNonce : nonces) {
+    if (addrNonce.first != contrAddr) {
+      LOG_GENERAL(INFO, "Setting nonce of " << addrNonce.first.hex() << " to "
+                                            << addrNonce.second);
+      account = AccountStore::GetInstance().GetAccountTemp(addrNonce.first);
+      account->SetNonce(addrNonce.second);
+    }
+  }
+
+  // Transaction to deploy contract.
+  std::string initStr =
+      JSONUtils::GetInstance().convertJsontoStr(rsr_dep1.init);
+  bytes data(initStr.begin(), initStr.end());
+  Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                  500000, rsr_dep1.code, data);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
+                                                 error_code);
+
+  // ------------- execute transitions ------------------------------------//
+
+  for (unsigned i = 1; i <= 11; i++) {
+    LOG_GENERAL(WARNING, "Executing remote_state_reads_" << i);
+    // Execute message_i
+    ScillaTestUtil::ScillaTest rsr_i;
+    if (!ScillaTestUtil::GetScillaTest(rsr_i, "remote_state_reads", i)) {
+      BOOST_FAIL("Unable to fetch test remote_state_reads_" << i);
+    }
+    // remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveCreationBlockFromInit(rsr_i.init);
+    ScillaTestUtil::RemoveThisAddressFromInit(rsr_i.init);
+    bnum = ScillaTestUtil::GetBlockNumberFromJson(rsr_i.blockchain);
+
+    state_entries.clear();
+    balances.clear();
+    nonces.clear();
+    if (!ScillaTestUtil::parseStateJSON(contrAddr, rsr_i.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
+    }
+    // Set state_i.
+    for (const auto& itr : state_entries) {
+      account->UpdateStates(itr.first, itr.second, {}, true);
+    }
+    for (const auto& addrBal : balances) {
+      account = AccountStore::GetInstance().GetAccountTemp(addrBal.first);
+      account->SetBalance(addrBal.second);
+    }
+    for (const auto& addrNonce : nonces) {
+      account = AccountStore::GetInstance().GetAccountTemp(addrNonce.first);
+      account->SetNonce(addrNonce.second);
+    }
+
+    uint64_t amount = ScillaTestUtil::PrepareMessageData(rsr_i.message, data);
+    Transaction tx_i(DataConversion::Pack(CHAIN_ID, 1), ownerNonce, contrAddr,
+                     owner, amount, PRECISION_MIN_VALUE, 500, {}, data);
+    TransactionReceipt tr4;
+    if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx_i, tr4,
+                                                       error_code)) {
+      ownerNonce++;
+    }
+
+    Json::Value outState;
+    account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
+    BOOST_CHECK_MESSAGE(account->FetchStateJson(outState, "", {}, true),
+                        "Fetch output state failed");
+    Json::Value expOutput;
+    if (!ScillaTestUtil::TransformStateJsonFormat(rsr_i.expOutput["states"],
+                                                  expOutput)) {
+      BOOST_FAIL("Couldn't convert format of expected Scilla output state"
+                 << rsr_i.expOutput["states"].toStyledString());
+    }
+    if (i == 9) {
+      // The 9th test relies on sender (owner above) balance, but cannot
+      // account for the gas fees paid by the sender. So we just compare
+      // the required output here and not from the gold file.
+      BOOST_REQUIRE(outState["sender_balance_pre"].asString() == "950000");
+      BOOST_REQUIRE(outState["sender_balance_mid"].asString() == "949900");
+      BOOST_REQUIRE(outState["sender_balance_post"].asString() == "949900");
+    } else {
+      BOOST_REQUIRE_EQUAL(expOutput, outState);
+    }
+    LOG_GENERAL(WARNING, "remote_state_reads_" << i << " succeeded");
+    Contract::ContractStorage2::GetContractStorage().Reset();
+  }
+
+  // ---------------- test other deployments ---------------------------- //
+
+  auto depTest = [&](const std::string& testName) {
+    ScillaTestUtil::ScillaTest rsr_dep2;
+    if (!ScillaTestUtil::GetScillaDeployment(
+            rsr_dep2, "remote_state_reads", testName + "_state.json",
+            testName + ".json", "blockchain_1.json",
+            testName + "_ipc_output.json", "0")) {
+      BOOST_FAIL("Unable to fetch test remote_state_reads: deployment2.");
+    }
+    // and remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveCreationBlockFromInit(rsr_dep2.init);
+    ScillaTestUtil::RemoveThisAddressFromInit(rsr_dep2.init);
+    bnum = ScillaTestUtil::GetBlockNumberFromJson(rsr_dep2.blockchain);
+
+    auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+    LOG_GENERAL(INFO, "Contract will be deployed at address " << contrAddr);
+
+    state_entries.clear();
+    balances.clear();
+    nonces.clear();
+    account = AccountStore::GetInstance().GetAccountTemp(ownerAddr);
+    account->SetBalance(1000000);
+    // We need some account handle to set the state. The actual account whose
+    // state is being updated is passed as an argument to UpdateStates.
+    account = AccountStore::GetInstance().GetAccountTemp(ownerAddr);
+    if (!ScillaTestUtil::parseStateJSON(contrAddr, rsr_dep2.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
+    }
+    for (const auto& itr : state_entries) {
+      // Contract not deployed yet, just set the state for its external
+      // contracts.
+      if (itr.first != contrAddr) {
+        account->UpdateStates(itr.first, itr.second, {}, true);
+      }
+    }
+    for (const auto& addrBal : balances) {
+      if (addrBal.first != contrAddr) {
+        account = AccountStore::GetInstance().GetAccountTemp(addrBal.first);
+        account->SetBalance(addrBal.second);
+      }
+    }
+    for (const auto& addrNonce : nonces) {
+      if (addrNonce.first != contrAddr) {
+        account = AccountStore::GetInstance().GetAccountTemp(addrNonce.first);
+        account->SetNonce(addrNonce.second);
+      }
+    }
+
+    // Transaction to deploy contract.
+    initStr = JSONUtils::GetInstance().convertJsontoStr(rsr_dep2.init);
+    bytes data2(initStr.begin(), initStr.end());
+    Transaction tx2(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                    10000, rsr_dep2.code, data2);
+    TransactionReceipt tr2;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2,
+                                                   error_code);
+    ownerNonce++;
+    LOG_GENERAL(
+        INFO, "remote_state_reads: " << testName << " : deployment successful");
+  };
+
+  depTest("init_assignable_map_types");
+  depTest("init_nonce_no_balance");
+  depTest("init_balance_no_nonce");
+  depTest("init_balance_and_nonce");
 }
 
 // BOOST_AUTO_TEST_CASE(testDEX) {
@@ -1722,7 +1994,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 //         continue;
 //       }
 
-//       index += "." + s["vname"].asString();
+//       index += SCILLA_INDEX_SEPARATOR + s["vname"].asString();
 //       if (s["value"] == Json::arrayValue) {
 //         if (!mapHandler(index, s["value"], token_state_entries_1)) {
 //           LOG_GENERAL(WARNING, "state format is invalid");
@@ -1741,7 +2013,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 //         continue;
 //       }
 
-//       index += "." + s["vname"].asString();
+//       index += SCILLA_INDEX_SEPARATOR + s["vname"].asString();
 //       if (s["value"] == Json::arrayValue) {
 //         if (!mapHandler(index, s["value"], token_state_entries_2)) {
 //           LOG_GENERAL(WARNING, "state format is invalid");
@@ -1857,10 +2129,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
 //     std::map<std::string, bytes> state_entries;
 //     std::string index = dexAddr.hex();
-//     std::string orderbook_index = index + "." + "orderbook";
-//     mapHandler(orderbook_index, orderBook, state_entries);
-//     std::string orderinfo_index = index + "." + "orderInfo";
-//     mapHandler(orderinfo_index, orderInfo, state_entries);
+//     std::string orderbook_index = index + SCILLA_INDEX_SEPARATOR +
+//     "orderbook"; mapHandler(orderbook_index, orderBook, state_entries);
+//     std::string orderinfo_index = index + SCILLA_INDEX_SEPARATOR +
+//     "orderInfo"; mapHandler(orderinfo_index, orderInfo, state_entries);
 
 //     dexAccount->UpdateStates(dexAddr, state_entries, {}, true);
 
