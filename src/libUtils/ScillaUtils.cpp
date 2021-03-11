@@ -136,6 +136,8 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                      boost::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append("-jsonerrors");
+  ret["argv"].append("-pplit");
+  ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
 
   return ret;
 }

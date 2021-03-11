@@ -69,6 +69,13 @@ const unsigned int MAINNET_CHAIN_ID = 1;
 
 extern bool ISOLATED_SERVER;
 
+// Scilla flag to toggle pretty printing of literals. This decides
+// whether Scilla lists are printed as JSON arrays or as regular ADTs.
+// For testing, life becomes difficult to parse JSONs (because mapdepths
+// isn't easily available), where we can't distinguish a JSON `[]` b/w
+// Maps and Scilla lists. So we disable pretty print during testing.
+extern bool SCILLA_PPLIT_FLAG;
+
 // Testing parameters
 
 // Metadata type

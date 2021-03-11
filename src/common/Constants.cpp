@@ -80,6 +80,8 @@ ReadVerifierExclusionListFromConstantsFile() {
 
 bool ISOLATED_SERVER = false;
 
+bool SCILLA_PPLIT_FLAG = true;
+
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
