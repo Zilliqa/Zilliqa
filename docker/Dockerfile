@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:815465ac
+ARG BASE=zilliqa/scilla:v0.10.0-alpha.0
 FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
@@ -108,7 +108,7 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
        /usr/local/bin/isolatedServer \
        /usr/local/bin/getrewardhistory \
     #    /usr/local/bin/zilliqa \
-    #   /usr/local/bin/data_migrate \
+       /usr/local/bin/data_migrate \
        /usr/local/lib/libSchnorr.so \
        /usr/local/lib/libCryptoUtils.so \
        /usr/local/lib/libNAT.so \

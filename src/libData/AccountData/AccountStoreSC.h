@@ -46,7 +46,7 @@ class AccountStoreAtomic
   GetAddressToAccount();
 };
 
-enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL };
+enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
@@ -193,6 +193,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const uint64_t& available_gas,
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
+
+  void InvokeDisambiguation(const uint32_t& version, bool is_library,
+                            const uint64_t& available_gas,
+                            const boost::multiprecision::uint128_t& balance,
+                            bool& ret, TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

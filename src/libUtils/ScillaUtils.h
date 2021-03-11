@@ -45,6 +45,9 @@ class ScillaUtils {
   static Json::Value GetCallContractJson(
       const std::string& root_w_version, const uint64_t& available_gas,
       const boost::multiprecision::uint128_t& balance);
+
+  /// get the command for invoking disambiguate_state_json while calling
+  static Json::Value GetDisambiguateJson();
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_SCILLAUTILS_H_
