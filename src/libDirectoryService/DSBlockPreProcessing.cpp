@@ -842,8 +842,10 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
       for (auto kv = ShadowPoWOrderSorter.begin();
            (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
            kv++) {
-        FilteredPoWOrderSorter.emplace(*kv);
-        count++;
+        if (!Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
+          FilteredPoWOrderSorter.emplace(*kv);
+          count++;
+        }
       }
 
       // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
