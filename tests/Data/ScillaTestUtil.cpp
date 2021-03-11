@@ -17,7 +17,10 @@
 
 #include <boost/filesystem.hpp>
 #include "common/Constants.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
+#pragma GCC diagnostic pop
 #include "libUtils/DataConversion.h"
 
 #include "ScillaTestUtil.h"
