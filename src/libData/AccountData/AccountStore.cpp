@@ -493,7 +493,8 @@ void AccountStore::RevertCommitTemp() {
 }
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
-bool AccountStore::MigrateContractStates2(
+
+bool AccountStore::MigrateContractStates(
     bool ignoreCheckerFailure, const string& contract_address_output_dir,
     const string& normal_address_output_dir) {
   LOG_MARKER();
@@ -600,6 +601,64 @@ bool AccountStore::MigrateContractStates2(
     account.UpdateStates(address, t_metadata, toDeletes, false);
 
     this->AddAccount(address, account, true);
+  }
+
+  if (!contract_address_output_dir.empty()) {
+    os_1.close();
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.close();
+  }
+
+  /// repopulate trie and discard old persistence
+  if (!MoveUpdatesToDisk()) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
+    return false;
+  }
+
+  return true;
+}
+
+bool AccountStore::MigrateContractStates2(
+    [[gnu::unused]] bool ignoreCheckerFailure,
+    const string& contract_address_output_dir,
+    const string& normal_address_output_dir) {
+  LOG_MARKER();
+
+  std::ofstream os_1;
+  std::ofstream os_2;
+  if (!contract_address_output_dir.empty()) {
+    os_1.open(contract_address_output_dir);
+  }
+  if (!normal_address_output_dir.empty()) {
+    os_2.open(normal_address_output_dir);
+  }
+
+  for (const auto& i : m_state) {
+    Address address(i.first);
+
+    LOG_GENERAL(INFO, "Address: " << address.hex());
+
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+      return false;
+    }
+
+    if (account.isContract()) {
+      account.SetAddress(address);
+      if (!contract_address_output_dir.empty()) {
+        os_1 << address.hex() << endl;
+      }
+    } else {
+      this->AddAccount(address, account, true);
+      if (!normal_address_output_dir.empty()) {
+        os_2 << address.hex() << endl;
+      }
+      continue;
+    }
+
+    // TBD
   }
 
   if (!contract_address_output_dir.empty()) {

@@ -41,6 +41,7 @@ int main(int argc, const char* argv[]) {
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
   string ignore_checker_str;
+  string disambiguation_str;
   string contract_address_output_dir;
   string normal_address_output_dir;
 
@@ -50,6 +51,9 @@ int main(int argc, const char* argv[]) {
     desc.add_options()("help,h", "Print help messages")(
         "ignore_checker,i", po::value<string>(&ignore_checker_str),
         "whether ignore scilla checker result (true to ignore, default false)")(
+        "disambiguation,d", po::value<string>(&disambiguation_str),
+        "whether to call the migration tool for disambiguation (default "
+        "false)")(
         "contract_addresses,c", po::value<string>(&contract_address_output_dir),
         "indicate the path to output the contract addresses, no output if "
         "empty")("normal_addresses,n",
@@ -78,7 +82,8 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    bool ignore_checker = (ignore_checker_str == "true");
+    const bool ignore_checker = (ignore_checker_str == "true");
+    const bool disambiguation = (disambiguation_str == "true");
 
     LOG_GENERAL(INFO, "Begin");
 
@@ -92,14 +97,24 @@ int main(int argc, const char* argv[]) {
       return 0;
     }
 
-    LOG_GENERAL(INFO, "finished RetrieveStates");
+    LOG_GENERAL(INFO, "Finished RetrieveStates");
 
-    if (!retriever.MigrateContractStates(ignore_checker,
-                                         contract_address_output_dir,
-                                         normal_address_output_dir)) {
-      LOG_GENERAL(WARNING, "MigrateContractStates failed");
+    if (!disambiguation) {
+      if (!retriever.MigrateContractStates(ignore_checker,
+                                           contract_address_output_dir,
+                                           normal_address_output_dir)) {
+        LOG_GENERAL(WARNING, "MigrateContractStates failed");
+      } else {
+        LOG_GENERAL(INFO, "MigrateContractStates finished");
+      }
     } else {
-      LOG_GENERAL(INFO, "Migrate contract data finished");
+      if (!retriever.MigrateContractStates2(ignore_checker,
+                                            contract_address_output_dir,
+                                            normal_address_output_dir)) {
+        LOG_GENERAL(WARNING, "MigrateContractStates2 failed");
+      } else {
+        LOG_GENERAL(INFO, "MigrateContractStates2 finished");
+      }
     }
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()

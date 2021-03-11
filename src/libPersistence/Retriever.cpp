@@ -383,6 +383,13 @@ void Retriever::CleanAll() {
 bool Retriever::MigrateContractStates(
     bool ignore_checker, const std::string& contract_address_output_dir,
     const std::string& normal_address_output_dir) {
+  return AccountStore::GetInstance().MigrateContractStates(
+      ignore_checker, contract_address_output_dir, normal_address_output_dir);
+}
+
+bool Retriever::MigrateContractStates2(
+    bool ignore_checker, const std::string& contract_address_output_dir,
+    const std::string& normal_address_output_dir) {
   return AccountStore::GetInstance().MigrateContractStates2(
       ignore_checker, contract_address_output_dir, normal_address_output_dir);
 }

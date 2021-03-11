@@ -232,6 +232,10 @@ class AccountStore
 
   std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
 
+  bool MigrateContractStates(bool ignoreCheckerFailure,
+                             const std::string& contract_address_output_dir,
+                             const std::string& normal_address_output_dir);
+
   bool MigrateContractStates2(bool ignoreCheckerFailure,
                               const std::string& contract_address_output_dir,
                               const std::string& normal_address_output_dir);

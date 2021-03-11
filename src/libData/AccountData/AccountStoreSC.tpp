@@ -86,6 +86,12 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 interprinterPrint)) {
         }
         break;
+      case DISAMBIGUATE:
+        if (!ScillaClient::GetInstance().CallDisambiguate(
+                version, ScillaUtils::GetDisambiguateJson(),
+                interprinterPrint)) {
+        }
+        break;
     }
 
     cv_callContract.notify_all();

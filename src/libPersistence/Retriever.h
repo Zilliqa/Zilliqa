@@ -37,6 +37,9 @@ class Retriever {
   bool MigrateContractStates(bool ignore_checker,
                              const std::string& contract_address_output_dir,
                              const std::string& normal_address_output_dir);
+  bool MigrateContractStates2(bool ignore_checker,
+                              const std::string& contract_address_output_dir,
+                              const std::string& normal_address_output_dir);
   void CleanAll();
 
  private:
