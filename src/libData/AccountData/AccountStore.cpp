@@ -607,7 +607,8 @@ bool AccountStore::MigrateContractStates(
     if (disambiguation) {
       Json::Value stateBeforeMigration, stateAfterMigration;
       Contract::ContractStorage2::GetContractStorage()
-          .FetchStateJsonForContract(stateBeforeMigration, address);
+          .FetchStateJsonForContract(stateBeforeMigration, address, "", {},
+                                     true);
 
       uint64_t gasRem = UINT64_MAX;
       InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
@@ -633,7 +634,8 @@ bool AccountStore::MigrateContractStates(
                     << "\n Init JSON after migration: " << initAfterMigration);
 
       Contract::ContractStorage2::GetContractStorage()
-          .FetchStateJsonForContract(stateAfterMigration, address);
+          .FetchStateJsonForContract(stateAfterMigration, address, "", {},
+                                     true);
 
       LOG_GENERAL(INFO,
                   "State before migration: " << stateBeforeMigration
