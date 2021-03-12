@@ -495,7 +495,8 @@ void AccountStore::RevertCommitTemp() {
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
 
 bool AccountStore::MigrateContractStates(
-    bool ignoreCheckerFailure, const string& contract_address_output_dir,
+    bool ignoreCheckerFailure, bool disambiguation,
+    const string& contract_address_output_dir,
     const string& normal_address_output_dir) {
   LOG_MARKER();
 
@@ -600,65 +601,47 @@ bool AccountStore::MigrateContractStates(
 
     account.UpdateStates(address, t_metadata, toDeletes, false);
 
+    // Run the disambiguator.
+
+    std::string disPrint;
+    if (disambiguation) {
+      Json::Value stateBeforeMigration, stateAfterMigration;
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateJsonForContract(stateBeforeMigration, address);
+
+      uint64_t gasRem = UINT64_MAX;
+      InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
+                        std::numeric_limits<uint128_t>::max(), ret_checker,
+                        receipt);
+
+      LOG_GENERAL(INFO, "Disambiguate tool output: " << disPrint);
+      ifstream initAfterMigrationRef{OUTPUT_JSON};
+      std::string initAfterMigration{
+          istreambuf_iterator<char>(initAfterMigrationRef),
+          istreambuf_iterator<char>()};
+      ifstream initBeforeMigrationRef{INIT_JSON};
+      std::string initBeforeMigration{
+          istreambuf_iterator<char>(initBeforeMigrationRef),
+          istreambuf_iterator<char>()};
+
+      Contract::ContractStorage2::GetContractStorage().PutInitData(
+          address, DataConversion::StringToCharArray(initAfterMigration));
+
+      LOG_GENERAL(
+          INFO, "Init JSON before migration:  "
+                    << initBeforeMigration
+                    << "\n Init JSON after migration: " << initAfterMigration);
+
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateJsonForContract(stateAfterMigration, address);
+
+      LOG_GENERAL(INFO,
+                  "State before migration: " << stateBeforeMigration
+                                             << "\nState after migration: "
+                                             << stateAfterMigration);
+    }
+
     this->AddAccount(address, account, true);
-  }
-
-  if (!contract_address_output_dir.empty()) {
-    os_1.close();
-  }
-  if (!normal_address_output_dir.empty()) {
-    os_2.close();
-  }
-
-  /// repopulate trie and discard old persistence
-  if (!MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
-    return false;
-  }
-
-  return true;
-}
-
-bool AccountStore::MigrateContractStates2(
-    [[gnu::unused]] bool ignoreCheckerFailure,
-    const string& contract_address_output_dir,
-    const string& normal_address_output_dir) {
-  LOG_MARKER();
-
-  std::ofstream os_1;
-  std::ofstream os_2;
-  if (!contract_address_output_dir.empty()) {
-    os_1.open(contract_address_output_dir);
-  }
-  if (!normal_address_output_dir.empty()) {
-    os_2.open(normal_address_output_dir);
-  }
-
-  for (const auto& i : m_state) {
-    Address address(i.first);
-
-    LOG_GENERAL(INFO, "Address: " << address.hex());
-
-    Account account;
-    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      return false;
-    }
-
-    if (account.isContract()) {
-      account.SetAddress(address);
-      if (!contract_address_output_dir.empty()) {
-        os_1 << address.hex() << endl;
-      }
-    } else {
-      this->AddAccount(address, account, true);
-      if (!normal_address_output_dir.empty()) {
-        os_2 << address.hex() << endl;
-      }
-      continue;
-    }
-
-    // TBD
   }
 
   if (!contract_address_output_dir.empty()) {

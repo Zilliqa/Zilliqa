@@ -99,22 +99,12 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, "Finished RetrieveStates");
 
-    if (!disambiguation) {
-      if (!retriever.MigrateContractStates(ignore_checker,
-                                           contract_address_output_dir,
-                                           normal_address_output_dir)) {
-        LOG_GENERAL(WARNING, "MigrateContractStates failed");
-      } else {
-        LOG_GENERAL(INFO, "MigrateContractStates finished");
-      }
+    if (!retriever.MigrateContractStates(
+            ignore_checker, disambiguation, contract_address_output_dir,
+            normal_address_output_dir)) {
+      LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
-      if (!retriever.MigrateContractStates2(ignore_checker,
-                                            contract_address_output_dir,
-                                            normal_address_output_dir)) {
-        LOG_GENERAL(WARNING, "MigrateContractStates2 failed");
-      } else {
-        LOG_GENERAL(INFO, "MigrateContractStates2 finished");
-      }
+      LOG_GENERAL(INFO, "MigrateContractStates finished");
     }
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
