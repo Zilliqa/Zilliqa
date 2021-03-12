@@ -42,8 +42,8 @@ int main(int argc, const char* argv[]) {
   Peer peer;
   string ignore_checker_str;
   string disambiguation_str;
-  string contract_address_output_dir;
-  string normal_address_output_dir;
+  string contract_address_output_filename;
+  string normal_address_output_filename;
 
   try {
     po::options_description desc("Options");
@@ -54,11 +54,12 @@ int main(int argc, const char* argv[]) {
         "disambiguation,d", po::value<string>(&disambiguation_str),
         "whether to call the migration tool for disambiguation (default "
         "false)")(
-        "contract_addresses,c", po::value<string>(&contract_address_output_dir),
-        "indicate the path to output the contract addresses, no output if "
+        "contract_addresses,c",
+        po::value<string>(&contract_address_output_filename),
+        "indicate the filename to output the contract addresses, no output if "
         "empty")("normal_addresses,n",
-                 po::value<string>(&normal_address_output_dir),
-                 "indicate the path to output non-contract addresses, no "
+                 po::value<string>(&normal_address_output_filename),
+                 "indicate the filename to output non-contract addresses, no "
                  "output if empty");
 
     po::variables_map vm;
@@ -100,8 +101,8 @@ int main(int argc, const char* argv[]) {
     LOG_GENERAL(INFO, "Finished RetrieveStates");
 
     if (!retriever.MigrateContractStates(ignore_checker, disambiguation,
-                                         contract_address_output_dir,
-                                         normal_address_output_dir)) {
+                                         contract_address_output_filename,
+                                         normal_address_output_filename)) {
       LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
       LOG_GENERAL(INFO, "MigrateContractStates finished");
