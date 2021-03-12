@@ -99,9 +99,9 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, "Finished RetrieveStates");
 
-    if (!retriever.MigrateContractStates(
-            ignore_checker, disambiguation, contract_address_output_dir,
-            normal_address_output_dir)) {
+    if (!retriever.MigrateContractStates(ignore_checker, disambiguation,
+                                         contract_address_output_dir,
+                                         normal_address_output_dir)) {
       LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
       LOG_GENERAL(INFO, "MigrateContractStates finished");

@@ -235,9 +235,8 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    result = m_clients.at(version)
-                 ->CallMethod("disambiguate", _json)
-                 .asString();
+    result =
+        m_clients.at(version)->CallMethod("disambiguate", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
