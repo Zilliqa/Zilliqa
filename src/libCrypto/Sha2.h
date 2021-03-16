@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBCRYPTO_SHA2_H_
 
 #include <openssl/sha.h>
+#include <string>
 #include <vector>
 #include "libUtils/Logger.h"
 
@@ -62,6 +63,27 @@ class SHA2 {
 
   /// Hash update function.
   void Update(const bytes& input, unsigned int offset, unsigned int size) {
+    if ((offset + size) > input.size()) {
+      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
+    }
+
+    SHA256_Update(&m_context, input.data() + offset, size);
+  }
+
+  /// Hash update function.
+  void Update(const std::string& input) {
+    if (input.size() == 0) {
+      LOG_GENERAL(WARNING, "Nothing to update");
+      return;
+    }
+
+    SHA256_Update(&m_context, input.data(), input.size());
+  }
+
+  /// Hash update function.
+  void Update(const std::string& input, unsigned int offset,
+              unsigned int size) {
     if ((offset + size) > input.size()) {
       LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
