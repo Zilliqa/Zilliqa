@@ -327,6 +327,7 @@ extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
 extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 extern const unsigned int BLACKLIST_NUM_TO_POP;
 extern const unsigned int MAX_PEER_CONNECTION;
+extern const unsigned int MAX_PEER_CONNECTION_P2PSEED;
 extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
 
