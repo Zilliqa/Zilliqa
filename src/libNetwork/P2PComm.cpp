@@ -1249,9 +1249,11 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   {
-    LOG_GENERAL(INFO, "p2pseed test MAX_PEER_CONNECTION_P2PSEED= "<<MAX_PEER_CONNECTION_P2PSEED);
+    LOG_GENERAL(INFO, "p2pseed test MAX_PEER_CONNECTION_P2PSEED= "
+                          << MAX_PEER_CONNECTION_P2PSEED);
     std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION_P2PSEED) {
+    if (m_peerConnectionCount[from.GetIpAddress()] >
+        MAX_PEER_CONNECTION_P2PSEED) {
       LOG_GENERAL(WARNING, "Connection ignored from " << from);
       evutil_closesocket(cli_sock);
       return;
