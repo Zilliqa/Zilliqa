@@ -422,6 +422,8 @@ const unsigned int BLACKLIST_NUM_TO_POP{
     ReadConstantNumeric("BLACKLIST_NUM_TO_POP", "node.p2pcomm.")};
 const unsigned int MAX_PEER_CONNECTION{
     ReadConstantNumeric("MAX_PEER_CONNECTION", "node.p2pcomm.")};
+const unsigned int MAX_PEER_CONNECTION_P2PSEED{
+    ReadConstantNumeric("MAX_PEER_CONNECTION_P2PSEED", "node.p2pcomm.")};
 const unsigned int MAX_WHITELISTREQ_LIMIT{
     ReadConstantNumeric("MAX_WHITELISTREQ_LIMIT", "node.p2pcomm.")};
 const unsigned int SENDJOBPEERS_TIMEOUT{

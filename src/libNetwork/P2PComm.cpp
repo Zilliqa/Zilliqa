@@ -1250,7 +1250,8 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
 
   {
     std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
-    if (m_peerConnectionCount[from.GetIpAddress()] > MAX_PEER_CONNECTION) {
+    if (m_peerConnectionCount[from.GetIpAddress()] >
+        MAX_PEER_CONNECTION_P2PSEED) {
       LOG_GENERAL(WARNING, "Connection ignored from " << from);
       evutil_closesocket(cli_sock);
       return;
