@@ -849,11 +849,11 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
                   "GetDSBlockFromL2lDataProvider Timeout... may be ds block "
                   "yet to be mined");
     } else {
-      m_mediator.m_lookup->m_vcDsBlockProcessed = false;
-      return true;
+      break;
     }
   }
-  return false;
+  m_mediator.m_lookup->m_vcDsBlockProcessed = false;
+  return true;
 }
 
 bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
@@ -875,12 +875,11 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
                   "GetVCFinalBlockFromL2lDataProvider Timeout... may be "
                   "vc/final block yet to be mined");
     } else {
-      m_mediator.m_lookup->m_vcFinalBlockProcessed = false;
-      return true;
+      break;
     }
   }
-
-  return false;
+  m_mediator.m_lookup->m_vcFinalBlockProcessed = false;
+  return true;
 }
 
 bool Lookup::GetMBnForwardTxnFromL2lDataProvider(uint64_t blockNum,
