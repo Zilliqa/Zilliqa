@@ -25,7 +25,6 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
-#include "libPersistence/ContractStorageOld.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
@@ -539,17 +538,14 @@ bool AccountStore::RevertCommitTemp() {
     RemoveFromTrie(entry.first);
   }
 
-  if (!ContractStorage::GetContractStorage().RevertContractStates()) {
-    LOG_GENERAL(WARNING, "ContractStorage::RevertContractStates failed");
-    return false;
-  }
+  ContractStorage::GetContractStorage().RevertContractStates();
 
   return true;
 }
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
 
-bool AccountStore::MigrateContractStates2(
+/*bool AccountStore::MigrateContractStates2(
     [[gnu::unused]] bool ignoreCheckerFailure,
     [[gnu::unused]] const string& contract_address_output_dir,
     [[gnu::unused]] const string& normal_address_output_dir) {
@@ -605,12 +601,8 @@ bool AccountStore::MigrateContractStates2(
     states = std::move(t_states);
 
     dev::h256 rootHash;
-    if (!ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-            address, dev::h256(), states, {}, rootHash, false, false)) {
-      LOG_GENERAL(WARNING,
-                  "ContractStorage::UpdateStateDatasAndToDeletes failed");
-      return false;
-    }
+    ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
+            address, dev::h256(), states, {}, rootHash, false, false);
     account.SetStorageRoot(rootHash);
 
     // adding new metadata
@@ -659,16 +651,14 @@ bool AccountStore::MigrateContractStates2(
 
     // adding scilla_version metadata
     t_metadata.emplace(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(address,
             SCILLA_VERSION_INDICATOR, {}),
         DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
     // adding depth and type metadata
-    if (!ParseContractCheckerOutput(checkerPrint, receipt, t_metadata, gasRem,
-                                    is_library)) {
-      LOG_GENERAL(WARNING, "ParseContractCheckerOutput failed");
-      if (ignoreCheckerFailure) {
-        continue;
+    if (!ParseContractCheckerOutput(address, checkerPrint, receipt, t_metadata,
+gasRem, is_library)) { LOG_GENERAL(WARNING, "ParseContractCheckerOutput
+failed"); if (ignoreCheckerFailure) { continue;
       }
       return false;
     }
@@ -676,7 +666,7 @@ bool AccountStore::MigrateContractStates2(
     // remove previous map depth
     std::vector<std::string> toDeletes;
     toDeletes.emplace_back(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(address,
             FIELDS_MAP_DEPTH_INDICATOR, {}));
 
     if (account.UpdateStates(address, t_metadata, toDeletes, false, false)) {
@@ -709,4 +699,4 @@ bool AccountStore::MigrateContractStates2(
   }
 
   return true;
-}
+}*/

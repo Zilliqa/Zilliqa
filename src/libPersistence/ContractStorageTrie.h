@@ -15,14 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
-#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
+#ifndef ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGETRIE_H_
+#define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGETRIE_H_
 
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <shared_mutex>
 
-#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -33,6 +32,7 @@
 #pragma GCC diagnostic pop
 
 #include "depends/libTrie/TrieDB.h"
+
 #include "libData/DataStructures/TraceableDB.h"
 
 class ProtoScillaQuery;
@@ -41,53 +41,53 @@ namespace Contract {
 
 static std::string type_placeholder;
 
-enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
-
-Index GetIndex(const dev::h160& address, const std::string& key);
 class ContractStorage : public Singleton<ContractStorage> {
-  LevelDB m_stateDataDB;
   LevelDB m_codeDB;
   LevelDB m_initDataDB;
   TraceableDB m_trieDB;
 
   dev::GenericTrieDB<TraceableDB> m_stateTrie;
 
-  // Used by AccountStore
-  std::map<std::string, bytes> m_stateDataMap;
-
   // Used by AccountStoreTemp for StateDelta
-  std::map<std::string, bytes> t_stateDataMap;
+  std::unordered_map<dev::h160, std::map<std::string, bytes>> t_stateDataMap;
+  std::unordered_map<dev::h160, std::set<std::string>> t_indexToBeDeleted;
 
   // Used for revert state due to failure in chain call
-  std::map<std::string, bytes> p_stateDataMap;
-  std::set<std::string> p_indexToBeDeleted;
+  std::unordered_map<dev::h160, std::map<std::string, bytes>> p_stateDataMap;
+  std::unordered_map<dev::h160, std::map<std::string, bool>> p_indexToBeDeleted;
 
   // Used for RevertCommitTemp
   std::unordered_map<dev::h256, std::unordered_map<std::string, bytes>>
       r_stateDataMap;
-  // value being true for newly added, false for newly deleted
-  std::unordered_map<std::string, bool> r_indexToBeDeleted;
 
-  // Used for delete map index
-  std::set<std::string> m_indexToBeDeleted;
-  std::set<std::string> t_indexToBeDeleted;
+  std::shared_timed_mutex m_codeMutex;
+  std::shared_timed_mutex m_initDataMutex;
+  std::mutex m_stateDataMutex;
 
-  mutable std::mutex m_codeMutex;
-  mutable std::mutex m_initDataMutex;
-  mutable std::mutex m_stateDataMutex;
+  void DeleteByPrefix(const dev::h160& addr, const std::string& prefix);
 
-  void DeleteByPrefix(const std::string& prefix);
+  void DeleteByIndex(const dev::h160& addr, const std::string& index);
 
-  void DeleteByIndex(const std::string& index);
+  void UpdateStateData(const dev::h160& addr, const std::string& key,
+                       const bytes& value, bool cleanEmpty = false);
 
-  void UpdateStateData(const std::string& key, const bytes& value,
-                       bool cleanEmpty = false);
-
-  bool CleanEmptyMapPlaceholders(const std::string& key);
+  bool CleanEmptyMapPlaceholders(const dev::h160& addr, const std::string& key);
 
   void UnquoteString(std::string& input);
 
-  bool CheckHasMap(const dev::h160& addr, bool temp);
+  void InsertValueToStateJson(Json::Value& _json, std::string key,
+                              std::string value, bool unquote = true,
+                              bool nokey = false);
+
+  void FetchStateDataForKey(std::map<std::string, bytes>& states,
+                            const dev::h160& addr, const std::string& key,
+                            bool temp);
+
+  void FetchStateDataForContract(std::map<std::string, bytes>& states,
+                                 const dev::h160& addr,
+                                 const std::string& vname = "",
+                                 const std::vector<std::string>& indices = {},
+                                 bool temp = true);
 
   void FetchProofForKey(std::set<std::string>& proof, const std::string& key);
 
@@ -102,8 +102,7 @@ class ContractStorage : public Singleton<ContractStorage> {
     return cs;
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-
+  /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
   /// Adds contract codes to persistence in batch
@@ -128,84 +127,67 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /////////////////////////////////////////////////////////////////////////////
   static std::string GenerateStorageKey(
-      const dev::h160& addr, const std::string& vname,
-      const std::vector<std::string>& indices);
+      const std::string& vname, const std::vector<std::string>& indices);
 
-  std::string RemoveAddrFromKey(const std::string& key);
-
-  bool IsReservedVName(const std::string& name);
-
-  bool FetchStateValue(const dev::h160& addr, const bytes& src,
-                       unsigned int s_offset, bytes& dst, unsigned int d_offset,
-                       bool& foundVal, bool getType = false,
-                       std::string& type = type_placeholder);
-
-  bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,
-                       bytes& dst, unsigned int d_offset, bool& foundVal,
+  /////////////////////////////////////////////////////////////////////////////
+  bool FetchStateValue(const dev::h160& addr, const dev::h256& rootHash,
+                       const bytes& src, unsigned int s_offset, bytes& dst,
+                       unsigned int d_offset, bool& foundVal,
                        bool getType = false,
-                       std::string& type = type_placeholder);
+                       std::string& type = type_placeholder,
+                       bool reloadRootHash = true);
 
-  bool FetchExternalStateValue(
-      const dev::h160& caller, const dev::h160& target, const bytes& src,
-      unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
-      std::string& type,
-      uint32_t caller_version = std::numeric_limits<uint32_t>::max());
-
-  void InsertValueToStateJson(Json::Value& _json, std::string key,
-                              std::string value, bool unquote = true,
-                              bool nokey = false);
+  // bool FetchExternalStateValue(
+  //     const dev::h160& caller, const dev::h256& callerRootHash,
+  //     const dev::h160& target, const dev::h256& targetRootHash,
+  //     const bytes& src, unsigned int s_offset, bytes& dst,
+  //     unsigned int d_offset, bool& foundVal, std::string& type,
+  //     uint32_t caller_version = std::numeric_limits<uint32_t>::max());
 
   bool FetchStateJsonForContract(Json::Value& _json, const dev::h160& address,
+                                 const dev::h256& rootHash,
                                  const std::string& vname = "",
                                  const std::vector<std::string>& indices = {},
                                  bool temp = false);
 
-  void FetchStateDataForKey(std::map<std::string, bytes>& states,
-                            const std::string& key, bool temp);
-
-  void FetchStateDataForContract(std::map<std::string, bytes>& states,
-                                 const dev::h160& address,
-                                 const std::string& vname = "",
-                                 const std::vector<std::string>& indices = {},
-                                 bool temp = true);
-
-  void FetchUpdatedStateValuesForAddress(
-      const dev::h160& address, std::map<std::string, bytes>& states,
-      std::set<std::string>& toDeletedIndices, bool temp = false);
   bool FetchStateProofForContract(std::set<std::string>& proof,
                                   const dev::h256& rootHash,
                                   const std::string& vname,
                                   const std::vector<std::string>& indices);
 
-  bool UpdateStateValue(const dev::h160& addr, const bytes& q,
-                        unsigned int q_offset, const bytes& v,
+  bool FetchUpdatedStateValuesForAddr(const dev::h160& addr,
+                                      const dev::h256& rootHash,
+                                      std::map<std::string, bytes>& t_states,
+                                      std::set<std::string>& toDeletedIndices,
+                                      bool temp = false);
+
+  bool UpdateStateValue(const dev::h160& addr, const dev::h256& rootHash,
+                        const bytes& q, unsigned int q_offset, const bytes& v,
                         unsigned int v_offset);
 
-  void UpdateStateDatasAndToDeletes(
+  bool UpdateStateDatasAndToDeletes(
       const dev::h160& addr, const dev::h256& rootHash,
       const std::map<std::string, bytes>& states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
       bool temp, bool revertible);
 
   /// Buffer the current t_map into p_map
-  void BufferCurrentState();
+  void ResetBufferedAtomicState();
 
   /// Revert the t_map from the p_map just buffered
-  void RevertPrevState();
+  void RevertAtomicState();
 
   /// Put the in-memory m_map into database
   bool CommitStateDB(const uint64_t& dsBlockNum);
 
   /// Clean t_maps
-  void InitTempState(bool callFromExternal = false);
-
-  void InitTempStateCore();
+  void InitTempState();
 
   /// Clean the databases
   void Reset();
 
   /// Revert m_map with r_map
-  void RevertContractStates();
+  bool RevertContractStates();
 
   /// Clean r_map
   void InitRevertibles();
@@ -216,4 +198,4 @@ class ContractStorage : public Singleton<ContractStorage> {
 
 }  // namespace Contract
 
-#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
+#endif  // ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGETRIE_H_

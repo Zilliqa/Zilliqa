@@ -14,7 +14,7 @@ target_link_libraries(Test_MetaPersistence PUBLIC Utils Persistence Message)
 
 add_executable(Test_TrieDB Test_TrieDB.cpp)
 target_include_directories(Test_TrieDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_TrieDB PUBLIC Utils Trie Persistence)
+target_link_libraries(Test_TrieDB PUBLIC Utils Trie AccountData Persistence)
 
 add_executable(Test_DSPersistence Test_DSPersistence.cpp)
 target_include_directories(Test_DSPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)

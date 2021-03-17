@@ -339,21 +339,20 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
 bool Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
                                std::set<std::string>& toDeleteIndices,
                                bool temp) const {
-  return ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddr(
-      GetAddress(), GetStorageRoot(), t_states, toDeleteIndices, temp);
+  ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
+      GetAddress(), t_states, toDeleteIndices, temp);
+
+  return true;
 }
 
 bool Account::UpdateStates(const Address& addr,
                            const std::map<std::string, bytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
-  if (!ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-          addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot,
-          temp, revertible)) {
-    LOG_GENERAL(WARNING,
-                "ContractStorage::UpdateStateDatasAndToDeletes failed");
-    return false;
-  }
+  ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
+      addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
+      revertible);
+
   if (!m_address) {
     SetAddress(addr);
   }
@@ -371,7 +370,7 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
 
   if (vname != "_balance") {
     if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
-            root, GetAddress(), GetStorageRoot(), vname, indices, temp)) {
+            root, GetAddress(), vname, indices, temp)) {
       LOG_GENERAL(WARNING, "ContractStorage::FetchStateJsonForContract failed");
       return false;
     }

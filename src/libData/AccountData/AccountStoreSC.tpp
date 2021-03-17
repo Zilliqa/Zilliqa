@@ -325,11 +325,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
-              SCILLA_VERSION_INDICATOR, {}),
+              toAddr, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
       if (ret_checker &&
-          !ParseContractCheckerOutput(checkerPrint, receipt, t_metadata,
+          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
                                       gasRemained, is_library)) {
         ret_checker = false;
       }
@@ -445,7 +445,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       /// inserting address to create the uniqueness of the contract merkle trie
       t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
-                             CONTRACT_ADDR_INDICATOR, {}),
+                             toAddr, CONTRACT_ADDR_INDICATOR, {}),
                          toAddr.asBytes());
 
       if (!toAccount->UpdateStates(toAddr, t_metadata, {}, true)) {
@@ -525,11 +525,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (!ret) {
-        DiscardTransferAtomic();
+        Contract::ContractStorage::GetContractStorage().RevertPrevState();
+        DiscardAtomics();
         gasRemained =
             std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
       } else {
-        CommitTransferAtomic();
+        CommitAtomics();
       }
 
       boost::multiprecision::uint128_t gasRefund;
@@ -664,7 +665,7 @@ bool AccountStoreSC<MAP>::InvokeContractCall(
     return false;
   }
 
-  DiscardTransferAtomic();
+  DiscardAtomics();
 
   if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
     LOG_GENERAL(WARNING, "DecreaseBalance failed");
@@ -686,7 +687,7 @@ bool AccountStoreSC<MAP>::InvokeContractCall(
   // prepare IPC with current contract address
   m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
                                                toAccount->GetStorageRoot());
-  Contract::ContractStorage::GetContractStorage().ResetBufferedAtomicState();
+  Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
   std::string runnerPrint;
 
@@ -711,13 +712,8 @@ bool AccountStoreSC<MAP>::InvokeContractCall(
 
   if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth,
                                 scilla_version)) {
-    Contract::ContractStorage::GetContractStorage().RevertAtomicState();
     receipt.RemoveAllTransitions();
     ret = false;
-  }
-  if (ret && !user_state_path.empty()) {
-    m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                     m_storageRootUpdateBufferAtomic.end());
   }
   return true;
 }
@@ -968,9 +964,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const std::string& checkerPrint, TransactionReceipt& receipt,
-    std::map<std::string, bytes>& metadata, uint64_t& gasRemained,
-    bool is_library) {
+    const Address& addr, const std::string& checkerPrint,
+    TransactionReceipt& receipt, std::map<std::string, bytes>& metadata,
+    uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 
   LOG_GENERAL(
@@ -1031,7 +1027,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
               field["depth"].isNumeric() && field.isMember("type")) {
             metadata.emplace(
                 Contract::ContractStorage::GetContractStorage()
-                    .GenerateStorageKey(MAP_DEPTH_INDICATOR,
+                    .GenerateStorageKey(addr, MAP_DEPTH_INDICATOR,
                                         {field["vname"].asString()}),
                 DataConversion::StringToCharArray(field["depth"].asString()));
             if (!hasMap && field["depth"].asInt() > 0) {
@@ -1039,7 +1035,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
             }
             metadata.emplace(
                 Contract::ContractStorage::GetContractStorage()
-                    .GenerateStorageKey(TYPE_INDICATOR,
+                    .GenerateStorageKey(addr, TYPE_INDICATOR,
                                         {field["vname"].asString()}),
                 DataConversion::StringToCharArray(field["type"].asString()));
           } else {
@@ -1552,7 +1548,7 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::CommitTransferAtomic() {
+void AccountStoreSC<MAP>::CommitAtomics() {
   LOG_MARKER();
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
     Account* account = this->GetAccount(entry.first);
@@ -1564,12 +1560,16 @@ void AccountStoreSC<MAP>::CommitTransferAtomic() {
       this->AddAccount(entry.first, entry.second);
     }
   }
+  /// since txn succeeded, commit the atomic buffer
+  m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                   m_storageRootUpdateBufferAtomic.end());
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::DiscardTransferAtomic() {
+void AccountStoreSC<MAP>::DiscardAtomics() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
+  m_storageRootUpdateBufferAtomic.clear();
 }
 
 template <class MAP>

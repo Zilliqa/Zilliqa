@@ -77,8 +77,8 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
-          m_contrAddr, m_rootHash, DataConversion::StringToCharArray(query), 0,
-          destination, 0, found)) {
+          m_contrAddr, DataConversion::StringToCharArray(query), 0, destination,
+          0, found)) {
     return false;
   }
 
@@ -114,6 +114,6 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(
-      m_contrAddr, m_rootHash, DataConversion::StringToCharArray(query), 0,
+      m_contrAddr, DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }

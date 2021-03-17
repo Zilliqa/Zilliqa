@@ -37,7 +37,7 @@ using namespace dev;
 using namespace Contract;
 
 BOOST_AUTO_TEST_SUITE(contractstorage)
-
+/*
 BOOST_AUTO_TEST_CASE(contract_proof_test) {
   INIT_STDOUT_LOGGER();
 
@@ -108,5 +108,6 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
   // BOOST_CHECK(t_trie.at(bytesConstRef(key4)) == "");
   // BOOST_CHECK(t_trie.at(bytesConstRef(key5)) == "");
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -173,9 +173,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                              const uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
-  void CommitTransferAtomic();
+  void CommitAtomics();
   /// discard the existing transfers in m_accountStoreAtomic
-  void DiscardTransferAtomic();
+  void DiscardAtomics();
 
  protected:
   AccountStoreSC();
@@ -197,7 +197,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
-  bool ParseContractCheckerOutput(const std::string& checkerPrint,
+  bool ParseContractCheckerOutput(const Address& addr,
+                                  const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
                                   std::map<std::string, bytes>& metadata,
                                   uint64_t& gasRemained,
