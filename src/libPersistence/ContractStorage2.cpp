@@ -1039,7 +1039,7 @@ dev::h256 ContractStorage2::GetContractStateHashCore(const dev::h160& address,
                             << state.first << " value: "
                             << DataConversion::CharArrayToString(state.second));
     }
-    sha2.Update(DataConversion::StringToCharArray(state.first));
+    sha2.Update(state.first);
     if (!state.second.empty()) {
       sha2.Update(state.second);
     }
