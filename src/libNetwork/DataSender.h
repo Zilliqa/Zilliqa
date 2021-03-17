@@ -27,7 +27,9 @@
 #include "libData/BlockData/Block/BlockBase.h"
 
 typedef std::function<bool(bytes& message)> ComposeMessageForSenderFunc;
-typedef std::function<void(const VectorOfNode& lookups, const bytes& message)>
+typedef std::function<void(const VectorOfNode& lookups,
+                           const VectorOfNode& lookupsWithoutMultipliers,
+                           const bytes& message)>
     SendDataToLookupFunc;
 typedef std::function<void(const bytes& message, const DequeOfShard& shards,
                            const unsigned int& my_shards_lo,
@@ -67,9 +69,10 @@ class DataSender : Singleton<DataSender> {
       const BlockBase& blockwcosig, const DequeOfNode& sendercommittee,
       const DequeOfShard& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-      const VectorOfNode& lookups, const BlockHash& hashForRandom,
-      const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,
-      bool forceMulticast = false,
+      const VectorOfNode& lookups,
+      const VectorOfNode& lookupsWithoutMultipliers,
+      const BlockHash& hashForRandom, const uint16_t& consensusMyId,
+      const ComposeMessageForSenderFunc&, bool forceMulticast = false,
       const SendDataToLookupFunc& sendDataToLookupFunc =
           SendDataToLookupFuncDefault,
       const SendDataToShardFunc& sendDataToShardFunc = nullptr);

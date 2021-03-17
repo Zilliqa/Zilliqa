@@ -481,6 +481,7 @@ void Node::CallActOnFinalblock() {
   DataSender::GetInstance().SendDataToOthers(
       *m_microblock, *m_myShardMembers, {}, {},
       m_mediator.m_lookup->GetLookupNodes(),
+      m_mediator.m_lookup->GetLookupNodesWithoutMultipliers(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
       composeMBnForwardTxnMessageForSender, false, SendDataToLookupFuncDefault,
       sendMbnFowardTxnToShardNodes);

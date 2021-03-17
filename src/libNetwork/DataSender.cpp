@@ -21,23 +21,15 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DnsUtils.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 
-void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
-                                  const bytes& message) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DataSender::SendDataToLookupNodesDefault not "
-                "expected to be called from LookUp node.");
-  }
-  LOG_MARKER();
-
-  vector<Peer> allLookupNodes;
-
-  for (const auto& node : lookups) {
+void GetResolveIpFromNodes(vector<uint128_t>& resultList,
+                           const VectorOfNode& nodes) {
+  for (const auto& node : nodes) {
     string url = node.second.GetHostname();
     auto resolved_ip = node.second.GetIpAddress();  // existing one
     if (!url.empty()) {
@@ -49,15 +41,38 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
         LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
       }
     }
+    resultList.emplace_back(resolved_ip);
+  }
+}
 
-    Blacklist::GetInstance().Whitelist(
-        resolved_ip);  // exclude this lookup ip from blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost());
-    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
+void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
+                                  const VectorOfNode& lookupsWithoutMultipliers,
+                                  const bytes& message) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DataSender::SendDataToLookupNodesDefault not "
+                "expected to be called from LookUp node.");
+  }
+  LOG_MARKER();
 
-    allLookupNodes.emplace_back(tmp);
+  vector<uint128_t> resultList;
+  if (QUERY_DNS_FOR_SEED && ObtainIpListFromDns(resultList, MULTIPLIER_DNS)) {
+    // Add on with lookups, as lookups are not from dns list
+    GetResolveIpFromNodes(resultList, lookupsWithoutMultipliers);
+  } else {
+    LOG_GENERAL(INFO,
+                "Not using dns list, fall back to what we have currently");
+    GetResolveIpFromNodes(resultList, lookups);
   }
 
+  vector<Peer> allLookupNodes;
+  for (const auto& ip : resultList) {
+    Blacklist::GetInstance().Whitelist(
+        ip);  // exclude this lookup ip from blacklisting
+    Peer tmp{ip, DEFAULT_SEED_PORT};
+    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
+    allLookupNodes.emplace_back(tmp);
+  }
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
@@ -83,8 +98,10 @@ void SendDataToShardNodesDefault(
 }
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
-    [](const VectorOfNode& lookups, const bytes& message) mutable -> void {
-  SendDataToLookupNodesDefault(lookups, message);
+    [](const VectorOfNode& lookups,
+       const VectorOfNode& lookupsWithoutMultipliers,
+       const bytes& message) mutable -> void {
+  SendDataToLookupNodesDefault(lookups, lookupsWithoutMultipliers, message);
 };
 
 DataSender::DataSender() {}
@@ -234,8 +251,8 @@ bool DataSender::SendDataToOthers(
     const BlockBase& blockwcosigSender, const DequeOfNode& sendercommittee,
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-    const VectorOfNode& lookups, const BlockHash& hashForRandom,
-    const uint16_t& consensusMyId,
+    const VectorOfNode& lookups, const VectorOfNode& lookupsWithoutMultipliers,
+    const BlockHash& hashForRandom, const uint16_t& consensusMyId,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
     bool forceMulticast, const SendDataToLookupFunc& sendDataToLookupFunc,
     const SendDataToShardFunc& sendDataToShardFunc) {
@@ -297,7 +314,7 @@ bool DataSender::SendDataToOthers(
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
       LOG_GENERAL(INFO, "I will send data to the lookups");
       if (sendDataToLookupFunc) {
-        sendDataToLookupFunc(lookups, message);
+        sendDataToLookupFunc(lookups, lookupsWithoutMultipliers, message);
       }
     }
 

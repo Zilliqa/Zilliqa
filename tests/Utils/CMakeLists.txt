@@ -44,6 +44,11 @@ target_include_directories (Test_DetachedFunction PUBLIC ${CMAKE_SOURCE_DIR}/src
 target_link_libraries (Test_DetachedFunction PUBLIC Utils)
 add_test(NAME Test_DetachedFunction COMMAND Test_DetachedFunction)
 
+add_executable (Test_DnsUtils Test_DnsUtils.cpp)
+target_include_directories (Test_DnsUtils PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_DnsUtils PUBLIC AccountData Utils)
+add_test(NAME Test_DnsUtils COMMAND Test_DnsUtils)
+
 add_executable (Test_BoostBigNum Test_BoostBigNum.cpp)
 target_include_directories (Test_BoostBigNum PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_BoostBigNum PUBLIC Utils)
