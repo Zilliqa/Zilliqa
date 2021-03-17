@@ -51,6 +51,7 @@
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/DnsUtils.h"
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/RandomGenerator.h"
 #include "libUtils/SanityChecks.h"
@@ -75,11 +76,10 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
       ignorable_syncTypes.end()) {
     m_syncType = syncType;
   }
-  SetLookupNodes();
-  SetAboveLayer(m_seedNodes, "node.upper_seed");
-  if (!MULTIPLIER_SYNC_MODE) {
-    SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
-  }
+
+  UpdateAllSeeds();
+  m_isFirstTimeSetNodes = false;
+
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
@@ -133,6 +133,16 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
   }
 }
 
+void Lookup::UpdateAllSeeds() {
+  LOG_MARKER();
+  SetLookupNodes();
+
+  SetUpperSeedsInner();
+  if (!MULTIPLIER_SYNC_MODE) {
+    SetL2lDataProvidersInner();
+  }
+}
+
 void Lookup::InitSync() {
   LOG_MARKER();
   auto func = [this]() -> void {
@@ -140,14 +150,12 @@ void Lookup::InitSync() {
     // and register me with multiplier.
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
 
-    if (m_seedNodes.empty()) {
-      SetAboveLayer(
-          m_seedNodes,
-          "node.upper_seed");  // since may have called CleanVariable earlier
+    if (IsUpperSeedEmpty()) {
+      SetUpperSeedsInner();  // since may have called CleanVariable earlier
     }
 
-    if (!MULTIPLIER_SYNC_MODE && m_l2lDataProviders.empty()) {
-      SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
+    if (!MULTIPLIER_SYNC_MODE && IsL2lDataProvidersEmpty()) {
+      SetL2lDataProvidersInner();
     }
 
     // Send whitelist request to seeds, in case it was blacklisted if was
@@ -168,65 +176,160 @@ void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
   m_lookupNodesStatic = lookupNodes;
 }
 
-void Lookup::SetLookupNodes() {
-  LOG_MARKER();
+bool Lookup::IsUpperSeedEmpty() {
+  shared_lock<shared_timed_mutex> lock(m_mutexSeedNodes);
+  return m_seedNodes.empty();
+}
 
-  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+bool Lookup::IsL2lDataProvidersEmpty() {
+  shared_lock<shared_timed_mutex> lock(m_mutexL2lDataProviders);
+  return m_l2lDataProviders.empty();
+}
 
-  m_startedTxnBatchThread = false;
-  m_lookupNodes.clear();
-  m_lookupNodesOffline.clear();
-  // Populate tree structure pt
+bool Lookup::QueryNodesFromDns(VectorOfNode& resultNodes, const string& dns,
+                               unsigned int port) {
+  vector<string> ipList;
+  if (!ObtainIpStrListFromDns(ipList, dns)) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS " << dns);
+    return false;
+  }
+
+  for (const auto& ipStr : ipList) {
+    bytes pubkeyBytes;
+    if (!ObtainPubKeyFromUrl(pubkeyBytes, ipStr, dns)) {
+      LOG_GENERAL(WARNING, "Unable to obtain Pubkey from DNS: "
+                               << dns << " Node IP: " << ipStr);
+      return false;  // Unable to query
+    }
+    Peer node{ConvertIpStringToUint128(ipStr), port};
+    resultNodes.emplace_back(PubKey{pubkeyBytes, 0}, node);
+  }
+
+  return true;
+}
+
+void Lookup::ObtainNodesFromConfig(VectorOfNode& resultNodes,
+                                   const string& xmlNodeType,
+                                   unsigned int port) {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("constants.xml", pt);
+  resultNodes.clear();
+  for (const ptree::value_type& v : pt.get_child(xmlNodeType)) {
+    if (v.first == "peer") {
+      struct in_addr ip_addr {};
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+      Peer node{(uint128_t)ip_addr.s_addr, port};
 
-  const vector<string> lookupTypes = {"node.lookups", "node.multipliers",
-                                      "node.lower_seed"};
-
-  uint8_t level = 0;
-  vector<Peer> levelAbove;
-  for (const auto& lookupType : lookupTypes) {
-    for (const ptree::value_type& v : pt.get_child(lookupType)) {
-      if (v.first == "peer") {
-        struct in_addr ip_addr {};
-        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-        Peer lookup_node((uint128_t)ip_addr.s_addr,
-                         v.second.get<uint32_t>("port"));
-        bytes pubkeyBytes;
-        if (!DataConversion::HexStrToUint8Vec(
-                v.second.get<std::string>("pubkey"), pubkeyBytes)) {
-          continue;
-        }
-        PubKey pubKey(pubkeyBytes, 0);
-        if (pubKey == m_mediator.m_selfKey.second) {
-          m_level = level;
-        }
-        if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                    [&pubKey](const PairOfNode& x) {
-                      return (pubKey == x.first);
-                    }) != m_lookupNodes.end()) {
-          continue;
-        }
-        // check for hostname
-        if (lookupType == "node.lookups" || lookupType == "node.multipliers") {
-          string url = v.second.get<string>("hostname");
-          if (!url.empty()) {
-            lookup_node.SetHostname(url);
-          }
-        }
-        if (lookupType == "node.multipliers") {
-          m_multipliers.emplace_back(pubKey, lookup_node);
-        }
-        m_lookupNodes.emplace_back(pubKey, lookup_node);
-        LOG_GENERAL(INFO, "Added lookup " << lookup_node);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"),
+                                            pubkeyBytes)) {
+        continue;
       }
+      if (xmlNodeType == "node.lookups" || xmlNodeType == "node.multipliers") {
+        string url = v.second.get<string>("hostname");
+        if (!url.empty()) {
+          node.SetHostname(url);
+        }
+      }
+      resultNodes.emplace_back(PubKey{pubkeyBytes, 0}, node);
     }
-    level++;
+  }
+}
+
+void Lookup::UpdateNodes(VectorOfNode& resultNodes, unsigned int nodePort,
+                         const std::string& dns,
+                         const std::string& fallbackXmlType) {
+  LOG_MARKER();
+  LOG_GENERAL(INFO, "Update nodes, dns: " << dns << ", fallbackXmlTag: "
+                                          << fallbackXmlType);
+  VectorOfNode tmp;
+  if (QUERY_DNS_FOR_SEED && QueryNodesFromDns(tmp, dns, nodePort)) {
+    resultNodes = tmp;  // Copy only after all has been queried
+    LOG_GENERAL(INFO, "UpdateNodes copying done, size: " << tmp.size());
+    return;  // Success
   }
 
-  m_lookupNodesStatic = m_lookupNodes;
+  LOG_GENERAL(INFO,
+              "FirstTime: " << m_isFirstTimeSetNodes
+                            << ", old results size: " << resultNodes.size());
 
+  // Unable to query nodes, fall back to config nodes if is initially started
+  if (m_isFirstTimeSetNodes || resultNodes.empty()) {
+    LOG_GENERAL(WARNING, "Falling back to obtain IP and Pubkey from config");
+    ObtainNodesFromConfig(resultNodes, fallbackXmlType, nodePort);
+  }
+}
+
+void Lookup::SetUpperSeedsInner() {
+  LOG_MARKER();
+  lock_guard<shared_timed_mutex> lock(m_mutexSeedNodes);
+  UpdateNodes(m_seedNodes, DEFAULT_SEED_PORT, UPPER_SEED_DNS,
+              "node.upper_seed");
+}
+
+void Lookup::SetL2lDataProvidersInner() {
+  LOG_MARKER();
+  auto port = ENABLE_SEED_TO_SEED_COMMUNICATION ? P2P_SEED_CONNECT_PORT
+                                                : DEFAULT_SEED_PORT;
+  lock_guard<shared_timed_mutex> lock(m_mutexL2lDataProviders);
+  UpdateNodes(m_l2lDataProviders, port, L2L_DATA_PROVIDERS_DNS,
+              "node.l2l_data_providers");
+}
+
+void Lookup::SetLookupNodes() {
+  LOG_MARKER();
+
+  LOG_GENERAL(INFO, "Before locking");
+  lock(m_mutexLookupNodes, m_mutexMultipliers);
+  lock_guard<shared_timed_mutex> lock1(m_mutexLookupNodes, adopt_lock);
+  lock_guard<shared_timed_mutex> lock2(m_mutexMultipliers, adopt_lock);
+  LOG_GENERAL(INFO, "After locking");
+
+  m_startedTxnBatchThread = false;
+  m_lookupNodesOffline.clear();
+
+  LOG_GENERAL(INFO, "Before update nodes");
+
+  UpdateNodes(m_lookupNodes, DEFAULT_SEED_PORT, LOOKUPS_DNS, "node.lookups");
+  UpdateNodes(m_multipliers, DEFAULT_SEED_PORT, MULTIPLIER_DNS,
+              "node.multipliers");
+
+  LOG_GENERAL(INFO, "After update nodes");
+  // Remove existing lookups from multiplier if there's any
+  for (const auto& lookup : m_lookupNodes) {
+    auto mulItr = find_if(m_multipliers.begin(), m_multipliers.end(),
+                          [&lookup](const PairOfNode& node) {
+                            return lookup.first == node.first;
+                          });
+    bool isMul = mulItr != m_multipliers.end();
+    if (isMul) {
+      LOG_GENERAL(INFO, "Erasing multiplier");
+      m_multipliers.erase(mulItr);
+    }
+
+    if (lookup.first == m_mediator.m_selfKey.second) m_level = isMul ? 1 : 0;
+  }
+
+  for (const auto& mulNode : m_multipliers) {
+    if (mulNode.first == m_mediator.m_selfKey.second) m_level = 1;
+  }
+
+  LOG_GENERAL(INFO, "Lookup size: " << m_lookupNodes.size());
+  for (const auto& l : m_lookupNodes) {
+    LOG_GENERAL(INFO, "Lookup: " << l.first << ", " << l.second);
+  }
+  LOG_GENERAL(INFO, "Multiplier size: " << m_multipliers.size());
+  for (const auto& m : m_multipliers) {
+    LOG_GENERAL(INFO, "Multiplier: " << m.first << ", " << m.second);
+  }
+
+  // Add multipliers to lookups
+  m_lookupNodes.insert(m_lookupNodes.end(), m_multipliers.begin(),
+                       m_multipliers.end());
+
+  m_lookupNodesStatic = m_lookupNodes;
+  LOG_GENERAL(INFO, "m_lookupNodesStatic set to new m_lookupNodes");
   /*
     For testing with gentxn, distribute the genesis accounts evenly across the
     number of dispatching lookups. Then for each lookup's accounts, split the
@@ -246,6 +349,8 @@ void Lookup::SetLookupNodes() {
       <account></account> -> for lookup 2 shard 2 set 2
   */
   if (USE_REMOTE_TXN_CREATOR) {
+    LOG_GENERAL(INFO, "USE_REMOTE_TXN_CREATOR");
+
     const unsigned int myLookupIndex = std::distance(
         m_lookupNodesStatic.begin(),
         find_if(m_lookupNodesStatic.begin(), m_lookupNodesStatic.end(),
@@ -255,6 +360,9 @@ void Lookup::SetLookupNodes() {
 
     LOG_GENERAL(INFO, "I am dispatcher number " << (myLookupIndex + 1) << " of "
                                                 << NUM_DISPATCHERS);
+
+    LOG_GENERAL(INFO, "Genesis wallet size: " << GENESIS_WALLETS.size());
+
     // Accounts for dispatching to shard
     unsigned int indexBeg =
         myLookupIndex * (GENESIS_WALLETS.size() / NUM_DISPATCHERS);
@@ -307,44 +415,6 @@ void Lookup::SetLookupNodes() {
   }
 }
 
-void Lookup::SetAboveLayer(VectorOfNode& aboveLayer, const string& xml_node) {
-  using boost::property_tree::ptree;
-  ptree pt;
-  read_xml("constants.xml", pt);
-  aboveLayer.clear();
-  for (const ptree::value_type& v : pt.get_child(xml_node)) {
-    if (v.first == "peer") {
-      struct in_addr ip_addr {};
-      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-      Peer node;
-      if (xml_node == "node.l2l_data_providers") {
-        node.m_ipAddress = (uint128_t)ip_addr.s_addr;
-        if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-          node.m_listenPortHost = P2P_SEED_CONNECT_PORT;
-        } else {
-          node.m_listenPortHost = v.second.get<uint32_t>("port");
-        }
-      } else {
-        node.m_ipAddress = (uint128_t)ip_addr.s_addr;
-        node.m_listenPortHost = v.second.get<uint32_t>("port");
-      }
-
-      bytes pubkeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"),
-                                            pubkeyBytes)) {
-        continue;
-      }
-
-      PubKey pubKey(pubkeyBytes, 0);
-      string url = v.second.get<string>("hostname");
-      if (!url.empty()) {
-        node.SetHostname(url);
-      }
-      aboveLayer.emplace_back(pubKey, node);
-    }
-  }
-}
-
 bool Lookup::AddToWhitelistExtSeed(const PubKey& pubKey) {
   lock_guard<mutex> g(m_mutexExtSeedWhitelisted);
   if (m_extSeedWhitelisted.emplace(pubKey).second) {
@@ -363,10 +433,10 @@ bool Lookup::RemoveFromWhitelistExtSeed(const PubKey& pubKey) {
 
 VectorOfNode Lookup::GetSeedNodes() const {
   if (!MULTIPLIER_SYNC_MODE) {
-    lock_guard<mutex> g(m_mutexL2lDataProviders);
+    shared_lock<shared_timed_mutex> g(m_mutexL2lDataProviders);
     return m_l2lDataProviders;
   } else {
-    lock_guard<mutex> g(m_mutexSeedNodes);
+    shared_lock<shared_timed_mutex> g(m_mutexSeedNodes);
     return m_seedNodes;
   }
 }
@@ -565,16 +635,44 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   return true;
 }
 
+VectorOfNode Lookup::GetL2lDataProviders() const {
+  LOG_MARKER();
+  shared_lock<shared_timed_mutex> lock(m_mutexL2lDataProviders);
+  return m_l2lDataProviders;
+}
+
 VectorOfNode Lookup::GetLookupNodes() const {
   LOG_MARKER();
-  lock_guard<mutex> lock(m_mutexLookupNodes);
+  shared_lock<shared_timed_mutex> lock(m_mutexLookupNodes);
   return m_lookupNodes;
 }
 
 VectorOfNode Lookup::GetLookupNodesStatic() const {
   LOG_MARKER();
-  lock_guard<mutex> lock(m_mutexLookupNodes);
+  shared_lock<shared_timed_mutex> lock(m_mutexLookupNodes);
+  LOG_GENERAL(INFO, "Passing lock");
   return m_lookupNodesStatic;
+}
+
+VectorOfNode Lookup::GetLookupNodesWithoutMultipliers() const {
+  LOG_MARKER();
+
+  VectorOfNode tmp;
+
+  shared_lock<shared_timed_mutex> lock1(m_mutexLookupNodes, defer_lock);
+  shared_lock<shared_timed_mutex> lock2(m_mutexMultipliers, defer_lock);
+  lock(m_mutexLookupNodes, m_mutexMultipliers);
+
+  if (m_lookupNodes.size() == 0) return m_lookupNodes;
+
+  std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+               std::back_inserter(tmp), [this](const PairOfNode& node) {
+                 return (find_if(m_multipliers.begin(), m_multipliers.end(),
+                                 [&node](const PairOfNode& mult) {
+                                   return node.second == mult.second;
+                                 }) == m_multipliers.end());
+               });
+  return tmp;
 }
 
 bool Lookup::IsLookupNode(const PubKey& pubKey) const {
@@ -612,22 +710,32 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
 
 void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
+  vector<uint128_t> ipList;
+  if (QUERY_DNS_FOR_SEED) {
+    if (!ObtainIpListFromDns(ipList, LOOKUPS_DNS) ||
+        !ObtainIpListFromDns(ipList, MULTIPLIER_DNS)) {
+      ipList.clear();
+    }
+  }
+
+  if (ipList.size() == 0) {
+    LOG_GENERAL(
+        INFO, "Unable to get lookup nodes info from DNS, using current list.");
+    auto lookups = GetLookupNodes();
+    // Failed to get anything from DNS side, use what we currently have
+    // (Previous DNS query, or static)
+    for (const auto& node : lookups) {
+      ipList.emplace_back(TryGettingResolvedIP(node.second));
+    }
+  }
 
   vector<Peer> allLookupNodes;
-
-  {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
-    for (const auto& node : m_lookupNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
-
-      allLookupNodes.emplace_back(tmp);
-    }
+  for (const auto& ip : ipList) {
+    // exclude this lookup ip from blacklisting
+    Blacklist::GetInstance().Whitelist(ip);
+    Peer peer{ip, DEFAULT_SEED_PORT};
+    LOG_GENERAL(INFO, "Sending to lookup " << peer);
+    allLookupNodes.emplace_back(peer);
   }
 
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -635,90 +743,144 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
 
 void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   LOG_MARKER();
+  vector<uint128_t> ipList;
+  if (QUERY_DNS_FOR_SEED) {
+    if (!ObtainIpListFromDns(ipList, LOOKUPS_DNS)) {
+      ipList.clear();
+    }
+  }
+
+  if (ipList.empty()) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << LOOKUPS_DNS << ", using current list.");
+    auto lookupWithoutMultipliers = GetLookupNodesWithoutMultipliers();
+    for (const auto& node : lookupWithoutMultipliers) {
+      ipList.emplace_back(TryGettingResolvedIP(node.second));
+    }
+  }
 
   vector<Peer> allLookupNodes;
-
-  {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
-    for (const auto& node : m_lookupNodes) {
-      if (find_if(m_multipliers.begin(), m_multipliers.end(),
-                  [&node](const PairOfNode& mult) {
-                    return node.second == mult.second;
-                  }) != m_multipliers.end()) {
-        continue;
-      }
-
-      auto resolved_ip = TryGettingResolvedIP(node.second);
-
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-
-      Peer tmp(resolved_ip, node.second.GetListenPortHost());
-      LOG_GENERAL(INFO, "Sending to lookup " << tmp);
-
-      allLookupNodes.emplace_back(tmp);
-    }
+  for (const auto& ip : ipList) {
+    // exclude this lookup ip from blacklisting
+    Blacklist::GetInstance().Whitelist(ip);
+    Peer peer{ip, DEFAULT_SEED_PORT};
+    LOG_GENERAL(INFO, "Sending to lookup " << peer);
+    allLookupNodes.emplace_back(peer);
   }
 
   P2PComm::GetInstance().SendMessage(allLookupNodes, message);
 }
 
-void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
+void Lookup::SendMessageToRandomLookupNode(const bytes& message) {
   LOG_MARKER();
 
-  // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
-  // - NUM_LOOKUP_USE_FOR_SYNC;
-  lock_guard<mutex> lock(m_mutexLookupNodes);
-  if (0 == m_lookupNodes.size()) {
-    LOG_GENERAL(WARNING, "There is no lookup node existed yet!");
-    return;
+  auto selfIp = m_mediator.m_selfPeer.GetIpAddress();
+  Peer randomPeer;
+
+  vector<uint128_t> lookupIpsFromLocal;
+  VectorOfNode localLookupNodes = GetLookupNodesWithoutMultipliers();
+  for (const auto& node : localLookupNodes) {
+    auto resolvedIp = TryGettingResolvedIP(node.second);
+    if (resolvedIp != selfIp) lookupIpsFromLocal.emplace_back(resolvedIp);
   }
 
-  // To avoid sending message to multiplier and himself
-  VectorOfNode tmp;
-  std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-               std::back_inserter(tmp), [this](const PairOfNode& node) {
-                 return (find_if(m_multipliers.begin(), m_multipliers.end(),
-                                 [&node](const PairOfNode& mult) {
-                                   return node.second == mult.second;
-                                 }) == m_multipliers.end()) &&
-                        (node.second != m_mediator.m_selfPeer);
-               });
-
-  if (tmp.empty()) {
-    LOG_GENERAL(WARNING, "No other lookup to send message to!");
-    return;
+  vector<uint128_t> lookupIpsFromDns;
+  if (QUERY_DNS_FOR_SEED) {
+    if (ObtainIpListFromDns(lookupIpsFromDns, LOOKUPS_DNS)) {
+      lookupIpsFromDns.erase(
+          std::remove(lookupIpsFromDns.begin(), lookupIpsFromDns.end(), selfIp),
+          lookupIpsFromDns.end());
+    }
   }
 
-  int index = RandomGenerator::GetRandomInt(tmp.size());
-  auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
+  if (lookupIpsFromDns.empty()) {
+    // Fallback to previous dns query list or static config
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << LOOKUPS_DNS << ", using current list.");
+
+    if (lookupIpsFromLocal.empty()) {
+      LOG_GENERAL(WARNING, "There is no lookup node existed yet!");
+      return;
+    }
+
+    int index = RandomGenerator::GetRandomInt(lookupIpsFromLocal.size());
+    randomPeer = Peer{lookupIpsFromLocal[index], DEFAULT_SEED_PORT};
+  } else {
+    vector<uint128_t> choices;
+    std::sort(lookupIpsFromDns.begin(), lookupIpsFromDns.end());
+    std::sort(lookupIpsFromLocal.begin(), lookupIpsFromLocal.end());
+    std::set_intersection(lookupIpsFromDns.begin(), lookupIpsFromDns.end(),
+                          lookupIpsFromLocal.begin(), lookupIpsFromLocal.end(),
+                          std::back_inserter(choices));
+
+    if (choices.empty()) {
+      // For some reason, we do not have any lookups from our own list in the
+      // DNS Choose 1 from DNS
+      int index = RandomGenerator::GetRandomInt(lookupIpsFromDns.size());
+      auto ip = lookupIpsFromDns[index];
+      randomPeer = Peer{ip, DEFAULT_SEED_PORT};
+
+      bytes pubkeyBytes;
+      auto ipStr = IPConverter::ToStrFromNumericalIP(ip);
+      if (!ObtainPubKeyFromUrl(pubkeyBytes, ipStr, LOOKUPS_DNS)) {
+        LOG_GENERAL(WARNING, "Pubkey cannot be found!");
+        return;
+      }
+      PubKey pubKey{pubkeyBytes, 0};
+      {
+        LOG_GENERAL(INFO,
+                    "Add random peer from DNS to local list: " << randomPeer);
+        // Add back to local list for verification later on
+        lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
+        m_lookupNodes.emplace_back(pubKey, randomPeer);
+        m_lookupNodesStatic.emplace_back(pubKey, randomPeer);
+      }
+
+    } else {
+      int index = RandomGenerator::GetRandomInt(choices.size());
+      randomPeer = Peer{choices[index], DEFAULT_SEED_PORT};
+    }
+  }
 
   Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this lookup ip from blacklisting
-  Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
-  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-  P2PComm::GetInstance().SendMessage(tmpPeer, message);
+      randomPeer.GetIpAddress());  // exclude this lookup ip from blacklisting
+  LOG_GENERAL(INFO, "Sending to Random lookup: " << randomPeer);
+  P2PComm::GetInstance().SendMessage(randomPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
   LOG_MARKER();
 
-  vector<Peer> seedNodePeer;
-  {
-    lock_guard<mutex> g(m_mutexSeedNodes);
+  vector<uint128_t> seedIps;
+  if (QUERY_DNS_FOR_SEED) {
+    ObtainIpListFromDns(seedIps, UPPER_SEED_DNS);
+  }
 
-    for (const auto& node : m_seedNodes) {
-      auto resolved_ip = TryGettingResolvedIP(node.second);
+  if (seedIps.empty()) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << UPPER_SEED_DNS << ", using current list.");
 
-      Blacklist::GetInstance().Whitelist(
-          resolved_ip);  // exclude this lookup ip from blacklisting
-      Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to seed node " << tmpPeer);
-      seedNodePeer.emplace_back(tmpPeer);
+    VectorOfNode localSeeds;
+    {
+      shared_lock<shared_timed_mutex> g(m_mutexSeedNodes);
+      localSeeds = m_seedNodes;
+    }
+
+    for (const auto& node : localSeeds) {
+      seedIps.emplace_back(TryGettingResolvedIP(node.second));
     }
   }
-  P2PComm::GetInstance().SendMessage(seedNodePeer, message);
+
+  vector<Peer> seedNodePeers;
+  for (const auto& ip : seedIps) {
+    // exclude this lookup ip from blacklisting
+    Blacklist::GetInstance().Whitelist(ip);
+    Peer peer{ip, DEFAULT_SEED_PORT};
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Sending msg to seed node " << peer);
+    seedNodePeers.emplace_back(peer);
+  }
+  P2PComm::GetInstance().SendMessage(seedNodePeers, message);
 }
 
 bytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
@@ -1243,7 +1405,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   return true;
 }
 
-void Lookup::SendMessageToRandomL2lDataProvider(const bytes& message) const {
+void Lookup::SendMessageToRandomL2lDataProvider(const bytes& message) {
   LOG_MARKER();
 
   if (message.empty()) {
@@ -1251,58 +1413,166 @@ void Lookup::SendMessageToRandomL2lDataProvider(const bytes& message) const {
     return;
   }
 
-  lock_guard<mutex> lock(m_mutexL2lDataProviders);
-  if (0 == m_l2lDataProviders.size()) {
-    LOG_GENERAL(WARNING, "l2l data providers are empty");
-    return;
+  auto localL2lDataProvider = GetL2lDataProviders();
+  vector<uint128_t> ipFromLocal;
+
+  std::transform(localL2lDataProvider.begin(), localL2lDataProvider.end(),
+                 std::back_inserter(ipFromLocal), [this](const auto& node) {
+                   return TryGettingResolvedIP(node.second);
+                 });
+
+  Peer randomPeer;
+  auto port = ENABLE_SEED_TO_SEED_COMMUNICATION ? P2P_SEED_CONNECT_PORT
+                                                : DEFAULT_SEED_PORT;
+
+  vector<uint128_t> ipFromDns;
+  if (QUERY_DNS_FOR_SEED)
+    ObtainIpListFromDns(ipFromDns, L2L_DATA_PROVIDERS_DNS);
+
+  if (ipFromDns.empty()) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << L2L_DATA_PROVIDERS_DNS
+                             << ", using current list.");
+
+    if (ipFromLocal.empty()) {
+      LOG_GENERAL(WARNING, "No L2lDataProvider to send to");
+      return;
+    }
+
+    int index = RandomGenerator::GetRandomInt(ipFromLocal.size());
+    randomPeer = Peer{ipFromLocal[index], port};
+  } else {
+    // Find if list of L2lDataProvider from dns that intersects with local list
+    vector<uint128_t> intersectedList;
+    std::sort(ipFromLocal.begin(), ipFromLocal.end());
+    std::sort(ipFromDns.begin(), ipFromDns.end());
+    std::set_intersection(ipFromLocal.begin(), ipFromLocal.end(),
+                          ipFromDns.begin(), ipFromDns.end(),
+                          std::back_inserter(intersectedList));
+
+    if (intersectedList.empty()) {
+      // Not found in DNS, need to add one into our local list
+      int index = RandomGenerator::GetRandomInt(ipFromDns.size());
+      auto ip = ipFromDns[index];
+      auto ipStr = IPConverter::ToStrFromNumericalIP(ip);
+
+      randomPeer = Peer{ip, port};
+
+      // Need to insert into our local list for fetching verification
+      bytes pubkeyBytes;
+      if (!ObtainPubKeyFromUrl(pubkeyBytes, ipStr, L2L_DATA_PROVIDERS_DNS)) {
+        LOG_GENERAL(WARNING, "Pubkey cannot be found!");
+        return;
+      }
+
+      PubKey pubKey{pubkeyBytes, 0};
+      {
+        LOG_GENERAL(INFO,
+                    "Add random peer from DNS to local list: " << randomPeer);
+        // Add back to local list for response verification
+        lock_guard<shared_timed_mutex> lock(m_mutexL2lDataProviders);
+        m_l2lDataProviders.emplace_back(pubKey, randomPeer);
+      }
+
+    } else {
+      int index = RandomGenerator::GetRandomInt(intersectedList.size());
+      randomPeer = Peer{intersectedList[index], port};
+    }
   }
 
-  int index = RandomGenerator::GetRandomInt(m_l2lDataProviders.size());
-  auto resolved_ip = TryGettingResolvedIP(m_l2lDataProviders[index].second);
-
-  Blacklist::GetInstance().Whitelist(
-      resolved_ip);  // exclude this l2lookup ip from blacklisting
-  Peer tmpPeer(resolved_ip,
-               m_l2lDataProviders[index].second.GetListenPortHost());
-  LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
+  // exclude this l2lookup ip from blacklisting
+  Blacklist::GetInstance().Whitelist(randomPeer.GetIpAddress());
+  LOG_GENERAL(INFO, "Sending message to l2l: " << randomPeer);
   unsigned char startByte = START_BYTE_NORMAL;
   if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
     startByte = START_BYTE_SEED_TO_SEED_REQUEST;
   }
-  P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte);
+  P2PComm::GetInstance().SendMessage(randomPeer, randomPeer, message,
+                                     startByte);
 }
 
-void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
+void Lookup::SendMessageToRandomSeedNode(const bytes& message) {
   LOG_MARKER();
 
-  VectorOfPeer notBlackListedSeedNodes;
+  Peer randomPeer;
+  const auto& selfIp = m_mediator.m_selfPeer.GetIpAddress();
+
+  vector<uint128_t> ipsFromDns;
+  if (QUERY_DNS_FOR_SEED && ObtainIpListFromDns(ipsFromDns, UPPER_SEED_DNS)) {
+    // Remove self and blacklisted seeds
+    ipsFromDns.erase(std::remove_if(ipsFromDns.begin(), ipsFromDns.end(),
+                                    [&selfIp](const uint128_t& ip) {
+                                      return ip == selfIp ||
+                                             Blacklist::GetInstance().Exist(ip);
+                                    }),
+                     ipsFromDns.end());
+  }
+
+  VectorOfNode localSeedNodes;
   {
-    lock_guard<mutex> lock(m_mutexSeedNodes);
-    if (0 == m_seedNodes.size()) {
-      LOG_GENERAL(WARNING, "Seed nodes are empty");
+    shared_lock<shared_timed_mutex> lock(m_mutexSeedNodes);
+    localSeedNodes = m_seedNodes;
+  }
+  vector<uint128_t> ipsFromLocal;
+
+  for (const auto& node : localSeedNodes) {
+    auto resolvedIp = TryGettingResolvedIP(node.second);
+    if (selfIp != resolvedIp && !Blacklist::GetInstance().Exist(resolvedIp)) {
+      ipsFromLocal.emplace_back(resolvedIp);
+    }
+  }
+
+  if (ipsFromDns.empty()) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << UPPER_SEED_DNS << ", using current list.");
+
+    if (ipsFromLocal.empty()) {
+      LOG_GENERAL(WARNING, "There is no seed node yet!");
       return;
     }
 
-    for (const auto& node : m_seedNodes) {
-      auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
-          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
-        notBlackListedSeedNodes.push_back(
-            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+    // Use a random local one
+    int index = RandomGenerator::GetRandomInt(ipsFromLocal.size());
+    randomPeer = Peer{ipsFromLocal[index], DEFAULT_SEED_PORT};
+  } else {
+    // Find seeds from dns that intersect in local seed records
+    vector<uint128_t> filteredSeedIps;
+    std::sort(ipsFromLocal.begin(), ipsFromLocal.end());
+    std::sort(ipsFromDns.begin(), ipsFromDns.end());
+    std::set_intersection(ipsFromLocal.begin(), ipsFromLocal.end(),
+                          ipsFromDns.begin(), ipsFromDns.end(),
+                          std::back_inserter(filteredSeedIps));
+
+    if (filteredSeedIps.empty()) {
+      // No local seed found on DNS, need to choose 1 from DNS
+      auto index = RandomGenerator::GetRandomInt(ipsFromDns.size());
+      auto ip = ipsFromDns[index];
+      auto ipStr = IPConverter::ToStrFromNumericalIP(ip);
+      randomPeer = Peer{ip, DEFAULT_SEED_PORT};
+
+      // Need to add to our local seed list to verify fetching
+      bytes pubkeyBytes;
+      if (!ObtainPubKeyFromUrl(pubkeyBytes, ipStr, UPPER_SEED_DNS)) {
+        LOG_GENERAL(WARNING, "Pubkey cannot be found!");
+        return;
       }
+      PubKey pubKey{pubkeyBytes, 0};
+
+      {
+        LOG_GENERAL(INFO,
+                    "Add random peer from DNS to local list: " << randomPeer);
+        lock_guard<shared_timed_mutex> lock(m_mutexSeedNodes);
+        m_seedNodes.emplace_back(pubKey, randomPeer);
+      }
+
+    } else {
+      auto index = RandomGenerator::GetRandomInt(filteredSeedIps.size());
+      randomPeer = Peer{filteredSeedIps[index], DEFAULT_SEED_PORT};
     }
   }
 
-  if (notBlackListedSeedNodes.empty()) {
-    LOG_GENERAL(WARNING,
-                "All the seed nodes are blacklisted, please check you network "
-                "connection.");
-    return;
-  }
-
-  auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
-  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+  LOG_GENERAL(INFO, "Sending message to " << randomPeer);
+  P2PComm::GetInstance().SendMessage(randomPeer, message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -2472,7 +2742,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
   }
 
   if (!MULTIPLIER_SYNC_MODE &&
-      !VerifySenderNode(m_l2lDataProviders, senderPubKey)) {
+      !VerifySenderNode(GetL2lDataProviders(), senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << senderPubKey << " is not in my l2l data provider list.");
@@ -3833,7 +4103,7 @@ bool Lookup::ProcessSetTxnsFromLookup(
   }
 
   if (!MULTIPLIER_SYNC_MODE &&
-      !VerifySenderNode(m_l2lDataProviders, senderPubKey)) {
+      !VerifySenderNode(GetL2lDataProviders(), senderPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << senderPubKey << " is not in my l2l data provider list.");
@@ -4082,7 +4352,7 @@ bool Lookup::ProcessSetLookupOffline(
   Peer requestingNode(ipAddr, portNo);
 
   {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     auto iter = std::find_if(
         m_lookupNodes.begin(), m_lookupNodes.end(),
         [&lookuppubkey, &requestingNode](const PairOfNode& node) {
@@ -4132,7 +4402,7 @@ bool Lookup::ProcessSetLookupOnline(
   Peer requestingNode(ipAddr, portNo);
 
   {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     auto iter = std::find_if(
         m_lookupNodesOffline.cbegin(), m_lookupNodesOffline.cend(),
         [&lookupPubKey, &requestingNode](const PairOfNode& node) {
@@ -4176,7 +4446,7 @@ bool Lookup::ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
                                  LookupInstructionType::SETOFFLINELOOKUPS};
 
   {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     VectorOfPeer lookupNodesOffline;
     for (const auto& pairPubKeyPeer : m_lookupNodesOffline)
       lookupNodesOffline.push_back(pairPubKeyPeer.second);
@@ -4235,9 +4505,9 @@ bool Lookup::ProcessSetOfflineLookups(
 
   unsigned int i = 0;
   for (const auto& peer : nodes) {
-    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
-    auto iter = std::find_if(
+    auto iter = find_if(
         m_lookupNodes.begin(), m_lookupNodes.end(),
         [&peer](const PairOfNode& node) { return node.second == peer; });
     if (iter != m_lookupNodes.end()) {
@@ -4403,15 +4673,15 @@ bool Lookup::GetMyLookupOffline() {
   LOG_MARKER();
 
   {
-    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
     auto selfPeer(m_mediator.m_selfPeer);
     auto selfpubkey(m_mediator.m_selfKey.second);
-    auto iter = std::find_if(
-        m_lookupNodes.begin(), m_lookupNodes.end(),
-        [&selfPeer, &selfpubkey](const PairOfNode& node) {
-          return (node.first == selfpubkey && node.second == selfPeer);
-        });
+    auto iter =
+        find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                [&selfPeer, &selfpubkey](const PairOfNode& node) {
+                  return (node.first == selfpubkey && node.second == selfPeer);
+                });
     if (iter != m_lookupNodes.end()) {
       m_lookupNodesOffline.emplace_back(*iter);
       m_lookupNodes.erase(iter);
@@ -4437,14 +4707,14 @@ bool Lookup::GetMyLookupOnline(bool fromRecovery) {
   bool found = false;
 
   if (!fromRecovery) {
-    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    lock_guard<shared_timed_mutex> lock(m_mutexLookupNodes);
     auto selfPeer(m_mediator.m_selfPeer);
     auto selfPubkey(m_mediator.m_selfKey.second);
-    auto iter = std::find_if(
-        m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
-        [&selfPeer, &selfPubkey](const PairOfNode& node) {
-          return (node.first == selfPubkey && node.second == selfPeer);
-        });
+    auto iter =
+        find_if(m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
+                [&selfPeer, &selfPubkey](const PairOfNode& node) {
+                  return (node.first == selfPubkey && node.second == selfPeer);
+                });
     if (iter != m_lookupNodesOffline.end()) {
       found = true;
       m_lookupNodes.emplace_back(*iter);
@@ -4534,14 +4804,12 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
 
-        if (m_seedNodes.empty()) {
-          SetAboveLayer(m_seedNodes,
-                        "node.upper_seed");  // since may have called
-                                             // CleanVariable earlier
+        if (IsUpperSeedEmpty()) {
+          SetUpperSeedsInner();  // since may have called CleanVariable earlier
         }
 
-        if (!MULTIPLIER_SYNC_MODE && m_l2lDataProviders.empty()) {
-          SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
+        if (!MULTIPLIER_SYNC_MODE && IsL2lDataProvidersEmpty()) {
+          SetL2lDataProvidersInner();
         }
 
         // Check if next ds epoch was crossed -cornercase after syncing from S3
@@ -4666,10 +4934,8 @@ void Lookup::RejoinAsLookup(bool fromLookup) {
           };
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        if (m_seedNodes.empty()) {
-          SetAboveLayer(m_seedNodes,
-                        "node.upper_seed");  // since may have called
-                                             // CleanVariable earlier
+        if (IsUpperSeedEmpty()) {
+          SetUpperSeedsInner();  // since may have called CleanVariable earlier
         }
         // Check if next ds epoch was crossed - corner case after syncing from
         // S3
@@ -4719,7 +4985,11 @@ bool Lookup::CleanVariables() {
     return true;
   }
 
-  m_seedNodes.clear();
+  {
+    lock_guard<shared_timed_mutex> lock(m_mutexSeedNodes);
+    m_seedNodes.clear();
+  }
+
   m_currDSExpired = false;
   m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
@@ -5194,11 +5464,22 @@ bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 void Lookup::RemoveSeedNodesFromBlackList() {
   LOG_MARKER();
 
-  lock_guard<mutex> lock(m_mutexSeedNodes);
+  vector<uint128_t> ipList;
+  if (QUERY_DNS_FOR_SEED) ObtainIpListFromDns(ipList, UPPER_SEED_DNS);
 
-  for (const auto& node : m_seedNodes) {
-    auto seedNodeIp = TryGettingResolvedIP(node.second);
-    Blacklist::GetInstance().Remove(seedNodeIp);
+  if (ipList.empty()) {
+    LOG_GENERAL(WARNING, "Unable to obtain IPs from DNS "
+                             << UPPER_SEED_DNS << ", using current list.");
+    {
+      shared_lock<shared_timed_mutex> lock(m_mutexSeedNodes);
+      for (const auto& node : m_seedNodes) {
+        ipList.emplace_back(TryGettingResolvedIP(node.second));
+      }
+    }
+  }
+
+  for (const auto& ip : ipList) {
+    Blacklist::GetInstance().Remove(ip);
   }
 }
 

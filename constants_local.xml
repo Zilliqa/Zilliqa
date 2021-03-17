@@ -381,6 +381,14 @@
             <wallet_address>ee06b3c906612cc5bdb087a30e6093c9f0aa04fd</wallet_address>
         </account>
     </ds_accounts>
+    <node_discovery>
+        <QUERY_DNS_FOR_SEED>true</QUERY_DNS_FOR_SEED>
+        <l2l_data_providers_dns/>
+        <lookups_dns/>
+        <upper_seed_dns/>
+        <multiplier_dns/>
+        <default_seed_port>33133</default_seed_port>
+    </node_discovery>
     <!-- For constants.xml, the remaining constants below are auto-populated -->
     <lookups>
         <peer>

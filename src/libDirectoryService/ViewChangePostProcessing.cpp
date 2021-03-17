@@ -292,15 +292,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
-  // Broadcasting vcblock to lookup nodes iff view change does not occur before
-  // ds block consensus. This is to be consistent with how normal node process
-  // the vc block (before ds block).
-  if (viewChangeState != DSBLOCK_CONSENSUS &&
-      viewChangeState != DSBLOCK_CONSENSUS_PREP) {
-    t_sendDataToLookupFunc = SendDataToLookupFuncDefault;
-  }
-
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP: {
@@ -323,7 +314,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
           "illegal view change state. state: " << to_string(viewChangeState));
   }
 
-  if (t_sendDataToLookupFunc) {
+  // Broadcasting vcblock to lookup nodes iff view change does not occur before
+  // ds block consensus. This is to be consistent with how normal node process
+  // the vc block (before ds block).
+  if (viewChangeState != DSBLOCK_CONSENSUS &&
+      viewChangeState != DSBLOCK_CONSENSUS_PREP) {
     auto composeVCBlockForSender = [this](bytes& vcblock_message) -> bool {
       return ComposeVCBlockForSender(vcblock_message);
     };
@@ -350,7 +345,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
         m_consensusMyID, composeVCBlockForSender, m_forceMulticast.load(),
-        t_sendDataToLookupFunc);
+        SendDataToLookupFuncDefault);
   }
 }
 

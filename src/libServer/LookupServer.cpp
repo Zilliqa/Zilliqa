@@ -346,7 +346,9 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
-        LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
+        LOG_GENERAL(INFO,
+                    "This new lookup (Seed) is not yet synced.. type: "
+                        << (unsigned int)m_mediator.m_lookup->GetSyncType());
         continue;
       }
 

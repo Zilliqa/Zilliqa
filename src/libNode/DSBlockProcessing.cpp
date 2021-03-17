@@ -826,6 +826,8 @@ bool Node::ProcessVCDSBlocksMessage(
     }
   }
 
+  m_mediator.m_lookup->UpdateAllSeeds();
+
   return true;
 }
 

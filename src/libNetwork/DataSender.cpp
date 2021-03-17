@@ -21,6 +21,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DnsUtils.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
@@ -35,29 +36,45 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
   }
   LOG_MARKER();
 
-  vector<Peer> allLookupNodes;
+  vector<uint128_t> resultList;
 
-  for (const auto& node : lookups) {
-    string url = node.second.GetHostname();
-    auto resolved_ip = node.second.GetIpAddress();  // existing one
-    if (!url.empty()) {
-      uint128_t tmpIp;
-      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                  tmpIp)) {
-        resolved_ip = tmpIp;  // resolved one
-      } else {
-        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-      }
+  if (QUERY_DNS_FOR_SEED) {
+    if (!ObtainIpListFromDns(resultList, LOOKUPS_DNS) ||
+        !ObtainIpListFromDns(resultList, MULTIPLIER_DNS)) {
+      resultList.clear();
     }
-
-    Blacklist::GetInstance().Whitelist(
-        resolved_ip);  // exclude this lookup ip from blacklisting
-    Peer tmp(resolved_ip, node.second.GetListenPortHost());
-    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
-
-    allLookupNodes.emplace_back(tmp);
   }
 
+  if (resultList.empty()) {
+    LOG_GENERAL(INFO,
+                "Unable to obtain lookup from DNS, fall back to what we have "
+                "currently");
+    // If can't obtain list from DNS, use what we have currently (Previous DNS
+    // query, or static)
+    for (const auto& node : lookups) {
+      string url = node.second.GetHostname();
+      auto resolved_ip = node.second.GetIpAddress();  // existing one
+      if (!url.empty()) {
+        uint128_t tmpIp;
+        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                    tmpIp)) {
+          resolved_ip = tmpIp;  // resolved one
+        } else {
+          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+        }
+      }
+      resultList.emplace_back(resolved_ip);
+    }
+  }
+
+  vector<Peer> allLookupNodes;
+  for (const auto& ip : resultList) {
+    Blacklist::GetInstance().Whitelist(
+        ip);  // exclude this lookup ip from blacklisting
+    Peer tmp{ip, DEFAULT_SEED_PORT};
+    LOG_GENERAL(INFO, "Sending to lookup " << tmp);
+    allLookupNodes.emplace_back(tmp);
+  }
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
