@@ -149,7 +149,6 @@ class Lookup : public Executable {
   bytes ComposeGetVCFinalBlockMessageForL2l(uint64_t blockNum);
   bytes ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
                                              uint32_t shardId);
-  bytes ComposeGetPendingTxnMessageForL2l(uint64_t blockNum, uint32_t shardId);
   bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
   bytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
@@ -265,7 +264,6 @@ class Lookup : public Executable {
   bool GetDSBlockFromL2lDataProvider(uint64_t blockNum);
   bool GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum);
   bool GetMBnForwardTxnFromL2lDataProvider(uint64_t blockNum, uint32_t shardId);
-  bool GetPendingTxnFromL2lDataProvider(uint64_t blockNum, uint32_t shardId);
 
   bool ProcessGetDSBlockFromL2l(const bytes& message, unsigned int offset,
                                 const Peer& from,
@@ -276,9 +274,6 @@ class Lookup : public Executable {
   bool ProcessGetMBnForwardTxnFromL2l(const bytes& message, unsigned int offset,
                                       const Peer& from,
                                       const unsigned char& startByte);
-  bool ProcessGetPendingTxnFromL2l(const bytes& message, unsigned int offset,
-                                   const Peer& from,
-                                   const unsigned char& startByte);
 
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -473,7 +468,7 @@ class Lookup : public Executable {
   void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
 
   /// used by seed node using pull option
-  void FetchMbTxPendingTxMessageFromL2l(uint64_t blockNum);
+  void FetchMBnForwardTxMessageFromL2l(uint64_t blockNum);
 
   /// Find any unavailable mbs from last N txblks and add to
   /// m_unavailableMicroBlocks

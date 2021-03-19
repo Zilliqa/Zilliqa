@@ -604,30 +604,6 @@ void Node::ClearUnconfirmedTxn() {
   }
 }
 
-void Node::ClearPendingAndDroppedTxn() {
-  const auto& latestBlockNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  {
-    unique_lock<shared_timed_mutex> g(m_droppedTxnsMutex);
-    m_droppedTxns.clear(latestBlockNum, NUM_TTL_DROPPED_TXN);
-  }
-  {
-    unique_lock<shared_timed_mutex> g(m_pendingTxnsMutex);
-    m_pendingTxns.clear(latestBlockNum, NUM_TTL_PENDING_TXN);
-  }
-}
-
-void Node::ClearAllPendingAndDroppedTxn() {
-  {
-    unique_lock<shared_timed_mutex> g(m_droppedTxnsMutex);
-    m_droppedTxns.clearAll();
-  }
-  {
-    unique_lock<shared_timed_mutex> g(m_pendingTxnsMutex);
-    m_pendingTxns.clearAll();
-  }
-}
-
 bool Node::ValidateDB() {
   LOG_MARKER();
 
@@ -3290,19 +3266,6 @@ void Node::CleanLocalRawStores() {
          iter != m_mbnForwardedTxnStore.end();) {
       if (iter->first < key_txepoch) {
         iter = m_mbnForwardedTxnStore.erase(iter);
-      } else {
-        ++iter;
-      }
-    }
-  }
-
-  // Clear PendingTxn message store
-  {
-    std::lock_guard<mutex> g1(m_mutexPendingTxnStore);
-    for (auto iter = m_pendingTxnStore.begin();
-         iter != m_pendingTxnStore.end();) {
-      if (iter->first < key_txepoch) {
-        iter = m_pendingTxnStore.erase(iter);
       } else {
         ++iter;
       }
