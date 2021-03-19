@@ -5484,9 +5484,6 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
     unique_lock<mutex> g(m_txnShardMapMutex, defer_lock);
     unique_lock<mutex> g2(m_txnShardMapGeneratedMutex, defer_lock);
     lock(g, g2);
-    if (m_txnShardMapGenerated.end() == m_txnShardMapGenerated.find(shardId)) {
-      return;
-    }
     auto transactionNumber = m_txnShardMapGenerated[shardId].size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
