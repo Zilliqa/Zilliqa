@@ -848,6 +848,24 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
         }
       }
 
+      if (FilteredPoWOrderSorter.size() < EXPECTED_SHARD_NODE_NUM) {
+        // If there is not enough shard nodes, need to fill up with shard guards
+        auto leftOverCount =
+            EXPECTED_SHARD_NODE_NUM - FilteredPoWOrderSorter.size();
+        LOG_GENERAL(INFO, "Gap to fill = " << leftOverCount);
+
+        for (auto kv = ShadowPoWOrderSorter.begin();
+             (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
+             kv++) {
+          if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
+            FilteredPoWOrderSorter.emplace(*kv);
+            --leftOverCount;
+          }
+          count++;
+          if (leftOverCount == 0) break;
+        }
+      }
+
       // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
       for (auto kv : FilteredPoWOrderSorter) {
         sortedPoWSolns.emplace_back(kv);

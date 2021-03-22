@@ -558,6 +558,7 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes(
     uint8_t& lowestPriority) {
   LOG_MARKER();
 
+  std::list<std::pair<PubKey, uint8_t>> listLeftOverGuards;
   std::list<std::pair<PubKey, uint8_t>> listNodePriority;
   std::list<std::pair<PubKey, uint8_t>> listNewNodes;
 
@@ -578,6 +579,7 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes(
     if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(pubKey)) {
       if (guardCounts >= maxShardGuards) {
         LOG_GENERAL(INFO, "Enough shard guards, skipping " << pubKey);
+        listLeftOverGuards.emplace_back(pubKey, maxPriority);
         continue;
       }
       LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(shard guard)");
@@ -599,6 +601,24 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes(
         // m_allPoWs with no reputation (i.e., new miners)
         listNewNodes.emplace_back(pubKey, MIN_NODE_REPUTATION_PRIORITY);
         LOG_GENERAL(INFO, "Node=" << pubKey << " Reputation=(none)");
+      }
+    }
+  }
+
+  // In case when there is not enough nodes, shard guards will fill up the slots
+  // listLeftOverGuards only have something during guard mode
+  auto selectedCount = listNodePriority.size() + listNewNodes.size();
+  if (selectedCount < EXPECTED_SHARD_NODE_NUM) {
+    auto slotLeft = EXPECTED_SHARD_NODE_NUM - selectedCount;
+    auto toAddCount = min(listLeftOverGuards.size(), slotLeft);
+
+    if (toAddCount > 0) {
+      for (const auto& kv : listLeftOverGuards) {
+        LOG_GENERAL(INFO, "Adding Leftover Guard Node="
+                              << kv.first << " Reputation=(shard guard)");
+        listNodePriority.emplace_back(kv.first, kv.second);
+        --toAddCount;
+        if (toAddCount == 0) break;
       }
     }
   }
