@@ -809,25 +809,6 @@ bytes Lookup::ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
   return getmbntxn;
 }
 
-bytes Lookup::ComposeGetPendingTxnMessageForL2l(uint64_t blockNum,
-                                                uint32_t shardId) {
-  bytes getpendingtxn = {
-      MessageType::LOOKUP,
-      LookupInstructionType::GETPENDINGTXNFROML2LDATAPROVIDER};
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "ComposeGetPendingTxnMessageForL2l for block "
-                << blockNum << " and shard " << shardId);
-
-  if (!Messenger::SetLookupGetPendingTxnFromL2l(
-          getpendingtxn, MessageOffset::BODY, blockNum, shardId,
-          m_mediator.m_selfPeer, m_extSeedKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetPendingTxnFromL2l failed.");
-    return {};
-  }
-  return getpendingtxn;
-}
-
 bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
   LOG_MARKER();
 
@@ -889,17 +870,6 @@ bool Lookup::GetMBnForwardTxnFromL2lDataProvider(uint64_t blockNum,
                 << blockNum << " and shard " << shardId);
   SendMessageToRandomL2lDataProvider(
       ComposeGetMBnForwardTxnMessageForL2l(blockNum, shardId));
-  return true;
-}
-
-bool Lookup::GetPendingTxnFromL2lDataProvider(uint64_t blockNum,
-                                              uint32_t shardId) {
-  LOG_MARKER();
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "GetPendingTxnFromL2lDataProvider for block "
-                << blockNum << " and shard " << shardId);
-  SendMessageToRandomL2lDataProvider(
-      ComposeGetPendingTxnMessageForL2l(blockNum, shardId));
   return true;
 }
 
@@ -1705,73 +1675,6 @@ bool Lookup::ComposeAndStoreVCFinalBlockMessage(const uint64_t& blockNum) {
   }
 
   return true;
-}
-
-bool Lookup::ProcessGetPendingTxnFromL2l(const bytes& message,
-                                         unsigned int offset, const Peer& from,
-                                         const unsigned char& startByte) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessGetPendingTxnFromL2l not expected to be called "
-                "from other than the LookUp node.");
-    return false;
-  }
-
-  LOG_MARKER();
-
-  uint64_t blockNum = 0;
-  uint32_t shardId = 0;
-  Peer requestorPeer;
-  PubKey senderPubKey;
-
-  if (!Messenger::GetLookupGetPendingTxnFromL2l(
-          message, offset, blockNum, shardId, requestorPeer, senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetPendingTxnFromL2l failed.");
-    return false;
-  }
-
-  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "ProcessGetPendingTxnFromL2l requested by "
-                << from << " for block " << blockNum << " and shard "
-                << shardId);
-
-  // some validation before processing this request
-  if (from.GetIpAddress() != requestorPeer.GetIpAddress()) {
-    LOG_GENERAL(WARNING,
-                "Requestor's IP does not match the one in message. so ignoring "
-                "request!");
-    return false;
-  }
-
-  // check if requestor's pubkey is from whitelisted extseed pub keys.
-  if (!IsWhitelistedExtSeed(senderPubKey, from, startByte)) {
-    LOG_GENERAL(WARNING, "Requestor's extseed pubkey is not whitelisted!");
-    return false;
-  }
-
-  // check the raw store if requested pendingtxns message exist
-  int retryCount = MAX_FETCH_BLOCK_RETRIES;
-  while (retryCount-- > 0) {
-    {
-      std::lock_guard<mutex> g1(m_mediator.m_node->m_mutexPendingTxnStore);
-      auto it = m_mediator.m_node->m_pendingTxnStore.find(blockNum);
-      if (it != m_mediator.m_node->m_pendingTxnStore.end()) {
-        auto it2 = it->second.find(shardId);
-        if (it2 != it->second.end()) {
-          LOG_GENERAL(INFO, "Sending pending txns to " << requestorPeer);
-          P2PComm::GetInstance().SendMessage(requestorPeer, from, it2->second,
-                                             startByte);
-          return true;
-        }
-      }
-    }
-    this_thread::sleep_for(chrono::seconds(2));
-  }
-  LOG_GENERAL(INFO, "No pendingtxns!");
-
-  // P2PSeed:Return false to cleanup bufferevent in non response case
-  return false;
 }
 
 // TODO: Refactor the code to remove the following assumption
@@ -3233,10 +3136,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // Compose And Send GetCosigRewards for this txBlk from seed
       ComposeAndSendGetCosigsRewardsFromSeed(txBlock.GetHeader().GetBlockNum());
     }
-
-    if (LOOKUP_NODE_MODE) {
-      m_mediator.m_node->ClearPendingAndDroppedTxn();
-    }
   }
 
   m_mediator.m_currentEpochNum =
@@ -3249,7 +3148,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
        m_syncType == SyncType::LOOKUP_SYNC)) {
     m_mediator.m_node->CommitMBnForwardedTransactionBuffer();
-    m_mediator.m_node->CommitPendingTxnBuffer();
     // Additional safe-guard mechanism, if have not received the MBNdFWDTXNS at
     // all for last few txBlks.
     FindMissingMBsForLastNTxBlks(LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS);
@@ -3392,7 +3290,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                     m_exitPullThread = false;
                     break;
                   }
-                  FetchMbTxPendingTxMessageFromL2l(
+                  FetchMBnForwardTxMessageFromL2l(
                       m_mediator.m_txBlockChain.GetLastBlock()
                           .GetHeader()
                           .GetBlockNum());  // last block
@@ -4637,7 +4535,6 @@ bool Lookup::CleanVariables() {
     l_nodesInNetwork.clear();
   }
   m_mediator.m_node->CleanWhitelistReqs();
-  m_mediator.m_node->ClearAllPendingAndDroppedTxn();
 
   m_confirmedLatestDSBlock = false;
 
@@ -5059,7 +4956,7 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessGetDSBlockFromL2l,
       &Lookup::ProcessGetVCFinalBlockFromL2l,
       &Lookup::ProcessGetMBnForwardTxnFromL2l,
-      &Lookup::ProcessGetPendingTxnFromL2l,
+      &Lookup::NoOp,  // Previously for GETPENDINGTXNFROML2LDATAPROVIDER
       &Lookup::ProcessGetMicroBlockFromL2l,
       &Lookup::ProcessGetTxnsFromL2l};
 
@@ -5723,10 +5620,10 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
   return true;
 }
 
-void Lookup::FetchMbTxPendingTxMessageFromL2l(uint64_t blockNum) {
+void Lookup::FetchMBnForwardTxMessageFromL2l(uint64_t blockNum) {
   if (!LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(WARNING,
-                "Lookup::FetchMbTxPendingTxMessageFromL2l not expected to be "
+                "Lookup::FetchMBnForwardTxMessageFromL2l not expected to be "
                 "called from "
                 "other than the ARCHIVAL LOOKUP.");
     return;
@@ -5766,12 +5663,6 @@ void Lookup::FetchMbTxPendingTxMessageFromL2l(uint64_t blockNum) {
               break;
             }
           }
-        }
-
-        // for each shard, send request for pending txn message to l2l data
-        // provider
-        for (const auto& info : microBlockInfos) {
-          GetPendingTxnFromL2lDataProvider(blockNum, info.m_shardId);
         }
 
         break;

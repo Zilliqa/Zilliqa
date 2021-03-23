@@ -264,15 +264,6 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetPendingTxn", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetPendingTxnI);
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, NULL),
-      &LookupServer::GetPendingTxnsI);
-  this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
@@ -1874,95 +1865,6 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
-  }
-}
-
-Json::Value LookupServer::GetPendingTxn(const string& tranID) {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST,
-                           "Not to be queried on non-lookup");
-  }
-  try {
-    if (tranID.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Txn Hash size not appropriate");
-    }
-
-    TxnHash tranHash(tranID);
-    Json::Value _json;
-
-    if (BlockStorage::GetBlockStorage().CheckTxBody(tranHash)) {
-      // Transaction already present in database means confirmed
-      _json["confirmed"] = true;
-      _json["code"] = TxnStatus::NOT_PRESENT;
-      return _json;
-    }
-
-    const auto& code = m_mediator.m_node->IsTxnInMemPool(tranHash);
-
-    if (!IsTxnDropped(code)) {
-      switch (code) {
-        case TxnStatus::NOT_PRESENT:
-          _json["confirmed"] = false;
-          _json["pending"] = false;
-          _json["code"] = TxnStatus::NOT_PRESENT;
-          return _json;
-        case TxnStatus::PRESENT_NONCE_HIGH:
-          _json["confirmed"] = false;
-          _json["pending"] = true;
-          _json["code"] = TxnStatus::PRESENT_NONCE_HIGH;
-          return _json;
-        case TxnStatus::PRESENT_GAS_EXCEEDED:
-          _json["confirmed"] = false;
-          _json["pending"] = true;
-          _json["code"] = TxnStatus::PRESENT_GAS_EXCEEDED;
-          return _json;
-        case TxnStatus::ERROR:
-          throw JsonRpcException(RPC_INTERNAL_ERROR, "Processing transactions");
-        default:
-          throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
-      }
-    } else {
-      _json["confirmed"] = false;
-      _json["pending"] = false;
-      _json["code"] = code;
-      return _json;
-    }
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
-    throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To Process: ") + e.what());
-  }
-}
-
-Json::Value LookupServer::GetPendingTxns() {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST,
-                           "Not to be queried on non-lookup");
-  }
-  Json::Value _json;
-  _json["Txns"] = Json::Value(Json::arrayValue);
-  auto putTxns = [&_json](const HashCodeMap& t_hashCodeMap) -> void {
-    for (const auto& txhash_and_status : t_hashCodeMap) {
-      Json::Value tmpJson;
-      tmpJson["TxnHash"] = txhash_and_status.first.hex();
-      tmpJson["code"] = uint(txhash_and_status.second);
-      _json["Txns"].append(tmpJson);
-    }
-  };
-
-  try {
-    putTxns(m_mediator.m_node->GetPendingTxns());
-    putTxns(m_mediator.m_node->GetDroppedTxns());
-    return _json;
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To Process: ") + e.what());
   }
 }
 
