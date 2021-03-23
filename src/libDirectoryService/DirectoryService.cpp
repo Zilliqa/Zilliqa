@@ -481,7 +481,7 @@ bool DirectoryService::CleanVariables() {
   return true;
 }
 
-void DirectoryService::RejoinAsDS(bool modeCheck) {
+void DirectoryService::RejoinAsDS(bool modeCheck, bool fromUpperSeed) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RejoinAsDS not expected to be called "
@@ -490,8 +490,12 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
   }
 
   LOG_MARKER();
-  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
-      (m_mode == BACKUP_DS || !modeCheck)) {
+  if (fromUpperSeed) {  // syncing via upper_seed
+    LOG_GENERAL(INFO, "Syncing from upper seeds ...");
+    auto func = [this]() mutable -> void { StartSynchronization(); };
+    DetachedFunction(1, func);
+  } else if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
+             (m_mode == BACKUP_DS || !modeCheck)) {
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
