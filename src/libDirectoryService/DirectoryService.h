@@ -545,7 +545,6 @@ class DirectoryService : public Executable {
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
-  std::atomic<bool> m_startedRunFinalblockConsensus{};
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
@@ -620,7 +619,7 @@ class DirectoryService : public Executable {
   void ScheduleShardingConsensus(const unsigned int wait_window);
 
   /// Rejoin the network as a DS node in case of failure happens in protocol
-  void RejoinAsDS(bool modeCheck = true);
+  void RejoinAsDS(bool modeCheck = true, bool fromUpperSeed = false);
 
   /// Post processing after the DS node successfully synchronized with the
   /// network

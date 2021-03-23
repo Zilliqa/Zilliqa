@@ -2108,7 +2108,7 @@ bool Node::ProcessProposeGasPrice(
   return true;
 }
 
-void Node::CommitTxnPacketBuffer() {
+void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -2132,11 +2132,13 @@ void Node::CommitTxnPacketBuffer() {
             lookupPubKey, transactions, signature)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetNodeForwardTxnBlock failed.");
-      return;
+      continue;
     }
-
-    ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
-                                   lookupPubKey, transactions);
+    if (!(ignorePktForPrevEpoch &&
+          (epochNumber < m_mediator.m_currentEpochNum))) {
+      ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
+                                     lookupPubKey, transactions);
+    }
   }
   m_txnPacketBuffer.clear();
 }
@@ -2324,6 +2326,20 @@ void Node::SetMyshardId(uint32_t shardId) {
     return;
   }
   m_myshardId = shardId;
+}
+
+void Node::CleanMBConsensusAndTxnBuffers() {
+  LOG_MARKER();
+  {
+    std::lock_guard<mutex> g(m_mutexCreatedTransactions);
+    m_createdTxns.clear();
+    t_createdTxns.clear();
+  }
+  {
+    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
+    t_processedTransactions.clear();
+  }
+  CleanMicroblockConsensusBuffer();
 }
 
 void Node::CleanCreatedTransaction() {

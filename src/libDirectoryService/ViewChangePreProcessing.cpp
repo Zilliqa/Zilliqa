@@ -274,7 +274,12 @@ void DirectoryService::RunConsensusOnViewChange() {
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
                   "whole network.");
       CleanUpViewChange(true);
-      RejoinAsDS();
+      if (m_vcPreCheckDSBlocks.size() == 0)  // Still in same ds epoch
+      {
+        RejoinAsDS(true, true);  // syncing from upperseed
+      } else {
+        RejoinAsDS();
+      }
       return;
     }
   }
