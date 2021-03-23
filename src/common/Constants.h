@@ -301,6 +301,8 @@ extern bool ENABLE_WEBSOCKET;
 extern const unsigned int WEBSOCKET_PORT;
 extern const bool ENABLE_GETTXNBODIESFORTXBLOCK;
 extern const unsigned int NUM_TXNS_PER_PAGE;
+extern const unsigned int PENDING_TXN_QUERY_NUM_EPOCHS;
+extern const unsigned int PENDING_TXN_QUERY_MAX_RESULTS;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;

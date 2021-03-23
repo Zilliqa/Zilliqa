@@ -18,6 +18,7 @@
 #include "RemoteStorageDB.h"
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/stdx/make_unique.hpp>
 #include "libServer/JSONConversion.h"
@@ -27,6 +28,10 @@ using namespace std;
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_array;
 using bsoncxx::builder::basic::make_document;
+using bsoncxx::builder::stream::close_document;
+using bsoncxx::builder::stream::document;
+using bsoncxx::builder::stream::finalize;
+using bsoncxx::builder::stream::open_document;
 
 ModificationState RemoteStorageDB::GetModificationState(
     const TxnStatus status) const {
@@ -271,6 +276,98 @@ Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {
 
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Failed to query" << txnhash << " " << e.what());
+    _json["error"] = true;
+  }
+
+  return _json;
+}
+
+Json::Value RemoteStorageDB::QueryPendingTxns(
+    const unsigned int txEpochFirstExclusive,
+    const unsigned int txEpochLastInclusive) {
+  LOG_MARKER();
+
+  Json::Value _json{Json::Value::null};
+
+  if (!m_initialized) {
+    LOG_GENERAL(WARNING, "DB not initialized");
+    _json["error"] = true;
+    return _json;
+  }
+
+  try {
+    const auto& conn = TryGetConnection();  // Use try here as this function is
+                                            // exposed via RPC API
+    if (!conn) {
+      LOG_GENERAL(WARNING, "Failed to establish connection");
+      _json["error"] = true;
+      return _json;
+    }
+
+    auto txnCollection = conn.value()->database(m_dbName)[m_txnCollectionName];
+
+    // Query: epochUpdated in (txEpochFirstExclusive, txEpochLastInclusive] and
+    // modificationState < 2 Note that epochUpdated is of type string - the
+    // query for gt and lte work as long as length of epoch number expressed as
+    // string is consistent
+    auto doc = document{};
+    doc << bsoncxx::builder::concatenate(
+        document{} << "epochUpdated" << open_document << "$gt"
+                   << to_string(txEpochFirstExclusive) << close_document
+                   << finalize);
+    doc << bsoncxx::builder::concatenate(
+        document{} << "epochUpdated" << open_document << "$lte"
+                   << to_string(txEpochLastInclusive) << close_document
+                   << finalize);
+    doc << bsoncxx::builder::concatenate(
+        document{} << "modificationState" << open_document << "$lt"
+                   << static_cast<int>(ModificationState::CONFIRMED_OR_DROPPED)
+                   << close_document << finalize);
+
+    LOG_GENERAL(DEBUG, "Query = " << bsoncxx::to_json(doc));
+
+    mongocxx::options::find opts;
+    opts.limit(PENDING_TXN_QUERY_MAX_RESULTS);  // Limit number of results
+    opts.sort(document{} << "epochUpdated" << -1
+                         << finalize);  // Sort by epochUpdated descending
+    if (DEBUG_LEVEL == 4) {
+      opts.projection(
+          document{}
+          << "ID" << 1 << "status" << 1 << "epochUpdated" << 1
+          << finalize);  // Retrieve only ID, status, and epochUpdated fields
+    } else {
+      opts.projection(document{}
+                      << "ID" << 1 << "status" << 1
+                      << finalize);  // Retrieve only ID and status fields
+    }
+
+    auto cursor = txnCollection.find(doc.view(), opts);
+
+    _json["Txns"] = Json::Value(Json::arrayValue);
+
+    auto putTxn = [&_json](const bsoncxx::document::view& doc) -> void {
+      Json::Value tmpJson;
+      tmpJson["TxnHash"] = doc["ID"].get_utf8().value.to_string();
+      tmpJson["code"] = doc["status"].get_int32().value;
+      _json["Txns"].append(tmpJson);
+    };
+
+    if (DEBUG_LEVEL == 4) {
+      unsigned int count = 0;
+      for (const auto& doc : cursor) {
+        LOG_GENERAL(DEBUG, bsoncxx::to_json(doc));
+        putTxn(doc);
+        count++;
+      }
+      LOG_GENERAL(DEBUG, "Num results = " << count);
+    } else {
+      for (const auto& doc : cursor) {
+        putTxn(doc);
+      }
+    }
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(WARNING, "Failed to query: " << e.what());
     _json["error"] = true;
   }
 
