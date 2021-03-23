@@ -495,7 +495,7 @@ void DirectoryService::RejoinAsDS(bool modeCheck, bool fromUpperSeed) {
     if (fromUpperSeed) {  // syncing via upper_seed
       LOG_GENERAL(INFO, "Syncing from upper seeds ...");
       m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
-      auto func = [this]() mutable -> void { StartSynchronization(); };
+      auto func = [this]() mutable -> void { StartSynchronization(false); };
       DetachedFunction(1, func);
     } else {
       auto func = [this]() mutable -> void {
