@@ -82,7 +82,7 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
-  m_sendSCCallsToDS = false;
+  m_sendSCCallsToDS = true;
   m_sendAllToDS = false;
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
