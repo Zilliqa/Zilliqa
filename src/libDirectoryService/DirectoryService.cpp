@@ -440,7 +440,6 @@ bool DirectoryService::CleanVariables() {
   }
 
   m_stopRecvNewMBSubmission = false;
-  m_startedRunFinalblockConsensus = false;
 
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);

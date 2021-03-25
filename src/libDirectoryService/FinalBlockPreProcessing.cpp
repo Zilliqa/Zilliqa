@@ -1395,11 +1395,11 @@ void DirectoryService::RunConsensusOnFinalBlock() {
       }
     }
 
-    m_startedRunFinalblockConsensus = true;
+    if (ConsensusObjCreation) {
+      auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
 
-    auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
-
-    DetachedFunction(1, func1);
+      DetachedFunction(1, func1);
+    }
   }
 
   auto func1 = [this]() -> void {

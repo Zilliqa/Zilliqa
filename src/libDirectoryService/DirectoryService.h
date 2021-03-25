@@ -545,7 +545,6 @@ class DirectoryService : public Executable {
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
-  std::atomic<bool> m_startedRunFinalblockConsensus{};
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
