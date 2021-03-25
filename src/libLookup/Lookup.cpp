@@ -454,7 +454,8 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
 
 bool Lookup::GenTxnToSend(size_t num_txn,
                           map<uint32_t, deque<pair<Transaction, uint32_t>>>& mp,
-                          uint32_t numShards) {
+                          uint32_t numShards,
+                          const bool updateRemoteStorageDBForGenTxns) {
   LOG_MARKER();
   vector<Transaction> txns;
 
@@ -463,11 +464,8 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     return false;
   }
 
-  if (!USE_REMOTE_TXN_CREATOR) {
-    return false;
-  }
-
   int j = 0;
+  bool hasTransactions = false;
   while (j++ < 2) {
     vector<Address> myGenesisAccounts;
     if (j == 1) {
@@ -508,10 +506,20 @@ bool Lookup::GenTxnToSend(size_t num_txn,
         continue;
       }
 
+      hasTransactions = hasTransactions || (txns.size() > 0);
+
       if (j == 1) {  // shard txn dispatching
         auto txnShard = Transaction::GetShardIndex(addr, numShards);
-        for (const auto& txn : txns) {
-          mp[txnShard].emplace_back(make_pair(txn, 0));
+        if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns) {
+          for (const auto& txn : txns) {
+            mp[txnShard].emplace_back(make_pair(txn, 0));
+            RemoteStorageDB::GetInstance().InsertTxn(
+                txn, TxnStatus::DISPATCHED, m_mediator.m_currentEpochNum);
+          }
+        } else {
+          for (const auto& txn : txns) {
+            mp[txnShard].emplace_back(make_pair(txn, 0));
+          }
         }
 
         LOG_GENERAL(INFO, "[Batching] Last Nonce sent to shard-"
@@ -519,14 +527,27 @@ bool Lookup::GenTxnToSend(size_t num_txn,
                               << " of Addr " << addr.hex());
         m_gentxnAddrLatestNonceSent[addr] = nonce + num_txn;
       } else {  // ds txn dispatching
-        for (const auto& txn : txns) {
-          mp[numShards].emplace_back(make_pair(txn, 0));
+        if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns) {
+          for (const auto& txn : txns) {
+            mp[numShards].emplace_back(make_pair(txn, 0));
+            RemoteStorageDB::GetInstance().InsertTxn(
+                txn, TxnStatus::DISPATCHED, m_mediator.m_currentEpochNum);
+          }
+        } else {
+          for (const auto& txn : txns) {
+            mp[numShards].emplace_back(make_pair(txn, 0));
+          }
         }
 
         LOG_GENERAL(INFO, "[Batching] Last Nonce sent to DS "
                               << nonce + num_txn << " of Addr " << addr.hex());
       }
     }
+  }
+
+  if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns &&
+      hasTransactions) {
+    RemoteStorageDB::GetInstance().ExecuteWrite();
   }
 
   return true;
@@ -5286,7 +5307,8 @@ void Lookup::SendTxnPacketToDS(const uint32_t oldNumShards,
 }
 
 void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
-                                  const uint32_t newNumShards) {
+                                  const uint32_t newNumShards,
+                                  const bool updateRemoteStorageDBForGenTxns) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketPrepare not expected to be called from "
@@ -5301,12 +5323,12 @@ void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
 
   const uint32_t numShards = newNumShards;
 
-  {
+  if (USE_REMOTE_TXN_CREATOR) {
     lock_guard<mutex> g(m_txnShardMapGeneratedMutex);
     m_txnShardMapGenerated.clear();
 
     if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, m_txnShardMapGenerated,
-                      numShards)) {
+                      numShards, updateRemoteStorageDBForGenTxns)) {
       LOG_GENERAL(WARNING, "GenTxnToSend failed");
     }
   }
@@ -5343,7 +5365,7 @@ void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
   // since txns from first epoch will be hard confirmed only on receving FB.
   // And we need to avoid sending same txns in second epoch after receivng MB
   // for first epoch
-  SendTxnPacketPrepare(oldNumShards, newNumShards);
+  SendTxnPacketPrepare(oldNumShards, newNumShards, false);
   // Now we have generated txns for all shards and ds-shard.
   // But we only need them for normal shards to be send later after recv soft
   // confirmation.

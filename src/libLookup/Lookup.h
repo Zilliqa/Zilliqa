@@ -211,7 +211,7 @@ class Lookup : public Executable {
   bool GenTxnToSend(
       size_t num_txn,
       std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>& mp,
-      uint32_t numShards);
+      uint32_t numShards, const bool updateRemoteStorageDBForGenTxns);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& shardTxn,
                     std::vector<Transaction>& DSTxn);
 
@@ -314,7 +314,8 @@ class Lookup : public Executable {
   void SenderTxnBatchThread(const uint32_t, bool newDSEpoch = false);
 
   void SendTxnPacketPrepare(const uint32_t oldNumShards,
-                            const uint32_t newNumShards);
+                            const uint32_t newNumShards,
+                            const bool updateRemoteStorageDBForGenTxns = true);
   void SendTxnPacketToNodes(const uint32_t oldNumShards,
                             const uint32_t newNumShards);
   void SendTxnPacketToDS(const uint32_t oldNumShards,
