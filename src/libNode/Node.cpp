@@ -2132,7 +2132,7 @@ bool Node::ProcessProposeGasPrice(
   return true;
 }
 
-void Node::CommitTxnPacketBuffer() {
+void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -2158,9 +2158,10 @@ void Node::CommitTxnPacketBuffer() {
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
     }
-
-    ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
+    if(!ignorePktForPrevEpoch || epochNumber < m_mediator.m_currentEpochNum){
+      ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                    lookupPubKey, transactions);
+    }
   }
   m_txnPacketBuffer.clear();
 }

@@ -690,7 +690,7 @@ class Node : public Executable {
   bool RunConsensusOnMicroBlock();
 
   /// Used for commit buffered txn packet
-  void CommitTxnPacketBuffer();
+  void CommitTxnPacketBuffer(bool ignorePktForPrevEpoch = false);
 
   /// Used by oldest DS node to configure sharding variables as a new shard node
   bool LoadShardingStructure(bool callByRetrieve = false);
