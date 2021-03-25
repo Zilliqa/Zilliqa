@@ -623,6 +623,8 @@ class Node : public Executable {
 
   void CleanCreatedTransaction();
 
+  void CleanMBConsensusAndTxnBuffers();
+
   void AddBalanceToGenesisAccount();
 
   void PopulateAccounts(bool temp = false);

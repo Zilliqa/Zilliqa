@@ -70,6 +70,9 @@ void DirectoryService::StartSynchronization(bool clean) {
 
   if (clean) {
     this->CleanVariables();
+    m_mediator.m_node->CleanVariables();
+  } else {
+    m_mediator.m_node->CleanMBConsensusAndTxnBuffers();
   }
 
   if (!m_mediator.m_node->GetOfflineLookups()) {

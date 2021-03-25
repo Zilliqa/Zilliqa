@@ -2350,6 +2350,20 @@ void Node::SetMyshardId(uint32_t shardId) {
   m_myshardId = shardId;
 }
 
+void Node::CleanMBConsensusAndTxnBuffers() {
+  LOG_MARKER();
+  {
+    std::lock_guard<mutex> g(m_mutexCreatedTransactions);
+    m_createdTxns.clear();
+    t_createdTxns.clear();
+  }
+  {
+    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
+    t_processedTransactions.clear();
+  }
+  CleanMicroblockConsensusBuffer();
+}
+
 void Node::CleanCreatedTransaction() {
   LOG_MARKER();
   {
