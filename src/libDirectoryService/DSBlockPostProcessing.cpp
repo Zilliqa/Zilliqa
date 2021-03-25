@@ -365,12 +365,12 @@ void DirectoryService::StartNextTxEpoch() {
   ResetPoWSubmissionCounter();
   m_viewChangeCounter = 0;
 
-  {
+  /*{
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
     m_missingMicroBlocks.clear();
     m_microBlockStateDeltas.clear();
-  }
+  }*/
 
   // update my shardmembers ( dsCommittee since this is ds node)
   {
@@ -424,7 +424,7 @@ void DirectoryService::StartNextTxEpoch() {
   SetState(MICROBLOCK_SUBMISSION);
 
   auto func1 = [this]() mutable -> void {
-    m_mediator.m_node->CommitTxnPacketBuffer();
+    m_mediator.m_node->CommitTxnPacketBuffer(true);
   };
   DetachedFunction(1, func1);
 
