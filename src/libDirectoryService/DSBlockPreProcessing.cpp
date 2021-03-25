@@ -840,28 +840,31 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
 
       // Assign non shard guards if there is any slots
       for (auto kv = ShadowPoWOrderSorter.begin();
-           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
-           kv++) {
+           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);) {
         if (!Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           FilteredPoWOrderSorter.emplace(*kv);
+          kv = ShadowPoWOrderSorter.erase(kv);
           count++;
+        } else {
+          kv++;
         }
       }
 
-      if (FilteredPoWOrderSorter.size() < EXPECTED_SHARD_NODE_NUM) {
-        // If there is not enough shard nodes, need to fill up with shard guards
-        auto leftOverCount =
-            EXPECTED_SHARD_NODE_NUM - FilteredPoWOrderSorter.size();
+      auto leftOverCount = (int32_t)EXPECTED_SHARD_NODE_NUM -
+                           (int32_t)FilteredPoWOrderSorter.size();
+      leftOverCount =
+          std::min(leftOverCount, (int32_t)ShadowPoWOrderSorter.size());
+
+      if (count < numNodesAfterTrim && leftOverCount > 0) {
+        // If there is not enough shard nodes, need to fill up the gap
         LOG_GENERAL(INFO, "Gap to fill = " << leftOverCount);
 
         for (auto kv = ShadowPoWOrderSorter.begin();
              (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
              kv++) {
-          if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
-            FilteredPoWOrderSorter.emplace(*kv);
-            --leftOverCount;
-          }
-          count++;
+          FilteredPoWOrderSorter.emplace(*kv);
+          --leftOverCount;
+          ++count;
           if (leftOverCount == 0) break;
         }
       }
