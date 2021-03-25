@@ -450,6 +450,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 }
 
 void DirectoryService::CommitFinalBlockConsensusBuffer() {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
 
   for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID]) {
