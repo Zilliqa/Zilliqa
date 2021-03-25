@@ -1191,15 +1191,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   uint64_t txCurBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  static bool testDoneAlready = false;
   // FIXME: Prechecking not working due at epoch 1 due to the way we have low
   // blocknum
-  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum > 10 &&
-      !testDoneAlready) {
+  if (m_consensusMyID == 3 && dsCurBlockNum != 0 && txCurBlockNum > 10) {
     LOG_EPOCH(
         WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
-    testDoneAlready = true;
     this_thread::sleep_for(chrono::seconds(45));
     return false;
   }
