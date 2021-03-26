@@ -335,7 +335,6 @@ void DirectoryService::UpdateDSCommitteeComposition() {
 }
 
 void DirectoryService::StartNextTxEpoch() {
-  LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartNextTxEpoch not expected to be "
@@ -485,7 +484,6 @@ void DirectoryService::StartNextTxEpoch() {
 }
 
 void DirectoryService::StartFirstTxEpoch() {
-  LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartFirstTxEpoch not expected to be "
