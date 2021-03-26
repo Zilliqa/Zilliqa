@@ -2158,7 +2158,8 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
     }
-    if (!ignorePktForPrevEpoch || epochNumber < m_mediator.m_currentEpochNum) {
+    if (!(ignorePktForPrevEpoch &&
+          (epochNumber < m_mediator.m_currentEpochNum))) {
       ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                      lookupPubKey, transactions);
     }
