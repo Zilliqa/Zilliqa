@@ -2156,7 +2156,7 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
             lookupPubKey, transactions, signature)) {
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetNodeForwardTxnBlock failed.");
-      return;
+      continue;
     }
     if (!(ignorePktForPrevEpoch &&
           (epochNumber < m_mediator.m_currentEpochNum))) {
