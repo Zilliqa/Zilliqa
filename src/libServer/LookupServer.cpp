@@ -264,6 +264,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetPendingTxnsI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
@@ -1865,6 +1869,34 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
+}
+
+Json::Value LookupServer::GetPendingTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+
+  if (!REMOTESTORAGE_DB_ENABLE) {
+    throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+  }
+
+  try {
+    const Json::Value result =
+        std::move(RemoteStorageDB::GetInstance().QueryPendingTxns(
+            m_mediator.m_currentEpochNum - PENDING_TXN_QUERY_NUM_EPOCHS,
+            m_mediator.m_currentEpochNum));
+    if (result.isMember("error")) {
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
+    }
+    return result;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
   }
 }
 

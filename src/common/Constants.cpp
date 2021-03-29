@@ -374,6 +374,10 @@ const bool ENABLE_GETTXNBODIESFORTXBLOCK{
     "true"};
 const unsigned int NUM_TXNS_PER_PAGE{
     ReadConstantNumeric("NUM_TXNS_PER_PAGE", "node.jsonrpc.")};
+const unsigned int PENDING_TXN_QUERY_NUM_EPOCHS{
+    ReadConstantNumeric("PENDING_TXN_QUERY_NUM_EPOCHS", "node.jsonrpc.")};
+const unsigned int PENDING_TXN_QUERY_MAX_RESULTS{
+    ReadConstantNumeric("PENDING_TXN_QUERY_MAX_RESULTS", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
