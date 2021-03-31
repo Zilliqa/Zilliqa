@@ -70,6 +70,9 @@ void DirectoryService::StartSynchronization(bool clean) {
 
   if (clean) {
     this->CleanVariables();
+    m_mediator.m_node->CleanVariables();
+  } else {
+    m_mediator.m_node->CleanMBConsensusAndTxnBuffers();
   }
 
   if (!m_mediator.m_node->GetOfflineLookups()) {
@@ -437,7 +440,6 @@ bool DirectoryService::CleanVariables() {
   }
 
   m_stopRecvNewMBSubmission = false;
-  m_startedRunFinalblockConsensus = false;
 
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
@@ -481,7 +483,7 @@ bool DirectoryService::CleanVariables() {
   return true;
 }
 
-void DirectoryService::RejoinAsDS(bool modeCheck) {
+void DirectoryService::RejoinAsDS(bool modeCheck, bool fromUpperSeed) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RejoinAsDS not expected to be called "
@@ -492,33 +494,40 @@ void DirectoryService::RejoinAsDS(bool modeCheck) {
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
       (m_mode == BACKUP_DS || !modeCheck)) {
-    auto func = [this]() mutable -> void {
-      while (true) {
-        m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
-        m_mediator.m_node->CleanVariables();
-        this->CleanVariables();
-        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-          LOG_GENERAL(
-              WARNING,
-              "Downloading persistence from S3 has failed. Will try again!");
+    if (fromUpperSeed) {  // syncing via upper_seed
+      LOG_GENERAL(INFO, "Syncing from upper seeds ...");
+      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
+      auto func = [this]() mutable -> void { StartSynchronization(false); };
+      DetachedFunction(1, func);
+    } else {
+      auto func = [this]() mutable -> void {
+        while (true) {
+          m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
+          m_mediator.m_node->CleanVariables();
+          this->CleanVariables();
+          while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+            LOG_GENERAL(
+                WARNING,
+                "Downloading persistence from S3 has failed. Will try again!");
+            this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+          }
+          if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+            LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+            return;
+          }
+          if (!AccountStore::GetInstance().RefreshDB()) {
+            LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
+            return;
+          }
+          if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
+            break;
+          }
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
-          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
-          return;
-        }
-        if (!AccountStore::GetInstance().RefreshDB()) {
-          LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
-          return;
-        }
-        if (m_mediator.m_node->Install(SyncType::DS_SYNC, true)) {
-          break;
-        }
-        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
-      }
-      this->StartSynchronization(false);
-    };
-    DetachedFunction(1, func);
+        this->StartSynchronization(false);
+      };
+      DetachedFunction(1, func);
+    }
   }
 }
 
