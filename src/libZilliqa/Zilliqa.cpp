@@ -301,7 +301,22 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       case SyncType::NEW_LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a new lookup node");
         if (toRetrieveHistory) {
-          m_lookup.InitSync();
+          // Check if next ds epoch was crossed -cornercase after syncing from
+          // S3
+          if ((m_mediator.m_txBlockChain.GetBlockCount() %
+                   NUM_FINAL_BLOCK_PER_POW ==
+               0)  // Can fetch dsblock and txblks from new ds epoch
+              || m_mediator.m_lookup
+                     ->GetDSInfo()) {  // have same ds committee as upper seeds
+                                       // to confirm if no new ds epoch started
+            m_mediator.m_lookup->InitSync();
+          } else {
+            // Sync from S3 again
+            LOG_GENERAL(INFO,
+                        "I am lagging behind by ds epoch! Will rejoin again!");
+            m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+            m_mediator.m_lookup->RejoinAsNewLookup(false);
+          }
         } else {
           LOG_GENERAL(FATAL,
                       "Error: Sync for new lookup should retrieve history as "

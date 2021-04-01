@@ -2988,6 +2988,24 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                   << latestSynBlockNum << " highBlockNum=" << highBlockNum);
     return false;
   } else {
+    if (latestSynBlockNum < lowBlockNum) {
+      LOG_GENERAL(WARNING,
+                  "I am lagging behind in older ds epoch. Will rejoin again!");
+      // Reset to NO_SYNC so that allow exiting already running syncing process.
+      // And to start new one.
+      if (m_syncType == SyncType::NORMAL_SYNC ||
+          m_syncType == SyncType::NEW_SYNC) {
+        m_syncType = SyncType::NO_SYNC;
+        this_thread::sleep_for(chrono::seconds(
+            m_startedPoW ? POW_WINDOW_IN_SECONDS : NEW_NODE_SYNC_INTERVAL));
+        m_mediator.m_node->RejoinAsNormal();
+      } else if (m_syncType == SyncType::DS_SYNC) {
+        m_syncType = SyncType::NO_SYNC;
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+        m_mediator.m_ds->RejoinAsDS(false);
+      }
+      return false;
+    }
     auto res = m_mediator.m_validator->CheckTxBlocks(
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
