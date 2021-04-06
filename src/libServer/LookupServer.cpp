@@ -26,6 +26,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
@@ -198,9 +199,9 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetShardMembersI);
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetDSComm", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("GetCurrentDSComm", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
-      &LookupServer::GetDSCommI);
+      &LookupServer::GetCurrentDSCommI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
@@ -1846,7 +1847,7 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
   return v;
 }
 
-Json::Value LookupServer::GetDSComm() {
+Json::Value LookupServer::GetCurrentDSComm() {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1856,6 +1857,7 @@ Json::Value LookupServer::GetDSComm() {
 
     _json["CurrentDSEpoch"] = LookupServer::GetCurrentDSEpoch();
     _json["CurrentTxEpoch"] = LookupServer::GetCurrentMiniEpoch();
+    _json["NumOfDSGuard"] = Guard::GetInstance().GetNumOfDSGuard();
 
     auto dsComm = m_mediator.m_lookup->GetDSComm();
     _json["dscomm"] = Json::Value(Json::arrayValue);
