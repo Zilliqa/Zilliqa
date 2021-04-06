@@ -140,6 +140,8 @@ const bool ENABLE_SEED_TO_SEED_COMMUNICATION{
 const unsigned int P2P_SEED_CONNECT_PORT{
     ReadConstantNumeric("P2P_SEED_CONNECT_PORT", "node.seed.")};
 
+const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT{
+    ReadConstantNumeric("P2P_SEED_SERVER_CONNECTION_TIMEOUT", "node.seed.")};
 // RemotestorageDB constants
 const string REMOTESTORAGE_DB_HOST{
     ReadConstantString("REMOTESTORAGE_DB_HOST", "node.remotestorageDB.")};
@@ -370,12 +372,12 @@ const unsigned int WEBSOCKET_PORT{
 const bool ENABLE_GETTXNBODIESFORTXBLOCK{
     ReadConstantString("ENABLE_GETTXNBODIESFORTXBLOCK", "node.jsonrpc.") ==
     "true"};
-const unsigned int NUM_TTL_PENDING_TXN{
-    ReadConstantNumeric("NUM_TTL_PENDING_TXN", "node.jsonrpc.pending_txn.")};
-const unsigned int NUM_TTL_DROPPED_TXN{
-    ReadConstantNumeric("NUM_TTL_DROPPED_TXN", "node.jsonrpc.pending_txn.")};
 const unsigned int NUM_TXNS_PER_PAGE{
     ReadConstantNumeric("NUM_TXNS_PER_PAGE", "node.jsonrpc.")};
+const unsigned int PENDING_TXN_QUERY_NUM_EPOCHS{
+    ReadConstantNumeric("PENDING_TXN_QUERY_NUM_EPOCHS", "node.jsonrpc.")};
+const unsigned int PENDING_TXN_QUERY_MAX_RESULTS{
+    ReadConstantNumeric("PENDING_TXN_QUERY_MAX_RESULTS", "node.jsonrpc.")};
 
 // Network composition constants
 const unsigned int COMM_SIZE{

@@ -798,7 +798,7 @@ void P2PComm::EventCbServerSeed(struct bufferevent* bev, short events,
       LOG_GENERAL(DEBUG, "P2PSeed BEV_EVENT_TIMEOUT");
     }
   }
-  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
+  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT)) {
     RemoveBevFromMap(peer);
     CloseAndFreeBevP2PSeedConnServer(bev);
   }
@@ -933,7 +933,8 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
 
     string bufKey = from.GetPrintableIPAddress() + ":" +
                     boost::lexical_cast<string>(from.GetListenPortHost());
-    LOG_GENERAL(DEBUG, "bufferEventMap key=" << bufKey << " msg len=" << len);
+    LOG_GENERAL(DEBUG, "bufferEventMap key=" << bufKey << " msg len=" << len
+                                             << " bev=" << bev);
 
     // Add bufferevent to map
     {
@@ -1288,6 +1289,8 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
                            MAX_READ_WATERMARK_IN_BYTES);
   bufferevent_setcb(bev, ReadCbServerSeed, NULL, EventCbServerSeed, NULL);
+  struct timeval tv = {P2P_SEED_SERVER_CONNECTION_TIMEOUT, 0};
+  bufferevent_set_timeouts(bev, &tv, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
@@ -1481,9 +1484,9 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
                               START_BYTE_SEED_TO_SEED_RESPONSE);
         // TODO Remove log
         if (DEBUG_LEVEL == 4) {
-          for (const auto& it : m_bufferEventMap) {
+          for (const auto& it1 : m_bufferEventMap) {
             LOG_GENERAL(DEBUG, "P2PSeed m_bufferEventMap key="
-                                   << it.first << " bev=" << it.second);
+                                   << it1.first << " bev=" << it1.second);
           }
         }
         m_bufferEventMap.erase(it);

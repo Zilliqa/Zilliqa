@@ -141,3 +141,20 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
 
   return ret;
 }
+
+Json::Value ScillaUtils::GetDisambiguateJson() {
+  Json::Value ret;
+  ret["argv"].append("-iinit");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INIT_JSON);
+  ret["argv"].append("-ipcaddress");
+  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
+  ret["argv"].append("-oinit");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     OUTPUT_JSON);
+  ret["argv"].append("-i");
+  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
+                     INPUT_CODE + CONTRACT_FILE_EXTENSION);
+
+  return ret;
+}

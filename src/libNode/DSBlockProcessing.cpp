@@ -524,6 +524,9 @@ bool Node::ProcessVCDSBlocksMessage(
     if (m_fromNewProcess) {
       m_fromNewProcess = false;
     }
+  } else if (m_mediator.m_lookup->m_startedPoW) {  // Safer to always signal
+                                                   // that dsblock is received
+    m_mediator.m_lookup->cv_waitJoined.notify_all();
   }
 
   {

@@ -1073,13 +1073,11 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       m_consensusLeaderID++;
       m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
     }
-    ClearPendingAndDroppedTxn();
     // Now only forwarded txn are left, so only call in lookup
 
     uint32_t numShards = m_mediator.m_ds->GetNumShards();
 
     CommitMBnForwardedTransactionBuffer();
-    CommitPendingTxnBuffer();
     if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
         !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS) %
@@ -1474,10 +1472,6 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
   const auto& currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  lock(m_pendingTxnsMutex, m_droppedTxnsMutex);
-
-  unique_lock<shared_timed_mutex> g1(m_pendingTxnsMutex, adopt_lock);
-  unique_lock<shared_timed_mutex> g2(m_droppedTxnsMutex, adopt_lock);
   for (const auto& entry : pendingTxns) {
     LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
 
@@ -1488,11 +1482,8 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
       continue;
     }
 
-    if (!IsTxnDropped(entry.second)) {
-      m_pendingTxns.insert(entry.first, entry.second, currentEpochNum);
-    } else {
+    if (IsTxnDropped(entry.second)) {
       LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);
-      m_droppedTxns.insert(entry.first, entry.second, currentEpochNum);
     }
 
     if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
@@ -1560,30 +1551,9 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
     LOG_GENERAL(WARNING,
                 "PENDINGTXN sent of an two epoches older epoch " << epochNum);
     return false;
-  } else if (currentEpochNum < epochNum || /* Buffer for syncing seed node */
-             (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
-              m_mediator.m_lookup->GetSyncType() ==
-                  SyncType::NEW_LOOKUP_SYNC) ||
-             (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
-              m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
-    lock_guard<mutex> g(m_mutexPendingTxnBuffer);
-    m_pendingTxnBuffer[epochNum].emplace_back(hashCodeMap, pubkey, shardId);
-    LOG_GENERAL(INFO, "Buffer PENDINGTXN for epoch " << epochNum);
-    return true;
   }
   LOG_GENERAL(INFO, "Received message for epoch " << epochNum << " and shard "
                                                   << shardId);
-  // Store to local map for PENDINGTXN
-  // map -> key : epochnum value : map {key: shardid, value: vector<bytes>
-  // pend_txns_message}
-  if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && MULTIPLIER_SYNC_MODE) {
-    std::lock_guard<mutex> g1(m_mutexPendingTxnStore);
-    auto it = m_pendingTxnStore.find(epochNum);
-    if (it == m_pendingTxnStore.end() ||
-        (it->second.find(shardId) == it->second.end())) {
-      m_pendingTxnStore[epochNum][shardId] = message;
-    }
-  }
 
   AddPendingTxn(hashCodeMap, pubkey, shardId);
 
@@ -1718,24 +1688,4 @@ void Node::CommitMBnForwardedTransactionBuffer() {
     }
     it = m_mbnForwardedTxnBuffer.erase(it);
   }
-}
-
-void Node::CommitPendingTxnBuffer() {
-  // Clear Pending txn
-  lock_guard<mutex> g(m_mutexPendingTxnBuffer);
-
-  const auto& epochNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  auto itr = m_pendingTxnBuffer.find(epochNum);
-
-  if (itr != m_pendingTxnBuffer.end()) {
-    for (const auto& entry : itr->second) {
-      AddPendingTxn(get<PendingData::HASH_CODE_MAP>(entry),
-                    get<PendingData::PUBKEY>(entry),
-                    get<PendingData::SHARD_ID>(entry));
-    }
-  }
-
-  m_pendingTxnBuffer.clear();
 }

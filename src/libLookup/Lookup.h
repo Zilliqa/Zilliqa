@@ -149,7 +149,6 @@ class Lookup : public Executable {
   bytes ComposeGetVCFinalBlockMessageForL2l(uint64_t blockNum);
   bytes ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
                                              uint32_t shardId);
-  bytes ComposeGetPendingTxnMessageForL2l(uint64_t blockNum, uint32_t shardId);
   bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
   bytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
@@ -212,7 +211,7 @@ class Lookup : public Executable {
   bool GenTxnToSend(
       size_t num_txn,
       std::map<uint32_t, std::deque<std::pair<Transaction, uint32_t>>>& mp,
-      uint32_t numShards);
+      uint32_t numShards, const bool updateRemoteStorageDBForGenTxns);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& shardTxn,
                     std::vector<Transaction>& DSTxn);
 
@@ -265,7 +264,6 @@ class Lookup : public Executable {
   bool GetDSBlockFromL2lDataProvider(uint64_t blockNum);
   bool GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum);
   bool GetMBnForwardTxnFromL2lDataProvider(uint64_t blockNum, uint32_t shardId);
-  bool GetPendingTxnFromL2lDataProvider(uint64_t blockNum, uint32_t shardId);
 
   bool ProcessGetDSBlockFromL2l(const bytes& message, unsigned int offset,
                                 const Peer& from,
@@ -276,9 +274,6 @@ class Lookup : public Executable {
   bool ProcessGetMBnForwardTxnFromL2l(const bytes& message, unsigned int offset,
                                       const Peer& from,
                                       const unsigned char& startByte);
-  bool ProcessGetPendingTxnFromL2l(const bytes& message, unsigned int offset,
-                                   const Peer& from,
-                                   const unsigned char& startByte);
 
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -320,7 +315,8 @@ class Lookup : public Executable {
   void SenderTxnBatchThread(const uint32_t, bool newDSEpoch = false);
 
   void SendTxnPacketPrepare(const uint32_t oldNumShards,
-                            const uint32_t newNumShards);
+                            const uint32_t newNumShards,
+                            const bool updateRemoteStorageDBForGenTxns = true);
   void SendTxnPacketToNodes(const uint32_t oldNumShards,
                             const uint32_t newNumShards);
   void SendTxnPacketToDS(const uint32_t oldNumShards,
@@ -474,7 +470,7 @@ class Lookup : public Executable {
   void CheckAndFetchUnavailableMBs(bool skipLatestTxBlk = true);
 
   /// used by seed node using pull option
-  void FetchMbTxPendingTxMessageFromL2l(uint64_t blockNum);
+  void FetchMBnForwardTxMessageFromL2l(uint64_t blockNum);
 
   /// Find any unavailable mbs from last N txblks and add to
   /// m_unavailableMicroBlocks

@@ -217,3 +217,40 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   return true;
 }
+
+bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
+                                    std::string& result, uint32_t counter) {
+  if (counter == 0) {
+    return false;
+  }
+
+  if (!ENABLE_SCILLA_MULTI_VERSION) {
+    version = 0;
+  }
+
+  if (!CheckClient(version)) {
+    LOG_GENERAL(WARNING, "CheckClient failed");
+    return false;
+  }
+
+  try {
+    std::lock_guard<std::mutex> g(m_mutexMain);
+    result =
+        m_clients.at(version)->CallMethod("disambiguate", _json).asString();
+  } catch (jsonrpc::JsonRpcException& e) {
+    LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what());
+    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
+        std::string::npos) {
+      if (!CheckClient(version, true)) {
+        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+        return CallDisambiguate(version, _json, result, counter - 1);
+      }
+    } else {
+      result = e.what();
+    }
+
+    return false;
+  }
+
+  return true;
+}

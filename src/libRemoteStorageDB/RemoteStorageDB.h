@@ -59,6 +59,8 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
   bool UpdateTxn(const std::string& txnhash, const TxnStatus status,
                  const uint64_t& epoch, const bool success);
   Json::Value QueryTxnHash(const std::string& txnhash);
+  Json::Value QueryPendingTxns(const unsigned int txEpochFirstExclusive,
+                               const unsigned int txEpochLastInclusive);
   ModificationState GetModificationState(const TxnStatus status) const;
   bool ExecuteWrite();
   bool IsInitialized() const;

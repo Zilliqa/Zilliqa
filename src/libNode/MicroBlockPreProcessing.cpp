@@ -1008,37 +1008,13 @@ TxnStatus Node::IsTxnInMemPool(const TxnHash& txhash) const {
     return TxnStatus::NOT_PRESENT;
   };
 
-  if (LOOKUP_NODE_MODE) {
-    const auto& unconfirmStatus =
-        findTxnHashStatus(m_pendingTxnsMutex, m_pendingTxns.GetHashCodeMap());
-
-    if ((unconfirmStatus == TxnStatus::NOT_PRESENT)) {
-      return findTxnHashStatus(m_droppedTxnsMutex,
-                               m_droppedTxns.GetHashCodeMap());
-    }
-    return unconfirmStatus;
-  } else {
-    const auto& unconfirmStatus =
-        findTxnHashStatus(m_unconfirmedTxnsMutex, m_unconfirmedTxns);
-
-    return unconfirmStatus;
-  }
+  return findTxnHashStatus(m_unconfirmedTxnsMutex, m_unconfirmedTxns);
 }
 
 unordered_map<TxnHash, TxnStatus> Node::GetUnconfirmedTxns() const {
   shared_lock<shared_timed_mutex> g(m_unconfirmedTxnsMutex);
 
   return m_unconfirmedTxns;
-}
-
-HashCodeMap Node::GetPendingTxns() const {
-  shared_lock<shared_timed_mutex> g(m_pendingTxnsMutex);
-  return m_pendingTxns.GetHashCodeMap();
-}
-
-HashCodeMap Node::GetDroppedTxns() const {
-  shared_lock<shared_timed_mutex> g(m_droppedTxnsMutex);
-  return m_droppedTxns.GetHashCodeMap();
 }
 
 bool Node::IsUnconfirmedTxnEmpty() const {

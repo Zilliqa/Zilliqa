@@ -16,6 +16,7 @@
  */
 
 #include <leveldb/db.h>
+#include <regex>
 
 #include "AccountStore.h"
 #include "libCrypto/Sha2.h"
@@ -493,19 +494,153 @@ void AccountStore::RevertCommitTemp() {
 }
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
-bool AccountStore::MigrateContractStates2(
-    bool ignoreCheckerFailure, const string& contract_address_output_dir,
-    const string& normal_address_output_dir) {
+
+void canonicalizeStateValue(Json::Value& Value) {
+  if (Value.isObject()) {
+    // This is an ADT.
+    auto& Args = Value["arguments"];
+    for (auto& Arg : Args) {
+      canonicalizeStateValue(Arg);
+    }
+  } else if (Value.isArray() && Value.size() > 0) {
+    // This could be a Map or a List.
+    auto& FirstEl = *Value.begin();
+    if (FirstEl.isObject() && FirstEl.isMember("key")) {
+      // This is a map. Sort the keys.
+      std::vector<Json::Value> ValueArr(Value.begin(), Value.end());
+      auto KeyCmp = [](const Json::Value& A, const Json::Value& B) -> bool {
+        std::less<std::string> StrCmp;
+        return StrCmp(A["key"].asString(), B["key"].asString());
+      };
+      std::sort(ValueArr.begin(), ValueArr.end(), KeyCmp);
+      Value = Json::arrayValue;
+      for (auto& E : ValueArr) {
+        canonicalizeStateValue(E["val"]);
+        Value.append(E);
+      }
+    } else {
+      for (auto& E : Value) {
+        canonicalizeStateValue(E);
+      }
+    }
+  }
+}
+
+Json::Value canonicalizeStateVariables(const Json::Value& J) {
+  auto StateVarCmp = [](const Json::Value& A, const Json::Value& B) -> bool {
+    std::less<std::string> StrCmp;
+    return StrCmp(A["vname"].asString(), B["vname"].asString());
+  };
+
+  std::vector<Json::Value> AArr(J.begin(), J.end());
+  std::sort(AArr.begin(), AArr.end(), StateVarCmp);
+
+  Json::Value Ret = Json::arrayValue;
+  for (auto& E : AArr) {
+    canonicalizeStateValue(E["value"]);
+    Ret.append(E);
+  }
+
+  return Ret;
+}
+
+Json::Value removeParensInStrings(const Json::Value& J) {
+  Json::Value RetJ;
+  if (J.isArray()) {
+    for (const auto& K : J) {
+      RetJ.append(removeParensInStrings(K));
+    }
+  } else if (J.isObject()) {
+    for (Json::Value::const_iterator K = J.begin(); K != J.end(); K++) {
+      RetJ[K.name()] = removeParensInStrings(*K);
+    }
+  } else if (J.isString()) {
+    std::string JJ = J.asString();
+    JJ.erase(
+        std::remove_if(JJ.begin(), JJ.end(),
+                       [](const char& c) { return (c == '(' || c == ')'); }),
+        JJ.end());
+    std::transform(JJ.begin(), JJ.end(), JJ.begin(),
+                   [](const char& c) { return std::toupper(c); });
+    RetJ = JJ;
+  } else {
+    RetJ = J;
+  }
+  return RetJ;
+}
+
+Json::Value removeHexAddrAndDotInStrings(const Json::Value& J) {
+  static const std::regex e("\\b0X[0-9A-F]{40}\\.");
+  Json::Value RetJ;
+  if (J.isArray()) {
+    for (const auto& K : J) {
+      RetJ.append(removeHexAddrAndDotInStrings(K));
+    }
+  } else if (J.isObject()) {
+    for (Json::Value::const_iterator K = J.begin(); K != J.end(); K++) {
+      RetJ[K.name()] = removeHexAddrAndDotInStrings(*K);
+    }
+  } else if (J.isString()) {
+    RetJ = std::regex_replace(J.asString(), e, "");
+  } else {
+    RetJ = J;
+  }
+  return RetJ;
+}
+
+bool compareScillaInitJSONs(const Json::Value& Expected,
+                            const Json::Value& Got) {
+  if (!Expected.isArray() || !Got.isArray() || Expected.size() != Got.size()) {
+    return false;
+  }
+
+  auto ExpectedSorted =
+      removeParensInStrings(canonicalizeStateVariables(Expected));
+  auto GotSorted = removeParensInStrings(canonicalizeStateVariables(Got));
+  for (Json::Value::ArrayIndex I = 0; I < ExpectedSorted.size(); I++) {
+    const auto& ESV = ExpectedSorted[I];
+    const auto& OSV = GotSorted[I];
+    if (ESV != OSV) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
+  const Json::Value Before1 =
+      removeHexAddrAndDotInStrings(removeParensInStrings(Before));
+  const Json::Value After1 =
+      removeHexAddrAndDotInStrings(removeParensInStrings(After));
+
+  if (Before1 != After1) {
+    LOG_GENERAL(INFO, "State before migration: "
+                          << Before1 << "\nState after migration: " << After1);
+    return false;
+  }
+
+  return true;
+}
+
+bool AccountStore::MigrateContractStates(
+    bool ignoreCheckerFailure, bool disambiguation,
+    const string& contract_address_output_filename,
+    const string& normal_address_output_filename) {
   LOG_MARKER();
 
   std::ofstream os_1;
   std::ofstream os_2;
-  if (!contract_address_output_dir.empty()) {
-    os_1.open(contract_address_output_dir);
+  if (!contract_address_output_filename.empty()) {
+    os_1.open(contract_address_output_filename);
   }
-  if (!normal_address_output_dir.empty()) {
-    os_2.open(normal_address_output_dir);
+  if (!normal_address_output_filename.empty()) {
+    os_2.open(normal_address_output_filename);
   }
+
+  unsigned int numContractUnchangedStates = 0;
+  unsigned int numContractChangedStates = 0;
+  unsigned int numContractNullFixedStates = 0;
 
   for (const auto& i : m_state) {
     Address address(i.first);
@@ -520,12 +655,12 @@ bool AccountStore::MigrateContractStates2(
 
     if (account.isContract()) {
       account.SetAddress(address);
-      if (!contract_address_output_dir.empty()) {
+      if (!contract_address_output_filename.empty()) {
         os_1 << address.hex() << endl;
       }
     } else {
       this->AddAccount(address, account, true);
-      if (!normal_address_output_dir.empty()) {
+      if (!normal_address_output_filename.empty()) {
         os_2 << address.hex() << endl;
       }
       continue;
@@ -599,13 +734,100 @@ bool AccountStore::MigrateContractStates2(
 
     account.UpdateStates(address, t_metadata, toDeletes, false);
 
+    // Run the disambiguator.
+
+    std::string disPrint;
+    if (disambiguation) {
+      Json::Value stateBeforeMigration, stateAfterMigration;
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateJsonForContract(stateBeforeMigration, address, "", {},
+                                     true);
+
+      uint64_t gasRem = UINT64_MAX;
+      InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
+                        std::numeric_limits<uint128_t>::max(), ret_checker,
+                        receipt);
+
+      LOG_GENERAL(INFO, "Disambiguate tool output: " << disPrint);
+
+#if MIGRATE_INIT_JSON
+
+      ifstream initAfterMigrationRef{OUTPUT_JSON};
+      std::string initAfterMigration{
+          istreambuf_iterator<char>(initAfterMigrationRef),
+          istreambuf_iterator<char>()};
+      ifstream initBeforeMigrationRef{INIT_JSON};
+      std::string initBeforeMigration{
+          istreambuf_iterator<char>(initBeforeMigrationRef),
+          istreambuf_iterator<char>()};
+
+      Json::Value beforeInitJson, afterInitJson;
+      if (!JSONUtils::GetInstance().convertStrtoJson(initBeforeMigration,
+                                                     beforeInitJson) ||
+          !JSONUtils::GetInstance().convertStrtoJson(initAfterMigration,
+                                                     afterInitJson)) {
+        LOG_GENERAL(
+            WARNING,
+            "Failed to parse init JSON before/after migration\nBefore:\n"
+                << initBeforeMigration << "\nAfter:\n"
+                << initAfterMigration);
+      } else {
+        if (!compareScillaInitJSONs(beforeInitJson, afterInitJson)) {
+          Contract::ContractStorage2::GetContractStorage().PutInitData(
+              address, DataConversion::StringToCharArray(initAfterMigration));
+
+          LOG_GENERAL(INFO, "Init JSON before migration:  "
+                                << initBeforeMigration
+                                << "\n Init JSON after migration: "
+                                << initAfterMigration);
+        } else {
+          LOG_GENERAL(INFO,
+                      "Init JSON before migration same as after migration. Not "
+                      "updated.");
+        }
+      }
+#endif  // MIGRATE_INIT_JSON
+
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateJsonForContract(stateAfterMigration, address, "", {},
+                                     true);
+
+      if ((stateBeforeMigration == Json::Value::null) &&
+          (stateAfterMigration != Json::Value::null)) {
+        numContractNullFixedStates++;
+      } else if (!compareStateJSONs(stateBeforeMigration,
+                                    stateAfterMigration)) {
+        LOG_GENERAL(INFO, "States changed for " << address.hex());
+        numContractChangedStates++;
+      } else {
+        numContractUnchangedStates++;
+      }
+
+      std::map<std::string, bytes> types;
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateDataForContract(types, address, TYPE_INDICATOR, {}, true);
+      for (auto const& type : types) {
+        vector<string> fragments;
+        boost::split(fragments, type.first,
+                     bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+        if (fragments.size() < 3) {
+          LOG_GENERAL(WARNING,
+                      "Error fetching (field_name, type): " << address.hex());
+        } else {
+          LOG_GENERAL(
+              INFO, "field=" << fragments[2] << " type="
+                             << DataConversion::CharArrayToString(type.second));
+        }
+      }
+    }
+
     this->AddAccount(address, account, true);
   }
 
-  if (!contract_address_output_dir.empty()) {
+  if (!contract_address_output_filename.empty()) {
     os_1.close();
   }
-  if (!normal_address_output_dir.empty()) {
+  if (!normal_address_output_filename.empty()) {
     os_2.close();
   }
 
@@ -614,6 +836,13 @@ bool AccountStore::MigrateContractStates2(
     LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
     return false;
   }
+
+  LOG_GENERAL(INFO, "Num contracts with states initialized = "
+                        << numContractNullFixedStates);
+  LOG_GENERAL(INFO, "Num contracts with states changed     = "
+                        << numContractChangedStates);
+  LOG_GENERAL(INFO, "Num contracts with states unchanged   = "
+                        << numContractUnchangedStates);
 
   return true;
 }

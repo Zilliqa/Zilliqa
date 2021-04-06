@@ -164,20 +164,9 @@ class Node : public Executable {
   std::shared_timed_mutex mutable m_unconfirmedTxnsMutex;
   HashCodeMap m_unconfirmedTxns;
 
-  std::shared_timed_mutex mutable m_droppedTxnsMutex;
-  TTLTxns m_droppedTxns;
-
-  std::shared_timed_mutex mutable m_pendingTxnsMutex;
-  TTLTxns m_pendingTxns;
-
   std::mutex m_mutexMBnForwardedTxnBuffer;
   std::unordered_map<uint64_t, std::vector<MBnForwardedTxnEntry>>
       m_mbnForwardedTxnBuffer;
-
-  std::mutex m_mutexPendingTxnBuffer;
-  std::unordered_map<uint64_t,
-                     std::vector<std::tuple<HashCodeMap, PubKey, uint32_t>>>
-      m_pendingTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
   std::map<bytes, bytes> m_txnPacketBuffer;
@@ -529,10 +518,6 @@ class Node : public Executable {
   std::mutex m_mutexMBnForwardedTxnStore;
   std::map<uint64_t, std::map<uint32_t, bytes>> m_mbnForwardedTxnStore;
 
-  // store PENDINGTXN
-  std::mutex m_mutexPendingTxnStore;
-  std::map<uint64_t, std::map<uint32_t, bytes>> m_pendingTxnStore;
-
   // stores historical map of vcblocks to txblocknum
   std::mutex m_mutexhistVCBlkForTxBlock;
   std::map<uint64_t, std::vector<VCBlockSharedPtr>> m_histVCBlocksForTxBlock;
@@ -639,8 +624,6 @@ class Node : public Executable {
 
   void CallActOnFinalblock();
 
-  void CommitPendingTxnBuffer();
-
   // Used by leader before sending 'collective sig + newannouncement'
   bool WaitUntilCompleteMicroBlockIsReady();
   // Used by backup before processing 'collective sig + newannouncement'
@@ -737,10 +720,6 @@ class Node : public Executable {
 
   std::unordered_map<TxnHash, TxnStatus> GetUnconfirmedTxns() const;
 
-  std::unordered_map<TxnHash, TxnStatus> GetDroppedTxns() const;
-
-  std::unordered_map<TxnHash, TxnStatus> GetPendingTxns() const;
-
   uint32_t CalculateShardLeaderFromDequeOfNode(uint16_t lastBlockHash,
                                                uint32_t sizeOfShard,
                                                const DequeOfNode& shardMembers);
@@ -772,10 +751,6 @@ class Node : public Executable {
   void CleanWhitelistReqs();
 
   void ClearUnconfirmedTxn();
-
-  void ClearPendingAndDroppedTxn();
-
-  void ClearAllPendingAndDroppedTxn();
 
   bool IsUnconfirmedTxnEmpty() const;
 
