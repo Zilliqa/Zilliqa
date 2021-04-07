@@ -137,7 +137,7 @@ class Node : public Executable {
   std::shared_ptr<Retriever> m_retriever;
 
   bytes m_consensusBlockHash;
-  std::pair<uint64_t, CoSignatures> m_lastMicroBlockCoSig;
+  std::pair<uint64_t, CoSignatures> m_lastMicroBlockCoSig{0, CoSignatures()};
 
   const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
   const static unsigned int GOSSIP_RATE = 48;

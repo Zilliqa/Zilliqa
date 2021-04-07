@@ -1061,6 +1061,10 @@ void Node::StartTxnProcessingThread() {
 
 bool Node::WaitUntilTxnProcessingDone() {
   LOG_MARKER();
+  if (!m_mediator.ToProcessTransaction()) {
+    LOG_GENERAL(INFO, "Vacuous epoch: Skipping processing transactions");
+    return true;
+  }
   // wait for txn processing being ready by me (backup)
   unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
   int timeout_time =
