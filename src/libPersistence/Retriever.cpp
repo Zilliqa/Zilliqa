@@ -115,8 +115,6 @@ bool Retriever::RetrieveTxBlocks() {
       if (BlockStorage::GetBlockStorage().GetMetadata(
               MetaType::EARLIEST_HISTORY_STATE_EPOCH,
               earliestTrieSnapshotEpochBytes)) {
-        LOG_GENERAL(INFO,
-                    "No EARLIEST_HISTORY_STATE_EPOCH from local persistence");
         try {
           earliestTrieSnapshotEpoch =
               std::stoull(DataConversion::CharArrayToString(
@@ -129,10 +127,14 @@ bool Retriever::RetrieveTxBlocks() {
                          earliestTrieSnapshotEpochBytes));
           return false;
         }
+      } else {
+        LOG_GENERAL(INFO,
+                    "No EARLIEST_HISTORY_STATE_EPOCH from local persistence");
       }
 
       m_mediator.m_earliestTrieSnapshotDSEpoch =
-          std::min(earliestTrieSnapshotEpoch, lower_bound_txnblk);
+          std::min(earliestTrieSnapshotEpoch,
+                   (lower_bound_txnblk / NUM_FINAL_BLOCK_PER_POW));
       m_mediator.m_initTrieSnapshotDSEpoch =
           m_mediator.m_earliestTrieSnapshotDSEpoch;
       LOG_GENERAL(INFO, "m_earliestTrieSnapshotDSEpoch: "
