@@ -280,6 +280,7 @@ class Lookup : public Executable {
 
   bool SetDSCommitteInfo(bool replaceMyPeerWithDefault = false);
 
+  DequeOfNode GetDSComm();
   DequeOfShard GetShardPeers();
   VectorOfPeer GetNodePeers();
 
