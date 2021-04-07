@@ -797,10 +797,10 @@ bool ContractStorage::CheckIfKeyIsEmpty(const string& key, bool temp) {
 }
 
 void ContractStorage::FetchStateDataForContract(map<string, bytes>& states,
-                                                 const dev::h160& address,
-                                                 const string& vname,
-                                                 const vector<string>& indices,
-                                                 bool temp) {
+                                                const dev::h160& address,
+                                                const string& vname,
+                                                const vector<string>& indices,
+                                                bool temp) {
   string key = GenerateStorageKey(address, vname, indices);
   FetchStateDataForKey(states, key, temp);
 }
