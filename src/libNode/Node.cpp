@@ -2267,6 +2267,7 @@ bool Node::CleanVariables() {
   m_stillMiningPrimary = false;
   m_myshardId = 0;
   m_proposedGasPrice = PRECISION_MIN_VALUE;
+  m_lastMicroBlockCoSig = {0, CoSignatures()};
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
   P2PComm::GetInstance().InitializeRumorManager({}, {});
