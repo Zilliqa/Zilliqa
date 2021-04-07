@@ -345,6 +345,11 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
     return false;
   }
 
+  LOG_GENERAL(INFO, "dsBlockNum: " << dsBlockNum << " initTrieSnapshotDSEpoch: "
+                                   << initTrieSnapshotDSEpoch
+                                   << " earliestTrieSnapshotDSEpoch: "
+                                   << earliestTrieSnapshotDSEpoch);
+
   m_addressToAccount->clear();
 
   return true;
