@@ -188,7 +188,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   if (!foundMB && !LOOKUP_NODE_MODE) {
     LOG_GENERAL(INFO, "My MB not in FB");
-    PutProcessedInUnconfirmedTxns();
+    // clear the transactions
+    CleanCreatedTransaction();
   }
 
   if (/*doRejoin || */ m_doRejoinAtFinalBlock) {
@@ -866,7 +867,15 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   }
 
   if (!LOOKUP_NODE_MODE) {
-    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum) {
+    // After rejoin or recovery
+    if (m_lastMicroBlockCoSig.first == 0) {
+      m_txn_distribute_window_open = true;
+    }
+    // I don't want to wait if I failed last mb consensus already and already in
+    // WAITING_FINALBLOCK state
+    else if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum &&
+             (m_state == MICROBLOCK_CONSENSUS ||
+              m_state == MICROBLOCK_CONSENSUS_PREP)) {
       std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
