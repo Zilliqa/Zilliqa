@@ -388,7 +388,17 @@ bool ContractStorage2::FetchExternalStateValue(
   query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
   std::string special_query;
-  Account* account = AccountStore::GetInstance().GetAccountTemp(target);
+  Account* account;
+  Account* accountAtomic =
+      AccountStore::GetInstance().GetAccountTempAtomic(target);
+  if (!accountAtomic) {
+    LOG_GENERAL(INFO,
+                "Could not find account " << target.hex() << " in atomic");
+    account = AccountStore::GetInstance().GetAccountTemp(target);
+  } else {
+    account = accountAtomic;
+  }
+
   if (!account) {
     foundVal = false;
     return true;

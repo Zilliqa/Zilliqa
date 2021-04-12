@@ -82,8 +82,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   uint64_t nonce;
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -180,8 +179,7 @@ BOOST_AUTO_TEST_CASE(salarybot) {
   uint64_t nonce = 0;
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -280,8 +278,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   uint64_t nonce = 0;
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -299,10 +296,8 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   ScillaTestUtil::ScillaTest t1;
   string t1_name = "0x986556789012345678901234567890123456abcd";
   if (!ScillaTestUtil::GetScillaTest(t1, t1_name, 1, "0", true)) {
-    LOG_GENERAL(
-        WARNING,
+    BOOST_FAIL(
         "Unable to fetch test 0x986556789012345678901234567890123456abcd.");
-    return;
   }
 
   // and remove _creation_block (automatic insertion later).
@@ -334,10 +329,8 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   ScillaTestUtil::ScillaTest t2;
   std::string t2_name = "0x111256789012345678901234567890123456abef";
   if (!ScillaTestUtil::GetScillaTest(t2, t2_name, 1, "0", true)) {
-    LOG_GENERAL(
-        WARNING,
+    BOOST_FAIL(
         "Unable to fetch test 0x111256789012345678901234567890123456abef.");
-    return;
   }
 
   // Modify _extlibs
@@ -393,8 +386,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   ScillaTestUtil::ScillaTest t3;
   if (!ScillaTestUtil::GetScillaTest(t3, "import-test-lib", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test import-test-lib");
-    return;
+    BOOST_FAIL("Unable to fetch test import-test-lib");
   }
 
   // Modify _extlibs
@@ -468,8 +460,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   setup();
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -491,8 +482,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Deploying the contract can use data from the 1st Scilla test.
   ScillaTestUtil::ScillaTest t1;
   if (!ScillaTestUtil::GetScillaTest(t1, "crowdfunding", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_1.");
-    return;
+    BOOST_FAIL("Unable to fetch test crowdfunding_1.");
   }
 
   // Replace owner address in init.json.
@@ -558,8 +548,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Do another donation from donor2
   ScillaTestUtil::ScillaTest t2;
   if (!ScillaTestUtil::GetScillaTest(t2, "crowdfunding", 2)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_2.");
-    return;
+    BOOST_FAIL("Unable to fetch test crowdfunding_2.");
   }
 
   uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
@@ -628,8 +617,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Owner tries to get fund, fails
   ScillaTestUtil::ScillaTest t4;
   if (!ScillaTestUtil::GetScillaTest(t4, "crowdfunding", 4)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_4.");
-    return;
+    BOOST_FAIL("Unable to fetch test crowdfunding_4.");
   }
 
   uint64_t bnum4 = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
@@ -668,8 +656,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Donor1 ClaimsBack his funds. Succeeds.
   ScillaTestUtil::ScillaTest t5;
   if (!ScillaTestUtil::GetScillaTest(t5, "crowdfunding", 5)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_5.");
-    return;
+    BOOST_FAIL("Unable to fetch test crowdfunding_5.");
   }
 
   uint64_t bnum5 = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
@@ -717,8 +704,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   setup();
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -738,8 +724,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Deploying the contract can use data from the 0th Scilla test.
   ScillaTestUtil::ScillaTest t0ping;
   if (!ScillaTestUtil::GetScillaTest(t0ping, "ping", 0)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test ping_0.");
-    return;
+    BOOST_FAIL("Unable to fetch test ping_0.");
   }
 
   uint64_t bnumPing = ScillaTestUtil::GetBlockNumberFromJson(t0ping.blockchain);
@@ -765,8 +750,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Deploying the contract can use data from the 0th Scilla test.
   ScillaTestUtil::ScillaTest t0pong;
   if (!ScillaTestUtil::GetScillaTest(t0pong, "pong", 0)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test pong_0.");
-    return;
+    BOOST_FAIL("Unable to fetch test pong_0.");
   }
 
   uint64_t bnumPong = ScillaTestUtil::GetBlockNumberFromJson(t0pong.blockchain);
@@ -833,8 +817,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Let's just ping now and see the ping-pong bounces.
   ScillaTestUtil::ScillaTest t1ping;
   if (!ScillaTestUtil::GetScillaTest(t1ping, "ping", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test ping_1.");
-    return;
+    BOOST_FAIL("Unable to fetch test ping_1.");
   }
 
   ScillaTestUtil::PrepareMessageData(t1ping.message, data);
@@ -882,8 +865,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   setup();
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -904,8 +886,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   // Deploying the contract can use data from the 1st Scilla test.
   ScillaTestUtil::ScillaTest tContrA;
   if (!ScillaTestUtil::GetScillaTest(tContrA, "chain-call-balance-1", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-1.");
-    return;
+    BOOST_FAIL("Unable to fetch test chain-call-balance-1.");
   }
 
   uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tContrA.blockchain);
@@ -929,8 +910,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 
   ScillaTestUtil::ScillaTest tContrB;
   if (!ScillaTestUtil::GetScillaTest(tContrB, "chain-call-balance-2", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-2.");
-    return;
+    BOOST_FAIL("Unable to fetch test chain-call-balance-2.");
   }
 
   ScillaTestUtil::RemoveCreationBlockFromInit(tContrB.init);
@@ -952,8 +932,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 
   ScillaTestUtil::ScillaTest tContrC;
   if (!ScillaTestUtil::GetScillaTest(tContrC, "chain-call-balance-3", 1)) {
-    LOG_GENERAL(WARNING, "Unable to fetch test chain-call-balance-3.");
-    return;
+    BOOST_FAIL("Unable to fetch test chain-call-balance-3.");
   }
 
   ScillaTestUtil::RemoveCreationBlockFromInit(tContrC.init);
@@ -982,7 +961,6 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   {
     Json::Value m;
     m["_tag"] = "simply_accept";
-    m["_amount"] = "100";
     m["params"].resize(0);
 
     bytes m_data;
@@ -1049,6 +1027,139 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   /* ------------------------------------------------------------------- */
 }
 
+BOOST_AUTO_TEST_CASE(testAddFunds) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}),
+      contrB(priv3, {priv3}), contractaddress(priv4, {priv4});
+  Address ownerAddr, proxyAddr, implAddr;
+  uint64_t nonce = 0;
+
+  setup();
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+
+  auto ownerBal = 2000000000000000;
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {ownerBal, nonce});
+
+  implAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  proxyAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+
+  LOG_GENERAL(INFO, "ownerAddr: " << ownerAddr << "; implAddr: " << implAddr
+                                  << "; proxyAddr: " << proxyAddr);
+
+  /* ------------------------------------------------------------------- */
+
+  TxnStatus error_code;
+
+  ScillaTestUtil::ScillaTest tImpl1;
+  if (!ScillaTestUtil::GetScillaTest(tImpl1, "addfunds", 1)) {
+    BOOST_FAIL("Unable to fetch test addfunds 1.");
+  }
+
+  auto bnum = ScillaTestUtil::GetBlockNumberFromJson(tImpl1.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(tImpl1.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tImpl1.init);
+
+  // Transaction to deploy impl
+  std::string initImpl = JSONUtils::GetInstance().convertJsontoStr(tImpl1.init);
+  bytes dataImpl(initImpl.begin(), initImpl.end());
+  Transaction txCreateImpl(DataConversion::Pack(CHAIN_ID, 1), nonce,
+                           NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
+                           tImpl1.code, dataImpl);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txCreateImpl,
+                                                 tr1, error_code);
+  Account* accountImpl = AccountStore::GetInstance().GetAccountTemp(implAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountImpl != nullptr,
+                      "Error with creation of implementation contract");
+  nonce++;
+
+  // Deploying the contract can use data from the 1st Scilla test.
+  ScillaTestUtil::ScillaTest tProxy1;
+  if (!ScillaTestUtil::GetScillaTest(tProxy1, "addfunds_proxy", 1)) {
+    BOOST_FAIL("Unable to fetch test addfunds_proxy 1.");
+  }
+
+  bnum = ScillaTestUtil::GetBlockNumberFromJson(tProxy1.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(tProxy1.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(tProxy1.init);
+  // We want the field `init_implementation` in the proxy to point to the impl.
+  bool foundInitImplField = false;
+  BOOST_REQUIRE(tProxy1.init.isArray());
+  for (auto& ivar : tProxy1.init) {
+    BOOST_REQUIRE(ivar.isObject() && ivar.isMember("vname"));
+    if (ivar["vname"].asString() == "init_implementation") {
+      foundInitImplField = true;
+      ivar["value"] = ("0x" + implAddr.hex());
+      break;
+    }
+  }
+  BOOST_REQUIRE_MESSAGE(foundInitImplField,
+                        "init_implementation field not found in init JSON");
+
+  // Transaction to deploy the proxy
+  std::string initProxy =
+      JSONUtils::GetInstance().convertJsontoStr(tProxy1.init);
+  bytes dataProxy(initProxy.begin(), initProxy.end());
+  Transaction txCreateProxy(DataConversion::Pack(CHAIN_ID, 1), nonce,
+                            NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
+                            tProxy1.code, dataProxy);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txCreateProxy,
+                                                 tr0, error_code);
+  Account* accountProxy = AccountStore::GetInstance().GetAccountTemp(proxyAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountProxy != nullptr, "Error with creation of proxy");
+  nonce++;
+
+  LOG_GENERAL(INFO, "Deployed proxy and implementation contracts.");
+
+  /* ------------------------------------------------------------------- */
+  // Call AddFunds() in the proxy with 100
+  /* ------------------------------------------------------------------- */
+
+  {
+    Json::Value m;
+    m["_tag"] = "AddFunds";
+    m["params"].resize(0);
+
+    bytes m_data;
+    ScillaTestUtil::PrepareMessageData(m, m_data);
+
+    // Fund contrA
+    Transaction txFundA(DataConversion::Pack(CHAIN_ID, 1), nonce, proxyAddr,
+                        owner, 100, PRECISION_MIN_VALUE, 50000, {}, m_data);
+    TransactionReceipt trFundA;
+    TxnStatus error_code;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA,
+                                                   trFundA, error_code);
+    nonce++;
+  }
+
+  uint128_t proxyBalGot =
+      AccountStore::GetInstance().GetAccountTemp(proxyAddr)->GetBalance();
+  uint128_t implBalGot =
+      AccountStore::GetInstance().GetAccountTemp(implAddr)->GetBalance();
+
+  LOG_GENERAL(INFO, "Expected balance for impl and proxy contracts: "
+                        << 100 << " and " << 0);
+  LOG_GENERAL(INFO, "Balance result for impl and proxy contracts: "
+                        << implBalGot << " and " << proxyBalGot);
+
+  BOOST_CHECK_MESSAGE(implBalGot == 100 && proxyBalGot == 0,
+                      "Call chain balance test failed.");
+
+  /* ------------------------------------------------------------------- */
+}
+
 // Comment due to deprecated function used
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
   INIT_STDOUT_LOGGER();
@@ -1066,8 +1177,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
   report << "deployment_microsec,deployment_gas,invoke_microsec,invoke_gas\n";
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -1079,8 +1189,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     // Deploy the contract using data from the 2nd Scilla test.
     ScillaTestUtil::ScillaTest t2;
     if (!ScillaTestUtil::GetScillaTest(t2, "fungible-token", 2)) {
-      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_2.");
-      return;
+      BOOST_FAIL("Unable to fetch test fungible-token_2.");
     }
 
     // Replace owner address in init.json.
@@ -1189,8 +1298,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
   uint64_t nonce = 0;
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   const unsigned int numHodlers[] = {10, 20, 30, 40, 50};
@@ -1209,8 +1317,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     // Deploy the contract using data from the 2nd Scilla test.
     ScillaTestUtil::ScillaTest t2;
     if (!ScillaTestUtil::GetScillaTest(t2, "fungible-token", 2)) {
-      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_2.");
-      return;
+      BOOST_FAIL("Unable to fetch test fungible-token_2.");
     }
 
     // Replace owner address in init.json.
@@ -1346,8 +1453,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   }
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -1367,8 +1473,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     // Deploy the contract using data from the 10th Scilla test.
     ScillaTestUtil::ScillaTest t10;
     if (!ScillaTestUtil::GetScillaTest(t10, "nonfungible-token", 10)) {
-      LOG_GENERAL(WARNING, "Unable to fetch test nonfungible-token_10;.");
-      return;
+      BOOST_FAIL("Unable to fetch test nonfungible-token_10;.");
     }
 
     // Replace owner address in init.json.
@@ -1555,8 +1660,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
   PairOfKey owner(priv1, PubKey(priv1));
 
   if (SCILLA_ROOT.empty()) {
-    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-    return;
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
   }
 
   AccountStore::GetInstance().Init();
@@ -1875,8 +1979,8 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 //   uint64_t ownerDexNonce = 0;
 
 //   if (SCILLA_ROOT.empty()) {
-//     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
-//     return;
+//     BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+//
 //   }
 
 //   AccountStore::GetInstance().Init();
@@ -1904,8 +2008,8 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 //     ScillaTestUtil::ScillaTest fungibleTokenT5;
 //     if (!ScillaTestUtil::GetScillaTest(fungibleTokenT5, "fungible-token", 5))
 //     {
-//       LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_5;.");
-//       return;
+//       BOOST_FAIL("Unable to fetch test fungible-token_5;.");
+//
 //     }
 
 //     ScillaTestUtil::RemoveThisAddressFromInit(fungibleTokenT5.init);
@@ -2033,8 +2137,8 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 //     // messages for makeOrder/fillOrder.
 //     ScillaTestUtil::ScillaTest dexT1;
 //     if (!ScillaTestUtil::GetScillaTest(dexT1, "simple-dex", 1)) {
-//       LOG_GENERAL(WARNING, "Unable to fetch test simple-dex_1.");
-//       return;
+//       BOOST_FAIL("Unable to fetch test simple-dex_1.");
+//
 //     }
 
 //     // remove _creation_block (automatic insertion later).

@@ -236,6 +236,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// Clean cache of newly created contracts in this epoch
   void CleanNewLibrariesCache();
+
+  // Get value from atomic accountstore
+  Account* GetAccountAtomic(const dev::h160& addr);
 };
 
 #include "AccountStoreAtomic.tpp"
