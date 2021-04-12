@@ -1551,6 +1551,11 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 }
 
 template <class MAP>
+Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
+  return m_accountStoreAtomic->GetAccount(addr);
+}
+
+template <class MAP>
 void AccountStoreSC<MAP>::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();

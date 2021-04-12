@@ -396,6 +396,10 @@ Account* AccountStore::GetAccountTemp(const Address& address) {
   return m_accountStoreTemp->GetAccount(address);
 }
 
+Account* AccountStore::GetAccountTempAtomic(const Address& address) {
+  return m_accountStoreTemp->GetAccountAtomic(address);
+}
+
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
