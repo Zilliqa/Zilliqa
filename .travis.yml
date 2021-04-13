@@ -57,7 +57,7 @@ install:
   - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
   - cmake --version
   - rm cmake-3.19.3-Linux-x86_64.sh
-  - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.10.0-alpha.0 cp -r /scilla /root/
+  - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.10.0-alpha.1 cp -r /scilla /root/
   - ls /scilla/0/
 
 script:
