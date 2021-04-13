@@ -96,7 +96,7 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
                     std::make_pair(privKey, pubKey),
                     nonce,
                     GAS_PRICE_MIN_VALUE,
-                    1,
+                    NORMAL_TRAN_GAS,
                     {},
                     {}};
     txnOffsets.push_back(txnBuff.size());
