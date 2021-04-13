@@ -1060,6 +1060,18 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
   return true;
 }
 
+DequeOfNode Lookup::GetDSComm() {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::GetDSComm not expected to be called from "
+                "other than the LookUp node.");
+    return DequeOfNode();
+  }
+
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  return *m_mediator.m_DSCommittee;
+}
+
 DequeOfShard Lookup::GetShardPeers() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

@@ -281,6 +281,7 @@ class Lookup : public Executable {
   bool SetDSCommitteInfo(bool replaceMyPeerWithDefault = false);
 
   DequeOfShard GetShardPeers();
+  DequeOfNode GetDSComm();
   VectorOfPeer GetNodePeers();
 
   // Start synchronization with other lookup nodes as a lookup node

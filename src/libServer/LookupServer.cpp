@@ -26,6 +26,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
@@ -197,6 +198,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::GetShardMembersI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetCurrentDSComm", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetCurrentDSCommI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
@@ -1536,6 +1541,7 @@ void LookupServer::AddToRecentTransactions(const TxnHash& txhash) {
   lock_guard<mutex> g(m_mutexRecentTxns);
   m_RecentTransactions.insert_new(m_RecentTransactions.size(), txhash.hex());
 }
+
 Json::Value LookupServer::GetShardingStructure() {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
@@ -1839,6 +1845,34 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
     v.at(j) = x;
   }
   return v;
+}
+
+Json::Value LookupServer::GetCurrentDSComm() {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  try {
+    Json::Value _json;
+
+    _json["CurrentDSEpoch"] = LookupServer::GetCurrentDSEpoch();
+    _json["CurrentTxEpoch"] = LookupServer::GetCurrentMiniEpoch();
+    _json["NumOfDSGuard"] = Guard::GetInstance().GetNumOfDSGuard();
+
+    auto dsComm = m_mediator.m_lookup->GetDSComm();
+    _json["dscomm"] = Json::Value(Json::arrayValue);
+    for (const auto& dsnode : dsComm) {
+      _json["dscomm"].append(static_cast<string>(dsnode.first));
+    }
+
+    return _json;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+  }
 }
 
 Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
