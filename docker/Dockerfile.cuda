@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM zilliqa/scilla:v0.10.0-alpha.0
+FROM zilliqa/scilla:3560ff2d
 
 COPY requirements3.cuda.txt ./
 
