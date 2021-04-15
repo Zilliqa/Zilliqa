@@ -66,8 +66,6 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   }
 };
 
-static uint64_t epoch_place_holder = 0;
-
 // Singleton class for providing interface related Account System
 class AccountStore
     : public AccountStoreTrie<std::unordered_map<Address, Account>>,
@@ -136,10 +134,8 @@ class AccountStore
   bool UpdateStateTrieFromTempStateDB();
 
   /// commit the in-memory states into persistent storage
-  bool MoveUpdatesToDisk(
-      const uint64_t& dsBlockNum = 0,
-      const uint64_t& initTrieSnapshotDSEpoch = 0,
-      uint64_t& earliestTrieSnapshotDSEpoch = epoch_place_holder);
+  bool MoveUpdatesToDisk(const uint64_t& dsBlockNum,
+                         uint64_t& initTrieSnapshotDSEpoch);
 
   /// discard all the changes in memory and reset the states from last
   /// checkpoint in persistent storage
