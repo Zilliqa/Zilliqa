@@ -819,6 +819,20 @@ bool AccountStore::MigrateContractStates(
                              << DataConversion::CharArrayToString(type.second));
         }
       }
+
+      // fetch all states from temp storage
+      std::map<std::string, bytes> states;
+      Contract::ContractStorage2::GetContractStorage()
+          .FetchStateDataForContract(states, address, "", {}, true);
+
+      // put all states (overwrite) back into persistent storage
+      dev::h256 rootHash;
+      Contract::ContractStorage2::GetContractStorage()
+          .UpdateStateDatasAndToDeletes(address, states, {}, rootHash, false,
+                                        false);
+
+      // update storage root hash for this account
+      account.SetStorageRoot(rootHash);
     }
 
     this->AddAccount(address, account, true);
@@ -829,6 +843,11 @@ bool AccountStore::MigrateContractStates(
   }
   if (!normal_address_output_filename.empty()) {
     os_2.close();
+  }
+
+  if (!UpdateStateTrieAll()) {
+    LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
+    return false;
   }
 
   /// repopulate trie and discard old persistence
