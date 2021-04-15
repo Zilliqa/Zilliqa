@@ -2142,15 +2142,16 @@ Json::Value LookupServer::GetStateProof(const string& address,
       throw JsonRpcException(RPC_MISC_ERROR, "Requested txBlock not mined yet");
     }
 
-    /*if ((requestedTxBlockNum / NUM_FINAL_BLOCK_PER_POW) <
-        m_mediator.m_earliestTrieSnapshotDSEpoch) {
+    const uint64_t& earliestTrieDSEpoch = m_mediator.GetEarliestTrieDSEpoch(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+
+    if ((requestedTxBlockNum / NUM_FINAL_BLOCK_PER_POW) < earliestTrieDSEpoch) {
       throw JsonRpcException(
           RPC_MISC_ERROR,
           "Proof from requested txBlock is expired, earliest: " +
-              boost::lexical_cast<std::string>(
-                  (m_mediator.m_earliestTrieSnapshotDSEpoch - 1) *
-                  NUM_FINAL_BLOCK_PER_POW));
-    } Temp Disable */
+              boost::lexical_cast<std::string>((earliestTrieDSEpoch - 1) *
+                                               NUM_FINAL_BLOCK_PER_POW));
+    }
 
     rootHash = m_mediator.m_txBlockChain.GetBlock(requestedTxBlockNum)
                    .GetHeader()

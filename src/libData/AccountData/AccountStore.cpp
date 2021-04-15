@@ -250,8 +250,7 @@ bool AccountStore::MoveRootToDisk(const dev::h256& root) {
 }
 
 bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
-                                     const uint64_t& initTrieSnapshotDSEpoch,
-                                     uint64_t& earliestTrieSnapshotDSEpoch) {
+                                     uint64_t& initTrieSnapshotDSEpoch) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -259,9 +258,7 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
   lock(g, g2);
 
   LOG_GENERAL(INFO, "dsBlockNum: " << dsBlockNum << " initTrieSnapshotDSEpoch: "
-                                   << initTrieSnapshotDSEpoch
-                                   << " earliestTrieSnapshotDSEpoch: "
-                                   << earliestTrieSnapshotDSEpoch);
+                                   << initTrieSnapshotDSEpoch);
 
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
@@ -320,18 +317,16 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
 
     // update EARLIEST_HISTORY_STATE_EPOCH
     if (KEEP_HISTORICAL_STATE) {
-      bool afterInitPeriod = ((initTrieSnapshotDSEpoch +
-                               NUM_DS_EPOCHS_STATE_HISTORY) < dsBlockNum);
+      bytes inittrieepoch_ser;
+      bool found = BlockStorage::GetBlockStorage().GetMetadata(
+          MetaType::EARLIEST_HISTORY_STATE_EPOCH, inittrieepoch_ser);
 
-      earliestTrieSnapshotDSEpoch = afterInitPeriod
-                                        ? initTrieSnapshotDSEpoch
-                                        : earliestTrieSnapshotDSEpoch + 1;
-
-      if (afterInitPeriod) {
+      if (!found) {
+        // We have to configure the init trie epoch
         BlockStorage::GetBlockStorage().PutMetadata(
             MetaType::EARLIEST_HISTORY_STATE_EPOCH,
-            DataConversion::StringToCharArray(
-                std::to_string(earliestTrieSnapshotDSEpoch)));
+            DataConversion::StringToCharArray(std::to_string(dsBlockNum)));
+        initTrieSnapshotDSEpoch = dsBlockNum;
       }
     }
 
@@ -346,9 +341,7 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
   }
 
   LOG_GENERAL(INFO, "dsBlockNum: " << dsBlockNum << " initTrieSnapshotDSEpoch: "
-                                   << initTrieSnapshotDSEpoch
-                                   << " earliestTrieSnapshotDSEpoch: "
-                                   << earliestTrieSnapshotDSEpoch);
+                                   << initTrieSnapshotDSEpoch);
 
   m_addressToAccount->clear();
 

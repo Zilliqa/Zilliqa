@@ -3531,8 +3531,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
       if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
         if (!AccountStore::GetInstance().MoveUpdatesToDisk(
                 txBlkNum / NUM_FINAL_BLOCK_PER_POW,
-                m_mediator.m_initTrieSnapshotDSEpoch,
-                m_mediator.m_earliestTrieSnapshotDSEpoch)) {
+                m_mediator.m_initTrieSnapshotDSEpoch)) {
           LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
           return false;
         }

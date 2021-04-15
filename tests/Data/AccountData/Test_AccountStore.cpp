@@ -91,8 +91,10 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().DeserializeDeltaTemp(delta1, 0);
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
   AccountStore::GetInstance().CommitTempRevertible();
+  uint64_t initTrie;
   auto func = [this]() -> void {
-    AccountStore::GetInstance().MoveUpdatesToDisk(10000);
+    uint64_t initTrie;
+    AccountStore::GetInstance().MoveUpdatesToDisk(10000, initTrie);
   };
   DetachedFunction(1, func);
   AccountStore::GetInstance().InitTemp();
@@ -118,7 +120,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().DeserializeDeltaTemp(delta2, 0);
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
   AccountStore::GetInstance().CommitTempRevertible();
-  AccountStore::GetInstance().MoveUpdatesToDisk(10001);
+  AccountStore::GetInstance().MoveUpdatesToDisk(10001, initTrie);
   acct1 = AccountStore::GetInstance().GetAccount(addr1);
   LOG_GENERAL(INFO, "acct1: " << acct1->GetBalance());
   acct2 = AccountStore::GetInstance().GetAccount(addr2);
