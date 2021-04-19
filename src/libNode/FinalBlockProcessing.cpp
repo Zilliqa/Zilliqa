@@ -45,6 +45,7 @@
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -958,6 +959,11 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       return false;
     }
 
+    // Clear STL memory cache
+    if (LOOKUP_NODE_MODE) {
+      DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
+    }
+
     // if lookup and loaded microblocks, then skip
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&
@@ -985,6 +991,11 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
     }
+    // Clear STL memory cache
+    if (!LOOKUP_NODE_MODE) {
+      DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
+    }
+
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
