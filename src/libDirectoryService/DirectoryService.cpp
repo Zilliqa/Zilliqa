@@ -480,6 +480,8 @@ bool DirectoryService::CleanVariables() {
 
   m_powSubmissionWindowExpired = false;
 
+  m_dsEpochAfterUpgrade = false;
+
   return true;
 }
 
