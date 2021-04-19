@@ -2301,6 +2301,8 @@ bool Node::CleanVariables() {
 
   CleanWhitelistReqs();
 
+  m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
+
   {
     lock_guard<mutex> g(m_mutexIPChangeRequestStore);
     m_ipChangeRequestStore.clear();

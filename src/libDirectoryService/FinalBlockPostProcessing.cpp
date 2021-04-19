@@ -307,7 +307,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
 
-      if (m_mediator.m_node->m_myshardId == 0) {
+      if (m_mediator.m_node->m_myshardId == 0 || m_dsEpochAfterUpgrade) {
         LOG_GENERAL(INFO,
                     "[No PoW needed] No other shards. So no other microblocks "
                     "expected to be received");

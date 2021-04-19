@@ -397,6 +397,10 @@ void Node::BeginNextConsensusRound() {
   }
 
   LOG_MARKER();
+  if (m_mediator.m_ds->m_dsEpochAfterUpgrade) {
+    LOG_GENERAL(INFO, "Skip running mb consensus for current ds epoch..");
+    return;
+  }
 
   UpdateStateForNextConsensusRound();
 
@@ -868,7 +872,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   }
 
   if (!LOOKUP_NODE_MODE) {
-    // After rejoin or recovery
+    // After rejoin or recovery or dsepoch-after-upgrade
     if (m_lastMicroBlockCoSig.first == 0) {
       m_txn_distribute_window_open = true;
     }
@@ -992,6 +996,10 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     // Check whether any ds guard change network info
     if (!LOOKUP_NODE_MODE) {
       QueryLookupForDSGuardNetworkInfoUpdate();
+    }
+
+    if (m_mediator.m_ds->m_dsEpochAfterUpgrade) {
+      m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
     }
 
     // Remove because shard nodes will be shuffled in next epoch.

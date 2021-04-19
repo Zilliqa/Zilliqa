@@ -578,6 +578,9 @@ class DirectoryService : public Executable {
   // Indicate if its dsguard and its pod got restarted.
   bool m_dsguardPodDelete = false;
 
+  // Indicate if the current dsepoch is one after node is upgraded
+  bool m_dsEpochAfterUpgrade = false;
+
   // GetShards
   uint32_t GetNumShards() const;
   /// Force multicast when sending block to shard

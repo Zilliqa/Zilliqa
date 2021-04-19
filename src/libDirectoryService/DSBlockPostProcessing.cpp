@@ -361,6 +361,8 @@ void DirectoryService::StartNextTxEpoch() {
 
   m_mediator.m_node->CleanWhitelistReqs();
 
+  m_dsEpochAfterUpgrade = false;
+
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
   m_viewChangeCounter = 0;
@@ -438,7 +440,7 @@ void DirectoryService::StartNextTxEpoch() {
     // ReInitialize RumorManager for this epoch.
     P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
-  if (m_mediator.m_node->m_myshardId == 0) {
+  if (m_mediator.m_node->m_myshardId == 0 || m_dsEpochAfterUpgrade) {
     LOG_GENERAL(
         INFO,
         "No other shards. So no other microblocks expected to be received");
@@ -502,6 +504,8 @@ void DirectoryService::StartFirstTxEpoch() {
   P2PComm::ClearPeerConnectionCount();
 
   m_mediator.m_node->CleanWhitelistReqs();
+
+  m_dsEpochAfterUpgrade = false;
 
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
