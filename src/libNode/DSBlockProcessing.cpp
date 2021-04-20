@@ -282,6 +282,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
   P2PComm::ClearPeerConnectionCount();
 
   CleanWhitelistReqs();
+  m_mediator.m_ds->m_dsEpochAfterUpgrade = false;
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
