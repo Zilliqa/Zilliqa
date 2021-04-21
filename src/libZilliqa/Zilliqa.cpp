@@ -179,6 +179,17 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
   }
 
+  if (GUARD_MODE) {
+    // Setting the guard upon process launch
+    Guard::GetInstance().Init();
+
+    if (Guard::GetInstance().IsNodeInDSGuardList(key.second)) {
+      LOG_GENERAL(INFO, "Current node is a DS guard");
+    } else if (Guard::GetInstance().IsNodeInShardGuardList(key.second)) {
+      LOG_GENERAL(INFO, "Current node is a shard guard");
+    }
+  }
+
   // when individual node is being recovered and persistence is not available
   // locally, then Rejoin as if new miner node which will download persistence
   // from S3 incremental db and identify if already part of any
@@ -189,6 +200,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       syncType = SyncType::NEW_SYNC;
       m_lookup.SetSyncType(SyncType::NEW_SYNC);
     }
+    // assumption: this node is recovering/upgrading as part of entire network
+    // recovery from another network. syncType : recovery, persistence : exists,
+    // node : DS guard or Shard guard node
+    else if (Guard::GetInstance().IsNodeInDSGuardList(key.second) ||
+             Guard::GetInstance().IsNodeInShardGuardList(key.second)) {
+      LOG_GENERAL(INFO,
+                  "I will skip waiting on microblocks for current ds epoch!");
+      m_mediator.m_ds->m_dsEpochAfterUpgrade = true;
+    }
   }
 
   if (SyncType::NEW_SYNC == syncType) {
@@ -198,18 +218,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   P2PComm::GetInstance().SetSelfPeer(peer);
   P2PComm::GetInstance().SetSelfKey(key);
-
-  if (GUARD_MODE) {
-    // Setting the guard upon process launch
-    Guard::GetInstance().Init();
-
-    if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
-      LOG_GENERAL(INFO, "Current node is a DS guard");
-    } else if (Guard::GetInstance().IsNodeInShardGuardList(
-                   m_mediator.m_selfKey.second)) {
-      LOG_GENERAL(INFO, "Current node is a shard guard");
-    }
-  }
 
   // Clear any existing diagnostic data from previous runs
   BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DIAGNOSTIC_NODES);
