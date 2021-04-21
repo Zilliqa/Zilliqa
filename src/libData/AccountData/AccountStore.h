@@ -147,6 +147,8 @@ class AccountStore
   /// [[[WARNING]]] Test utility function, don't use in core protocol
   Account* GetAccountTemp(const Address& address);
 
+  Account* GetAccountTempAtomic(const Address& address);
+
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
