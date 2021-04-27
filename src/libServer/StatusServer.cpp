@@ -178,6 +178,10 @@ StatusServer::StatusServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &StatusServer::AuditShardI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("ToggleGetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::ToggleGetPendingTxnsI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -700,4 +704,14 @@ bool StatusServer::AuditShard(const std::string& shardIDStr) {
   }
 
   return true;
+}
+
+bool StatusServer::ToggleGetPendingTxns() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on non-lookup");
+  }
+
+  m_mediator.m_disableGetPendingTxns = !m_mediator.m_disableGetPendingTxns;
+  return m_mediator.m_disableGetPendingTxns;
 }

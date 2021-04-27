@@ -1912,7 +1912,7 @@ Json::Value LookupServer::GetPendingTxns() {
                            "Not to be queried on non-lookup");
   }
 
-  if (!REMOTESTORAGE_DB_ENABLE) {
+  if (m_mediator.m_disableGetPendingTxns || !REMOTESTORAGE_DB_ENABLE) {
     throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
   }
 
