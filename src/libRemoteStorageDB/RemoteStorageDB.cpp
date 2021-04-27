@@ -209,6 +209,16 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
     LOG_GENERAL(WARNING, "DB not initialized");
     return false;
   }
+
+  {
+    lock_guard<mutex> g(m_mutexHashMapUpdateTxn);
+    const auto& result_emplace =
+        m_hashMapUpdateTxn.emplace(txnhash, status, epoch);
+    if (!result_emplace.second) {
+      LOG_GENERAL(INFO, "TxnHash already present: " << txnhash);
+      return false;
+    }
+  }
   const auto& modifState = static_cast<int>(GetModificationState(status));
   try {
     const auto& currentTime = to_string(get_time_as_int());
@@ -378,4 +388,18 @@ Json::Value RemoteStorageDB::QueryPendingTxns(
   }
 
   return _json;
+}
+
+void RemoteStorageDB::ClearHashMapForUpdates() {
+  lock_guard<mutex> g(m_mutexHashMapUpdateTxn);
+  m_hashMapUpdateTxn.clear();
+}
+
+void RemoteStorageDB::ExecuteWriteDetached() {
+  auto func_detached = [this]() -> void {
+    if (!ExecuteWrite()) {
+      LOG_GENERAL(INFO, "Execute Write failed");
+    }
+  };
+  DetachedFunction(1, func_detached);
 }
