@@ -83,6 +83,8 @@ void RemoteStorageDB::Init(bool reset) {
              REMOTESTORAGE_DB_TLS_FILE;
     }
 
+    uri += "&socketTimeoutMS=" + to_string(REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS);
+
     mongocxx::uri URI(uri);
     if (URI.tls()) {
       LOG_GENERAL(INFO, "Connecting using TLS");
@@ -90,6 +92,10 @@ void RemoteStorageDB::Init(bool reset) {
     if (URI.server_selection_timeout_ms()) {
       LOG_GENERAL(INFO, "ServerSelectionTimeoutInMS: "
                             << URI.server_selection_timeout_ms().value());
+    }
+    if (URI.socket_timeout_ms()) {
+      LOG_GENERAL(INFO,
+                  "SockeTimeoutInMS: " << URI.socket_timeout_ms().value());
     }
     m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(move(URI));
     mongocxx::options::bulk_write bulk_opts;
