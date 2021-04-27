@@ -186,6 +186,10 @@ class Node : public Executable {
   std::mutex m_mutexSoftConfirmedTxns;
   std::unordered_map<TxnHash, TransactionWithReceipt> m_softConfirmedTxns;
 
+  // pending transactions
+  std::mutex m_mutexPendingTxnListsThisEpoch;
+  std::set<bytes> m_pendingTxnListsThisEpoch;
+
   // pair of proposal id and vote value and vote duration in epoch
   std::mutex m_mutexGovProposal;
   GovProposalInfo m_govProposalInfo;
@@ -221,7 +225,7 @@ class Node : public Executable {
   void CommitForwardedTransactions(const MBnForwardedTxnEntry& entry);
 
   bool AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
-                     uint32_t shardId);
+                     uint32_t shardId, const bytes& txnListHash);
 
   bool RemoveTxRootHashFromUnavailableMicroBlock(
       const MBnForwardedTxnEntry& entry);

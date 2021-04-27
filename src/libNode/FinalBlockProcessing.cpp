@@ -1472,7 +1472,7 @@ bool Node::ProcessMBnForwardTransaction(
 }
 
 bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
-                         uint32_t shardId) {
+                         uint32_t shardId, const bytes& txnListHash) {
   uint size;
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
@@ -1493,6 +1493,14 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
     if (!Lookup::VerifySenderNode(*m_mediator.m_DSCommittee, pubkey)) {
       LOG_GENERAL(WARNING, "Could not find pubkey in ds committee");
+      return false;
+    }
+  }
+
+  {
+    lock_guard<mutex> g(m_mutexPendingTxnListsThisEpoch);
+    if (!m_pendingTxnListsThisEpoch.insert(txnListHash).second) {
+      LOG_GENERAL(WARNING, "Dropping duplicate PENDINGTXN message");
       return false;
     }
   }
@@ -1566,9 +1574,10 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   unordered_map<TxnHash, TxnStatus> hashCodeMap;
   uint32_t shardId;
   PubKey pubkey;
+  bytes txnListHash;
 
   if (!Messenger::GetNodePendingTxn(message, cur_offset, epochNum, hashCodeMap,
-                                    shardId, pubkey)) {
+                                    shardId, pubkey, txnListHash)) {
     LOG_GENERAL(WARNING, "Failed to set GetNodePendingTxn");
     return false;
   }
@@ -1580,10 +1589,11 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
                 "PENDINGTXN sent of an two epoches older epoch " << epochNum);
     return false;
   }
-  LOG_GENERAL(INFO, "Received message for epoch " << epochNum << " and shard "
-                                                  << shardId);
 
-  AddPendingTxn(hashCodeMap, pubkey, shardId);
+  LOG_GENERAL(INFO, "Received PENDINGTXN for epoch "
+                        << epochNum << " and shard " << shardId);
+
+  AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
 
   return true;
 }
