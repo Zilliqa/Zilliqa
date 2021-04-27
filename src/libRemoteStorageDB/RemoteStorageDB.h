@@ -35,6 +35,29 @@ enum class ModificationState {
   CONFIRMED_OR_DROPPED = 2
 };
 
+struct PendingTxnStatus {
+  std::string m_txnhash;
+  TxnStatus m_status;
+  uint64_t m_epoch;
+
+  PendingTxnStatus(const std::string& txnhash, const TxnStatus& status,
+                   const uint64_t& epoch)
+      : m_txnhash(txnhash), m_status(status), m_epoch(epoch) {}
+
+  bool operator==(const PendingTxnStatus& pts) const {
+    return ((pts.m_txnhash == m_txnhash) && (pts.m_status == m_status) &&
+            (pts.m_epoch == m_epoch));
+  }
+};
+
+struct PendingTxnStatusHash {
+  std::size_t operator()(const PendingTxnStatus& pts) const {
+    return std::hash<std::string>()(pts.m_txnhash) ^
+           std::hash<std::uint8_t>()(static_cast<uint8_t>(pts.m_status)) ^
+           std::hash<std::uint64_t>()(pts.m_epoch);
+  }
+};
+
 class RemoteStorageDB : public Singleton<RemoteStorageDB> {
   std::unique_ptr<mongocxx::pool> m_pool;
   std::unique_ptr<mongocxx::instance> m_inst;
@@ -44,6 +67,8 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
   const std::string m_txnCollectionName;
   std::unique_ptr<mongocxx::bulk_write> m_bulkWrite;
   std::mutex m_mutexBulkWrite;
+  std::mutex m_mutexHashMapUpdateTxn;
+  std::unordered_set<PendingTxnStatus, PendingTxnStatusHash> m_hashMapUpdateTxn;
 
  public:
   RemoteStorageDB(std::string txnCollectionName = "TransactionStatus")
@@ -63,7 +88,9 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
                                const unsigned int txEpochLastInclusive);
   ModificationState GetModificationState(const TxnStatus status) const;
   bool ExecuteWrite();
+  void ExecuteWriteDetached();
   bool IsInitialized() const;
+  void ClearHashMapForUpdates();
 
   static RemoteStorageDB& GetInstance() {
     static RemoteStorageDB rsDB;
