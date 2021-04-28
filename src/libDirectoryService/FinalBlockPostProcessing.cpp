@@ -336,7 +336,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         };
         DetachedFunction(1, func1);
 
-        CommitMBSubmissionMsgBuffer();
+        auto func2 = [this]() mutable -> void {
+          std::this_thread::sleep_for(chrono::milliseconds(10));
+          CommitMBSubmissionMsgBuffer();
+        };
+        DetachedFunction(1, func2);
 
         std::unique_lock<std::mutex> cv_lk(
             m_MutexScheduleDSMicroBlockConsensus);
