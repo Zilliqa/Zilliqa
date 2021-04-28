@@ -30,6 +30,7 @@ using namespace std;
 
 std::atomic<bool> Mediator::m_disableTxns(false);
 std::atomic<bool> Mediator::m_disableGetSmartContractState(false);
+std::atomic<bool> Mediator::m_disableGetPendingTxns(true);
 
 Mediator::Mediator(const PairOfKey& key, const Peer& peer)
     : m_selfKey(key),
