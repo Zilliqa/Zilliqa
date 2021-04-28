@@ -687,6 +687,10 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
       }
       // Clear the vc blocks store
       m_vcBlockStore.clear();
+    } else if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP &&
+               LOOKUP_NODE_MODE) {
+      RemoteStorageDB::GetInstance().ClearHashMapForUpdates();
+      // Clear Hash map for duplicate updates
     }
     return true;
   }
@@ -1213,7 +1217,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     }
   }
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-    RemoteStorageDB::GetInstance().ExecuteWrite();
+    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
@@ -1245,7 +1249,7 @@ void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     }
   }
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-    RemoteStorageDB::GetInstance().ExecuteWrite();
+    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
   }
 }
 
@@ -1529,7 +1533,7 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
   }
 
   if (!ARCHIVAL_LOOKUP && REMOTESTORAGE_DB_ENABLE) {
-    RemoteStorageDB::GetInstance().ExecuteWrite();
+    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
   }
   return true;
 }

@@ -547,7 +547,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   if (REMOTESTORAGE_DB_ENABLE && updateRemoteStorageDBForGenTxns &&
       hasTransactions) {
-    RemoteStorageDB::GetInstance().ExecuteWrite();
+    RemoteStorageDB::GetInstance().ExecuteWriteDetached();
   }
 
   return true;
@@ -5519,7 +5519,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
       AddToTxnShardMap(txn, shard_size);
     }
     if (REMOTESTORAGE_DB_ENABLE) {
-      RemoteStorageDB::GetInstance().ExecuteWrite();
+      RemoteStorageDB::GetInstance().ExecuteWriteDetached();
     }
   } else {
     for (const auto& txn : txnsShard) {
