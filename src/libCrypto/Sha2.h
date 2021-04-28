@@ -92,6 +92,11 @@ class SHA2 {
     SHA256_Update(&m_context, input.data() + offset, size);
   }
 
+  /// Hash update function.
+  void Update(const uint8_t* input, unsigned int size) {
+    SHA256_Update(&m_context, input, size);
+  }
+
   /// Resets the algorithm.
   void Reset() { SHA256_Init(&m_context); }
 

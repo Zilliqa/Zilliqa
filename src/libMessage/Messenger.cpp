@@ -4835,12 +4835,20 @@ bool Messenger::SetNodePendingTxn(
   result.mutable_data()->set_epochnumber(epochnum);
   result.mutable_data()->set_shardid(shardId);
 
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+
   for (const auto& hashCodePair : hashCodeMap) {
     auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
     protoHashCodePair->set_txnhash(hashCodePair.first.data(),
                                    hashCodePair.first.size);
     protoHashCodePair->set_code(hashCodePair.second);
+
+    sha2.Update(hashCodePair.first.data(), hashCodePair.first.size);
   }
+
+  const bytes& txnlisthash = sha2.Finalize();
+  result.mutable_data()->set_txnlisthash(txnlisthash.data(),
+                                         txnlisthash.size());
 
   if (!result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "NodePendingTxn.Data initialization failed");
@@ -4869,7 +4877,7 @@ bool Messenger::SetNodePendingTxn(
 bool Messenger::GetNodePendingTxn(
     const bytes& src, const unsigned offset, uint64_t& epochnum,
     unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
-    PubKey& pubKey) {
+    PubKey& pubKey, bytes& txnListHash) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4899,6 +4907,8 @@ bool Messenger::GetNodePendingTxn(
     return false;
   }
 
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+
   for (const auto& codeHashPair : result.data().hashcodepair()) {
     TxnHash txhash;
     unsigned int size = min((unsigned int)codeHashPair.txnhash().size(),
@@ -4906,7 +4916,11 @@ bool Messenger::GetNodePendingTxn(
     copy(codeHashPair.txnhash().begin(), codeHashPair.txnhash().begin() + size,
          txhash.asArray().begin());
     hashCodeMap.emplace(txhash, static_cast<TxnStatus>(codeHashPair.code()));
+
+    sha2.Update(txhash.data(), txhash.size);
   }
+
+  txnListHash = sha2.Finalize();
 
   epochnum = result.data().epochnumber();
   shardId = result.data().shardid();

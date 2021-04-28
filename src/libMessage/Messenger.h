@@ -408,7 +408,7 @@ class Messenger {
   static bool GetNodePendingTxn(
       const bytes& src, const unsigned offset, uint64_t& epochnum,
       std::unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
-      PubKey& pubKey);
+      PubKey& pubKey, bytes& txnListHash);
 
   static bool SetNodePendingTxn(
       bytes& dst, const unsigned offset, const uint64_t& epochnum,
