@@ -32,6 +32,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPersistence/ContractStorage2.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -96,7 +97,6 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     LOG_GENERAL(WARNING, "Failed to put statedelta in persistence");
     return false;
   }
-
   return true;
 }
 
@@ -217,6 +217,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       }
     };
     DetachedFunction(1, writeStateToDisk);
+
+    // Clear STL memory cache
+    DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
