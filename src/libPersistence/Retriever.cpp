@@ -25,6 +25,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/FileSystem.h"
 
@@ -171,11 +172,14 @@ bool Retriever::RetrieveTxBlocks() {
               }
             }
           }
+          // Clear STL memory cache
+          if (LOOKUP_NODE_MODE) {
+            DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
+          }
           // commit the state to disk
           if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
             LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
             return false;
-            ;
           }
           // clear the stateDelta db
           if (!BlockStorage::GetBlockStorage().ResetDB(
