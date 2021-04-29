@@ -78,6 +78,16 @@ ReadVerifierExclusionListFromConstantsFile() {
   return result;
 }
 
+const vector<string> ReadDisambiguateExclusionListFromConstantsFile() {
+  auto pt = PTree::GetInstance();
+  vector<string> result;
+  for (auto& entry :
+       pt.get_child("node.smart_contract.disambiguate_exclusion_list")) {
+    result.emplace_back(entry.second.get<string>("CONTRACT_ADDRESS"));
+  }
+  return result;
+}
+
 bool ISOLATED_SERVER = false;
 
 bool SCILLA_PPLIT_FLAG = true;
@@ -574,6 +584,8 @@ const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{
     ReadConstantNumeric("SCILLA_SERVER_PENDING_IN_MS", "node.smart_contract.")};
+const vector<string> DISAMBIGUATE_EXCLUSION_LIST{
+    ReadDisambiguateExclusionListFromConstantsFile()};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{

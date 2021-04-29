@@ -648,8 +648,9 @@ bool AccountStore::MigrateContractStates(
 
   for (const auto& i : m_state) {
     Address address(i.first);
+    const string strAddress = address.hex();
 
-    LOG_GENERAL(INFO, "Address: " << address.hex());
+    LOG_GENERAL(INFO, "Address: " << strAddress);
 
     Account account;
     if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
@@ -660,12 +661,12 @@ bool AccountStore::MigrateContractStates(
     if (account.isContract()) {
       account.SetAddress(address);
       if (!contract_address_output_filename.empty()) {
-        os_1 << address.hex() << endl;
+        os_1 << strAddress << endl;
       }
     } else {
       this->AddAccount(address, account, true);
       if (!normal_address_output_filename.empty()) {
-        os_2 << address.hex() << endl;
+        os_2 << strAddress << endl;
       }
       continue;
     }
@@ -747,12 +748,18 @@ bool AccountStore::MigrateContractStates(
           .FetchStateJsonForContract(stateBeforeMigration, address, "", {},
                                      true);
 
-      uint64_t gasRem = UINT64_MAX;
-      InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
-                        std::numeric_limits<uint128_t>::max(), ret_checker,
-                        receipt);
+      if (find(DISAMBIGUATE_EXCLUSION_LIST.begin(),
+               DISAMBIGUATE_EXCLUSION_LIST.end(),
+               strAddress) != DISAMBIGUATE_EXCLUSION_LIST.end()) {
+        LOG_GENERAL(INFO, "Disambiguate skipped: " << strAddress);
+      } else {
+        uint64_t gasRem = UINT64_MAX;
+        InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
+                          std::numeric_limits<uint128_t>::max(), ret_checker,
+                          receipt);
 
-      LOG_GENERAL(INFO, "Disambiguate tool output: " << disPrint);
+        LOG_GENERAL(INFO, "Disambiguate tool output: " << disPrint);
+      }
 
 #if MIGRATE_INIT_JSON
 
@@ -801,7 +808,7 @@ bool AccountStore::MigrateContractStates(
         numContractNullFixedStates++;
       } else if (!compareStateJSONs(stateBeforeMigration,
                                     stateAfterMigration)) {
-        LOG_GENERAL(INFO, "States changed for " << address.hex());
+        LOG_GENERAL(INFO, "States changed for " << strAddress);
         numContractChangedStates++;
       } else {
         numContractUnchangedStates++;
@@ -816,7 +823,7 @@ bool AccountStore::MigrateContractStates(
                      bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
         if (fragments.size() < 3) {
           LOG_GENERAL(WARNING,
-                      "Error fetching (field_name, type): " << address.hex());
+                      "Error fetching (field_name, type): " << strAddress);
         } else {
           LOG_GENERAL(
               INFO, "field=" << fragments[2] << " type="
