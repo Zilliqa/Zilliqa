@@ -2351,23 +2351,36 @@ void Node::CleanCreatedTransaction() {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns.clear();
     t_createdTxns.clear();
+    LOG_GENERAL(INFO, "Cleaned created txns!");
   }
-  {
-    std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    m_txnPacketBuffer.clear();
-  }
-  {
-    std::lock_guard<mutex> g(m_mutexTxnPktInProcess);
-    m_txnPktInProcess.clear();
+  // Avoid cleaning when buffer already have packets waiting to be picked up for
+  // distribution. Thus avoid deadlock.
+  if (m_txnPacketThreadOnHold == 0) {
+    {
+      // extra safety
+      std::unique_lock<std::mutex> lock(m_mutexTxnPacketBuffer,
+                                        std::try_to_lock);
+      if (lock.owns_lock()) {
+        m_txnPacketBuffer.clear();
+        LOG_GENERAL(INFO, "Cleaned txn pkt buffer!");
+      }
+    }
+    {
+      std::lock_guard<mutex> g(m_mutexTxnPktInProcess);
+      m_txnPktInProcess.clear();
+      LOG_GENERAL(INFO, "Cleaned txnPktInProcess buffer!");
+    }
   }
   {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     m_processedTransactions.clear();
     t_processedTransactions.clear();
+    LOG_GENERAL(INFO, "Cleaned processed txns!");
   }
   {
     std::unique_lock<shared_timed_mutex> lock(m_unconfirmedTxnsMutex);
     m_unconfirmedTxns.clear();
+    LOG_GENERAL(INFO, "Cleaned unconfirmed txns!");
   }
   m_TxnOrder.clear();
   m_gasUsedTotal = 0;
