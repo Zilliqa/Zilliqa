@@ -349,7 +349,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
   }
 
   // CommitTxnPacketBuffer();
-
+  m_txn_distribute_window_open = true;
   if (fbWaitState) {
     SetState(WAITING_FINALBLOCK);
     CleanMicroblockConsensusBuffer();
