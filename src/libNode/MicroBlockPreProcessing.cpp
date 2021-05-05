@@ -1132,12 +1132,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
             "I am shard leader. Creating microblock for epoch "
                 << m_mediator.m_currentEpochNum);
 
-  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      !m_mediator.GetIsVacuousEpoch()) {
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
     std::this_thread::sleep_for(chrono::milliseconds(
         TX_DISTRIBUTE_TIME_IN_MS + SHARD_ANNOUNCEMENT_DELAY_IN_MS));
-    while (m_txnPacketThreadOnHold > 0) {
-      std::this_thread::sleep_for(chrono::milliseconds(100));
+    if (!m_mediator.GetIsVacuousEpoch()) {
+      while (m_txnPacketThreadOnHold > 0) {
+        std::this_thread::sleep_for(chrono::milliseconds(100));
+      }
     }
   }
 
@@ -1277,7 +1278,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   }
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
-      !m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
             TXN_SHARD_TARGET_DIFFICULTY &&
         m_mediator.m_dsBlockChain.GetLastBlock()
@@ -1286,8 +1286,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-    while (m_txnPacketThreadOnHold > 0) {
-      std::this_thread::sleep_for(chrono::milliseconds(100));
+    if (!m_mediator.GetIsVacuousEpoch()) {
+      while (m_txnPacketThreadOnHold > 0) {
+        std::this_thread::sleep_for(chrono::milliseconds(100));
+      }
     }
   }
 
