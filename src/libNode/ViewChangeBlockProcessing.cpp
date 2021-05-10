@@ -239,8 +239,11 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
       make_pair(vcblock.GetHeader().GetCandidateLeaderPubKey(),
                 vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
 
-  auto iterDSLeaderID = find(m_mediator.m_DSCommittee->begin(),
-                             m_mediator.m_DSCommittee->end(), dsLeaderInfo);
+  auto iterDSLeaderID = find_if(m_mediator.m_DSCommittee->begin(),
+                                m_mediator.m_DSCommittee->end(),
+                                [dsLeaderInfo](const PairOfNode& p) {
+                                  return p.first == dsLeaderInfo.first;
+                                });
 
   if (iterDSLeaderID == m_mediator.m_DSCommittee->end()) {
     LOG_GENERAL(WARNING, "Cannot find new DS leader in the ds committee "
