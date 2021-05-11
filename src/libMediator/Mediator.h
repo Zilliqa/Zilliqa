@@ -103,6 +103,9 @@ class Mediator {
   /// Prevent use of GetSmartContractState API
   static std::atomic<bool> m_disableGetSmartContractState;
 
+  /// Prevent use of GetPendingTxns API
+  static std::atomic<bool> m_disableGetPendingTxns;
+
   /// ValidateDB state, used by StatusServer
   std::atomic<ValidateState> m_validateState;
 
