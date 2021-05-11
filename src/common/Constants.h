@@ -181,6 +181,7 @@ extern const std::string REMOTESTORAGE_DB_HOST;
 extern const std::string REMOTESTORAGE_DB_NAME;
 extern const unsigned int REMOTESTORAGE_DB_PORT;
 extern const unsigned int REMOTESTORAGE_DB_SERVER_SELECTION_TIMEOUT_MS;
+extern const unsigned int REMOTESTORAGE_DB_SOCKET_TIMEOUT_MS;
 extern const std::string REMOTESTORAGE_DB_TLS_FILE;
 extern bool REMOTESTORAGE_DB_ENABLE;
 

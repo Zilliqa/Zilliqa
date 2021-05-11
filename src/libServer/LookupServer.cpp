@@ -471,6 +471,13 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                 CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size()))) +
             ")");
+  } else if (type == Transaction::ContractType::NON_CONTRACT &&
+             tx.GetGasLimit() < NORMAL_TRAN_GAS) {
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "Gas limit (" + to_string(tx.GetGasLimit()) +
+            ") lower than minimum for payment transaction (" +
+            to_string(NORMAL_TRAN_GAS) + ")");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
