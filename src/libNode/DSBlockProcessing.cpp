@@ -766,6 +766,12 @@ bool Node::ProcessVCDSBlocksMessage(
       m_mediator.m_lookup->cv_vcDsBlockProcessed.notify_all();
     }
   }
+
+  if (LOOKUP_NODE_MODE) {
+    lock_guard<mutex> g(m_mutexPendingTxnListsThisEpoch);
+    m_pendingTxnListsThisEpoch.clear();
+  }
+
   if (LOOKUP_NODE_MODE) {
     if (!BlockStorage::GetBlockStorage().PutMinerInfoDSComm(
             dsblock.GetHeader().GetBlockNum(), minerInfoDSComm)) {

@@ -617,6 +617,7 @@ message NodePendingTxn
         uint64 epochnumber         = 2;
         uint32 shardid             = 3;
         ByteArray pubkey           = 4;
+        bytes txnlisthash          = 5;
     }
     Data data             = 1;
     ByteArray signature   = 2;
