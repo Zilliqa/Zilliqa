@@ -1461,7 +1461,7 @@ bool Node::ProcessMBnForwardTransaction(
     // soft confirmation
     SoftConfirmForwardedTransactions(entry);
     // invoke txn distribution
-    if (!m_mediator.GetIsVacuousEpoch() &&
+    if (!ARCHIVAL_LOOKUP && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
              NUM_FINAL_BLOCK_PER_POW !=
          0)) {
