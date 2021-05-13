@@ -270,6 +270,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     }
   } else {
     // If failed to do PoW, try to rejoin in next DS block
+    LOG_GENERAL(INFO, "Failed to do PoW, will try to rejoin in next DS block!");
+    m_mediator.m_lookup->m_startedPoW = false;
     m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
     StartSynchronization();
     return false;
