@@ -3918,10 +3918,13 @@ bool Lookup::InitMining() {
   uint64_t lastTxBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  unique_lock<mutex> lk(m_mutexCVJoined);
-  cv_waitJoined.wait(lk);
-
-  m_startedPoW = false;
+  if (m_startedPoW) {
+    unique_lock<mutex> lk(m_mutexCVJoined);
+    LOG_GENERAL(INFO, "Waiting on pow to finish..");
+    cv_waitJoined.wait(lk);
+    LOG_GENERAL(INFO, "Pow is finished!");
+    m_startedPoW = false;
+  }
 
   // It is new DS epoch now, clear the seed node from black list
   RemoveSeedNodesFromBlackList();
@@ -3937,8 +3940,10 @@ bool Lookup::InitMining() {
   } else {
     Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
         *m_mediator.m_DSCommittee);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I have successfully join the network");
+    if (GetSyncType() == SyncType::NO_SYNC) {
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "I have successfully join the network");
+    }
   }
 
   return true;
