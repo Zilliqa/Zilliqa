@@ -179,8 +179,6 @@ def main():
     if 'frequency' in args:
         frequency = int(args['frequency'])
 
-    isBackup = False
-
     while True:
         if os.path.isfile(os.path.dirname(os.path.abspath(__file__)) + "/constants.xml"):
             break
@@ -200,14 +198,10 @@ def main():
             curr_blockNum = GetCurrentTxBlockNum()
             print("Current blockNum = %s" % curr_blockNum)
 
-            if(curr_blockNum % num_final_block_per_pow == 0):
-                isBackup = False
-
-            if((curr_blockNum % num_final_block_per_pow) == target_backup_final_block) and isBackup == False:
+            if((curr_blockNum % num_final_block_per_pow) == target_backup_final_block):
                 logging.info("Starting to back-up persistence at blockNum : %s" % curr_blockNum)
                 backUp(curr_blockNum)
                 logging.info("Backing up persistence successfully.")
-                isBackup = True
 
             time.sleep(frequency)
         except Exception as e:
