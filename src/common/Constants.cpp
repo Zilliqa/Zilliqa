@@ -239,10 +239,14 @@ const unsigned int GETSHARD_TIMEOUT_IN_SECONDS{
     ReadConstantNumeric("GETSHARD_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int GETSTATEDELTAS_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
     "GETSTATEDELTAS_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int GETCOSIGREWARDS_TIMEOUT_IN_SECONDS{ReadConstantNumeric(
+    "GETCOSIGREWARDS_TIMEOUT_IN_SECONDS", "node.epoch_timing.")};
 const unsigned int RETRY_REJOINING_TIMEOUT{
     ReadConstantNumeric("RETRY_REJOINING_TIMEOUT", "node.epoch_timing.")};
 const unsigned int RETRY_GETSTATEDELTAS_COUNT{
     ReadConstantNumeric("RETRY_GETSTATEDELTAS_COUNT", "node.epoch_timing.")};
+const unsigned int RETRY_COSIGREWARDS_COUNT{
+    ReadConstantNumeric("RETRY_COSIGREWARDS_COUNT", "node.epoch_timing.")};
 const unsigned int MAX_FETCHMISSINGMBS_NUM{
     ReadConstantNumeric("MAX_FETCHMISSINGMBS_NUM", "node.epoch_timing.")};
 const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS{ReadConstantNumeric(

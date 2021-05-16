@@ -535,6 +535,7 @@ uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation) {
 }
 
 void DirectoryService::ClearReputationOfNodeWithoutPoW() {
+  lock_guard<mutex> g(m_mutexMapNodeReputation);
   for (auto& kv : m_mapNodeReputation) {
     if (m_allPoWs.find(kv.first) == m_allPoWs.end()) {
       kv.second = 0;
