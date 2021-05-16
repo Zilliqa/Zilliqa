@@ -130,7 +130,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ####################### End of CUDA Installation ###############################
 
-ARG ZILLIQA_VERSION=v8.0.2
+ARG ZILLIQA_VERSION=v8.0.3
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
