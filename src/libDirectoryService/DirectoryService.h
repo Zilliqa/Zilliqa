@@ -522,6 +522,7 @@ class DirectoryService : public Executable {
   std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
 
   // Proof of Reputation(PoR) variables.
+  std::mutex mutable m_mutexMapNodeReputation;
   std::map<PubKey, uint16_t> m_mapNodeReputation;
 
   /// The current internal state of this DirectoryService instance.
