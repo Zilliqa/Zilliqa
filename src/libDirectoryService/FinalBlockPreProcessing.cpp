@@ -685,15 +685,15 @@ bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << DSMBMISSINGTXN);
       return m_mediator.m_node->OnNodeMissingTxns(errorMsg, offset, from);
     }
     case FINALCONSENSUSERRORTYPE::CHECKFINALBLOCK: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << CHECKFINALBLOCK);
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSFBMISSINGMB: {
-      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      LOG_GENERAL(INFO, "ErrorType: " << DSFBMISSINGMB);
       return OnNodeMissingMicroBlocks(errorMsg, offset, from);
     }
     default:

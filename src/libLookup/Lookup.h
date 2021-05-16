@@ -135,6 +135,10 @@ class Lookup : public Executable {
   std::mutex m_mutexSetStateDeltasFromSeed;
   std::condition_variable cv_setStateDeltasFromSeed;
 
+  // Get cosigrewards from seed
+  std::mutex m_mutexSetCosigRewardsFromSeed;
+  std::condition_variable cv_setCosigRewardsFromSeed;
+
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 

@@ -730,12 +730,15 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 
   // Now we can update the sharding structure and transaction sharing
   // assignments
-  if (m_mode == BACKUP_DS) {
-    m_shards = move(m_tempShards);
-    m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
-    m_mapNodeReputation = move(m_tempMapNodeReputation);
-  } else if (m_mode == PRIMARY_DS) {
-    RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
+  {
+    lock_guard<mutex> g(m_mutexMapNodeReputation);
+    if (m_mode == BACKUP_DS) {
+      m_shards = move(m_tempShards);
+      m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
+      m_mapNodeReputation = move(m_tempMapNodeReputation);
+    } else if (m_mode == PRIMARY_DS) {
+      RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
+    }
   }
 
   m_mediator.m_node->m_myshardId = m_shards.size();
