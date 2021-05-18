@@ -284,6 +284,7 @@
         <LOG_SC>false</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>
+        <disambiguate_exclusion_list></disambiguate_exclusion_list>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>
