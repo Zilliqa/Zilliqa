@@ -243,9 +243,15 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  // Check timestamp
-  if (!VerifyTimestamp(microBlock.GetTimestamp(),
-                       CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT)) {
+  // Check timestamp with extra time added for first txepoch for tx distribution
+  // in shard
+  auto extra_time =
+      (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+          ? 0
+          : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+  if (!VerifyTimestamp(
+          microBlock.GetTimestamp(),
+          CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT + extra_time)) {
     return false;
   }
 

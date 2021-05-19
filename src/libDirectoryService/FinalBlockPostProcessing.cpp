@@ -344,8 +344,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
         std::unique_lock<std::mutex> cv_lk(
             m_MutexScheduleDSMicroBlockConsensus);
+        // Check timestamp with extra time added for first txepoch for tx
+        // distribution in shard
+        auto extra_time =
+            (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+                ? 0
+                : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
         if (cv_scheduleDSMicroBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) ==
+                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
             std::cv_status::timeout) {
           LOG_GENERAL(WARNING,
                       "Timeout: Didn't receive all Microblock. Proceeds "

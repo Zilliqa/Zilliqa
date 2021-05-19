@@ -1133,8 +1133,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                 << m_mediator.m_currentEpochNum);
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-    std::this_thread::sleep_for(chrono::milliseconds(
-        TX_DISTRIBUTE_TIME_IN_MS + SHARD_ANNOUNCEMENT_DELAY_IN_MS));
+    // extra time added for first txepoch for tx distribution
+    auto extra_wait_time =
+        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            ? 0
+            : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+    std::this_thread::sleep_for(
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
+                             SHARD_ANNOUNCEMENT_DELAY_IN_MS));
     if (!m_mediator.GetIsVacuousEpoch()) {
       while (m_txnPacketThreadOnHold > 0) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
@@ -1285,7 +1291,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                 .GetDSDifficulty() >= TXN_DS_TARGET_DIFFICULTY) ||
        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
            TXN_DS_TARGET_NUM)) {
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    // extra time added for first txepoch for tx distribution
+    auto extra_wait_time =
+        (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            ? 0
+            : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+    std::this_thread::sleep_for(
+        chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time));
     if (!m_mediator.GetIsVacuousEpoch()) {
       while (m_txnPacketThreadOnHold > 0) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
