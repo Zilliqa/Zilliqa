@@ -717,12 +717,17 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     return false;
   }
 
-  // Check timestamp
-  if (!VerifyTimestamp(
-          txBlock.GetTimestamp(),
-          CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
-              (TX_DISTRIBUTE_TIME_IN_MS + DS_ANNOUNCEMENT_DELAY_IN_MS) /
-                  1000)) {
+  // Check timestamp with extra time added for first txepoch for tx
+  // distribution.
+  auto extra_time =
+      (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+          ? 0
+          : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+  if (!VerifyTimestamp(txBlock.GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
+                           (TX_DISTRIBUTE_TIME_IN_MS + extra_time +
+                            DS_ANNOUNCEMENT_DELAY_IN_MS) /
+                               1000)) {
     return false;
   }
 
