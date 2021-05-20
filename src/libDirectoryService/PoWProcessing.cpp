@@ -184,6 +184,13 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
+  uint64_t expectedBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  if (blockNumber != expectedBlockNum) {
+    LOG_CHECK_FAIL("BlockNumber", blockNumber, expectedBlockNum);
+    return false;
+  }
+
   if (from.GetIpAddress() != submitterPeer.GetIpAddress()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The sender ip adress " << from.GetPrintableIPAddress()
