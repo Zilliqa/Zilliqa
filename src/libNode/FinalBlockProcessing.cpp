@@ -132,6 +132,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
 
   bool foundMB = false;
+  bool foundMismatchedMB = false;
   // bool doRejoin = false;
 
   for (const auto& info : microBlockInfos) {
@@ -156,19 +157,21 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
       }
     } else {
       if (info.m_shardId == m_myshardId) {
+        foundMB = true;
         if (m_microblock == nullptr) {
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but microblock obj "
                       "not initiated");
+          foundMismatchedMB = true;
           // doRejoin = true;
         } else if (m_lastMicroBlockCoSig.first !=
                    m_mediator.m_currentEpochNum) {
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but Cosig not updated");
+          foundMismatchedMB = true;
           // doRejoin = true;
         } else if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
           // Update transaction processed
-          foundMB = true;
           UpdateProcessedTransactions();
           toSendTxnToLookup = true;
         } else {
@@ -187,10 +190,18 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
     }
   }
 
-  if (!foundMB && !LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "My MB not in FB");
-    // clear the transactions
-    CleanCreatedTransaction();
+  if (!LOOKUP_NODE_MODE) {
+    if (!foundMB) {
+      LOG_GENERAL(INFO, "No MB for my shard itself in FB!");
+    } else if (foundMismatchedMB) {
+      LOG_GENERAL(INFO,
+                  "Received shard MB in FB. But since I had failed MB "
+                  "Consensus, I will clear my txnpool!");
+      // clear the transactions
+      CleanCreatedTransaction();
+    } else {
+      LOG_GENERAL(INFO, "Found my MB in FB!");
+    }
   }
 
   if (/*doRejoin || */ m_doRejoinAtFinalBlock) {
@@ -1448,13 +1459,15 @@ bool Node::ProcessMBnForwardTransaction(
        m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC) ||
       (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP &&
        m_mediator.m_lookup->GetSyncType() == SyncType::LOOKUP_SYNC)) {
-    lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
-    m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
-        .push_back(entry);
-    LOG_GENERAL(INFO, "Buffered MB & TXN BODIES #"
-                          << entry.m_microBlock.GetHeader().GetEpochNum()
-                          << " shard "
-                          << entry.m_microBlock.GetHeader().GetShardId());
+    {
+      lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
+      m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
+          .push_back(entry);
+      LOG_GENERAL(INFO, "Buffered MB & TXN BODIES #"
+                            << entry.m_microBlock.GetHeader().GetEpochNum()
+                            << " shard "
+                            << entry.m_microBlock.GetHeader().GetShardId());
+    }
 
     // skip soft confirmation for DSMB
     if (isDSMB) {
