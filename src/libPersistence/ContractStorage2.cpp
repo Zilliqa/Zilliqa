@@ -698,6 +698,66 @@ void ContractStorage2::FetchStateDataForKey(map<string, bytes>& states,
   }
 }
 
+bool ContractStorage2::CheckIfKeyIsEmpty(const string& key, bool temp) {
+  std::map<std::string, bytes>::iterator p;
+  unordered_set<string> keys_to_be_deleted;
+
+  auto checkIfKeyIsToBeDeleted = [&](const string& key) mutable {
+    if (keys_to_be_deleted.find(key) != keys_to_be_deleted.end()) {
+      return true;
+    }
+    if (temp) {
+      if (t_indexToBeDeleted.find(key) != t_indexToBeDeleted.cend()) {
+        keys_to_be_deleted.insert(key);
+        return true;
+      }
+    }
+    if (m_indexToBeDeleted.find(key) != m_indexToBeDeleted.cend()) {
+      keys_to_be_deleted.insert(key);
+      return true;
+    }
+
+    return false;
+  };
+
+  if (temp) {
+    p = t_stateDataMap.lower_bound(key);
+    while (p != t_stateDataMap.end() &&
+           p->first.compare(0, key.size(), key) == 0) {
+      if (!checkIfKeyIsToBeDeleted(p->first)) {
+        return false;
+      }
+      ++p;
+    }
+  }
+
+  p = m_stateDataMap.lower_bound(key);
+  while (p != m_stateDataMap.end() &&
+         p->first.compare(0, key.size(), key) == 0) {
+    if (!checkIfKeyIsToBeDeleted(p->first)) {
+      return false;
+    }
+    ++p;
+  }
+
+  std::unique_ptr<leveldb::Iterator> it(
+      m_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions()));
+
+  it->Seek({key});
+  if (!it->Valid() || it->key().ToString().compare(0, key.size(), key) != 0) {
+    // no entry
+  } else {
+    for (; it->Valid() && it->key().ToString().compare(0, key.size(), key) == 0;
+         it->Next()) {
+      if (!checkIfKeyIsToBeDeleted(it->key().ToString())) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 void ContractStorage2::FetchStateDataForContract(map<string, bytes>& states,
                                                  const dev::h160& address,
                                                  const string& vname,
@@ -875,9 +935,7 @@ bool ContractStorage2::UpdateStateValue(const dev::h160& addr, const bytes& q,
     }
     DeleteByPrefix(key);
 
-    map<string, bytes> t_states;
-    FetchStateDataForKey(t_states, parent_key, true);
-    if (t_states.empty()) {
+    if (CheckIfKeyIsEmpty(parent_key, true)) {
       ProtoScillaVal empty_val;
       empty_val.mutable_mval()->mutable_m();
       bytes dst;
