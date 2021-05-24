@@ -654,7 +654,6 @@ void Node::WaitForNextTwoBlocksBeforeRejoin() {
     } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                  lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
              cv_status::timeout);
-
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldBlkCount + 1) {
       LOG_GENERAL(INFO, "Received next two txblocks. Ok to rejoin now!")
       break;

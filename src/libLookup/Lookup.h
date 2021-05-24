@@ -163,6 +163,7 @@ class Lookup : public Executable {
                         uint64_t& highBlockNum, bool partialRetrieve = false);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum);
+  void GetInitialBlocksAndShardingStructure();
 
  public:
   /// Constructor.
@@ -394,7 +395,7 @@ class Lookup : public Executable {
   bool ProcessSetTxBlockFromSeed(
       const bytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
+  bool CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   void PrepareForStartPow();
   bool GetDSInfo();
   bool ProcessSetStateDeltaFromSeed(
@@ -502,6 +503,10 @@ class Lookup : public Executable {
     m_stakingServer = std::move(stakingServer);
   }
 
+  void RejoinNetwork();
+
+  uint16_t m_rejoinNetworkAttempts{0};
+
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;
   std::condition_variable cv_offlineLookups;
@@ -524,6 +529,12 @@ class Lookup : public Executable {
   // Get cosigrewards from seed
   std::mutex m_mutexSetCosigRewardsFromSeed;
   std::condition_variable cv_setCosigRewardsFromSeed;
+
+  // Seed rejoin recovery
+  std::mutex m_mutexCvSetRejoinRecovery;
+  std::condition_variable cv_setRejoinRecovery;
+
+  std::atomic<bool> m_rejoinInProgress{false};
 
   bool InitMining();
 
