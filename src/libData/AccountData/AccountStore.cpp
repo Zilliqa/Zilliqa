@@ -43,6 +43,8 @@ AccountStore::AccountStore() {
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServerConnector =
         make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
+    m_scillaIPCServerConnector->SetWaitTime(
+        SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
     ScillaClient::GetInstance().Init();

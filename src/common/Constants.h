@@ -401,7 +401,7 @@ extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;
-// TODO: Remove FIELDS_MAP_DEPTH_INDICATOR after data migration
+extern const unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS;
 const std::string FIELDS_MAP_DEPTH_INDICATOR = "_fields_map_depth";
 const std::string MAP_DEPTH_INDICATOR = "_depth";
 const std::string SCILLA_VERSION_INDICATOR = "_version";
