@@ -91,7 +91,7 @@ class AccountStore
 
   /// Scilla IPC server related
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-  std::unique_ptr<jsonrpc::AbstractServerConnector> m_scillaIPCServerConnector;
+  std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
   AccountStore();
   ~AccountStore();
