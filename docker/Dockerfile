@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=zilliqa/scilla:v0.10.0
+ARG BASE=zilliqa/scilla:v0.10.1-alpha.0
 FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
@@ -72,7 +72,7 @@ RUN cmake --version \
     && rm cmake-3.19.3-Linux-x86_64.sh
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=v8.0.3
+ARG COMMIT_OR_TAG=v8.0.4-alpha.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
