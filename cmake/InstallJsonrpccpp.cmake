@@ -46,8 +46,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 
 ExternalProject_Add(jsonrpc-project
     PREFIX src/depends/jsonrpc
-    URL https://github.com/cinemast/libjson-rpc-cpp/archive/v1.2.0.tar.gz
-    URL_HASH SHA256=485556bd27bd546c025d9f9a2f53e89b4460bf820fd5de847ede2539f7440091
+    URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/v1.2.0-time-patch.tar.gz
+    URL_HASH SHA256=3e11ae1c42cbbf7d62f9a74f66b1f0c20fdad2f4b2398e3ab7c99182e912d147
     # On Windows it tries to install this dir. Create it to prevent failure.
     PATCH_COMMAND cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}

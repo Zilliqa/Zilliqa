@@ -43,6 +43,7 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 BOOST_AUTO_TEST_CASE(test_connection) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   ScillaIPCServer server(s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.StartListening();
@@ -56,6 +57,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -103,6 +105,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -184,6 +187,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -254,6 +258,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -476,6 +481,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -560,6 +566,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -623,6 +630,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -712,6 +720,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -797,6 +806,7 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
   INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -907,6 +917,7 @@ BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
 
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
+  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.StartListening();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");

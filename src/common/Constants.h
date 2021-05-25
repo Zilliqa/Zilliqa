@@ -402,6 +402,7 @@ extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;
+extern const unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS;
 // TODO: Remove disambiguate_exclusion_list after data migration
 extern const std::vector<std::string> DISAMBIGUATE_EXCLUSION_LIST;
 // TODO: Remove FIELDS_MAP_DEPTH_INDICATOR after data migration
