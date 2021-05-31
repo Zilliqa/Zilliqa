@@ -59,8 +59,10 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
     TransactionReceipt& receipt) {
+  bool call_already_finished = false;
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt]() mutable -> void {
+                &available_gas, &balance, &ret, &receipt,
+                &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
@@ -93,14 +95,18 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
         }
         break;
     }
-
+    call_already_finished = true;
     cv_callContract.notify_all();
   };
   DetachedFunction(1, func2);
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-    cv_callContract.wait(lk);
+    if (!call_already_finished) {
+      cv_callContract.wait(lk);
+    } else {
+      LOG_GENERAL(INFO, "Call functions already finished!");
+    }
   }
 
   if (m_txnProcessTimeout) {
