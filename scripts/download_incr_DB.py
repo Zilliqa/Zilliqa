@@ -108,11 +108,11 @@ def GetStateDeltaFromS3():
 	ExtractAllGzippedObjects()
 
 def RsyncBlockChainData():
-	bashCommand = "rsync --recursive --inplace blockchaindata_persistence persistence"
+	bashCommand = "rsync --recursive --inplace historical-data/ persistence"
 	logging.info("Command = " + bashCommand)	
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	logging.info("Copied local blockchain-data persistence to main persistence")
+	logging.info("Copied local historical-data persistence to main persistence!")
 
 def Diff(list1, list2):
 	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))
@@ -344,10 +344,11 @@ def run():
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 
 	if(Exclude_microBlocks == False and Exclude_txnBodies == False):
-		if not os.path.isdir(STORAGE_PATH + "/blockchaindata_persistence"):
+		if not os.path.isdir(STORAGE_PATH + "/historical-data"):
 			# download the static db
 			download_static_DB.start(STORAGE_PATH)
-		RsyncBlockChainData()
+		if os.path.isdir(STORAGE_PATH + "/historical-data"):
+			RsyncBlockChainData()
 	return True
 
 def start():
