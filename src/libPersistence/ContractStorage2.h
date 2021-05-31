@@ -172,6 +172,8 @@ class ContractStorage2 : public Singleton<ContractStorage2> {
                         unsigned int q_offset, const bytes& v,
                         unsigned int v_offset);
 
+  bool CheckIfKeyIsEmpty(const std::string& key, bool temp);
+
   void UpdateStateDatasAndToDeletes(
       const dev::h160& addr, const std::map<std::string, bytes>& t_states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
