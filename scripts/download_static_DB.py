@@ -236,10 +236,10 @@ def start(new_storage_path):
 	global STORAGE_PATH
 	if new_storage_path:
 		if os.path.isabs(new_storage_path):
-			STORAGE_PATH = new_storage_path + "/persistence"
+			STORAGE_PATH = new_storage_path + "/blockchaindata_persistence"
 		else:
 			# Get absolute path w.r.t to script
-			STORAGE_PATH = os.path.join(BASE_PATH, new_storage_path) + "/persistence"
+			STORAGE_PATH = os.path.join(BASE_PATH, new_storage_path) + "/blockchaindata_persistence"
 	# Create persistence folder if it does not exist
 	if not os.path.exists(STORAGE_PATH):
 		os.makedirs(STORAGE_PATH)
