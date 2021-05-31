@@ -992,6 +992,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
   } else {
     LoadShardingStructure(true);
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
     m_mediator.m_ds->ProcessShardingStructure(
         m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
         m_mediator.m_ds->m_mapNodeReputation);

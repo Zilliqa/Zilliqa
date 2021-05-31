@@ -654,11 +654,14 @@ bool Node::ProcessVCDSBlocksMessage(
                     << m_mediator.m_ds->GetConsensusMyID());
 
       // Process sharding structure as a DS node
-      if (!m_mediator.m_ds->ProcessShardingStructure(
-              m_mediator.m_ds->m_shards,
-              m_mediator.m_ds->m_publicKeyToshardIdMap,
-              m_mediator.m_ds->m_mapNodeReputation)) {
-        return false;
+      {
+        lock_guard<mutex> g(m_mediator.m_ds->m_mutexMapNodeReputation);
+        if (!m_mediator.m_ds->ProcessShardingStructure(
+                m_mediator.m_ds->m_shards,
+                m_mediator.m_ds->m_publicKeyToshardIdMap,
+                m_mediator.m_ds->m_mapNodeReputation)) {
+          return false;
+        }
       }
 
       {

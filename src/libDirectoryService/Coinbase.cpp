@@ -117,13 +117,17 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
 
   if (shard_id == CoinbaseReward::FINALBLOCK_REWARD) {
     // DS
-    lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
+    lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees,
+         m_mutexMapNodeReputation);
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
     lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
+    lock_guard<mutex> g2(m_mutexMapNodeReputation, adopt_lock);
     return SaveCoinbaseCore(b1, b2, *m_mediator.m_DSCommittee, shard_id,
                             epochNum);
   } else {
-    lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+    lock(m_mutexCoinbaseRewardees, m_mutexMapNodeReputation);
+    lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
+    lock_guard<mutex> g2(m_mutexMapNodeReputation, adopt_lock);
     return SaveCoinbaseCore(b1, b2, m_shards.at(shard_id), shard_id, epochNum);
   }
 }
