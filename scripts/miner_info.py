@@ -103,6 +103,7 @@ def make_options_dictionary(options_dict):
 	options_dict["dsepoch"] = "GetCurrentDSEpoch"
 	options_dict["type"] = "GetNodeType"
 	options_dict["ds"] = "GetDSCommittee"
+	options_dict["health"] = "healthcheck"
 	options_dict["state"] = "GetNodeState"
 	options_dict["checktxn"] = "IsTxnInMemPool"
 	options_dict["whitelist_add"] = "AddToBlacklistExclusion"

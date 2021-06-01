@@ -86,6 +86,11 @@ class StatusServer : public Server,
     (void)request;
     response = this->GetDSCommittee();
   }
+  inline virtual void GetHealthI(const Json::Value& request,
+                                 Json::Value& response) {
+    (void)request;
+    response = this->GetHealth();
+  }
   inline virtual void ToggleSendSCCallsToDSI(const Json::Value& request,
                                              Json::Value& response) {
     (void)request;
@@ -183,6 +188,7 @@ class StatusServer : public Server,
   std::string GetLatestEpochStatesUpdated();
   std::string GetEpochFin();
   Json::Value GetDSCommittee();
+  std::string GetHealth();
   bool ToggleSendSCCallsToDS();
   bool GetSendSCCallsToDS();
   bool ToggleSendAllToDS();

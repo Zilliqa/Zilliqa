@@ -100,6 +100,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("GetDSCommittee", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::GetDSCommitteeI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("healthcheck", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetHealthI);
   this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
                                             jsonrpc::PARAMS_BY_POSITION,
                                             jsonrpc::JSON_STRING, NULL),
@@ -213,6 +217,8 @@ Json::Value StatusServer::GetDSCommittee() {
 
   return JSONConversion::convertDequeOfNode(dq);
 }
+
+string StatusServer::GetHealth() { return "ok"; }
 
 bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
   try {
