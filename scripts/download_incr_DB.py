@@ -20,6 +20,7 @@ import re
 import tarfile
 from clint.textui import progress
 import os, sys
+import subprocess
 import shutil
 import time
 import datetime
@@ -106,6 +107,15 @@ def GetStateDeltaFromS3():
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
+
+def RsyncBlockChainData(source,destination):
+	bashCommand = "rsync --recursive --inplace "
+	bashCommand = bashCommand + source + " "
+	bashCommand = bashCommand + destination
+	print("Command = " + bashCommand)	
+	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+	output, error = process.communicate()
+	print("Copied local historical-data persistence to main persistence!")
 
 def Diff(list1, list2):
 	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))
@@ -336,11 +346,30 @@ def run():
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 
-	if(Exclude_microBlocks == False and Exclude_txnBodies == False):
-		# download the static db
-		download_static_DB.start(STORAGE_PATH)
+	try:
+		if(Exclude_microBlocks == False and Exclude_txnBodies == False):
+			dir_name = STORAGE_PATH + "/historical-data"
+			main_persistence = STORAGE_PATH + "/persistence"
+			if os.path.exists(dir_name) and os.path.isdir(dir_name):
+				if not os.listdir(dir_name):
+					# download the static db
+					print("Dowloading static historical-data")
+					download_static_DB.start(STORAGE_PATH)
+				else:    
+					print("Already have historical blockchain-data!. Skip downloading again!")
+			else:
+				# download the static db
+				print("Dowloading static historical-data")
+				download_static_DB.start(STORAGE_PATH)
+			if os.path.exists(dir_name):
+				RsyncBlockChainData(dir_name+"/", main_persistence)
+	except Exception as e:
+		print(e)
+		print("Failed to download static historical-data!)
+		pass
 
 	return True
+
 def start():
 	global Exclude_txnBodies
 	global Exclude_microBlocks

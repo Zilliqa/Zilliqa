@@ -36,7 +36,7 @@ MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
 MAX_FAILED_DOWNLOAD_RETRY = 2
 BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
-STORAGE_PATH = BASE_PATH+'/persistence'
+STORAGE_PATH1 = BASE_PATH+'/historical-data'
 mutex = Lock()
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
@@ -211,7 +211,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 	return True
 
 def GetBlockchainDataFromS3():
-	os.chdir(STORAGE_PATH)
+	os.chdir(STORAGE_PATH1)
 	return GetAllObjectsFromS3(getURL(), PERSISTENCE_SNAPSHOT_NAME)
 
 def run():
@@ -232,17 +232,17 @@ def run():
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 	return True
 
-def start(new_storage_path):
-	global STORAGE_PATH
-	if new_storage_path:
-		if os.path.isabs(new_storage_path):
-			STORAGE_PATH = new_storage_path + "/persistence"
+def start(new_STORAGE_PATH1):
+	global STORAGE_PATH1
+	if new_STORAGE_PATH1:
+		if os.path.isabs(new_STORAGE_PATH1):
+			STORAGE_PATH1 = new_STORAGE_PATH1 + "/historical-data"
 		else:
 			# Get absolute path w.r.t to script
-			STORAGE_PATH = os.path.join(BASE_PATH, new_storage_path) + "/persistence"
+			STORAGE_PATH1 = os.path.join(BASE_PATH, new_STORAGE_PATH1) + "/historical-data"
 	# Create persistence folder if it does not exist
-	if not os.path.exists(STORAGE_PATH):
-		os.makedirs(STORAGE_PATH)
+	if not os.path.exists(STORAGE_PATH1):
+		os.makedirs(STORAGE_PATH1)
 	return run()
 
 if __name__ == "__main__":
