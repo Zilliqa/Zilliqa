@@ -88,6 +88,7 @@ void DirectoryService::StartSynchronization(bool clean) {
   }
 
   auto func = [this]() -> void {
+    m_mediator.m_lookup->m_fetchNextTxBlock = true;
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);

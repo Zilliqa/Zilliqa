@@ -3291,11 +3291,15 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     if (!m_currDSExpired &&
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
             m_mediator.m_currentEpochNum) {
-      m_isFirstLoop = true;
-      SetSyncType(SyncType::NO_SYNC);
-
-      m_mediator.m_ds->FinishRejoinAsDS(lowBlockNum % NUM_FINAL_BLOCK_PER_POW ==
-                                        0);
+      if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0 ||
+          !m_fetchNextTxBlock) {
+        m_isFirstLoop = true;
+        SetSyncType(SyncType::NO_SYNC);
+        m_mediator.m_ds->FinishRejoinAsDS(
+            lowBlockNum % NUM_FINAL_BLOCK_PER_POW == 0);
+      } else {
+        m_fetchNextTxBlock = false;
+      }
     }
     m_currDSExpired = false;
   } else if (m_syncType == SyncType::LOOKUP_SYNC ||
@@ -3543,17 +3547,18 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
         return false;
       }
       m_prevStateRootHashTemp = AccountStore::GetInstance().GetStateRootHash();
-    }
 
-    if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
-      if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
-        if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
-          LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk(false) failed");
-          return false;
+      if ((txBlkNum + 1) % NUM_FINAL_BLOCK_PER_POW == 0) {
+        if (txBlkNum + NUM_FINAL_BLOCK_PER_POW > highBlockNum) {
+          if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+            LOG_GENERAL(WARNING,
+                        "AccountStore::MoveUpdatesToDisk(false) failed");
+            return false;
+          }
         }
       }
+      txBlkNum++;
     }
-    txBlkNum++;
   }
 
   cv_setStateDeltasFromSeed.notify_all();

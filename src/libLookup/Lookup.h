@@ -520,6 +520,7 @@ class Lookup : public Executable {
   std::condition_variable cv_setStateDeltaFromSeed;
   std::mutex m_mutexSetStateDeltaFromSeed;
   bool m_skipAddStateDeltaToAccountStore = false;
+  std::atomic<bool> m_fetchNextTxBlock{false};
 
   std::mutex m_mutexCVJoined;
   std::condition_variable cv_waitJoined;
