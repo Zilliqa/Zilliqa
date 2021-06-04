@@ -87,13 +87,12 @@ int main(int argc, const char* argv[]) {
     const bool disambiguation = (disambiguation_str == "true");
 
     LOG_GENERAL(INFO, "Begin");
-
     Mediator mediator(key, peer);
     Retriever retriever(mediator);
 
     LOG_GENERAL(INFO, "Start Retrieving States");
 
-    if (!retriever.RetrieveStates()) {
+    if (!retriever.RetrieveStatesOld()) {
       LOG_GENERAL(FATAL, "RetrieveStates failed");
       return 0;
     }

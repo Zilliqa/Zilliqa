@@ -590,8 +590,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                         gasRemained, this->GetBalance(toAddr), ret, receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG, "Executed root transition in "
-                               << r_timer_end(tpStart) << " microseconds");
+        LOG_GENERAL(INFO, "Executed root transition in " << r_timer_end(tpStart)
+                                                         << " microseconds");
       }
 
       uint32_t tree_depth = 0;
@@ -866,7 +866,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     ExportCommonFiles(os, contract, extlibs_exports);
 
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
+      LOG_GENERAL(INFO, "LDB Read (microsec) = " << r_timer_end(tpStart));
     }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
@@ -1171,8 +1171,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
     return false;
   }
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
-                           << r_timer_end(tpStart));
+    LOG_GENERAL(INFO, "Parse scilla-runner output (microseconds) = "
+                          << r_timer_end(tpStart));
   }
 
   return true;
@@ -1359,9 +1359,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       receipt.AddTransition(curContractAddr, msg, tree_depth);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG,
+        LOG_GENERAL(INFO,
                     "LDB Write (microseconds) = " << r_timer_end(tpStart));
-        LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
+        LOG_GENERAL(INFO, "Gas used = " << (startGas - gasRemained));
       }
 
       if (t_ret) {
@@ -1471,9 +1471,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                         gasRemained, account->GetBalance(), result, receipt);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
-                                       << r_timer_end(tpStart)
-                                       << " microseconds");
+        LOG_GENERAL(INFO, "Executed " << input_message["_tag"] << " in "
+                                      << r_timer_end(tpStart)
+                                      << " microseconds");
       }
 
       if (!result) {

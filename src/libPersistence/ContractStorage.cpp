@@ -1126,9 +1126,6 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
   lock_guard<mutex> g(m_stateDataMutex);
 
   LOG_GENERAL(INFO, "roothash: " << rootHash.hex());
-  LOG_GENERAL(INFO, "temp: " << temp << " "
-                             << "revertible: " << revertible);
-  LOG_GENERAL(INFO, "States size: " << states.size());
 
   if (temp) {
     for (const auto& state : states) {
@@ -1157,7 +1154,6 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
     std::unordered_map<std::string, bytes> t_r_stateDataMap;
 
     for (const auto& state : states) {
-      LOG_GENERAL(INFO, "State: " << state.first);
       if (revertible) {
         if (m_stateDataMap.find(state.first) != m_stateDataMap.end()) {
           t_r_stateDataMap[state.first] = m_stateDataMap[state.first];
@@ -1168,11 +1164,13 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       m_stateDataMap[state.first] = state.second;
       const auto& hashed_key = ConvertStringToHashedKey(state.first);
       m_stateTrie.insert(hashed_key, state.second);
-      LOG_GENERAL(INFO, "Inserted "
-                            << state.first << " "
-                            << DataConversion::CharArrayToString(state.second)
-                            << " Hashed: "
-                            << DataConversion::CharArrayToString(hashed_key));
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Inserted "
+                              << state.first << " "
+                              << DataConversion::CharArrayToString(state.second)
+                              << " Hashed: "
+                              << DataConversion::CharArrayToString(hashed_key));
+      }
 
       auto pos = m_indexToBeDeleted.find(state.first);
       if (pos != m_indexToBeDeleted.end()) {

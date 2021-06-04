@@ -286,7 +286,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     m_mediator.m_node->SendPendingTxnToLookup();
   }
   m_mediator.m_node->ClearUnconfirmedTxn();
-
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitRevertibles();
   m_stateDeltaFromShards.clear();
