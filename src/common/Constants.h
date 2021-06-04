@@ -314,6 +314,7 @@ extern const bool ENABLE_GETTXNBODIESFORTXBLOCK;
 extern const unsigned int NUM_TXNS_PER_PAGE;
 extern const unsigned int PENDING_TXN_QUERY_NUM_EPOCHS;
 extern const unsigned int PENDING_TXN_QUERY_MAX_RESULTS;
+extern const bool CONNECTION_IO_USE_EPOLL;
 
 // Network composition constants
 extern const unsigned int COMM_SIZE;
