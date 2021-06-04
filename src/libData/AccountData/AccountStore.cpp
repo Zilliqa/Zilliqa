@@ -457,6 +457,46 @@ bool AccountStore::RetrieveFromDisk() {
   return true;
 }
 
+bool AccountStore::RetrieveFromDiskOld() {
+  // Only For migration
+  LOG_MARKER();
+
+  InitSoft();
+
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
+  unique_lock<mutex> g2(m_mutexDB, defer_lock);
+  lock(g, g2);
+
+  bytes rootBytes;
+  if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
+    // To support backward compatibilty - lookup with new binary trying to
+    // recover from old database
+    if (BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+      if (!BlockStorage::GetBlockStorage().PutStateRoot(rootBytes)) {
+        LOG_GENERAL(WARNING,
+                    "BlockStorage::PutStateRoot failed "
+                        << DataConversion::CharArrayToString(rootBytes));
+        return false;
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Failed to retrieve StateRoot from disk");
+      return false;
+    }
+  }
+
+  try {
+    h256 root(rootBytes);
+    LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
+    lock_guard<mutex> g(m_mutexTrie);
+    m_state.setRoot(root);
+  } catch (const boost::exception& e) {
+    LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
+                             << boost::diagnostic_information(e));
+    return false;
+  }
+  return true;
+}
+
 Account* AccountStore::GetAccountTemp(const Address& address) {
   return m_accountStoreTemp->GetAccount(address);
 }
@@ -705,14 +745,15 @@ bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
   return true;
 }
 
-/*bool AccountStore::MigrateContractStates2(
-    [[gnu::unused]] bool ignoreCheckerFailure,
-    [[gnu::unused]] const string& contract_address_output_dir,
-    [[gnu::unused]] const string& normal_address_output_dir) {
+bool AccountStore::MigrateContractStates(
+    bool ignoreCheckerFailure, bool disambiguation,
+    const string& contract_address_output_filename,
+    const string& normal_address_output_filename) {
   LOG_MARKER();
 
   std::ofstream os_1;
   std::ofstream os_2;
+  (void)disambiguation;
   if (!contract_address_output_filename.empty()) {
     os_1.open(contract_address_output_filename);
   }
@@ -748,27 +789,6 @@ bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
       continue;
     }
 
-    // migrate old state to new state and update root hash
-    std::map<std::string, bytes> states;
-    ContractStorageOld::GetContractStorage().FetchStateDataForContract(
-        states, address, "", {}, false);
-
-    auto iter = states.begin();
-    std::map<std::string, bytes> t_states;
-    while (iter != states.end()) {
-      std::string key =
-          ContractStorageOld::GetContractStorage().RemoveAddrFromKey(
-              iter->first);
-      iter++;
-      t_states.emplace(key, std::move(iter->second));
-    }
-    states = std::move(t_states);
-
-    dev::h256 rootHash;
-    ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-            address, dev::h256(), states, {}, rootHash, false, false);
-    account.SetStorageRoot(rootHash);
-
     // adding new metadata
     std::map<std::string, bytes> t_metadata;
     bool is_library;
@@ -796,11 +816,9 @@ bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
       return false;
     }
 
+    // invoke scilla checker
     m_scillaIPCServer->setContractAddressVerRoot(address, scilla_version,
                                                  account.GetStorageRoot());
-
-    // invoke scilla checker
-    m_scillaIPCServer->setContractAddressVer(address, scilla_version);
     std::string checkerPrint;
     bool ret_checker = true;
     TransactionReceipt receipt;
@@ -816,131 +834,69 @@ bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
 
     // adding scilla_version metadata
     t_metadata.emplace(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(address,
-            SCILLA_VERSION_INDICATOR, {}),
+        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+            address, SCILLA_VERSION_INDICATOR, {}),
         DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
     // adding depth and type metadata
     if (!ParseContractCheckerOutput(address, checkerPrint, receipt, t_metadata,
-gasRem, is_library)) { LOG_GENERAL(WARNING, "ParseContractCheckerOutput
-failed"); if (ignoreCheckerFailure) { continue;
+                                    gasRem)) {
+      LOG_GENERAL(WARNING, "ParseContractCheckerOutput failed");
+      if (ignoreCheckerFailure) {
+        continue;
       }
       return false;
     }
 
-    // remove previous map depth
-    std::vector<std::string> toDeletes;
-    toDeletes.emplace_back(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(address,
-            FIELDS_MAP_DEPTH_INDICATOR, {}));
+    Json::Value stateBeforeMigration, stateAfterMigration;
+    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
+        stateBeforeMigration, address, "", {}, true);
 
-    if (account.UpdateStates(address, t_metadata, toDeletes, false, false)) {
-      LOG_GENERAL(WARNING, "Account::UpdateStates failed");
-      return false;
-    }
-
-    // Run the disambiguator.
-
-    std::string disPrint;
-    if (disambiguation) {
-      Json::Value stateBeforeMigration, stateAfterMigration;
-      Contract::ContractStorage2::GetContractStorage()
-          .FetchStateJsonForContract(stateBeforeMigration, address, "", {},
-                                     true);
-
-      uint64_t gasRem = UINT64_MAX;
-      InvokeInterpreter(DISAMBIGUATE, disPrint, scilla_version, false, gasRem,
-                        std::numeric_limits<uint128_t>::max(), ret_checker,
-                        receipt);
-
-      LOG_GENERAL(INFO, "Disambiguate tool output: " << disPrint);
-
-#if MIGRATE_INIT_JSON
-
-      ifstream initAfterMigrationRef{OUTPUT_JSON};
-      std::string initAfterMigration{
-          istreambuf_iterator<char>(initAfterMigrationRef),
-          istreambuf_iterator<char>()};
-      ifstream initBeforeMigrationRef{INIT_JSON};
-      std::string initBeforeMigration{
-          istreambuf_iterator<char>(initBeforeMigrationRef),
-          istreambuf_iterator<char>()};
-
-      Json::Value beforeInitJson, afterInitJson;
-      if (!JSONUtils::GetInstance().convertStrtoJson(initBeforeMigration,
-                                                     beforeInitJson) ||
-          !JSONUtils::GetInstance().convertStrtoJson(initAfterMigration,
-                                                     afterInitJson)) {
-        LOG_GENERAL(
-            WARNING,
-            "Failed to parse init JSON before/after migration\nBefore:\n"
-                << initBeforeMigration << "\nAfter:\n"
-                << initAfterMigration);
+    std::map<std::string, bytes> types;
+    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
+        types, address, TYPE_INDICATOR, {}, true);
+    for (auto const& type : types) {
+      vector<string> fragments;
+      boost::split(fragments, type.first,
+                   bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+      if (fragments.size() < 3) {
+        LOG_GENERAL(WARNING,
+                    "Error fetching (field_name, type): " << address.hex());
       } else {
-        if (!compareScillaInitJSONs(beforeInitJson, afterInitJson)) {
-          Contract::ContractStorage2::GetContractStorage().PutInitData(
-              address, DataConversion::StringToCharArray(initAfterMigration));
-
-          LOG_GENERAL(INFO, "Init JSON before migration:  "
-                                << initBeforeMigration
-                                << "\n Init JSON after migration: "
-                                << initAfterMigration);
-        } else {
-          LOG_GENERAL(INFO,
-                      "Init JSON before migration same as after migration. Not "
-                      "updated.");
-        }
-      }
-#endif  // MIGRATE_INIT_JSON
-
-      Contract::ContractStorage2::GetContractStorage()
-          .FetchStateJsonForContract(stateAfterMigration, address, "", {},
-                                     true);
-
-      if ((stateBeforeMigration == Json::Value::null) &&
-          (stateAfterMigration != Json::Value::null)) {
-        numContractNullFixedStates++;
-      } else if (!compareStateJSONs(stateBeforeMigration,
-                                    stateAfterMigration)) {
-        LOG_GENERAL(INFO, "States changed for " << address.hex());
-        numContractChangedStates++;
-      } else {
-        numContractUnchangedStates++;
-      }
-
-      std::map<std::string, bytes> types;
-      Contract::ContractStorage2::GetContractStorage()
-          .FetchStateDataForContract(types, address, TYPE_INDICATOR, {}, true);
-      for (auto const& type : types) {
-        vector<string> fragments;
-        boost::split(fragments, type.first,
-                     bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
-        if (fragments.size() < 3) {
-          LOG_GENERAL(WARNING,
-                      "Error fetching (field_name, type): " << address.hex());
-        } else {
-          LOG_GENERAL(
-              INFO, "field=" << fragments[2] << " type="
+        LOG_GENERAL(INFO,
+                    "field=" << fragments[2] << " type="
                              << DataConversion::CharArrayToString(type.second));
-        }
       }
-
-      // fetch all states from temp storage
-      std::map<std::string, bytes> states;
-      Contract::ContractStorage2::GetContractStorage()
-          .FetchStateDataForContract(states, address, "", {}, true);
-
-      // put all states (overwrite) back into persistent storage
-      dev::h256 rootHash;
-      Contract::ContractStorage2::GetContractStorage()
-          .UpdateStateDatasAndToDeletes(address, states, {}, rootHash, false,
-                                        false);
-
-      // update storage root hash for this account
-      account.SetStorageRoot(rootHash);
     }
+
+    // fetch all states from temp storage
+    std::map<std::string, bytes> states;
+    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
+        states, address, "", {}, true);
+
+    // put all states (overwrite) back into persistent storage
+    dev::h256 rootHash;
+    Contract::ContractStorage::GetContractStorage()
+        .UpdateStateDatasAndToDeletes(address, account.GetStorageRoot(), states,
+                                      {}, rootHash, false, false);
+
+    // update storage root hash for this account
+    account.SetStorageRoot(rootHash);
 
     this->AddAccount(address, account, true);
+
+    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
+        stateAfterMigration, address, "", {}, true);
+
+    if ((stateBeforeMigration == Json::Value::null) &&
+        (stateAfterMigration != Json::Value::null)) {
+      numContractNullFixedStates++;
+    } else if (!compareStateJSONs(stateBeforeMigration, stateAfterMigration)) {
+      LOG_GENERAL(INFO, "States changed for " << address.hex());
+      numContractChangedStates++;
+    } else {
+      numContractUnchangedStates++;
+    }
   }
 
   if (!contract_address_output_filename.empty()) {
@@ -963,11 +919,9 @@ failed"); if (ignoreCheckerFailure) { continue;
 
   LOG_GENERAL(INFO, "Num contracts with states initialized = "
                         << numContractNullFixedStates);
-  LOG_GENERAL(INFO, "Num contracts with states changed     = "
-                        << numContractChangedStates);
-  LOG_GENERAL(INFO, "Num contracts with states unchanged   = "
+  LOG_GENERAL(
+      INFO, "Num contracts with states changed = " << numContractChangedStates);
+  LOG_GENERAL(INFO, "Num contracts with states unchanged = "
                         << numContractUnchangedStates);
-
   return true;
-
-}*/
+}

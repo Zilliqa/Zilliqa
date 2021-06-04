@@ -382,6 +382,10 @@ bool Retriever::RetrieveStates() {
   return AccountStore::GetInstance().RetrieveFromDisk();
 }
 
+bool Retriever::RetrieveStatesOld() {
+  return AccountStore::GetInstance().RetrieveFromDiskOld();
+}
+
 bool Retriever::ValidateStates() {
   LOG_MARKER();
 
@@ -425,7 +429,7 @@ bool Retriever::MigrateContractStates(
     bool ignore_checker, bool disambiguation,
     const std::string& contract_address_output_filename,
     const std::string& normal_address_output_filename) {
-  // return AccountStore::GetInstance().MigrateContractStates2(
-  // ignore_checker, contract_address_output_dir, normal_address_output_dir);
-  return true;
+  return AccountStore::GetInstance().MigrateContractStates(
+      ignore_checker, disambiguation, contract_address_output_filename,
+      normal_address_output_filename);
 }

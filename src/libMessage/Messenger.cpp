@@ -732,8 +732,10 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       }
     }
 
-    LOG_GENERAL(INFO, "Storage Root: " << accbase.GetStorageRoot());
-    LOG_GENERAL(INFO, "Address: " << addr.hex());
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Storage Root: " << accbase.GetStorageRoot());
+      LOG_GENERAL(INFO, "Address: " << addr.hex());
+    }
 
     if (accbase.GetStorageRoot() == dev::h256()) {
       dev::h256 tmpHash;
@@ -744,10 +746,11 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       for (const auto& entry : protoAccount.storage2()) {
         t_states.emplace(entry.key(),
                          DataConversion::StringToCharArray(entry.data()));
-        LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
-                                  << "Data: " << entry.data());
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
+                                    << "Data: " << entry.data());
+        }
       }
-      LOG_GENERAL(INFO, "t_state size: " << t_states.size());
 
       for (const auto& entry : protoAccount.todelete()) {
         toDeleteIndices.emplace_back(entry);

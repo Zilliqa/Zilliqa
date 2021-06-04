@@ -18,7 +18,7 @@
 #include "libMessage/MessengerAccountStoreTrie.h"
 
 template <class MAP>
-AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state_t"), m_state(&m_db) {}
+AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
 
 template <class MAP>
 void AccountStoreTrie<MAP>::Init() {
