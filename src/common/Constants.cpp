@@ -394,6 +394,8 @@ const unsigned int PENDING_TXN_QUERY_NUM_EPOCHS{
     ReadConstantNumeric("PENDING_TXN_QUERY_NUM_EPOCHS", "node.jsonrpc.")};
 const unsigned int PENDING_TXN_QUERY_MAX_RESULTS{
     ReadConstantNumeric("PENDING_TXN_QUERY_MAX_RESULTS", "node.jsonrpc.")};
+const bool CONNECTION_IO_USE_EPOLL{
+    ReadConstantString("CONNECTION_IO_USE_EPOLL", "node.jsonrpc.") == "true"};
 
 // Network composition constants
 const unsigned int COMM_SIZE{
