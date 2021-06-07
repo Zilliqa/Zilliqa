@@ -280,6 +280,9 @@ def GetStaticFoldersFromS3(url, folderName):
             break
         lastkey = ''
         for key in tree[6:]:
+            # skip compressed blockchain-data file i.e. testnet-name.tar.gz
+            if ".tar.gz" in key[0].text:
+                continue
             key_url = key[0].text.split(folderName,1)[1].replace('/', '')
             if key_url != '':
                 list_of_folders.append(key_url)
