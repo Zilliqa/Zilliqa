@@ -175,6 +175,7 @@ extern const unsigned int SEED_SYNC_LARGE_PULL_INTERVAL;
 extern const bool ENABLE_SEED_TO_SEED_COMMUNICATION;
 extern const unsigned int P2P_SEED_CONNECT_PORT;
 extern const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT;
+extern const unsigned int FETCH_DS_BLOCK_LIMIT;
 
 // RemoteStorageDB
 extern const std::string REMOTESTORAGE_DB_HOST;

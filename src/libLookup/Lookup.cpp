@@ -1855,6 +1855,18 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     highBlockNum = curBlockNum;
   }
 
+  uint64_t diff = 0;
+  if (!partialRetrieve &&
+      SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
+    if (diff >= FETCH_DS_BLOCK_LIMIT) {
+      highBlockNum = lowBlockNum + FETCH_DS_BLOCK_LIMIT - 1;
+      LOG_GENERAL(INFO, "Requested "
+                            << diff
+                            << " DS block is too much, changed  highBlockNum: "
+                            << highBlockNum << " lowBlockNum: " << lowBlockNum);
+    }
+  }
+
   uint64_t blockNum;
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
@@ -1868,7 +1880,7 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
         break;
       }
 
-      dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
+      dsBlocks.emplace_back(dsblk);
     } catch (const char* e) {
       LOG_GENERAL(INFO, "Block Number " << blockNum
                                         << " absent. Didn't include it in "

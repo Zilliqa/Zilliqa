@@ -142,6 +142,10 @@ const unsigned int P2P_SEED_CONNECT_PORT{
 
 const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT{
     ReadConstantNumeric("P2P_SEED_SERVER_CONNECTION_TIMEOUT", "node.seed.")};
+
+const unsigned int FETCH_DS_BLOCK_LIMIT{
+    ReadConstantNumeric("FETCH_DS_BLOCK_LIMIT", "node.seed.")};
+
 // RemotestorageDB constants
 const string REMOTESTORAGE_DB_HOST{
     ReadConstantString("REMOTESTORAGE_DB_HOST", "node.remotestorageDB.")};
