@@ -365,7 +365,7 @@ def run():
 				RsyncBlockChainData(dir_name+"/", main_persistence)
 	except Exception as e:
 		print(e)
-		print("Failed to download static historical-data!)
+		print("Failed to download static historical-data!")
 		pass
 
 	return True
