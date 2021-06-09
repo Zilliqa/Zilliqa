@@ -3017,7 +3017,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         m_mediator.m_ds->RejoinAsDS(false);
       }
       return false;
-    } else if (latestSynBlockNum >= lowBlockNum) {
+    } else if (latestSynBlockNum > lowBlockNum) {
       LOG_GENERAL(INFO,
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
