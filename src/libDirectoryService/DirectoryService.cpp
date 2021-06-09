@@ -1055,6 +1055,7 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
       m_totalTxnFees += cogsrews.GetRewards();
     }
   }
+  m_mediator.m_lookup->cv_setCosigRewardsFromSeed.notify_all();
 
   return true;
 }
