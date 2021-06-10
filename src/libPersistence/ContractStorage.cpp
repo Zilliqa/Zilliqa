@@ -1186,7 +1186,9 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       }
       m_indexToBeDeleted.emplace(toDelete);
       const auto& hashed_key = ConvertStringToHashedKey(toDelete);
-      LOG_GENERAL(INFO, "Removed " << toDelete);
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Removed " << toDelete);
+      }
       m_stateTrie.remove(hashed_key);
     }
     stateHash = m_stateTrie.root();
