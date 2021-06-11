@@ -2551,23 +2551,10 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  // verify if sender is from know DS Committee
-  const uint128_t& ipSenderAddr = from.m_ipAddress;
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    if (!VerifySenderNode(*m_mediator.m_DSCommittee, ipSenderAddr)) {
-      LOG_GENERAL(
-          WARNING,
-          "Requesting IP : "
-              << from.GetPrintableIPAddress()
-              << " is not in Present DS Committee list. Ignore the request");
-      return false;
-    }
-  }
-
   uint64_t blockNum;
   uint32_t portNo = 0;
   PubKey dsPubKey;
+  const uint128_t& ipSenderAddr = from.m_ipAddress;
   if (!Messenger::GetLookupGetCosigsRewardsFromSeed(message, offset, dsPubKey,
                                                     blockNum, portNo)) {
     LOG_GENERAL(WARNING, "Failed to process");
