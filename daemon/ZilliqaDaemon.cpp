@@ -133,7 +133,9 @@ void ZilliqaDaemon::MonitorProcess(const string& name,
         m_pids[name].erase(it);
       }
 
-      StartNewProcess();
+      bool toCleanPersistence =
+          (m_nodeType == "dsguard" || m_nodeType == "normal");
+      StartNewProcess(toCleanPersistence);
       m_died.erase(pid);
     }
   }
