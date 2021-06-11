@@ -92,12 +92,49 @@ Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
 
 Lookup::~Lookup() {}
 
+void Lookup::GetInitialBlocksAndShardingStructure() {
+  LOG_MARKER();
+  uint64_t dsBlockNum = 0;
+  uint64_t txBlockNum = 0;
+  while (GetSyncType() != SyncType::NO_SYNC) {
+    if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
+      dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
+    }
+    if (m_mediator.m_txBlockChain.GetBlockCount() != 1) {
+      txBlockNum = m_mediator.m_txBlockChain.GetBlockCount();
+    }
+    LOG_GENERAL(INFO,
+                "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
+    ComposeAndSendGetDirectoryBlocksFromSeed(
+        m_mediator.m_blocklinkchain.GetLatestIndex() + 1, true,
+        LOOKUP_NODE_MODE);
+    GetTxBlockFromSeedNodes(txBlockNum, 0);
+    std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+    if (m_mediator.m_lookup->cv_setRejoinRecovery.wait_for(
+            cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL)) !=
+        std::cv_status::timeout) {
+      if (m_rejoinInProgress) {
+        break;
+      }
+    }
+  }
+  if (!m_rejoinInProgress) {
+    // Ask for the sharding structure from lookup
+    ComposeAndSendGetShardingStructureFromSeed();
+    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+    if (cv_shardStruct.wait_for(
+            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
+        std::cv_status::timeout) {
+      LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
+    } else {
+      ProcessEntireShardingStructure();
+    }
+  }
+}
+
 void Lookup::InitSync() {
   LOG_MARKER();
   auto func = [this]() -> void {
-    uint64_t dsBlockNum = 0;
-    uint64_t txBlockNum = 0;
-
     // Hack to allow seed server to be restarted so as to get my newlookup ip
     // and register me with multiplier.
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
@@ -119,33 +156,7 @@ void Lookup::InitSync() {
       this_thread::sleep_for(
           chrono::seconds(REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS));
     }
-
-    while (GetSyncType() != SyncType::NO_SYNC) {
-      if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
-        dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
-      }
-      if (m_mediator.m_txBlockChain.GetBlockCount() != 1) {
-        txBlockNum = m_mediator.m_txBlockChain.GetBlockCount();
-      }
-      LOG_GENERAL(INFO,
-                  "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
-      ComposeAndSendGetDirectoryBlocksFromSeed(
-          m_mediator.m_blocklinkchain.GetLatestIndex() + 1, true,
-          LOOKUP_NODE_MODE);
-      GetTxBlockFromSeedNodes(txBlockNum, 0);
-
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
-    }
-    // Ask for the sharding structure from lookup
-    ComposeAndSendGetShardingStructureFromSeed();
-    std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
-    if (cv_shardStruct.wait_for(
-            cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
-        std::cv_status::timeout) {
-      LOG_GENERAL(WARNING, "Didn't receive sharding structure!");
-    } else {
-      ProcessEntireShardingStructure();
-    }
+    GetInitialBlocksAndShardingStructure();
   };
   DetachedFunction(1, func);
 }
@@ -2931,6 +2942,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(
 
   if (AlreadyJoinedNetwork()) {
     cv_setTxBlockFromSeed.notify_all();
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+      cv_setRejoinRecovery.notify_all();
+    }
     return true;
   }
 
@@ -3014,19 +3028,24 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         m_syncType = SyncType::NO_SYNC;
         this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         m_mediator.m_ds->RejoinAsDS(false);
+      } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+        m_rejoinInProgress = true;
+        cv_setRejoinRecovery.notify_all();
+        RejoinNetwork();
       }
       return false;
     } else if (latestSynBlockNum > lowBlockNum) {
       LOG_GENERAL(INFO,
                   "We already received all or few of txblocks from incoming "
                   "range previously. So ignoring these txblocks!");
+      cv_setRejoinRecovery.notify_all();
       return false;
     }
     auto res = m_mediator.m_validator->CheckTxBlocks(
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
-      case Validator::TxBlockValidationMsg::VALID:
+      case Validator::TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           LOG_GENERAL(INFO,
@@ -3035,8 +3054,15 @@ bool Lookup::ProcessSetTxBlockFromSeed(
           this_thread::sleep_for(chrono::seconds(10));
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
-        CommitTxBlocks(txBlocks);
+        if (!CommitTxBlocks(txBlocks)) {
+          if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+            m_rejoinInProgress = true;
+            cv_setRejoinRecovery.notify_all();
+            RejoinNetwork();
+          }
+        }
         break;
+      }
       case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Invalid blocks");
@@ -3105,7 +3131,7 @@ void Lookup::PrepareForStartPow() {
   InitMining();
 }
 
-void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
+bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   LOG_GENERAL(INFO, "[TxBlockVerif]"
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
@@ -3134,7 +3160,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
                                << lowBlockNum << "-" << highBlockNum);
       cv_setTxBlockFromSeed.notify_all();
       cv_waitJoined.notify_all();
-      return;
+      return false;  // Rejoin in case deserializeDelta failed
     }
 
     // Check StateRootHash and One in last TxBlk
@@ -3143,7 +3169,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       LOG_CHECK_FAIL("State root hash",
                      txBlocks.back().GetHeader().GetStateRootHash(),
                      m_prevStateRootHashTemp);
-      return;
+      return false;  // Rejoin in case state root hash failed
     }
   }
 
@@ -3159,7 +3185,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     if (!BlockStorage::GetBlockStorage().PutTxBlock(blockNum,
                                                     serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
-      return;
+      return false;
     }
 
     // If txblk not from vacaous epoch and is rejoining as ds node
@@ -3315,7 +3341,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       if (!m_currDSExpired) {
         if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
           SetSyncType(SyncType::NO_SYNC);
-
+          m_rejoinInProgress = false;
+          cv_setRejoinRecovery.notify_all();
           if (m_lookupServer) {
             if (m_lookupServer->StartListening()) {
               LOG_GENERAL(INFO, "API Server started to listen again");
@@ -3392,11 +3419,17 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           DetachedFunction(1, func);  // main thread pulling data forever
         }
       }
+    } else {
+      LOG_GENERAL(INFO, "GetDsInfo is failed.RejoinNetwork now");
+      m_rejoinInProgress = true;
+      cv_setRejoinRecovery.notify_all();
+      RejoinNetwork();
     }
   }
 
   cv_setTxBlockFromSeed.notify_all();
   cv_waitJoined.notify_all();
+  return true;
 }
 
 void Lookup::FindMissingMBsForLastNTxBlks(const uint32_t& num) {
@@ -3498,8 +3531,7 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     cv_setStateDeltasFromSeed.notify_all();
     return true;
   }
-
-  unique_lock<mutex> lock(m_mutexSetStateDeltasFromSeed);
+  unique_lock<std::mutex> lock(m_mutexSetStateDeltasFromSeed);
 
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
@@ -3567,6 +3599,28 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
 
   cv_setStateDeltasFromSeed.notify_all();
   return true;
+}
+
+void Lookup::RejoinNetwork() {
+  LOG_MARKER();
+  if (m_rejoinNetworkAttempts >= MAX_REJOIN_NETWORK_ATTEMPTS) {
+    LOG_GENERAL(INFO,
+                "Max rejoin attempts reached.Do not rejoin now. "
+                "MAX_REJOIN_NETWORK_ATTEMPTS="
+                    << MAX_REJOIN_NETWORK_ATTEMPTS);
+    return;
+  }
+  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    if (ARCHIVAL_LOOKUP) {
+      m_syncType = SyncType::NO_SYNC;
+      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+      m_mediator.m_lookup->RejoinAsNewLookup(false);
+      m_rejoinNetworkAttempts++;
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Unhandled rejoin scenario. SyncType=" << m_syncType);
+    }
+  }
 }
 
 bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
@@ -4439,7 +4493,9 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
     if (fromLookup && MULTIPLIER_SYNC_MODE) {  // level2lookups and seed nodes
                                                // syncing via multiplier
       LOG_GENERAL(INFO, "Syncing from lookup ...");
-      auto func2 = [this]() mutable -> void { StartSynchronization(); };
+      auto func2 = [this]() mutable -> void {
+        GetInitialBlocksAndShardingStructure();
+      };
       DetachedFunction(1, func2);
     } else {
       LOG_GENERAL(INFO, "Syncing from S3 ...");
