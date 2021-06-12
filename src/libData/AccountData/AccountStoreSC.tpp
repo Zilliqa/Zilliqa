@@ -171,7 +171,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
 
-      bool validToTransferBalance = true;
+      // bool validToTransferBalance = true;
 
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
@@ -201,7 +201,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
       // Check if the sender has enough balance to pay gasDeposit and transfer
       // amount
-      else if (fromAccount->GetBalance() < gasDeposit + amount) {
+      /*else if (fromAccount->GetBalance() < gasDeposit + amount) {
         LOG_GENERAL(
             WARNING,
             "The account (balance: "
@@ -216,7 +216,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                    "create contract first and ignore amount "
                    "transfer however");
         validToTransferBalance = false;
-      }
+      }*/
 
       // deduct scilla checker invoke gas
       if (gasRemained < SCILLA_CHECKER_INVOKE_GAS) {
@@ -425,6 +425,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      /*
       if (validToTransferBalance) {
         if (!this->TransferBalance(fromAddr, toAddr, amount)) {
           receipt.SetResult(false);
@@ -440,6 +441,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return true;
         }
       }
+      */
 
       /// inserting address to create the uniqueness of the contract merkle trie
       t_metadata.emplace(Contract::ContractStorage2::GenerateStorageKey(
