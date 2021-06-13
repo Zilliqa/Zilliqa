@@ -112,6 +112,10 @@ class Mediator {
   /// Average TxBlock time in seconds, used by GetWorkServer
   std::atomic<double> m_aveBlockTimeInSeconds;
 
+  /// Snapshot starting epoch
+  uint64_t m_earliestTrieSnapshotDSEpoch = std::numeric_limits<uint64_t>::max();
+  uint64_t m_initTrieSnapshotDSEpoch = std::numeric_limits<uint64_t>::max();
+
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 

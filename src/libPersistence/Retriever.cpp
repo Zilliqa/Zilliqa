@@ -44,7 +44,7 @@ bool Retriever::RetrieveTxBlocks() {
 
   uint64_t lastBlockNum = latestTxBlock->GetHeader().GetBlockNum();
 
-  unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
+  uint64_t extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
 
   for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
        blockNum <= lastBlockNum; blockNum++) {
@@ -97,17 +97,55 @@ bool Retriever::RetrieveTxBlocks() {
   } else {
     // create states from last INCRDB_DSNUMS_WITH_STATEDELTAS *
     // NUM_FINAL_BLOCK_PER_POW txn blocks
-    unsigned int lower_bound_txnblk =
+    uint64_t lower_bound_txnblk =
         ((lastBlockNum - extra_txblocks + 1) >
          INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)
             ? (((lastBlockNum - extra_txblocks + 1) /
                 (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW)) *
                (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW))
             : 0;
-    unsigned int upper_bound_txnblk = lastBlockNum - extra_txblocks;
+    uint64_t upper_bound_txnblk = lastBlockNum - extra_txblocks;
 
     LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
+
+    if (KEEP_HISTORICAL_STATE) {
+      uint64_t earliestTrieSnapshotEpoch = std::numeric_limits<uint64_t>::max();
+      bytes earliestTrieSnapshotEpochBytes;
+      if (BlockStorage::GetBlockStorage().GetMetadata(
+              MetaType::EARLIEST_HISTORY_STATE_EPOCH,
+              earliestTrieSnapshotEpochBytes)) {
+        try {
+          earliestTrieSnapshotEpoch =
+              std::stoull(DataConversion::CharArrayToString(
+                  earliestTrieSnapshotEpochBytes));
+        } catch (...) {
+          LOG_GENERAL(
+              WARNING,
+              "EARLIEST_HISTORY_STATE_EPOCH cannot be parsed as uint64_t "
+                  << DataConversion::CharArrayToString(
+                         earliestTrieSnapshotEpochBytes));
+          return false;
+        }
+      } else {
+        LOG_GENERAL(INFO,
+                    "No EARLIEST_HISTORY_STATE_EPOCH from local persistence");
+      }
+
+      m_mediator.m_earliestTrieSnapshotDSEpoch =
+          std::min(earliestTrieSnapshotEpoch,
+                   (lower_bound_txnblk / NUM_FINAL_BLOCK_PER_POW));
+      m_mediator.m_initTrieSnapshotDSEpoch =
+          m_mediator.m_earliestTrieSnapshotDSEpoch;
+      LOG_GENERAL(INFO, "m_earliestTrieSnapshotDSEpoch: "
+                            << m_mediator.m_earliestTrieSnapshotDSEpoch
+                            << " m_initTrieSnapshotDSEpoch: "
+                            << m_mediator.m_initTrieSnapshotDSEpoch);
+      BlockStorage::GetBlockStorage().PutMetadata(
+          MetaType::EARLIEST_HISTORY_STATE_EPOCH,
+          DataConversion::StringToCharArray(
+              std::to_string(m_mediator.m_earliestTrieSnapshotDSEpoch)));
+    }
 
     // clear all the state deltas from disk.
     if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
@@ -116,8 +154,8 @@ bool Retriever::RetrieveTxBlocks() {
     }
 
     std::string target = STORAGE_PATH + PERSISTENCE_PATH + "/stateDelta";
-    unsigned int firstStateDeltaIndex = lower_bound_txnblk;
-    for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
+    uint64_t firstStateDeltaIndex = lower_bound_txnblk;
+    for (uint64_t i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
       // Check if StateDeltaFromS3/StateDelta_{i} exists and copy over to the
       // local persistence/stateDelta
       std::string source = STORAGE_PATH + STATEDELTAFROMS3_PATH +
@@ -139,7 +177,7 @@ bool Retriever::RetrieveTxBlocks() {
           }
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
-          for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
+          for (uint64_t j = firstStateDeltaIndex; j <= i; j++) {
             bytes stateDelta;
             LOG_GENERAL(
                 INFO,
@@ -172,7 +210,10 @@ bool Retriever::RetrieveTxBlocks() {
             }
           }
           // commit the state to disk
-          if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+          if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+                  i / NUM_FINAL_BLOCK_PER_POW,
+                  m_mediator.m_initTrieSnapshotDSEpoch,
+                  m_mediator.m_earliestTrieSnapshotDSEpoch)) {
             LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
             return false;
             ;
@@ -205,7 +246,7 @@ bool Retriever::RetrieveTxBlocks() {
 
   if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
-    for (unsigned int i = 0; i < extra_txblocks; ++i) {
+    for (uint64_t i = 0; i < extra_txblocks; ++i) {
       if (!BlockStorage::GetBlockStorage().DeleteTxBlock(lastBlockNum - i)) {
         LOG_GENERAL(WARNING, "BlockStorage::DeleteTxBlock " << lastBlockNum - i
                                                             << " failed");
@@ -213,7 +254,7 @@ bool Retriever::RetrieveTxBlocks() {
     }
   } else {
     /// Put extra state delta from last DS epoch
-    unsigned int extra_delta_index = lastBlockNum - extra_txblocks + 1;
+    uint64_t extra_delta_index = lastBlockNum - extra_txblocks + 1;
     for (const auto& stateDelta : extraStateDeltas) {
       if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
         LOG_GENERAL(WARNING,
@@ -384,7 +425,7 @@ bool Retriever::MigrateContractStates(
     bool ignore_checker, bool disambiguation,
     const std::string& contract_address_output_filename,
     const std::string& normal_address_output_filename) {
-  return AccountStore::GetInstance().MigrateContractStates(
-      ignore_checker, disambiguation, contract_address_output_filename,
-      normal_address_output_filename);
+  // return AccountStore::GetInstance().MigrateContractStates2(
+  // ignore_checker, contract_address_output_dir, normal_address_output_dir);
+  return true;
 }

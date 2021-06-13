@@ -30,6 +30,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -293,6 +294,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionStatusI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetStateProof", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetStateProofI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -736,8 +743,18 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
 
   try {
     uint64_t BlockNum = stoull(blockNum);
-    return JSONConversion::convertDSblocktoJson(
+    auto _json = JSONConversion::convertDSblocktoJson(
         m_mediator.m_dsBlockChain.GetBlock(BlockNum), verbose);
+    if (verbose) {
+      // also add last ds block hash
+      BlockHash prevDSHash;
+      if (BlockNum > 1) {
+        prevDSHash =
+            m_mediator.m_dsBlockChain.GetBlock(BlockNum - 1).GetBlockHash();
+      }
+      _json["PrevDSHash"] = prevDSHash.hex();
+    }
+    return _json;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (runtime_error& e) {
@@ -2087,4 +2104,126 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
     throw JsonRpcException(RPC_MISC_ERROR,
                            string("Unable To Process: ") + e.what());
   }
+}
+
+Json::Value LookupServer::GetStateProof(const string& address,
+                                        const string& key,
+                                        const string& txBlockNumOrTag) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  if (!KEEP_HISTORICAL_STATE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Historical states not enabled");
+  }
+
+  dev::h256 rootHash;
+  if (txBlockNumOrTag == "latest") {
+    rootHash = dev::h256();
+  } else {
+    uint64_t requestedTxBlockNum;
+    try {
+      // blockNum check
+      requestedTxBlockNum = stoull(txBlockNumOrTag);
+    } catch (runtime_error& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlockNum not valid");
+    } catch (invalid_argument& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    } catch (out_of_range& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
+    } catch (exception& e) {
+      LOG_GENERAL(INFO,
+                  "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    }
+
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+        requestedTxBlockNum) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Requested txBlock not mined yet");
+    }
+
+    /*if ((requestedTxBlockNum / NUM_FINAL_BLOCK_PER_POW) <
+        m_mediator.m_earliestTrieSnapshotDSEpoch) {
+      throw JsonRpcException(
+          RPC_MISC_ERROR,
+          "Proof from requested txBlock is expired, earliest: " +
+              boost::lexical_cast<std::string>(
+                  (m_mediator.m_earliestTrieSnapshotDSEpoch - 1) *
+                  NUM_FINAL_BLOCK_PER_POW));
+    } Temp Disable */
+
+    rootHash = m_mediator.m_txBlockChain.GetBlock(requestedTxBlockNum)
+                   .GetHeader()
+                   .GetStateRootHash();
+  }
+
+  // address check
+  if (address.size() != ACC_ADDR_SIZE * 2) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Address size not appropriate");
+  }
+
+  if (key.size() != STATE_HASH_SIZE * 2) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Key size not appropriate");
+  }
+
+  bytes tmpaddr;
+  bytes tmpHashedKey;
+  if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
+  }
+  if (!DataConversion::HexStrToUint8Vec(key, tmpHashedKey)) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid key");
+  }
+  Address addr(tmpaddr);
+  dev::h256 hashedKey(tmpHashedKey);
+
+  // get account info & proof
+  std::set<std::string> t_accountProof;
+  Account account;
+  if (!AccountStore::GetInstance().GetProof(addr, rootHash, account,
+                                            t_accountProof)) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Address does not exist in requested epoch");
+  }
+
+  if (!account.isContract()) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Address not contract address");
+  }
+
+  // get proof
+  std::set<std::string> t_stateProof;
+  if (!Contract::ContractStorage::GetContractStorage()
+           .FetchStateProofForContract(t_stateProof, account.GetStorageRoot(),
+                                       hashedKey)) {
+    throw JsonRpcException(RPC_DATABASE_ERROR, "Proof not found");
+  }
+
+  Json::Value ret;
+  for (const auto& ap : t_accountProof) {
+    string hexstr;
+    if (!DataConversion::StringToHexStr(ap, hexstr)) {
+      LOG_GENERAL(INFO, "StringToHexStr failed");
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "Hex encoding failed");
+    }
+    ret["accountProof"].append(hexstr);
+  }
+  for (const auto& sp : t_stateProof) {
+    string hexstr;
+    if (!DataConversion::StringToHexStr(sp, hexstr)) {
+      LOG_GENERAL(INFO, "StringToHexStr failed");
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "Hex encoding failed");
+    }
+    ret["stateProof"].append(hexstr);
+  }
+
+  return ret;
 }

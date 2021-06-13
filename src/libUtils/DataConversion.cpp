@@ -79,6 +79,17 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
   return true;
 }
 
+bool DataConversion::StringToHexStr(const string& hex_str, string& str) {
+  try {
+    str = "";
+    boost::algorithm::hex(hex_str, back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed StringToHexStr conversion");
+    return false;
+  }
+  return true;
+}
+
 bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
                                       unsigned int len, string& str) {
   try {

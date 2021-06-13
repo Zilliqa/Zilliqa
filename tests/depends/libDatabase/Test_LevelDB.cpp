@@ -26,6 +26,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "common/Constants.h"
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -59,6 +60,67 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
   m_testDB.Insert((uint256_t)3, mangoMsg);
 
   LOG_GENERAL(INFO, m_testDB.Lookup((uint256_t)3));
+}
+
+BOOST_AUTO_TEST_CASE(iterator_order) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  LevelDB m_testDB("iterator_order");
+
+  stringstream keystream;
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "3";
+
+  m_testDB.Insert(keystream.str(), {'C'});
+
+  keystream.str(std::string());
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "1";
+
+  m_testDB.Insert(keystream.str(), {'A'});
+
+  keystream.str(std::string());
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "5";
+
+  m_testDB.Insert(keystream.str(), {'E'});
+
+  keystream.str(std::string());
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "2";
+
+  m_testDB.Insert(keystream.str(), {'B'});
+
+  keystream.str(std::string());
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "14";
+
+  m_testDB.Insert(keystream.str(), {'N'});
+
+  keystream.str(std::string());
+  keystream.fill('0');
+  keystream.width(BLOCK_NUMERIC_DIGITS);
+  keystream << "4";
+
+  m_testDB.Insert(keystream.str(), {'D'});
+
+  leveldb::Iterator* iter;
+  iter = m_testDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  iter->SeekToFirst();
+
+  for (; iter->Valid(); iter->Next()) {
+    LOG_GENERAL(INFO, "key: " << iter->key().ToString()
+                              << " value: " << iter->value().ToString());
+    uint64_t key = stoull(iter->key().ToString());
+    LOG_GENERAL(INFO, "num: " << key)
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
