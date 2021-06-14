@@ -587,7 +587,7 @@ class Node : public Executable {
                             bool rejoiningAfterRecover = false);
 
   bool CheckIntegrity(const bool fromValidateDBBinary = false);
-  void PutProcessedInUnconfirmedTxns();
+  void PutAllTxnsInUnconfirmedTxns();
 
   bool SendPendingTxnToLookup();
 
