@@ -193,6 +193,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   if (!LOOKUP_NODE_MODE) {
     if (!foundMB) {
       LOG_GENERAL(INFO, "No MB for my shard itself in FB!");
+      PutAllTxnsInUnconfirmedTxns();
     } else if (foundMismatchedMB) {
       LOG_GENERAL(INFO,
                   "Received shard MB in FB. But since I had failed MB "
@@ -928,8 +929,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
   bool toSendTxnToLookup = false;
 
-  const bool& toSendPendingTxn = !(IsUnconfirmedTxnEmpty());
-
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
@@ -986,6 +985,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   if (!LoadUnavailableMicroBlockHashes(txBlock, toSendTxnToLookup)) {
     return false;
   }
+
+  const bool& toSendPendingTxn = !(IsUnconfirmedTxnEmpty());
 
   if (!isVacuousEpoch) {
     if (!StoreFinalBlock(txBlock)) {
