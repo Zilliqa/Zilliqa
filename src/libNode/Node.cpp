@@ -159,6 +159,11 @@ Node::~Node() {}
 
 bool Node::DownloadPersistenceFromS3() {
   LOG_MARKER();
+  AccountStore::GetInstance().SetPurgeStopSignal();
+  while (AccountStore::GetInstance().IsPurgeRunning()) {
+    LOG_GENERAL(INFO, "Purge Already Running");
+    this_thread::sleep_for(chrono::milliseconds(10));
+  }
   string excludembtxns = LOOKUP_NODE_MODE ? "false" : "true";
   return PythonRunner::RunPyFunc("download_incr_DB", "start",
                                  {STORAGE_PATH + "/", excludembtxns},
@@ -196,6 +201,10 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory,
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
+    }
+
+    if (!LOOKUP_NODE_MODE) {
+      AccountStore::GetInstance().PurgeUnnecessary();
     }
 
     if (SyncType::NEW_SYNC == syncType ||
@@ -2222,6 +2231,7 @@ void Node::RejoinAsNormal() {
           LOG_GENERAL(WARNING, "AccountStore::RefreshDB failed");
           return;
         }
+
         if (this->Install(SyncType::NORMAL_SYNC, true, true)) {
           break;
         };

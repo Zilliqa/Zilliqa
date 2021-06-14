@@ -1297,6 +1297,18 @@ bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
   return true;
 }
 
+void ContractStorage::PurgeUnnecessary() {
+  m_stateTrie.db()->DetachedExecutePurge();
+}
+
+void ContractStorage::SetPurgeStopSignal() {
+  m_stateTrie.db()->SetStopSignal();
+}
+
+bool ContractStorage::IsPurgeRunning() {
+  return m_stateTrie.db()->IsPurgeRunning();
+}
+
 void ContractStorage::InitTempStateCore() {
   t_stateDataMap.clear();
   t_indexToBeDeleted.clear();

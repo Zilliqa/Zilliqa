@@ -93,8 +93,12 @@ void AccountStore::InitSoft() {
 
 bool AccountStore::RefreshDB() {
   LOG_MARKER();
-  lock_guard<mutex> g(m_mutexDB);
-  return m_db.RefreshDB();
+  bool ret = true;
+  {
+    lock_guard<mutex> g(m_mutexDB);
+    ret = ret && m_db.RefreshDB();
+  }
+  return ret;
 }
 
 void AccountStore::InitTemp() {
@@ -347,6 +351,21 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
   m_addressToAccount->clear();
 
   return true;
+}
+
+void AccountStore::PurgeUnnecessary() {
+  m_state.db()->DetachedExecutePurge();
+  ContractStorage::GetContractStorage().PurgeUnnecessary();
+}
+
+void AccountStore::SetPurgeStopSignal() {
+  m_state.db()->SetStopSignal();
+  ContractStorage::GetContractStorage().SetPurgeStopSignal();
+}
+
+bool AccountStore::IsPurgeRunning() {
+  return (m_state.db()->IsPurgeRunning() ||
+          ContractStorage::GetContractStorage().IsPurgeRunning());
 }
 
 bool AccountStore::UpdateStateTrieFromTempStateDB() {
