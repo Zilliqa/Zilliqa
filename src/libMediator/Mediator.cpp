@@ -260,3 +260,12 @@ bool Mediator::ToProcessTransaction() {
           m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
               TXN_DS_TARGET_NUM);
 }
+
+uint64_t Mediator::GetEarliestTrieDSEpoch(const uint64_t& currDSEpochNum) {
+  if (currDSEpochNum >
+      m_initTrieSnapshotDSEpoch + NUM_DS_EPOCHS_STATE_HISTORY) {
+    return currDSEpochNum - NUM_DS_EPOCHS_STATE_HISTORY;
+  } else {
+    return m_initTrieSnapshotDSEpoch;
+  }
+}

@@ -131,20 +131,11 @@ bool Retriever::RetrieveTxBlocks() {
         LOG_GENERAL(INFO,
                     "No EARLIEST_HISTORY_STATE_EPOCH from local persistence");
       }
-
-      m_mediator.m_earliestTrieSnapshotDSEpoch =
-          std::min(earliestTrieSnapshotEpoch,
-                   (lower_bound_txnblk / NUM_FINAL_BLOCK_PER_POW));
-      m_mediator.m_initTrieSnapshotDSEpoch =
-          m_mediator.m_earliestTrieSnapshotDSEpoch;
-      LOG_GENERAL(INFO, "m_earliestTrieSnapshotDSEpoch: "
-                            << m_mediator.m_earliestTrieSnapshotDSEpoch
-                            << " m_initTrieSnapshotDSEpoch: "
-                            << m_mediator.m_initTrieSnapshotDSEpoch);
+      m_mediator.m_initTrieSnapshotDSEpoch = earliestTrieSnapshotEpoch;
       BlockStorage::GetBlockStorage().PutMetadata(
           MetaType::EARLIEST_HISTORY_STATE_EPOCH,
           DataConversion::StringToCharArray(
-              std::to_string(m_mediator.m_earliestTrieSnapshotDSEpoch)));
+              std::to_string(m_mediator.m_initTrieSnapshotDSEpoch)));
     }
 
     // clear all the state deltas from disk.
@@ -212,11 +203,9 @@ bool Retriever::RetrieveTxBlocks() {
           // commit the state to disk
           if (!AccountStore::GetInstance().MoveUpdatesToDisk(
                   i / NUM_FINAL_BLOCK_PER_POW,
-                  m_mediator.m_initTrieSnapshotDSEpoch,
-                  m_mediator.m_earliestTrieSnapshotDSEpoch)) {
+                  m_mediator.m_initTrieSnapshotDSEpoch)) {
             LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
             return false;
-            ;
           }
           // clear the stateDelta db
           if (!BlockStorage::GetBlockStorage().ResetDB(

@@ -113,7 +113,6 @@ class Mediator {
   std::atomic<double> m_aveBlockTimeInSeconds;
 
   /// Snapshot starting epoch
-  uint64_t m_earliestTrieSnapshotDSEpoch = std::numeric_limits<uint64_t>::max();
   uint64_t m_initTrieSnapshotDSEpoch = std::numeric_limits<uint64_t>::max();
 
   /// Constructor.
@@ -148,6 +147,8 @@ class Mediator {
   void SetupLogLevel();
 
   bool ToProcessTransaction();
+
+  uint64_t GetEarliestTrieDSEpoch(const uint64_t& currDSEpoch);
 };
 
 #endif  // ZILLIQA_SRC_LIBMEDIATOR_MEDIATOR_H_
