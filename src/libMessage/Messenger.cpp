@@ -4873,6 +4873,7 @@ bool Messenger::SetNodePendingTxn(
     protoHashCodePair->set_code(hashCodePair.second);
 
     sha2.Update(hashCodePair.first.data(), hashCodePair.first.size);
+    sha2.Update(to_string(hashCodePair.second));
   }
 
   const bytes& txnlisthash = sha2.Finalize();
