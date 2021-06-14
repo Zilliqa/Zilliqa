@@ -904,7 +904,8 @@ bool AccountStore::MigrateContractStates(
   }
 
   /// repopulate trie and discard old persistence
-  if (!MoveUpdatesToDisk()) {
+  uint64_t initTrie;
+  if (!MoveUpdatesToDisk(0, initTrie)) {
     LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
     return false;
   }

@@ -32,7 +32,7 @@ class TraceableDB : public dev::OverlayDB {
       return false;
     }
 
-    if (!KEEP_HISTORICAL_STATE || !dsBlockNum) {
+    if (!(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE) || !dsBlockNum) {
       return true;
     }
 
