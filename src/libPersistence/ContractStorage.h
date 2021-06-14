@@ -188,6 +188,12 @@ class ContractStorage : public Singleton<ContractStorage> {
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
       bool temp, bool revertible);
 
+  void PurgeUnnecessary();
+
+  void SetPurgeStopSignal();
+
+  bool IsPurgeRunning();
+
   /// Buffer the current t_map into p_map
   void BufferCurrentState();
 

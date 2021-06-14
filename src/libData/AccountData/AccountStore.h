@@ -234,6 +234,12 @@ class AccountStore
   /// clean the data for revert the AccountStore
   void InitRevertibles();
 
+  void PurgeUnnecessary();
+
+  void SetPurgeStopSignal();
+
+  bool IsPurgeRunning();
+
   std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
 
   bool MigrateContractStates(
