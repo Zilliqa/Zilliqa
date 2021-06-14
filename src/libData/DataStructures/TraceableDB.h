@@ -26,7 +26,8 @@ class TraceableDB : public dev::OverlayDB {
       : dev::OverlayDB(dbName), m_purgeDB(dbName + "_purge") {}
   bool commit(const uint64_t& dsBlockNum) {
     std::vector<dev::h256> toPurge;
-    if (!OverlayDB::commit(KEEP_HISTORICAL_STATE, toPurge)) {
+    if (!OverlayDB::commit(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE,
+                           toPurge)) {
       LOG_GENERAL(WARNING, "OverlayDB::commit failed");
       return false;
     }
@@ -62,7 +63,9 @@ class TraceableDB : public dev::OverlayDB {
 
     dev::RLPStream s(toPurge.size());
     for (const auto& it : toPurge) {
-      LOG_GENERAL(INFO, "toPurge: " << it.hex());
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "toPurge: " << it.hex());
+      }
       s.append(it);
     }
 
@@ -92,8 +95,10 @@ class TraceableDB : public dev::OverlayDB {
         dev::RLP rlp(iter->value());
         std::vector<dev::h256> toPurge(rlp);
 
-        for (const auto& t : toPurge) {
-          LOG_GENERAL(INFO, "purging: " << t.hex());
+        if (LOG_SC) {
+          for (const auto& t : toPurge) {
+            LOG_GENERAL(INFO, "purging: " << t.hex());
+          }
         }
 
         m_levelDB.BatchDelete(toPurge);

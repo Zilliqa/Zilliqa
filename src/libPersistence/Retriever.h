@@ -33,6 +33,7 @@ class Retriever {
   bool RetrieveTxBlocks();
   bool RetrieveBlockLink();
   bool RetrieveStates();
+  bool RetrieveStatesOld();
   bool ValidateStates();
   bool MigrateContractStates(
       bool ignore_checker, bool disambiguation,

@@ -143,6 +143,8 @@ class AccountStore
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
 
+  bool RetrieveFromDiskOld();
+
   /// Get the instance of an account from AccountStoreTemp
   /// [[[WARNING]]] Test utility function, don't use in core protocol
   Account* GetAccountTemp(const Address& address);
@@ -233,6 +235,11 @@ class AccountStore
   void InitRevertibles();
 
   std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
+
+  bool MigrateContractStates(
+      bool ignoreCheckerFailure, bool disambiguation,
+      const std::string& contract_address_output_filename,
+      const std::string& normal_address_output_filename);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
