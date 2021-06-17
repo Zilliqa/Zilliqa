@@ -73,6 +73,7 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
 bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum, bool purgeAll) {
   LOG_MARKER();
 
+  uint count = 0;
   leveldb::Iterator* iter =
       m_purgeDB.GetDB()->NewIterator(leveldb::ReadOptions());
   iter->SeekToFirst();
@@ -100,11 +101,14 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum, bool purgeAll) {
                                         << " t_dsBlockNum: " << t_dsBlockNum);
         }
       }
+      count++;
 
       m_levelDB.BatchDelete(toPurge);
       m_purgeDB.DeleteKey(iter->key().ToString());
     }
   }
+
+  LOG_GENERAL(INFO, "Purged: " << count << " ds epochs");
 
   return true;
 }
