@@ -567,6 +567,17 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     return false;
   }
 
+#ifdef VC_TEST_FB_SUSPEND_RESPONSE
+  ConsensusCommon::State state = m_consensusObject->GetState();
+
+  if (state == CHALLENGE_DONE) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "I am suspending myself to test viewchange "
+              "(VC_TEST_FB_SUSPEND_RESPONSE)");
+    return false;
+  }
+#endif  // VC_TEST_FB_SUSPEND_RESPONSE
+
   if (!m_consensusObject->ProcessMessage(message, offset, from)) {
     return false;
   }
