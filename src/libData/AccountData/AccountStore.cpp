@@ -319,7 +319,7 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
     }
 
     // update EARLIEST_HISTORY_STATE_EPOCH
-    if (KEEP_HISTORICAL_STATE) {
+    if (KEEP_HISTORICAL_STATE && dsBlockNum > 0) {
       bytes inittrieepoch_ser;
       bool found = BlockStorage::GetBlockStorage().GetMetadata(
           MetaType::EARLIEST_HISTORY_STATE_EPOCH, inittrieepoch_ser);
@@ -827,6 +827,7 @@ bool AccountStore::MigrateContractStates(
       return false;
     }
 
+    account.SetStorageRoot(dev::h256());
     // invoke scilla checker
     m_scillaIPCServer->setContractAddressVerRoot(address, scilla_version,
                                                  account.GetStorageRoot());
