@@ -152,9 +152,9 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
             }
           }
           // commit the state to disk
-          uint64_t initTrie;
-          if (!AccountStore::GetInstance().MoveUpdatesToDisk(0, initTrie)) {
-            LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
+          if (!AccountStore::GetInstance().MoveUpdatesToDisk(
+                  i / NUM_FINAL_BLOCK_PER_POW)) {
+            LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk() failed");
             return false;
           }
           // clear the stateDelta db
