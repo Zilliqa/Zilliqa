@@ -2150,14 +2150,15 @@ Json::Value LookupServer::GetStateProof(const string& address,
     }
 
     const uint64_t& earliestTrieDSEpoch = m_mediator.GetEarliestTrieDSEpoch(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() /
+        NUM_FINAL_BLOCK_PER_POW);
 
     if ((requestedTxBlockNum / NUM_FINAL_BLOCK_PER_POW) < earliestTrieDSEpoch) {
       throw JsonRpcException(
           RPC_MISC_ERROR,
           "Proof from requested txBlock is expired, earliest: " +
-              boost::lexical_cast<std::string>((earliestTrieDSEpoch - 1) *
-                                               NUM_FINAL_BLOCK_PER_POW));
+              boost::lexical_cast<std::string>(
+                  (earliestTrieDSEpoch)*NUM_FINAL_BLOCK_PER_POW));
     }
 
     rootHash = m_mediator.m_txBlockChain.GetBlock(requestedTxBlockNum)
