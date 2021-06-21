@@ -1064,9 +1064,10 @@ void Node::UpdateBalanceForPreGeneratedAccounts() {
 
 void Node::StartTxnProcessingThread() {
   LOG_MARKER();
-  auto t = [this]() -> void {
-    m_mediator.m_node->m_prePrepRunning = false;
-    if (m_mediator.ToProcessTransaction()) {
+  m_mediator.m_node->m_prePrepRunning = false;
+  if (m_mediator.ToProcessTransaction()) {
+    m_mediator.m_node->m_txnProcessingFinished = false;
+    auto t = [this]() -> void {
       if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
         m_mediator.m_node->ProcessTransactionWhenShardBackup(
             SHARD_MICROBLOCK_GAS_LIMIT);
@@ -1077,9 +1078,9 @@ void Node::StartTxnProcessingThread() {
         m_mediator.m_node->ProcessTransactionWhenShardBackup(
             m_mediator.m_ds->m_microBlockGasLimit);
       }
-    }
-  };
-  DetachedFunction(1, t);
+    };
+    DetachedFunction(1, t);
+  }
 }
 
 bool Node::WaitUntilTxnProcessingDone() {
