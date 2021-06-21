@@ -109,35 +109,6 @@ bool Retriever::RetrieveTxBlocks() {
     LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
 
-    if (KEEP_HISTORICAL_STATE) {
-      uint64_t earliestTrieSnapshotEpoch = std::numeric_limits<uint64_t>::max();
-      bytes earliestTrieSnapshotEpochBytes;
-      if (BlockStorage::GetBlockStorage().GetMetadata(
-              MetaType::EARLIEST_HISTORY_STATE_EPOCH,
-              earliestTrieSnapshotEpochBytes)) {
-        try {
-          earliestTrieSnapshotEpoch =
-              std::stoull(DataConversion::CharArrayToString(
-                  earliestTrieSnapshotEpochBytes));
-        } catch (...) {
-          LOG_GENERAL(
-              WARNING,
-              "EARLIEST_HISTORY_STATE_EPOCH cannot be parsed as uint64_t "
-                  << DataConversion::CharArrayToString(
-                         earliestTrieSnapshotEpochBytes));
-          return false;
-        }
-      } else {
-        LOG_GENERAL(INFO,
-                    "No EARLIEST_HISTORY_STATE_EPOCH from local persistence");
-      }
-      m_mediator.m_initTrieSnapshotDSEpoch = earliestTrieSnapshotEpoch;
-      BlockStorage::GetBlockStorage().PutMetadata(
-          MetaType::EARLIEST_HISTORY_STATE_EPOCH,
-          DataConversion::StringToCharArray(
-              std::to_string(m_mediator.m_initTrieSnapshotDSEpoch)));
-    }
-
     // clear all the state deltas from disk.
     if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
       LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
@@ -202,9 +173,8 @@ bool Retriever::RetrieveTxBlocks() {
           }
           // commit the state to disk
           if (!AccountStore::GetInstance().MoveUpdatesToDisk(
-                  i / NUM_FINAL_BLOCK_PER_POW,
-                  m_mediator.m_initTrieSnapshotDSEpoch)) {
-            LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk failed");
+                  i / NUM_FINAL_BLOCK_PER_POW)) {
+            LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk() failed");
             return false;
           }
           // clear the stateDelta db

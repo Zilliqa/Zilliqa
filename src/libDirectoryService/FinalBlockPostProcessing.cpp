@@ -187,9 +187,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               m_mediator.m_dsBlockChain.GetLastBlock()
                   .GetHeader()
-                  .GetBlockNum(),
-              m_mediator.m_initTrieSnapshotDSEpoch)) {
-        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+                  .GetBlockNum())) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed, what to do?");
         return;
       } else {
         if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
@@ -285,16 +284,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     m_mediator.m_node->SendPendingTxnToLookup();
   }
   m_mediator.m_node->ClearUnconfirmedTxn();
-  AccountStore::GetInstance().InitTemp();
-  AccountStore::GetInstance().InitRevertibles();
-  m_stateDeltaFromShards.clear();
+
   m_allPoWConns.clear();
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
-
   if (isVacuousEpoch) {
     SetState(POW_SUBMISSION);
-  } else {
+  }
+
+  AccountStore::GetInstance().InitTemp();
+  AccountStore::GetInstance().InitRevertibles();
+  m_stateDeltaFromShards.clear();
+
+  if (!isVacuousEpoch) {
     SetState(MICROBLOCK_SUBMISSION);
   }
 

@@ -263,9 +263,9 @@ bool Mediator::ToProcessTransaction() {
 
 uint64_t Mediator::GetEarliestTrieDSEpoch(const uint64_t& currDSEpochNum) {
   if (currDSEpochNum >
-      m_initTrieSnapshotDSEpoch + NUM_DS_EPOCHS_STATE_HISTORY) {
+      INIT_TRIE_DB_SNAPSHOT_EPOCH + NUM_DS_EPOCHS_STATE_HISTORY) {
     return currDSEpochNum - NUM_DS_EPOCHS_STATE_HISTORY;
   } else {
-    return m_initTrieSnapshotDSEpoch;
+    return INIT_TRIE_DB_SNAPSHOT_EPOCH;
   }
 }
