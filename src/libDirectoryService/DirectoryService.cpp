@@ -617,7 +617,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
                         dsLeader)) {
     auto iterDSLeader = std::find_if(
         dsComm.begin(), dsComm.end(), [dsLeader](const PairOfNode& pubKeyPeer) {
-          return pubKeyPeer.second == dsLeader.second;
+          return pubKeyPeer.first == dsLeader.first;
         });
     if (iterDSLeader != dsComm.end()) {
       SetConsensusLeaderID(iterDSLeader - dsComm.begin());
