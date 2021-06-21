@@ -182,6 +182,11 @@ if(VC_TEST_VC_PRECHECK_2)
     add_definitions(-DVC_TEST_VC_PRECHECK_2)
 endif()
 
+if(VC_TEST_FB_SUSPEND_1)
+    message(STATUS "VC 9 test enabled")
+    add_definitions(-VC_TEST_FB_SUSPEND_1)
+endif()
+
 # For Merging DSMB into FINALBLOCK
 if(DM_TEST_DM_LESSTXN_ONE)
     message(STATUS "DM 1 test enabled")
