@@ -64,11 +64,11 @@ do
     ;;
     vc1)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 1 time (before DS block consensus)"
+        echo "Build with VC test DS Suspend 1 - Suspend DS leader for 1 time (before DS block consensus)"
     ;;
     vc2)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 3 times (before DS block consensus)"
+        echo "Build with VC test DS Suspend 3 - Suspend DS leader for 3 times (before DS block consensus)"
     ;;
     govvc2)
         CMAKE_EXTRA_OPTIONS="-DGOVVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
@@ -76,27 +76,31 @@ do
     ;;
     vc3)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 1 time (before Final block consensus)"
+        echo "Build with VC test FB Suspend 1 - Suspend DS leader for 1 time (before Final block consensus)"
     ;;
     vc4)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 3 times (before Final block consensus)"
+        echo "Build with VC test FB Suspend 3- Suspend DS leader for 3 times (before Final block consensus)"
     ;;
     vc5)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 1 time (before VC block consensus)"
+        echo "Build with VC test VC Suspend 1 - Suspend DS leader for 1 time (before VC block consensus)"
     ;;
     vc6)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Suspend DS leader for 3 times (before VC block consensus)"
+        echo "Build with VC test VC Suspend 3 - Suspend DS leader for 3 times (before VC block consensus)"
     ;;
     vc7)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Caused the node to lag behind at ds epoch"
+        echo "Build with VC test VC Precheck 1 - Caused the node to lag behind at ds epoch"
     ;;
     vc8)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK_2=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Caused the node to lag behind at tx epoch"
+        echo "Build with VC test VC Precheck 2 - Caused the node to lag behind at tx epoch"
+    ;;
+    vc9)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_RESPONSE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test FB Suspend consensus at commit done 1 - Caused the node to lag behind at tx epoch"
     ;;
     dm1)
         CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSTXN_ONE=1 ${CMAKE_EXTRA_OPTIONS}"
@@ -143,7 +147,7 @@ do
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-8>] [dm<1-9>] [sj<1-2>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>]"
         exit 1
     ;;
     esac
