@@ -575,7 +575,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
   if (checkState == ConsensusCommon::State::FINALCHALLENGE_DONE &&
       m_mode == PRIMARY_DS && m_viewChangeCounter == 0 &&
-      m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW ==
+      m_mediator.m_txBlockChain.GetBlockCount() % NUM_FINAL_BLOCK_PER_POW !=
           0) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I am suspending myself to test viewchange "
