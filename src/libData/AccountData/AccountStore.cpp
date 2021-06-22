@@ -249,19 +249,12 @@ bool AccountStore::MoveRootToDisk(const dev::h256& root) {
   return true;
 }
 
-bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
-                                     uint64_t& initTrieSnapshotDSEpoch) {
+bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
-
-  if (KEEP_HISTORICAL_STATE) {
-    LOG_GENERAL(INFO, "dsBlockNum: " << dsBlockNum
-                                     << " initTrieSnapshotDSEpoch: "
-                                     << initTrieSnapshotDSEpoch);
-  }
 
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
@@ -318,34 +311,14 @@ bool AccountStore::MoveUpdatesToDisk(const uint64_t& dsBlockNum,
       LOG_GENERAL(WARNING, "LevelDB commit failed");
     }
 
-    // update EARLIEST_HISTORY_STATE_EPOCH
-    if (KEEP_HISTORICAL_STATE && dsBlockNum > 0) {
-      bytes inittrieepoch_ser;
-      bool found = BlockStorage::GetBlockStorage().GetMetadata(
-          MetaType::EARLIEST_HISTORY_STATE_EPOCH, inittrieepoch_ser);
-
-      if (!found) {
-        // We have to configure the init trie epoch
-        BlockStorage::GetBlockStorage().PutMetadata(
-            MetaType::EARLIEST_HISTORY_STATE_EPOCH,
-            DataConversion::StringToCharArray(std::to_string(dsBlockNum)));
-        initTrieSnapshotDSEpoch = dsBlockNum;
-      }
-    }
-
     if (!MoveRootToDisk(m_state.root())) {
       LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_state.root().hex());
       return false;
     }
   } catch (const boost::exception& e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
+    LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk(). "
                              << boost::diagnostic_information(e));
     return false;
-  }
-  if (KEEP_HISTORICAL_STATE) {
-    LOG_GENERAL(INFO, "dsBlockNum: " << dsBlockNum
-                                     << " initTrieSnapshotDSEpoch: "
-                                     << initTrieSnapshotDSEpoch);
   }
 
   m_addressToAccount->clear();
@@ -924,9 +897,8 @@ bool AccountStore::MigrateContractStates(
   }
 
   /// repopulate trie and discard old persistence
-  uint64_t initTrie;
-  if (!MoveUpdatesToDisk(0, initTrie)) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed");
+  if (!MoveUpdatesToDisk()) {
+    LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed");
     return false;
   }
 

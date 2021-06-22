@@ -1039,9 +1039,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               m_mediator.m_dsBlockChain.GetLastBlock()
                   .GetHeader()
-                  .GetBlockNum(),
-              m_mediator.m_initTrieSnapshotDSEpoch)) {
-        LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+                  .GetBlockNum())) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed, what to do?");
         // return false;
       } else {
         if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(

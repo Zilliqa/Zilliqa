@@ -521,8 +521,7 @@ void IsolatedServer::PostTxBlock() {
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
   }
-  uint64_t initTrie;
-  AccountStore::GetInstance().MoveUpdatesToDisk(0, initTrie);
+  AccountStore::GetInstance().MoveUpdatesToDisk();
   AccountStore::GetInstance().InitTemp();
 
   m_blocknum++;
