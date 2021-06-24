@@ -55,8 +55,12 @@ bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) {
 }
 
 template <class MAP>
+Account* AccountStoreTrie<MAP>::GetAccount(const Address& address) {
+  return this->GetAccount(address, false);
+}
+
+template <class MAP>
 Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
-                                           const dev::h256& rootHash,
                                            bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
@@ -66,13 +70,8 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     return account;
   }
 
+  LOG_GENERAL(INFO, "resetRoot:" << resetRoot);
   std::string rawAccountBase;
-
-  dev::h256 t_rootHash = rootHash;
-
-  if (LOOKUP_NODE_MODE && rootHash == dev::h256()) {
-    t_rootHash = m_prevRoot;
-  }
 
   {
     std::lock(m_mutexTrie, m_mutexDB);
@@ -80,11 +79,11 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
 
     if (LOOKUP_NODE_MODE && resetRoot) {
-      if (t_rootHash != dev::h256()) {
+      if (m_prevRoot != dev::h256()) {
         try {
-          m_state.setRoot(t_rootHash);
+          m_state.setRoot(m_prevRoot);
         } catch (...) {
-          LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed");
+          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
           return nullptr;
         }
       }
