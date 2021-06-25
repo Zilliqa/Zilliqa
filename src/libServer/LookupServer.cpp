@@ -558,9 +558,10 @@ Json::Value LookupServer::CreateTransaction(
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
-      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+      const Account* sender =
+          AccountStore::GetInstance().GetAccount(fromAddr, true);
       const Account* toAccount =
-          AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+          AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
       if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
         return ret;
@@ -852,7 +853,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
     Json::Value ret;
     if (account != nullptr) {
@@ -895,7 +896,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -937,7 +938,8 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
-      const Account* account = AccountStore::GetInstance().GetAccount(addr);
+      const Account* account =
+          AccountStore::GetInstance().GetAccount(addr, true);
 
       if (account == nullptr) {
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -978,7 +980,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -1014,7 +1016,7 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
 
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -1031,7 +1033,7 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
-          AccountStore::GetInstance().GetAccount(contractAddr);
+          AccountStore::GetInstance().GetAccount(contractAddr, true);
 
       if (contractAccount == nullptr || !contractAccount->isContract()) {
         continue;
@@ -1309,7 +1311,8 @@ string LookupServer::GetTotalCoinSupply() {
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-    balance = AccountStore::GetInstance().GetAccount(NullAddress)->GetBalance();
+    balance =
+        AccountStore::GetInstance().GetAccount(NullAddress, true)->GetBalance();
   }
 
   boost::multiprecision::cpp_dec_float_50 rewards(balance.str());
