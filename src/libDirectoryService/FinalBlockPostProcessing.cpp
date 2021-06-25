@@ -70,6 +70,13 @@ bool DirectoryService::StoreFinalBlockToDisk() {
 
   // Add finalblock to txblockchain
   m_mediator.m_node->AddBlock(*m_finalBlock);
+
+  // To make sure pow submission is accepted. But it is not verified until state
+  // switches to POW_SUBMISSION
+  if (m_mediator.GetIsVacuousEpoch()) {
+    m_powSubmissionWindowExpired = false;
+  }
+
   m_mediator.IncreaseEpochNum();
 
   // At this point, the transactions in the last Epoch is no longer useful, thus
@@ -183,10 +190,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   if (isVacuousEpoch) {
-    // To make sure pow submission is accepted. But it is not be verified
-    // until state switches to POW_SUBMISSION
-    m_powSubmissionWindowExpired = false;
-
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               m_mediator.m_dsBlockChain.GetLastBlock()
