@@ -400,8 +400,6 @@ class Node : public Executable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
-  void WakeupAtDSEpoch();
-
   void WakeupAtTxEpoch();
 
   /// Set initial state, variables, and clean-up storage

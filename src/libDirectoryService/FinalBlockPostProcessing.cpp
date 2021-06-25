@@ -183,6 +183,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   if (isVacuousEpoch) {
+    // To make sure pow submission is accepted. But it is not be verified
+    // until state switches to POW_SUBMISSION
+    m_powSubmissionWindowExpired = false;
+
     auto writeStateToDisk = [this]() -> void {
       if (!AccountStore::GetInstance().MoveUpdatesToDisk(
               m_mediator.m_dsBlockChain.GetLastBlock()
@@ -285,18 +289,16 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
   m_mediator.m_node->ClearUnconfirmedTxn();
 
+  AccountStore::GetInstance().InitTemp();
+  AccountStore::GetInstance().InitRevertibles();
+  m_stateDeltaFromShards.clear();
+
   m_allPoWConns.clear();
   ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
   if (isVacuousEpoch) {
     SetState(POW_SUBMISSION);
-  }
-
-  AccountStore::GetInstance().InitTemp();
-  AccountStore::GetInstance().InitRevertibles();
-  m_stateDeltaFromShards.clear();
-
-  if (!isVacuousEpoch) {
+  } else {
     SetState(MICROBLOCK_SUBMISSION);
   }
 
