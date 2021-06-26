@@ -28,6 +28,10 @@
 
 using namespace std;
 
+void LevelDB::log_error(leveldb::Status status) const
+{
+    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " status is not OK - " << status.ToString());
+}
 
 LevelDB::LevelDB(const string& dbName, const string& path, const string& subdirectory)
 {
@@ -41,7 +45,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
         return;
     }
 
-    m_options.max_open_files = 256;
+    m_options.max_open_files = 1024;
     m_options.create_if_missing = true;
 
     leveldb::DB* db;
@@ -79,7 +83,7 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
 
-    m_options.max_open_files = 256;
+    m_options.max_open_files = 1024;
     m_options.create_if_missing = true;
 
     leveldb::DB* db;
@@ -146,7 +150,7 @@ string LevelDB::Lookup(const std::string & key) const
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), key, &value);
     if (!s.ok())
     {
-        // TODO
+        log_error(s);
         return "";
     }
 
@@ -159,7 +163,7 @@ string LevelDB::Lookup(const vector<unsigned char>& key) const
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), leveldb::Slice(vector_ref<const unsigned char>(&key[0], key.size())), &value);
     if (!s.ok())
     {
-        // TODO
+        log_error(s);
         return "";
     }
 
@@ -173,7 +177,7 @@ string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum) const
 
     if (!s.ok())
     {
-        // TODO
+        log_error(s);
         return "";
     }
 
@@ -187,6 +191,7 @@ string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum, bool &
 
     if (!s.ok())
     {
+        log_error(s);
         found = false;
         return "";
     }
@@ -200,8 +205,7 @@ string LevelDB::Lookup(const dev::h256 & key) const
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), leveldb::Slice(key.hex()), &value);
     if (!s.ok())
     {
-        LOG_GENERAL(DEBUG, "status: " <<  s.ToString() << " key: " << key.hex());
-        // TODO
+        log_error(s); 
         return "";
     }
 
@@ -215,7 +219,7 @@ string LevelDB::Lookup(const dev::bytesConstRef & key) const
                                   &value);
     if (!s.ok())
     {
-        // TODO
+        log_error(s);
         return "";
     }
 
@@ -509,7 +513,7 @@ bool LevelDB::RefreshDB()
     m_db.reset();
 
     leveldb::Options options;
-    options.max_open_files = 256;
+    options.max_open_files = 1024;
     options.create_if_missing = true;
 
     leveldb::DB* db;
@@ -553,7 +557,7 @@ bool LevelDB::ResetDBForNormalNode()
         boost::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
-        options.max_open_files = 256;
+        options.max_open_files = 1024;
         options.create_if_missing = true;
 
         leveldb::DB* db;
@@ -596,7 +600,7 @@ bool LevelDB::ResetDBForLookupNode()
         boost::filesystem::remove_all(STORAGE_PATH + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
-        options.max_open_files = 256;
+        options.max_open_files = 1024;
         options.create_if_missing = true;
 
         leveldb::DB* db;

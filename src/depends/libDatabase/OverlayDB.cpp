@@ -84,11 +84,21 @@ namespace dev
 		bytes ret = MemoryDB::lookupAux(_h);
 		if (!ret.empty())
 			return ret;
-
+		
+		string v;
 		bytes b = _h.asBytes();
 		b.push_back(255);	// for aux
 
-		return asBytes(m_levelDB.Lookup(bytesConstRef(&b)));
+
+    
+        v = m_levelDB.Lookup(bytesConstRef(&b));
+    
+    	if(v.empty())
+		{	
+			LOG_GENERAL(WARNING,"lookup failed: "<< _h.hex());
+		}
+
+		return asBytes(v);
 	}
 
 	void OverlayDB::rollback()
