@@ -151,7 +151,12 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (m_powSubmissionWindowExpired) {
+  // If window is not expired, accept the pow submission.
+  // Otherwise, Special case of expired window : I am slow ds node yet to finish
+  // with finalblock consensus from **vacuous** epoch. so accept pow submission
+  // If no special case, ignore pow submission.
+  if (m_powSubmissionWindowExpired &&
+      !(m_mediator.GetIsVacuousEpoch() && m_state == FINALBLOCK_CONSENSUS)) {
     LOG_GENERAL(INFO, "Submission recvd too late from "
                           << from.GetPrintableIPAddress());
     return true;
