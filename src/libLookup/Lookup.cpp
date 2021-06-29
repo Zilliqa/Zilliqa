@@ -3055,7 +3055,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         if (!CommitTxBlocks(txBlocks)) {
-          if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+          if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
             m_rejoinInProgress = true;
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
