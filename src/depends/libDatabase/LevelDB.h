@@ -45,6 +45,8 @@ class LevelDB
 
     std::string m_open_db_path;
 
+    void log_error(leveldb::Status status) const;
+
 public:
 
     /// Constructor.
