@@ -254,7 +254,8 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
                   break;
                 }
                 Address addr(addr_str);
-                Account* acc = AccountStore::GetInstance().GetAccount(addr);
+                Account* acc =
+                    AccountStore::GetInstance().GetAccount(addr, true);
                 if (acc == nullptr || !acc->isContract()) {
                   continue;
                 }
