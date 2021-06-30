@@ -3342,6 +3342,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         if (ARCHIVAL_LOOKUP || (!ARCHIVAL_LOOKUP && FinishRejoinAsLookup())) {
           SetSyncType(SyncType::NO_SYNC);
           m_rejoinInProgress = false;
+          m_rejoinNetworkAttempts = 0;  // reset rejoining attempts
           cv_setRejoinRecovery.notify_all();
           if (m_lookupServer) {
             if (m_lookupServer->StartListening()) {
