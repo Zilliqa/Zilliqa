@@ -4502,6 +4502,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
       auto func2 = [this]() mutable -> void {
         while (true) {
           this->CleanVariables();
+          AccountStore::GetInstance().Init();
           m_mediator.m_node->CleanUnavailableMicroBlocks();
           while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
             LOG_GENERAL(
@@ -4587,6 +4588,7 @@ void Lookup::RejoinAsLookup(bool fromLookup) {
       auto func2 = [this]() mutable -> void {
         while (true) {
           this->CleanVariables();
+          AccountStore::GetInstance().Init();
           m_mediator.m_node->CleanUnavailableMicroBlocks();
           while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
             LOG_GENERAL(
