@@ -2267,7 +2267,7 @@ bool Node::CleanVariables() {
     return true;
   }
 
-  AccountStore::GetInstance().InitSoft();
+  AccountStore::GetInstance().Init();
   {
     lock_guard<mutex> g(m_mutexShardMember);
     m_myShardMembers.reset(new DequeOfNode);
