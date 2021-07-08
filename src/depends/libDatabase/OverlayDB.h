@@ -31,6 +31,7 @@
 namespace dev
 {
 	static std::vector<h256> list_placeholder;
+	static std::unordered_set<h256> set_placeholder;
 
 	// TODO: change inheritance from MemoryDB to composition
 	class OverlayDB: public MemoryDB
@@ -42,7 +43,7 @@ namespace dev
 		void ResetDB();
 		bool RefreshDB();
 
-		bool commit(bool keepHistory = false, std::vector<h256>& toPurge = list_placeholder);
+		bool commit(bool keepHistory = false, std::vector<h256>& toPurge = list_placeholder, std::unordered_set<h256>& inserted = set_placeholder);
 		void rollback();
 
 		std::string lookup(h256 const& _h) const;
