@@ -3123,6 +3123,11 @@ void Lookup::PrepareForStartPow() {
 
   if (!GetDSInfo()) {
     LOG_GENERAL(WARNING, "DSInfo not received!");
+    m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
+    auto func = [this]() mutable -> void {
+      m_mediator.m_node->StartSynchronization();
+    };
+    DetachedFunction(1, func);
     return;
   }
 
