@@ -480,9 +480,11 @@ void ContractStorage::DeleteByPrefix(const string& prefix) {
   }
 
   p = m_stateDataMap.lower_bound(prefix);
-  while (p != m_stateDataMap.end() &&
-         p->first.compare(0, prefix.size(), prefix) == 0) {
-    t_indexToBeDeleted.emplace(p->first);
+  while ((p != m_stateDataMap.end() &&
+          p->first.compare(0, prefix.size(), prefix) == 0)) {
+    if (m_indexToBeDeleted.find(p->first) == m_indexToBeDeleted.cend()) {
+      t_indexToBeDeleted.emplace(p->first);
+    }
     ++p;
   }
 
@@ -513,7 +515,8 @@ void ContractStorage::DeleteByIndex(const string& index) {
   }
 
   p = m_stateDataMap.find(index);
-  if (p != m_stateDataMap.end()) {
+  if (p != m_stateDataMap.end() &&
+      m_indexToBeDeleted.find(index) == m_indexToBeDeleted.cend()) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from m: " << index);
     }
