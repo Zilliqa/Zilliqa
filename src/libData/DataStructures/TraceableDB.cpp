@@ -22,7 +22,9 @@ using namespace std;
 
 bool TraceableDB::commit(const uint64_t& dsBlockNum) {
   std::vector<dev::h256> toPurge;
-  if (!OverlayDB::commit(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE, toPurge)) {
+  unordered_set<dev::h256> inserted;
+  if (!OverlayDB::commit(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE, toPurge,
+                         inserted)) {
     LOG_GENERAL(WARNING, "OverlayDB::commit failed");
     return false;
   }
@@ -38,7 +40,7 @@ bool TraceableDB::commit(const uint64_t& dsBlockNum) {
   }
 
   // execute purge for expired keys
-  if (!ExecutePurge(dsBlockNum)) {
+  if (!ExecutePurge(dsBlockNum, inserted)) {
     LOG_GENERAL(WARNING, "ExecutePurging failed");
     return false;
   }
@@ -70,7 +72,9 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
   return m_purgeDB.Insert(keystream.str(), s.out()) == 0;
 }
 
-bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum, bool purgeAll) {
+bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
+                               const unordered_set<dev::h256>& inserted,
+                               bool purgeAll) {
   LOG_MARKER();
 
   leveldb::Iterator* iter =
@@ -90,19 +94,32 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum, bool purgeAll) {
     }
 
     // If purgeAll = true, dsBlockNum is inconsequential
-    if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
-      dev::RLP rlp(iter->value());
-      std::vector<dev::h256> toPurge(rlp);
+    dev::RLP rlp(iter->value());
+    std::vector<dev::h256> toPurge(rlp);
 
+    for (auto it = toPurge.begin(); it != toPurge.end();) {
       if (LOG_SC) {
-        for (const auto& t : toPurge) {
-          LOG_GENERAL(INFO, "purging: " << t.hex()
-                                        << " t_dsBlockNum: " << t_dsBlockNum);
-        }
+        LOG_GENERAL(INFO, "purging: " << it->hex()
+                                      << " t_dsBlockNum: " << t_dsBlockNum);
       }
-
+      if (inserted.find(*it) != inserted.end()) {
+        LOG_GENERAL(INFO, "Do not purge : " << it->hex());
+        it = toPurge.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
       m_levelDB.BatchDelete(toPurge);
       m_purgeDB.DeleteKey(iter->key().ToString());
+    } else {
+      dev::RLPStream s(toPurge.size());
+
+      for (const auto& i : toPurge) {
+        s.append(i);
+      }
+      // Replace the blocknum with new purge hashes
+      m_purgeDB.Insert(iter->key().ToString(), s.out());
     }
   }
 
@@ -115,11 +132,13 @@ bool TraceableDB::RefreshDB() {
 
 void TraceableDB::DetachedExecutePurge() {
   LOG_MARKER();
+
   auto detached_func = [this]() -> void {
     if (!m_purgeRunning) {
+      unordered_set<dev::h256> inserted;
       m_stopSignal = false;
       m_purgeRunning = true;
-      ExecutePurge(0, true);
+      ExecutePurge(0, inserted, true);
       m_purgeRunning = false;
       m_stopSignal = false;
     } else {
