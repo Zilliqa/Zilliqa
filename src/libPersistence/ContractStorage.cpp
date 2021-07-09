@@ -916,15 +916,6 @@ void ContractStorage::UpdateStateData(const string& key, const bytes& value,
   auto pos = t_indexToBeDeleted.find(key);
   if (pos != t_indexToBeDeleted.end()) {
     t_indexToBeDeleted.erase(pos);
-    // for reverting
-    p_indexToBeDeleted.emplace(key, false);
-  }
-
-  // for reverting
-  if (t_stateDataMap.find(key) != t_stateDataMap.end()) {
-    p_stateDataMap[key] = t_stateDataMap[key];
-  } else {
-    p_stateDataMap[key] = {};
   }
 
   t_stateDataMap[key] = value;
