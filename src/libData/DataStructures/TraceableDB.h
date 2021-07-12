@@ -34,7 +34,9 @@ class TraceableDB : public dev::OverlayDB {
 
   bool AddPendingPurge(const uint64_t& dsBlockNum,
                        const std::vector<dev::h256>& toPurge);
-  bool ExecutePurge(const uint64_t& dsBlockNum, bool purgeAll = false);
+  bool ExecutePurge(const uint64_t& dsBlockNum,
+                    const std::unordered_set<dev::h256>& inserted,
+                    bool purgeAll = false);
 
  public:
   void DetachedExecutePurge();

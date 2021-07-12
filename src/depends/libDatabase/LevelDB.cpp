@@ -344,7 +344,7 @@ int LevelDB::Insert(const leveldb::Slice & key, const leveldb::Slice & value)
 }
 
 bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                          const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux)
+                          const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux, unordered_set<dev::h256>& inserted)
 {
     ldb::WriteBatch batch;
 
@@ -352,6 +352,7 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
         if (i.second.second) {
             batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
+            inserted.emplace(i.first);
         }
     }
 
@@ -360,6 +361,7 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
+            inserted.emplace(i.first);
         }
     }
 

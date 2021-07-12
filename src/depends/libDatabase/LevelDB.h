@@ -119,7 +119,7 @@ public:
 
     /// Sets the value at the specified key for multiple such pairs.
     bool BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                     const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux);
+                     const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux, std::unordered_set<dev::h256>& inserted);
     bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
 
     /// Remove the kv pair for multiple specified key.
