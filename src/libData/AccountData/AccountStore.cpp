@@ -572,18 +572,6 @@ bool AccountStore::RevertCommitTemp() {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
-
-  if (LOOKUP_NODE_MODE) {
-    if (m_prevRoot != dev::h256()) {
-      try {
-        m_state.setRoot(m_prevRoot);
-      } catch (...) {
-        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
-        return false;
-      }
-    }
-  }
-
   // Revert changed
   for (auto const& entry : m_addressToAccountRevChanged) {
     (*m_addressToAccount)[entry.first] = entry.second;
