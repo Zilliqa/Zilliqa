@@ -977,11 +977,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       return false;
     }
 
-    // Clear STL memory cache
-    if (LOOKUP_NODE_MODE) {
-      DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
-    }
-
     // if lookup and loaded microblocks, then skip
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&
@@ -1012,10 +1007,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     if (!StoreFinalBlock(txBlock)) {
       LOG_GENERAL(WARNING, "StoreFinalBlock failed!");
       return false;
-    }
-    // Clear STL memory cache
-    if (!LOOKUP_NODE_MODE) {
-      DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
     }
 
     auto writeStateToDisk = [this]() -> void {
@@ -1078,6 +1069,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                          << "][" << txBlock.GetHeader().GetBlockNum()
                          << "] LAST");
   }
+  // Clear STL memory cache
+  DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
 
   // Assumption: New PoW done after every block committed
   // If I am not a DS committee member (and since I got this FinalBlock message,
