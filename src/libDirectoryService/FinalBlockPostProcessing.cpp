@@ -218,8 +218,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     };
     DetachedFunction(1, writeStateToDisk);
 
-    // Clear STL memory cache
-    DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(),
@@ -234,6 +232,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       return;
     }
   }
+  // Clear STL memory cache
+  DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
 
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
