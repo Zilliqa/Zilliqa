@@ -48,6 +48,7 @@
 #include "libServer/GetWorkServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/StakingServer.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -3005,7 +3006,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         m_mediator.m_ds->RejoinAsDS(false);
       }
       return false;
+    } else if (latestSynBlockNum > lowBlockNum) {
+      LOG_GENERAL(INFO,
+                  "We already received all or few of txblocks from incoming "
+                  "range previously. So ignoring these txblocks!");
+      return false;
     }
+
     auto res = m_mediator.m_validator->CheckTxBlocks(
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
@@ -3525,6 +3532,9 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
+      }
+      if (txBlkNum % RELEASE_CACHE_INTERVAL == 0) {
+        DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
       }
       if (!BlockStorage::GetBlockStorage().PutStateDelta(txBlkNum, delta)) {
         LOG_GENERAL(WARNING, "BlockStorage::PutStateDelta failed");
