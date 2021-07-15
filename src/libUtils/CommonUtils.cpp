@@ -17,6 +17,7 @@
 
 #include <malloc.h>
 #include <chrono>
+#include <mutex>
 
 #include "libUtils/CommonUtils.h"
 #include "libUtils/Logger.h"
@@ -25,5 +26,12 @@ using namespace std;
 
 void CommonUtils ::ReleaseSTLMemoryCache() {
   LOG_MARKER();
-  malloc_trim(0);
+
+  static mutex relMemoryCacheMutex;
+  if (relMemoryCacheMutex.try_lock()) {
+    malloc_trim(0);
+    relMemoryCacheMutex.unlock();
+  } else {
+    LOG_GENERAL(WARNING, "MemoryCache cleanup already in progress!");
+  }
 }
