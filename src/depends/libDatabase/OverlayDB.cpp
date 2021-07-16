@@ -43,7 +43,7 @@ namespace dev
 		return m_levelDB.RefreshDB();
 	}
 
-	bool OverlayDB::commit(bool keepHistory, std::vector<h256>& toPurge)
+	bool OverlayDB::commit(bool keepHistory, std::vector<h256>& toPurge, unordered_set<h256>& inserted)
 	{
 		LOG_MARKER();
 	// #if DEV_GUARDED_DB
@@ -59,7 +59,7 @@ namespace dev
 			}
 
 			/// add newly created nodes in disk
-			if (!m_levelDB.BatchInsert(m_main, m_aux)) {
+			if (!m_levelDB.BatchInsert(m_main, m_aux, inserted)) {
 				LOG_GENERAL(WARNING, "BatchInsert failed");
 				return false;
 			}

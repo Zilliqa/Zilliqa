@@ -81,16 +81,20 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     if (LOOKUP_NODE_MODE && resetRoot) {
       if (m_prevRoot != dev::h256()) {
         try {
-          m_state.setRoot(m_prevRoot);
-        } catch (...) {
-          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
+          auto t_state = m_state;
+          t_state.setRoot(m_prevRoot);
+          rawAccountBase =
+              t_state.at(DataConversion::StringToCharArray(address.hex()));
+        } catch (std::exception& e) {
+          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed, "
+                                              << e.what());
           return nullptr;
         }
       }
+    } else {
+      rawAccountBase =
+          m_state.at(DataConversion::StringToCharArray(address.hex()));
     }
-
-    rawAccountBase =
-        m_state.at(DataConversion::StringToCharArray(address.hex()));
   }
   if (rawAccountBase.empty()) {
     LOG_GENERAL(WARNING, "rawAccountBase is empty");
@@ -135,16 +139,18 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
     std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
     std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
 
+    auto t_state = m_state;
+
     if (t_rootHash != dev::h256()) {
       try {
-        m_state.setRoot(t_rootHash);
+        t_state.setRoot(t_rootHash);
       } catch (...) {
         LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed");
         return false;
       }
     }
 
-    rawAccountBase = m_state.getProof(
+    rawAccountBase = t_state.getProof(
         DataConversion::StringToCharArray(address.hex()), nodes);
   }
 
