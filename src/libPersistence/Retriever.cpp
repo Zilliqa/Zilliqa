@@ -25,6 +25,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/FileSystem.h"
 
@@ -183,6 +184,10 @@ bool Retriever::RetrieveTxBlocks() {
                 return false;
               }
 
+              if (j % RELEASE_CACHE_INTERVAL == 0 || j == i) {
+                DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
+              }
+
               TxBlockSharedPtr txBlockPerDelta;
               if (!BlockStorage::GetBlockStorage().GetTxBlock(
                       j, txBlockPerDelta)) {
@@ -249,6 +254,9 @@ bool Retriever::RetrieveTxBlocks() {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         return false;
+      }
+      if (extra_delta_index % RELEASE_CACHE_INTERVAL == 0) {
+        DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
       }
       BlockStorage::GetBlockStorage().PutStateDelta(extra_delta_index++,
                                                     stateDelta);
