@@ -550,6 +550,8 @@ const unsigned int MAX_IPCHANGE_REQUEST_LIMIT{
     ReadConstantNumeric("MAX_IPCHANGE_REQUEST_LIMIT", "node.recovery.")};
 const unsigned int MAX_REJOIN_NETWORK_ATTEMPTS{
     ReadConstantNumeric("MAX_REJOIN_NETWORK_ATTEMPTS", "node.recovery.")};
+const unsigned int RELEASE_CACHE_INTERVAL{
+    ReadConstantNumeric("RELEASE_CACHE_INTERVAL", "node.recovery.")};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==

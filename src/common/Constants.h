@@ -390,6 +390,7 @@ extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
 extern const bool CONTRACT_STATES_MIGRATED;
 extern const unsigned int MAX_IPCHANGE_REQUEST_LIMIT;
 extern const unsigned int MAX_REJOIN_NETWORK_ATTEMPTS;
+extern const unsigned int RELEASE_CACHE_INTERVAL;
 
 // Smart contract constants
 extern const bool ENABLE_SC;
