@@ -112,6 +112,7 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
     if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
       m_levelDB.BatchDelete(toPurge);
       m_purgeDB.DeleteKey(iter->key().ToString());
+      LOG_GENERAL(INFO, "Purged entries for t_dsBlockNum = " << t_dsBlockNum);
     } else {
       dev::RLPStream s(toPurge.size());
 
