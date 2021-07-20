@@ -3351,22 +3351,27 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           m_rejoinInProgress = false;
           m_rejoinNetworkAttempts = 0;  // reset rejoining attempts
           cv_setRejoinRecovery.notify_all();
-          if (m_lookupServer) {
-            if (m_lookupServer->StartListening()) {
-              LOG_GENERAL(INFO, "API Server started to listen again");
-            } else {
-              LOG_GENERAL(WARNING, "API Server couldn't start");
-            }
-          }
           m_isFirstLoop = true;
-
-          if (m_stakingServer) {
-            if (m_stakingServer->StartListening()) {
-              LOG_GENERAL(INFO, "Staking Server started to listen again");
-            } else {
-              LOG_GENERAL(WARNING, "Staking Server couldn't start");
+          auto startJsonRpc = [this]() mutable -> void {
+            LOG_GENERAL(INFO, "Starting jsonrpc listener");
+            std::lock_guard<mutex> lock(m_mutexJsonRpc);
+            if (m_lookupServer) {
+              if (m_lookupServer->StartListening()) {
+                LOG_GENERAL(INFO, "API Server started to listen again");
+              } else {
+                LOG_GENERAL(WARNING, "API Server couldn't start");
+              }
             }
-          }
+
+            if (m_stakingServer) {
+              if (m_stakingServer->StartListening()) {
+                LOG_GENERAL(INFO, "Staking Server started to listen again");
+              } else {
+                LOG_GENERAL(WARNING, "Staking Server couldn't start");
+              }
+            }
+          };
+          DetachedFunction(1, startJsonRpc);
         }
         m_currDSExpired = false;
         // If seed node, start Pull if this seed opted for this approach
@@ -4490,6 +4495,8 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
       this_thread::sleep_for(chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL));
     }
     auto func1 = [this]() mutable -> void {
+      LOG_GENERAL(INFO, "Stopping jsonrpc listener");
+      std::lock_guard<mutex> lock(m_mutexJsonRpc);
       if (m_lookupServer) {
         m_lookupServer->StopListening();
         LOG_GENERAL(INFO, "API Server stopped listen for syncing");
@@ -4565,6 +4572,51 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
   }
 }
 
+bool Lookup::StartJsonRpcPort() {
+  LOG_MARKER();
+  std::lock_guard<mutex> lock(m_mutexJsonRpc);
+  if (m_lookupServer) {
+    if (m_lookupServer->StartListening()) {
+      LOG_GENERAL(INFO, "API Server started to listen again");
+    } else {
+      LOG_GENERAL(WARNING, "API Server couldn't start");
+      return false;
+    }
+  }
+
+  if (m_stakingServer) {
+    if (m_stakingServer->StartListening()) {
+      LOG_GENERAL(INFO, "Staking Server started to listen again");
+    } else {
+      LOG_GENERAL(WARNING, "Staking Server couldn't start");
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Lookup::StopJsonRpcPort() {
+  LOG_MARKER();
+  std::lock_guard<mutex> lock(m_mutexJsonRpc);
+  if (m_lookupServer) {
+    if (!m_lookupServer->StopListening()) {
+      LOG_GENERAL(INFO, "API Server couldn't be stopped");
+      return false;
+    } else {
+      LOG_GENERAL(INFO, "API Server stopped from status api");
+    }
+  }
+  if (m_stakingServer) {
+    if (!m_stakingServer->StopListening()) {
+      LOG_GENERAL(INFO, " Staking Server couldn't be stopped");
+      return false;
+    } else {
+      LOG_GENERAL(INFO, "Staking Server stopped from status api");
+    }
+  }
+  return true;
+}
+
 void Lookup::RejoinAsLookup(bool fromLookup) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -4578,6 +4630,8 @@ void Lookup::RejoinAsLookup(bool fromLookup) {
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
     auto func1 = [this]() mutable -> void {
+      LOG_GENERAL(INFO, "Stopping jsonrpc listener");
+      std::lock_guard<mutex> lock(m_mutexJsonRpc);
       if (m_lookupServer) {
         m_lookupServer->StopListening();
         LOG_GENERAL(INFO, "API Server stopped listen for syncing");

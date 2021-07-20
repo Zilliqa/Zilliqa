@@ -186,6 +186,14 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("ToggleGetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &StatusServer::ToggleGetPendingTxnsI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("EnableJsonRpcPort", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::EnableJsonRpcPortI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("DisableJsonRpcPort", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &StatusServer::DisableJsonRpcPortI);
 }
 
 string StatusServer::GetLatestEpochStatesUpdated() {
@@ -529,6 +537,24 @@ bool StatusServer::DisablePoW() {
   }
   m_mediator.m_disablePoW = true;
   return true;
+}
+
+bool StatusServer::DisableJsonRpcPort() {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on other than lookups");
+  }
+  return m_mediator.m_lookup->StopJsonRpcPort();
+}
+
+bool StatusServer::EnableJsonRpcPort() {
+  LOG_MARKER();
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST,
+                           "Not to be queried on other than lookups");
+  }
+  return m_mediator.m_lookup->StartJsonRpcPort();
 }
 
 bool StatusServer::ToggleDisableTxns() {
