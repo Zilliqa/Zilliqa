@@ -132,6 +132,8 @@ def make_options_dictionary(options_dict):
 	options_dict["disablegetstate"] = "ToggleGetSmartContractState"
 	options_dict["audit_shard"] = "AuditShard"
 	options_dict["getpendingtxns"] = "ToggleGetPendingTxns"
+	options_dict["start_jsonrpcport"] = "EnableJsonRpcPort"
+	options_dict["stop_jsonrpcport"] = "DisableJsonRpcPort"
 
 def ProcessResponseCore(resp, param):
 	if param:
