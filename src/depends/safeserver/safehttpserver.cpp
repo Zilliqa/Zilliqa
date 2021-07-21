@@ -29,11 +29,12 @@ struct mhd_coninfo {
     int code;
 };
 
-SafeHttpServer::SafeHttpServer(int port, const std::string &sslcert, const std::string &sslkey, int threads) :
+SafeHttpServer::SafeHttpServer(int port, bool useEpoll, const std::string &sslcert, const std::string &sslkey, int threads) :
     AbstractServerConnector(),
     port(port),
     threads(threads),
     running(false),
+    useEpoll(useEpoll),
     path_sslcert(sslcert),
     path_sslkey(sslkey),
     daemon(NULL),
@@ -58,33 +59,33 @@ bool SafeHttpServer::StartListening() {
 
     unsigned int mhd_flags = 0;
 
-    if (CONNECTION_IO_USE_EPOLL) {
+    // Temp fix with useEpoll until proper solution for CLOSE_WAIT
+    if (CONNECTION_IO_USE_EPOLL && useEpoll) {
     
       const bool has_epoll =
           (MHD_is_feature_supported(MHD_FEATURE_EPOLL) == MHD_YES);
       const bool has_poll =
           (MHD_is_feature_supported(MHD_FEATURE_POLL) == MHD_YES);
-      mhd_flags = MHD_USE_DUAL_STACK;
+      mhd_flags |= MHD_USE_DUAL_STACK;
 
       if (has_epoll)
   // In MHD version 0.9.44 the flag is renamed to
   // MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY. In later versions both
   // are deprecated.
   #if defined(MHD_USE_EPOLL_INTERNALLY)
-        mhd_flags = MHD_USE_EPOLL_INTERNALLY;
+        mhd_flags |= MHD_USE_EPOLL_INTERNALLY;
   #else
-        mhd_flags = MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY;
+        mhd_flags |= MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY | MHD_USE_ITC;
   #endif
       else if (has_poll)
-        mhd_flags = MHD_USE_POLL_INTERNALLY;
+        mhd_flags |= MHD_USE_POLL_INTERNALLY;
         
     } else {
-      mhd_flags = MHD_USE_SELECT_INTERNALLY;
+      mhd_flags |= MHD_USE_SELECT_INTERNALLY;
     }
 
-
     if (this->bindlocalhost) {
-      LOG_GENERAL(INFO, "Start Listening at bind localhost");
+      LOG_GENERAL(INFO, "Start Listening at bind localhost, mhdflag: " << mhd_flags);
       memset(&this->loopback_addr, 0, sizeof(this->loopback_addr));
       loopback_addr.sin_family = AF_INET;
       loopback_addr.sin_port = htons(this->port);
@@ -97,7 +98,7 @@ bool SafeHttpServer::StartListening() {
 
     } else if (!this->path_sslcert.empty() && !this->path_sslkey.empty()) {
       try {
-        LOG_GENERAL(INFO, "Start Listening with ssl cert and key");
+        LOG_GENERAL(INFO, "Start Listening with ssl cert and key, mhdflag: " << mhd_flags);
         SpecificationParser::GetFileContent(this->path_sslcert, this->sslcert);
         SpecificationParser::GetFileContent(this->path_sslkey, this->sslkey);
 
@@ -111,7 +112,7 @@ bool SafeHttpServer::StartListening() {
         return false;
       }
     } else {
-      LOG_GENERAL(INFO, "Start Listening");
+      LOG_GENERAL(INFO, "Start Listening, mhdflag: " << mhd_flags);
       this->daemon = MHD_start_daemon(
           mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
           MHD_OPTION_THREAD_POOL_SIZE, this->threads, MHD_OPTION_END);
@@ -175,7 +176,6 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
                          const char *method, const char *version,
                          const char *upload_data, size_t *upload_data_size,
                          void **con_cls) {
-
   (void)version;
   if (*con_cls == NULL) {
     struct mhd_coninfo *client_connection = new mhd_coninfo;
