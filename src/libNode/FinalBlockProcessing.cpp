@@ -50,6 +50,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/MemoryStats.h"
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
@@ -1133,7 +1134,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     m_mediator.m_lookup->CheckAndFetchUnavailableMBs(
         true);  // except last block
   }
-
   return true;
 }
 
