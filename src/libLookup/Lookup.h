@@ -505,6 +505,9 @@ class Lookup : public Executable {
 
   void RejoinNetwork();
 
+  bool StartJsonRpcPort();
+  bool StopJsonRpcPort();
+
   uint16_t m_rejoinNetworkAttempts{0};
 
   bool m_fetchedOfflineLookups = false;
@@ -533,6 +536,9 @@ class Lookup : public Executable {
   // Seed rejoin recovery
   std::mutex m_mutexCvSetRejoinRecovery;
   std::condition_variable cv_setRejoinRecovery;
+
+  // Enable/Disable jsonrpc port
+  std::mutex m_mutexJsonRpc;
 
   std::atomic<bool> m_rejoinInProgress{false};
 
