@@ -30,7 +30,10 @@ using namespace std;
 
 void LevelDB::log_error(leveldb::Status status) const
 {
-    LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " status is not OK - " << status.ToString());
+    if(!status.IsNotFound())
+    {
+     LOG_GENERAL(WARNING, "LevelDB " << m_dbName << " status is not OK - " << status.ToString());
+    }
 }
 
 LevelDB::LevelDB(const string& dbName, const string& path, const string& subdirectory)
