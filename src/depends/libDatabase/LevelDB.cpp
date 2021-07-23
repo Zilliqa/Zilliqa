@@ -352,10 +352,13 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
     ldb::WriteBatch batch;
 
     for (const auto & i: m_main) {
-        if (i.second.second) {
+        if (i.second.second || (LOOKUP_NODE_MODE && KEEP_HISTORICAL_STATE)) {
             batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
-            inserted.emplace(i.first);
+            if(i.second.second)
+            {
+                inserted.emplace(i.first);
+            }
         }
     }
 

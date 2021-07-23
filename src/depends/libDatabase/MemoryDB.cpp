@@ -19,6 +19,7 @@
 
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
+#include "common/Constants.h"
 #include "MemoryDB.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
@@ -113,10 +114,10 @@ namespace dev
             m_main[_h].second = 0;
             return true;
         } else {
-            m_main[_h] = {"", 0};
+            //m_main[_h] = {"", 0};
             return true;
         }
-        return false;
+        //return false;
     }
 
     bytes MemoryDB::lookupAux(h256 const& _h) const
@@ -151,7 +152,11 @@ namespace dev
 
     void MemoryDB::purgeMain(std::vector<h256>& purged) {
         for (auto it = m_main.begin(); it != m_main.end(); ) {
-                if (it->second.second) {
+                if (it->second.second|| (LOOKUP_NODE_MODE && KEEP_HISTORICAL_STATE)) {
+                    if(!it->second.second)
+                    {
+                        purged.emplace_back(it->first);
+                    }
                     ++it;
                 } else {
                     purged.emplace_back(it->first);
