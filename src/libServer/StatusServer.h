@@ -106,6 +106,16 @@ class StatusServer : public Server,
     (void)request;
     response = this->DisablePoW();
   }
+  inline virtual void EnableJsonRpcPortI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->EnableJsonRpcPort();
+  }
+  inline virtual void DisableJsonRpcPortI(const Json::Value& request,
+                                          Json::Value& response) {
+    (void)request;
+    response = this->DisableJsonRpcPort();
+  }
   inline virtual void GetSendAllToDSI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
@@ -208,6 +218,8 @@ class StatusServer : public Server,
   bool ToggleGetSmartContractState();
   bool AuditShard(const std::string& shardIDStr);
   bool ToggleGetPendingTxns();
+  bool EnableJsonRpcPort();
+  bool DisableJsonRpcPort();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_STATUSSERVER_H_
