@@ -99,6 +99,8 @@ const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB{
     ReadConstantNumeric("NUM_EPOCHS_PER_PERSISTENT_DB")};
 const bool KEEP_HISTORICAL_STATE{ReadConstantString("KEEP_HISTORICAL_STATE") ==
                                  "true"};
+const bool ENABLE_MEMORY_STATS{ReadConstantString("ENABLE_MEMORY_STATS") ==
+                               "true"};
 const unsigned int NUM_DS_EPOCHS_STATE_HISTORY{
     ReadConstantNumeric("NUM_DS_EPOCHS_STATE_HISTORY")};
 

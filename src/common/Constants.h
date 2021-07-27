@@ -155,6 +155,7 @@ extern const unsigned int UPGRADE_TARGET_DS_NUM;
 extern const std::string STORAGE_PATH;
 extern const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB;
 extern const bool KEEP_HISTORICAL_STATE;
+extern const bool ENABLE_MEMORY_STATS;
 extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 
 // Version constants
