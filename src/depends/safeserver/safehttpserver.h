@@ -49,7 +49,7 @@ public:
    * @param sslcert - defines the path to a SSL certificate, if this path is !=
    * "", then SSL/HTTPS is used with the given certificate.
    */
-  SafeHttpServer(int port, bool useEpoll = true, const std::string &sslcert = "",
+  SafeHttpServer(int port, const std::string &sslcert = "",
              const std::string &sslkey = "", int threads = 50);
 
   ~SafeHttpServer();
@@ -69,7 +69,6 @@ private:
   int port;
   int threads;
   bool running;
-  bool useEpoll;
   std::string path_sslcert;
   std::string path_sslkey;
   std::string sslcert;
@@ -84,6 +83,12 @@ private:
                       const char *url, const char *method, const char *version,
                       const char *upload_data, size_t *upload_data_size,
                       void **con_cls);
+
+  static void
+  notify_connection_callback(void *cls,
+                            struct MHD_Connection *connection,
+                            void **socket_context,
+                            enum MHD_ConnectionNotificationCode code);
 
   IClientConnectionHandler *GetHandler(const std::string &url);
 };
