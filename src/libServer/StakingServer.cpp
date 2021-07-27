@@ -39,6 +39,8 @@ StakingServer::StakingServer(Mediator& mediator,
 }
 
 Json::Value StakingServer::GetRawDSBlock(const string& blockNum) {
+  LOG_MARKER();
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -65,6 +67,8 @@ Json::Value StakingServer::GetRawDSBlock(const string& blockNum) {
 }
 
 Json::Value StakingServer::GetRawTxBlock(const string& blockNum) {
+  LOG_MARKER();
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
