@@ -25,6 +25,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -385,6 +386,8 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
       LOG_GENERAL(WARNING, "ContractStorage::FetchStateJsonForContract failed");
       return false;
     }
+    // Clear STL memory cache
+    DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
   }
 
   if ((vname.empty() && indices.empty()) || vname == "_balance") {
