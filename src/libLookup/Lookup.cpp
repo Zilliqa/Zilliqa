@@ -4843,11 +4843,15 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
 
   vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
 
-  for (uint64_t i = index_num;
-       i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
+  uint32_t count = 0;
+  uint64_t i = index_num;
+  for (; i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
     BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(i);
-
+    if (count >= DIRBLOCK_FETCH_LIMIT) {
+      break;
+    }
     if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
+      count++;
       dirBlocks.emplace_back(
           m_mediator.m_dsBlockChain.GetBlock(get<BlockLinkIndex::DSINDEX>(b)));
     } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::VC) {
@@ -4858,6 +4862,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
                                  << get<BlockLinkIndex::BLOCKHASH>(b));
         continue;
       }
+      count++;
       dirBlocks.emplace_back(*vcblockptr);
     }
   }
@@ -4879,9 +4884,8 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   if (includeMinerInfo) {
     LOG_GENERAL(INFO, "Miner info requested");
     map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>> minerInfoPerDS;
-    for (uint64_t i = index_num;
-         i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
-      BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(i);
+    for (uint64_t j = index_num; j < i; j++) {
+      BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(j);
       if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
         MinerInfoDSComm minerInfoDSComm;
         MinerInfoShards minerInfoShards;
