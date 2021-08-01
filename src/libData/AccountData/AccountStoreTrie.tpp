@@ -134,6 +134,8 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
 
   dev::h256 t_rootHash = (rootHash == dev::h256()) ? m_prevRoot : rootHash;
 
+  LOG_GENERAL(INFO, "RootHash " << t_rootHash.hex());
+
   {
     std::lock(m_mutexTrie, m_mutexDB);
     std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
@@ -144,8 +146,9 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
     if (t_rootHash != dev::h256()) {
       try {
         t_state.setRoot(t_rootHash);
-      } catch (...) {
-        LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed");
+      } catch (std::exception& e) {
+        LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed "
+                                            << e.what());
         return false;
       }
     }
