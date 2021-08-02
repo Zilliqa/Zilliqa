@@ -1824,7 +1824,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 
   // ------------- execute transitions ------------------------------------//
 
-  for (unsigned i = 1; i <= 11; i++) {
+  for (unsigned i = 1; i <= 10; i++) {
     LOG_GENERAL(WARNING, "Executing remote_state_reads_" << i);
     // Execute message_i
     ScillaTestUtil::ScillaTest rsr_i;
@@ -1875,16 +1875,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
       BOOST_FAIL("Couldn't convert format of expected Scilla output state"
                  << rsr_i.expOutput["states"].toStyledString());
     }
-    if (i == 9) {
-      // The 9th test relies on sender (owner above) balance, but cannot
-      // account for the gas fees paid by the sender. So we just compare
-      // the required output here and not from the gold file.
-      BOOST_REQUIRE(outState["sender_balance_pre"].asString() == "950000");
-      BOOST_REQUIRE(outState["sender_balance_mid"].asString() == "949900");
-      BOOST_REQUIRE(outState["sender_balance_post"].asString() == "949900");
-    } else {
-      BOOST_REQUIRE_EQUAL(expOutput, outState);
-    }
+    BOOST_REQUIRE_EQUAL(expOutput, outState);
     LOG_GENERAL(WARNING, "remote_state_reads_" << i << " succeeded");
     Contract::ContractStorage::GetContractStorage().Reset();
   }
@@ -1956,6 +1947,170 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
   depTest("init_nonce_no_balance");
   depTest("init_balance_no_nonce");
   depTest("init_balance_and_nonce");
+}
+
+BOOST_AUTO_TEST_CASE(accounting_tests) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  // Disable pretty printing of Scilla literals. This will ensure
+  // that Scilla Lists are not printed using JSON arrays, enabling
+  // us to ensure that JSON arrays only represent Scilla maps.
+  SCILLA_PPLIT_FLAG = false;
+
+  setup();
+
+  PairOfKey owner(priv1, PubKey(priv1));
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+
+  // Setup all accounts we interact with.
+  auto ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  LOG_GENERAL(INFO, "Owner address: " << ownerAddr);
+
+  uint64_t ownerNonce = 0;
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr,
+                                             {2000000000000000, ownerNonce});
+
+  auto supportAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+  LOG_GENERAL(INFO,
+              "Accounting tests support contract will be deployed at address "
+                  << supportAddr);
+  ownerNonce++;
+  auto mainAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+  LOG_GENERAL(INFO,
+              "Accounting tests main contract will be deployed at address "
+                  << mainAddr);
+  ownerNonce++;
+
+  std::map<Address, std::map<std::string, bytes>> state_entries;
+  std::unordered_map<Address, uint128_t> balances;
+  std::unordered_map<Address, uint64_t> nonces;
+  std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
+
+  // ----------------- map depths ------------------------------------ //
+
+  mapdepths[mainAddr]["test_string_1"] = 0;
+  mapdepths[mainAddr]["test_string_2"] = 0;
+  mapdepths[mainAddr]["outgoing_amount"] = 0;
+  mapdepths[mainAddr]["max_outgoing_msgs"] = 0;
+  mapdepths[supportAddr]["stored_strings"] = 0;
+
+  // ----------------- map depths ------------------------------------ //
+
+  // ------------------- deploy ---------------------------------------//
+
+  ScillaTestUtil::ScillaTest support_dep;
+  if (!ScillaTestUtil::GetScillaDeployment(
+          support_dep, "accounting_tests_support", "", "init.json",
+          "blockchain_1.json", "init_output.json", "0")) {
+    BOOST_FAIL("Unable to fetch test accounting_tests_support: deployment.");
+  }
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(support_dep.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(support_dep.init);
+  uint64_t bnum =
+      ScillaTestUtil::GetBlockNumberFromJson(support_dep.blockchain);
+
+  // Transaction to deploy support contract.
+  std::string initStr =
+      JSONUtils::GetInstance().convertJsontoStr(support_dep.init);
+  bytes data2(initStr.begin(), initStr.end());
+  Transaction tx1(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                  500000, support_dep.code, data2);
+  TransactionReceipt tr1;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
+                                                 error_code);
+  ownerNonce++;
+
+  ScillaTestUtil::ScillaTest main_dep;
+  if (!ScillaTestUtil::GetScillaDeployment(main_dep, "accounting_tests", "",
+                                           "init.json", "blockchain_1.json",
+                                           "init_output.json", "0")) {
+    BOOST_FAIL("Unable to fetch test accounting_tests: deployment.");
+  }
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(main_dep.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(main_dep.init);
+  bnum = ScillaTestUtil::GetBlockNumberFromJson(main_dep.blockchain);
+
+  // Transaction to deploy main contract.
+  initStr = JSONUtils::GetInstance().convertJsontoStr(main_dep.init);
+  bytes data(initStr.begin(), initStr.end());
+  Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                  500000, main_dep.code, data);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
+                                                 error_code);
+  ownerNonce++;
+
+  // ------------- execute transitions ------------------------------------//
+
+  // We need some account handle to set the state. The actual account whose
+  // state is being updated is passed as an argument to UpdateStates.
+  Account* account = AccountStore::GetInstance().GetAccountTemp(ownerAddr);
+  // Test numbers that invoke Test_Send_i
+  int tests[] = {2, 4, 6, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21};
+
+  for (auto i : tests) {
+    LOG_GENERAL(WARNING, "Executing accounting_tests_" << i);
+    // Execute message_i
+    ScillaTestUtil::ScillaTest at_i;
+    if (!ScillaTestUtil::GetScillaTest(at_i, "accounting_tests", i)) {
+      BOOST_FAIL("Unable to fetch test accounting_tests_" << i);
+    }
+    // remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveCreationBlockFromInit(at_i.init);
+    ScillaTestUtil::RemoveThisAddressFromInit(at_i.init);
+    bnum = ScillaTestUtil::GetBlockNumberFromJson(at_i.blockchain);
+
+    state_entries.clear();
+    balances.clear();
+    nonces.clear();
+    if (!ScillaTestUtil::parseStateJSON(mainAddr, at_i.state, mapdepths,
+                                        state_entries, balances, nonces)) {
+      BOOST_FAIL("parseStateJSON failed");
+    }
+    // Set state_i.
+    for (const auto& itr : state_entries) {
+      account->UpdateStates(itr.first, itr.second, {}, true);
+    }
+    for (const auto& addrBal : balances) {
+      if (addrBal.first != ownerAddr) {
+        account = AccountStore::GetInstance().GetAccountTemp(addrBal.first);
+        account->SetBalance(addrBal.second);
+      }
+    }
+    for (const auto& addrNonce : nonces) {
+      if (addrNonce.first != ownerAddr) {
+        account = AccountStore::GetInstance().GetAccountTemp(addrNonce.first);
+        account->SetNonce(addrNonce.second);
+      }
+    }
+
+    uint64_t amount = ScillaTestUtil::PrepareMessageData(at_i.message, data);
+    Transaction tx_i(DataConversion::Pack(CHAIN_ID, 1), ownerNonce, mainAddr,
+                     owner, amount, PRECISION_MIN_VALUE, 5000, {}, data);
+    TransactionReceipt tr4;
+    if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx_i, tr4,
+                                                       error_code)) {
+      ownerNonce++;
+    }
+    tr4.InstallError();
+    if (tr4.GetJsonValue().get("errors", Json::arrayValue).size() > 0) {
+      BOOST_ERROR("Encountered error in account_tests_" << i);
+    }
+    // We don't compare the outputs because the tests are designed to fail
+    // if something goes wrong. Outputs can't be compared due to complex
+    // chain calls involved. Each Scilla test is only an intermediate step.
+    LOG_GENERAL(WARNING, "accounting_tests_" << i << " succeeded");
+    Contract::ContractStorage::GetContractStorage().Reset();
+  }
 }
 
 // BOOST_AUTO_TEST_CASE(testDEX) {
