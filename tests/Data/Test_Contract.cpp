@@ -2055,7 +2055,7 @@ BOOST_AUTO_TEST_CASE(accounting_tests) {
   // state is being updated is passed as an argument to UpdateStates.
   Account* account = AccountStore::GetInstance().GetAccountTemp(ownerAddr);
   // Test numbers that invoke Test_Send_i
-  int tests[] = {2, 4, 6, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21};
+  int tests[] = {2, 4, 6, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21, 22};
 
   for (auto i : tests) {
     LOG_GENERAL(WARNING, "Executing accounting_tests_" << i);
