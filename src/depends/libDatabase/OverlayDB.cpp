@@ -59,7 +59,7 @@ namespace dev
 			}
 
 			/// add newly created nodes in disk
-			if (!m_levelDB.BatchInsert(m_main, m_aux, inserted)) {
+			if (!m_levelDB.BatchInsert(*m_main, m_aux, inserted)) {
 				LOG_GENERAL(WARNING, "BatchInsert failed");
 				return false;
 			}
@@ -73,7 +73,8 @@ namespace dev
 		{
 			unique_lock<shared_timed_mutex> lock(x_this);
 			m_aux.clear();
-			m_main.clear();
+			m_main->clear();
+			m_main.reset(new std::unordered_map<h256, std::pair<std::string, unsigned>>());
 		}
 
 		return true;
@@ -107,7 +108,7 @@ namespace dev
 		// WriteGuard l(x_this);
 		unique_lock<shared_timed_mutex> lock(x_this);
 	// #endif
-		m_main.clear();
+		m_main->clear();
 	}
 
 	std::string OverlayDB::lookup(h256 const& _h) const

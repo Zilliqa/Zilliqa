@@ -30,6 +30,8 @@ bool TraceableDB::commit(const uint64_t& dsBlockNum) {
   }
 
   if (!(KEEP_HISTORICAL_STATE && LOOKUP_NODE_MODE) || !dsBlockNum) {
+    // memory mgmt
+    dev::h256s().swap(toPurge);
     return true;
   }
 
@@ -44,6 +46,9 @@ bool TraceableDB::commit(const uint64_t& dsBlockNum) {
     LOG_GENERAL(WARNING, "ExecutePurging failed");
     return false;
   }
+
+  // memory mgmt
+  dev::h256s().swap(toPurge);
 
   return true;
 }
@@ -69,7 +74,12 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
   keystream.width(BLOCK_NUMERIC_DIGITS);
   keystream << std::to_string(dsBlockNum);
 
-  return m_purgeDB.Insert(keystream.str(), s.out()) == 0;
+  bool res = m_purgeDB.Insert(keystream.str(), s.out());
+
+  // memory mgmt
+  s.clear();
+
+  return res == 0;
 }
 
 bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
@@ -96,7 +106,7 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
     // If purgeAll = true, dsBlockNum is inconsequential
     dev::RLP rlp(iter->value());
     std::vector<dev::h256> toPurge(rlp);
-
+    bool updated = false;
     for (auto it = toPurge.begin(); it != toPurge.end();) {
       if (LOG_SC) {
         LOG_GENERAL(INFO, "purging: " << it->hex()
@@ -105,6 +115,7 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
       if (inserted.find(*it) != inserted.end()) {
         LOG_GENERAL(INFO, "Do not purge : " << it->hex());
         it = toPurge.erase(it);
+        updated = true;
       } else {
         ++it;
       }
@@ -114,14 +125,21 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
       m_purgeDB.DeleteKey(iter->key().ToString());
       LOG_GENERAL(INFO, "Purged entries for t_dsBlockNum = " << t_dsBlockNum);
     } else {
-      dev::RLPStream s(toPurge.size());
+      if (updated) {
+        dev::RLPStream s(toPurge.size());
 
-      for (const auto& i : toPurge) {
-        s.append(i);
+        for (const auto& i : toPurge) {
+          s.append(i);
+        }
+        // Replace the blocknum with new purge hashes
+        m_purgeDB.Insert(iter->key().ToString(), s.out());
+
+        // memory mgmt
+        s.clear();
       }
-      // Replace the blocknum with new purge hashes
-      m_purgeDB.Insert(iter->key().ToString(), s.out());
     }
+    // memory mgmt
+    dev::h256s().swap(toPurge);
   }
 
   return true;
