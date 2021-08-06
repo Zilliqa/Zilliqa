@@ -1184,7 +1184,9 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       m_stateTrie.remove(hashed_key);
     }
     stateHash = m_stateTrie.root();
-    r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
+    if (revertible) {
+      r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
+    }
   }
   LOG_GENERAL(INFO, "New Hash: " << stateHash);
 }
