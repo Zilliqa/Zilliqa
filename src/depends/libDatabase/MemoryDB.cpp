@@ -36,7 +36,7 @@ namespace dev
         std::shared_lock<std::shared_timed_mutex> lock(x_this);
 // #endif
         std::unordered_map<h256, std::string> ret;
-        for (auto const& i: m_main)
+        for (auto const& i: *m_main)
             if (!m_enforceRefs || i.second.second > 0)
                 ret.insert(make_pair(i.first, i.second.first));
         return ret;
@@ -63,8 +63,8 @@ namespace dev
        // ReadGuard l(x_this);
         shared_lock<shared_timed_mutex> lock(x_this);
 // #endif
-        auto it = m_main.find(_h);
-        if (it != m_main.end())
+        auto it = m_main->find(_h);
+        if (it != m_main->end())
         {
             if (!m_enforceRefs || it->second.second > 0)
                 return it->second.first;
@@ -80,8 +80,8 @@ namespace dev
         // ReadGuard l(x_this);
         shared_lock<shared_timed_mutex> lock(x_this);
 // #endif
-        auto it = m_main.find(_h);
-        if (it != m_main.end() && (!m_enforceRefs || it->second.second > 0))
+        auto it = m_main->find(_h);
+        if (it != m_main->end() && (!m_enforceRefs || it->second.second > 0))
             return true;
         return false;
     }
@@ -92,14 +92,14 @@ namespace dev
         // WriteGuard l(x_this);
         unique_lock<shared_timed_mutex> lock(x_this);
 // #endif
-        auto it = m_main.find(_h);
-        if (it != m_main.end())
+        auto it = m_main->find(_h);
+        if (it != m_main->end())
         {
             it->second.first = _v.toString();
             it->second.second++;
         }
         else {
-            m_main[_h] = make_pair(_v.toString(), 1);
+            (*m_main)[_h] = make_pair(_v.toString(), 1);
         }
     }
 
@@ -109,9 +109,9 @@ namespace dev
         // ReadGuard l(x_this);
         shared_lock<shared_timed_mutex> lock(x_this);
 // #endif
-        if (m_main.count(_h))
+        if (m_main->count(_h))
         {
-            m_main[_h].second = 0;
+            (*m_main)[_h].second = 0;
             return true;
         } else {
             //m_main[_h] = {"", 0};
@@ -151,7 +151,7 @@ namespace dev
     }
 
     void MemoryDB::purgeMain(std::vector<h256>& purged) {
-        for (auto it = m_main.begin(); it != m_main.end(); ) {
+        for (auto it = m_main->begin(); it != m_main->end(); ) {
                 if (it->second.second|| (LOOKUP_NODE_MODE && KEEP_HISTORICAL_STATE)) {
                     if(!it->second.second)
                     {
@@ -160,7 +160,7 @@ namespace dev
                     ++it;
                 } else {
                     purged.emplace_back(it->first);
-                    it = m_main.erase(it);
+                    it = m_main->erase(it);
                 }
             }
 
@@ -191,7 +191,7 @@ namespace dev
         shared_lock<shared_timed_mutex> lock(x_this);
 // #endif
         h256Hash ret;
-        for (auto const& i: m_main)
+        for (auto const& i: *m_main)
             if (i.second.second)
                 ret.insert(i.first);
         return ret;
