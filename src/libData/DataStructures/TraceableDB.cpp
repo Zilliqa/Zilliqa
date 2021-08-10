@@ -77,8 +77,8 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
                                bool purgeAll) {
   LOG_MARKER();
 
-  leveldb::Iterator* iter =
-      m_purgeDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> iter(
+      m_purgeDB.GetDB()->NewIterator(leveldb::ReadOptions()));
   iter->SeekToFirst();
   for (; iter->Valid(); iter->Next()) {
     if (purgeAll && m_stopSignal) {
@@ -112,6 +112,9 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
     if ((t_dsBlockNum + NUM_DS_EPOCHS_STATE_HISTORY < dsBlockNum) || purgeAll) {
       m_levelDB.BatchDelete(toPurge);
       m_purgeDB.DeleteKey(iter->key().ToString());
+      // compact/cleanup for this key immediately.
+      leveldb::Slice k(iter->key());
+      m_purgeDB.GetDB()->CompactRange(&k, &k);
       LOG_GENERAL(INFO, "Purged entries for t_dsBlockNum = " << t_dsBlockNum);
     } else {
       dev::RLPStream s(toPurge.size());
