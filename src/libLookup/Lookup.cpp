@@ -1837,7 +1837,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
 void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                              uint64_t& highBlockNum, bool partialRetrieve) {
+                              uint64_t& highBlockNum) {
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
   uint64_t curBlockNum =
@@ -1849,27 +1849,19 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     return;
   }
 
-  uint64_t minBlockNum = (curBlockNum > MEAN_GAS_PRICE_DS_NUM)
-                             ? (curBlockNum - MEAN_GAS_PRICE_DS_NUM)
-                             : 1;
-
-  if (lowBlockNum == 1) {
-    lowBlockNum = minBlockNum;
-  } else if (lowBlockNum == 0) {
-    // give all the blocks in the ds blockchain
-    lowBlockNum = 1;
-  }
-
-  lowBlockNum = partialRetrieve ? max(minBlockNum, lowBlockNum)
-                                : min(minBlockNum, lowBlockNum);
-
   if (highBlockNum == 0) {
     highBlockNum = curBlockNum;
   }
 
+  if (highBlockNum < lowBlockNum) {
+    LOG_GENERAL(WARNING, "Request lowBlockNum: "
+                             << lowBlockNum << " is higher than highBlockNum: "
+                             << highBlockNum);
+    return;
+  }
+
   uint64_t diff = 0;
-  if (!partialRetrieve &&
-      SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
+  if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
     if (diff >= FETCH_DS_BLOCK_LIMIT) {
       highBlockNum = lowBlockNum + FETCH_DS_BLOCK_LIMIT - 1;
       LOG_GENERAL(INFO, "Requested "
@@ -5739,7 +5731,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
                 << listenPort);
 
   vector<DSBlock> dsBlocks;
-  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum, true);
+  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum);
 
   vector<TxBlock> txBlocks;
   RetrieveTxBlocks(txBlocks, txLowBlockNum, txHighBlockNum);
