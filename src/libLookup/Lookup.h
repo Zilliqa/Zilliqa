@@ -160,7 +160,7 @@ class Lookup : public Executable {
   bytes ComposeGetOfflineLookupNodes();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                        uint64_t& highBlockNum, bool partialRetrieve = false);
+                        uint64_t& highBlockNum);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum);
   void GetInitialBlocksAndShardingStructure();
