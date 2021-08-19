@@ -44,6 +44,7 @@ int main(int argc, const char* argv[]) {
   string disambiguation_str;
   string contract_address_output_filename;
   string normal_address_output_filename;
+  unsigned int update_disk_frequency = 0;
 
   try {
     po::options_description desc("Options");
@@ -60,7 +61,10 @@ int main(int argc, const char* argv[]) {
         "empty")("normal_addresses,n",
                  po::value<string>(&normal_address_output_filename),
                  "indicate the filename to output non-contract addresses, no "
-                 "output if empty");
+                 "output if empty")(
+        "update_disk_frequency,f",
+        po::value<unsigned int>(&update_disk_frequency),
+        "Specifies frequency for update to disk");
 
     po::variables_map vm;
     try {
@@ -99,9 +103,9 @@ int main(int argc, const char* argv[]) {
 
     LOG_GENERAL(INFO, "Finished RetrieveStates");
 
-    if (!retriever.MigrateContractStates(ignore_checker, disambiguation,
-                                         contract_address_output_filename,
-                                         normal_address_output_filename)) {
+    if (!retriever.MigrateContractStates(
+            ignore_checker, disambiguation, contract_address_output_filename,
+            normal_address_output_filename, update_disk_frequency)) {
       LOG_GENERAL(WARNING, "MigrateContractStates failed");
     } else {
       LOG_GENERAL(INFO, "MigrateContractStates finished");

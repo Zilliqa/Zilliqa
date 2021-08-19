@@ -720,7 +720,8 @@ bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
 bool AccountStore::MigrateContractStates(
     bool ignoreCheckerFailure, bool disambiguation,
     const string& contract_address_output_filename,
-    const string& normal_address_output_filename) {
+    const string& normal_address_output_filename,
+    const uint64_t& updateDiskFrequency) {
   LOG_MARKER();
 
   std::ofstream os_1;
@@ -737,11 +738,11 @@ bool AccountStore::MigrateContractStates(
   unsigned int numContractChangedStates = 0;
   unsigned int numContractNullFixedStates = 0;
 
+  unsigned int count = 0;
   for (const auto& i : m_state) {
     Address address(i.first);
 
     LOG_GENERAL(INFO, "Address: " << address.hex());
-
     Account account;
     if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
@@ -761,6 +762,7 @@ bool AccountStore::MigrateContractStates(
       continue;
     }
 
+    count++;
     // adding new metadata
     std::map<std::string, bytes> t_metadata;
     bool is_library;
@@ -869,6 +871,19 @@ bool AccountStore::MigrateContractStates(
       numContractChangedStates++;
     } else {
       numContractUnchangedStates++;
+    }
+
+    if (count % updateDiskFrequency == 0) {
+      if (!UpdateStateTrieAll()) {
+        LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
+        return false;
+      }
+
+      /// repopulate trie and discard old persistence
+      if (!MoveUpdatesToDisk()) {
+        LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed");
+        return false;
+      }
     }
   }
 
