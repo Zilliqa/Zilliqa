@@ -244,7 +244,8 @@ class AccountStore
   bool MigrateContractStates(
       bool ignoreCheckerFailure, bool disambiguation,
       const std::string& contract_address_output_filename,
-      const std::string& normal_address_output_filename);
+      const std::string& normal_address_output_filename,
+      const uint64_t& updateDiskFrequency);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
