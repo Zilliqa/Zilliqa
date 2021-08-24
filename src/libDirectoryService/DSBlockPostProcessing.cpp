@@ -593,12 +593,15 @@ void DirectoryService::StartFirstTxEpoch() {
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     if (m_mediator.m_node->m_myshardId == 0) {
-      LOG_GENERAL(
-          INFO,
-          "No other shards. So no other microblocks expected to be received");
-      m_stopRecvNewMBSubmission = true;
+      auto func = [this]() mutable -> void {
+        LOG_GENERAL(
+            INFO,
+            "No other shards. So no other microblocks expected to be received");
+        m_stopRecvNewMBSubmission = true;
 
-      RunConsensusOnFinalBlock();
+        RunConsensusOnFinalBlock();
+      };
+      DetachedFunction(1, func);
     } else {
       auto func = [this]() mutable -> void {
         // Check for state change. If it get stuck at microblock submission for
