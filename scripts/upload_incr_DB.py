@@ -149,7 +149,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			CleanS3PersistenceDiffs()
 	elif (result == 0):
 		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
-		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlockKeys/*' --include 'microBlocks*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txEpochs/*' --include 'txBodies*' --include 'extSeedPubKeys/*' "
+		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlockKeys/*' --include 'microBlocks*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txEpochs/*' --include 'txBodies*' --include 'extSeedPubKeys/*' --include 'state_purge/*' --include 'contractTrie_purge/*' "
 		retry = 3
 		while (retry):
 			try:
