@@ -54,6 +54,13 @@ string ReadConstantString(const string& propertyName,
   return pt.get<string>(path + propertyName);
 }
 
+uint64_t ReadConstantUInt64(const string& propertyName,
+                            const char* path = "node.general.") {
+  auto pt = PTree::GetInstance();
+  const auto& _str = pt.get<string>(path + propertyName);
+  return strtoull(_str.c_str(), NULL, 0);
+}
+
 const vector<string> ReadAccountsFromConstantsFile(
     const string& propName, const string& path = "node.accounts") {
   auto pt = PTree::GetInstance();
@@ -103,6 +110,9 @@ const bool ENABLE_MEMORY_STATS{ReadConstantString("ENABLE_MEMORY_STATS") ==
                                "true"};
 const unsigned int NUM_DS_EPOCHS_STATE_HISTORY{
     ReadConstantNumeric("NUM_DS_EPOCHS_STATE_HISTORY")};
+
+const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH{
+    ReadConstantUInt64("INIT_TRIE_DB_SNAPSHOT_EPOCH")};
 
 // Version constants
 const unsigned int MSG_VERSION{
