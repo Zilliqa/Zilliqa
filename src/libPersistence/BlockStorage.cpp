@@ -1014,6 +1014,12 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
                                      const uint32_t myshardId) {
   LOG_MARKER();
 
+  for (const auto& shard : shards) {
+    for (const auto& p : shard) {
+      LOG_GENERAL(INFO, "Key: " << std::get<0>(p));
+    }
+  }
+
   unique_lock<shared_timed_mutex> g(m_mutexShardStructure);
   m_shardStructureDB->ResetDB();
   unsigned int index = 0;

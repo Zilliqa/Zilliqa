@@ -40,6 +40,11 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
   const auto& NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
   unsigned int NumWinners = NewDSMembers.size();
 
+  for (const auto& dsWinner : NewDSMembers) {
+    LOG_GENERAL(INFO, "New DS Winner: " << dsWinner.second);
+  }
+  LOG_GENERAL(INFO, "NumWinners: " << NumWinners);
+
   // Get the vector of all non-performant nodes to be removed.
   const auto& removeDSNodePubkeys = dsblock.GetHeader().GetDSRemovePubKeys();
 
@@ -106,6 +111,11 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
     }
   }
 
+  LOG_GENERAL(INFO, "After adding");
+  for (const auto& dsNode : dsComm) {
+    LOG_GENERAL(INFO, "ds node: " << dsNode.first);
+  }
+
   // Print some statistics.
   unsigned int NumLosers = removeDSNodePubkeys.size();
   unsigned int NumExpiring = NumWinners - NumLosers;
@@ -147,5 +157,10 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
         minerInfo.m_dsNodes.emplace_back(dsnode.first);
       }
     }
+  }
+
+  LOG_GENERAL(INFO, "After remove");
+  for (const auto& dsNode : dsComm) {
+    LOG_GENERAL(INFO, "ds node: " << dsNode.first);
   }
 }

@@ -162,6 +162,10 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
+  for (const auto& sc : shardCounts) {
+    LOG_GENERAL(INFO, "Shard count: " << sc);
+  }
+
   bytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
   copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   for (const auto& kv : sortedPoWSolns) {
@@ -175,6 +179,10 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     sortedPoWs.emplace(sortHash, key);
   }
 
+  for (const auto& sp : sortedPoWs) {
+    LOG_GENERAL(INFO, "Sp key: " << sp.second);
+  }
+
   // Distribute the map-ordered nodes among the generated shards
   // First fill up first shard, then second shard, ..., then final shard
   uint32_t shard_index = 0;
@@ -184,6 +192,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
       shard_index++;
       // Stop if all shards filled up
       if (shard_index == shardCounts.size()) {
+        LOG_GENERAL(INFO, "Breaking, all shard filled");
         break;
       }
     }
@@ -198,6 +207,11 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
+
+    LOG_GENERAL(INFO, "Emplacing "
+                          << key << " shard index: " << shard_index
+                          << " Shard count: " << shardCounts.at(shard_index));
+
     m_shards.at(shard_index)
         .emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
     m_publicKeyToshardIdMap.emplace(key, shard_index);
@@ -211,6 +225,21 @@ void DirectoryService::InjectPoWForDSNode(
     VectorOfPoWSoln& sortedPoWSolns, unsigned int numOfProposedDSMembers,
     const std::vector<PubKey>& removeDSNodePubkeys) {
   LOG_MARKER();
+
+  for (const auto& p : sortedPoWSolns) {
+    LOG_GENERAL(INFO, "Key: " << p.second);
+  }
+
+  for (const auto& p : removeDSNodePubkeys) {
+    LOG_GENERAL(INFO, "AttemptInject: " << p);
+  }
+
+  LOG_GENERAL(INFO, "removeDSNodePubkeys: " << removeDSNodePubkeys.size());
+
+  LOG_GENERAL(INFO, "numOfProposedDSMembers: " << numOfProposedDSMembers);
+
+  LOG_GENERAL(INFO, "m_mediator.m_DSCommittee->size(): "
+                        << m_mediator.m_DSCommittee->size());
 
   unsigned int numOfRemovedMembers = removeDSNodePubkeys.size();
   unsigned int numOfExpiring = numOfProposedDSMembers - numOfRemovedMembers;
@@ -511,6 +540,16 @@ bool DirectoryService::VerifyPoWOrdering(
   auto sortedPoWSolns =
       SortPoWSoln(priorityNodePoWs, true, removeDSNodePubkeys.size());
 
+  LOG_GENERAL(INFO, "dsPoWWinners size: " << dsPoWWinners.size());
+  for (const auto& dsWinner : dsPoWWinners) {
+    LOG_GENERAL(INFO, "DsWinner: " << dsWinner.first);
+  }
+
+  LOG_GENERAL(INFO, "removeDSNodePubkeys size: " << removeDSNodePubkeys.size());
+  for (const auto& removedDs : removeDSNodePubkeys) {
+    LOG_GENERAL(INFO, "removedDs: " << removedDs);
+  }
+
   // Remove the DS solutions from the PoW solutions.
   for (const auto& winner : dsPoWWinners) {
     const PubKey& toFind = winner.first;
@@ -692,6 +731,8 @@ bool DirectoryService::VerifyPoWFromLeader(const Peer& peer,
 
 bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards,
                                           MapOfPubKeyPoW& priorityNodePoWs) {
+  LOG_GENERAL(INFO, "m_allPoWs size: " << m_allPoWs.size());
+
   // If the PoW submissions less than the max number of nodes, then all nodes
   // can join, no need to verify.
   if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM) {
@@ -946,7 +987,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     allPoWs.swap(tmpAllPoWs);
   }
 
+  LOG_GENERAL(INFO, "allPoWs size: " << allPoWs.size());
+
   auto sortedDSPoWSolns = SortPoWSoln(allDSPoWs);
+
+  LOG_GENERAL(INFO, "sortedDSPoWSolns: " << sortedDSPoWSolns.size());
+  for (const auto& p : sortedDSPoWSolns) {
+    LOG_GENERAL(INFO, "DS p: " << p.second);
+  }
 
   std::map<PubKey, Peer> powDSWinners;
   std::vector<PubKey> removeDSNodePubkeys;
@@ -963,23 +1011,54 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
                                dsDifficulty, difficulty, blockNum, prevHash);
 
   // Determine the losers from the performance.
-  unsigned int numByzantine = 0;
-  numByzantine =
+  unsigned int numByzantine =
       DetermineByzantineNodes(numOfProposedDSMembers, removeDSNodePubkeys);
+
+  // For some reason old DS nodes were unable to remove
+  // One case is where all in previous DS committee are DS guards during Guard
+  // mode, so none were remove as priority are given to guards In this case, we
+  // remove the winners
+  if (numOfProposedDSMembers > numByzantine) {
+    unsigned int numWinnersToRemove = numOfProposedDSMembers - numByzantine;
+    LOG_GENERAL(INFO, "numWinnersToRemove: " << numWinnersToRemove);
+
+    auto itr = powDSWinners.begin();
+    while (itr != powDSWinners.end() && numWinnersToRemove > 0) {
+      if (GUARD_MODE && Guard::GetInstance().IsNodeInDSGuardList(itr->first)) {
+        LOG_GENERAL(INFO, "Skipping: " << itr->first << ", it is a guard");
+        ++itr;
+        continue;
+      }
+      LOG_GENERAL(INFO, "Erasing " << itr->first << " numWinnersToRemove: "
+                                   << (numWinnersToRemove - 1));
+      dsWinnerPoWs.erase(itr->first);
+      itr = powDSWinners.erase(itr);
+      numWinnersToRemove -= 1;
+    }
+  }
 
   // Sort and trim the PoW solutions.
   auto sortedPoWSolns = SortPoWSoln(allPoWs, true, numByzantine);
 
+  LOG_GENERAL(INFO, "SortedPoWSolns: " << sortedPoWSolns.size());
+  for (const auto& p : sortedPoWSolns) {
+    LOG_GENERAL(INFO, "p: " << p.second);
+  }
+
+  LOG_GENERAL(INFO, "powDSWinners: " << powDSWinners.size());
+  for (const auto& pWinner : powDSWinners) {
+    LOG_GENERAL(INFO, "pWinner: " << pWinner.first);
+  }
+
   // Remove the DS solutions from the PoW solutions.
-  unsigned int counter = 0;
-  for (const auto& submitter : sortedDSPoWSolns) {
-    if (counter >= numOfProposedDSMembers) {
-      break;
-    }
-    sortedPoWSolns.erase(
-        remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
-        sortedPoWSolns.end());
-    counter++;
+  for (const auto& submitter : powDSWinners) {
+    LOG_GENERAL(INFO, "Remove DS POW?? : " << submitter.first);
+
+    sortedPoWSolns.erase(remove_if(sortedPoWSolns.begin(), sortedPoWSolns.end(),
+                                   [&submitter](const auto& sol) {
+                                     return std::get<1>(sol) == submitter.first;
+                                   }),
+                         sortedPoWSolns.end());
   }
 
   // Inject expired DS members into the shard POW.
@@ -1004,11 +1083,19 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   GovDSShardVotesMap govProposalMap;
   for (const auto& dsnode : powDSWinners) {
+    LOG_GENERAL(INFO, "GovProposal: " << dsnode.first);
+
     if (GUARD_MODE && !Guard::GetInstance().IsNodeInDSGuardList(dsnode.first)) {
       const auto& powSolIter = allDSPoWs.find(dsnode.first);
+      LOG_GENERAL(INFO,
+                  "Is it in allDSPoWs: " << (powSolIter != allDSPoWs.end()));
       if (powSolIter != allDSPoWs.end()) {
         const uint32_t& proposalId = powSolIter->second.m_govProposal.first;
         const uint32_t& voteValue = powSolIter->second.m_govProposal.second;
+
+        LOG_GENERAL(
+            INFO, "proposalId: " << proposalId << " voteValue: " << voteValue);
+
         if (proposalId > 0 && voteValue > 0) {
           LOG_GENERAL(INFO, "[Gov] DS proposalId=" << proposalId
                                                    << " vote=" << voteValue);
@@ -1032,12 +1119,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         }
       }
     }
-  }
-
-  vector<Peer> proposedDSMembersInfo;
-  proposedDSMembersInfo.reserve(sortedDSPoWSolns.size());
-  for (const auto& proposedMember : sortedDSPoWSolns) {
-    proposedDSMembersInfo.emplace_back(m_allPoWConns[proposedMember.second]);
   }
 
   // Compute the DSBlockHashSet member of the DSBlockHeader
@@ -1135,6 +1216,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
           const uint64_t blockNumber, const bytes& blockHash,
           const uint16_t leaderID, const PairOfKey& leaderKey,
           bytes& messageToCosign) mutable -> bool {
+    LOG_GENERAL(INFO, "announcementGeneratorFunc dsWinnerPoWs: "
+                          << dsWinnerPoWs.size());
+    for (const auto& pWinner : dsWinnerPoWs) {
+      LOG_GENERAL(INFO, "pWinner: " << pWinner.first);
+    }
+
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
@@ -1177,6 +1264,10 @@ bool DirectoryService::DSBlockValidator(
               "Messenger::GetDSDSBlockAnnouncement failed.");
     return false;
   }
+
+  LOG_GENERAL(INFO, "tempShards size: " << m_tempShards.size());
+  for (int i = 0; i < (int)m_tempShards.size(); ++i)
+    LOG_GENERAL(INFO, "Index: " << i << " Size: " << m_tempShards[i].size());
 
   if (m_pendingDSBlock->GetHeader().GetVersion() != DSBLOCK_VERSION) {
     LOG_CHECK_FAIL("DSBlock version",
@@ -1265,6 +1356,8 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  LOG_GENERAL(INFO, "m_allPoWs size before clear: " << m_allPoWs.size());
+
   // Verify the node priority before do the PoW trimming inside
   // VerifyPoWOrdering.
   ClearReputationOfNodeWithoutPoW();
@@ -1278,6 +1371,8 @@ bool DirectoryService::DSBlockValidator(
     LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
   }
+
+  LOG_GENERAL(INFO, "powSize: " + allPoWsFromLeader.size());
 
   // Check if the current block version to be validated requires removed nodes
   // validation.
@@ -1600,6 +1695,10 @@ void DirectoryService::RunConsensusOnDSBlock() {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Number of PoW recvd: " << m_allPoWs.size() << ", DS PoW recvd: "
                                     << m_allDSPoWs.size());
+
+  for (const auto& p : m_allPoWs) {
+    LOG_GENERAL(INFO, "Key: " << p.first);
+  }
 
   LOG_STATE("[POW][" << m_mediator.m_currentEpochNum << "] DS PoW = "
                      << m_allDSPoWs.size() << " PoW = " << m_allPoWs.size());
