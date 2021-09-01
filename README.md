@@ -23,7 +23,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 
 ## Zilliqa Mainnet
 
-The current live version on the Zilliqa Mainnet is Zilliqa [v8.0.7](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.0.7) and Scilla [v0.10.1](https://github.com/Zilliqa/scilla/releases/tag/v0.10.1).
+The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.0) and Scilla [v0.11.0](https://github.com/Zilliqa/scilla/releases/tag/v0.11.0).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -32,7 +32,7 @@ The current live version on the Zilliqa Mainnet is Zilliqa [v8.0.7](https://gith
 
 ## Developer Testnet
 
-The current live version on the Developer Testnet is Zilliqa [v8.0.0-alpha.5](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.0.0-alpha.5) and Scilla [v0.10.0-alpha.3](https://github.com/Zilliqa/scilla/releases/tag/v0.10.0-alpha.3).
+The current live version on the Developer Testnet is Zilliqa [v8.1.0-alpha.7](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.0-alpha.7) and Scilla [v0.11.0-alpha.0](https://github.com/Zilliqa/scilla/releases/tag/v0.11.0-alpha.0).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -138,7 +138,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tags/v8.0.7
+$ cd Zilliqa && git checkout tags/v8.1.0
 
 # build Zilliqa binary
 $ ./build.sh
