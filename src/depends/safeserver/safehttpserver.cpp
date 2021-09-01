@@ -29,12 +29,11 @@ struct mhd_coninfo {
     int code;
 };
 
-SafeHttpServer::SafeHttpServer(int port, bool useEpoll, const std::string &sslcert, const std::string &sslkey, int threads) :
+SafeHttpServer::SafeHttpServer(int port, const std::string &sslcert, const std::string &sslkey, int threads) :
     AbstractServerConnector(),
     port(port),
     threads(threads),
     running(false),
-    useEpoll(useEpoll),
     path_sslcert(sslcert),
     path_sslkey(sslkey),
     daemon(NULL),
@@ -60,14 +59,14 @@ bool SafeHttpServer::StartListening() {
     unsigned int mhd_flags = 0;
 
     // Temp fix with useEpoll until proper solution for CLOSE_WAIT
-    if (CONNECTION_IO_USE_EPOLL && useEpoll) {
+    if (CONNECTION_IO_USE_EPOLL) {
     
       const bool has_epoll =
           (MHD_is_feature_supported(MHD_FEATURE_EPOLL) == MHD_YES);
       const bool has_poll =
           (MHD_is_feature_supported(MHD_FEATURE_POLL) == MHD_YES);
 
-      if (has_epoll)
+      if (has_epoll) {
   // In MHD version 0.9.44 the flag is renamed to
   // MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY. In later versions both
   // are deprecated.
@@ -75,10 +74,12 @@ bool SafeHttpServer::StartListening() {
         mhd_flags |= MHD_USE_EPOLL_INTERNALLY;
   #else
         mhd_flags |= MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY | MHD_USE_ITC;
+        LOG_GENERAL(INFO, "MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY");
   #endif
-      else if (has_poll)
+      }
+      else if (has_poll) {
         mhd_flags |= MHD_USE_POLL_INTERNALLY;
-        
+      } 
     } else {
       mhd_flags |= MHD_USE_SELECT_INTERNALLY;
     }
@@ -113,8 +114,10 @@ bool SafeHttpServer::StartListening() {
     } else {
       LOG_GENERAL(INFO, "Start Listening, mhdflag: " << mhd_flags);
       this->daemon = MHD_start_daemon(
-          mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
-          MHD_OPTION_THREAD_POOL_SIZE, this->threads, MHD_OPTION_END);
+        mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
+        MHD_OPTION_THREAD_POOL_SIZE, this->threads,
+        MHD_OPTION_NOTIFY_CONNECTION, &SafeHttpServer::notify_connection_callback, NULL,
+        MHD_OPTION_END);
     }
     if (this->daemon != NULL)
       this->running = true;
@@ -183,9 +186,13 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
     *con_cls = client_connection;
     return MHD_YES;
   }
+
+  // Set connection timeout to unlimited
+  MHD_set_connection_option(connection, MHD_CONNECTION_OPTION_TIMEOUT, CONNECTION_CALLBACK_TIMEOUT);
+
   struct mhd_coninfo *client_connection =
       static_cast<struct mhd_coninfo *>(*con_cls);
-    
+  
   if (string("POST") == method) {
     if (*upload_data_size != 0) {
       client_connection->request.write(upload_data, *upload_data_size);
@@ -222,6 +229,26 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
   return MHD_YES;
 }
 
+void SafeHttpServer::notify_connection_callback(void* cls,
+                      struct MHD_Connection* connection,
+                      void** socket_context,
+                      enum MHD_ConnectionNotificationCode code)
+{
+  (void) cls;
+  (void) socket_context;
+
+  switch (code)
+  {
+  case MHD_CONNECTION_NOTIFY_STARTED: {    
+    MHD_set_connection_option(connection, MHD_CONNECTION_OPTION_TIMEOUT, CONNECTION_ALL_TIMEOUT);
+    break;
+  }
+  case MHD_CONNECTION_NOTIFY_CLOSED:
+    break;
+  default:
+    break;
+  }
+}
 
 SafeHttpServer &SafeHttpServer::BindLocalhost() {
   this->bindlocalhost = true;
