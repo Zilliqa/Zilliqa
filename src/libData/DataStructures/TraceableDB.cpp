@@ -50,6 +50,10 @@ bool TraceableDB::commit(const uint64_t& dsBlockNum) {
   // memory mgmt
   dev::h256s().swap(toPurge);
 
+  // ReOpen for cleanup
+  m_levelDB.Reopen();
+  m_purgeDB.Reopen();
+
   return true;
 }
 
