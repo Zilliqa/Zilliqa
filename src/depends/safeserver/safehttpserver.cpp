@@ -116,7 +116,7 @@ bool SafeHttpServer::StartListening() {
       this->daemon = MHD_start_daemon(
         mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
         MHD_OPTION_THREAD_POOL_SIZE, this->threads,
-        MHD_OPTION_NOTIFY_CONNECTION, &SafeHttpServer::notify_connection_callback, NULL,
+        MHD_OPTION_CONNECTION_TIMEOUT, CONNECTION_ALL_TIMEOUT,
         MHD_OPTION_END);
     }
     if (this->daemon != NULL)
@@ -227,27 +227,6 @@ int SafeHttpServer::callback(void *cls, MHD_Connection *connection, const char *
   *con_cls = NULL;
 
   return MHD_YES;
-}
-
-void SafeHttpServer::notify_connection_callback(void* cls,
-                      struct MHD_Connection* connection,
-                      void** socket_context,
-                      enum MHD_ConnectionNotificationCode code)
-{
-  (void) cls;
-  (void) socket_context;
-
-  switch (code)
-  {
-  case MHD_CONNECTION_NOTIFY_STARTED: {    
-    MHD_set_connection_option(connection, MHD_CONNECTION_OPTION_TIMEOUT, CONNECTION_ALL_TIMEOUT);
-    break;
-  }
-  case MHD_CONNECTION_NOTIFY_CLOSED:
-    break;
-  default:
-    break;
-  }
 }
 
 SafeHttpServer &SafeHttpServer::BindLocalhost() {
