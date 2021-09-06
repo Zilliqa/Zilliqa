@@ -84,12 +84,6 @@ private:
                       const char *upload_data, size_t *upload_data_size,
                       void **con_cls);
 
-  static void
-  notify_connection_callback(void *cls,
-                            struct MHD_Connection *connection,
-                            void **socket_context,
-                            enum MHD_ConnectionNotificationCode code);
-
   IClientConnectionHandler *GetHandler(const std::string &url);
 };
 
