@@ -98,13 +98,13 @@ def CleanS3EntirePersistence():
 	bashCommand = "aws s3 rm --recursive "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
-	print("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME))
+	logging.info("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME))
 
 def CleanS3PersistenceDiffs():
 	bashCommand = "aws s3 rm --recursive "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" --exclude 'persistence/*' --exclude '.lock' "
 	process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
-	print("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+ " for persistence diffs!" )
+	logging.info("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+ " for persistence diffs!" )
 
 def SetCurrentTxBlkNum(txBlkNum):
 	Path(".currentTxBlk").touch()
@@ -161,9 +161,9 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 					time.sleep(SYNC_INTERVAL)
 					continue
 				logging.info("Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence is Synced without state/stateRoot/contractCode/contractStateData/contractStateIndex")
-				logging.info("str_diff_output: "+str_diff_output)
+				#logging.info("str_diff_output: "+str_diff_output)
 				if re.match(r'^\s*$', str_diff_output): # if output of sync command is either empty or just whitespaces
-					print("No persistence diff, interesting...")
+					logging.warning("No persistence diff, interesting...")
 					tf = tarfile.open("diff_persistence_"+str(blockNum)+".tar.gz", mode="w:gz")
 					t = tarfile.TarInfo("diff_persistence_"+str(blockNum))
 					t.type = tarfile.DIRTYPE
@@ -211,6 +211,19 @@ def path_leaf(path):
 
 def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 	global start
+	if(blockNum % NUM_FINAL_BLOCK_PER_POW == 0 or (lastBlockNum == 0)):
+		# we dont need to upload diff here. Instead complete stateDelta
+		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
+		tf.add("temp/persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
+		tf.close()
+		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
+		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+		output, error = process.communicate()
+		logging.info("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
+		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
+		start = (int)(time.time()) # reset inactive start time - delta was uploaded
+		return 0
+
 	# check if there is diff and buffer the diff_output
 	bashCommand = "aws s3 sync --dryrun --delete temp/persistence/stateDelta "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence/stateDelta"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
@@ -230,19 +243,6 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
 		start = (int)(time.time()) # reset inactive start time - delta was uploaded
 		return 1
-
-	if(blockNum % NUM_FINAL_BLOCK_PER_POW == 0 or (lastBlockNum == 0)):
-		# we dont need to upload diff here. Instead complete stateDelta
-		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
-		tf.add("temp/persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
-		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
-		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-		output, error = process.communicate()
-		logging.info("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
-		os.remove("stateDelta_"+str(blockNum)+".tar.gz")
-		start = (int)(time.time()) # reset inactive start time - delta was uploaded
-		return 0
 
 	str_diff_output = str_diff_output.strip()
 	splitted = str_diff_output.split('\n')
@@ -355,6 +355,16 @@ def GetCurrentTxBlockNum():
 		blockNum = int(val) - 1 # -1 because we need TxBlockNum (not epochnum)
 	return blockNum
 
+def GetLastUpdatedEpoch():
+	loaded_json = get_response([], 'GetLatestEpochStatesUpdated', '127.0.0.1', 4301)
+	blockNum = -1
+	if loaded_json == None:
+		return blockNum
+	val = loaded_json["result"]
+	if (val != None and val != ''):
+		blockNum = int(val)
+	return blockNum		
+
 def send_report(msg, url):
         post = {'text': '```' + msg + '```'}
         json_data = json.dumps(post)
@@ -465,6 +475,15 @@ def main():
 					time.sleep(1)
 					continue
 
+			if ((blockNum + 1) % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
+				lastUpdatedEpoch = GetLastUpdatedEpoch()
+				if lastUpdatedEpoch == blockNum + 1:
+					logging.info("MoveUpdatesToDisk already finished!")
+				else:
+					logging.info("MoveUpdatesToDisk still not finished!")
+					time.sleep(1)
+					continue
+
 			if ( (lastBlockNum == 0 and blockNum > -1) or 
 				(blockNum >= lastBlockNum + NUM_TXBLOCK) or
 				((blockNum > lastBlockNum) and
@@ -518,4 +537,3 @@ if __name__ == '__main__':
 
 	main()
 	f.close()
-
