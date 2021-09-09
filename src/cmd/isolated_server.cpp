@@ -77,6 +77,7 @@ int main(int argc, const char* argv[]) {
   string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
+  string uuid;
   try {
     po::options_description desc("Options");
 
@@ -91,7 +92,9 @@ int main(int argc, const char* argv[]) {
         "the automatic blocktime for incrementing block number (in ms)  "
         "(Disabled by default)")(
         "load,l", po::bool_switch()->default_value(false),
-        "Load from persistence folder (False by default)");
+        "Load from persistence folder (False by default)")(
+        "uuid,u", po::value<string>(&uuid),
+        "unique id to be provided upon startup (can be any string)");
 
     po::variables_map vm;
 
@@ -143,6 +146,11 @@ int main(int argc, const char* argv[]) {
 
     uint64_t blocknum;
 
+    if (uuid.empty()) {
+      LOG_GENERAL(WARNING, "Please set a valid uuid using -u flag");
+      return ERROR_IN_COMMAND_LINE;
+    }
+
     if (!loadPersistence && accountJsonFilePath.empty()) {
       LOG_GENERAL(
           WARNING,
@@ -168,6 +176,8 @@ int main(int argc, const char* argv[]) {
     auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
     auto isolatedServer = make_shared<IsolatedServer>(
         mediator, *isolatedServerConnector, blocknum, timeDelta);
+
+    isolatedServer->m_uuid = move(uuid);
 
     if (loadPersistence) {
       LOG_GENERAL(INFO, "Trying to load persistence.. ");
