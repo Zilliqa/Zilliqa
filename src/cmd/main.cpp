@@ -25,7 +25,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
-#include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/HardwareSpecification.h"
@@ -57,7 +56,6 @@ int main(int argc, const char* argv[]) {
     string address;
     string logpath(boost::filesystem::absolute("./").string());
     int port = -1;
-    unique_ptr<NAT> nt;
     uint128_t ip;
     unsigned int syncType = 0;
     const char* synctype_descr =
@@ -75,7 +73,7 @@ int main(int argc, const char* argv[]) {
         "32-byte extseed private key")(
         "address,a", po::value<string>(&address)->required(),
         "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
-        "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
+        "\"dotted decimal:portnumber\" format")(
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
         "loadconfig,l", "Loads configuration if set (deprecated)")(
@@ -140,15 +138,13 @@ int main(int argc, const char* argv[]) {
                   << "', please select: " << synctype_descr << "." << endl;
       }
 
-      if (address != "NAT") {
-        if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
-          return ERROR_IN_COMMAND_LINE;
-        }
+      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
+        return ERROR_IN_COMMAND_LINE;
+      }
 
-        string address_;
-        if (IPConverter::GetIPPortFromSocket(address, address_, port)) {
-          address = address_;
-        }
+      string address_;
+      if (IPConverter::GetIPPortFromSocket(address, address_, port)) {
+        address = address_;
       }
 
       if ((port < 0) || (port > 65535)) {
@@ -181,29 +177,7 @@ int main(int argc, const char* argv[]) {
       SWInfo::IsLatestVersion();
     }
 
-    if (address == "NAT") {
-      nt = make_unique<NAT>();
-      nt->init();
-
-      int mappedPort = nt->addRedirect(port);
-
-      if (mappedPort <= 0) {
-        SWInfo::LogBrandBugReport();
-        LOG_GENERAL(WARNING, "NAT ERROR");
-        return -1;
-      } else {
-        LOG_GENERAL(INFO, "My external IP is " << nt->externalIP().c_str()
-                                               << " and my mapped port is "
-                                               << mappedPort);
-      }
-
-      if (!IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip)) {
-        return ERROR_IN_COMMAND_LINE;
-      }
-      my_network_info = Peer(ip, mappedPort);
-    } else {
-      my_network_info = Peer(ip, port);
-    }
+    my_network_info = Peer(ip, port);
 
     if (vm.count("loadconfig")) {
       std::cout << "WARNING: loadconfig deprecated" << std::endl;

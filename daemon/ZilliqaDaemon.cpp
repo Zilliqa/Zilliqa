@@ -399,7 +399,7 @@ int ZilliqaDaemon::ReadInputs(int argc, const char* argv[]) {
                              "33-byte public key")(
       "address,a", po::value<string>(&m_ip)->required(),
       "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
-      "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
+      "\"dotted decimal:portnumber\" format")(
       "port,p", po::value<int>(&m_port),
       "Specifies port to bind to, if not specified in address")(
       "loadconfig,l", "Loads configuration if set (deprecated)")(
