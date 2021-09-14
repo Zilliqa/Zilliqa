@@ -148,6 +148,38 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
   }
 
+  // Logging useful information for seed nodes
+  if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
+    std::string startupInfo{"Node startup Information\n"};
+
+    // 3 mode: IP/Key/P2P Seed Key (ENABLE_SEED_TO_SEED_COMMUNICATION)
+    startupInfo += "Whitelisting mode   = ";
+    startupInfo += multiplierSyncMode
+                       ? "IP whitelisting mode\n"
+                       : ENABLE_SEED_TO_SEED_COMMUNICATION
+                             ? "Public Key (P2P Seed) whitelisting mode\n"
+                             : "Public Key only whitelisting mode\n";
+    // IP Address
+    startupInfo += "IP Address          = ";
+    startupInfo += peer.GetPrintableIPAddress();
+    startupInfo += "\n";
+
+    // External Seed Public Key
+    startupInfo += "ExtSeed Public Key  = ";
+    startupInfo += multiplierSyncMode ? "N/A" : std::string{extSeedKey.second};
+    startupInfo += "\n";
+
+    // Listening Port
+    startupInfo += "Listening Port      = ";
+    startupInfo += std::to_string(peer.GetListenPortHost());
+    startupInfo += "\n";
+
+    // Staking status
+    startupInfo += "Staking RPC status  = ";
+    startupInfo += ENABLE_STAKING_RPC ? "Enabled" : "Disabled";
+    LOG_GENERAL(INFO, startupInfo);
+  }
+
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     pair<bytes, std::pair<Peer, const unsigned char>>* message = NULL;
