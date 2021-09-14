@@ -5412,6 +5412,119 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
   return true;
 }
 
+bool Messenger::SetLookupGetLatestTxBlockNumberFromSeed(
+    bytes& dst, const unsigned int offset, const uint32_t listenPort) {
+  LOG_MARKER();
+
+  LookupGetLatestTxBlockNumberFromSeed result;
+  result.set_listenport(listenPort);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "GetLookupGetLatestTxBlockNumberFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetLatestTxBlockNumberFromSeed(
+    const bytes& src, const unsigned int offset, uint32_t& listenPort) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupGetLatestTxBlockNumberFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetLatestTxBlockNumberFromSeed initialization failed");
+    return false;
+  }
+
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetLookupSetLatestTxBlockNumberFromSeed(
+    bytes& dst, const unsigned int offset, const PairOfKey& seedKey,
+    const Peer& sender, const uint32_t& txBlockNum) {
+  LOG_MARKER();
+
+  LookupSetLatestTxBlockNumberFromSeed result;
+  result.mutable_data()->set_txblocknum(txBlockNum);
+  PeerToProtobuf(sender, *result.mutable_data()->mutable_sender());
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "LookupSetLatestTxBlockNumberFromSeed.Data initialization failed");
+    return false;
+  }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(seedKey.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetLatestTxBlockNumberFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetLatestTxBlockNumberFromSeed(
+    const bytes& src, const unsigned int offset, PubKey& seedPubKey, Peer& from,
+    uint32_t& txBlockNum) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupSetLatestTxBlockNumberFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetLatestTxBlockNumberFromSeed initialization failed");
+    return false;
+  }
+  txBlockNum = result.data().txblocknum();
+  ProtobufToPeer(result.data().sender(), from);
+
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), seedPubKey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  // Verify signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, signature, seedPubKey)) {
+    LOG_GENERAL(WARNING,
+                "LookupSetLatestTxBlockNumberFromSeed signature wrong");
+    return false;
+  }
+  return true;
+}
+
 bool Messenger::SetNodeGetVersion(bytes& dst, const unsigned int offset,
                                   const uint32_t listenPort) {
   LOG_MARKER();

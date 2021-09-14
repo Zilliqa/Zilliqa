@@ -658,6 +658,23 @@ message NodeSetVersion
 // Lookup messages
 // ============================================================================
 
+message LookupGetLatestTxBlockNumberFromSeed 
+{
+    uint32 listenport = 1;
+}
+
+message LookupSetLatestTxBlockNumberFromSeed 
+{
+    message Data
+    {
+        uint32 txblocknum   = 1;
+        ProtoPeer sender    = 2;
+    }
+    Data data           = 1;
+    ByteArray pubkey    = 2;
+    ByteArray signature = 3;
+}
+
 message LookupGetSeedPeers
 {
     uint32 listenport = 1;

@@ -1398,6 +1398,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   m_prePrepRunning = true;
 
   SetState(MICROBLOCK_CONSENSUS);
+  m_mediator.m_node->CheckForNodeProgression();
 
   return true;
 }
@@ -1436,7 +1437,6 @@ bool Node::RunConsensusOnMicroBlock() {
       return false;
     }
   }
-
   CommitMicroBlockConsensusBuffer();
 
   return true;

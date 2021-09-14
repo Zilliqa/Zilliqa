@@ -253,6 +253,13 @@ class Lookup : public Executable {
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
   bool GetStateDeltasFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
 
+  bool ProcessGetLatestTxBlockNumberFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+  bool ProcessSetLatestTxBlockNumberFromSeed(
+      const bytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+
   // UNUSED
   bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
                                [[gnu::unused]] unsigned int offset,

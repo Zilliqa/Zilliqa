@@ -327,6 +327,7 @@ bool Node::ProcessMicroBlockConsensusCore(
                      m_consensusObject->GetCS2(), m_consensusObject->GetB2());
 
     SetState(WAITING_FINALBLOCK);
+    CheckForNodeProgression();
     m_txn_distribute_window_open = true;
 
     CommitTxnPacketBuffer();
@@ -372,6 +373,7 @@ bool Node::ProcessMicroBlockConsensusCore(
     LOG_GENERAL(WARNING, "ConsensusCommon::State::ERROR here, but we move on.");
 
     SetState(WAITING_FINALBLOCK);  // Move on to next Epoch.
+    CheckForNodeProgression();
     m_txn_distribute_window_open = true;
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "If I received a new Finalblock from DS committee. I will "

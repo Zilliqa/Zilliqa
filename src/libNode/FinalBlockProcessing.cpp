@@ -706,6 +706,8 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
       // Clear Hash map for duplicate updates
     }
     return true;
+  } else {
+    ResetShardNodeIdleParams();
   }
 
   return false;
@@ -854,6 +856,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         if (txBlock.GetHeader().GetBlockNum() - m_mediator.m_currentEpochNum <=
             NUM_FINAL_BLOCK_PER_POW) {
           LOG_GENERAL(INFO, "Syncing as normal node from seeds ...");
+          ResetShardNodeIdleParams();
           m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
           auto func = [this]() mutable -> void { StartSynchronization(); };
           DetachedFunction(1, func);
@@ -1100,6 +1103,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   m_mediator.UpdateTxBlockRand();
 
   LOG_GENERAL(INFO, "toSendPendingTxn " << toSendPendingTxn);
+  ResetShardNodeIdleParams();
 
   if (!LOOKUP_NODE_MODE) {
     if (toSendPendingTxn) {

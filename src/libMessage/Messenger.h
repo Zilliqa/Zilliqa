@@ -474,6 +474,20 @@ class Messenger {
   // Lookup messages
   // ============================================================================
 
+  static bool SetLookupGetLatestTxBlockNumberFromSeed(
+      bytes& dst, const unsigned int offset, const uint32_t listenPort);
+  static bool GetLookupGetLatestTxBlockNumberFromSeed(const bytes& src,
+                                                      const unsigned int offset,
+                                                      uint32_t& listenPort);
+  static bool SetLookupSetLatestTxBlockNumberFromSeed(
+      bytes& dst, const unsigned int offset, const PairOfKey& seedKey,
+      const Peer& sender, const uint32_t& txBlockNum);
+  static bool GetLookupSetLatestTxBlockNumberFromSeed(const bytes& src,
+                                                      const unsigned int offset,
+                                                      PubKey& seedPubKey,
+                                                      Peer& from,
+                                                      uint32_t& txBlockNum);
+
   static bool SetLookupGetSeedPeers(bytes& dst, const unsigned int offset,
                                     const uint32_t listenPort);
   static bool GetLookupGetSeedPeers(const bytes& src, const unsigned int offset,

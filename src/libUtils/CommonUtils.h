@@ -19,7 +19,11 @@
 #define ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_
 
 namespace CommonUtils {
+// Release STL container cache forcefully
 void ReleaseSTLMemoryCache();
+
+// Generate random number between two integers
+uint64_t GenerateRandomNumber(const uint64_t& low, const uint64_t& high);
 }  // namespace CommonUtils
 
 #endif  // ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_

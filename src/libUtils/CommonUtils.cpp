@@ -18,6 +18,7 @@
 #include <malloc.h>
 #include <chrono>
 #include <mutex>
+#include <random>
 
 #include "libUtils/CommonUtils.h"
 #include "libUtils/Logger.h"
@@ -31,4 +32,11 @@ void CommonUtils ::ReleaseSTLMemoryCache() {
     malloc_trim(0);
     relMemoryCacheMutex.unlock();
   }
+}
+uint64_t CommonUtils::GenerateRandomNumber(const uint64_t& low,
+                                           const uint64_t& high) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dis(low, high);
+  return dis(gen);
 }
