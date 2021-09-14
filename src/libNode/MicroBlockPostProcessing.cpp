@@ -85,6 +85,7 @@ bool Node::ProcessMicroBlockConsensus(
                 "called from LookUp node.");
     return true;
   }
+  LOG_GENERAL(INFO, " Chetan Node::ProcessMicroBlockConsensus");
 
   uint32_t consensus_id = 0;
   bytes reserialized_message;
@@ -124,6 +125,7 @@ bool Node::ProcessMicroBlockConsensus(
       AddToMicroBlockConsensusBuffer(consensus_id, reserialized_message, offset,
                                      from, senderPubKey);
     } else {
+      LOG_GENERAL(INFO, "Chetan else ProcessMicroBlockConsensusCore");
       return ProcessMicroBlockConsensusCore(reserialized_message, offset, from,
                                             startByte);
     }
@@ -133,6 +135,7 @@ bool Node::ProcessMicroBlockConsensus(
 }
 
 void Node::CommitMicroBlockConsensusBuffer() {
+  LOG_GENERAL(INFO, "Chetan CommitMicroBlockConsensusBuffer");
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
   for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
@@ -188,6 +191,7 @@ bool Node::ProcessMicroBlockConsensusCore(
     const bytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
+  LOG_GENERAL(INFO, "Chetan ProcessMicroBlockConsensusCore");
 
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -361,6 +365,9 @@ bool Node::ProcessMicroBlockConsensusCore(
             ConsensusCommon::INITIAL);
 
         auto reprocessconsensus = [this, message, offset, from, startByte]() {
+          LOG_GENERAL(
+              INFO,
+              " Chetan  calling ProcessMicroBlockConsensusCore from thread");
           ProcessMicroBlockConsensusCore(message, offset, from, startByte);
         };
         DetachedFunction(1, reprocessconsensus);

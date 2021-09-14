@@ -1143,6 +1143,7 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
+  LOG_GENERAL(INFO, "Chetan start RunConsensusOnMicroBlockWhenShardLeader");
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1157,11 +1158,15 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                 << m_mediator.m_currentEpochNum);
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+    LOG_GENERAL(INFO, "Chetan first tx epoch");
     // extra time added for first txepoch for tx distribution
     auto extra_wait_time =
         (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
             ? 0
             : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
+    LOG_GENERAL(INFO, "Chetan sleeping for="
+                          << extra_wait_time + TX_DISTRIBUTE_TIME_IN_MS +
+                                 SHARD_ANNOUNCEMENT_DELAY_IN_MS);
     std::this_thread::sleep_for(
         chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
                              SHARD_ANNOUNCEMENT_DELAY_IN_MS));
@@ -1208,13 +1213,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   {
     lock_guard<mutex> g(m_mutexShardMember);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "I am shard leader. "
-                  << "m_consensusID: " << m_mediator.m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID
-                  << " m_consensusLeaderID: " << m_consensusLeaderID
-                  << " Shard Leader: "
-                  << (*m_myShardMembers)[m_consensusLeaderID].second);
+    LOG_GENERAL(INFO, "I am shard leader. "
+                          << "m_consensusID: " << m_mediator.m_consensusID
+                          << " m_consensusMyID: " << m_consensusMyID
+                          << " m_consensusLeaderID: " << m_consensusLeaderID
+                          << " Shard Leader: "
+                          << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     auto nodeMissingTxnsFunc = [this](const bytes& errorMsg,
                                       const Peer& from) mutable -> bool {
@@ -1294,6 +1298,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     return false;
   }
 
+  LOG_GENERAL(INFO, "Chetan start RunConsensusOnMicroBlockWhenShardLeader");
   return true;
 }
 
@@ -1411,6 +1416,7 @@ bool Node::RunConsensusOnMicroBlock() {
   }
 
   LOG_MARKER();
+  LOG_GENERAL(INFO, "Chetan At the start RunConsensusOnMicroBlock()");
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
   cv_txnPacket.notify_all();
@@ -1436,8 +1442,8 @@ bool Node::RunConsensusOnMicroBlock() {
       return false;
     }
   }
-
   CommitMicroBlockConsensusBuffer();
+  LOG_GENERAL(INFO, "Chetan At the end RunConsensusOnMicroBlock()");
 
   return true;
 }

@@ -209,6 +209,7 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
 
   // wait for final block ( with complete microblock ) to be ready
   if (!m_completeFinalBlockReady) {
+    LOG_GENERAL(INFO, "Chetan waiting for microblock to completely form");
     if (m_cvCompleteFinalBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out

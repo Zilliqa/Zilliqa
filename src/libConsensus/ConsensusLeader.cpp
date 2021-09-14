@@ -410,10 +410,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
   m_commitCounter++;
 
-  if (m_commitCounter % 10 == 0) {
-    LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
-                                            << m_numForConsensus);
-  }
+  LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
+                                          << m_numForConsensus);
 
   // Redundant commits
   if (m_commitCounter > m_numForConsensus) {
@@ -760,6 +758,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         // Start timer for accepting final commits
         // =================================
         auto func = [this]() -> void {
+          LOG_GENERAL(INFO, "Chetan inside thread collectivesig ");
           std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
           m_sufficientCommitsReceived = false;
           if (cv_scheduleSubsetConsensus.wait_for(
@@ -998,7 +997,7 @@ bool ConsensusLeader::StartConsensus(
     P2PComm::GetInstance().SendMessage(peer, announcement_message,
                                        START_BYTE_NORMAL, true);
   }
-
+  LOG_GENERAL(INFO, "Chetan m_numOfSubsets" << m_numOfSubsets);
   if (m_numOfSubsets > 1) {
     // Start timer for accepting commits
     // =================================

@@ -120,7 +120,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
 
   error_code = TxnStatus::NOT_PRESENT;
 
-  // LOG_MARKER();
+  LOG_MARKER();
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     LOG_GENERAL(WARNING, "CHAIN_ID incorrect");

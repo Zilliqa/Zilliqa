@@ -358,6 +358,7 @@ void Node::UpdateStateForNextConsensusRound() {
   }
 
   m_mediator.m_consensusID++;
+  LOG_GENERAL(INFO, "Chetan m_consensusID=" << m_mediator.m_consensusID);
 
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
@@ -367,9 +368,12 @@ void Node::UpdateStateForNextConsensusRound() {
     if (m_mediator.m_ds->m_mode != DirectoryService::IDLE && GUARD_MODE) {
       m_consensusLeaderID =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "Chetan DSm_consensusLeaderID=" << m_consensusLeaderID);
     } else {
       m_consensusLeaderID = CalculateShardLeaderFromDequeOfNode(
           lastBlockHash, m_myShardMembers->size(), *m_myShardMembers);
+      LOG_GENERAL(INFO,
+                  "Chetan shard m_consensusLeaderID=" << m_consensusLeaderID);
     }
   }
 
