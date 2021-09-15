@@ -71,6 +71,19 @@ class StatusServer : public Server,
                                              Json::Value& response) {
     response = this->RemoveIPFromBlacklist(request[0u].asString());
   }
+  inline virtual void AddToFwdTxnExcludedSeedsI(const Json::Value& request,
+                                                Json::Value& response) {
+    response = this->AddToFwdTxnExcludedSeeds(request[0u].asString());
+  }
+  inline virtual void RemoveFromFwdTxnExcludedSeedsI(const Json::Value& request,
+                                                     Json::Value& response) {
+    response = this->RemoveFromFwdTxnExcludedSeeds(request[0u].asString());
+  }
+  inline virtual void GetFwdTxnExcludedSeedsI(const Json::Value& request,
+                                              Json::Value& response) {
+    (void)request;
+    response = this->GetFwdTxnExcludedSeeds();
+  }
   inline virtual void GetLatestEpochStatesUpdatedI(const Json::Value& request,
                                                    Json::Value& response) {
     (void)request;
@@ -194,6 +207,10 @@ class StatusServer : public Server,
   bool RemoveFromSeedsWhitelist(const std::string& ipAddr);
   bool IsIPInBlacklist(const std::string& ipAddr);
   bool RemoveIPFromBlacklist(const std::string& ipAddr);
+  bool AddToFwdTxnExcludedSeeds(const std::string& ipAddr);
+  bool RemoveFromFwdTxnExcludedSeeds(const std::string& ipAddr);
+  std::string GetFwdTxnExcludedSeeds();
+
   std::string GetNodeState();
   std::string GetLatestEpochStatesUpdated();
   std::string GetEpochFin();

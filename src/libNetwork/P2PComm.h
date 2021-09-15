@@ -55,7 +55,7 @@ class SendJob {
   bytes m_hash;
   bool m_allowSendToRelaxedBlacklist{};
 
-  static void SendMessageCore(const Peer& peer, const bytes& message,
+  static bool SendMessageCore(const Peer& peer, const bytes& message,
                               unsigned char startbyte, const bytes& hash);
 
   virtual ~SendJob() {}
@@ -214,7 +214,7 @@ class P2PComm {
   void RebroadcastMessage(const VectorOfPeer& peers, const bytes& message,
                           const bytes& msg_hash);
 
-  void SendMessageNoQueue(
+  bool SendMessageNoQueue(
       const Peer& peer, const bytes& message,
       const unsigned char& startByteType = START_BYTE_NORMAL);
 

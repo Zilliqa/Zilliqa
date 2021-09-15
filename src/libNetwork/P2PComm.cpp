@@ -321,12 +321,12 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   return true;
 }
 
-void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
+bool SendJob::SendMessageCore(const Peer& peer, const bytes& message,
                               unsigned char startbyte, const bytes& hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
-      return;
+      return false;
     }
 
     LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
@@ -336,11 +336,12 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
     if (++retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
                   "Socket connect failed over " << MAXRETRYCONN << " times.");
-      return;
+      return false;
     }
     this_thread::sleep_for(
         chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS + 1));
   }
+  return true;
 }
 
 void SendJobPeer::DoSend() {
@@ -1656,7 +1657,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   m_broadcastHashes.insert(hashCopy);
 }
 
-void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
+bool P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
                                  const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -1664,10 +1665,10 @@ void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
     LOG_GENERAL(INFO, "The node "
                           << peer
                           << " is in black list, block all message to it.");
-    return;
+    return false;
   }
 
-  SendJob::SendMessageCore(peer, message, startByteType, {});
+  return SendJob::SendMessageCore(peer, message, startByteType, {});
 }
 
 bool P2PComm::SpreadRumor(const bytes& message) {

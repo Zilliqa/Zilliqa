@@ -39,7 +39,6 @@
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
@@ -351,6 +350,16 @@ bool Lookup::AddToWhitelistExtSeed(const PubKey& pubKey) {
     return BlockStorage::GetBlockStorage().PutExtSeedPubKey(pubKey);
   }
   return false;
+}
+
+bool Lookup::AddToFwdTxnExcludedSeeds(const uint128_t& ipAddress) {
+  lock_guard<mutex> g(m_mutexFwdTxnExcludedSeeds);
+  return m_fwdTxnExcludedSeeds.emplace(ipAddress).second;
+}
+
+bool Lookup::RemoveFromFwdTxnExcludedSeeds(const uint128_t& ipAddress) {
+  lock_guard<mutex> g(m_mutexFwdTxnExcludedSeeds);
+  return m_fwdTxnExcludedSeeds.erase(ipAddress);
 }
 
 bool Lookup::RemoveFromWhitelistExtSeed(const PubKey& pubKey) {
@@ -1303,6 +1312,60 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
   LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
+}
+
+void Lookup::SendMessageNoQueueToRandomSeedNode(const bytes& message) const {
+  LOG_MARKER();
+
+  VectorOfPeer notBlackListedSeedNodes;
+  {
+    lock(m_mutexSeedNodes, m_mutexFwdTxnExcludedSeeds);
+    lock_guard<mutex> lock1(m_mutexSeedNodes, adopt_lock);
+    lock_guard<mutex> lock2(m_mutexFwdTxnExcludedSeeds, adopt_lock);
+    if (0 == m_seedNodes.size()) {
+      LOG_GENERAL(WARNING, "Seed nodes are empty");
+      return;
+    }
+
+    for (const auto& node : m_seedNodes) {
+      auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
+      if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
+          (m_fwdTxnExcludedSeeds.count(seedNodeIpToSend) == 0) &&
+          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
+        notBlackListedSeedNodes.push_back(
+            Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
+      }
+    }
+  }
+
+  if (notBlackListedSeedNodes.empty()) {
+    LOG_GENERAL(WARNING,
+                "All the seed nodes are blacklisted, please check you network "
+                "connection.");
+    return;
+  }
+
+  uint32_t retry_counter = 0;
+  while (++retry_counter <= RETRY_OTHERSEED_COUNT) {
+    auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
+    if (!P2PComm::GetInstance().SendMessageNoQueue(
+            notBlackListedSeedNodes[index], message)) {
+      LOG_GENERAL(WARNING, "Failed sending msg to "
+                               << notBlackListedSeedNodes[index]
+                               << " , will try next available upper seed");
+      notBlackListedSeedNodes.erase(notBlackListedSeedNodes.begin() + index);
+      if (notBlackListedSeedNodes.empty()) {
+        LOG_GENERAL(WARNING, "No further seed nodes are available now!");
+        return;
+      }
+    } else {
+      LOG_GENERAL(INFO, "Sent msg to " << notBlackListedSeedNodes[index]);
+      return;
+    }
+  }
+  if (retry_counter > RETRY_OTHERSEED_COUNT) {
+    LOG_GENERAL(WARNING, "Gaveup sending msg to seed node after retries!");
+  }
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -4759,7 +4822,9 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED &&
           ins_byte != LookupInstructionType::SETSTATEDELTASFROMSEED &&
           ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED &&
-          ins_byte != LookupInstructionType::SETMINERINFOFROMSEED);
+          ins_byte != LookupInstructionType::SETMINERINFOFROMSEED &&
+          ins_byte != LookupInstructionType::FORWARDTXN);  // Allow fwded txn to
+                                                           // be buffered
 }
 
 bytes Lookup::ComposeGetOfflineLookupNodes() {

@@ -34,6 +34,7 @@
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
@@ -232,6 +233,10 @@ class Lookup : public Executable {
   void SendMessageToSeedNodes(const bytes& message) const;
 
   void SendMessageToRandomSeedNode(const bytes& message) const;
+
+  // send message immediately to random selected seed node without using p2pcomm
+  // queue
+  void SendMessageNoQueueToRandomSeedNode(const bytes& message) const;
 
   void SendMessageToRandomL2lDataProvider(const bytes& message) const;
 
@@ -565,10 +570,14 @@ class Lookup : public Executable {
 
   std::mutex m_mutexExtSeedWhitelisted;
   std::unordered_set<PubKey> m_extSeedWhitelisted;
+  mutable std::mutex m_mutexFwdTxnExcludedSeeds;
+  std::unordered_set<uint128_t> m_fwdTxnExcludedSeeds;
   bool AddToWhitelistExtSeed(const PubKey& pubKey);
   bool RemoveFromWhitelistExtSeed(const PubKey& pubKey);
   bool IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
                             const unsigned char& startByte);
+  bool AddToFwdTxnExcludedSeeds(const uint128_t& ipAddress);
+  bool RemoveFromFwdTxnExcludedSeeds(const uint128_t& ipAddress);
 
   // VCDSblock processed variables - used by seed nodes using PULL P1 option
   std::mutex m_mutexVCDSBlockProcessed;

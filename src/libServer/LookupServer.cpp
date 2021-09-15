@@ -408,7 +408,7 @@ bool LookupServer::StartCollectorThread() {
         }
       }
 
-      m_mediator.m_lookup->SendMessageToRandomSeedNode(msg);
+      m_mediator.m_lookup->SendMessageNoQueueToRandomSeedNode(msg);
     }
   };
   DetachedFunction(1, collectorThread);
