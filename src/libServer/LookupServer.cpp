@@ -1041,7 +1041,6 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 
       Json::Value tmpJson;
       tmpJson["address"] = contractAddr.hex();
-      tmpJson["state"] = GetSmartContractState(contractAddr.hex());
 
       _json.append(tmpJson);
     }
