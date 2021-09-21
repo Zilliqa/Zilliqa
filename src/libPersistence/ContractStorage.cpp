@@ -593,11 +593,11 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
                                                 const string& vname,
                                                 const vector<string>& indices,
                                                 bool temp) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   std::map<std::string, bytes> states;
   FetchStateDataForContract(states, address, vname, indices, temp);
-  LOG_GENERAL(INFO, "local states map size=" << states.size());
+  // LOG_GENERAL(INFO, "local states map size=" << states.size());
 
   for (const auto& state : states) {
     vector<string> fragments;

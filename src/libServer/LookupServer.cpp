@@ -880,7 +880,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (Mediator::m_disableGetSmartContractState) {
     LOG_GENERAL(WARNING, "API disabled");
@@ -907,7 +907,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Address not contract address");
     }
-    LOG_GENERAL(INFO, "Contract address: " << address);
+    // LOG_GENERAL(INFO, "Contract address: " << address);
     Json::Value root;
     const auto indices_vector =
         JSONConversion::convertJsonArrayToVector(indices);
