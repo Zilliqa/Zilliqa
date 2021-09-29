@@ -120,3 +120,10 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:websocketsubscriber> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(websocketsubscriber PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(websocketsubscriber PUBLIC Utils Server)
+
+add_executable(compress_persistence compress_persistence.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:compress_persistence> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(compress_persistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (compress_persistence PUBLIC Database ${LevelDB_LIBRARIES} Utils)
