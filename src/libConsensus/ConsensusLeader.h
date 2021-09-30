@@ -167,8 +167,8 @@ class ConsensusLeader : public ConsensusCommon {
 
   unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }
 
-  /// Function to check for missing responses
-  void Audit();
+  /// Function to check for missing responses or commits
+  void Audit(bool checkForResponses);
 
   /// Function to log the responses stats
   void LogResponsesStats(unsigned int subsetID);
