@@ -251,14 +251,14 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
+  UpdateDSCommitteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
+
   auto dsLeaderId = distance(m_mediator.m_DSCommittee->begin(), iterDSLeaderID);
   if (!BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
                                                       dsLeaderId)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutDSCommittee failed");
     return false;
   }
-
-  UpdateDSCommitteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE) {
     LOG_STATE("[VCBLK] DS = " << vcblock.GetHeader().GetViewChangeDSEpochNo()

@@ -113,6 +113,8 @@ const unsigned int NUM_DS_EPOCHS_STATE_HISTORY{
 
 const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH{
     ReadConstantUInt64("INIT_TRIE_DB_SNAPSHOT_EPOCH")};
+const uint64_t DSCOMM_SNAPSHOT_INTERVAL{
+    ReadConstantUInt64("DSCOMM_SNAPSHOT_INTERVAL")};
 
 // Version constants
 const unsigned int MSG_VERSION{

@@ -293,9 +293,20 @@ bool Retriever::RetrieveBlockLink() {
     lastDsIndex--;
   }
 
-  LOG_GENERAL(INFO,
-              "Reconstructing DS committee from blocklinks (this may take some "
-              "time)...");
+  LOG_GENERAL(INFO, "Reconstructing DS committee from blocklinks ...");
+
+  uint64_t ds_blockNum = 0;
+  DequeOfNode t_dsComm;
+  bool dsCommSnapshotFound = true;
+  if (!BlockStorage::GetBlockStorage().GetDSCommitteeSnapshot(t_dsComm,
+                                                              ds_blockNum)) {
+    LOG_GENERAL(WARNING, "No dscommittee snapshot found. But its fine.");
+    dsCommSnapshotFound = false;
+  } else {
+    dsComm = t_dsComm;
+    LOG_GENERAL(INFO,
+                "Found DSCommitteeSnapshot at ds_blocknum: " << ds_blockNum);
+  }
 
   std::list<BlockLink>::iterator blocklinkItr;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
@@ -312,7 +323,15 @@ bool Retriever::RetrieveBlockLink() {
         return false;
       }
 
-      m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock, false);
+      // update dscomm for dsblock only after snapshot dsblock
+      if (!dsCommSnapshotFound ||
+          (dsblock->GetHeader().GetBlockNum() > ds_blockNum)) {
+        LOG_GENERAL(DEBUG, "Updating dscomm at dsblknum: "
+                               << dsblock->GetHeader().GetBlockNum()
+                               << ", snapshot dsblknum: " << ds_blockNum);
+        m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock,
+                                                        false);
+      }
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
@@ -326,8 +345,13 @@ bool Retriever::RetrieveBlockLink() {
                         << std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
         return false;
       }
-      m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
-          *vcblock, dsComm, false);
+      // update dscomm for vcblock only from or after snapshot dsblock
+      if (!dsCommSnapshotFound ||
+          (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+           ds_blockNum)) {
+        m_mediator.m_node->UpdateRetrieveDSCommitteeCompositionAfterVC(
+            *vcblock, dsComm, false);
+      }
     }
 
     m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);

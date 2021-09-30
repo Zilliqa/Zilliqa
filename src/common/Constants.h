@@ -158,6 +158,7 @@ extern const bool KEEP_HISTORICAL_STATE;
 extern const bool ENABLE_MEMORY_STATS;
 extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
+extern const uint64_t DSCOMM_SNAPSHOT_INTERVAL;
 
 // Version constants
 extern const unsigned int MSG_VERSION;

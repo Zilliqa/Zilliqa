@@ -929,6 +929,88 @@ bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
   return true;
 }
 
+bool BlockStorage::PutDSCommitteeSnapshot(
+    const shared_ptr<DequeOfNode>& dsCommittee, const uint64_t& dsBlockNum) {
+  LOG_MARKER();
+
+  unique_lock<shared_timed_mutex> g(m_mutexDsCommitteeSnapshot);
+  m_dsCommitteeSnapshotDB->ResetDB();
+  unsigned int index = 0;
+  string dsblock_num = to_string(dsBlockNum);
+
+  if (0 != m_dsCommitteeSnapshotDB->Insert(
+               index++, bytes(dsblock_num.begin(), dsblock_num.end()))) {
+    LOG_GENERAL(WARNING, "Failed to store DS BlockNum:" << dsblock_num);
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "DS BlockNum: " << dsblock_num);
+
+  bytes data;
+
+  unsigned int ds_index = 0;
+  for (const auto& ds : *dsCommittee) {
+    ds.first.Serialize(data, 0);
+    ds.second.Serialize(data, data.size());
+
+    /// Store index as key, to guarantee the sequence of DS committee after
+    /// retrieval Because first DS committee is DS leader
+    if (0 != m_dsCommitteeSnapshotDB->Insert(index++, data)) {
+      LOG_GENERAL(WARNING, "Failed to store DS committee:" << ds.first << ", "
+                                                           << ds.second);
+      return false;
+    }
+
+    LOG_GENERAL(INFO, "[" << PAD(ds_index++, 3, ' ') << "] " << ds.first << " "
+                          << ds.second);
+
+    data.clear();
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetDSCommitteeSnapshot(DequeOfNode& dsCommittee,
+                                          uint64_t& dsBlockNum) {
+  LOG_MARKER();
+
+  unsigned int index = 0;
+  dsCommittee.clear();
+  shared_lock<shared_timed_mutex> g(m_mutexDsCommitteeSnapshot);
+  string strBlockNum = m_dsCommitteeSnapshotDB->Lookup(index++);
+
+  if (strBlockNum.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve DS committee!");
+    return false;
+  }
+
+  try {
+    dsBlockNum = stoull(strBlockNum);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "strBlockNum is not numeric");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Retrieved DS BlockNum: " << dsBlockNum);
+  string dataStr;
+
+  while (true) {
+    dataStr = m_dsCommitteeSnapshotDB->Lookup(index++);
+
+    if (dataStr.empty()) {
+      break;
+    }
+
+    dsCommittee.emplace_back(
+        PubKey(bytes(dataStr.begin(), dataStr.begin() + PUB_KEY_SIZE), 0),
+        Peer(bytes(dataStr.begin() + PUB_KEY_SIZE, dataStr.end()), 0));
+    LOG_GENERAL(INFO, "Retrieved DS committee: " << dsCommittee.back().first
+                                                 << ", "
+                                                 << dsCommittee.back().second);
+  }
+
+  return true;
+}
+
 bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
                                   const uint16_t& consensusLeaderID) {
   LOG_MARKER();
@@ -1495,6 +1577,11 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_dsCommitteeDB->ResetDB();
       break;
     }
+    case DS_COMMITTEE_SNAPSHOT: {
+      unique_lock<shared_timed_mutex> g(m_mutexDsCommitteeSnapshot);
+      ret = m_dsCommitteeSnapshotDB->ResetDB();
+      break;
+    }
     case VC_BLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->ResetDB();
@@ -1608,6 +1695,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_dsCommitteeDB->RefreshDB();
       break;
     }
+    case DS_COMMITTEE_SNAPSHOT: {
+      unique_lock<shared_timed_mutex> g(m_mutexDsCommitteeSnapshot);
+      ret = m_dsCommitteeSnapshotDB->RefreshDB();
+      break;
+    }
     case VC_BLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->RefreshDB();
@@ -1714,6 +1806,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_dsCommitteeDB->GetDBName());
       break;
     }
+    case DS_COMMITTEE_SNAPSHOT: {
+      shared_lock<shared_timed_mutex> g(m_mutexDsCommitteeSnapshot);
+      ret.push_back(m_dsCommitteeSnapshotDB->GetDBName());
+      break;
+    }
     case VC_BLOCK: {
       shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
       ret.push_back(m_VCBlockDB->GetDBName());
@@ -1784,7 +1881,8 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
+           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
+           ResetDB(DS_COMMITTEE_SNAPSHOT) & ResetDB(VC_BLOCK) &
            ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
@@ -1793,7 +1891,8 @@ bool BlockStorage::ResetAll() {
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
            ResetDB(TX_BODY) & ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
-           ResetDB(VC_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(DS_COMMITTEE_SNAPSHOT) & ResetDB(VC_BLOCK) &
+           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
            ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
@@ -1808,23 +1907,23 @@ bool BlockStorage::RefreshAll() {
   if (!LOOKUP_NODE_MODE) {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
-           RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
-           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
-           RefreshDB(PROCESSED_TEMP) &
+           RefreshDB(DS_COMMITTEE_SNAPSHOT) & RefreshDB(VC_BLOCK) &
+           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
+           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
+           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   } else  // IS_LOOKUP_NODE
   {
     return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
            RefreshDB(TX_BODY) & RefreshDB(MICROBLOCK) &
-           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) &
-           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-           RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
-           RefreshDB(EXTSEED_PUBKEYS) &
+           RefreshDB(DS_COMMITTEE) & RefreshDB(DS_COMMITTEE_SNAPSHOT) &
+           RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
+           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
+           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
+           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+           RefreshDB(PROCESSED_TEMP) & RefreshDB(MINER_INFO_DSCOMM) &
+           RefreshDB(MINER_INFO_SHARDS) & RefreshDB(EXTSEED_PUBKEYS) &
            Contract::ContractStorage::GetContractStorage().RefreshAll();
   }
 }
