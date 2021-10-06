@@ -134,6 +134,9 @@ def make_options_dictionary(options_dict):
 	options_dict["getpendingtxns"] = "ToggleGetPendingTxns"
 	options_dict["start_jsonrpcport"] = "EnableJsonRpcPort"
 	options_dict["stop_jsonrpcport"] = "DisableJsonRpcPort"
+	options_dict["add_fwdtxnexcludedseed"] = "AddToFwdTxnExcludedSeeds"
+	options_dict["remove_fwdtxnexcludedseed"] = "RemoveFromFwdTxnExcludedSeeds"
+	options_dict["list_fwdtxnexcludedseed"] = "GetFwdTxnExcludedSeeds"
 
 def ProcessResponseCore(resp, param):
 	if param:
@@ -158,7 +161,7 @@ def ProcessResponse(resp, params, batch):
 def main():
 	options_dictionary = {}
 	make_options_dictionary(options_dictionary)
-	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed", "blacklist_check", "blacklist_remove", "audit_shard"]
+	option_param_required = ["checktxn","whitelist_add","whitelist_remove","seedswhitelist_add", "seedswhitelist_remove", "register_extseed", "deregister_extseed", "blacklist_check", "blacklist_remove", "audit_shard", "add_fwdtxnexcludedseed", "remove_fwdtxnexcludedseed" ]
 	global DEBUG_MODE
 	args = parse_arguments(sorted(options_dictionary.keys()))
 	DEBUG_MODE = args.debug

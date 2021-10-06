@@ -243,6 +243,7 @@ extern const unsigned int RETRY_COSIGREWARDS_COUNT;
 extern const unsigned int MAX_FETCHMISSINGMBS_NUM;
 extern const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS;
 extern const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS;
+extern const unsigned int RETRY_OTHERSEED_COUNT;
 
 // Gas constants
 extern const unsigned int DS_MICROBLOCK_GAS_LIMIT;
