@@ -742,6 +742,16 @@ bool Node::ProcessVCDSBlocksMessage(
     return false;
   }
 
+  uint64_t latest_block_num_in_blockchain =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  if (latest_block_num_in_blockchain % DSCOMM_SNAPSHOT_INTERVAL == 0) {
+    if (!BlockStorage::GetBlockStorage().PutDSCommitteeSnapshot(
+            m_mediator.m_DSCommittee, latest_block_num_in_blockchain)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutDSCommitteeSnapshot failed");
+      return false;
+    }
+  }
+
   m_mediator.m_blocklinkchain.SetBuiltDSComm(*m_mediator.m_DSCommittee);
 
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {

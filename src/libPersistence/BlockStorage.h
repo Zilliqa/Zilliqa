@@ -87,6 +87,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
   std::shared_ptr<LevelDB> m_dsCommitteeDB;
+  std::shared_ptr<LevelDB> m_dsCommitteeSnapshotDB;
   std::shared_ptr<LevelDB> m_VCBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
@@ -112,6 +113,8 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
         m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
+        m_dsCommitteeSnapshotDB(
+            std::make_shared<LevelDB>("dsCommitteeSnapshot")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
@@ -146,6 +149,7 @@ class BlockStorage : public Singleton<BlockStorage> {
     TX_BODY,
     MICROBLOCK,
     DS_COMMITTEE,
+    DS_COMMITTEE_SNAPSHOT,
     VC_BLOCK,
     BLOCKLINK,
     SHARD_STRUCTURE,
@@ -280,6 +284,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Get the latest epoch being fully completed
   bool GetEpochFin(uint64_t& epochNum);
 
+  /// Save DS committee Snapshot
+  bool PutDSCommitteeSnapshot(const std::shared_ptr<DequeOfNode>& dsCommittee,
+                              const uint64_t& dsBlockNum);
+
+  /// Retrieve DS committee Snapshot
+  bool GetDSCommitteeSnapshot(DequeOfNode& dsCommittee, uint64_t& dsBlockNum);
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,
                       const uint16_t& consensusLeaderID);
@@ -382,6 +392,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   mutable std::shared_timed_mutex m_mutexTxBlockchain;
   mutable std::mutex m_mutexMicroBlock;
   mutable std::shared_timed_mutex m_mutexDsCommittee;
+  mutable std::shared_timed_mutex m_mutexDsCommitteeSnapshot;
   mutable std::shared_timed_mutex m_mutexVCBlock;
   mutable std::shared_timed_mutex m_mutexBlockLink;
   mutable std::shared_timed_mutex m_mutexShardStructure;
