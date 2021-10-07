@@ -1280,32 +1280,52 @@ double LookupServer::GetTxBlockRate() {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
 
-  string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
-  boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
+  auto lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
+  uint64_t refBlockNum = lastBlock.GetHeader().GetBlockNum();
 
-  if (m_StartTimeTx == 0) {
-    try {
-      // Reference Time chosen to be first block's timestamp
-      TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
-      m_StartTimeTx = txb.GetTimestamp();
-    } catch (const char* msg) {
-      if (string(msg) == "Blocknumber Absent") {
-        LOG_GENERAL(INFO, "No TxBlock has been mined yet");
-      }
+  uint64_t refTimeTx = 0;
+  uint64_t numTxBlocks = BLOCKCHAIN_SIZE;
+
+  if (refBlockNum <= BLOCKCHAIN_SIZE) {
+    if (refBlockNum <= 1) {
+      LOG_GENERAL(INFO, "Not enough blocks for information");
       return 0;
+    } else {
+      // In case there are less than BLOCKCHAIN_SIZE blocks in blockchain,
+      // blocknum 1 can be ref block;
+      refBlockNum = 1;
+      numTxBlocks = lastBlock.GetHeader().GetBlockNum();  // <= BLOCKCHAIN_SIZE
     }
+  } else {
+    refBlockNum = refBlockNum - BLOCKCHAIN_SIZE + 1;
   }
-  uint64_t TimeDiff =
-      m_mediator.m_txBlockChain.GetLastBlock().GetTimestamp() - m_StartTimeTx;
 
-  if (TimeDiff == 0) {
-    LOG_GENERAL(INFO, "Wait till the second block");
+  try {
+    TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
+    refTimeTx = tx.GetTimestamp();
+  } catch (const char* msg) {
+    if (string(msg) == "Blocknumber Absent") {
+      LOG_GENERAL(INFO, "No TxBlock has been mined yet");
+    }
     return 0;
   }
+
+  uint64_t TimeDiff = lastBlock.GetTimestamp() - refTimeTx;
+
+  if (TimeDiff == 0 || refTimeTx == 0) {
+    // something went wrong
+    LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
+                          << TimeDiff << " refTimeTx:" << refTimeTx);
+    return 0;
+  }
+
   // To convert from microSeconds to seconds
-  numTx = numTx * 1000000;
+  numTxBlocks = numTxBlocks * 1000000;
   boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
-  boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
+  boost::multiprecision::cpp_dec_float_50 numTxBlocksFloat(
+      to_string(numTxBlocks));
+  boost::multiprecision::cpp_dec_float_50 ans =
+      numTxBlocksFloat / TimeDiffFloat;
   return ans.convert_to<double>();
 }
 
