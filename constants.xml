@@ -369,6 +369,7 @@
                 <MICROBLOCK>1</MICROBLOCK>
             </entry>
         </exclusion_list>
+        <IGNORE_BLOCKCOSIG_CHECK>false</IGNORE_BLOCKCOSIG_CHECK>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>

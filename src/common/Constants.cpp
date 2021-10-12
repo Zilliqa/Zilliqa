@@ -718,3 +718,5 @@ const vector<string> DS_GENESIS_KEYS{
 // Verifier
 const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{
     ReadVerifierExclusionListFromConstantsFile()};
+const bool IGNORE_BLOCKCOSIG_CHECK{
+    ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
