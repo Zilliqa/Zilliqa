@@ -1,0 +1,193 @@
+/*
+ * Copyright (C) 2021 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "DnsUtils.h"
+#include "DataConversion.h"
+#include "Logger.h"
+
+#include "common/Constants.h"
+
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
+#include <netdb.h>
+#include <resolv.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+using namespace std;
+
+namespace {
+string GetToPubKeyUrl(const string &url, const string &ip) {
+  auto tmpIp = ip;
+  std::replace(tmpIp.begin(), tmpIp.end(), '.', '-');
+  return "pub-" + tmpIp + url.substr(url.find_first_of('.'));
+}
+}  // namespace
+
+bool ObtainIpListFromDns(std::vector<uint128_t> &ipList, const std::string &url,
+                         bool toClearList) {
+  vector<string> ipStrList;
+  if (!ObtainIpStrListFromDns(ipStrList, url)) {
+    LOG_GENERAL(WARNING, "Failed to obtain ip string list from " << url);
+    return false;
+  }
+
+  if (toClearList) ipList.clear();
+
+  ipList.reserve(ipList.size() + ipStrList.size());
+  std::transform(ipStrList.begin(), ipStrList.end(), std::back_inserter(ipList),
+                 [](const string &s) { return ConvertIpStringToUint128(s); });
+
+  if (ipList.size() == 0) {
+    LOG_GENERAL(INFO, "0 length dns call???")
+  }
+
+  return true;
+}
+
+bool ObtainIpStrListFromDns(vector<string> &ipStrList, const string &url,
+                            bool toClearList) {
+  if (url.empty()) {
+    LOG_GENERAL(INFO, "DNS is empty");
+    return false;
+  }
+
+  LOG_MARKER();
+  LOG_GENERAL(INFO, "Dns: " << url);
+
+  struct addrinfo hints {
+  }, *res, *result;
+  int errcode;
+  char addrstr[100];
+  void *ptr = nullptr;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+
+  for (unsigned int retry = 0; retry < QUERY_MAX_RETRY; ++retry) {
+    errcode = getaddrinfo(url.c_str(), NULL, &hints, &result);
+    if (errcode != 0) {
+      LOG_GENERAL(WARNING, "Unable to connect "
+                               << url << " Err: " << errcode
+                               << ", Msg: " << gai_strerror(errcode)
+                               << ", retry: " << retry);
+      sleep(QUERY_RETRY_WAIT_TIME_IN_SECONDS);
+      continue;
+    }
+    break;  // If we are here, means success
+  }
+
+  if (errcode != 0) {
+    return false;
+  }
+
+  res = result;
+
+  if (toClearList) ipStrList.clear();
+
+  while (res) {
+    inet_ntop(res->ai_family, res->ai_addr->sa_data, addrstr, 100);
+
+    switch (res->ai_family) {
+      case AF_INET:
+        ptr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
+        break;
+      case AF_INET6:
+        ptr = &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr;
+        break;
+    }
+
+    if (ptr) {
+      inet_ntop(res->ai_family, ptr, addrstr, 100);
+      LOG_GENERAL(INFO, "Address: " << addrstr);
+      ipStrList.emplace_back(addrstr);
+    }
+    res = res->ai_next;
+    ptr = nullptr;
+  }
+
+  freeaddrinfo(result);
+
+  return true;
+}
+
+bool ObtainPubKeyFromUrl(bytes &output, const string &ip, const string &url) {
+  if (url.empty() || ip.empty()) {
+    LOG_GENERAL(INFO, "Ip or DNS is empty");
+    return false;
+  }
+
+  auto pubKeyUrl = GetToPubKeyUrl(url, ip);
+
+  unsigned char query_buffer[256];
+
+  int resLen = 0;
+
+  for (unsigned int retry = 0; retry < QUERY_MAX_RETRY; ++retry) {
+    resLen = res_query(pubKeyUrl.c_str(), C_IN, ns_t_txt, query_buffer,
+                       sizeof(query_buffer));
+
+    if (resLen < 0) {
+      LOG_GENERAL(WARNING, "Failed to query pub key from "
+                               << pubKeyUrl << " Retry: " << retry);
+
+      sleep(QUERY_RETRY_WAIT_TIME_IN_SECONDS);
+      continue;
+    }
+    break;  // If we are here, means success
+  }
+
+  if (resLen < 0) {
+    LOG_GENERAL(WARNING, "Unable to obtain pubkey from url");
+    return false;
+  }
+
+  ns_msg nsMsg;
+  ns_initparse(query_buffer, resLen, &nsMsg);
+
+  if (ns_msg_count(nsMsg, ns_s_an) <= 0) {
+    LOG_GENERAL(WARNING, "No data found from pub key from " << pubKeyUrl);
+    return false;
+  }
+
+  ns_rr rr;
+  ns_parserr(&nsMsg, ns_s_an, 0, &rr);
+  auto rrData = ns_rr_rdata(rr) + 1;
+
+  string p(rrData, rrData + rr.rdlength - 1);
+
+  if (p.compare("0") == 0 || p.empty()) {
+    LOG_GENERAL(WARNING, "Pubkey from dns is 0 or empty: " << pubKeyUrl);
+    return false;
+  }
+
+  if (!DataConversion::HexStrToUint8Vec(p, output)) {
+    LOG_GENERAL(WARNING, "Invalid data obtained from pub key " << pubKeyUrl);
+    return false;
+  }
+  return true;
+}
+
+uint128_t ConvertIpStringToUint128(const string &ipStr) {
+  struct in_addr ip_addr {};
+  inet_pton(AF_INET, ipStr.c_str(), &ip_addr);
+  return (uint128_t)ip_addr.s_addr;
+}

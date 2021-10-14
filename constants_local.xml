@@ -92,7 +92,7 @@
         <TX_DISTRIBUTE_TIME_IN_MS>15000</TX_DISTRIBUTE_TIME_IN_MS>
         <EXTRA_TX_DISTRIBUTE_TIME_IN_MS>15000</EXTRA_TX_DISTRIBUTE_TIME_IN_MS>
         <DS_TX_PROCESSING_TIMEOUT>55</DS_TX_PROCESSING_TIMEOUT>
-        <NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>300</NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>
+        <NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>10</NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>
         <GETSHARD_TIMEOUT_IN_SECONDS>5</GETSHARD_TIMEOUT_IN_SECONDS>
         <GETSTATEDELTAS_TIMEOUT_IN_SECONDS>5</GETSTATEDELTAS_TIMEOUT_IN_SECONDS>
         <GETCOSIGREWARDS_TIMEOUT_IN_SECONDS>5</GETCOSIGREWARDS_TIMEOUT_IN_SECONDS>
@@ -388,6 +388,16 @@
             <wallet_address>ee06b3c906612cc5bdb087a30e6093c9f0aa04fd</wallet_address>
         </account>
     </ds_accounts>
+    <!-- DNS query for seeds -->
+    <node_discovery>
+        <QUERY_DNS_FOR_SEED>true</QUERY_DNS_FOR_SEED>
+        <QUERY_MAX_RETRY>3</QUERY_MAX_RETRY>
+        <QUERY_RETRY_WAIT_TIME_IN_SECONDS>0</QUERY_RETRY_WAIT_TIME_IN_SECONDS>
+        <l2l_data_providers_dns/>
+        <upper_seed_dns/>
+        <multiplier_dns/>
+        <default_seed_port>33133</default_seed_port>
+    </node_discovery>
     <!-- For constants.xml, the remaining constants below are auto-populated -->
     <lookups>
         <peer>

@@ -65,21 +65,25 @@ enum SEND_TYPE { ARCHIVAL_SEND_SHARD = 0, ARCHIVAL_SEND_DS };
 class Lookup : public Executable {
   Mediator& m_mediator;
 
+  VectorOfNode m_multipliers;
   // Info about lookup node
+  std::mutex mutable m_mutexLookupNodes;
   VectorOfNode m_lookupNodes;
   VectorOfNode m_lookupNodesOffline;
-  VectorOfNode m_seedNodes;
-  VectorOfNode m_multipliers;
-  std::mutex mutable m_mutexSeedNodes;
-  VectorOfNode m_l2lDataProviders;
-  std::mutex mutable m_mutexL2lDataProviders;
-  bool m_dsInfoWaitingNotifying = false;
-  bool m_fetchedDSInfo = false;
 
   // m_lookupNodes can change during operation if some lookups go offline.
   // m_lookupNodesStatic is the fixed copy of m_lookupNodes after loading from
   // constants.xml.
   VectorOfNode m_lookupNodesStatic;
+
+  mutable std::shared_timed_mutex m_mutexSeedNodes;
+  VectorOfNode m_seedNodes;
+  mutable std::shared_timed_mutex m_mutexL2lDataProviders;
+  VectorOfNode m_l2lDataProviders;
+
+  bool m_dsInfoWaitingNotifying = false;
+  bool m_fetchedDSInfo = false;
+  bool m_isFirstTimeSetNodes = true;
 
   // This is used only for testing with gentxn
   std::vector<Address> m_myGenesisAccounts1;
@@ -111,7 +115,20 @@ class Lookup : public Executable {
   /// To indicate which type of synchronization is using
   std::atomic<SyncType> m_syncType{};  // = SyncType::NO_SYNC;
 
-  void SetAboveLayer(VectorOfNode& aboveLayer, const std::string& xml_node);
+  bool QueryNodesFromDns(VectorOfNode& resultNodes, const std::string& dns,
+                         unsigned int nodePort);
+  void ObtainNodesFromConfig(VectorOfNode& resultNodes,
+                             const std::string& xmlNodeType,
+                             unsigned int nodePort);
+
+  void UpdateNodes(VectorOfNode& resultNodes, unsigned int nodePort,
+                   const std::string& dns, const std::string& fallbackXmlType);
+
+  void SetUpperSeedsInner();
+  void SetL2lDataProvidersInner();
+
+  bool IsUpperSeedEmpty();
+  bool IsL2lDataProvidersEmpty();
 
   /// Post processing after the lookup node successfully synchronized with the
   /// network
@@ -124,7 +141,6 @@ class Lookup : public Executable {
   std::mutex m_mutexSetTxBlockFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
-  std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
@@ -174,6 +190,8 @@ class Lookup : public Executable {
   /// Destructor.
   ~Lookup();
 
+  void UpdateAllSeeds();
+
   /// Sync new lookup node.
   void InitSync();
 
@@ -184,6 +202,9 @@ class Lookup : public Executable {
   void SetLookupNodes(const VectorOfNode&);
 
   bool CheckStateRoot();
+
+  // Getter for m_l2lDataProviders
+  VectorOfNode GetL2lDataProviders() const;
 
   // Getter for m_lookupNodes
   VectorOfNode GetLookupNodes() const;
@@ -232,13 +253,13 @@ class Lookup : public Executable {
   // Calls P2PComm::SendMessage serially for every Seed peer
   void SendMessageToSeedNodes(const bytes& message) const;
 
-  void SendMessageToRandomSeedNode(const bytes& message) const;
+  void SendMessageToRandomSeedNode(const bytes& message);
 
   // send message immediately to random selected seed node without using p2pcomm
   // queue
   void SendMessageNoQueueToRandomSeedNode(const bytes& message) const;
 
-  void SendMessageToRandomL2lDataProvider(const bytes& message) const;
+  void SendMessageToRandomL2lDataProvider(const bytes& message);
 
   void RectifyTxnShardMap(const uint32_t, const uint32_t);
 
