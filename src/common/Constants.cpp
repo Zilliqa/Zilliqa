@@ -239,6 +239,10 @@ const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{ReadConstantNumeric(
     "LOOKUP_DELAY_SEND_TXNPACKET_IN_MS", "node.epoch_timing.")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadConstantNumeric("MICROBLOCK_TIMEOUT", "node.epoch_timing.")};
+const unsigned int SHARD_NODE_IDLE_TIMEOUT{
+    ReadConstantNumeric("SHARD_NODE_IDLE_TIMEOUT", "node.epoch_timing.")};
+const unsigned int SHARD_NODE_IDLE_REJOIN_ATTEMPT{ReadConstantNumeric(
+    "SHARD_NODE_IDLE_REJOIN_ATTEMPT", "node.epoch_timing.")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadConstantNumeric("NEW_NODE_SYNC_INTERVAL", "node.epoch_timing.")};
 const unsigned int POW_SUBMISSION_TIMEOUT{

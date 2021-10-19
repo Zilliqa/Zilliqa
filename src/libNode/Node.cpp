@@ -46,6 +46,7 @@
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libPythonRunner/PythonRunner.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -1335,6 +1336,87 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
   }
 }
 
+void Node::ResetShardNodeIdleParams(bool doNotJoinShard) {
+  LOG_MARKER();
+  m_cvCheckIfNodeIsHalted.notify_all();
+  m_isNodeProgressionCheckRunning = false;
+  if (!doNotJoinShard) {
+    m_isBlacklistedNode = false;
+  }
+  // If VC block received, then we have to signal here after setting
+  // m_isBlacklistedNode to false.
+  m_cvCheckIfLatestTxBlockNumIsRecvd.notify_all();
+}
+
+void Node::CheckIfNodeIsProgressingFine(const uint64_t epochNum) {
+  LOG_MARKER();
+
+  unique_lock<mutex> lock(m_mutexCheckIfNodeIsHalted);
+  m_isBlacklistedNode = false;
+  const uint64_t nodeProgressTimeout =
+      SHARD_NODE_IDLE_TIMEOUT + MICROBLOCK_TIMEOUT;
+  uint64_t randomNodeProgressTimeout = CommonUtils::GenerateRandomNumber(
+      nodeProgressTimeout, nodeProgressTimeout + 10);
+  if (m_cvCheckIfNodeIsHalted.wait_for(
+          lock, chrono::seconds(randomNodeProgressTimeout)) !=
+      std::cv_status::timeout) {
+    m_isNodeProgressionCheckRunning = false;
+    return;
+  }
+  if (m_mediator.m_currentEpochNum > epochNum) {
+    m_isNodeProgressionCheckRunning = false;
+    return;
+  } else {
+    LOG_GENERAL(
+        INFO, "No FB received yet. EpochNum=" << m_mediator.m_currentEpochNum);
+  }
+  bytes message = {MessageType::LOOKUP,
+                   LookupInstructionType::GETLATESTTXBLOCKNUMBERFROMSEED};
+  uint8_t rejoinAttempt = 0;
+  while (epochNum == m_mediator.m_currentEpochNum &&
+         rejoinAttempt++ < SHARD_NODE_IDLE_REJOIN_ATTEMPT) {
+    if (!Messenger::SetLookupGetLatestTxBlockNumberFromSeed(
+            message, MessageOffset::BODY,
+            m_mediator.m_selfPeer.m_listenPortHost)) {
+      LOG_GENERAL(WARNING,
+                  "Messenger::SetLookupGetLatestTxBlockNumberFromSeed failed.");
+      return;
+    }
+    m_mediator.m_lookup->SendMessageToRandomSeedNode(message);
+    std::unique_lock<std::mutex> cv_lk(m_mutexCheckIfLatestTxBlockNumIsRecvd);
+
+    if (m_cvCheckIfLatestTxBlockNumIsRecvd.wait_for(
+            cv_lk,
+            std::chrono::seconds(VIEWCHANGE_TIME + VIEWCHANGE_EXTRA_TIME)) ==
+        std::cv_status::timeout) {
+      // timeout
+      continue;
+    } else {
+      if (m_isBlacklistedNode) {
+        // Allow time of 5 secs for vc final block receival and processing
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        if (m_mediator.m_currentEpochNum == epochNum) {
+          m_mediator.m_node->RejoinAsNormal();
+        }
+      }
+      break;
+    }
+  }
+  m_isNodeProgressionCheckRunning = false;
+}
+
+void Node::CheckForNodeProgression() {
+  LOG_MARKER();
+  if (m_isNodeProgressionCheckRunning) {
+    return;
+  }
+  m_isNodeProgressionCheckRunning = true;
+  auto func = [this]() -> void {
+    CheckIfNodeIsProgressingFine(m_mediator.m_currentEpochNum);
+  };
+  DetachedFunction(1, func);
+}
+
 uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
                                              uint32_t sizeOfShard,
                                              const Shard& shardMembers,
@@ -2123,6 +2205,7 @@ void Node::RejoinAsNormal() {
 
   LOG_MARKER();
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+    ResetShardNodeIdleParams(true);
     auto func = [this]() mutable -> void {
       while (true) {
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);

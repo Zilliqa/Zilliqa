@@ -538,6 +538,16 @@ class Node : public Executable {
 
   std::atomic<bool> m_versionChecked{false};
 
+  std::mutex m_mutexCheckIfNodeIsHalted;
+  std::condition_variable m_cvCheckIfNodeIsHalted;
+
+  std::mutex m_mutexCheckIfLatestTxBlockNumIsRecvd;
+  std::condition_variable m_cvCheckIfLatestTxBlockNumIsRecvd;
+
+  std::atomic<bool> m_isBlacklistedNode{false};
+
+  std::atomic<bool> m_isNodeProgressionCheckRunning{false};
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -777,6 +787,10 @@ class Node : public Executable {
 
   void CheckPeers(const std::vector<Peer>& peers);
 
+  void CheckForNodeProgression();
+
+  void ResetShardNodeIdleParams(bool doNotJoinShard = false);
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
 
@@ -791,6 +805,7 @@ class Node : public Executable {
                         processedTransactions);
 
   std::string GetAwsS3CpString(const std::string& uploadFilePath);
+  void CheckIfNodeIsProgressingFine(const uint64_t currentEpochNum);
 };
 
 #endif  // ZILLIQA_SRC_LIBNODE_NODE_H_

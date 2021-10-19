@@ -2565,6 +2565,77 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
   return true;
 }
 
+bool Lookup::ProcessGetLatestTxBlockNumberFromSeed(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
+  LOG_MARKER();
+  uint32_t portNo = 0;
+  if (!Messenger::GetLookupGetLatestTxBlockNumberFromSeed(message, offset,
+                                                          portNo)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupGetLatestTxBlockNumberFromSeed failed");
+    return false;
+  }
+  bytes response = {MessageType::LOOKUP,
+                    LookupInstructionType::SETLATESTTXBLOCKNUMBERFROMSEED};
+
+  uint32_t latestTxBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (!Messenger::SetLookupSetLatestTxBlockNumberFromSeed(
+          response, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer, latestTxBlockNum)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::SetLookupSetLatestTxBlockNumberFromSeed failed");
+    return false;
+  }
+  P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo), response);
+  return true;
+}
+
+bool Lookup::ProcessSetLatestTxBlockNumberFromSeed(
+    const bytes& message, unsigned int offset, const Peer& from,
+    [[gnu::unused]] const unsigned char& startByte) {
+  LOG_MARKER();
+  if (m_mediator.m_node->m_isBlacklistedNode ||
+      !m_mediator.m_node->m_isNodeProgressionCheckRunning) {
+    return false;
+  }
+  uint32_t latestTxBlockNum;
+  PubKey senderPubKey;
+  Peer sender;
+  if (!Messenger::GetLookupSetLatestTxBlockNumberFromSeed(
+          message, offset, senderPubKey, sender, latestTxBlockNum)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupSetLatestTxBlockNumberFromSeed failed");
+    return false;
+  }
+  if (from.GetIpAddress() != sender.GetIpAddress()) {
+    LOG_GENERAL(WARNING,
+                "Requestor's IP does not match the one in message. so ignoring "
+                "request!");
+    return false;
+  }
+
+  if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
+    LOG_GENERAL(WARNING, "The message sender pubkey: "
+                             << senderPubKey
+                             << " is not in my lookup node list.");
+  }
+
+  uint64_t currentBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  LOG_GENERAL(INFO, "from=" << from << " currentBlockNum=" << currentBlockNum
+                            << " latestTxBlockNum=" << latestTxBlockNum);
+
+  if (latestTxBlockNum > currentBlockNum) {
+    m_mediator.m_node->m_isBlacklistedNode = true;
+    m_mediator.m_node->m_cvCheckIfLatestTxBlockNumIsRecvd.notify_all();
+  }
+  return true;
+}
+
 void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   LOG_MARKER();
 
@@ -3321,16 +3392,20 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   m_mediator.UpdateTxBlockRand();
 
   if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC) {
+    m_mediator.m_node->m_isNodeProgressionCheckRunning = false;
+    m_mediator.m_node->m_cvCheckIfNodeIsHalted.notify_all();
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
       SetSyncType(SyncType::NO_SYNC);
       m_isFirstLoop = true;
       m_currDSExpired = false;
       m_mediator.m_node->m_confirmedNotInNetwork = false;
+      m_mediator.m_node->ResetShardNodeIdleParams();
       PrepareForStartPow();
     } else {
       // check if already identified as not being part of any shard.
       // If yes, just keep sycing until vacaous epoch. Don't proceed further.
-      if (!m_mediator.m_node->m_confirmedNotInNetwork) {
+      if (!m_mediator.m_node->m_confirmedNotInNetwork &&
+          !m_mediator.m_node->m_isBlacklistedNode) {
         // Ask for the sharding structure from lookup
         ComposeAndSendGetShardingStructureFromSeed();
         std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
@@ -5225,7 +5300,9 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessGetMBnForwardTxnFromL2l,
       &Lookup::NoOp,  // Previously for GETPENDINGTXNFROML2LDATAPROVIDER
       &Lookup::ProcessGetMicroBlockFromL2l,
-      &Lookup::ProcessGetTxnsFromL2l};
+      &Lookup::ProcessGetTxnsFromL2l,
+      &Lookup::ProcessGetLatestTxBlockNumberFromSeed,
+      &Lookup::ProcessSetLatestTxBlockNumberFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
