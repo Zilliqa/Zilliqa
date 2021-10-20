@@ -1343,16 +1343,30 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     return;
   }
 
-  struct evconnlistener* listener1 = evconnlistener_new_bind(
-      m_base, AcceptConnectionCallback, nullptr,
-      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
-      (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
-  if (listener1 == NULL) {
-    LOG_GENERAL(FATAL, "evconnlistener_new_bind failure.");
-    event_base_free(m_base);
-    // fixme: should we exit here?
-    return;
+  struct evconnlistener* listener1 = NULL;
+  unsigned int retry = 0;
+  while (true) {
+    listener1 = evconnlistener_new_bind(
+        m_base, AcceptConnectionCallback, nullptr,
+        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+        (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
+    if (listener1 == NULL) {
+      if (++retry >= 3) {
+        LOG_GENERAL(FATAL, "evconnlistener_new_bind failure. Giving up after "
+                               << retry << " retries!");
+        event_base_free(m_base);
+        // fixme: should we exit here?
+        return;
+      } else {
+        LOG_GENERAL(WARNING,
+                    "evconnlistener_new_bind failure. Retry " << retry);
+      }
+      this_thread::sleep_for(chrono::seconds(1));
+      continue;
+    }
+    break;
   }
+
   struct evconnlistener* listener2 = NULL;
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && startSeedNodeListener) {
     LOG_GENERAL(INFO, "P2PSeed Start listener on " << P2P_SEED_CONNECT_PORT);
@@ -1360,16 +1374,29 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(P2P_SEED_CONNECT_PORT);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    struct evconnlistener* listener2 = evconnlistener_new_bind(
-        m_base, AcceptCbServerSeed, nullptr,
-        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
-        (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
+    retry = 0;
+    while (true) {
+      listener2 = evconnlistener_new_bind(
+          m_base, AcceptCbServerSeed, nullptr,
+          LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+          (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
 
-    if (listener2 == NULL) {
-      LOG_GENERAL(WARNING, "evconnlistener_new_bind failure.");
-      event_base_free(m_base);
-      // fixme: should we exit here?
-      return;
+      if (listener2 == NULL) {
+        if (++retry >= 3) {
+          LOG_GENERAL(WARNING,
+                      "evconnlistener_new_bind failure. Giving up after "
+                          << retry << " retries!");
+          event_base_free(m_base);
+          // fixme: should we exit here?
+          return;
+        } else {
+          LOG_GENERAL(WARNING,
+                      "evconnlistener_new_bind failure. Retry " << retry);
+        }
+        this_thread::sleep_for(chrono::seconds(1));
+        continue;
+      }
+      break;
     }
   }
   event_base_dispatch(m_base);
