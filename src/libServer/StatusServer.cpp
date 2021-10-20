@@ -118,6 +118,10 @@ StatusServer::StatusServer(Mediator& mediator,
       jsonrpc::Procedure("healthcheck", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &StatusServer::GetHealthI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &StatusServer::GetVersionI);
   this->bindAndAddMethod(jsonrpc::Procedure("GetLatestEpochStatesUpdated",
                                             jsonrpc::PARAMS_BY_POSITION,
                                             jsonrpc::JSON_STRING, NULL),
@@ -241,6 +245,8 @@ Json::Value StatusServer::GetDSCommittee() {
 }
 
 string StatusServer::GetHealth() { return "ok"; }
+
+string StatusServer::GetVersion() { return VERSION_TAG; }
 
 bool StatusServer::AddToBlacklistExclusion(const string& ipAddr) {
   try {
