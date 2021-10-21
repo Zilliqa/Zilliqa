@@ -234,6 +234,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsDSEpochI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetVersionI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure(
           "GetSmartContractSubState", jsonrpc::PARAMS_BY_POSITION,
           jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, "param02",
@@ -1637,6 +1641,8 @@ string LookupServer::GetNumTxnsTxEpoch() {
     return "0";
   }
 }
+
+string LookupServer::GetVersion() { return VERSION_TAG; }
 
 string LookupServer::GetNumTxnsDSEpoch() {
   LOG_MARKER();

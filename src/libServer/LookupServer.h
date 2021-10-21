@@ -187,6 +187,11 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetNumTxnsDSEpoch();
   }
+  inline virtual void GetVersionI(const Json::Value& request,
+                                  Json::Value& response) {
+    (void)request;
+    response = this->GetVersion();
+  }
   inline virtual void GetSmartContractSubStateI(const Json::Value& request,
                                                 Json::Value& response) {
     response = this->GetSmartContractState(request[0u].asString(),
@@ -291,6 +296,7 @@ class LookupServer : public Server,
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
+  std::string GetVersion();
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();
