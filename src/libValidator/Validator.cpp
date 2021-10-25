@@ -88,17 +88,17 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmount());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmount());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   receipt.SetEpochNum(m_mediator.m_currentEpochNum);
@@ -231,17 +231,17 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmount());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmount());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   return true;
