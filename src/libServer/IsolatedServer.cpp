@@ -259,6 +259,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
+      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+        return AccountStore::GetInstance().GetPrimaryWriteAccess();
+      });
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
@@ -303,6 +306,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         {
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
+          AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
+              lock, [] {
+                return AccountStore::GetInstance().GetPrimaryWriteAccess();
+              });
 
           const Account* account =
               AccountStore::GetInstance().GetAccount(tx.GetToAddr());
