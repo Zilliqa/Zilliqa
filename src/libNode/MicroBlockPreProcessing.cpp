@@ -941,8 +941,8 @@ void Node::SaveTxnsToS3(
 
 std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {
   std::ostringstream ossS3Cmd;
-  ossS3Cmd << "aws s3 cp " << uploadFilePath << " s3://" << BUCKET_NAME << "/"
-           << TXN_PERSISTENCE_NAME << "/";
+  ossS3Cmd << "aws s3 cp " << uploadFilePath << " s3://" << PRIMARY_BUCKET_NAME
+           << "/" << TXN_PERSISTENCE_NAME << "/";
   return ossS3Cmd.str();
 }
 

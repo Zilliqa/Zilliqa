@@ -30,7 +30,7 @@ from pprint import pformat
 from threading import Thread, Lock
 
 PERSISTENCE_SNAPSHOT_NAME='blockchain-data'
-BUCKET_NAME='BUCKET_NAME'
+PRIMARY_BUCKET_NAME='PRIMARY_BUCKET_NAME'
 CHUNK_SIZE = 4096
 TESTNET_NAME= 'TEST_NET_NAME'
 MAX_WORKER_JOBS = 50
@@ -44,7 +44,7 @@ DOWNLOAD_STARTED_LIST = []
 CREATED_FOLDER_LIST = []
 
 def getURL():
-	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+	return "http://"+PRIMARY_BUCKET_NAME+".s3.amazonaws.com"
 
 def Diff(list1, list2):
 	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))

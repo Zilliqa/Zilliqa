@@ -31,10 +31,10 @@ import xml.etree.ElementTree as ET
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
-BUCKET_NAME='BUCKET_NAME'
-AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
+PRIMARY_BUCKET_NAME='PRIMARY_BUCKET_NAME'
+AWS_PERSISTENCE_LOCATION= "s3://"+PRIMARY_BUCKET_NAME+"/persistence/"+TESTNET_NAME
 AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
-AWS_S3_URL= "http://"+BUCKET_NAME+".s3.amazonaws.com"
+AWS_S3_URL= "http://"+PRIMARY_BUCKET_NAME+".s3.amazonaws.com"
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
