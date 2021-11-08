@@ -70,7 +70,7 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                                  const PrivKey& privkey,
                                  const DequeOfNode& committee,
                                  unsigned char class_byte,
-                                 unsigned char ins_byte)
+                                 unsigned char ins_byte, bool isDS)
     : m_consensusErrorCode(NO_ERROR),
       m_consensusID(consensus_id),
       m_blockNumber(block_number),
@@ -80,7 +80,11 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
       m_committee(committee),
       m_classByte(class_byte),
       m_insByte(ins_byte),
-      m_responseMap(committee.size(), false) {}
+      m_responseMap(committee.size(), false),
+      m_DS(isDS) {
+  m_numOfSubsets =
+      m_DS ? DS_NUM_CONSENSUS_SUBSETS : SHARD_NUM_CONSENSUS_SUBSETS;
+}
 
 ConsensusCommon::~ConsensusCommon() {}
 

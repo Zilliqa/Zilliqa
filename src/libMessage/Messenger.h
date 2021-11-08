@@ -802,17 +802,18 @@ class Messenger {
     return true;
   }
 
-  static bool SetConsensusCommit(
-      bytes& dst, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t backupID, const CommitPoint& commitPoint,
-      const CommitPointHash& commitPointHash, const PairOfKey& backupKey);
+  static bool SetConsensusCommit(bytes& dst, const unsigned int offset,
+                                 const uint32_t consensusID,
+                                 const uint64_t blockNumber,
+                                 const bytes& blockHash,
+                                 const uint16_t backupID,
+                                 const std::vector<CommitInfo>& commitInfo,
+                                 const PairOfKey& backupKey);
   static bool GetConsensusCommit(const bytes& src, const unsigned int offset,
                                  const uint32_t consensusID,
                                  const uint64_t blockNumber,
                                  const bytes& blockHash, uint16_t& backupID,
-                                 CommitPoint& commitPoint,
-                                 CommitPointHash& commitPointHash,
+                                 std::vector<CommitInfo>& commitInfo,
                                  const DequeOfNode& committeeKeys);
 
   static bool SetConsensusChallenge(

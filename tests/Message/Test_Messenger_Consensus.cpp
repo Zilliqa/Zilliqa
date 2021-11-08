@@ -42,15 +42,20 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
   uint64_t blockNumber = TestUtils::DistUint32();
   bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
-  CommitPoint commitPoint = CommitPoint(CommitSecret());
-  CommitPointHash commitPointHash(commitPoint);
+
   PairOfKey backupKey;
   backupKey.first = PrivKey();
   backupKey.second = PubKey(backupKey.first);
 
-  BOOST_CHECK(Messenger::SetConsensusCommit(
-      dst, offset, consensusID, blockNumber, blockHash, backupID, commitPoint,
-      commitPointHash, backupKey));
+  vector<CommitInfo> commitInfoVec(2);
+  for (auto& ci : commitInfoVec) {
+    ci.commit = CommitPoint(CommitSecret());
+    ci.hash = CommitPointHash(ci.commit);
+  }
+
+  BOOST_CHECK(Messenger::SetConsensusCommit(dst, offset, consensusID,
+                                            blockNumber, blockHash, backupID,
+                                            commitInfoVec, backupKey));
 
   DequeOfNode committeeKeys;
   for (unsigned int i = 0, count = max((unsigned int)backupID + 1,
@@ -64,12 +69,19 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
   CommitPoint commitPointDeserialized;
   CommitPointHash commitPointHashDeserialized;
 
+  vector<CommitInfo> commitInfoVecDeserialized;
   BOOST_CHECK(Messenger::GetConsensusCommit(
       dst, offset, consensusID, blockNumber, blockHash, backupID,
-      commitPointDeserialized, commitPointHashDeserialized, committeeKeys));
+      commitInfoVecDeserialized, committeeKeys));
 
-  BOOST_CHECK(commitPoint == commitPointDeserialized);
-  BOOST_CHECK(commitPointHash == commitPointHashDeserialized);
+  BOOST_CHECK(commitInfoVec.size() == commitInfoVecDeserialized.size());
+
+  for (unsigned int i = 0; i < commitInfoVec.size(); i++) {
+    BOOST_CHECK(commitInfoVec.at(i).commit ==
+                commitInfoVecDeserialized.at(i).commit);
+    BOOST_CHECK(commitInfoVec.at(i).hash ==
+                commitInfoVecDeserialized.at(i).hash);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {

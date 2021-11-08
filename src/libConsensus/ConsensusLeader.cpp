@@ -138,8 +138,8 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 
     subset.state = m_state;
     // add myself to subset commit map always
-    subset.commitPointMap.at(m_myID) = m_commitPointMap.at(m_myID);
-    subset.commitPoints.emplace_back(m_commitPointMap.at(m_myID));
+    subset.commitPointMap.at(m_myID) = m_commitPointMap.at(m_myID).at(i);
+    subset.commitPoints.emplace_back(m_commitPointMap.at(m_myID).at(i));
     subset.commitMap.at(m_myID) = true;
 
     // If DS consensus, then first subset should be of dsguard commits only.
@@ -149,8 +149,8 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       vector<unsigned int> nondsguardIndexes;
       for (auto index : peersWhoCommitted) {
         if (index < Guard::GetInstance().GetNumOfDSGuard()) {
-          subset.commitPointMap.at(index) = m_commitPointMap.at(index);
-          subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+          subset.commitPointMap.at(index) = m_commitPointMap.at(index).at(i);
+          subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
           subset.commitMap.at(index) = true;
           subsetPeers++;
           LOG_GENERAL(
@@ -181,8 +181,8 @@ void ConsensusLeader::GenerateConsensusSubsets() {
                                            << m_numForConsensus - subsetPeers);
 
         for (auto index : nondsguardIndexes) {
-          subset.commitPointMap.at(index) = m_commitPointMap.at(index);
-          subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+          subset.commitPointMap.at(index) = m_commitPointMap.at(index).at(i);
+          subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
           subset.commitMap.at(index) = true;
           if (++subsetPeers >= m_numForConsensus) {
             break;
@@ -195,8 +195,8 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       unsigned int guardCount = 1;  // myself
       for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
         unsigned int index = peersWhoCommitted.at(j);
-        subset.commitPointMap.at(index) = m_commitPointMap.at(index);
-        subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+        subset.commitPointMap.at(index) = m_commitPointMap.at(index).at(i);
+        subset.commitPoints.emplace_back(m_commitPointMap.at(index).at(i));
         subset.commitMap.at(index) = true;
         LOG_GENERAL(
             INFO, "refine_set adding node  = "
@@ -262,9 +262,9 @@ bool ConsensusLeader::StartConsensusSubsets() {
     SetStateSubset(index, m_state);
 
     // Add the leader to the responses
-    LOG_GENERAL(INFO,
-                "refine_set leader m_commitSecret = " << m_commitSecret.get());
-    Response r(*m_commitSecret, subset.challenge, m_myPrivKey);
+    LOG_GENERAL(INFO, "refine_set leader m_commitSecret = "
+                          << m_commitSecrets.at(index).get());
+    Response r(m_commitSecrets.at(index), subset.challenge, m_myPrivKey);
     subset.responseData.emplace_back(r);
     subset.responseDataMap.at(m_myID) = r;
     subset.responseMap.at(m_myID) = true;
@@ -369,12 +369,11 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
   uint16_t backupID = 0;
 
-  CommitPoint commitPoint;
-  CommitPointHash commitPointHash;
+  vector<CommitInfo> commitInfo;
 
-  if (!Messenger::GetConsensusCommit(
-          commit, offset, m_consensusID, m_blockNumber, m_blockHash, backupID,
-          commitPoint, commitPointHash, m_committee)) {
+  if (!Messenger::GetConsensusCommit(commit, offset, m_consensusID,
+                                     m_blockNumber, m_blockHash, backupID,
+                                     commitInfo, m_committee)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed");
     return false;
   }
@@ -391,29 +390,40 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     return false;
   }
 
+  if (commitInfo.size() != m_numOfSubsets) {
+    LOG_GENERAL(WARNING, "Backup ID: " << backupID);
+    LOG_CHECK_FAIL("Num of Commits sent by backup: ", commitInfo.size(),
+                   m_numOfSubsets);
+    return false;
+  }
+
   if (m_commitMap.at(backupID)) {
     LOG_GENERAL(WARNING, "Backup already sent commit");
     return false;
   }
 
-  // Check the commit
-  if (!commitPoint.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid commit");
-    return false;
-  }
+  vector<CommitPoint> commitPoints;
+  for (auto& ci : commitInfo) {
+    // Check the commit
+    if (!ci.commit.Initialized()) {
+      LOG_GENERAL(WARNING, "Invalid commit");
+      return false;
+    }
 
-  // Check the deserialized commit hash
-  if (!commitPointHash.Initialized()) {
-    LOG_GENERAL(WARNING, "Invalid commit hash");
-    return false;
-  }
+    // Check the deserialized commit hash
+    if (!ci.hash.Initialized()) {
+      LOG_GENERAL(WARNING, "Invalid commit hash");
+      return false;
+    }
 
-  // Check the value of the commit hash
-  CommitPointHash commitPointHashExpected(commitPoint);
-  if (!(commitPointHashExpected == commitPointHash)) {
-    LOG_CHECK_FAIL("Commit hash", string(commitPointHash),
-                   string(commitPointHashExpected));
-    return false;
+    // Check the value of the commit hash
+    CommitPointHash commitPointHashExpected(ci.commit);
+    if (!(commitPointHashExpected == ci.hash)) {
+      LOG_CHECK_FAIL("Commit hash", string(ci.hash),
+                     string(commitPointHashExpected));
+      return false;
+    }
+    commitPoints.emplace_back(ci.commit);
   }
 
   // Update internal state
@@ -424,21 +434,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   }
 
   // 33-byte commit
-  m_commitPoints.emplace_back(commitPoint);
-  m_commitPointMap.at(backupID) = commitPoint;
+  m_commitPoints.emplace_back(commitPoints);
+  m_commitPointMap.at(backupID) = commitPoints;
   m_commitMap.at(backupID) = true;
 
   m_commitCounter++;
 
   LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
                                           << m_numForConsensus);
-
-  // Redundant commits
-  if (m_commitCounter > m_numForConsensus) {
-    m_commitRedundantPointMap.at(backupID) = commitPoint;
-    m_commitRedundantMap.at(backupID) = true;
-    m_commitRedundantCounter++;
-  }
 
   if (m_numOfSubsets > 1) {
     // notify the waiting thread to start with subset creations and subset
@@ -739,16 +742,16 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
         // Add the leader to the commits
         m_commitMap.at(m_myID) = true;
-        m_commitPoints.emplace_back(*m_commitPoint);
-        m_commitPointMap.at(m_myID) = *m_commitPoint;
+        vector<CommitPoint> myCommits;
+        for (const auto& cs : m_commitSecrets) {
+          myCommits.emplace_back(CommitPoint(cs));
+        }
+        m_commitPoints.emplace_back(myCommits);
+        m_commitPointMap.at(m_myID) = myCommits;
         m_commitCounter = 1;
 
         m_commitFailureCounter = 0;
         m_commitFailureMap.clear();
-
-        m_commitRedundantCounter = 0;
-        fill(m_commitRedundantMap.begin(), m_commitRedundantMap.end(), false);
-
       } else {
         // Save the collective sig over the second round
         m_CS2 = subset.collectiveSig;
@@ -916,16 +919,11 @@ ConsensusLeader::ConsensusLeader(
     NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
     ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc, bool isDS)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
-                      committee, class_byte, ins_byte),
-      m_DS(isDS),
+                      committee, class_byte, ins_byte, isDS),
       m_commitMap(committee.size(), false),
-      m_commitPointMap(committee.size(), CommitPoint()),
-      m_commitRedundantMap(committee.size(), false),
-      m_commitRedundantPointMap(committee.size(), CommitPoint()) {
+      m_commitPointMap(committee.size(),
+                       vector<CommitPoint>(m_numOfSubsets, CommitPoint())) {
   LOG_MARKER();
-
-  m_numOfSubsets =
-      m_DS ? DS_NUM_CONSENSUS_SUBSETS : SHARD_NUM_CONSENSUS_SUBSETS;
 
   m_state = INITIAL;
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
@@ -935,17 +933,22 @@ ConsensusLeader::ConsensusLeader(
   m_nodeCommitFailureHandlerFunc = move(nodeCommitFailureHandlerFunc);
   m_shardCommitFailureHandlerFunc = move(shardCommitFailureHandlerFunc);
 
-  m_commitSecret.reset(new CommitSecret());
-  m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+  m_commitSecrets.clear();
 
   // Add the leader to the commits
   m_commitMap.at(m_myID) = true;
-  m_commitPoints.emplace_back(*m_commitPoint);
-  m_commitPointMap.at(m_myID) = *m_commitPoint;
+  vector<CommitPoint> myCommits;
+  for (unsigned int i = 0; i < m_numOfSubsets; i++) {
+    CommitSecret cs;
+    m_commitSecrets.emplace_back(cs);
+    myCommits.emplace_back(CommitPoint(cs));
+  }
+  m_commitPoints.emplace_back(myCommits);
+
+  m_commitPointMap.at(m_myID) = myCommits;
   m_commitCounter = 1;
 
   m_sufficientCommitsReceived = false;
-  m_commitRedundantCounter = 0;
   m_commitFailureCounter = 0;
   m_numSubsetsRunning = 0;
 
@@ -998,7 +1001,6 @@ bool ConsensusLeader::StartConsensus(
   // =====================
 
   m_state = ANNOUNCE_DONE;
-  m_commitRedundantCounter = 0;
   m_commitFailureCounter = 0;
 
   // Multicast to all nodes in the committee
