@@ -34,12 +34,10 @@ bool ConsensusBackup::CheckState(Action action) {
        {COMMIT_DONE, PROCESS_CHALLENGE},
        {COMMIT_DONE, PROCESS_COLLECTIVESIG},
        {COMMIT_DONE, PROCESS_FINALCOLLECTIVESIG},
-       {RESPONSE_DONE, PROCESS_CHALLENGE},
        {RESPONSE_DONE, PROCESS_COLLECTIVESIG},
        {RESPONSE_DONE, PROCESS_FINALCOLLECTIVESIG},
        {FINALCOMMIT_DONE, PROCESS_FINALCHALLENGE},
        {FINALCOMMIT_DONE, PROCESS_FINALCOLLECTIVESIG},
-       {FINALRESPONSE_DONE, PROCESS_FINALCHALLENGE},
        {FINALRESPONSE_DONE, PROCESS_FINALCOLLECTIVESIG}};
 
   bool found = false;
@@ -178,15 +176,24 @@ bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
 
   // Generate new commit
   // ===================
-  m_commitSecret.reset(new CommitSecret());
-  m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+  m_commitInfo.clear();
+  m_commitSecrets.clear();
+
+  for (unsigned int i = 0; i < m_numOfSubsets; i++) {
+    CommitInfo ci;
+    CommitSecret cs;
+    ci.commit = CommitPoint(cs);
+    ci.hash = CommitPointHash(ci.commit);
+    m_commitInfo.emplace_back(ci);
+    m_commitSecrets.emplace_back(cs);
+  }
 
   // Assemble commit message body
   // ============================
 
   if (!Messenger::SetConsensusCommit(
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
-          *m_commitPoint, CommitPointHash(*m_commitPoint),
+          m_commitInfo,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed");
     return false;
@@ -252,8 +259,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     ResponseSubsetInfo rsi;
 
     rsi.response =
-        Response(*m_commitSecret, challengeSubsetInfo.at(subsetID).challenge,
-                 m_myPrivKey);
+        Response(m_commitSecrets.at(subsetID),
+                 challengeSubsetInfo.at(subsetID).challenge, m_myPrivKey);
 
     responseSubsetInfo.emplace_back(rsi);
   }
@@ -438,9 +445,9 @@ ConsensusBackup::ConsensusBackup(
     MsgContentValidatorFunc msg_validator,
     MsgContentValidatorFunc preprep_msg_validator,
     PostPrePrepValidationFunc post_preprep_validation,
-    CollectiveSigReadinessFunc collsig_readiness_func)
+    CollectiveSigReadinessFunc collsig_readiness_func, bool isDS)
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
-                      committee, class_byte, ins_byte),
+                      committee, class_byte, ins_byte, isDS),
       m_leaderID(leader_id),
       m_msgContentValidator(move(msg_validator)),
       m_prePrepMsgContentValidator(move(preprep_msg_validator)),
