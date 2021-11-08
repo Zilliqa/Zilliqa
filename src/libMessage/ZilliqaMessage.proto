@@ -961,14 +961,18 @@ message ConsensusAnnouncement
 
 message ConsensusCommit
 {
+    message CommitInfo
+    {
+        ByteArray commitpoint     = 1;
+        ByteArray commitpointhash = 2;
+    }
     message ConsensusInfo
     {
         uint32 consensusid        = 1;
         uint64 blocknumber        = 2;
         bytes blockhash           = 3; // 32 bytes
         uint32 backupid           = 4; // only lower 2 bytes used
-        ByteArray commitpoint     = 5;
-        ByteArray commitpointhash = 6;
+        repeated CommitInfo commitinfo       = 5;
     }
     ConsensusInfo consensusinfo   = 1;
     ByteArray pubkey              = 2;

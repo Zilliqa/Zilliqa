@@ -708,7 +708,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, candidateLeaderIndex, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<uint8_t>(DIRECTORY),
-      static_cast<uint8_t>(VIEWCHANGECONSENSUS), func));
+      static_cast<uint8_t>(VIEWCHANGECONSENSUS), func, nullptr, nullptr,
+      nullptr, true));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

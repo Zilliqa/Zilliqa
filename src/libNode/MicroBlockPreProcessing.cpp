@@ -1387,7 +1387,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
       m_mediator.m_selfKey.first, peerList, static_cast<uint8_t>(NODE),
       static_cast<uint8_t>(MICROBLOCKCONSENSUS), completeMBValidatorFunc,
       preprepMBValidatorFunc, postPreprepValidationFunc,
-      /* postFailedPreprepValidationFunc, */ txnProcessingReadinessfunc));
+      /* postFailedPreprepValidationFunc, */ txnProcessingReadinessfunc,
+      m_mediator.m_ds->m_mode != DirectoryService::IDLE));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

@@ -29,6 +29,11 @@
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/TimeLockedFunction.h"
 
+struct CommitInfo {
+  CommitPoint commit;
+  CommitPointHash hash;
+};
+
 struct ChallengeSubsetInfo {
   CommitPoint aggregatedCommit;
   PubKey aggregatedKey;
@@ -158,17 +163,20 @@ class ConsensusCommon {
   /// Co-sig bitmap for second round
   std::vector<bool> m_B2;
 
-  /// Generated commit secret
-  std::shared_ptr<CommitSecret> m_commitSecret;
+  /// Generated commit info - commitpoint + commitpointhash
+  std::vector<CommitInfo> m_commitInfo;
 
-  /// Generated commit point
-  std::shared_ptr<CommitPoint> m_commitPoint;
+  // Generated local commit secrets
+  std::vector<CommitSecret> m_commitSecrets;
+
+  bool m_DS;
+  unsigned int m_numOfSubsets;
 
   /// Constructor.
   ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                   const bytes& block_hash, uint16_t my_id,
                   const PrivKey& privkey, const DequeOfNode& committee,
-                  unsigned char class_byte, unsigned char ins_byte);
+                  unsigned char class_byte, unsigned char ins_byte, bool isDS);
 
   /// Destructor.
   virtual ~ConsensusCommon();

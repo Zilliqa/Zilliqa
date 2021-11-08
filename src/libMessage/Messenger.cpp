@@ -7922,8 +7922,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 bool Messenger::SetConsensusCommit(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
-    const CommitPoint& commitPoint, const CommitPointHash& commitPointHash,
-    const PairOfKey& backupKey) {
+    const vector<CommitInfo>& commitInfo, const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -7934,12 +7933,13 @@ bool Messenger::SetConsensusCommit(
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
 
-  SerializableToProtobufByteArray(
-      commitPoint, *result.mutable_consensusinfo()->mutable_commitpoint());
+  for (const auto& info : commitInfo) {
+    ConsensusCommit::CommitInfo* ci =
+        result.mutable_consensusinfo()->add_commitinfo();
 
-  SerializableToProtobufByteArray(
-      commitPointHash,
-      *result.mutable_consensusinfo()->mutable_commitpointhash());
+    SerializableToProtobufByteArray(info.commit, *ci->mutable_commitpoint());
+    SerializableToProtobufByteArray(info.hash, *ci->mutable_commitpointhash());
+  }
 
   if (!result.consensusinfo().IsInitialized()) {
     LOG_GENERAL(WARNING, "ConsensusCommit.Data initialization failed");
@@ -7971,8 +7971,7 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
                                    const uint32_t consensusID,
                                    const uint64_t blockNumber,
                                    const bytes& blockHash, uint16_t& backupID,
-                                   CommitPoint& commitPoint,
-                                   CommitPointHash& commitPointHash,
+                                   vector<CommitInfo>& commitInfo,
                                    const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
@@ -8039,10 +8038,14 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().commitpoint(),
-                                  commitPoint);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().commitpointhash(),
-                                  commitPointHash);
+  for (const auto& proto_ci : result.consensusinfo().commitinfo()) {
+    CommitInfo ci;
+
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_ci.commitpoint(), ci.commit);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_ci.commitpointhash(), ci.hash);
+
+    commitInfo.emplace_back(ci);
+  }
 
   bytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
