@@ -87,6 +87,10 @@ class AccountStore
   std::mutex m_mutexRevertibles;
   /// buffer for the raw bytes of state delta serialized
   bytes m_stateDeltaSerialized;
+  // for external write access prioritization
+  std::atomic<int> m_externalWriters;
+  std::condition_variable_any m_writeCond;
+  static constexpr int NUM_OF_WRITERS_IN_QUEUE = 1;
 
   /// Scilla IPC server related
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
@@ -240,6 +244,15 @@ class AccountStore
   bool IsPurgeRunning();
 
   std::shared_timed_mutex& GetPrimaryMutex() { return m_mutexPrimary; }
+
+  void IncrementPrimaryWriteAccessCount() { ++m_externalWriters; }
+  void DecrementPrimaryWriteAccessCount() { --m_externalWriters; }
+  bool GetPrimaryWriteAccess() {
+    return m_externalWriters.load() < NUM_OF_WRITERS_IN_QUEUE;
+  }
+  std::condition_variable_any& GetPrimaryWriteAccessCond() {
+    return m_writeCond;
+  }
 
   bool MigrateContractStates(
       bool ignoreCheckerFailure, bool disambiguation,
