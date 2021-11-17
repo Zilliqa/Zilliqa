@@ -33,7 +33,8 @@ import download_static_DB
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
-BUCKET_NAME='BUCKET_NAME'
+PRIMARY_BUCKET_NAME= 'PRIMARY_BUCKET_NAME'
+SECONDARY_BUCKET_NAME='SECONDARY_BUCKET_NAME'
 TESTNET_NAME= 'TEST_NET_NAME'
 CHUNK_SIZE = 4096
 EXPEC_LEN = 2
@@ -41,7 +42,10 @@ MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
-MAX_FAILED_DOWNLOAD_RETRY = 2
+MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS = 2
+MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE = 2
+MAX_RETRY_DOWNLOAD_OVERALL_PERSISTENCE_ATTEMPT = 4
+MAX_RETRY_DOWNLOAD_PERSISTENCE_FROM_PRIMARY = 2
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
@@ -53,36 +57,38 @@ mutex = Lock()
 
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
+CONNECTION_TIMEDOUT_ERRORED_FILE_SET = set()
+REQUESTS_CONNECTION_TIMEOUT_IN_SECS = 2
 
-def getURL():
-	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+def getURL(bucketName):
+	return "http://"+bucketName+".s3.amazonaws.com"
 
-def UploadLock():
-	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
+def UploadLock(bucketName):
+	response = requests.get(getURL(bucketName)+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock",timeout=REQUESTS_CONNECTION_TIMEOUT_IN_SECS)
 	if response.status_code == 200:
 		return True
 	return False
 
-def GetCurrentTxBlkNum():
-	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True)
+def GetCurrentTxBlkNum(bucketName):
+	response = requests.get(getURL(bucketName)+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.currentTxBlk", stream=True, timeout=REQUESTS_CONNECTION_TIMEOUT_IN_SECS)
 	if response.status_code == 200:
 		return int(response.text.strip())
 	else:
 		return -1
 
-def GetEntirePersistenceFromS3():
+def GetEntirePersistenceFromS3(bucketName):
 	CleanupDir(STORAGE_PATH + "/persistence")
 	CleanupDir(STORAGE_PATH+'/persistenceDiff')
 	CreateAndChangeDir(STORAGE_PATH)
-	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
+	if GetAllObjectsFromS3(getURL(bucketName),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
 
-def GetPersistenceDiffFromS3(txnBlkList):
+def GetPersistenceDiffFromS3(bucketName, txnBlkList):
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
 	for key in txnBlkList:
 		filename = "diff_persistence_"+str(key)
 		print("Fetching persistence diff for block = " + str(key))
-		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+		GetPersistenceKey(getURL(bucketName)+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
 		if os.path.exists(filename+".tar.gz") :
 			ExtractAllGzippedObjects()
 			copy_tree(filename, STORAGE_PATH+"/persistence/")
@@ -90,22 +96,22 @@ def GetPersistenceDiffFromS3(txnBlkList):
 	os.chdir(STORAGE_PATH)
 	CleanupDir(STORAGE_PATH+'/persistenceDiff')
 
-def GetStateDeltaDiffFromS3(txnBlkList):
+def GetStateDeltaDiffFromS3(bucketName, txnBlkList):
 	if txnBlkList:
 		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 		for key in txnBlkList:
 			filename = "stateDelta_"+str(key)
 			print("Fetching statedelta for block = " + str(key))
-			GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+			GetPersistenceKey(getURL(bucketName)+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
 	else:
 		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
-		GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
+		GetAllObjectsFromS3(getURL(bucketName), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 	os.chdir(STORAGE_PATH)
 
-def GetStateDeltaFromS3():
+def GetStateDeltaFromS3(bucketName):
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
-	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
+	GetAllObjectsFromS3(getURL(bucketName), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
 def RsyncBlockChainData(source,destination):
@@ -125,10 +131,24 @@ def LaunchParallelUrlFetch(list_of_keyurls):
 		pool.map(GetPersistenceKey,list_of_keyurls)
 		pool.shutdown(wait=True)
 
+def RewriteAlternateBucketNameToUrl(failed_url_set):
+	replaced_failed_url = []
+	modified_url = ""
+	for url in failed_url_set:
+		modified_url = url
+		if modified_url.find(PRIMARY_BUCKET_NAME) > 0:
+			modified_url = modified_url.replace(PRIMARY_BUCKET_NAME,SECONDARY_BUCKET_NAME)
+			replaced_failed_url.append(modified_url)
+		elif modified_url.find(SECONDARY_BUCKET_NAME) > 0:
+			modified_url = modified_url.replace(SECONDARY_BUCKET_NAME,PRIMARY_BUCKET_NAME)
+			replaced_failed_url.append(modified_url)
+	return replaced_failed_url
+
 def GetAllObjectsFromS3(url, folderName=""):
 	MARKER = ''
 	global DOWNLOADED_LIST
 	global DOWNLOAD_STARTED_LIST
+	global CONNECTION_TIMEDOUT_ERRORED_FILE_SET
 	DOWNLOADED_LIST = []
 	DOWNLOAD_STARTED_LIST = []
 	list_of_keyurls = []
@@ -171,7 +191,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 	print("DIFF keyurls vs downloaded = " + pformat(Diff(list_of_keyurls, DOWNLOADED_LIST)))
 
 	# retry download missing files
-	while(len(failed_list_of_keyurls) > 0 and failed_retry_download_count < MAX_FAILED_DOWNLOAD_RETRY):
+	while(len(failed_list_of_keyurls) > 0 and failed_retry_download_count < MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS):
 		LaunchParallelUrlFetch(failed_list_of_keyurls)
 		failed_list_of_keyurls = Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST) + Diff(list_of_keyurls, DOWNLOADED_LIST)
 		failed_retry_download_count = failed_retry_download_count + 1
@@ -180,6 +200,12 @@ def GetAllObjectsFromS3(url, folderName=""):
 		print("DIFF after retry, keyurls vs download started = " + pformat(Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST)))
 		print("DIFF after retry, keyurls vs downloaded = " + pformat(Diff(list_of_keyurls, DOWNLOADED_LIST)))
 
+	if(len(CONNECTION_TIMEDOUT_ERRORED_FILE_SET) > 0):
+		failed_list_of_keyurls = RewriteAlternateBucketNameToUrl(CONNECTION_TIMEDOUT_ERRORED_FILE_SET)
+		if failed_list_of_keyurls:
+			LaunchParallelUrlFetch(failed_list_of_keyurls)
+		CONNECTION_TIMEDOUT_ERRORED_FILE_SET.clear()
+
 	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
 	return 0
 
@@ -187,20 +213,31 @@ def GetAllObjectsFromS3(url, folderName=""):
 def GetPersistenceKey(key_url):
 	global DOWNLOADED_LIST
 	global DOWNLOAD_STARTED_LIST
+	global CONNECTION_TIMEDOUT_ERRORED_FILE_SET
 	retry_counter = 0
 	mutex.acquire()
 	DOWNLOAD_STARTED_LIST.append(key_url)
 	mutex.release()
 	while True:
 		try:
-			response = requests.get(key_url, stream=True)
-		except Exception as e:
-			print("Exception occurred while downloading " + key_url + ": " + str(e))
+			response = requests.get(key_url, stream=True, timeout=REQUESTS_CONNECTION_TIMEOUT_IN_SECS)
+		except requests.exceptions.Timeout as e:
+			if retry_counter >= MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE:
+				mutex.acquire()
+				CONNECTION_TIMEDOUT_ERRORED_FILE_SET.add(key_url)
+				mutex.release()
+				break
+			time.sleep(5)
 			retry_counter+=1
-			if retry_counter > 3:
+			print("Exception downloading file : " + key_url + ": " +str(e) +" [Retry: " + str(retry_counter) + "] Downloading again ")
+			continue
+		except Exception as e:
+			print("Exception downloading file " + key_url + ": " + str(e))
+			if retry_counter >= MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE:
 				print("Failed to download " + key_url + " after " + str(retry_counter) + " retries")
 				break
 			time.sleep(5)
+			retry_counter+=1
 			print("[Retry: " + str(retry_counter) + "] Downloading again " + key_url)
 			continue
 		if response.status_code != 200:
@@ -231,11 +268,11 @@ def GetPersistenceKey(key_url):
 		if calc_md5_hash != md5_hash:
 			print("md5 checksum mismatch for " + filename + ". Expected: " + md5_hash + ", Actual: " + calc_md5_hash)
 			os.remove(filename)
-			retry_counter += 1
-			if retry_counter > 3:
+			if retry_counter >= MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE:
 				print("Giving up after " + str(retry_counter) + " retries for file: " + filename + " ! Please check with support team.")
 				time.sleep(5)
 				os._exit(1)
+			retry_counter += 1
 			print("[Retry: " + str(retry_counter) + "] Downloading again " + filename)
 		else:
 			break
@@ -301,27 +338,29 @@ def calculate_multipart_etag(source_path, chunk_size):
 	return new_etag
 				
 def run():
+	bucketName = PRIMARY_BUCKET_NAME
+	retry_count = 0
 	while (True):
 		try:
 			currTxBlk = -1
-			if(UploadLock() == False):
-				currTxBlk = GetCurrentTxBlkNum()
+			if(UploadLock(bucketName) == False):
+				currTxBlk = GetCurrentTxBlkNum(bucketName)
 				if(currTxBlk < 0): # wait until current txblk is known
 					time.sleep(1)
 					continue
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
-				GetEntirePersistenceFromS3()
+				GetEntirePersistenceFromS3(bucketName)
 			else:
 				time.sleep(1)
 				continue
 
 			print("Started downloading State-Delta")
-			GetStateDeltaFromS3()
+			GetStateDeltaFromS3(bucketName)
 			#time.sleep(30) // uncomment it for test purpose.
-			newTxBlk = GetCurrentTxBlkNum()
+			newTxBlk = GetCurrentTxBlkNum(bucketName)
 			if(currTxBlk < newTxBlk):
 				# To get new files from S3 if new files where uploaded in meantime
-				while(UploadLock() == True):
+				while(UploadLock(bucketName) == True):
 					time.sleep(1)
 			else:
 				break
@@ -334,14 +373,21 @@ def run():
 				lst.append(currTxBlk+1)
 				currTxBlk += 1
 			if lst:
-				GetPersistenceDiffFromS3(lst)
-				GetStateDeltaDiffFromS3(lst)
+				GetPersistenceDiffFromS3(bucketName, lst)
+				GetStateDeltaDiffFromS3(bucketName, lst)
 			break
 
 		except Exception as e:
 			print(e)
-			print("Error downloading!! Will try again")
+			retry_count = retry_count + 1
+			if retry_count >= MAX_RETRY_DOWNLOAD_PERSISTENCE_FROM_PRIMARY:
+				print("Try persistence download persistence from other bucket")
+				bucketName = SECONDARY_BUCKET_NAME
+			if retry_count == MAX_RETRY_DOWNLOAD_OVERALL_PERSISTENCE_ATTEMPT:
+				print("Error downloading from both of the buckets!! Giving up downloading persistence !!!")
+				return False
 			time.sleep(5)
+			print("Exception downloading persistence : "  +str(e) +" [Retry: " + str(retry_count) + "] Downloading again ")
 			continue
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
