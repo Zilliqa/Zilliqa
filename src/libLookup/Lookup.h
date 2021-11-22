@@ -38,6 +38,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
+#include "libUtils/DnsUtils.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
@@ -66,20 +67,25 @@ class Lookup : public Executable {
   Mediator& m_mediator;
 
   // Info about lookup node
+  mutable std::shared_timed_mutex m_mutexLookupNodes;
   VectorOfNode m_lookupNodes;
   VectorOfNode m_lookupNodesOffline;
-  VectorOfNode m_seedNodes;
-  VectorOfNode m_multipliers;
-  std::mutex mutable m_mutexSeedNodes;
-  VectorOfNode m_l2lDataProviders;
-  std::mutex mutable m_mutexL2lDataProviders;
-  bool m_dsInfoWaitingNotifying = false;
-  bool m_fetchedDSInfo = false;
-
   // m_lookupNodes can change during operation if some lookups go offline.
   // m_lookupNodesStatic is the fixed copy of m_lookupNodes after loading from
   // constants.xml.
   VectorOfNode m_lookupNodesStatic;
+  VectorOfNode m_lookupNodesWithoutMultipliers;
+
+  mutable std::shared_timed_mutex m_mutexSeedNodes;
+  VectorOfNode m_seedNodes;
+
+  mutable std::shared_timed_mutex m_mutexL2lDataProviders;
+  VectorOfNode m_l2lDataProviders;
+
+  bool m_isFirstTimeSetNodes = true;
+
+  bool m_dsInfoWaitingNotifying = false;
+  bool m_fetchedDSInfo = false;
 
   // This is used only for testing with gentxn
   std::vector<Address> m_myGenesisAccounts1;
@@ -111,7 +117,26 @@ class Lookup : public Executable {
   /// To indicate which type of synchronization is using
   std::atomic<SyncType> m_syncType{};  // = SyncType::NO_SYNC;
 
-  void SetAboveLayer(VectorOfNode& aboveLayer, const std::string& xml_node);
+  bool GetNodesFromDnsCache(VectorOfNode& resultNodes, DnsListType listType,
+                            unsigned int nodePort);
+
+  void ObtainNodesFromConfig(VectorOfNode& resultNodes,
+                             const std::string& xmlNodeType,
+                             unsigned int nodePort);
+
+  void UpdateNodes(VectorOfNode& resultNodes, unsigned int nodePort,
+                   DnsListType listType, const std::string& fallbackXmlType);
+
+  void SetGenesisWallets();
+
+  void SetUpperSeedsInner();
+  void SetL2lDataProvidersInner();
+
+  // Setting the lookup nodes
+  void SetLookupNodes();
+
+  bool IsUpperSeedEmpty();
+  bool IsL2lDataProvidersEmpty();
 
   /// Post processing after the lookup node successfully synchronized with the
   /// network
@@ -124,7 +149,6 @@ class Lookup : public Executable {
   std::mutex m_mutexSetTxBlockFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
-  std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexCheckDirBlocks;
   std::mutex m_mutexMicroBlocksBuffer;
 
@@ -174,22 +198,27 @@ class Lookup : public Executable {
   /// Destructor.
   ~Lookup();
 
+  void UpdateAllSeedsAndMultipliers();
+
   /// Sync new lookup node.
   void InitSync();
 
-  // Setting the lookup nodes
-  // Hardcoded for now -- to be called by constructor
-  void SetLookupNodes();
-
+  // For testing usage
   void SetLookupNodes(const VectorOfNode&);
 
   bool CheckStateRoot();
+
+  // Getter for m_l2lDataProviders
+  VectorOfNode GetL2lDataProviders() const;
 
   // Getter for m_lookupNodes
   VectorOfNode GetLookupNodes() const;
 
   // Getter for m_lookupNodesStatic
   VectorOfNode GetLookupNodesStatic() const;
+
+  // Getter for m_lookupNodesStatic
+  VectorOfNode GetLookupNodesWithoutMultipliers() const;
 
   // Getter for m_seedNodes
   VectorOfNode GetSeedNodes() const;
@@ -336,6 +365,8 @@ class Lookup : public Executable {
                          const uint32_t newNumShards);
   void SendTxnPacketToShard(const uint32_t shardId, bool toDS,
                             bool afterSoftConfirmation = false);
+
+  void SetMultiplierToLatestNow();
 
   bool ProcessEntireShardingStructure();
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
@@ -577,7 +608,7 @@ class Lookup : public Executable {
 
   std::mutex m_mutexExtSeedWhitelisted;
   std::unordered_set<PubKey> m_extSeedWhitelisted;
-  mutable std::mutex m_mutexFwdTxnExcludedSeeds;
+  mutable std::shared_timed_mutex m_mutexFwdTxnExcludedSeeds;
   std::unordered_set<uint128_t> m_fwdTxnExcludedSeeds;
   bool AddToWhitelistExtSeed(const PubKey& pubKey);
   bool RemoveFromWhitelistExtSeed(const PubKey& pubKey);

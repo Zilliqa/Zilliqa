@@ -724,3 +724,22 @@ const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{
     ReadVerifierExclusionListFromConstantsFile()};
 const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
+
+// DNS
+const bool QUERY_DNS_FOR_SEED{
+    ReadConstantString("QUERY_DNS_FOR_SEED", "node.node_discovery.") == "true"};
+
+const unsigned int QUERY_MAX_TRIES{
+    ReadConstantNumeric("QUERY_MAX_TRIES", "node.node_discovery.")};
+
+const string L2L_DATA_PROVIDERS_DNS{
+    ReadConstantString("l2l_data_providers_dns", "node.node_discovery.")};
+
+const string UPPER_SEED_DNS{
+    ReadConstantString("upper_seed_dns", "node.node_discovery.")};
+
+const string MULTIPLIER_DNS{
+    ReadConstantString("multiplier_dns", "node.node_discovery.")};
+
+const unsigned int DEFAULT_SEED_PORT{
+    ReadConstantNumeric("default_seed_port", "node.node_discovery.")};

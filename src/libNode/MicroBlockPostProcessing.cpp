@@ -292,6 +292,8 @@ bool Node::ProcessMicroBlockConsensusCore(
     }
 
     {
+      m_mediator.m_lookup->SetMultiplierToLatestNow();
+
       lock_guard<mutex> g(m_mutexShardMember);
       // To DS -> ProcessMicroBlock
       DataSender::GetInstance().SendDataToOthers(

@@ -476,6 +476,8 @@ void Node::CallActOnFinalblock() {
          [[gnu::unused]] const unsigned int& my_shards_lo,
          [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
+  m_mediator.m_lookup->SetMultiplierToLatestNow();
+
   lock_guard<mutex> g(m_mutexShardMember);
 
   DataSender::GetInstance().SendDataToOthers(

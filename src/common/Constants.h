@@ -491,4 +491,14 @@ extern const std::vector<std::string> DS_GENESIS_KEYS;
 // DBVerifier constants
 extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 extern const bool IGNORE_BLOCKCOSIG_CHECK;
+
+// DNS
+extern const bool QUERY_DNS_FOR_SEED;
+extern const unsigned int QUERY_MAX_TRIES;
+extern const std::string L2L_DATA_PROVIDERS_DNS;
+extern const std::string UPPER_SEED_DNS;
+extern const std::string MULTIPLIER_DNS;
+
+extern const unsigned int DEFAULT_SEED_PORT;
+
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

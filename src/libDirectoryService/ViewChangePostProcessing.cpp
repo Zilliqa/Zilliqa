@@ -344,6 +344,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       ReloadGuardedShards(t_shards);
     }
 
+    m_mediator.m_lookup->SetMultiplierToLatestNow();
     DataSender::GetInstance().SendDataToOthers(
         *m_pendingVCBlock, tmpDSCommittee,
         t_shards.empty() ? m_shards : t_shards, t_microBlocks,

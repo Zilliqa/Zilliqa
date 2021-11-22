@@ -793,6 +793,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
       SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
     };
 
+    m_mediator.m_lookup->SetMultiplierToLatestNow();
+
     DataSender::GetInstance().SendDataToOthers(
         *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
@@ -853,6 +855,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   // Reached here, so already at new ds epoch now and safe to remove
   // ipMapping.xml
   m_mediator.m_node->RemoveIpMapping();
+
+  m_mediator.m_lookup->UpdateAllSeedsAndMultipliers();
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
