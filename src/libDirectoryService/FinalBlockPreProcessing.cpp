@@ -1261,7 +1261,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       static_cast<uint8_t>(DIRECTORY),
       static_cast<uint8_t>(FINALBLOCKCONSENSUS), completeFBValidatorFunc,
       preprepFBValidatorFunc, postPreprepValidationFunc,
-      txnProcessingReadinessfunc));
+      txnProcessingReadinessfunc, true));
 
   m_mediator.m_node->m_consensusObject = m_consensusObject;
 

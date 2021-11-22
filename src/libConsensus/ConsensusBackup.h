@@ -114,8 +114,8 @@ class ConsensusBackup : public ConsensusCommon {
                     // any post activity after validation of preprep
                     // message
       CollectiveSigReadinessFunc collsig_readiness_func =
-          nullptr  // function handler for waits until some cond is met
-  );
+          nullptr,  // function handler for waits until some cond is met
+      bool isDS = false);
 
   /// Destructor.
   ~ConsensusBackup();

@@ -838,6 +838,8 @@ bool Node::ProcessVCDSBlocksMessage(
     }
   }
 
+  m_mediator.m_lookup->UpdateAllSeedsAndMultipliers();
+
   return true;
 }
 

@@ -300,7 +300,6 @@ class LookupServer : public Server,
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();
-  std::string GetNodeState();
 
   static void AddToRecentTransactions(const dev::h256& txhash);
 

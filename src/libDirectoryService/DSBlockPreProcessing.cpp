@@ -1358,7 +1358,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, GetConsensusLeaderID(), m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<uint8_t>(DIRECTORY),
-      static_cast<uint8_t>(DSBLOCKCONSENSUS), func));
+      static_cast<uint8_t>(DSBLOCKCONSENSUS), func, nullptr, nullptr, nullptr,
+      true));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,

@@ -161,8 +161,21 @@ void DirectoryService::InitCoinbase() {
       ++it;
   }
 
-  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
+  auto vecLookup = m_mediator.m_lookup->GetLookupNodesStatic();
+
+  // Sorting is done here, as different sequences may occur from obtaining the
+  // IP through the DNS Different sequences will affect the coinbase
+  // calculation, therefore we need to sort here
+  std::sort(vecLookup.begin(), vecLookup.end(),
+            [](const auto& node1, const auto& node2) {
+              return node1.first < node2.first;
+            });
+
   const auto& epochNum = m_mediator.m_currentEpochNum;
+
+  // In VC case, if this wasn't cleared, it will accumulate the same epochNum
+  // previous entries
+  m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].clear();
 
   for (const auto& lookupNode : vecLookup) {
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
