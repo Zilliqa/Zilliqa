@@ -494,7 +494,8 @@ extern const bool IGNORE_BLOCKCOSIG_CHECK;
 
 // DNS
 extern const bool QUERY_DNS_FOR_SEED;
-extern const unsigned int QUERY_MAX_TRIES;
+extern const unsigned int QUERY_DNS_MAX_TRIES;
+extern const unsigned int QUERY_DNS_TIMEOUT_MILLISECONDS;
 extern const std::string L2L_DATA_PROVIDERS_DNS;
 extern const std::string UPPER_SEED_DNS;
 extern const std::string MULTIPLIER_DNS;

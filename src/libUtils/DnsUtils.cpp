@@ -20,6 +20,7 @@
 #include "Logger.h"
 
 #include "common/Constants.h"
+#include "libUtils/DetachedFunction.h"
 
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
@@ -31,25 +32,33 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <condition_variable>
-#include <shared_mutex>
 #include <unordered_map>
 
 using namespace std;
 
 namespace {
-atomic<bool> isQuerying;
+
 atomic<bool> isShuttingDown;
 
 using DnsIpListData = vector<string>;
 using DnsPubKeyListData = unordered_map<uint128_t, bytes>;
 
+struct DnsCacheList {
+  atomic<bool> isQuerying;
+  mutex queryWaitMutex;
+  condition_variable queryWaitCv;
+
+  DnsIpListData ipList;
+  DnsPubKeyListData pubKeyList;
+};
+
 unordered_map<DnsListType, string> dnsAddresses;
+
 // End of dsepoch, a separate thread will be spawned to query
 // To avoid coupling dns lookup delay
 // At the next dsepoch, we will update our local list to this cache
 // And the above starts over again
-unordered_map<DnsListType, DnsIpListData> dnsCacheIpListDataMap;
-unordered_map<DnsListType, DnsPubKeyListData> dnsCachePubKeyListDataMap;
+unordered_map<DnsListType, DnsCacheList> dnsCacheListDataMap;
 
 bool QueryIpStrListFromDns(vector<string> &ipStrList, DnsListType listType) {
   LOG_MARKER();
@@ -70,7 +79,7 @@ bool QueryIpStrListFromDns(vector<string> &ipStrList, DnsListType listType) {
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  for (unsigned int retry = 0; retry < QUERY_MAX_TRIES; ++retry) {
+  for (unsigned int retry = 0; retry < QUERY_DNS_MAX_TRIES; ++retry) {
     if (isShuttingDown) break;
 
     errcode = getaddrinfo(url.c_str(), NULL, &hints, &result);
@@ -134,7 +143,7 @@ bool QueryPubKeyFromUrl(bytes &output, const string &ip, DnsListType listType) {
   unsigned char query_buffer[256];
   int resLen = 0;
 
-  for (unsigned int retry = 0; retry < QUERY_MAX_TRIES; ++retry) {
+  for (unsigned int retry = 0; retry < QUERY_DNS_MAX_TRIES; ++retry) {
     if (isShuttingDown) return false;
 
     resLen = res_query(pubKeyUrl.c_str(), C_IN, ns_t_txt, query_buffer,
@@ -190,7 +199,14 @@ void QueryDnsList(DnsListType listType) {
     return;
   }
 
-  auto &ipList = dnsCacheIpListDataMap[listType];
+  auto &dataListCache = dnsCacheListDataMap[listType];
+
+  if (dataListCache.isQuerying) {
+    LOG_GENERAL(INFO, "Another thread is querying " << dnsAddresses[listType]);
+    return;
+  }
+
+  auto &ipList = dataListCache.ipList;
 
   if (!QueryIpStrListFromDns(ipList, listType)) {
     LOG_GENERAL(WARNING, "Failed to obtain ip list from "
@@ -202,7 +218,7 @@ void QueryDnsList(DnsListType listType) {
   vector<uint128_t> currentIpKeys;
   currentIpKeys.reserve(ipList.size());
 
-  auto &pubKeyList = dnsCachePubKeyListDataMap[listType];
+  auto &pubKeyList = dataListCache.pubKeyList;
   auto dnsAddress = dnsAddresses[listType];
 
   // Adding new pubkeys to our dns cache
@@ -231,49 +247,44 @@ void QueryDnsList(DnsListType listType) {
       ++itr;
     }
   }
+
+  dataListCache.isQuerying = false;
+  dataListCache.queryWaitCv.notify_all();
 }
 }  // namespace
 
 void InitDnsCacheList() {
-  dnsCacheIpListDataMap[DnsListType::UPPER_SEED];
-  dnsCacheIpListDataMap[DnsListType::L2L_DATA_PROVIDERS];
-  dnsCacheIpListDataMap[DnsListType::MULTIPLIERS];
-
-  dnsCachePubKeyListDataMap[DnsListType::UPPER_SEED];
-  dnsCachePubKeyListDataMap[DnsListType::L2L_DATA_PROVIDERS];
-  dnsCachePubKeyListDataMap[DnsListType::MULTIPLIERS];
+  dnsCacheListDataMap[DnsListType::UPPER_SEED];
+  dnsCacheListDataMap[DnsListType::L2L_DATA_PROVIDERS];
+  dnsCacheListDataMap[DnsListType::MULTIPLIERS];
 
   dnsAddresses[DnsListType::UPPER_SEED] = UPPER_SEED_DNS;
   dnsAddresses[DnsListType::L2L_DATA_PROVIDERS] = L2L_DATA_PROVIDERS_DNS;
   dnsAddresses[DnsListType::MULTIPLIERS] = MULTIPLIER_DNS;
 
-  isQuerying = false;
   isShuttingDown = false;
 }
 
 void ShutDownDnsCacheList() { isShuttingDown = true; }
 
 void AttemptPopulateLookupsDnsCache() {
-  if (isQuerying) {
-    LOG_GENERAL(INFO, "Another thread is querying already");
-    return;
-  }
-
   QueryDnsList(DnsListType::UPPER_SEED);
   QueryDnsList(DnsListType::L2L_DATA_PROVIDERS);
   QueryDnsList(DnsListType::MULTIPLIERS);
-  isQuerying = false;
 }
 
-void AttemptPopulateOneLookupDnsCache(DnsListType listType) {
-  if (isQuerying) {
-    LOG_GENERAL(INFO, "Another thread is querying already");
-    return;
-  }
+void AttemptPopulateLookupsDnsCacheImmediately(DnsListType listType) {
+  DetachedFunction(1, QueryDnsList, listType);
 
-  // Only for one type
-  QueryDnsList(listType);
-  isQuerying = false;
+  auto &dataListCache = dnsCacheListDataMap[listType];
+
+  // Timeout for result to go into cache
+  unique_lock<mutex> lock(dataListCache.queryWaitMutex);
+  if (dataListCache.queryWaitCv.wait_for(
+          lock, std::chrono::milliseconds(QUERY_DNS_TIMEOUT_MILLISECONDS)) ==
+      std::cv_status::timeout) {
+    LOG_GENERAL(WARNING, "Time out while querying " << dnsAddresses[listType]);
+  }
 }
 
 string GetPubKeyUrl(const std::string &ip, const std::string &url) {
@@ -290,32 +301,34 @@ uint128_t ConvertIpStringToUint128(const string &ipStr) {
 
 bool GetIpStrListFromDnsCache(std::vector<std::string> &ipStrList,
                               DnsListType listType) {
-  if (isQuerying) {
+  auto &dnsCacheList = dnsCacheListDataMap[listType];
+  if (dnsCacheList.isQuerying) {
     LOG_GENERAL(INFO, "Unable to obtain data from "
                           << dnsAddresses[listType]
                           << ", data are still being queried");
     return false;
   }
 
-  if (dnsCacheIpListDataMap[listType].empty()) {
+  if (dnsCacheList.ipList.empty()) {
     LOG_GENERAL(INFO, "Dns cache is empty for " << dnsAddresses[listType]);
     return false;
   }
 
-  ipStrList = dnsCacheIpListDataMap[listType];
+  ipStrList = dnsCacheList.ipList;
   return true;
 }
 
 bool GetPubKeyFromDnsCache(bytes &output, const std::string &ip,
                            DnsListType listType) {
-  if (isQuerying) {
+  auto &dnsCacheList = dnsCacheListDataMap[listType];
+  if (dnsCacheList.isQuerying) {
     LOG_GENERAL(INFO, "Unable to obtain PubKey for "
                           << ip << ", data are still being queried");
     return false;
   }
 
   auto ipKey = ConvertIpStringToUint128(ip);
-  auto &pubKeyList = dnsCachePubKeyListDataMap[listType];
+  auto &pubKeyList = dnsCacheList.pubKeyList;
   auto itr = pubKeyList.find(ipKey);
 
   if (itr == pubKeyList.end()) {
