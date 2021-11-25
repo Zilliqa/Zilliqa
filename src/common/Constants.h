@@ -462,6 +462,7 @@ extern const unsigned int TXNS_MISSING_TOLERANCE_IN_PERCENT;
 extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
 extern const unsigned int PACKET_BYTESIZE_LIMIT;
 extern const unsigned int SMALL_TXN_SIZE;
+extern const unsigned int MAX_PKTTXNS_LIMIT;
 extern const unsigned int ACCOUNT_IO_BATCH_SIZE;
 extern const bool ENABLE_REPOPULATE;
 extern const unsigned int REPOPULATE_STATE_PER_N_DS;
