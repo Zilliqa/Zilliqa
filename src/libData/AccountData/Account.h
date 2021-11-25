@@ -103,14 +103,15 @@ class AccountBase : public SerializableDataBlock {
   /// Returns true if account is a contract account
   bool isContract() const;
 
+
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
 };
 
 inline std::ostream& operator<<(std::ostream& out,
                                 AccountBase const& accountbase) {
-  out << accountbase.GetBalance() << " " << accountbase.GetNonce() << " "
-      << accountbase.GetStorageRoot() << " " << accountbase.GetCodeHash();
+  out << " balance = "<<accountbase.GetBalance() << " Nonce= " << accountbase.GetNonce() << " storage root = "
+      << accountbase.GetStorageRoot() << " code hash = " << accountbase.GetCodeHash();
   return out;
 }
 
@@ -163,6 +164,10 @@ class Account : public AccountBase {
   bool DeserializeBase(const bytes& src, unsigned int offset);
 
   void SetAddress(const Address& addr);
+
+  // Returns true if the external library is deployed
+  bool IsLibrary() const;
+
 
   const Address& GetAddress() const;
 
