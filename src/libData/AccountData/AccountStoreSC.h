@@ -165,6 +165,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
+  void CreateScillaCodeFiles(
+      Account& contract,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports,
+      const std::string& scillaCodeExtension);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
