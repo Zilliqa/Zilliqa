@@ -982,7 +982,12 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     }
     LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-    if (!is_library) {
+    if (is_library) {
+      if (root.isMember("errors")) {
+        receipt.AddException(root["errors"]);
+        return false;
+      }
+    } else {
       if (!root.isMember("contract_info")) {
         receipt.AddError(CHECKER_FAILED);
 

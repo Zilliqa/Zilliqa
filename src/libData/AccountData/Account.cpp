@@ -288,8 +288,6 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
               LOG_GENERAL(WARNING, "Didn't find address for extlib");
               return false;
             }
-
-            break;
           }
         }
 
