@@ -100,9 +100,6 @@ class AccountBase : public SerializableDataBlock {
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
-  /// Returns true if account is a contract account
-  bool isContract() const;
-
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
 };
@@ -163,6 +160,12 @@ class Account : public AccountBase {
   bool DeserializeBase(const bytes& src, unsigned int offset);
 
   void SetAddress(const Address& addr);
+
+  /// Returns true if account is a contract account
+  bool isContract() const;
+
+  // Returns true if the external library is deployed
+  bool IsLibrary() const;
 
   const Address& GetAddress() const;
 

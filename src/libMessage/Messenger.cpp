@@ -619,7 +619,7 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
   }
   accbase.SetNonce(nonceDelta);
 
-  if (newAccount.isContract()) {
+  if (newAccount.isContract() || newAccount.IsLibrary()) {
     if (fullCopy) {
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),

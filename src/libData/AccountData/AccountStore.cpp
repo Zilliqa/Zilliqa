@@ -268,7 +268,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   unordered_map<string, string> initdata_batch;
 
   for (const auto& i : *m_addressToAccount) {
-    if (i.second.isContract()) {
+    if (i.second.isContract() || i.second.IsLibrary()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
