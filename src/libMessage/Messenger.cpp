@@ -5050,7 +5050,8 @@ bool Messenger::SetNodeForwardTxnBlock(
   unsigned int txnsCurrentCount = 0, txnsGeneratedCount = 0, msg_size = 0;
 
   for (auto txn = txnsCurrent.begin(); txn != txnsCurrent.end();) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+    if (msg_size >= PACKET_BYTESIZE_LIMIT ||
+        txnsCurrentCount >= MAX_PKTTXNS_LIMIT) {
       break;
     }
 
@@ -5075,7 +5076,8 @@ bool Messenger::SetNodeForwardTxnBlock(
   }
 
   for (auto txn = txnsGenerated.begin(); txn != txnsGenerated.end();) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
+    if (msg_size >= PACKET_BYTESIZE_LIMIT ||
+        (txnsCurrentCount + txnsGeneratedCount) >= MAX_PKTTXNS_LIMIT) {
       break;
     }
 
@@ -5122,54 +5124,6 @@ bool Messenger::SetNodeForwardTxnBlock(
   LOG_GENERAL(INFO, "Epoch: " << epochNumber << " shardId: " << shardId
                               << " Current txns: " << txnsCurrentCount
                               << " Generated txns: " << txnsGeneratedCount);
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
-                                       const uint64_t& epochNumber,
-                                       const uint64_t& dsBlockNum,
-                                       const uint32_t& shardId,
-                                       const PubKey& lookupKey,
-                                       std::vector<Transaction>& txns,
-                                       const Signature& signature) {
-  LOG_MARKER();
-
-  NodeForwardTxnBlock result;
-
-  result.set_epochnumber(epochNumber);
-  result.set_dsblocknum(dsBlockNum);
-  result.set_shardid(shardId);
-  SerializableToProtobufByteArray(lookupKey, *result.mutable_pubkey());
-
-  unsigned int txnsCount = 0, msg_size = 0;
-
-  for (const auto& txn : txns) {
-    if (msg_size >= PACKET_BYTESIZE_LIMIT) {
-      break;
-    }
-
-    auto protoTxn = std::make_unique<ProtoTransaction>();
-    TransactionToProtobuf(txn, *protoTxn);
-    const unsigned txn_size = protoTxn->ByteSize();
-    if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
-        txn_size >= SMALL_TXN_SIZE) {
-      continue;
-    }
-    *result.add_transactions() = *protoTxn;
-    txnsCount++;
-    msg_size += txn_size;
-  }
-
-  SerializableToProtobufByteArray(signature, *result.mutable_signature());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Epoch: " << epochNumber << " shardId: " << shardId
-                              << " Txns: " << txnsCount);
 
   return SerializeToArray(result, dst, offset);
 }

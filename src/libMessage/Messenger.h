@@ -421,13 +421,7 @@ class Messenger {
       const PairOfKey& lookupKey,
       std::deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
       std::deque<std::pair<Transaction, uint32_t>>& txnsGenerated);
-  static bool SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
-                                     const uint64_t& epochNumber,
-                                     const uint64_t& dsBlockNum,
-                                     const uint32_t& shardId,
-                                     const PubKey& lookupKey,
-                                     std::vector<Transaction>& txns,
-                                     const Signature& signature);
+
   static bool GetNodeForwardTxnBlock(
       const bytes& src, const unsigned int offset, uint64_t& epochNumber,
       uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
