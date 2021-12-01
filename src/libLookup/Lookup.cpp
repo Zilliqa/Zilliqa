@@ -4638,8 +4638,10 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
     };
     DetachedFunction(1, func1);
 
-    if (fromLookup && MULTIPLIER_SYNC_MODE) {  // level2lookups and seed nodes
-                                               // syncing via multiplier
+    // level2lookups and seed nodes
+    if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
+        SYNC_FROM_EXISTING_PERSISTENCE) {
+      // syncing via multiplier
       LOG_GENERAL(INFO, "Syncing from lookup ...");
       auto func2 = [this]() mutable -> void {
         GetInitialBlocksAndShardingStructure();
