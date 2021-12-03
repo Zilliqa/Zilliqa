@@ -2090,7 +2090,8 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                 "(lowBlockNum :"
                     << lowBlockNum << ", lowestLimitNum : " << lowestLimitNum
                     << ")");
-    lowBlockNum = lowestLimitNum;
+    // lowBlockNum = lowestLimitNum;
+    LOG_GENERAL(WARNING, "Temporariliy removed limit")
   }
 
   if (highBlockNum == 0) {
@@ -2107,6 +2108,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   uint64_t blockNum;
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
+      LOG_GENERAL(INFO, "Trying to retrieve block num: " << blockNum);
       TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blockNum);
       // TODO
       // Workaround to identify dummy block as == comparator does not work on
