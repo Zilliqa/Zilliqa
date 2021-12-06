@@ -167,6 +167,11 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetBlockchainInfo();
   }
+  inline virtual void GetDbBlockTestI(const Json::Value& request,
+                                      Json::Value& response) {
+    (void)request;
+    response = this->GetDbBlockTest(request[0u].asUInt(), request[1u].asUInt());
+  }
   inline virtual void GetRecentTransactionsI(const Json::Value& request,
                                              Json::Value& response) {
     (void)request;
@@ -292,6 +297,7 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
+  Json::Value GetDbBlockTest(unsigned int blockType, unsigned int blockNum);
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();

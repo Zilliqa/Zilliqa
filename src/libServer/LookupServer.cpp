@@ -218,6 +218,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetBlockchainInfoI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GetDbBlockTest", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
+                         "param02", jsonrpc::JSON_INTEGER, NULL),
+      &LookupServer::GetDbBlockTestI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
@@ -1599,6 +1604,34 @@ Json::Value LookupServer::GetBlockchainInfo() {
   _json["NumTxnsDSEpoch"] = LookupServer::GetNumTxnsDSEpoch();
   _json["NumTxnsTxEpoch"] = LookupServer::GetNumTxnsTxEpoch();
   _json["ShardingStructure"] = LookupServer::GetShardingStructure();
+
+  return _json;
+}
+Json::Value LookupServer::GetDbBlockTest(unsigned int blockType,
+                                         unsigned int blockNum) {
+  Json::Value _json;
+
+  auto tp_start = chrono::system_clock::now();
+
+  if (blockType == 0) {
+    DSBlockSharedPtr dsBlock;
+    _json["HasGotten"] =
+        BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsBlock);
+  } else if (blockType == 1) {
+    TxBlockSharedPtr txBlock;
+    _json["HasGotten"] =
+        BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlock);
+  } else if (blockType == 2) {
+    bytes stateDelta = {};
+    _json["HasGotten"] =
+        BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
+  }
+
+  auto tp_end = chrono::system_clock::now();
+
+  _json["TimeTakenInMicroSeconds"] =
+      (int)chrono::duration_cast<chrono::microseconds>(tp_end - tp_start)
+          .count();
 
   return _json;
 }
