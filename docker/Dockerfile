@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG BASE=648273915458.dkr.ecr.us-west-2.amazonaws.com/scilla:7652ad3
+ARG BASE=zilliqa/scilla:7652ad3
 FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
