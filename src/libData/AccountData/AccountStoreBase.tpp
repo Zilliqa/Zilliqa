@@ -183,7 +183,11 @@ template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
   // LOG_MARKER();
-  LOG_GENERAL(INFO, "Chetan AddAccount = "<<address.hex()<< " account = "<< account.GetAddress().hex() << " toReplace = "<< toReplace << " m_codeHash = "<<account.GetCodeHash());
+  LOG_GENERAL(INFO, "Chetan AddAccount = "
+                        << address.hex()
+                        << " account = " << account.GetAddress().hex()
+                        << " toReplace = " << toReplace
+                        << " m_codeHash = " << account.GetCodeHash());
   if (toReplace || !IsAccountExist(address)) {
     LOG_GENERAL(INFO, "Chetan Account does not exists");
     (*m_addressToAccount)[address] = account;
@@ -344,6 +348,7 @@ template <class MAP>
 void AccountStoreBase<MAP>::PrintAccountState() {
   LOG_MARKER();
   for (const auto& entry : *m_addressToAccount) {
-    LOG_GENERAL(INFO, "address ==> "<< entry.first << " account ==>  " << entry.second);
+    LOG_GENERAL(INFO, "address ==> " << entry.first << " account ==>  "
+                                     << entry.second);
   }
 }

@@ -919,13 +919,10 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   }
 
   try {
-    std::string scillaCodeExtension;
+    std::string scillaCodeExtension = CONTRACT_FILE_EXTENSION;
     if (contract.IsLibrary()) {
       LOG_GENERAL(INFO, "Chetan library is called here");
       scillaCodeExtension = LIBRARY_CODE_EXTENSION;
-    } else {
-      LOG_GENERAL(INFO, "Chetan contract is called here");
-      scillaCodeExtension = CONTRACT_FILE_EXTENSION;
     }
     CreateScillaCodeFiles(contract, extlibs_exports, scillaCodeExtension);
   } catch (const std::exception& e) {
@@ -944,7 +941,7 @@ void AccountStoreSC<MAP>::CreateScillaCodeFiles(
     Account& contract,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports,
-    std::string scillaCodeExtension) {
+    const std::string& scillaCodeExtension) {
   LOG_MARKER();
   // Scilla code
   LOG_GENERAL(INFO, "scillaCodeExtension = " << scillaCodeExtension);

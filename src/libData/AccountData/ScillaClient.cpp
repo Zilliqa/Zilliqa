@@ -152,8 +152,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     return false;
   }
   Json::FastWriter fastWriter;
-  LOG_GENERAL(INFO, "Chetan CallChecker = "<<fastWriter.write(_json))
-
+  LOG_GENERAL(INFO, "Chetan CallChecker = " << fastWriter.write(_json))
 
   if (!ENABLE_SCILLA_MULTI_VERSION) {
     version = 0;

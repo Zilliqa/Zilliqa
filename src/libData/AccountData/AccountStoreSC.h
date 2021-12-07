@@ -170,7 +170,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       Account& contract,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports,
-      std::string scillaCodeExtension);
+      const std::string& scillaCodeExtension);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
