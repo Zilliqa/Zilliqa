@@ -135,10 +135,10 @@ void AccountBase::SetCodeHash(const dev::h256& codeHash) {
 
 const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
 
-bool AccountBase::isContract() const {
+bool Account::isContract() const {
   LOG_GENERAL(INFO, "isContract() function m_codeHash = "
                         << m_codeHash << " dev::h256 = " << dev::h256().hex());
-  return m_codeHash != dev::h256();
+  return (m_codeHash != dev::h256() && !m_is_library);
 }
 
 bool Account::IsLibrary() const {

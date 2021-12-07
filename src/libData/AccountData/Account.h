@@ -100,18 +100,16 @@ class AccountBase : public SerializableDataBlock {
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
-  /// Returns true if account is a contract account
-  bool isContract() const;
-
-
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
 };
 
 inline std::ostream& operator<<(std::ostream& out,
                                 AccountBase const& accountbase) {
-  out << " balance = "<<accountbase.GetBalance() << " Nonce= " << accountbase.GetNonce() << " storage root = "
-      << accountbase.GetStorageRoot() << " code hash = " << accountbase.GetCodeHash();
+  out << " balance = " << accountbase.GetBalance()
+      << " Nonce= " << accountbase.GetNonce()
+      << " storage root = " << accountbase.GetStorageRoot()
+      << " code hash = " << accountbase.GetCodeHash();
   return out;
 }
 
@@ -165,9 +163,11 @@ class Account : public AccountBase {
 
   void SetAddress(const Address& addr);
 
+  /// Returns true if account is a contract account
+  bool isContract() const;
+
   // Returns true if the external library is deployed
   bool IsLibrary() const;
-
 
   const Address& GetAddress() const;
 
