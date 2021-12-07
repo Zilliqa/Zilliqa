@@ -4640,68 +4640,89 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
     };
     DetachedFunction(1, func1);
 
-    // level2lookups and seed nodes
-    if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
-        SYNC_FROM_EXISTING_PERSISTENCE) {
-      // syncing via multiplier
-      LOG_GENERAL(INFO, "Syncing from lookup ...");
-      auto func2 = [this]() mutable -> void {
-        GetInitialBlocksAndShardingStructure();
-      };
-      DetachedFunction(1, func2);
-    } else {
-      LOG_GENERAL(INFO, "Syncing from S3 ...");
-      auto func2 = [this]() mutable -> void {
-        while (true) {
-          this->CleanVariables();
-          AccountStore::GetInstance().Init();
-          m_mediator.m_node->CleanUnavailableMicroBlocks();
-          while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
-            LOG_GENERAL(
-                WARNING,
-                "Downloading persistence from S3 has failed. Will try again!");
-            this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
-          }
-          if (!BlockStorage::GetBlockStorage().RefreshAll()) {
-            LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
-            return;
-          }
-          if (!AccountStore::GetInstance().RefreshDB()) {
-            LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
-            return;
-          }
-          if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
-            break;
-          };
+    auto syncFromLookupFunc = [this]() mutable -> void {
+      GetInitialBlocksAndShardingStructure();
+    };
+    auto syncFromS3Func = [this]() mutable -> void {
+      while (true) {
+        this->CleanVariables();
+        AccountStore::GetInstance().Init();
+        m_mediator.m_node->CleanUnavailableMicroBlocks();
+        while (!m_mediator.m_node->DownloadPersistenceFromS3()) {
+          LOG_GENERAL(
+              WARNING,
+              "Downloading persistence from S3 has failed. Will try again!");
           this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
         }
-
-        if (m_seedNodes.empty()) {
-          SetAboveLayer(m_seedNodes,
-                        "node.upper_seed");  // since may have called
-                                             // CleanVariable earlier
+        if (!BlockStorage::GetBlockStorage().RefreshAll()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
+          return;
         }
-
-        if (!MULTIPLIER_SYNC_MODE && m_l2lDataProviders.empty()) {
-          SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
+        if (!AccountStore::GetInstance().RefreshDB()) {
+          LOG_GENERAL(WARNING, "BlockStorage::RefreshDB failed");
+          return;
         }
+        if (m_mediator.m_node->Install(SyncType::NEW_LOOKUP_SYNC, true)) {
+          break;
+        };
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
 
-        // Check if next ds epoch was crossed -cornercase after syncing from S3
-        if ((m_mediator.m_txBlockChain.GetBlockCount() %
-                 NUM_FINAL_BLOCK_PER_POW ==
-             0)                // Can fetch dsblock and txblks from new ds epoch
-            || GetDSInfo()) {  // have same ds committee as upper seeds to
-                               // confirm if no new ds epoch started
-          InitSync();
-        } else {
-          // Sync from S3 again
-          LOG_GENERAL(INFO,
-                      "I am lagging behind by ds epoch! Will rejoin again!");
-          m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-          RejoinAsNewLookup(false);
-        }
-      };
-      DetachedFunction(1, func2);
+      if (m_seedNodes.empty()) {
+        SetAboveLayer(m_seedNodes,
+                      "node.upper_seed");  // since may have called
+                                           // CleanVariable earlier
+      }
+
+      if (!MULTIPLIER_SYNC_MODE && m_l2lDataProviders.empty()) {
+        SetAboveLayer(m_l2lDataProviders, "node.l2l_data_providers");
+      }
+
+      // Check if next ds epoch was crossed -cornercase after syncing from S3
+      if ((m_mediator.m_txBlockChain.GetBlockCount() %
+               NUM_FINAL_BLOCK_PER_POW ==
+           0)                // Can fetch dsblock and txblks from new ds epoch
+          || GetDSInfo()) {  // have same ds committee as upper seeds to
+                             // confirm if no new ds epoch started
+        InitSync();
+      } else {
+        // Sync from S3 again
+        LOG_GENERAL(INFO,
+                    "I am lagging behind by ds epoch! Will rejoin again!");
+        m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+        RejoinAsNewLookup(false);
+      }
+    };
+    auto checkForLookupSyncEligibility = [this, fromLookup]() -> bool {
+      // while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
+      //   m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+      //       m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
+      //   m_mediator.m_node->m_synchronizer.FetchLatestTxBlockSeed(
+      //       m_mediator.m_lookup,
+      //       // m_mediator.m_txBlockChain.GetBlockCount());
+      //       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+      //       +
+      //           1);
+      // m_mediator.m_dsBlockChain.GetBlockCount();
+      // m_mediator.m_txBlockChain.GetBlockCount();
+      // m_mediator.m_blocklinkchain.GetLatestIndex();
+      // m_mediator.m_node->GetLatestDSBlock();
+
+      if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
+          SYNC_FROM_EXISTING_PERSISTENCE) {
+        // if (latest - curr <= FETCH * POW )
+        return true;
+      }
+      return false;
+    };
+    // level2lookups and seed nodes
+    if (checkForLookupSyncEligibility()) {
+      // syncing via multiplier
+      LOG_GENERAL(INFO, "Syncing from lookup ...");
+      DetachedFunction(1, syncFromLookupFunc);
+    } else {
+      LOG_GENERAL(INFO, "Syncing from S3 ...");
+      DetachedFunction(1, syncFromS3Func);
     }
   }
 }
