@@ -486,7 +486,7 @@ bool Account::SetCode(const bytes& code) {
 }
 
 const bytes Account::GetCode() const {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
     return {};
   }
 
@@ -498,7 +498,8 @@ const bytes Account::GetCode() const {
 
 bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                                      std::vector<Address>& extlibs) {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Chetan Not a contract or library");
     return false;
   }
 
@@ -515,8 +516,8 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
 }
 
 bool Account::RetrieveContractAuxiliaries() {
-  if (!isContract()) {
-    LOG_GENERAL(WARNING, "Not a contract");
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(WARNING, "Not a contract or library");
     return false;
   }
 
@@ -546,7 +547,8 @@ bool Account::SetInitData(const bytes& initData) {
 }
 
 const bytes Account::GetInitData() const {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Chetan Not a contract or library");
     return {};
   }
 
