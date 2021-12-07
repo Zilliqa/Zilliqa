@@ -1068,14 +1068,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 
     if (is_library) {
       if (root.isMember("errors")) {
-        LOG_GENERAL(INFO, "Chetan check error");
-        receipt.AddException(root["errors"]);
-        return false;
-      }
-    }
-
-    if (is_library) {
-      if (root.isMember("errors")) {
+        LOG_GENERAL(INFO, "Chetan error in library");
         receipt.AddException(root["errors"]);
         return false;
       }
