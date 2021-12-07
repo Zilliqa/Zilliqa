@@ -83,8 +83,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
       case RUNNER_CALL:
         if (!ScillaClient::GetInstance().CallRunner(
                 version,
-                ScillaUtils::GetCallContractJson(m_root_w_version,
-                                                 available_gas, balance),
+                ScillaUtils::GetCallContractJson(
+                    m_root_w_version, available_gas, balance, is_library),
                 interprinterPrint)) {
         }
         break;
@@ -564,8 +564,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (is_library) {
         LOG_GENERAL(WARNING, "Library being called");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
+        // error_code = TxnStatus::FAIL_SCILLA_LIB;
+        // return false;
       }
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {

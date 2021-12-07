@@ -44,7 +44,7 @@ class ScillaUtils {
   /// get the command for invoking the scilla_runner while calling
   static Json::Value GetCallContractJson(
       const std::string& root_w_version, const uint64_t& available_gas,
-      const boost::multiprecision::uint128_t& balance);
+      const boost::multiprecision::uint128_t& balance, const bool& is_library);
 
   /// get the command for invoking disambiguate_state_json while calling
   static Json::Value GetDisambiguateJson();
