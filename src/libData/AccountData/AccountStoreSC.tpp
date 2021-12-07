@@ -588,6 +588,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string runnerPrint;
       bool ret = true;
 
+      auto senderAccount = m_accountStoreAtomic->GetAccount(fromAddr);
+      senderAccount->DecreaseBalance(m_curAmount);
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                         gasRemained, this->GetBalance(toAddr), ret, receipt);
 
@@ -595,6 +597,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(INFO, "Executed root transition in " << r_timer_end(tpStart)
                                                          << " microseconds");
       }
+      senderAccount->IncreaseBalance(m_curAmount);
 
       uint32_t tree_depth = 0;
 
@@ -1468,7 +1471,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                                    account->GetStorageRoot());
       std::string runnerPrint;
       bool result = true;
-
+      contractAccount->DecreaseBalance(m_curAmount);
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                         gasRemained, account->GetBalance(), result, receipt);
 
@@ -1478,12 +1481,15 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                       << " microseconds");
       }
 
+      contractAccount->IncreaseBalance(m_curAmount);
+
       if (!result) {
         return false;
       }
 
       m_curSenderAddr = curContractAddr;
       m_curContractAddr = recipient;
+
       if (!ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth + 1,
                              scilla_version)) {
         LOG_GENERAL(WARNING, "ParseCallContract failed of calling contract: "

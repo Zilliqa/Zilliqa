@@ -2101,6 +2101,8 @@ BOOST_AUTO_TEST_CASE(accounting_tests) {
                                                        error_code)) {
       ownerNonce++;
     }
+    account = AccountStore::GetInstance().GetAccountTemp(mainAddr);
+    LOG_GENERAL(INFO, "Balance: " << account->GetBalance());
     tr4.InstallError();
     if (tr4.GetJsonValue().get("errors", Json::arrayValue).size() > 0) {
       BOOST_ERROR("Encountered error in account_tests_" << i);
