@@ -223,6 +223,10 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_INTEGER, NULL),
       &LookupServer::GetDbBlockTestI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("GeBlockTest", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetBlockTestI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
@@ -1631,6 +1635,26 @@ Json::Value LookupServer::GetDbBlockTest(unsigned int blockType,
 
   _json["TimeTakenInMicroSeconds"] =
       (int)chrono::duration_cast<chrono::microseconds>(tp_end - tp_start)
+          .count();
+
+  return _json;
+}
+
+Json::Value LookupServer::GetBlockTest() {
+  Json::Value _json;
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  _json["dsBlockChain"] = (int)m_mediator.m_dsBlockChain.GetBlockCount();
+  _json["txBlockChain"] = (int)m_mediator.m_txBlockChain.GetBlockCount();
+  _json["blocklinkchainIndex"] =
+      (int)m_mediator.m_blocklinkchain.GetLatestIndex();
+  _json["dsBlockChainLastBlock"] =
+      (int)m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _json["TimeTakenSec"] =
+      (int)std::chrono::duration_cast<std::chrono::seconds>(end - start)
           .count();
 
   return _json;

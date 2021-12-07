@@ -856,6 +856,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
       SyncType::RECOVERY_ALL_SYNC != syncType &&
       SyncType::NEW_SYNC != syncType) {
+    // possibly statedeltas are flushed from lookup nodes
+    // in this case, it returns false
+    // read more on it later
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
