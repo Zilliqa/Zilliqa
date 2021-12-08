@@ -591,7 +591,7 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
   LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = oldAccount = "
-                        << oldAccount << " newAccount = " << newAccount);
+                        << *oldAccount << " newAccount = " << newAccount);
   Account acc(0, 0);
 
   bool fullCopy = false;
