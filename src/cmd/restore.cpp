@@ -95,12 +95,6 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
     LOG_GENERAL(INFO, "Will try recreating state from txnblks: "
                           << lower_bound_txnblk << " - " << upper_bound_txnblk);
 
-    // clear all the state deltas from disk.
-    if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
-      LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
-      return false;
-    }
-
     std::string target = "persistence/stateDelta";
     unsigned int firstStateDeltaIndex = lower_bound_txnblk;
     for (unsigned int i = lower_bound_txnblk; i <= upper_bound_txnblk; i++) {
@@ -155,12 +149,6 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
           if (!AccountStore::GetInstance().MoveUpdatesToDisk(
                   i / NUM_FINAL_BLOCK_PER_POW)) {
             LOG_GENERAL(WARNING, "AccountStore::MoveUpdatesToDisk() failed");
-            return false;
-          }
-          // clear the stateDelta db
-          if (!BlockStorage::GetBlockStorage().ResetDB(
-                  BlockStorage::STATE_DELTA)) {
-            LOG_GENERAL(WARNING, "BlockStorage::ResetDB (STATE_DELTA) failed");
             return false;
           }
           firstStateDeltaIndex = i + 1;

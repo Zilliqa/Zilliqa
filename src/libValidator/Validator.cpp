@@ -375,10 +375,6 @@ bool Validator::CheckDirBlocks(
       }
       m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
-      if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
-        LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
-        return false;
-      }
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
