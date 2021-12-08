@@ -594,6 +594,15 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
+  Account acc(0, 0);
+
+  bool fullCopy = false;
+
+  if (oldAccount == nullptr) {
+    oldAccount = &acc;
+    fullCopy = true;
+  }
+
   LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf oldAccount code hash = "
                         << oldAccount->GetCodeHash()
                         << " address = " << oldAccount->GetAddress()
@@ -611,14 +620,6 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
                         << " balance = " << newAccount.GetBalance()
                         << " nonce = " << newAccount.GetNonce()
                         << " storage root = " << newAccount.GetStorageRoot());
-  Account acc(0, 0);
-
-  bool fullCopy = false;
-
-  if (oldAccount == nullptr) {
-    oldAccount = &acc;
-    fullCopy = true;
-  }
 
   LOG_GENERAL(INFO,
               "Old account storage root: " << oldAccount->GetStorageRoot());
