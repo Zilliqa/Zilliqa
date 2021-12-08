@@ -279,7 +279,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                               << " m_codeHash = " << toAccount->GetCodeHash());
 
         std::vector<Address> extlibs;
-        LOG_GENERAL(INFO, "Chetan is_library = " << is_library);
+        LOG_GENERAL(INFO, "Chetan is_library here = " << is_library);
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");

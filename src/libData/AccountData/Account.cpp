@@ -162,7 +162,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum) {
   LOG_MARKER();
-  if (isContract()) {
+  if (isContract() || IsLibrary()) {
     LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }

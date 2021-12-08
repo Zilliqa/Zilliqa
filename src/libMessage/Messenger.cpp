@@ -435,6 +435,7 @@ inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
 
 void AccountBaseToProtobuf(const AccountBase& accountbase,
                            ProtoAccountBase& protoAccountBase) {
+  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf " << accountbase);
   protoAccountBase.set_version(accountbase.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       accountbase.GetBalance(), *protoAccountBase.mutable_balance());
@@ -589,6 +590,8 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
+  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = oldAccount = "
+                        << oldAccount << " newAccount = " << newAccount);
   Account acc(0, 0);
 
   bool fullCopy = false;
@@ -619,7 +622,8 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
   }
   accbase.SetNonce(nonceDelta);
 
-  if (newAccount.isContract()) {
+  if (newAccount.isContract() || newAccount.IsLibrary()) {
+    LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf");
     if (fullCopy) {
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),
