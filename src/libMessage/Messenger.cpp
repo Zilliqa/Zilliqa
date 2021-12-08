@@ -435,7 +435,7 @@ inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
 
 void AccountBaseToProtobuf(const AccountBase& accountbase,
                            ProtoAccountBase& protoAccountBase) {
-  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf " << accountbase);
+  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf balance = " << accountbase.GetBalance()<<" code hash = "<< accountbase.GetCodeHash()<<" nonce = "<< accountbase.GetNonce() <<" storage root = "<<accountbase.GetStorageRoot());
   protoAccountBase.set_version(accountbase.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       accountbase.GetBalance(), *protoAccountBase.mutable_balance());
@@ -590,21 +590,23 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
-  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = oldAccount code hash = "
+  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf oldAccount code hash = "
                         << oldAccount->GetCodeHash()
                         << " address = " << oldAccount->GetAddress()
                         << " isLibrary = " << oldAccount->IsLibrary()
                         << " isContract = " << oldAccount->isContract()
                         << " balance = " << oldAccount->GetBalance()
-                        << " nonce = " << oldAccount->GetNonce());
+                        << " nonce = " << oldAccount->GetNonce()
+                        << " storage root = " << oldAccount->GetStorageRoot());
 
-  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = newAccount code hash = "
+  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf newAccount code hash = "
                         << newAccount.GetCodeHash()
                         << " address = " << newAccount.GetAddress()
                         << " isLibrary = " << newAccount.IsLibrary()
                         << " isContract = " << newAccount.isContract()
                         << " balance = " << newAccount.GetBalance()
-                        << " nonce = " << newAccount.GetNonce());
+                        << " nonce = " << newAccount.GetNonce()
+                        << " storage root = " << newAccount.GetStorageRoot());
   Account acc(0, 0);
 
   bool fullCopy = false;
