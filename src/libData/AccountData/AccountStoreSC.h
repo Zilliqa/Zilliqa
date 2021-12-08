@@ -24,10 +24,9 @@
 #include <functional>
 #include <mutex>
 
+#include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
-
-class ScillaIPCServer;
 
 template <class MAP>
 class AccountStoreSC;
@@ -179,6 +178,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
  protected:
   AccountStoreSC();
+
+  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
