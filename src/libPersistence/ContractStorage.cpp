@@ -34,16 +34,14 @@ using namespace std;
 using namespace ZilliqaMessage;
 
 namespace Contract {
-
 ContractStorage::ContractStorage()
     : m_stateDataDB("contractStateData2"),
       m_codeDB("contractCode"),
       m_initDataDB("contractInitState2"),
       m_trieDB("contractTrie"),
       m_stateTrie(&m_trieDB) {}
-
 // Code
-//=================================
+// ======================================
 
 bool ContractStorage::PutContractCode(const dev::h160& address,
                                       const bytes& code) {
@@ -106,6 +104,7 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 string ContractStorage::GenerateStorageKey(const dev::h160& addr,
                                            const string& vname,
                                            const vector<string>& indices) {
+  LOG_MARKER();
   string ret = addr.hex();
   if (!vname.empty()) {
     ret += SCILLA_INDEX_SEPARATOR + vname + SCILLA_INDEX_SEPARATOR;
@@ -137,25 +136,90 @@ string ContractStorage::RemoveAddrFromKey(const std::string& key) {
   return ret;
 }
 
-bool ContractStorage::FetchStateValue(const dev::h160& addr, const bytes& src,
-                                      unsigned int s_offset, bytes& dst,
-                                      unsigned int d_offset, bool& foundVal,
-                                      bool getType, string& type) {
+namespace PbScillaRTLBridge {
+
+// Translate from protobuf query to ScillaRTL query.
+bool translateQuery(const bytes& src, unsigned int s_offset,
+                    ScillaRTL::ScillaParams::StateQuery& dst) {
   if (s_offset > src.size()) {
-    LOG_GENERAL(WARNING, "Invalid src data and offset, data size "
-                             << src.size() << ", offset " << s_offset);
+    LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
     return false;
   }
 
-  ProtoScillaQuery query;
-  query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
-  return FetchStateValue(addr, query, dst, d_offset, foundVal, getType, type);
+  ProtoScillaQuery q;
+  q.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
+
+  if (!q.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaQuery failed");
+    return false;
+  }
+
+  dst.Name = q.name();
+  dst.MapDepth = q.mapdepth();
+  std::vector<std::string> indices(q.indices().begin(), q.indices().end());
+  dst.Indices.swap(indices);
+  dst.IgnoreVal = q.ignoreval();
+
+  return true;
 }
 
-bool ContractStorage::FetchStateValue(const dev::h160& addr,
-                                      const ProtoScillaQuery& query, bytes& dst,
-                                      unsigned int d_offset, bool& foundVal,
-                                      bool getType, string& type) {
+// Translate result of query to protobuf struct.
+bool translateResult(const boost::any& srcany, ProtoScillaVal& v) {
+  std::function<bool(const boost::any&, ProtoScillaVal*)> anyToPB =
+      [&anyToPB](const boost::any& aval, ProtoScillaVal* pval) -> bool {
+    if (boost::has_type<ScillaRTL::ScillaParams::MapValueT>(aval)) {
+      auto& mval =
+          boost::any_cast<const ScillaRTL::ScillaParams::MapValueT&>(aval);
+      pval->mutable_mval()->mutable_m();
+      for (auto iter : mval) {
+        auto& pmval = pval->mutable_mval()->mutable_m()->operator[](iter.first);
+        anyToPB(iter.second, &pmval);
+      }
+    } else if (boost::has_type<std::string>(aval)) {
+      const std::string& bval = boost::any_cast<const std::string&>(aval);
+      pval->set_bval(bval);
+    } else {
+      LOG_GENERAL(WARNING, "Invalid result from state query");
+      return false;
+    }
+    return true;
+  };
+
+  return anyToPB(srcany, &v);
+}
+
+}  // namespace PbScillaRTLBridge
+
+bool ContractStorage::FetchStateValue(const dev::h160& addr, const bytes& src,
+                                      unsigned int s_offset, bytes& dst,
+                                      unsigned int d_offset, bool& foundVal) {
+  if (d_offset > dst.size()) {
+    LOG_GENERAL(WARNING, "Invalid dst data and offset, data size "
+                             << dst.size() << ", offset " << d_offset);
+  }
+
+  ScillaRTL::ScillaParams::StateQuery q;
+  if (!PbScillaRTLBridge::translateQuery(src, s_offset, q)) {
+    return false;
+  }
+
+  std::string typeIgnored;
+  boost::any vany;
+  if (!FetchStateValue(addr, q, vany, foundVal, false, typeIgnored)) {
+    return false;
+  }
+
+  if (!q.IgnoreVal && foundVal) {
+    ProtoScillaVal v;
+    PbScillaRTLBridge::translateResult(vany, v);
+    return SerializeToArray(v, dst, 0);
+  }
+  return true;
+}
+
+bool ContractStorage::FetchStateValue(
+    const dev::h160& addr, const ScillaRTL::ScillaParams::StateQuery& query,
+    boost::any& dst, bool& foundVal, bool getType, string& type) {
   if (LOG_SC) {
     LOG_MARKER();
   }
@@ -164,33 +228,23 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 
   foundVal = true;
 
-  if (d_offset > dst.size()) {
-    LOG_GENERAL(WARNING, "Invalid dst data and offset, data size "
-                             << dst.size() << ", offset " << d_offset);
-  }
-
-  if (!query.IsInitialized()) {
-    LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaQuery failed");
-    return false;
-  }
-
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "query for fetch: " << query.DebugString());
+    LOG_GENERAL(INFO, "query for fetch: Name=" << query.Name << ", IgnoreVal="
+                                               << query.IgnoreVal);
   }
-
-  if (IsReservedVName(query.name())) {
-    LOG_GENERAL(WARNING, "invalid query: " << query.name());
+  if (IsReservedVName(query.Name)) {
+    LOG_GENERAL(WARNING, "invalid query: " << query.Name);
     return false;
   }
 
   if (getType) {
     std::map<std::string, bytes> t_type;
     std::string type_key =
-        GenerateStorageKey(addr, TYPE_INDICATOR, {query.name()});
+        GenerateStorageKey(addr, TYPE_INDICATOR, {query.Name});
     FetchStateDataForKey(t_type, type_key, true);
     if (t_type.empty()) {
       LOG_GENERAL(WARNING, "Failed to fetch type for addr: "
-                               << addr.hex() << " vname: " << query.name());
+                               << addr.hex() << " vname: " << query.Name);
       foundVal = false;
       return true;
     }
@@ -203,19 +257,17 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       return false;
     }
     // If not interested in the value, exit early.
-    if (query.indices().empty() && query.ignoreval()) return true;
+    if (query.Indices.empty() && query.IgnoreVal) return true;
   }
 
-  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
-               SCILLA_INDEX_SEPARATOR;
+  string key =
+      addr.hex() + SCILLA_INDEX_SEPARATOR + query.Name + SCILLA_INDEX_SEPARATOR;
 
-  ProtoScillaVal value;
-
-  for (const auto& index : query.indices()) {
+  for (const auto& index : query.Indices) {
     key += index + SCILLA_INDEX_SEPARATOR;
   }
 
-  if ((unsigned int)query.indices().size() > query.mapdepth()) {
+  if (query.Indices.size() > (size_t)query.MapDepth) {
     LOG_GENERAL(WARNING, "indices is deeper than map depth");
     return false;
   }
@@ -223,7 +275,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
   auto d_found = t_indexToBeDeleted.find(key);
   if (d_found != t_indexToBeDeleted.end()) {
     // ignore the deleted empty placeholder
-    if ((unsigned int)query.indices().size() == query.mapdepth()) {
+    if (query.Indices.size() == (size_t)query.MapDepth) {
       foundVal = false;
       return true;
     }
@@ -233,13 +285,13 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
   if (d_found != m_indexToBeDeleted.end() &&
       t_stateDataMap.find(key) == t_stateDataMap.end()) {
     // ignore the deleted empty placeholder
-    if ((unsigned int)query.indices().size() == query.mapdepth()) {
+    if (query.Indices.size() == (size_t)query.MapDepth) {
       foundVal = false;
       return true;
     }
   }
 
-  if ((unsigned int)query.indices().size() == query.mapdepth()) {
+  if (query.Indices.size() == (size_t)query.MapDepth) {
     // result will not be a map and can be just fetched into the store
     bytes bval;
     bool found = false;
@@ -258,7 +310,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
     }
     if (!found) {
       if (m_stateDataDB.Exists(key)) {
-        if (query.ignoreval()) {
+        if (query.IgnoreVal) {
           return true;
         }
         bval = DataConversion::StringToCharArray(m_stateDataDB.Lookup(key));
@@ -268,11 +320,12 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       }
     }
 
-    value.set_bval(bval.data(), bval.size());
+    dst = std::string(bval.begin(), bval.end());
     if (LOG_SC) {
-      LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
+      LOG_GENERAL(INFO,
+                  "value to fetch 1: " << boost::any_cast<std::string>(dst));
     }
-    return SerializeToArray(value, dst, 0);
+    return true;
   }
 
   // We're fetching a Map value. Need to iterate level-db lexicographically
@@ -283,7 +336,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, key.size(), key) == 0) {
-    if (query.ignoreval()) {
+    if (query.IgnoreVal) {
       return true;
     }
     entries.emplace(p->first, p->second);
@@ -294,7 +347,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 
   while (p != m_stateDataMap.end() &&
          p->first.compare(0, key.size(), key) == 0) {
-    if (query.ignoreval()) {
+    if (query.IgnoreVal) {
       return true;
     }
     auto exist = entries.find(p->first);
@@ -315,12 +368,12 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       /// if querying the var without indices but still failed
       /// maybe trying to fetching an invalid vname
       /// as empty map will always have
-      /// an empty serialized ProtoScillaQuery placeholder
+      /// an empty serialized ProtoScillaVal placeholder
       /// so shouldn't be empty normally
-      return !query.indices().empty();
+      return !query.Indices.empty();
     }
   } else {
-    if (query.ignoreval()) {
+    if (query.IgnoreVal) {
       return true;
     }
     // found entries
@@ -366,12 +419,20 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
     }
     if (indices.size() > 0 && indices.back().empty()) indices.pop_back();
 
-    ProtoScillaVal* t_value = &value;
+    boost::any* t_value = &dst;
     for (const auto& index : indices) {
-      t_value = &(t_value->mutable_mval()->mutable_m()->operator[](index));
+      if (t_value->empty()) {
+        *t_value = ScillaRTL::ScillaParams::MapValueT();
+      }
+      if (!boost::has_type<ScillaRTL::ScillaParams::MapValueT>(t_value)) {
+        LOG_GENERAL(WARNING, "Expected a map when indexing");
+        return false;
+      }
+      auto& t_map =
+          boost::any_cast<ScillaRTL::ScillaParams::MapValueT&>(*t_value);
+      t_value = &(t_map[index]);
     }
-    if (query.indices().size() + indices.size() < query.mapdepth()) {
-      // Assert that we have a protobuf encoded empty map.
+    if (query.Indices.size() + indices.size() < (size_t)query.MapDepth) {
       ProtoScillaVal emap;
       emap.ParseFromArray(entry.second.data(), entry.second.size());
       if (!emap.has_mval() || !emap.mval().m().empty()) {
@@ -380,35 +441,48 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
                     "keys than mapdepth");
         return false;
       }
-      t_value->mutable_mval()->mutable_m();  // Create empty map.
+      *t_value = ScillaRTL::ScillaParams::MapValueT();
     } else {
-      t_value->set_bval(entry.second.data(), entry.second.size());
+      *t_value = std::string(entry.second.begin(), entry.second.end());
     }
   }
 
   if (!counter) {
-    foundVal = false;
     return true;
   }
 
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "value to fetch 2: " << value.DebugString());
+    LOG_GENERAL(INFO, "value fetched for " << query.Name);
   }
-  return SerializeToArray(value, dst, 0);
+  return true;
 }
 
-bool ContractStorage::FetchExternalStateValue(
-    const dev::h160& caller, const dev::h160& target, const bytes& src,
-    unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
-    string& type, uint32_t caller_version) {
-  if (s_offset > src.size() || d_offset > dst.size()) {
-    LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
+bool ContractStorage::FetchExternalStateValue(const dev::h160& target,
+                                              const bytes& src,
+                                              unsigned int s_offset, bytes& dst,
+                                              unsigned int d_offset,
+                                              bool& foundVal, string& type) {
+  ScillaRTL::ScillaParams::StateQuery query;
+  if (!PbScillaRTLBridge::translateQuery(src, s_offset, query)) {
     return false;
   }
 
-  ProtoScillaQuery query;
-  query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
+  boost::any vany;
+  if (!FetchExternalStateValue(target, query, vany, foundVal, type)) {
+    return false;
+  }
 
+  if (!query.IgnoreVal && foundVal) {
+    ProtoScillaVal v;
+    PbScillaRTLBridge::translateResult(vany, v);
+    return SerializeToArray(v, dst, 0);
+  }
+  return true;
+}
+
+bool ContractStorage::FetchExternalStateValue(
+    const dev::h160& target, const ScillaRTL::ScillaParams::StateQuery& query,
+    boost::any& dst, bool& foundVal, string& type) {
   std::string special_query;
   Account* account;
   Account* accountAtomic =
@@ -425,15 +499,15 @@ bool ContractStorage::FetchExternalStateValue(
     foundVal = false;
     return true;
   }
-  if (query.name() == "_balance") {
+  if (query.Name == "_balance") {
     const uint128_t& balance = account->GetBalance();
     special_query = "\"" + balance.convert_to<string>() + "\"";
     type = "Uint128";
-  } else if (query.name() == "_nonce") {
+  } else if (query.Name == "_nonce") {
     uint128_t nonce = account->GetNonce();
     special_query = "\"" + nonce.convert_to<string>() + "\"";
     type = "Uint64";
-  } else if (query.name() == "_this_address") {
+  } else if (query.Name == "_this_address") {
     if (account->isContract()) {
       special_query = "\"0x" + target.hex() + "\"";
       type = "ByStr20";
@@ -449,9 +523,7 @@ bool ContractStorage::FetchExternalStateValue(
   }
 
   if (!special_query.empty()) {
-    ProtoScillaVal value;
-    value.set_bval(special_query.data(), special_query.size());
-    SerializeToArray(value, dst, 0);
+    dst = special_query;
     foundVal = true;
     return true;
   }
@@ -459,7 +531,7 @@ bool ContractStorage::FetchExternalStateValue(
   // External state queries don't have map depth set. Get it from the database.
   map<string, bytes> map_depth;
   string map_depth_key =
-      GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
+      GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.Name});
   FetchStateDataForKey(map_depth, map_depth_key, true);
 
   int map_depth_val;
@@ -472,10 +544,11 @@ bool ContractStorage::FetchExternalStateValue(
     LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
     return false;
   }
-  query.set_mapdepth(map_depth_val);
+  ScillaRTL::ScillaParams::StateQuery queryNew(query);
+  queryNew.MapDepth = map_depth_val;
 
   // get value
-  return FetchStateValue(target, query, dst, d_offset, foundVal, true, type);
+  return FetchStateValue(target, queryNew, dst, foundVal, true, type);
 }
 
 void ContractStorage::DeleteByPrefix(const string& prefix) {
@@ -487,11 +560,9 @@ void ContractStorage::DeleteByPrefix(const string& prefix) {
   }
 
   p = m_stateDataMap.lower_bound(prefix);
-  while ((p != m_stateDataMap.end() &&
-          p->first.compare(0, prefix.size(), prefix) == 0)) {
-    if (m_indexToBeDeleted.find(p->first) == m_indexToBeDeleted.cend()) {
-      t_indexToBeDeleted.emplace(p->first);
-    }
+  while (p != m_stateDataMap.end() &&
+         p->first.compare(0, prefix.size(), prefix) == 0) {
+    t_indexToBeDeleted.emplace(p->first);
     ++p;
   }
 
@@ -522,8 +593,7 @@ void ContractStorage::DeleteByIndex(const string& index) {
   }
 
   p = m_stateDataMap.find(index);
-  if (p != m_stateDataMap.end() &&
-      m_indexToBeDeleted.find(index) == m_indexToBeDeleted.cend()) {
+  if (p != m_stateDataMap.end()) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from m: " << index);
     }
@@ -536,18 +606,6 @@ void ContractStorage::DeleteByIndex(const string& index) {
       LOG_GENERAL(INFO, "delete index from db: " << index);
     }
     t_indexToBeDeleted.emplace(index);
-  }
-}
-
-void UnquoteString(string& input) {
-  if (input.empty()) {
-    return;
-  }
-  if (input.front() == '"') {
-    input.erase(0, 1);
-  }
-  if (input.back() == '"') {
-    input.pop_back();
   }
 }
 
@@ -601,11 +659,10 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
                                                 const string& vname,
                                                 const vector<string>& indices,
                                                 bool temp) {
-  // LOG_MARKER();
+  LOG_MARKER();
 
   std::map<std::string, bytes> states;
   FetchStateDataForContract(states, address, vname, indices, temp);
-  // LOG_GENERAL(INFO, "local states map size=" << states.size());
 
   for (const auto& state : states) {
     vector<string> fragments;
@@ -619,9 +676,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
 
     string vname = fragments.at(1);
 
-    if (vname == CONTRACT_ADDR_INDICATOR || vname == SCILLA_VERSION_INDICATOR ||
-        vname == MAP_DEPTH_INDICATOR || vname == TYPE_INDICATOR ||
-        vname == HAS_MAP_INDICATOR) {
+    if (IsReservedVName(vname)) {
       continue;
     }
 
@@ -689,6 +744,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
 
 void ContractStorage::FetchStateDataForKey(map<string, bytes>& states,
                                            const string& key, bool temp) {
+  LOG_MARKER();
   std::map<std::string, bytes>::iterator p;
   if (temp) {
     p = t_stateDataMap.lower_bound(key);
@@ -804,7 +860,6 @@ bool ContractStorage::CheckIfKeyIsEmpty(const string& key, bool temp) {
 
   return true;
 }
-
 void ContractStorage::FetchStateDataForContract(map<string, bytes>& states,
                                                 const dev::h160& address,
                                                 const string& vname,
@@ -925,6 +980,14 @@ void ContractStorage::UpdateStateData(const string& key, const bytes& value,
   auto pos = t_indexToBeDeleted.find(key);
   if (pos != t_indexToBeDeleted.end()) {
     t_indexToBeDeleted.erase(pos);
+    p_indexToBeDeleted.emplace(key, false);
+  }
+
+  // for reverting
+  if (t_stateDataMap.find(key) != t_stateDataMap.end()) {
+    p_stateDataMap[key] = t_stateDataMap[key];
+  } else {
+    p_stateDataMap[key] = {};
   }
 
   t_stateDataMap[key] = value;
@@ -990,52 +1053,67 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
 
   lock_guard<mutex> g(m_stateDataMutex);
 
-  if (q_offset > q.size()) {
-    LOG_GENERAL(WARNING, "Invalid query data and offset, data size "
-                             << q.size() << ", offset " << q_offset);
-    return false;
-  }
-
   if (v_offset > v.size()) {
     LOG_GENERAL(WARNING, "Invalid value data and offset, data size "
                              << v.size() << ", offset " << v_offset);
   }
 
-  ProtoScillaQuery query;
-  query.ParseFromArray(q.data() + q_offset, q.size() - q_offset);
+  ProtoScillaVal pbvalue;
+  pbvalue.ParseFromArray(v.data() + v_offset, v.size() - v_offset);
 
-  if (!query.IsInitialized()) {
-    LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaQuery failed");
+  ScillaRTL::ScillaParams::StateQuery scq;
+  if (!PbScillaRTLBridge::translateQuery(q, q_offset, scq)) {
     return false;
   }
 
-  ProtoScillaVal value;
-  value.ParseFromArray(v.data() + v_offset, v.size() - v_offset);
+  // Convert protobuf to anyval
+  boost::any val;
+  std::function<void(boost::any&, const ProtoScillaVal&)> pbToAny =
+      [&pbToAny](boost::any& m, const ProtoScillaVal& pm) -> void {
+    if (pm.has_mval()) {
+      m = ScillaRTL::ScillaParams::MapValueT();
+      ScillaRTL::ScillaParams::MapValueT& mval =
+          boost::any_cast<ScillaRTL::ScillaParams::MapValueT&>(m);
+      for (auto& keyval : pm.mval().m()) {
+        pbToAny(mval[keyval.first], keyval.second);
+      }
+    } else {
+      m = pm.bval();
+    }
+  };
+  if (pbvalue.IsInitialized()) {
+    pbToAny(val, pbvalue);
+  }
 
-  if (!value.IsInitialized()) {
-    LOG_GENERAL(WARNING, "Parse bytes into ProtoScillaVal failed");
+  // Make the call for actual updation.
+  if (!UpdateStateValue(addr, scq, val)) {
     return false;
   }
 
-  if (IsReservedVName(query.name())) {
-    LOG_GENERAL(WARNING, "invalid query: " << query.name());
+  return true;
+}
+
+bool ContractStorage::UpdateStateValue(
+    const dev::h160& addr, const ScillaRTL::ScillaParams::StateQuery& query,
+    const boost::any& value) {
+  if (IsReservedVName(query.Name)) {
+    LOG_GENERAL(WARNING, "invalid query: " << query.Name);
     return false;
   }
 
-  string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
-               SCILLA_INDEX_SEPARATOR;
+  string key =
+      addr.hex() + SCILLA_INDEX_SEPARATOR + query.Name + SCILLA_INDEX_SEPARATOR;
 
-  if (query.ignoreval()) {
-    if (query.indices().size() < 1) {
+  if (query.IgnoreVal) {
+    if (query.Indices.size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
     }
-    for (int i = 0; i < query.indices().size() - 1; ++i) {
-      key += query.indices().Get(i) + SCILLA_INDEX_SEPARATOR;
+    for (size_t i = 0; i < query.Indices.size() - 1; ++i) {
+      key += query.Indices[i] + SCILLA_INDEX_SEPARATOR;
     }
     string parent_key = key;
-    key += query.indices().Get(query.indices().size() - 1) +
-           SCILLA_INDEX_SEPARATOR;
+    key += query.Indices[query.Indices.size() - 1] + SCILLA_INDEX_SEPARATOR;
     if (LOG_SC) {
       LOG_GENERAL(INFO, "Delete key: " << key);
     }
@@ -1052,59 +1130,70 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
       UpdateStateData(parent_key, dst);
     }
   } else {
-    for (const auto& index : query.indices()) {
+    if (!boost::has_type<ScillaRTL::ScillaParams::MapValueT>(value) &&
+        !boost::has_type<string>(value)) {
+      LOG_GENERAL(WARNING, "Invalid value for state update");
+      return false;
+    }
+    for (const auto& index : query.Indices) {
       key += index + SCILLA_INDEX_SEPARATOR;
     }
 
-    if ((unsigned int)query.indices().size() > query.mapdepth()) {
+    if (query.Indices.size() > (size_t)query.MapDepth) {
       LOG_GENERAL(WARNING, "indices is deeper than map depth");
       return false;
-    } else if ((unsigned int)query.indices().size() == query.mapdepth()) {
-      if (value.has_mval()) {
-        LOG_GENERAL(WARNING, "val is not bytes but supposed to be");
+    } else if (query.Indices.size() == (size_t)query.MapDepth) {
+      if (!boost::has_type<string>(value)) {
+        LOG_GENERAL(WARNING, "val is not string but supposed to be");
         return false;
       }
-      UpdateStateData(key, DataConversion::StringToCharArray(value.bval()),
-                      true);
+      UpdateStateData(
+          key,
+          DataConversion::StringToCharArray(boost::any_cast<string>(value)),
+          true);
       return true;
     } else {
       DeleteByPrefix(key);
 
-      std::function<bool(const string&, const ProtoScillaVal&)> mapHandler =
-          [&](const string& keyAcc, const ProtoScillaVal& value) -> bool {
-        if (!value.has_mval()) {
+      std::function<bool(const string&, const boost::any&)> mapHandler =
+          [&](const string& keyAcc, const boost::any& value) -> bool {
+        if (!boost::has_type<ScillaRTL::ScillaParams::MapValueT>(value)) {
           LOG_GENERAL(WARNING, "val is not map but supposed to be");
           return false;
         }
-        if (value.mval().m().empty()) {
+        auto& mval =
+            boost::any_cast<const ScillaRTL::ScillaParams::MapValueT&>(value);
+        if (mval.empty()) {
           // We have an empty map. Insert an entry for keyAcc in
           // the store to indicate that the key itself exists.
           bytes dst;
-          if (!SerializeToArray(value, dst, 0)) {
+          ProtoScillaVal empty_val;
+          empty_val.mutable_mval()->mutable_m();
+          if (!SerializeToArray(empty_val, dst, 0)) {
             return false;
           }
           // DB Put
           UpdateStateData(keyAcc, dst, true);
           return true;
         }
-        for (const auto& entry : value.mval().m()) {
+        for (const auto& entry : mval) {
           string index(keyAcc);
           index += entry.first + SCILLA_INDEX_SEPARATOR;
-          if (entry.second.has_mval()) {
+          if (boost::has_type<ScillaRTL::ScillaParams::MapValueT>(
+                  entry.second)) {
             // We haven't reached the deepeast nesting
             if (!mapHandler(index, entry.second)) {
               return false;
             }
           } else {
             // DB Put
+            auto& sval = boost::any_cast<const string&>(entry.second);
             if (LOG_SC) {
-              LOG_GENERAL(INFO, "mval().m() first: " << entry.first
-                                                     << " second: "
-                                                     << entry.second.bval());
+              LOG_GENERAL(INFO,
+                          "mval first: " << entry.first << " second: " << sval);
             }
-            UpdateStateData(
-                index, DataConversion::StringToCharArray(entry.second.bval()),
-                true);
+            UpdateStateData(index, DataConversion::StringToCharArray(sval),
+                            true);
           }
         }
         return true;
@@ -1192,9 +1281,7 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       m_stateTrie.remove(hashed_key);
     }
     stateHash = m_stateTrie.root();
-    if (revertible) {
-      r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
-    }
+    r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
   }
   LOG_GENERAL(INFO, "New Hash: " << stateHash);
 }

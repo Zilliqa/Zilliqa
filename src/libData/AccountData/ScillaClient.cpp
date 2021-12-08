@@ -31,7 +31,7 @@ using namespace boost::filesystem;
 ScillaClient::~ScillaClient() {
   std::string cmdStr = "pkill " + SCILLA_SERVER_BINARY + " >/dev/null &";
   LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
+  
   try {
     if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
       LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
@@ -46,14 +46,15 @@ ScillaClient::~ScillaClient() {
 
 void ScillaClient::Init() {
   LOG_MARKER();
+  auto scilla_root = SCILLA_VM_DEV ? SCILLA_LLVM_ROOT : SCILLA_ROOT;
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    path scilla_root_path(SCILLA_ROOT);
+    path scilla_root_path(scilla_root);
     // scan existing versions
     for (auto& entry :
          boost::make_iterator_range(directory_iterator(scilla_root_path), {})) {
       LOG_GENERAL(INFO, "scilla-server path: " << entry.path().string());
       std::string folder_name = entry.path().string();
-      folder_name.erase(0, SCILLA_ROOT.size() + 1);
+      folder_name.erase(0, scilla_root.size() + 1);
       LOG_GENERAL(INFO, "folder_name: " << folder_name);
       uint32_t version = 0;
       try {

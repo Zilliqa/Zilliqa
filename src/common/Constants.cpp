@@ -581,6 +581,7 @@ const unsigned int DIRBLOCK_FETCH_LIMIT{
     ReadConstantNumeric("DIRBLOCK_FETCH_LIMIT", "node.recovery.")};
 
 // Smart contract constants
+
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
                      "true"};
 string scilla_root_raw{
@@ -589,10 +590,18 @@ const string SCILLA_ROOT{
     scilla_root_raw.back() == '/'
         ? scilla_root_raw.substr(0, scilla_root_raw.size() - 1)
         : scilla_root_raw};
+string scilla_llvm_root_raw{
+    ReadConstantString("SCILLA_LLVM_ROOT", "node.smart_contract.")};
+const string SCILLA_LLVM_ROOT{
+    scilla_llvm_root_raw.back() == '/'
+        ? scilla_llvm_root_raw.substr(0, scilla_llvm_root_raw.size() - 1)
+        : scilla_llvm_root_raw};
 const string SCILLA_CHECKER{
     ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
 const string SCILLA_BINARY{
     ReadConstantString("SCILLA_BINARY", "node.smart_contract.")};
+const string SCILLA_OBJ_CACHE{
+    ReadConstantString("SCILLA_OBJ_CACHE", "node.smart_contract.")}; 
 const string SCILLA_FILES{
     ReadConstantString("SCILLA_FILES", "node.smart_contract.")};
 const string SCILLA_LOG{
@@ -631,6 +640,8 @@ const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{
     ReadConstantNumeric("SCILLA_SERVER_PENDING_IN_MS", "node.smart_contract.")};
+const bool SCILLA_VM_DEV{
+    ReadConstantString("SCILLA_VM_DEV", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS{ReadConstantNumeric(
     "SCILLA_SERVER_LOOP_WAIT_MICROSECONDS", "node.smart_contract.")};
 

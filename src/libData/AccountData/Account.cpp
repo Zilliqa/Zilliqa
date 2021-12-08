@@ -123,6 +123,24 @@ void Account::SetAddress(const Address& addr) {
   }
 }
 
+Json::Value Account::GetInitJson() {
+  if (!isContract()) {
+    LOG_GENERAL(WARNING, "Not a contract");
+    return false;
+  }
+
+  bytes initData = GetInitData();
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          DataConversion::CharArrayToString(initData), m_initDataJson)) {
+    LOG_GENERAL(WARNING, "Convert InitData to Json failed"
+                             << endl
+                             << DataConversion::CharArrayToString(initData));
+    return false;
+  }
+
+  return m_initDataJson;
+}
+
 const Address& Account::GetAddress() const { return m_address; }
 
 void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }

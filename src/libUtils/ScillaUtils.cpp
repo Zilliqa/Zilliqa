@@ -27,7 +27,7 @@ using namespace boost::multiprecision;
 
 bool ScillaUtils::PrepareRootPathWVersion(const uint32_t& scilla_version,
                                           string& root_w_version) {
-  root_w_version = SCILLA_ROOT;
+  root_w_version = SCILLA_VM_DEV ? SCILLA_LLVM_ROOT : SCILLA_ROOT;
   if (ENABLE_SCILLA_MULTI_VERSION) {
     root_w_version += '/' + to_string(scilla_version);
   }
@@ -42,6 +42,7 @@ bool ScillaUtils::PrepareRootPathWVersion(const uint32_t& scilla_version,
 }
 
 Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
+                                                const Address &addr,
                                                 bool is_library,
                                                 const uint64_t& available_gas) {
   Json::Value ret;
@@ -59,6 +60,8 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
   ret["argv"].append(to_string(available_gas));
   ret["argv"].append("-contractinfo");
   ret["argv"].append("-jsonerrors");
+  ret["argv"].append("-o");
+  ret["argv"].append(SCILLA_OBJ_CACHE + "/" + addr.hex() + ".bc");
   return ret;
 }
 
@@ -129,6 +132,43 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
 
   return ret;
+}
+
+std::string ScillaUtils::GetContractCheckerCmdStr(
+    const std::string& root_w_version, bool is_library,
+    const uint64_t& available_gas) {
+  std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_CHECKER + " -init " + INIT_JSON +
+      " -contractinfo -jsonerrors -libdir " + root_w_version + '/' +
+      SCILLA_LIB + ":" + EXTLIB_FOLDER + " " + INPUT_CODE +
+      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
+      " -gaslimit " + std::to_string(available_gas);
+
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, cmdStr);
+  }
+  return cmdStr;
+}
+
+std::string ScillaUtils::GetCreateContractCmdStr(
+    const std::string& root_w_version, bool is_library,
+    const uint64_t& available_gas,
+    const boost::multiprecision::uint128_t& balance) {
+  std::string cmdStr =
+      // "rm -rf " + SCILLA_IPC_SOCKET_PATH + "; " +
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -ipcaddress " + SCILLA_IPC_SOCKET_PATH + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION) +
+      " -gaslimit " + std::to_string(available_gas) + " -jsonerrors -balance " +
+      balance.convert_to<std::string>() + " -libdir " + root_w_version + '/' +
+      SCILLA_LIB + ":" + EXTLIB_FOLDER;
+
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, cmdStr);
+  }
+  return cmdStr;
 }
 
 Json::Value ScillaUtils::GetDisambiguateJson() {

@@ -22,6 +22,8 @@
 #include <leveldb/db.h>
 #include <shared_mutex>
 
+#include "ScillaRTL/ScillaExec.h"
+
 #include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -38,8 +40,6 @@
 class ProtoScillaQuery;
 
 namespace Contract {
-
-static std::string type_placeholder;
 
 enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
 
@@ -102,8 +102,7 @@ class ContractStorage : public Singleton<ContractStorage> {
     return cs;
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-
+  /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
   /// Adds contract codes to persistence in batch
@@ -137,19 +136,22 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   bool FetchStateValue(const dev::h160& addr, const bytes& src,
                        unsigned int s_offset, bytes& dst, unsigned int d_offset,
-                       bool& foundVal, bool getType = false,
-                       std::string& type = type_placeholder);
+                       bool& foundVal);
 
-  bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,
-                       bytes& dst, unsigned int d_offset, bool& foundVal,
-                       bool getType = false,
-                       std::string& type = type_placeholder);
+  bool FetchStateValue(const dev::h160& addr,
+                       const ScillaRTL::ScillaParams::StateQuery& query,
+                       boost::any& dst, bool& foundVal, bool getType,
+                       std::string& type);
 
-  bool FetchExternalStateValue(
-      const dev::h160& caller, const dev::h160& target, const bytes& src,
-      unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
-      std::string& type,
-      uint32_t caller_version = std::numeric_limits<uint32_t>::max());
+  bool FetchExternalStateValue(const dev::h160& target, const bytes& src,
+                               unsigned int s_offset, bytes& dst,
+                               unsigned int d_offset, bool& foundVal,
+                               std::string& type);
+
+  bool FetchExternalStateValue(const dev::h160& target,
+                               const ScillaRTL::ScillaParams::StateQuery& query,
+                               boost::any& dst, bool& foundVal,
+                               std::string& type);
 
   void InsertValueToStateJson(Json::Value& _json, std::string key,
                               std::string value, bool unquote = true,
@@ -179,6 +181,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool UpdateStateValue(const dev::h160& addr, const bytes& q,
                         unsigned int q_offset, const bytes& v,
                         unsigned int v_offset);
+
+  bool UpdateStateValue(const dev::h160& addr,
+                        const ScillaRTL::ScillaParams::StateQuery& query,
+                        const boost::any& value);
 
   bool CheckIfKeyIsEmpty(const std::string& key, bool temp);
 

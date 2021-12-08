@@ -194,7 +194,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// invoke scilla interpreter
   void InvokeInterpreter(INVOKE_TYPE invoke_type,
-                         std::string& interprinterPrint,
+                        const Address& addr,std::string& interprinterPrint,
                          const uint32_t& version, bool is_library,
                          const uint64_t& available_gas,
                          const boost::multiprecision::uint128_t& balance,
