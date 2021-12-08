@@ -435,7 +435,11 @@ inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
 
 void AccountBaseToProtobuf(const AccountBase& accountbase,
                            ProtoAccountBase& protoAccountBase) {
-  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf balance = " << accountbase.GetBalance()<<" code hash = "<< accountbase.GetCodeHash()<<" nonce = "<< accountbase.GetNonce() <<" storage root = "<<accountbase.GetStorageRoot());
+  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf balance = "
+                        << accountbase.GetBalance()
+                        << " code hash = " << accountbase.GetCodeHash()
+                        << " nonce = " << accountbase.GetNonce()
+                        << " storage root = " << accountbase.GetStorageRoot());
   protoAccountBase.set_version(accountbase.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       accountbase.GetBalance(), *protoAccountBase.mutable_balance());
