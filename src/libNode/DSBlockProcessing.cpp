@@ -572,11 +572,6 @@ bool Node::ProcessVCDSBlocksMessage(
 
   m_mediator.m_lookup->m_confirmedLatestDSBlock = false;
 
-  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
-    LOG_GENERAL(WARNING, "BlockStorage::ResetDB failed");
-    return false;
-  }
-
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
   cv_waitDSBlock.notify_one();

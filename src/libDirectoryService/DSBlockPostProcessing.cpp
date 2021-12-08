@@ -730,11 +730,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     return;
   }
 
-  if (!BlockStorage::GetBlockStorage().ResetDB(BlockStorage::STATE_DELTA)) {
-    LOG_GENERAL(WARNING, "BlockStorage::ResetDB (STATE_DELTA) failed");
-    return;
-  }
-
   m_mediator.m_node->m_proposedGasPrice =
       max(m_mediator.m_node->m_proposedGasPrice,
           m_pendingDSBlock->GetHeader().GetGasPrice());
