@@ -806,10 +806,9 @@ bool AccountStore::MigrateContractStates(
     bool ret_checker = true;
     TransactionReceipt receipt;
     uint64_t gasRem = UINT64_MAX;
-    InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library, gasRem,
-                      std::numeric_limits<uint128_t>::max(), ret_checker,
-                      receipt);
-
+    InvokeInterpreter(CHECKER, address, checkerPrint, scilla_version,
+                      is_library, gasRem, std::numeric_limits<uint128_t>::max(),
+                      ret_checker, receipt);
     if (!ret_checker) {
       LOG_GENERAL(WARNING, "InvokeScillaChecker failed");
       return false;

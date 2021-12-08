@@ -21,6 +21,7 @@
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include "libData/AccountData/Address.h"
 
 class ScillaUtils {
  public:
@@ -31,7 +32,7 @@ class ScillaUtils {
   static Json::Value GetBlockStateJson(const uint64_t& BlockNum);
 
   /// get the command for invoking the scilla_checker while deploying
-  static Json::Value GetContractCheckerJson(const std::string& root_w_version,
+  static Json::Value GetContractCheckerJson(const std::string& root_w_version,const Address& addr,
                                             bool is_library,
                                             const uint64_t& available_gas);
 
@@ -44,6 +45,15 @@ class ScillaUtils {
   /// get the command for invoking the scilla_runner while calling
   static Json::Value GetCallContractJson(
       const std::string& root_w_version, const uint64_t& available_gas,
+      const boost::multiprecision::uint128_t& balance);
+  
+    static std::string GetContractCheckerCmdStr(const std::string& root_w_version,
+                                              bool is_library,
+                                              const uint64_t& available_gas);
+
+  static std::string GetCreateContractCmdStr(
+      const std::string& root_w_version, bool is_library,
+      const uint64_t& available_gas,
       const boost::multiprecision::uint128_t& balance);
 
   /// get the command for invoking disambiguate_state_json while calling

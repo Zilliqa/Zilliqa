@@ -246,6 +246,15 @@ endif()
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
+
+if (NOT IS_DIRECTORY $ENV{SCILLARTL_INSTALL_DIR})
+    message(FATAL_ERROR "SCILLARTL_INSTALL_DIR environment variable not set")
+else()
+    message(STATUS "Using SCILLARTL from $ENV{SCILLARTL_INSTALL_DIR}")
+    include_directories($ENV{SCILLARTL_INSTALL_DIR}/include)
+    link_libraries($ENV{SCILLARTL_INSTALL_DIR}/lib/libScillaRTL.so)
+endif()
+
 include_directories(${PROTOBUF_INSTALL_DIR}/include)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
