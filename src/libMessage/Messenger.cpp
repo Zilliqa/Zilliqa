@@ -590,8 +590,21 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 bool AccountDeltaToProtobuf(const Account* oldAccount,
                             const Account& newAccount,
                             ProtoAccount& protoAccount) {
-  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = oldAccount = "
-                        << *oldAccount << " newAccount = " << newAccount);
+  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = oldAccount code hash = "
+                        << oldAccount->GetCodeHash()
+                        << " address = " << oldAccount->GetAddress()
+                        << " isLibrary = " << oldAccount->IsLibrary()
+                        << " isContract = " << oldAccount->isContract()
+                        << " balance = " << oldAccount->GetBalance()
+                        << " nonce = " << oldAccount->GetNonce());
+
+  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf = newAccount code hash = "
+                        << newAccount.GetCodeHash()
+                        << " address = " << newAccount.GetAddress()
+                        << " isLibrary = " << newAccount.IsLibrary()
+                        << " isContract = " << newAccount.isContract()
+                        << " balance = " << newAccount.GetBalance()
+                        << " nonce = " << newAccount.GetNonce());
   Account acc(0, 0);
 
   bool fullCopy = false;
