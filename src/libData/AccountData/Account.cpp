@@ -136,14 +136,10 @@ void AccountBase::SetCodeHash(const dev::h256& codeHash) {
 const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
 
 bool Account::isContract() const {
-  LOG_GENERAL(INFO, "isContract() function m_codeHash = "
-                        << m_codeHash << " dev::h256 = " << dev::h256().hex());
   return (m_codeHash != dev::h256() && !m_is_library);
 }
 
 bool Account::IsLibrary() const {
-  LOG_GENERAL(INFO, "IsLibrary() function m_codeHash = "
-                        << m_codeHash << " m_is_library = " << m_is_library);
   return (m_codeHash != dev::h256() && m_is_library);
 }
 
@@ -218,14 +214,11 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                             bool& is_library, vector<Address>& extlibs) {
   is_library = false;
   extlibs.clear();
-  Json::FastWriter fastWriter;
-  LOG_GENERAL(INFO, "Chetan ParseInitData = " << fastWriter.write(root));
 
   bool found_scilla_version = false;
   bool found_library = false;
   bool found_extlibs = false;
   for (const auto& entry : root) {
-    LOG_GENERAL(INFO, "Chetan CallChecker = " << fastWriter.write(entry));
     if (entry.isMember("vname") && entry.isMember("type") &&
         entry.isMember("value")) {
       if (entry["vname"].asString() == "_scilla_version" &&
@@ -265,7 +258,6 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
         }
       }
 
-      LOG_GENERAL(INFO, "Chetan CallChecker1 = " << fastWriter.write(entry));
       if (entry["vname"].asString() == "_extlibs") {
         if (found_extlibs) {
           LOG_GENERAL(WARNING, "Got multiple field of \"_extlibs\"");
@@ -278,23 +270,15 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
         }
 
         for (const auto& lib_entry : entry["value"]) {
-          LOG_GENERAL(INFO,
-                      " Chetan value extlib = " << fastWriter.write(lib_entry));
           if (lib_entry.isMember("arguments") &&
               lib_entry["arguments"].type() == Json::arrayValue &&
               lib_entry["arguments"].size() == 2) {
             bool foundAddr = false;
             for (const auto& arg : lib_entry["arguments"]) {
-              LOG_GENERAL(INFO,
-                          "Chetan CallChecker2 = " << fastWriter.write(arg));
-              LOG_GENERAL(INFO, "Chetan arg as string = "
-                                    << arg.asString()
-                                    << " args size =" << arg.asString().size());
               if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
                   arg.asString().find("0x") != std::string::npos) {
                 try {
                   Address addr(arg.asString());
-                  LOG_GENERAL(INFO, " Chetan address extlibs = " << addr.hex());
                   extlibs.emplace_back(addr);
                   foundAddr = true;
                   break;
@@ -499,7 +483,7 @@ const bytes Account::GetCode() const {
 bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                                      std::vector<Address>& extlibs) {
   if (!isContract() && !IsLibrary()) {
-    LOG_GENERAL(INFO, "Chetan Not a contract or library");
+    LOG_GENERAL(INFO, "Not a contract or library");
     return false;
   }
 
@@ -548,7 +532,7 @@ bool Account::SetInitData(const bytes& initData) {
 
 const bytes Account::GetInitData() const {
   if (!isContract() && !IsLibrary()) {
-    LOG_GENERAL(INFO, "Chetan Not a contract or library");
+    LOG_GENERAL(INFO, "Not a contract or library");
     return {};
   }
 

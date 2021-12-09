@@ -127,11 +127,9 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                      OUTPUT_JSON);
   ret["argv"].append("-i");
   if (is_library) {
-    LOG_GENERAL(INFO, "Chetan this is library");
     ret["argv"].append(boost::filesystem::current_path().string() + '/' +
                        INPUT_CODE + LIBRARY_CODE_EXTENSION);
   } else {
-    LOG_GENERAL(INFO, "Chetan this is contract");
     ret["argv"].append(boost::filesystem::current_path().string() + '/' +
                        INPUT_CODE + CONTRACT_FILE_EXTENSION);
   }
@@ -146,8 +144,6 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append("-jsonerrors");
   ret["argv"].append("-pplit");
   ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
-  Json::FastWriter fastWriter;
-  LOG_GENERAL(INFO, "Chetan GetCallContractJson = " << fastWriter.write(ret));
 
   return ret;
 }

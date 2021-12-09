@@ -435,11 +435,6 @@ inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
 
 void AccountBaseToProtobuf(const AccountBase& accountbase,
                            ProtoAccountBase& protoAccountBase) {
-  LOG_GENERAL(INFO, "Chetan AccountBaseToProtobuf balance = "
-                        << accountbase.GetBalance()
-                        << " code hash = " << accountbase.GetCodeHash()
-                        << " nonce = " << accountbase.GetNonce()
-                        << " storage root = " << accountbase.GetStorageRoot());
   protoAccountBase.set_version(accountbase.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       accountbase.GetBalance(), *protoAccountBase.mutable_balance());
@@ -603,24 +598,6 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
     fullCopy = true;
   }
 
-  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf oldAccount code hash = "
-                        << oldAccount->GetCodeHash()
-                        << " address = " << oldAccount->GetAddress()
-                        << " isLibrary = " << oldAccount->IsLibrary()
-                        << " isContract = " << oldAccount->isContract()
-                        << " balance = " << oldAccount->GetBalance()
-                        << " nonce = " << oldAccount->GetNonce()
-                        << " storage root = " << oldAccount->GetStorageRoot());
-
-  LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf newAccount code hash = "
-                        << newAccount.GetCodeHash()
-                        << " address = " << newAccount.GetAddress()
-                        << " isLibrary = " << newAccount.IsLibrary()
-                        << " isContract = " << newAccount.isContract()
-                        << " balance = " << newAccount.GetBalance()
-                        << " nonce = " << newAccount.GetNonce()
-                        << " storage root = " << newAccount.GetStorageRoot());
-
   LOG_GENERAL(INFO,
               "Old account storage root: " << oldAccount->GetStorageRoot());
   LOG_GENERAL(INFO,
@@ -643,7 +620,6 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
   accbase.SetNonce(nonceDelta);
 
   if (newAccount.isContract() || newAccount.IsLibrary()) {
-    LOG_GENERAL(INFO, "Chetan AccountDeltaToProtobuf");
     if (fullCopy) {
       accbase.SetCodeHash(newAccount.GetCodeHash());
       protoAccount.set_code(newAccount.GetCode().data(),

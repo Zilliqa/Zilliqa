@@ -48,7 +48,6 @@ void AccountStoreSC<MAP>::Init() {
   m_curGasLimit = 0;
   m_curGasPrice = 0;
   m_txnProcessTimeout = false;
-  LOG_GENERAL(INFO, "Chetan remove all libs from extlibs folder");
   boost::filesystem::remove_all(EXTLIB_FOLDER);
   boost::filesystem::create_directories(EXTLIB_FOLDER);
 }
@@ -127,7 +126,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TxnStatus& error_code) {
   // LOG_MARKER();
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
-  AccountStoreBase<MAP>::PrintAccountState();
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -228,15 +226,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
       }
 
-      AccountStoreBase<MAP>::PrintAccountState();
-
       // generate address for new contract account
       toAddr =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
-      LOG_GENERAL(INFO, "Chetan sender = "
-                            << fromAddr << " contract address = "
-                            << toAddr.hex() << " GetNumOfAccounts = "
-                            << AccountStoreBase<MAP>::GetNumOfAccounts());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
       if (!this->AddAccount(toAddr, {0, 0})) {
@@ -251,12 +243,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      LOG_GENERAL(INFO, "Chetan toAccount = "
-                            << toAccount->GetAddress() << " m_isLibrary = "
-                            << toAccount->IsLibrary() << " GetNumOfAccounts = "
-                            << AccountStoreBase<MAP>::GetNumOfAccounts()
-                            << " m_codeHash = " << toAccount->GetCodeHash());
-      AccountStoreBase<MAP>::PrintAccountState();
 
       bool init = true;
       bool is_library = false;
@@ -271,15 +257,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
-        LOG_GENERAL(INFO, "Chetan1 toAccount = "
-                              << toAccount->GetAddress()
-                              << " m_isLibrary = " << toAccount->IsLibrary()
-                              << " GetNumOfAccounts = "
-                              << AccountStoreBase<MAP>::GetNumOfAccounts()
-                              << " m_codeHash = " << toAccount->GetCodeHash());
-
         std::vector<Address> extlibs;
-        LOG_GENERAL(INFO, "Chetan is_library here = " << is_library);
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
@@ -287,7 +265,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
-        LOG_GENERAL(INFO, "Chetan is_library = " << is_library);
 
         if (DISABLE_SCILLA_LIB && is_library) {
           LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -325,7 +302,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
         return false;
       }
-      AccountStoreBase<MAP>::PrintAccountState();
 
       // prepare IPC with current contract address
       m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
@@ -480,7 +456,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
 
       if (is_library) {
-        LOG_GENERAL(INFO, "Chetan m_newLibrariesCreated = " << toAddr.hex());
         m_newLibrariesCreated.emplace_back(toAddr);
       }
 
@@ -548,10 +523,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       bool is_library;
-      LOG_GENERAL(INFO, "Chetan is_library = "
-                            << is_library
-                            << " toAccount = " << toAccount->GetAddress()
-                            << " m_is_library = " << toAccount->IsLibrary());
       uint32_t scilla_version;
       std::vector<Address> extlibs;
       if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
@@ -560,9 +531,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
-      LOG_GENERAL(INFO, "Chetan is_library1 = " << is_library);
 
       if (is_library) {
+        // Call to library should silently passed to scilla so that the gas is
+        // charged based on the size of the message
         LOG_GENERAL(WARNING, "Library being called");
         // error_code = TxnStatus::FAIL_SCILLA_LIB;
         // return false;
@@ -725,12 +697,6 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
     uint32_t scilla_version, const std::vector<Address>& extlibs,
     std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
   LOG_MARKER();
-  for (auto& ext : extlibs_exports) {
-    LOG_GENERAL(INFO, "Chetan map entry first = "
-                          << ext.first.hex()
-                          << " second.first = " << ext.second.first
-                          << " second.second = " << ext.second.second);
-  }
   std::function<bool(const std::vector<Address>&,
                      std::map<Address, std::pair<std::string, std::string>>&)>
       extlibsExporter;
@@ -740,9 +706,7 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
                             extlibs_exports) -> bool {
     // export extlibs
     for (const auto& libAddr : extlibs) {
-      LOG_GENERAL(INFO, "Chetan libAddr here = " << libAddr.hex());
       if (extlibs_exports.find(libAddr) != extlibs_exports.end()) {
-        LOG_GENERAL(INFO, "Chetan libAddr not found=" << libAddr.hex());
         continue;
       }
 
@@ -758,7 +722,6 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
       std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
       if (boost::filesystem::exists(code_path) &&
           boost::filesystem::exists(json_path)) {
-        LOG_GENERAL(INFO, "Chetan library already exists");
         continue;
       }
 
@@ -787,13 +750,6 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
       extlibs_exports[libAddr] = {
           DataConversion::CharArrayToString(libAcc->GetCode()),
           DataConversion::CharArrayToString(libAcc->GetInitData())};
-      LOG_GENERAL(
-          INFO,
-          "Chetan lib code:"
-              << DataConversion::CharArrayToString(libAcc->GetCode())
-              << "init data = "
-              << DataConversion::CharArrayToString(libAcc->GetInitData()));
-      LOG_GENERAL(WARNING, "Chetan libAcc: " << libAddr);
 
       if (!extlibsExporter(ext_extlibs, extlibs_exports)) {
         return false;
@@ -828,14 +784,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     // Scilla code
     std::ofstream os(INPUT_CODE + (is_library ? LIBRARY_CODE_EXTENSION
                                               : CONTRACT_FILE_EXTENSION));
-    LOG_GENERAL(INFO, "contract code = " << DataConversion::CharArrayToString(
-                          contract.GetCode()));
     os << DataConversion::CharArrayToString(contract.GetCode());
-    std::stringstream ss;
-    ss << os.rdbuf();
-    std::string myString = ss.str();
-    LOG_GENERAL(INFO,
-                "Chetan input_code ExportCreateContractFiles = " << myString);
     os.close();
 
     ExportCommonFiles(os, contract, extlibs_exports);
@@ -866,26 +815,17 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
     code_path += LIBRARY_CODE_EXTENSION;
     boost::filesystem::remove(code_path);
-    LOG_GENERAL(INFO, "Chetan code_path=" << code_path);
 
     os.open(code_path);
     os << extlib_export.second.first;
     os.close();
-    std::stringstream ss;
-    ss << os.rdbuf();
-    std::string myString = ss.str();
-    LOG_GENERAL(INFO, " ExportCommonFiles code_path = " << myString);
 
     std::string init_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
     boost::filesystem::remove(init_path);
-    LOG_GENERAL(INFO, "Chetan init_path=" << init_path);
 
     os.open(init_path);
     os << extlib_export.second.second;
-    ss << os.rdbuf();
-    myString = ss.str();
-    LOG_GENERAL(INFO, " ExportCommonFiles code_path = " << myString);
     os.close();
   }
 
@@ -921,7 +861,6 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   try {
     std::string scillaCodeExtension = CONTRACT_FILE_EXTENSION;
     if (contract.IsLibrary()) {
-      LOG_GENERAL(INFO, "Chetan library is called here");
       scillaCodeExtension = LIBRARY_CODE_EXTENSION;
     }
     CreateScillaCodeFiles(contract, extlibs_exports, scillaCodeExtension);
@@ -944,15 +883,8 @@ void AccountStoreSC<MAP>::CreateScillaCodeFiles(
     const std::string& scillaCodeExtension) {
   LOG_MARKER();
   // Scilla code
-  LOG_GENERAL(INFO, "scillaCodeExtension = " << scillaCodeExtension);
   std::ofstream os(INPUT_CODE + scillaCodeExtension);
   os << DataConversion::CharArrayToString(contract.GetCode());
-  LOG_GENERAL(INFO, "contract code1 = " << DataConversion::CharArrayToString(
-                        contract.GetCode()));
-  std::stringstream ss;
-  ss << os.rdbuf();
-  std::string myString = ss.str();
-  LOG_GENERAL(INFO, "Chetan input_code ExportContractFiles = " << myString);
   os.close();
 
   ExportCommonFiles(os, contract, extlibs_exports);
@@ -1061,21 +993,17 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       return false;
     }
     LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
-    LOG_GENERAL(INFO, "Chetan check");
 
     if (is_library) {
       if (root.isMember("errors")) {
-        LOG_GENERAL(INFO, "Chetan error in library");
         receipt.AddException(root["errors"]);
         return false;
       }
     } else {
       if (!root.isMember("contract_info")) {
-        LOG_GENERAL(INFO, "Chetan check missing contract info");
         receipt.AddError(CHECKER_FAILED);
 
         if (root.isMember("errors")) {
-          LOG_GENERAL(INFO, "Chetan check error");
           receipt.AddException(root["errors"]);
         }
         return false;
@@ -1531,6 +1459,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       if (is_library) {
+        // Scilla should be invoked for message sent to library so that the GAS
+        // is charged
         LOG_GENERAL(WARNING, "Library being called");
         // receipt.AddError(LIBRARY_AS_RECIPIENT);
         // return false;
@@ -1664,10 +1594,8 @@ void AccountStoreSC<MAP>::SetScillaIPCServer(
 template <class MAP>
 void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
   for (const auto& addr : m_newLibrariesCreated) {
-    LOG_GENERAL(INFO, "Chetan CleanNewLibrariesCache");
     boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
     boost::filesystem::remove(addr.hex() + ".json");
   }
-  LOG_GENERAL(INFO, "Chetan CleanNewLibrariesCache1");
   m_newLibrariesCreated.clear();
 }
