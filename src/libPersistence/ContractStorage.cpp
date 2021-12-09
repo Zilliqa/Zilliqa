@@ -448,6 +448,7 @@ bool ContractStorage::FetchStateValue(
   }
 
   if (!counter) {
+    foundVal = false;
     return true;
   }
 
@@ -560,9 +561,11 @@ void ContractStorage::DeleteByPrefix(const string& prefix) {
   }
 
   p = m_stateDataMap.lower_bound(prefix);
-  while (p != m_stateDataMap.end() &&
-         p->first.compare(0, prefix.size(), prefix) == 0) {
-    t_indexToBeDeleted.emplace(p->first);
+  while ((p != m_stateDataMap.end() &&
+          p->first.compare(0, prefix.size(), prefix) == 0)) {
+    if (m_indexToBeDeleted.find(p->first) == m_indexToBeDeleted.cend()) {
+      t_indexToBeDeleted.emplace(p->first);
+    }
     ++p;
   }
 
@@ -593,7 +596,8 @@ void ContractStorage::DeleteByIndex(const string& index) {
   }
 
   p = m_stateDataMap.find(index);
-  if (p != m_stateDataMap.end()) {
+  if (p != m_stateDataMap.end() &&
+      m_indexToBeDeleted.find(index) == m_indexToBeDeleted.cend()) {
     if (LOG_SC) {
       LOG_GENERAL(INFO, "delete index from m: " << index);
     }
@@ -744,7 +748,6 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
 
 void ContractStorage::FetchStateDataForKey(map<string, bytes>& states,
                                            const string& key, bool temp) {
-  LOG_MARKER();
   std::map<std::string, bytes>::iterator p;
   if (temp) {
     p = t_stateDataMap.lower_bound(key);
@@ -980,14 +983,8 @@ void ContractStorage::UpdateStateData(const string& key, const bytes& value,
   auto pos = t_indexToBeDeleted.find(key);
   if (pos != t_indexToBeDeleted.end()) {
     t_indexToBeDeleted.erase(pos);
-    p_indexToBeDeleted.emplace(key, false);
-  }
 
   // for reverting
-  if (t_stateDataMap.find(key) != t_stateDataMap.end()) {
-    p_stateDataMap[key] = t_stateDataMap[key];
-  } else {
-    p_stateDataMap[key] = {};
   }
 
   t_stateDataMap[key] = value;
@@ -1281,7 +1278,9 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       m_stateTrie.remove(hashed_key);
     }
     stateHash = m_stateTrie.root();
-    r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
+    if (revertible) {
+      r_stateDataMap[m_stateTrie.root()] = t_r_stateDataMap;
+    }
   }
   LOG_GENERAL(INFO, "New Hash: " << stateHash);
 }
