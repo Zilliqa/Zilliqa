@@ -274,7 +274,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
               .GetContractCode(i.first)
               .empty()) {
         LOG_GENERAL(
-            INFO, "Chetan : MoveUpdatesToDisk = address = "
+            INFO, "Chetan : MoveUpdatesToDisk  address = "
                       << i.first.hex() << " code = "
                       << DataConversion::CharArrayToString(i.second.GetCode()));
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
@@ -282,9 +282,10 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
       }
 
       if (ContractStorage::GetContractStorage().GetInitData(i.first).empty()) {
-        LOG_GENERAL(INFO, "Chetan : MoveUpdatesToDisk = address = "
-                              << i.first.hex()
-                              << " init data = " << i.second.GetInitData());
+        LOG_GENERAL(INFO, "Chetan : MoveUpdatesToDisk  address = "
+                              << i.first.hex() << " init data = "
+                              << DataConversion::CharArrayToString(
+                                     i.second.GetInitData()));
         initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                                   i.second.GetInitData())});
       }
