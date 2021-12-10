@@ -269,14 +269,21 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
 
   for (const auto& i : *m_addressToAccount) {
     if (i.second.isContract() || i.second.IsLibrary()) {
+      LOG_GENERAL(INFO, "Chetan : MoveUpdatesToDisk");
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
+        LOG_GENERAL(INFO, "Chetan : MoveUpdatesToDisk = address = "
+                              << i.first.hex()
+                              << " code = " << i.second.GetCode());
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                               i.second.GetCode())});
       }
 
       if (ContractStorage::GetContractStorage().GetInitData(i.first).empty()) {
+        LOG_GENERAL(INFO, "Chetan : MoveUpdatesToDisk = address = "
+                              << i.first.hex()
+                              << " init data = " << i.second.GetInitData());
         initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                                   i.second.GetInitData())});
       }
