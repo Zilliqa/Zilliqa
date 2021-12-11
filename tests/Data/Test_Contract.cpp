@@ -1985,6 +1985,8 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
+  setup();
+
   // 1. Bootstrap test case
   const unsigned int numOperators = 5;
   const unsigned int numHodlers[] = {10, 20, 30, 40, 50};
@@ -2022,13 +2024,14 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, ownerNonce});
+  LOG_GENERAL(INFO, "Owner address: 0x" << ownerAddr.hex());
 
   senderAddr = Account::GetAddressFromPublicKey(sender.second);
   AccountStore::GetInstance().AddAccountTemp(senderAddr, {bal, senderNonce});
 
   for (auto hodlers : numHodlers) {
     contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
-    LOG_GENERAL(INFO, "NonFungibleToken Address: " << contrAddr.hex());
+    LOG_GENERAL(INFO, "NonFungibleToken Address: 0x" << contrAddr.hex());
 
     // Deploy the contract using data from the 10th Scilla test.
     ScillaTestUtil::ScillaTest t10;
@@ -2091,6 +2094,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       approvedOperators.append(operatorApprovalEntry);
     }
 
+    LOG_GENERAL(INFO, "Setting up hodlers");
     for (unsigned int i = 0; i < hodlers; i++) {
       Address hodler;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
@@ -2099,6 +2103,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       if (i == 0) {
         hodler = Account::GetAddressFromPublicKey(owner.second);
       }
+      LOG_GENERAL(INFO, "hodler: 0x" << hodler.hex());
 
       // set ownership
       Json::Value tokenOwnerEntry;
@@ -2151,12 +2156,14 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
                                         state_entries, balances, nonces)) {
       BOOST_FAIL("parseStateJSON failed");
     }
+    LOG_GENERAL(INFO, "Input state: " << t10.state.toStyledString());
     account->UpdateStates(contrAddr, state_entries[contrAddr], {}, true);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
     boost::random::uniform_int_distribution<> ownerDist(0, int(hodlers - 1));
     Json::Value randomReceiver = tokenOwnerMap[ownerDist(rng)];
+    LOG_GENERAL(INFO, "Chosen receiver: " << randomReceiver["val"]);
 
     // modify t3.message
     for (auto& p : t10.message["params"]) {
@@ -2192,6 +2199,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     Json::Value outputState;
     BOOST_CHECK_MESSAGE(account->FetchStateJson(outputState, "", {}, true),
                         "Fetch output state failed");
+    LOG_GENERAL(INFO, "Output state: " << outputState.toStyledString())
     BOOST_CHECK_MESSAGE(
         outputState["tokenOwnerMap"]["1"] == randomReceiver["val"],
         "transferFrom transition did not transfer token");

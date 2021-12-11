@@ -441,7 +441,9 @@ bool ContractStorage::FetchStateValue(
                     "keys than mapdepth");
         return false;
       }
-      *t_value = ScillaRTL::ScillaParams::MapValueT();
+      if (t_value->empty()) {
+        *t_value = ScillaRTL::ScillaParams::MapValueT();
+      }
     } else {
       *t_value = std::string(entry.second.begin(), entry.second.end());
     }
