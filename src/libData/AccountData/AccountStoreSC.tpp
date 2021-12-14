@@ -381,7 +381,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
         }
 
-        if (ret) {
+        if (ret && !is_library) {
           std::string runnerPrint;
           // parse runner output
          try {
