@@ -600,13 +600,13 @@ void BlockStorage::BatchRemoveOldStateDelta() {
   LOG_GENERAL(INFO, "FirstSDNum: " << m_firstStateDeltaBlockNum);
   LOG_GENERAL(INFO, "LastSDNum: " << m_lastStateDeltaBlockNum);
 
-  if (MAX_STATE_DELTA_STORED < currLast) {
+  if (currLast < MAX_STATE_DELTA_STORED) {
     LOG_GENERAL(WARNING, "Unable to perform batch remove yet");
     return;
   }
 
   auto tempNum = currLast - MAX_STATE_DELTA_STORED;
-  if (currFirst > tempNum) {
+  if (tempNum < currFirst) {
     LOG_GENERAL(WARNING, "This should not happen");
     return;
   }
@@ -1634,6 +1634,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     }
     case STATE_DELTA: {
+      LOG_GENERAL(INFO, "Resetdb statedelta");
       unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->ResetDB();
       m_firstStateDeltaBlockNum = std::numeric_limits<uint64_t>::max();
