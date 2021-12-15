@@ -375,6 +375,7 @@ bool Validator::CheckDirBlocks(
       }
       m_mediator.m_node->UpdateDSCommitteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
+      BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
