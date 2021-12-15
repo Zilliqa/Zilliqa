@@ -124,6 +124,7 @@ public:
 
     /// Remove the kv pair for multiple specified key.
     bool BatchDelete(const std::vector<dev::h256>& toDelete);
+    bool BatchDelete(const std::vector<boost::multiprecision::uint256_t>& toDelete);
 
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;

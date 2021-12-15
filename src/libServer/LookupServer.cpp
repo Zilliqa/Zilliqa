@@ -223,6 +223,15 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_INTEGER, NULL),
       &LookupServer::GetDbBlockTestI);
   this->bindAndAddMethod(
+      jsonrpc::Procedure("DeleteSdTest", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::DeleteSdTestI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("InsertSdTest", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
+                         NULL),
+      &LookupServer::InsertSdTestI);
+  this->bindAndAddMethod(
       jsonrpc::Procedure("GeBlockTest", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetBlockTestI);
@@ -1611,6 +1620,8 @@ Json::Value LookupServer::GetBlockchainInfo() {
 
   return _json;
 }
+
+// To be removed after test
 Json::Value LookupServer::GetDbBlockTest(unsigned int blockType,
                                          unsigned int blockNum) {
   Json::Value _json;
@@ -1630,6 +1641,40 @@ Json::Value LookupServer::GetDbBlockTest(unsigned int blockType,
     _json["HasGotten"] =
         BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
   }
+
+  auto tp_end = chrono::system_clock::now();
+
+  _json["TimeTakenInMicroSeconds"] =
+      (int)chrono::duration_cast<chrono::microseconds>(tp_end - tp_start)
+          .count();
+
+  return _json;
+}
+
+// To be removed after test
+Json::Value LookupServer::DeleteSdTest() {
+  Json::Value _json;
+
+  auto tp_start = chrono::system_clock::now();
+
+  BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
+
+  auto tp_end = chrono::system_clock::now();
+
+  _json["TimeTakenInMicroSeconds"] =
+      (int)chrono::duration_cast<chrono::microseconds>(tp_end - tp_start)
+          .count();
+  return _json;
+}
+
+// To be removed after test
+Json::Value LookupServer::InsertSdTest(unsigned int blockNum) {
+  Json::Value _json;
+
+  auto tp_start = chrono::system_clock::now();
+
+  bytes temp{0};
+  BlockStorage::GetBlockStorage().PutStateDelta(blockNum, temp);
 
   auto tp_end = chrono::system_clock::now();
 

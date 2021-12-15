@@ -572,6 +572,8 @@ bool Node::ProcessVCDSBlocksMessage(
 
   m_mediator.m_lookup->m_confirmedLatestDSBlock = false;
 
+  BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
+
   m_proposedGasPrice =
       max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
   cv_waitDSBlock.notify_one();

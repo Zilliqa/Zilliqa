@@ -590,6 +590,37 @@ bool BlockStorage::DeleteStateDelta(const uint64_t& finalBlockNum) {
   return (ret == 0);
 }
 
+void BlockStorage::BatchRemoveOldStateDelta() {
+  LOG_MARKER();
+  unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
+
+  auto currLast = m_lastStateDeltaBlockNum.load();
+  auto currFirst = m_firstStateDeltaBlockNum.load();
+
+  LOG_GENERAL(INFO, "FirstSDNum: " << m_firstStateDeltaBlockNum);
+  LOG_GENERAL(INFO, "LastSDNum: " << m_lastStateDeltaBlockNum);
+
+  if (MAX_STATE_DELTA_STORED < currLast) {
+    LOG_GENERAL(WARNING, "Unable to perform batch remove yet");
+    return;
+  }
+
+  auto tempNum = currLast - MAX_STATE_DELTA_STORED;
+  if (currFirst > tempNum) {
+    LOG_GENERAL(WARNING, "This should not happen");
+    return;
+  }
+
+  std::vector<boost::multiprecision::uint256_t> toDelete(tempNum - currFirst);
+  std::iota(toDelete.begin(), toDelete.end(), currFirst);
+  m_stateDeltaDB->BatchDelete(toDelete);
+
+  m_firstStateDeltaBlockNum = tempNum;
+
+  LOG_GENERAL(INFO, "After - FirstSDNum: " << m_firstStateDeltaBlockNum);
+  LOG_GENERAL(INFO, "After - LastSDNum: " << m_lastStateDeltaBlockNum);
+}
+
 bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
@@ -1164,6 +1195,11 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
     return false;
   }
 
+  if (finalBlockNum < m_firstStateDeltaBlockNum)
+    m_firstStateDeltaBlockNum = finalBlockNum;
+  if (finalBlockNum > m_lastStateDeltaBlockNum)
+    m_lastStateDeltaBlockNum = finalBlockNum;
+
   LOG_PAYLOAD(INFO, "FinalBlock " << finalBlockNum << " state delta",
               stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   return true;
@@ -1600,6 +1636,8 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     case STATE_DELTA: {
       unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->ResetDB();
+      m_firstStateDeltaBlockNum = std::numeric_limits<uint64_t>::max();
+      m_lastStateDeltaBlockNum = 0;
       break;
     }
     case TEMP_STATE: {

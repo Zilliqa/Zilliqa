@@ -172,6 +172,8 @@ const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT{
     ReadConstantNumeric("P2P_SEED_SERVER_CONNECTION_TIMEOUT", "node.seed.")};
 const unsigned int FETCH_DS_BLOCK_LIMIT{
     ReadConstantNumeric("FETCH_DS_BLOCK_LIMIT", "node.seed.")};
+const unsigned int MAX_STATE_DELTA_STORED{
+    ReadConstantNumeric("MAX_STATE_DELTA_STORED", "node.seed.")};
 const bool SYNC_FROM_EXISTING_PERSISTENCE{
     ReadConstantString("SYNC_FROM_EXISTING_PERSISTENCE", "node.seed.") ==
     "true"};

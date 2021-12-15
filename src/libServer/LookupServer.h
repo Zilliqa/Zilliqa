@@ -171,6 +171,15 @@ class LookupServer : public Server,
                                       Json::Value& response) {
     response = this->GetDbBlockTest(request[0u].asUInt(), request[1u].asUInt());
   }
+  inline virtual void DeleteSdTestI(const Json::Value& request,
+                                    Json::Value& response) {
+    (void)request;
+    response = this->DeleteSdTest();
+  }
+  inline virtual void InsertSdTestI(const Json::Value& request,
+                                    Json::Value& response) {
+    response = this->InsertSdTest(request[0u].asUInt());
+  }
   inline virtual void GetBlockTestI(const Json::Value& request,
                                     Json::Value& response) {
     (void)request;
@@ -302,6 +311,9 @@ class LookupServer : public Server,
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
   Json::Value GetDbBlockTest(unsigned int blockType, unsigned int blockNum);
+  Json::Value DeleteSdTest();
+  Json::Value InsertSdTest(unsigned int blockNum);
+
   Json::Value GetBlockTest();
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();

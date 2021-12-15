@@ -16,7 +16,6 @@
  */
 
 #include <string>
-
 #include <boost/filesystem.hpp>
 
 #include "LevelDB.h"
@@ -406,6 +405,22 @@ bool LevelDB::BatchDelete(const std::vector<dev::h256>& toDelete) {
     ldb::WriteBatch batch;
     for (const auto& i : toDelete) {
         batch.Delete(leveldb::Slice(i.hex()));
+    }
+
+    ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
+
+    if (!s.ok()) {
+        LOG_GENERAL(WARNING, "[BatchDelete] Status: " << s.ToString());
+        return false;
+    }
+
+    return true;
+}
+
+bool LevelDB::BatchDelete(const std::vector<boost::multiprecision::uint256_t>& toDelete) {
+    ldb::WriteBatch batch;
+    for (const auto& i : toDelete) {
+        batch.Delete(leveldb::Slice(i.convert_to<string>()));
     }
 
     ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);

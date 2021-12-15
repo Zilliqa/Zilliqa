@@ -91,6 +91,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_VCBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
+  std::atomic<uint64_t> m_firstStateDeltaBlockNum;
+  std::atomic<uint64_t> m_lastStateDeltaBlockNum;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
   std::shared_ptr<LevelDB> m_tempStateDB;
   std::shared_ptr<LevelDB> m_processedTxnTmpDB;
@@ -118,6 +120,8 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
+        m_firstStateDeltaBlockNum(std::numeric_limits<uint64_t>::max()),
+        m_lastStateDeltaBlockNum(0),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
         m_tempStateDB(std::make_shared<LevelDB>("tempState")),
         m_processedTxnTmpDB(std::make_shared<LevelDB>("processedTxnTmp")),
@@ -236,6 +240,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool DeleteVCBlock(const BlockHash& blockhash);
 
   bool DeleteStateDelta(const uint64_t& finalBlockNum);
+
+  void BatchRemoveOldStateDelta();
 
   bool DeleteMicroBlock(const BlockHash& blockHash);
 
