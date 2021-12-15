@@ -730,6 +730,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     return;
   }
 
+  BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
+
   m_mediator.m_node->m_proposedGasPrice =
       max(m_mediator.m_node->m_proposedGasPrice,
           m_pendingDSBlock->GetHeader().GetGasPrice());

@@ -426,6 +426,7 @@ bool Validator::CheckDirBlocks(
       }
       prevHash = vcblock.GetBlockHash();
       totalIndex++;
+      BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }

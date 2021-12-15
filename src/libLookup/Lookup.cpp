@@ -4708,12 +4708,16 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
       // m_mediator.m_blocklinkchain.GetLatestIndex();
       // m_mediator.m_node->GetLatestDSBlock();
 
-      if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
-          SYNC_FROM_EXISTING_PERSISTENCE) {
-        // if (latest - curr <= FETCH * POW )
-        return true;
-      }
-      return false;
+      // For warning
+      return (fromLookup && MULTIPLIER_SYNC_MODE) ||
+             SYNC_FROM_EXISTING_PERSISTENCE;
+
+      // if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
+      //     SYNC_FROM_EXISTING_PERSISTENCE) {
+      //   // if (latest - curr <= FETCH * POW )
+      //   return true;
+      // }
+      // return false;
     };
     // level2lookups and seed nodes
     if (checkForLookupSyncEligibility()) {
