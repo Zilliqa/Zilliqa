@@ -800,8 +800,7 @@ bool AccountStore::MigrateContractStates(
 
     account.SetStorageRoot(dev::h256());
     // invoke scilla checker
-    m_scillaIPCServer->setContractAddressVerRoot(address, scilla_version,
-                                                 account.GetStorageRoot());
+    m_scillaIPCServer->setContractAddressVerRoot(address, scilla_version);
     std::string checkerPrint;
     bool ret_checker = true;
     TransactionReceipt receipt;

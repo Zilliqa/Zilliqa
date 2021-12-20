@@ -44,8 +44,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                        std::string& type);
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
-  void setContractAddressVerRoot(const Address& address, uint32_t version,
-                                 const dev::h256& rootHash);
+  void setContractAddressVerRoot(const Address& address, uint32_t version);
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
@@ -54,7 +53,6 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  private:
   Address m_contrAddr = Address();
   uint32_t m_version = std::numeric_limits<uint32_t>::max();
-  dev::h256 m_rootHash = dev::h256();
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_

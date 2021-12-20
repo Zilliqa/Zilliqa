@@ -306,8 +306,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
-                                                   toAccount->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version);
 
       // ************************************************************************
       // Undergo scilla checker
@@ -581,8 +580,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
-                                                   toAccount->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version);
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
       std::string runnerPrint;
@@ -1429,8 +1427,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      m_scillaIPCServer->setContractAddressVerRoot(recipient, scilla_version,
-                                                   account->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(recipient, scilla_version);
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1464,8 +1461,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       // prepare IPC with the recipient contract address
-      m_scillaIPCServer->setContractAddressVerRoot(recipient, scilla_version,
-                                                   account->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(recipient, scilla_version);
       std::string runnerPrint;
       bool result = true;
 
