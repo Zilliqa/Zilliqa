@@ -132,8 +132,6 @@ class Account : public AccountBase {
   bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                      bool& is_library, std::vector<Address>& extlibs);
 
-  AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
-
  public:
   Account() {}
 
