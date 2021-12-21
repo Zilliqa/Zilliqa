@@ -256,11 +256,16 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DIAGNOSTIC_COINBASE);
 
   if (SyncType::NEW_LOOKUP_SYNC == syncType || SyncType::NEW_SYNC == syncType) {
-    while (!m_n.DownloadPersistenceFromS3()) {
-      LOG_GENERAL(
-          WARNING,
-          "Downloading persistence from S3 has failed. Will try again!");
-      this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+    // skips download from persistence if constant is turned on and persistence
+    // path exists
+    if (!SYNC_FROM_EXISTING_PERSISTENCE &&
+        boost::filesystem::exists(STORAGE_PATH + PERSISTENCE_PATH)) {
+      while (!m_n.DownloadPersistenceFromS3()) {
+        LOG_GENERAL(
+            WARNING,
+            "Downloading persistence from S3 has failed. Will try again!");
+        this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
+      }
     }
     if (!BlockStorage::GetBlockStorage().RefreshAll()) {
       LOG_GENERAL(WARNING, "BlockStorage::RefreshAll failed");
