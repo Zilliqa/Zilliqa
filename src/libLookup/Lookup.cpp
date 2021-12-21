@@ -2082,21 +2082,17 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     lowBlockNum = 1;
   }
 
-  uint64_t lowestLimitNum =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  const uint64_t lowestLimitNum = GetFetchRangeLowerBound();
   if (lowBlockNum < lowestLimitNum) {
     LOG_GENERAL(WARNING,
-                "Requested number of txBlocks are beyond the current DS epoch "
+                "Requested number of txBlocks are beyond the fetch range "
                 "(lowBlockNum :"
                     << lowBlockNum << ", lowestLimitNum : " << lowestLimitNum
                     << ")");
-    // lowBlockNum = lowestLimitNum;
-    LOG_GENERAL(WARNING, "Temporariliy removed limit")
   }
 
   if (highBlockNum == 0) {
-    highBlockNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    highBlockNum = GetFetchRangeUpperBound();
   }
 
   if (INIT_BLOCK_NUMBER == highBlockNum) {
@@ -4817,6 +4813,22 @@ bool Lookup::StopJsonRpcPort() {
     }
   }
   return true;
+}
+
+uint64_t Lookup::GetFetchRangeLowerBound() const {
+  // gets the first block number for curr ds epoch
+  // lower bound should be FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW before
+  const uint64_t currEpochNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  uint64_t currBlkNumInDSEpoch = currEpochNum % NUM_FINAL_BLOCK_PER_POW;
+
+  return currEpochNum - currBlkNumInDSEpoch -
+         FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
+}
+
+uint64_t Lookup::GetFetchRangeUpperBound() const {
+  // latest block number for upper bound
+  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 }
 
 void Lookup::RejoinAsLookup(bool fromLookup) {
