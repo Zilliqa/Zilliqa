@@ -4820,10 +4820,8 @@ uint64_t Lookup::GetFetchRangeLowerBound() const {
   // lower bound should be FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW before
   const uint64_t currEpochNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
-  uint64_t currBlkNumInDSEpoch = currEpochNum % NUM_FINAL_BLOCK_PER_POW;
 
-  return currEpochNum - currBlkNumInDSEpoch -
-         FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
+  return currEpochNum - FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
 }
 
 uint64_t Lookup::GetFetchRangeUpperBound() const {
