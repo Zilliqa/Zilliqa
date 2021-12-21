@@ -154,11 +154,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     // 3 mode: IP/Key/P2P Seed Key (ENABLE_SEED_TO_SEED_COMMUNICATION)
     startupInfo += "Whitelisting mode   = ";
-    startupInfo += multiplierSyncMode
-                       ? "IP whitelisting mode\n"
-                       : ENABLE_SEED_TO_SEED_COMMUNICATION
-                             ? "Public Key (P2P Seed) whitelisting mode\n"
-                             : "Public Key only whitelisting mode\n";
+    startupInfo += multiplierSyncMode ? "IP whitelisting mode\n"
+                   : ENABLE_SEED_TO_SEED_COMMUNICATION
+                       ? "Public Key (P2P Seed) whitelisting mode\n"
+                       : "Public Key only whitelisting mode\n";
     // IP Address
     startupInfo += "IP Address          = ";
     startupInfo += peer.GetPrintableIPAddress();
@@ -258,8 +257,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   if (SyncType::NEW_LOOKUP_SYNC == syncType || SyncType::NEW_SYNC == syncType) {
     // skips download from persistence if constant is turned on and persistence
     // path exists
-    if (!SYNC_FROM_EXISTING_PERSISTENCE &&
-        boost::filesystem::exists(STORAGE_PATH + PERSISTENCE_PATH)) {
+    if (!SYNC_FROM_EXISTING_PERSISTENCE ||
+        (SYNC_FROM_EXISTING_PERSISTENCE &&
+         !boost::filesystem::exists(STORAGE_PATH + PERSISTENCE_PATH))) {
       while (!m_n.DownloadPersistenceFromS3()) {
         LOG_GENERAL(
             WARNING,
