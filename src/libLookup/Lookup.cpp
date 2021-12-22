@@ -4821,7 +4821,13 @@ uint64_t Lookup::GetFetchRangeLowerBound() const {
   const uint64_t currEpochNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
 
-  return currEpochNum - FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
+  // prevent underflow for lower epochs
+  const uint64_t lowerBound =
+      FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW > currEpochNum
+          ? 0
+          : currEpochNum - FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
+
+  return lowerBound;
 }
 
 uint64_t Lookup::GetFetchRangeUpperBound() const {
