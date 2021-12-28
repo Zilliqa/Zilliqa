@@ -4786,7 +4786,7 @@ uint64_t Lookup::GetFetchRangeLowerBound() const {
 
 uint64_t Lookup::GetFetchRangeUpperBound() const {
   // latest block number for upper bound
-  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 }
 
 void Lookup::RejoinAsLookup(bool fromLookup) {
