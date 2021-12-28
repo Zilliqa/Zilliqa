@@ -2050,6 +2050,10 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     highBlockNum = GetFetchRangeUpperBound();
   }
 
+  if (lowBlockNum < highBlockNum) {
+    lowBlockNum = highBlockNum;
+  }
+
   if (INIT_BLOCK_NUMBER == highBlockNum) {
     LOG_GENERAL(WARNING,
                 "Blockchain is still bootstraping, no tx blocks available.");
