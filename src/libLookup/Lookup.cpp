@@ -2095,7 +2095,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     highBlockNum = GetFetchRangeUpperBound();
   }
 
-  if (lowBlockNum < highBlockNum) {
+  if (lowBlockNum > highBlockNum) {
     lowBlockNum = highBlockNum;
   }
 
