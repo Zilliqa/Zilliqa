@@ -2051,7 +2051,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   }
 
   if (lowBlockNum > highBlockNum) {
-    lowBlockNum = highBlockNum;
+    lowBlockNum = highBlockNum - 1;
   }
 
   if (INIT_BLOCK_NUMBER == highBlockNum) {
