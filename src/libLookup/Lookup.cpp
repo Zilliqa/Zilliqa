@@ -2050,10 +2050,6 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     highBlockNum = GetFetchRangeUpperBound();
   }
 
-  if (lowBlockNum > highBlockNum) {
-    lowBlockNum = highBlockNum - 1;
-  }
-
   if (INIT_BLOCK_NUMBER == highBlockNum) {
     LOG_GENERAL(WARNING,
                 "Blockchain is still bootstraping, no tx blocks available.");
@@ -3122,8 +3118,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     LOG_GENERAL(
         WARNING,
         "The lowBlockNum is higher than highblocknum, maybe DS epoch ongoing");
-    cv_setTxBlockFromSeed.notify_all();
-    return false;
+    // Temporary disable this path
+    // cv_setTxBlockFromSeed.notify_all();
+    // return false;
   }
 
   if (txBlocks.empty()) {
