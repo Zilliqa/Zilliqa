@@ -278,8 +278,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     LogSelfNodeInfo(key, peer);
-    LOG_GENERAL(INFO, "Start of Install Loop");
-    LOG_GENERAL(INFO, "RetrieveHistory: " << toRetrieveHistory);
     while (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP) {
         syncType = SyncType::LOOKUP_SYNC;
@@ -320,7 +318,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         break;
       }
     }
-    LOG_GENERAL(INFO, "End of Install Loop");
 
     // If new node identifed as ds node, change syncType to DS_SYNC
     if (syncType == NEW_SYNC &&
