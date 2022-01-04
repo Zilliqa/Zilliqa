@@ -5068,7 +5068,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   uint64_t i = index_num;
   for (; i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
     BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(i);
-    if (count >= DIRBLOCK_FETCH_LIMIT) {
+    if (count >= FETCH_DS_BLOCK_LIMIT) {
       break;
     }
     if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {

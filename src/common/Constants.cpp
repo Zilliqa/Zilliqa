@@ -580,8 +580,6 @@ const unsigned int MAX_REJOIN_NETWORK_ATTEMPTS{
     ReadConstantNumeric("MAX_REJOIN_NETWORK_ATTEMPTS", "node.recovery.")};
 const unsigned int RELEASE_CACHE_INTERVAL{
     ReadConstantNumeric("RELEASE_CACHE_INTERVAL", "node.recovery.")};
-const unsigned int DIRBLOCK_FETCH_LIMIT{
-    ReadConstantNumeric("DIRBLOCK_FETCH_LIMIT", "node.recovery.")};
 
 // Smart contract constants
 const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
