@@ -2018,6 +2018,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
     return false;
   }
   Peer requestingNode(from.m_ipAddress, portNo);
+
+  LOG_GENERAL(INFO, "Size of data: " << txBlockMessage.size()
+                                     << ", hb: " << highBlockNum
+                                     << ", lb: " << lowBlockNum);
+
   P2PComm::GetInstance().SendMessage(requestingNode, from, txBlockMessage,
                                      startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
@@ -2146,6 +2151,9 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
+
+  LOG_GENERAL(INFO, "Data Size: " << stateDeltaMessage.size() << ", Count: 1");
+
   P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltaMessage,
                                      startByte);
   return true;
@@ -2217,6 +2225,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
+  LOG_GENERAL(INFO, "Data Size: " << stateDeltasMessage.size() << ", hb: "
+                                  << highBlockNum << " lb: " << lowBlockNum);
   P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltasMessage,
                                      startByte);
   return true;
@@ -5051,6 +5061,9 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
                 "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
     return false;
   }
+
+  LOG_GENERAL(INFO,
+              "Size of data: " << msg.size() << ", block counts: " << count);
 
   P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
 
