@@ -3118,9 +3118,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     LOG_GENERAL(
         WARNING,
         "The lowBlockNum is higher than highblocknum, maybe DS epoch ongoing");
-    // Temporary disable this path
-    // cv_setTxBlockFromSeed.notify_all();
-    // return false;
+    cv_setTxBlockFromSeed.notify_all();
+    return false;
   }
 
   if (txBlocks.empty()) {
