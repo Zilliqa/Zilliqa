@@ -611,10 +611,7 @@ void BlockStorage::BatchRemoveOldStateDelta() {
     return;
   }
 
-  std::vector<boost::multiprecision::uint256_t> toDelete(tempNum - currFirst);
-  std::iota(toDelete.begin(), toDelete.end(), currFirst);
-  m_stateDeltaDB->BatchDelete(toDelete);
-
+  m_stateDeltaDB->BatchDelete(currFirst, tempNum);
   m_firstStateDeltaBlockNum = tempNum;
 
   LOG_GENERAL(INFO, "After - FirstSDNum: " << m_firstStateDeltaBlockNum);

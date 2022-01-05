@@ -417,9 +417,12 @@ bool LevelDB::BatchDelete(const std::vector<dev::h256>& toDelete) {
     return true;
 }
 
-bool LevelDB::BatchDelete(const std::vector<boost::multiprecision::uint256_t>& toDelete) {
+bool LevelDB::BatchDelete(const uint64_t& start, const uint64_t& end) {
     ldb::WriteBatch batch;
-    for (const auto& i : toDelete) {
+    boost::multiprecision::uint256_t tStart = start;
+    boost::multiprecision::uint256_t tEnd = end;
+    
+    for (auto i = tStart; i < tEnd; ++i) {
         batch.Delete(leveldb::Slice(i.convert_to<string>()));
     }
 
