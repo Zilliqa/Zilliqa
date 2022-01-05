@@ -166,6 +166,12 @@ const unsigned int MAX_STATE_DELTA_STORED{
 const bool SYNC_FROM_EXISTING_PERSISTENCE{
     ReadConstantString("SYNC_FROM_EXISTING_PERSISTENCE", "node.seed.") ==
     "true"};
+const unsigned int BATCH_DS_BLOCK_NUM{
+    ReadConstantNumeric("BATCH_DS_BLOCK_NUM", "node.seed.")};
+const unsigned int BATCH_TX_BLOCK_NUM{
+    ReadConstantNumeric("BATCH_TX_BLOCK_NUM", "node.seed.")};
+const unsigned int BATCH_STATEDELTA_BLOCK_NUM{
+    ReadConstantNumeric("BATCH_STATEDELTA_BLOCK_NUM", "node.seed.")};
 
 // RemotestorageDB constants
 const string REMOTESTORAGE_DB_HOST{
