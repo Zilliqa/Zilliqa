@@ -85,6 +85,17 @@ ReadVerifierExclusionListFromConstantsFile() {
   return result;
 }
 
+const vector<pair<uint64_t, uint32_t>>
+ReadVerifierMicroblockExclusionListFromConstantsFile() {
+  auto pt = PTree::GetInstance();
+  vector<pair<uint64_t, uint32_t>> result;
+  for (auto& entry : pt.get_child("node.verifier.microblock_exclusion_list")) {
+    result.emplace_back(make_pair(entry.second.get<uint64_t>("TXBLOCK"),
+                                  entry.second.get<uint32_t>("MICROBLOCK")));
+  }
+  return result;
+}
+
 bool ISOLATED_SERVER = false;
 
 bool SCILLA_PPLIT_FLAG = true;
@@ -716,3 +727,5 @@ const vector<pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST{
     ReadVerifierExclusionListFromConstantsFile()};
 const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
+const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
+    ReadVerifierMicroblockExclusionListFromConstantsFile()};
