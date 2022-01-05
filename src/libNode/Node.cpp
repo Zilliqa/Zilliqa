@@ -538,6 +538,9 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
       if (mbInfo.m_txnRootHash == TxnHash()) {
         continue;
       }
+      LOG_GENERAL(INFO,
+                  "Chetan mb hash = " << mbInfo.m_microBlockHash.hex()
+                                      << " shardId = " << mbInfo.m_shardId);
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
         if (find(VERIFIER_EXCLUSION_LIST.begin(), VERIFIER_EXCLUSION_LIST.end(),
