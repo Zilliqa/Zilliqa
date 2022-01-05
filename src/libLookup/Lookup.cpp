@@ -1971,8 +1971,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
   uint64_t diff = 0;
   if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
-    if (diff >= BATCH_DS_BLOCK_NUM) {
-      highBlockNum = lowBlockNum + BATCH_DS_BLOCK_NUM - 1;
+    if (diff > BATCH_DS_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_DS_BLOCK_NUM;
       LOG_GENERAL(INFO, "Requested "
                             << diff
                             << " DS block is too much, changed  highBlockNum: "
@@ -2110,8 +2110,8 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
 
   uint64_t diff = 0;
   if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
-    if (diff >= BATCH_TX_BLOCK_NUM) {
-      highBlockNum = lowBlockNum + BATCH_TX_BLOCK_NUM - 1;
+    if (diff > BATCH_TX_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_TX_BLOCK_NUM;
       LOG_GENERAL(INFO, "Requested "
                             << diff
                             << " TX block is too much, changed  highBlockNum: "
@@ -2259,8 +2259,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
 
   uint64_t diff = 0;
   if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
-    if (diff >= BATCH_STATEDELTA_BLOCK_NUM) {
-      highBlockNum = lowBlockNum + BATCH_STATEDELTA_BLOCK_NUM - 1;
+    if (diff > BATCH_STATEDELTA_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_STATEDELTA_BLOCK_NUM;
       LOG_GENERAL(
           INFO, "Requested "
                     << diff
@@ -4756,13 +4756,13 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
         this_thread::sleep_for(chrono::seconds(RETRY_REJOINING_TIMEOUT));
       }
 
-        if (IsUpperSeedEmpty()) {
-          SetUpperSeedsInner();  // since may have called CleanVariable earlier
-        }
+      if (IsUpperSeedEmpty()) {
+        SetUpperSeedsInner();  // since may have called CleanVariable earlier
+      }
 
-        if (!MULTIPLIER_SYNC_MODE && IsL2lDataProvidersEmpty()) {
-          SetL2lDataProvidersInner();
-        }
+      if (!MULTIPLIER_SYNC_MODE && IsL2lDataProvidersEmpty()) {
+        SetL2lDataProvidersInner();
+      }
 
       // Check if next ds epoch was crossed -cornercase after syncing from S3
       if ((m_mediator.m_txBlockChain.GetBlockCount() %
