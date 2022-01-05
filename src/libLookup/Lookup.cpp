@@ -1946,6 +1946,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
 // highBlockNum = 0 => Latest block number
 void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                               uint64_t& highBlockNum) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
   uint64_t curBlockNum =
@@ -1970,8 +1971,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
   uint64_t diff = 0;
   if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
-    if (diff >= FETCH_DS_BLOCK_LIMIT) {
-      highBlockNum = lowBlockNum + FETCH_DS_BLOCK_LIMIT - 1;
+    if (diff >= BATCH_DS_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_DS_BLOCK_NUM - 1;
       LOG_GENERAL(INFO, "Requested "
                             << diff
                             << " DS block is too much, changed  highBlockNum: "
@@ -2081,6 +2082,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
 // highBlockNum = 0 => Latest block number
 void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                               uint64_t& highBlockNum) {
+  LOG_MARKER();
   lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
 
   if (lowBlockNum == 0) {
@@ -2104,6 +2106,17 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     LOG_GENERAL(WARNING,
                 "Blockchain is still bootstraping, no tx blocks available.");
     return;
+  }
+
+  uint64_t diff = 0;
+  if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
+    if (diff >= BATCH_TX_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_TX_BLOCK_NUM - 1;
+      LOG_GENERAL(INFO, "Requested "
+                            << diff
+                            << " TX block is too much, changed  highBlockNum: "
+                            << highBlockNum << " lowBlockNum: " << lowBlockNum);
+    }
   }
 
   uint64_t blockNum;
@@ -2243,6 +2256,18 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
             "ProcessGetStateDeltasFromSeed requested by "
                 << from << " for blocks: " << lowBlockNum << " to "
                 << highBlockNum);
+
+  uint64_t diff = 0;
+  if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
+    if (diff >= BATCH_STATEDELTA_BLOCK_NUM) {
+      highBlockNum = lowBlockNum + BATCH_STATEDELTA_BLOCK_NUM - 1;
+      LOG_GENERAL(
+          INFO, "Requested "
+                    << diff
+                    << " statedelta block is too much, changed  highBlockNum: "
+                    << highBlockNum << " lowBlockNum: " << lowBlockNum);
+    }
+  }
 
   vector<bytes> stateDeltas;
   for (auto i = lowBlockNum; i <= highBlockNum; i++) {

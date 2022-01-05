@@ -186,6 +186,9 @@ extern const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT;
 extern const unsigned int FETCH_DS_BLOCK_LIMIT;
 extern const unsigned int MAX_STATE_DELTA_STORED;
 extern const bool SYNC_FROM_EXISTING_PERSISTENCE;
+extern const unsigned int BATCH_DS_BLOCK_NUM;
+extern const unsigned int BATCH_TX_BLOCK_NUM;
+extern const unsigned int BATCH_STATEDELTA_BLOCK_NUM;
 
 // RemoteStorageDB
 extern const std::string REMOTESTORAGE_DB_HOST;
