@@ -557,8 +557,16 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
           }
         }
       } else {
-        LOG_GENERAL(WARNING, "FB: " << blockNum << " Missing MB: "
-                                    << mbInfo.m_microBlockHash);
+        LOG_GENERAL(WARNING,
+                    "FB: " << blockNum
+                           << " Missing MB: " << mbInfo.m_microBlockHash
+                           << " Check if MB is in microblock exclusion list");
+        if (find(VERIFIER_MICROBLOCK_EXCLUSION_LIST.begin(),
+                 VERIFIER_MICROBLOCK_EXCLUSION_LIST.end(),
+                 make_pair(blockNum, mbInfo.m_shardId)) !=
+            VERIFIER_MICROBLOCK_EXCLUSION_LIST.end()) {
+          continue;
+        }
         *result = false;
       }
     }
