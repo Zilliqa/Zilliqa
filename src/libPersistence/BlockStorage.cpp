@@ -165,6 +165,7 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
     // Get key from microBlockKeys DB
     const string& keyString = m_microBlockKeyDB->Lookup(blockHash);
     if (keyString.empty()) {
+      LOG_GENERAL(INFO, "Chetan Missing MB for hash = " << blockHash.hex());
       return false;
     }
 
@@ -181,6 +182,7 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   }
 
   if (blockString.empty()) {
+    LOG_GENERAL(INFO, "Chetan1 Missing MB for hash = " << blockHash.hex());
     return false;
   }
   microblock =
