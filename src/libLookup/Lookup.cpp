@@ -3232,6 +3232,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Invalid blocks");
+        // temporary
+        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
+          m_rejoinInProgress = true;
+          cv_setRejoinRecovery.notify_all();
+          RejoinNetwork();
+        }
         break;
       case Validator::TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
