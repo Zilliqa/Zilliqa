@@ -3197,8 +3197,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(
   if (lowBlockNum > highBlockNum) {
     LOG_GENERAL(
         WARNING,
-        "The lowBlockNum is higher than highblocknum, maybe DS epoch ongoing");
+        "The lowBlockNum is higher than highBlockNum, maybe DS epoch ongoing");
     cv_setTxBlockFromSeed.notify_all();
+    if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+      m_rejoinInProgress = true;
+      cv_setRejoinRecovery.notify_all();
+      RejoinNetwork();
+    }
     return false;
   }
 
@@ -4719,6 +4724,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
     auto syncFromLookupFunc = [this]() mutable -> void {
       GetInitialBlocksAndShardingStructure();
     };
+
     auto syncFromS3Func = [this]() mutable -> void {
       while (true) {
         this->CleanVariables();
@@ -4767,39 +4773,22 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
         RejoinAsNewLookup(false);
       }
     };
-    auto checkForLookupSyncEligibility = [this, fromLookup]() -> bool {
-      // while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
-      //   m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
-      //       m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      //   m_mediator.m_node->m_synchronizer.FetchLatestTxBlockSeed(
-      //       m_mediator.m_lookup,
-      //       // m_mediator.m_txBlockChain.GetBlockCount());
-      //       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-      //       +
-      //           1);
-      // m_mediator.m_dsBlockChain.GetBlockCount();
-      // m_mediator.m_txBlockChain.GetBlockCount();
-      // m_mediator.m_blocklinkchain.GetLatestIndex();
-      // m_mediator.m_node->GetLatestDSBlock();
 
-      // For warning
+    auto checkForLookupSyncEligibility = [this, fromLookup]() -> bool {
+      if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+        return false;
+      }
       return (fromLookup && MULTIPLIER_SYNC_MODE) ||
              SYNC_FROM_EXISTING_PERSISTENCE;
-
-      // if ((fromLookup && MULTIPLIER_SYNC_MODE) ||
-      //     SYNC_FROM_EXISTING_PERSISTENCE) {
-      //   // if (latest - curr <= FETCH * POW )
-      //   return true;
-      // }
-      // return false;
     };
+
     // level2lookups and seed nodes
     if (checkForLookupSyncEligibility()) {
       // syncing via multiplier
-      LOG_GENERAL(INFO, "Syncing from lookup ...");
+      LOG_GENERAL(INFO, "Syncing from lookup...");
       DetachedFunction(1, syncFromLookupFunc);
     } else {
-      LOG_GENERAL(INFO, "Syncing from S3 ...");
+      LOG_GENERAL(INFO, "Syncing from S3...");
       DetachedFunction(1, syncFromS3Func);
     }
   }
