@@ -558,7 +558,7 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
       LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
                                << latestDSIndex << " "
                                << latestTxBlock.GetHeader().GetDSBlockNum());
-      return TxBlockValidationMsg::INVALID;
+      return TxBlockValidationMsg::STALE;
     }
 
     LOG_GENERAL(WARNING,

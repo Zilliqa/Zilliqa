@@ -30,7 +30,7 @@ class Mediator;
 
 class Validator {
  public:
-  enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID };
+  enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID, STALE };
   Validator(Mediator& mediator);
   ~Validator();
   std::string name() const { return "Validator"; }
