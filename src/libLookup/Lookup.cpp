@@ -3332,7 +3332,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                               << "Invalid blocks");
         break;
       case Validator::TxBlockValidationMsg::STALE:
-        // Should sync from S3 
+        // Should sync from S3
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
           m_rejoinInProgress = true;
           cv_setRejoinRecovery.notify_all();
