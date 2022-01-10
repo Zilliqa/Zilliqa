@@ -3252,9 +3252,31 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       return false;
     }
 
-    auto res = m_mediator.m_validator->CheckTxBlocks(
-        txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    auto res = Validator::TxBlockValidationMsg::VALID;
+    bool isLatestBlk = true;
+    if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+      LOG_GENERAL(INFO, "Seed check tx block");
+
+      auto recTxBlockNum = txBlocks.back().GetHeader().GetBlockNum();
+      const auto& blocklink =
+          m_mediator.m_blocklinkchain.GetBlockLink(recTxBlockNum);
+
+      if (std::get<BlockLinkIndex::INDEX>(blocklink) != recTxBlockNum) {
+        LOG_GENERAL(WARNING, "Block link not found for " << recTxBlockNum);
+        res = Validator::TxBlockValidationMsg::INVALID;
+      } else {
+        res = m_mediator.m_validator->CheckTxBlocks(
+            txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), blocklink);
+        isLatestBlk = recTxBlockNum ==
+                      std::get<BlockLinkIndex::INDEX>(
+                          m_mediator.m_blocklinkchain.GetLatestBlockLink());
+      }
+    } else {
+      res = m_mediator.m_validator->CheckTxBlocks(
+          txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+          m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    }
+
     switch (res) {
       case Validator::TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
@@ -3265,7 +3287,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
           this_thread::sleep_for(chrono::seconds(10));
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
-        if (!CommitTxBlocks(txBlocks)) {
+        if (!CommitTxBlocks(txBlocks, isLatestBlk)) {
           if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
             m_rejoinInProgress = true;
             cv_setRejoinRecovery.notify_all();
@@ -3296,6 +3318,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     }
   }
 
+  LOG_GENERAL(INFO, "Reached here");
   return true;
 }
 
@@ -3353,7 +3376,7 @@ void Lookup::PrepareForStartPow() {
   InitMining();
 }
 
-bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
+bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks, bool isLatest) {
   LOG_GENERAL(INFO, "[TxBlockVerif]"
                         << "Success");
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
@@ -3457,6 +3480,11 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         }
       }
     }
+  }
+
+  if (!isLatest) {
+    LOG_GENERAL(INFO, "Not latest yet");
+    return false;
   }
 
   m_mediator.m_currentEpochNum =

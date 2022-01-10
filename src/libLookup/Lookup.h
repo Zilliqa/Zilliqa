@@ -435,7 +435,8 @@ class Lookup : public Executable {
   bool ProcessSetTxBlockFromSeed(
       const bytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  bool CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
+  bool CommitTxBlocks(const std::vector<TxBlock>& txBlocks,
+                      bool isLatest = true);
   void PrepareForStartPow();
   bool GetDSInfo();
   bool ProcessSetStateDeltaFromSeed(
