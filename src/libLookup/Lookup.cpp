@@ -3220,17 +3220,25 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       LOG_GENERAL(INFO, "Seed check tx block");
 
-      auto recTxBlockNum = txBlocks.back().GetHeader().GetDSBlockNum();
-      const auto& blocklink =
-          m_mediator.m_blocklinkchain.GetBlockLink(recTxBlockNum);
+      auto obtainedTxBlockNum = txBlocks.back().GetHeader().GetBlockNum();
 
-      if (std::get<BlockLinkIndex::INDEX>(blocklink) != recTxBlockNum) {
-        LOG_GENERAL(WARNING, "Block link not found for " << recTxBlockNum);
+      LOG_GENERAL(INFO, "Obtained tx blk: " << obtainedTxBlockNum);
+
+      auto blocklinkNumToCheck = obtainedTxBlockNum / NUM_FINAL_BLOCK_PER_POW;
+
+      const auto& blocklink =
+          m_mediator.m_blocklinkchain.GetBlockLink(blocklinkNumToCheck);
+
+      LOG_GENERAL(INFO, "OblocklinkNumToCheck: " << blocklinkNumToCheck);
+
+      if (std::get<BlockLinkIndex::INDEX>(blocklink) != blocklinkNumToCheck) {
+        LOG_GENERAL(WARNING,
+                    "Block link not found for " << blocklinkNumToCheck);
         res = Validator::TxBlockValidationMsg::INVALID;
       } else {
         res = m_mediator.m_validator->CheckTxBlocks(
             txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), blocklink);
-        isLatestBlk = recTxBlockNum ==
+        isLatestBlk = blocklinkNumToCheck ==
                       std::get<BlockLinkIndex::INDEX>(
                           m_mediator.m_blocklinkchain.GetLatestBlockLink());
       }
