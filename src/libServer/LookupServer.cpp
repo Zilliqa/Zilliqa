@@ -1640,6 +1640,14 @@ Json::Value LookupServer::GetDbBlockTest(unsigned int blockType,
     bytes stateDelta = {};
     _json["HasGotten"] =
         BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta);
+  } else if (blockType == 3) {
+    _json["Size"] = (int)m_mediator.m_blocklinkchain.GetSize();
+    _json["Latest"] = (int)std::get<BlockLinkIndex::INDEX>(
+        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+
+    auto blk = m_mediator.m_blocklinkchain.GetBlockLink(blockNum);
+    _json["Obtained"] = (int)std::get<BlockLinkIndex::DSINDEX>(blk);
+    _json["Obtained2"] = (int)std::get<BlockLinkIndex::INDEX>(blk);
   }
 
   auto tp_end = chrono::system_clock::now();

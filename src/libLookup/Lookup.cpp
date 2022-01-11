@@ -3254,6 +3254,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(
 
     auto res = Validator::TxBlockValidationMsg::VALID;
     bool isLatestBlk = true;
+
+    LOG_GENERAL(
+        INFO, "Block link latest index is " << std::get<BlockLinkIndex::INDEX>(
+                  m_mediator.m_blocklinkchain.GetLatestBlockLink()));
+
+    LOG_GENERAL(INFO,
+                "Block link size: " << m_mediator.m_blocklinkchain.GetSize());
+
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       LOG_GENERAL(INFO, "Seed check tx block");
 
@@ -3287,6 +3295,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
           this_thread::sleep_for(chrono::seconds(10));
         }
 #endif  // SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
+
+        LOG_GENERAL(INFO, "Coming to commit tx blocks");
         if (!CommitTxBlocks(txBlocks, isLatestBlk)) {
           if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
             m_rejoinInProgress = true;
