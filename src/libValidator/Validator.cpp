@@ -569,6 +569,7 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
     return TxBlockValidationMsg::STALEDSINFO;
   }
 
+  LOG_GENERAL(INFO, "Check cosig");
   if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
     return TxBlockValidationMsg::INVALID;
   }
