@@ -3220,7 +3220,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       LOG_GENERAL(INFO, "Seed check tx block");
 
-      auto recTxBlockNum = txBlocks.back().GetHeader().GetBlockNum();
+      auto recTxBlockNum = txBlocks.back().GetHeader().GetDSBlockNum();
       const auto& blocklink =
           m_mediator.m_blocklinkchain.GetBlockLink(recTxBlockNum);
 
