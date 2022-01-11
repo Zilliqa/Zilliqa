@@ -31,7 +31,10 @@ BlockLink BlockLinkChain::GetFromPersistentStorage(const uint64_t& index) {
   return *blnkshared;
 }
 
-void BlockLinkChain::Reset() { m_blockLinkChain.resize(BLOCKCHAIN_SIZE); }
+void BlockLinkChain::Reset() {
+  LOG_GENERAL(INFO, "Block link was reseted");
+  m_blockLinkChain.resize(BLOCKCHAIN_SIZE);
+}
 
 BlockLinkChain::BlockLinkChain() { Reset(); }
 

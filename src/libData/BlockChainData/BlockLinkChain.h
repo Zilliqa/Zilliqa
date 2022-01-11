@@ -42,6 +42,8 @@ class BlockLinkChain {
   static BlockLink GetFromPersistentStorage(const uint64_t& index);
   void Reset();
 
+  uint64_t GetSize() { return m_blockLinkChain.size(); }
+
   BlockLinkChain();
 
   BlockLink GetBlockLink(const uint64_t& index);
