@@ -539,7 +539,7 @@ bool Validator::CheckDirBlocksNoUpdate(
 
 Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
     const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
-    const BlockLink& latestBlockLink) {
+    const BlockLink& latestBlockLink, bool isLatest) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
 
@@ -569,8 +569,8 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
     return TxBlockValidationMsg::STALEDSINFO;
   }
 
-  LOG_GENERAL(INFO, "Check cosig");
-  if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
+  LOG_GENERAL(INFO, "Check cosig " << isLatest);
+  if (isLatest && !CheckBlockCosignature(latestTxBlock, dsComm)) {
     return TxBlockValidationMsg::INVALID;
   }
 
