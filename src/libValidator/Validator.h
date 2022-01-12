@@ -62,7 +62,8 @@ class Validator {
   // TxBlocks must be in increasing order or it will fail
   TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
                                      const DequeOfNode& dsComm,
-                                     const BlockLink& latestBlockLink);
+                                     const BlockLink& latestBlockLink,
+                                     bool isLatest = true);
   Mediator& m_mediator;
 };
 
