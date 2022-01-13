@@ -2108,6 +2108,8 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     return;
   }
 
+  LOG_GENERAL(INFO, "Access hb: " << highBlockNum << ", lb: " << lowBlockNum);
+
   uint64_t diff = 0;
   if (SafeMath<uint64_t>::sub(highBlockNum, lowBlockNum, diff)) {
     if (diff > BATCH_TX_BLOCK_NUM) {
@@ -3199,11 +3201,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         WARNING,
         "The lowBlockNum is higher than highBlockNum, maybe DS epoch ongoing");
     cv_setTxBlockFromSeed.notify_all();
-    if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-      m_rejoinInProgress = true;
-      cv_setRejoinRecovery.notify_all();
-      RejoinNetwork();
-    }
     return false;
   }
 
