@@ -3345,7 +3345,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                         << (m_rejoinInProgress ? "rejoin already in progress"
                                                : "starting rejoin network"));
         // Should sync from S3
-        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
+        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           m_rejoinInProgress = true;
           cv_setRejoinRecovery.notify_all();
           RejoinNetwork();
