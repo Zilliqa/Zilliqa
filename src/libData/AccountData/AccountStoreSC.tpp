@@ -48,7 +48,6 @@ void AccountStoreSC<MAP>::Init() {
   m_curGasLimit = 0;
   m_curGasPrice = 0;
   m_txnProcessTimeout = false;
-
   boost::filesystem::remove_all(EXTLIB_FOLDER);
   boost::filesystem::create_directories(EXTLIB_FOLDER);
 }
@@ -83,8 +82,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
       case RUNNER_CALL:
         if (!ScillaClient::GetInstance().CallRunner(
                 version,
-                ScillaUtils::GetCallContractJson(m_root_w_version,
-                                                 available_gas, balance),
+                ScillaUtils::GetCallContractJson(
+                    m_root_w_version, available_gas, balance, is_library),
                 interprinterPrint)) {
         }
         break;
@@ -246,7 +245,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       bool init = true;
-      bool is_library;
+      bool is_library = false;
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       uint32_t scilla_version;
 
@@ -258,7 +257,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
-
         std::vector<Address> extlibs;
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
@@ -535,9 +533,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (is_library) {
+        // Call to library should silently passed to scilla so that the gas is
+        // charged based on the size of the message
         LOG_GENERAL(WARNING, "Library being called");
-        error_code = TxnStatus::FAIL_SCILLA_LIB;
-        return false;
+        // error_code = TxnStatus::FAIL_SCILLA_LIB;
+        // return false;
       }
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
@@ -758,7 +758,6 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
 
     return true;
   };
-
   return extlibsExporter(extlibs, extlibs_exports);
 }
 
@@ -860,22 +859,35 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   }
 
   try {
-    // Scilla code
-    std::ofstream os(INPUT_CODE + CONTRACT_FILE_EXTENSION);
-    os << DataConversion::CharArrayToString(contract.GetCode());
-    os.close();
-
-    ExportCommonFiles(os, contract, extlibs_exports);
-
-    if (ENABLE_CHECK_PERFORMANCE_LOG) {
-      LOG_GENERAL(INFO, "LDB Read (microsec) = " << r_timer_end(tpStart));
+    std::string scillaCodeExtension = CONTRACT_FILE_EXTENSION;
+    if (contract.IsLibrary()) {
+      scillaCodeExtension = LIBRARY_CODE_EXTENSION;
     }
+    CreateScillaCodeFiles(contract, extlibs_exports, scillaCodeExtension);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(INFO, "LDB Read (microsec) = " << r_timer_end(tpStart));
+  }
 
   return true;
+}
+
+template <class MAP>
+void AccountStoreSC<MAP>::CreateScillaCodeFiles(
+    Account& contract,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports,
+    const std::string& scillaCodeExtension) {
+  LOG_MARKER();
+  // Scilla code
+  std::ofstream os(INPUT_CODE + scillaCodeExtension);
+  os << DataConversion::CharArrayToString(contract.GetCode());
+  os.close();
+
+  ExportCommonFiles(os, contract, extlibs_exports);
 }
 
 template <class MAP>
@@ -982,17 +994,20 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     }
     LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-    if (!is_library) {
+    if (is_library) {
+      if (root.isMember("errors")) {
+        receipt.AddException(root["errors"]);
+        return false;
+      }
+    } else {
       if (!root.isMember("contract_info")) {
         receipt.AddError(CHECKER_FAILED);
 
         if (root.isMember("errors")) {
           receipt.AddException(root["errors"]);
         }
-
         return false;
       }
-
       bool hasMap = false;
 
       auto handleTypeForStateVar = [&](const Json::Value& stateVars) {
@@ -1444,9 +1459,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       if (is_library) {
+        // Scilla should be invoked for message sent to library so that the GAS
+        // is charged
         LOG_GENERAL(WARNING, "Library being called");
-        receipt.AddError(LIBRARY_AS_RECIPIENT);
-        return false;
+        // receipt.AddError(LIBRARY_AS_RECIPIENT);
+        // return false;
       }
 
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;

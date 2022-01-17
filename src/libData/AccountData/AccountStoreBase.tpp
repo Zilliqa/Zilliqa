@@ -183,7 +183,6 @@ template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
   // LOG_MARKER();
-
   if (toReplace || !IsAccountExist(address)) {
     (*m_addressToAccount)[address] = account;
 
