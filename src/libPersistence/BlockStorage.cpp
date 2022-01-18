@@ -601,13 +601,14 @@ void BlockStorage::BatchRemoveOldStateDelta() {
   LOG_GENERAL(INFO, "LastSDNum: " << m_lastStateDeltaBlockNum);
 
   // Note: no access to Lookup->GetFetchRange()
-  if (currLast < FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW) {
+  if (currLast < (FETCH_DS_BLOCK_LIMIT + 1) * NUM_FINAL_BLOCK_PER_POW) {
     LOG_GENERAL(WARNING, "Unable to perform batch remove yet");
     return;
   }
 
   // Note: no access to Lookup->GetFetchRange()
-  auto tempNum = currLast - FETCH_DS_BLOCK_LIMIT * NUM_FINAL_BLOCK_PER_POW;
+  auto tempNum =
+      currLast - (FETCH_DS_BLOCK_LIMIT + 1) * NUM_FINAL_BLOCK_PER_POW;
   if (tempNum < currFirst) {
     LOG_GENERAL(WARNING, "This should not happen");
     return;
