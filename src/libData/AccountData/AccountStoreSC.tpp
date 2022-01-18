@@ -344,6 +344,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
         }
 
+        if (gasRemained < createGasPenalty) {
+          LOG_GENERAL(WARNING, "Not enough gas to charge minimum gas required: "
+                                   << createGasPenalty);
+          receipt.AddError(GAS_NOT_SUFFICIENT);
+          ret = false;
+        } else {
+          gasRemained -= createGasPenalty;
+        }
+
         if (ret) {
           std::string runnerPrint;
 
@@ -356,10 +365,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
                                             is_library)) {
               ret = false;
-            }
-            if (!ret) {
-              gasRemained = std::min(
-                  transaction.GetGasLimit() - createGasPenalty, gasRemained);
             }
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING,
@@ -509,6 +514,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       } else {
         gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+      }
+
+      if (gasRemained < callGasPenalty) {
+        LOG_GENERAL(WARNING, "Not enough gas to charge minimum gas required: "
+                                 << callGasPenalty);
+        error_code = TxnStatus::INSUFFICIENT_GAS;
+        return false;
+      } else {
+        gasRemained -= callGasPenalty;
       }
 
       m_curSenderAddr = fromAddr;
