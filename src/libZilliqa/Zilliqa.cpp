@@ -154,10 +154,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     // 3 mode: IP/Key/P2P Seed Key (ENABLE_SEED_TO_SEED_COMMUNICATION)
     startupInfo += "Whitelisting mode   = ";
-    startupInfo += multiplierSyncMode ? "IP whitelisting mode\n"
-                   : ENABLE_SEED_TO_SEED_COMMUNICATION
-                       ? "Public Key (P2P Seed) whitelisting mode\n"
-                       : "Public Key only whitelisting mode\n";
+    startupInfo += multiplierSyncMode
+                       ? "IP whitelisting mode\n"
+                       : ENABLE_SEED_TO_SEED_COMMUNICATION
+                             ? "Public Key (P2P Seed) whitelisting mode\n"
+                             : "Public Key only whitelisting mode\n";
     // IP Address
     startupInfo += "IP Address          = ";
     startupInfo += peer.GetPrintableIPAddress();
