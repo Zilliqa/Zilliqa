@@ -42,11 +42,9 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
 }
 
 void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
-                                                uint32_t version,
-                                                const dev::h256 &rootHash) {
+                                                uint32_t version) {
   m_contrAddr = address;
   m_version = version;
-  m_rootHash = rootHash;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
