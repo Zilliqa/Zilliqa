@@ -184,7 +184,6 @@ extern const bool ENABLE_SEED_TO_SEED_COMMUNICATION;
 extern const unsigned int P2P_SEED_CONNECT_PORT;
 extern const unsigned int P2P_SEED_SERVER_CONNECTION_TIMEOUT;
 extern const unsigned int FETCH_DS_BLOCK_LIMIT;
-extern const unsigned int MAX_STATE_DELTA_STORED;
 extern const bool SYNC_FROM_EXISTING_PERSISTENCE;
 extern const unsigned int BATCH_DS_BLOCK_NUM;
 extern const unsigned int BATCH_TX_BLOCK_NUM;

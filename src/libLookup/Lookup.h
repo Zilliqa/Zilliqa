@@ -549,6 +549,7 @@ class Lookup : public Executable {
   bool StartJsonRpcPort();
   bool StopJsonRpcPort();
 
+  uint64_t GetFetchRange() const;
   uint64_t GetFetchRangeLowerBound() const;
   uint64_t GetFetchRangeUpperBound() const;
 
