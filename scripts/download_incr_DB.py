@@ -338,6 +338,26 @@ def calculate_multipart_etag(source_path, chunk_size):
 	return new_etag
 				
 def run():
+	dir_name = STORAGE_PATH + "/historical-data"
+	main_persistence = STORAGE_PATH + "/persistence"
+	try:
+		if(Exclude_microBlocks == False and Exclude_txnBodies == False):
+			if os.path.exists(dir_name) and os.path.isdir(dir_name):
+				if not os.listdir(dir_name):
+					# download the static db
+					print("Dowloading static historical-data")
+					download_static_DB.start(STORAGE_PATH)
+				else:
+					print("Already have historical blockchain-data!. Skip downloading again!")
+			else:
+				# download the static db
+				print("Dowloading static historical-data")
+				download_static_DB.start(STORAGE_PATH)
+	except Exception as e:
+		print(e)
+		print("Failed to download static historical-data!")
+		pass
+
 	bucketName = PRIMARY_BUCKET_NAME
 	retry_count = 0
 	while (True):
@@ -389,31 +409,10 @@ def run():
 			time.sleep(5)
 			print("Exception downloading persistence : "  +str(e) +" [Retry: " + str(retry_count) + "] Downloading again ")
 			continue
+	if os.path.exists(dir_name):
+		RsyncBlockChainData(dir_name+"/", main_persistence)
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
-
-	try:
-		if(Exclude_microBlocks == False and Exclude_txnBodies == False):
-			dir_name = STORAGE_PATH + "/historical-data"
-			main_persistence = STORAGE_PATH + "/persistence"
-			if os.path.exists(dir_name) and os.path.isdir(dir_name):
-				if not os.listdir(dir_name):
-					# download the static db
-					print("Dowloading static historical-data")
-					download_static_DB.start(STORAGE_PATH)
-				else:    
-					print("Already have historical blockchain-data!. Skip downloading again!")
-			else:
-				# download the static db
-				print("Dowloading static historical-data")
-				download_static_DB.start(STORAGE_PATH)
-			if os.path.exists(dir_name):
-				RsyncBlockChainData(dir_name+"/", main_persistence)
-	except Exception as e:
-		print(e)
-		print("Failed to download static historical-data!")
-		pass
-
 	return True
 
 def start():
