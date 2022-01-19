@@ -199,11 +199,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
-  void InvokeDisambiguation(const uint32_t& version, bool is_library,
-                            const uint64_t& available_gas,
-                            const boost::multiprecision::uint128_t& balance,
-                            bool& ret, TransactionReceipt& receipt);
-
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const Address& addr,
