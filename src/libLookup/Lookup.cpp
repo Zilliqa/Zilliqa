@@ -3201,6 +3201,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         WARNING,
         "The lowBlockNum is higher than highBlockNum, maybe DS epoch ongoing");
     cv_setTxBlockFromSeed.notify_all();
+
+    // Note: Maybe check if rejoin is in progress m_rejoinInProgress
+    // if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    //   m_rejoinInProgress = true;
+    //   cv_setRejoinRecovery.notify_all();
+    //   RejoinNetwork();
+    // }
     return false;
   }
 
@@ -3338,12 +3345,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                         << (m_rejoinInProgress ? "rejoin already in progress"
                                                : "starting rejoin network"));
         // Should sync from S3
-        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
+        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
           m_rejoinInProgress = true;
           cv_setRejoinRecovery.notify_all();
           RejoinNetwork();
         }
-      default:;
+        break;
+      default:
+        LOG_GENERAL(WARNING, "[TxBlockVerif] Invalid block validation message");
     }
   }
   return true;
@@ -3895,8 +3904,8 @@ void Lookup::RejoinNetwork() {
   LOG_MARKER();
   if (m_rejoinNetworkAttempts >= MAX_REJOIN_NETWORK_ATTEMPTS) {
     LOG_GENERAL(INFO,
-                "Max rejoin attempts reached.Do not rejoin now. "
-                "MAX_REJOIN_NETWORK_ATTEMPTS="
+                "Max rejoin attempts reached. Do not rejoin now. "
+                "MAX_REJOIN_NETWORK_ATTEMPTS = "
                     << MAX_REJOIN_NETWORK_ATTEMPTS);
     return;
   }
@@ -5365,6 +5374,9 @@ void Lookup::CheckBufferTxBlocks() {
       case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(WARNING, "The blocks in buffer are invalid ");
         m_txBlockBuffer.clear();
+        break;
+      case Validator::TxBlockValidationMsg::STALE:
+        LOG_GENERAL(WARNING, "The blocks in buffer are stale ");
         break;
       default:
         LOG_GENERAL(WARNING,
