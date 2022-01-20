@@ -15,15 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-template <class MAP>
-AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
+#include "AccountStoreSC.h"
+
+AccountStoreAtomic::AccountStoreAtomic(AccountStoreSC& parent)
     : m_parent(parent) {}
 
-template <class MAP>
-Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
-          address);
+Account* AccountStoreAtomic::GetAccount(const Address& address) {
+  Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
     // LOG_GENERAL(INFO, "Got From Temp");
     return account;
@@ -41,8 +39,7 @@ Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
   return nullptr;
 }
 
-template <class MAP>
-const std::shared_ptr<std::unordered_map<Address, Account>>&
-AccountStoreAtomic<MAP>::GetAddressToAccount() {
+const std::shared_ptr<std::map<Address, Account>>&
+AccountStoreAtomic::GetAddressToAccount() {
   return this->m_addressToAccount;
 }

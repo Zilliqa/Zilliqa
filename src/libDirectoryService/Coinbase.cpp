@@ -24,6 +24,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
+#include "libUtils/SafeMath.h"
 
 using namespace std;
 using namespace boost::multiprecision;

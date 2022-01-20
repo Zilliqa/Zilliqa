@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_
 
 #include "Logger.h"
+#include "SafeMath.h"
 #include "TimeUtils.h"
 #include "common/Constants.h"
 

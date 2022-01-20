@@ -30,6 +30,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "BlockStorage.h"
+#include "ContractStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
@@ -257,7 +258,7 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
   return true;
 }
 
-bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
+bool BlockStorage::PutTempState(const map<Address, Account>& states) {
   // LOG_MARKER();
 
   unordered_map<string, string> states_str;

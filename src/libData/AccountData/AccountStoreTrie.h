@@ -21,8 +21,7 @@
 #include "AccountStoreSC.h"
 #include "libData/DataStructures/TraceableDB.h"
 
-template <class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP> {
+class AccountStoreTrie : public AccountStoreSC {
  protected:
   TraceableDB m_db;
   dev::GenericTrieDB<TraceableDB> m_state;
@@ -58,7 +57,5 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   void PrintAccountState() override;
   void PrintTrie();
 };
-
-#include "AccountStoreTrie.tpp"
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_

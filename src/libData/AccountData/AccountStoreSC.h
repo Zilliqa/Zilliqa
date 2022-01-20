@@ -28,30 +28,25 @@
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 
-template <class MAP>
 class AccountStoreSC;
 
-template <class MAP>
-class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
-  AccountStoreSC<MAP>& m_parent;
+class AccountStoreAtomic : public AccountStoreBase {
+  AccountStoreSC& m_parent;
 
  public:
-  AccountStoreAtomic(AccountStoreSC<MAP>& parent);
+  AccountStoreAtomic(AccountStoreSC& parent);
 
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
-  GetAddressToAccount();
+  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount();
 };
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
-template <class MAP>
-class AccountStoreSC : public AccountStoreBase<MAP> {
+class AccountStoreSC : public AccountStoreBase {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
-  std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+  std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
@@ -93,7 +88,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;
   std::condition_variable cv_callContract;
-  std::atomic<bool> m_txnProcessTimeout;
+  std::atomic<bool> m_txnProcessTimeout = {false};
 
   /// Scilla IPC server
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
@@ -241,8 +236,5 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
 };
-
-#include "AccountStoreAtomic.tpp"
-#include "AccountStoreSC.tpp"
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

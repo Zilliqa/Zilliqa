@@ -32,11 +32,10 @@ class MessengerAccountStoreTrie {
   // ============================================================================
   // Primitives
   // ============================================================================
-  template <class MAP>
   static bool SetAccountStoreTrie(
       bytes& dst, const unsigned int offset,
       const dev::GenericTrieDB<TraceableDB>& stateTrie,
-      const std::shared_ptr<MAP>& addressToAccount);
+      const std::shared_ptr<std::map<Address, Account>>& addressToAccount);
 };
 
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_

@@ -43,7 +43,7 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
+class AccountStoreTemp : public AccountStoreSC {
   AccountStore& m_parent;
 
   friend class AccountStore;
@@ -67,16 +67,14 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 };
 
 // Singleton class for providing interface related Account System
-class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
   /// used for states reverting
-  std::unordered_map<Address, Account> m_addressToAccountRevChanged;
-  std::unordered_map<Address, Account> m_addressToAccountRevCreated;
+  std::map<Address, Account> m_addressToAccountRevChanged;
+  std::map<Address, Account> m_addressToAccountRevCreated;
 
   /// primary mutex used by account store for protecting permanent states from
   /// external access

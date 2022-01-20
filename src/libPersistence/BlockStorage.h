@@ -311,7 +311,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
   /// Write state to tempState in batch
-  bool PutTempState(const std::unordered_map<Address, Account>& states);
+  bool PutTempState(const std::map<Address, Account>& states);
 
   /// Get state from tempState in batch
   bool GetTempStateInBatch(leveldb::Iterator*& iter,

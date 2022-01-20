@@ -24,8 +24,7 @@ using namespace boost::multiprecision;
 AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
 Account* AccountStoreTemp::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase<map<Address, Account>>::GetAccount(address);
+  Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
     return account;
   }
