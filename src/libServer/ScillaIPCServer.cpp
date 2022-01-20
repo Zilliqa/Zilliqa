@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <jsonrpccpp/common/specification.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
 #include "libPersistence/ContractStorage.h"
@@ -39,12 +40,15 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
                              "query", JSON_STRING, "value", JSON_STRING, NULL),
                    &ScillaIPCServer::updateStateValueI);
+  bindAndAddMethod(
+      Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
-void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
-                                                uint32_t version) {
-  m_contrAddr = address;
-  m_version = version;
+void ScillaIPCServer::setBCInfoProvider(
+    std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
+  m_BCInfo = std::move(bcInfo);
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -89,13 +93,27 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
   response.clear();
 }
 
+void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
+                                           Json::Value &response) {
+  std::string value;
+  if (!fetchBlockchainInfo(request["query_name"].asString(),
+                           request["query_args"].asString(), value)) {
+    throw JsonRpcException("Fetching blockchain info failed");
+  }
+
+  // Prepare the result and finish.
+  response.clear();
+  response.append(Json::Value(true));
+  response.append(Json::Value(value));
+}
+
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
-          m_contrAddr, DataConversion::StringToCharArray(query), 0, destination,
-          0, found)) {
+          m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query),
+          0, destination, 0, found)) {
     return false;
   }
 
@@ -111,8 +129,9 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
-          m_contrAddr, Address(addr), DataConversion::StringToCharArray(query),
-          0, destination, 0, found, type)) {
+          m_BCInfo->getCurContrAddr(), Address(addr),
+          DataConversion::StringToCharArray(query), 0, destination, 0, found,
+          type)) {
     return false;
   }
 
@@ -123,6 +142,17 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(
-      m_contrAddr, DataConversion::StringToCharArray(query), 0,
+      m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
+}
+
+bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
+                                          const std::string &,
+                                          std::string &value) {
+  if (query_name == "BLOCKNUMBER") {
+    value = std::to_string(m_BCInfo->getCurBlockNum());
+    return true;
+  }
+
+  return false;
 }
