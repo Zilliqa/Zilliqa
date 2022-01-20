@@ -345,7 +345,8 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
+			if((newTxBlk / (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW)) != (currTxBlk/(NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW))):
+				print("Chetan, restart download currTxBlk = "+str(currTxBlk)+ " newTxBlk = "+ str(newTxBlk))
 				# new base persistence already. So start again :(
 				continue					
 			#get diff of persistence and stadedeltas for newly mined txblocks
