@@ -114,6 +114,24 @@ def GetStateDeltaFromS3(bucketName):
 	GetAllObjectsFromS3(getURL(bucketName), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
+def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, NUM_DSBLOCK) :
+    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " NUM_DSBLOCK = " +str(NUM_DSBLOCK))
+    currentEpochTxBlksCount = latestTxBlk % NUM_FINAL_BLOCK_PER_POW
+    print(" currentEpochTxBlksCount =  "+ str(currentEpochTxBlksCount))
+    firstTxBlockOfDSEpoch = latestTxBlk - currentEpochTxBlksCount
+    print("firstTxBlockOfDSEpoch = " + str(firstTxBlockOfDSEpoch))
+    lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK)) * ( NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK))
+    print("lastUploadedTxBlk = " + str(lastUploadedTxBlk))
+    if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
+        if(lastUploadedTxBlk > currTxBlk):
+            print("Restart download 1")
+            return True
+    else :
+        if(latestTxBlk > lastUploadedTxBlk and currTxBlk < lastUploadedTxBlk):
+            print("Restart download 2")
+            return True
+    return False
+
 def RsyncBlockChainData(source,destination):
 	bashCommand = "rsync --recursive --inplace "
 	bashCommand = bashCommand + source + " "
@@ -384,9 +402,9 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
-				# new base persistence already. So start again :(
-				continue					
+			if(IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, NUM_DSBLOCK)):
+				print("Redownload persistence as the persistence is overwritten")
+				continue
 			#get diff of persistence and stadedeltas for newly mined txblocks
 			lst = []
 			while(currTxBlk < newTxBlk):
