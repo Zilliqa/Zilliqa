@@ -108,21 +108,21 @@ def GetStateDeltaFromS3():
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
-def IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS) :
-    print("currTxBlk = "+ str(currTxBlk) + " newTxBlk = "+ str(newTxBlk) + " INCRDB_DSNUMS_WITH_STATEDELTAS = " +str(INCRDB_DSNUMS_WITH_STATEDELTAS))
-    extra_txblocks = newTxBlk % NUM_FINAL_BLOCK_PER_POW
-    print("extra tx blocks = "+ str(extra_txblocks))
-    firstTxBlockOfDSEpoch = newTxBlk - extra_txblocks
+def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS) :
+    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " INCRDB_DSNUMS_WITH_STATEDELTAS = " +str(INCRDB_DSNUMS_WITH_STATEDELTAS))
+    currentEpochTxBlksCount = latestTxBlk % NUM_FINAL_BLOCK_PER_POW
+    print(" currentEpochTxBlksCount =  "+ str(currentEpochTxBlksCount))
+    firstTxBlockOfDSEpoch = latestTxBlk - currentEpochTxBlksCount
     print("firstTxBlockOfDSEpoch = " + str(firstTxBlockOfDSEpoch))
-    lastUploadedBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS)) * ( NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS))
-    print("lastUploadedBlk = " + str(lastUploadedBlk))
+    lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS)) * ( NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS))
+    print("lastUploadedTxBlk = " + str(lastUploadedTxBlk))
     if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
-        if(currTxBlk >= lastUploadedBlk):
+        if(currTxBlk >= lastUploadedTxBlk):
             return False
         else:
             return True
     else :
-        if(newTxBlk > lastUploadedBlk and currTxBlk < lastUploadedBlk):
+        if(latestTxBlk > lastUploadedTxBlk and currTxBlk < lastUploadedTxBlk):
             return True
         else :
             return False
