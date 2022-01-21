@@ -120,7 +120,7 @@ def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, N
     print(" currentEpochTxBlksCount =  "+ str(currentEpochTxBlksCount))
     firstTxBlockOfDSEpoch = latestTxBlk - currentEpochTxBlksCount
     print("firstTxBlockOfDSEpoch = " + str(firstTxBlockOfDSEpoch))
-    lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK)) * ( NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK))
+    lastUploadedTxBlk = (firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK)) * ( NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK)
     print("lastUploadedTxBlk = " + str(lastUploadedTxBlk))
     if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
         if(lastUploadedTxBlk > currTxBlk):
