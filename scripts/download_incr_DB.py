@@ -117,15 +117,15 @@ def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, I
     lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS)) * ( NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS))
     print("lastUploadedTxBlk = " + str(lastUploadedTxBlk))
     if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
-        if(currTxBlk >= lastUploadedTxBlk):
-            return False
-        else:
-            return True
+        if(lastUploadedTxBlk > currTxBlk):
+            print("Restart download 1")
+            return True 
     else :
         if(latestTxBlk > lastUploadedTxBlk and currTxBlk < lastUploadedTxBlk):
+            print("Restart download 2")
             return True
-        else :
-            return False
+	print("Do not Restart download 3")
+    return False
 
 def RsyncBlockChainData(source,destination):
 	bashCommand = "rsync --recursive --inplace "
