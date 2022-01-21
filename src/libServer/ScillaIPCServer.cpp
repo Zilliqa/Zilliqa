@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/common/specification.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
 #include "libPersistence/ContractStorage.h"
