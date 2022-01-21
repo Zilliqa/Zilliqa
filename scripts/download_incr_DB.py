@@ -30,7 +30,6 @@ import hashlib
 from distutils.dir_util import copy_tree
 from pprint import pformat
 import download_static_DB
-from zilliqa.test_python_1 import INCRDB_DSNUMS_WITH_STATEDELTAS, IsDownloadRestartRequired
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
