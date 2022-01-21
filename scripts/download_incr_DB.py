@@ -108,13 +108,13 @@ def GetStateDeltaFromS3():
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
-def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS) :
-    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " INCRDB_DSNUMS_WITH_STATEDELTAS = " +str(INCRDB_DSNUMS_WITH_STATEDELTAS))
+def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, NUM_DSBLOCK) :
+    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " NUM_DSBLOCK = " +str(NUM_DSBLOCK))
     currentEpochTxBlksCount = latestTxBlk % NUM_FINAL_BLOCK_PER_POW
     print(" currentEpochTxBlksCount =  "+ str(currentEpochTxBlksCount))
     firstTxBlockOfDSEpoch = latestTxBlk - currentEpochTxBlksCount
     print("firstTxBlockOfDSEpoch = " + str(firstTxBlockOfDSEpoch))
-    lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS)) * ( NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS))
+    lastUploadedTxBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK)) * ( NUM_FINAL_BLOCK_PER_POW * NUM_DSBLOCK))
     print("lastUploadedTxBlk = " + str(lastUploadedTxBlk))
     if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
         if(lastUploadedTxBlk > currTxBlk):
@@ -363,7 +363,7 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if(IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS)):
+			if(IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, NUM_DSBLOCK)):
 				print("Redownload persistence as the persistence is overwritten")
 				continue
 			#get diff of persistence and stadedeltas for newly mined txblocks
