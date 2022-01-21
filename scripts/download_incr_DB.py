@@ -30,6 +30,7 @@ import hashlib
 from distutils.dir_util import copy_tree
 from pprint import pformat
 import download_static_DB
+from zilliqa.test_python_1 import INCRDB_DSNUMS_WITH_STATEDELTAS, IsDownloadRestartRequired
 
 PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
@@ -107,6 +108,25 @@ def GetStateDeltaFromS3():
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
+
+def IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS) :
+    print("currTxBlk = "+ str(currTxBlk) + " newTxBlk = "+ str(newTxBlk) + " INCRDB_DSNUMS_WITH_STATEDELTAS = " +str(INCRDB_DSNUMS_WITH_STATEDELTAS))
+    extra_txblocks = newTxBlk % NUM_FINAL_BLOCK_PER_POW
+    print("extra tx blocks = "+ str(extra_txblocks))
+    firstTxBlockOfDSEpoch = newTxBlk - extra_txblocks
+    print("firstTxBlockOfDSEpoch = " + str(firstTxBlockOfDSEpoch))
+    lastUploadedBlk = int((firstTxBlockOfDSEpoch // (NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS)) * ( NUM_FINAL_BLOCK_PER_POW * INCRDB_DSNUMS_WITH_STATEDELTAS))
+    print("lastUploadedBlk = " + str(lastUploadedBlk))
+    if(firstTxBlockOfDSEpoch % NUM_FINAL_BLOCK_PER_POW == 0) :
+        if(currTxBlk >= lastUploadedBlk):
+            return False
+        else:
+            return True
+    else :
+        if(newTxBlk > lastUploadedBlk and currTxBlk < lastUploadedBlk):
+            return True
+        else :
+            return False
 
 def RsyncBlockChainData(source,destination):
 	bashCommand = "rsync --recursive --inplace "
@@ -345,10 +365,9 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if((newTxBlk / (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW)) != (currTxBlk/(NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW))):
-				print("Chetan, restart download currTxBlk = "+str(currTxBlk)+ " newTxBlk = "+ str(newTxBlk))
-				# new base persistence already. So start again :(
-				continue					
+			if(IsDownloadRestartRequired(currTxBlk, newTxBlk, NUM_FINAL_BLOCK_PER_POW, INCRDB_DSNUMS_WITH_STATEDELTAS)):
+				print("Redownload persistence as the persistence is overwritten")
+				continue
 			#get diff of persistence and stadedeltas for newly mined txblocks
 			lst = []
 			while(currTxBlk < newTxBlk):
