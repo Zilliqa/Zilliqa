@@ -124,7 +124,6 @@ def IsDownloadRestartRequired(currTxBlk, latestTxBlk, NUM_FINAL_BLOCK_PER_POW, I
         if(latestTxBlk > lastUploadedTxBlk and currTxBlk < lastUploadedTxBlk):
             print("Restart download 2")
             return True
-	print("Do not Restart download 3")
     return False
 
 def RsyncBlockChainData(source,destination):
