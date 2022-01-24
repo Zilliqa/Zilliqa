@@ -71,6 +71,10 @@ const unsigned int MAINNET_CHAIN_ID = 1;
 
 extern bool ISOLATED_SERVER;
 
+// SCILLA GAS METRIC
+
+const unsigned int SCILLA_SCALE_FACTOR = 8;
+
 // Scilla flag to toggle pretty printing of literals. This decides
 // whether Scilla lists are printed as JSON arrays or as regular ADTs.
 // For testing, life becomes difficult to parse JSONs (because mapdepths
