@@ -4922,7 +4922,7 @@ uint64_t Lookup::GetFetchRangeLowerBound() const {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
 
   // prevent underflow for lower epochs
-  return GetFetchRange() > currEpochNum ? 0 : currEpochNum - GetFetchRange();
+  return GetFetchRange() > currEpochNum ? 1 : currEpochNum - GetFetchRange();
 }
 
 uint64_t Lookup::GetFetchRangeUpperBound() const {
