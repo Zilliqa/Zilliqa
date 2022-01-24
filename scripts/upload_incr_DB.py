@@ -146,6 +146,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum, bucketName):
 	# Try syncing S3 with latest persistence only if NUM_DSBLOCK blocks have crossed.
 	if ((blockNum + 1) % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0 or lastBlockNum == 0):
 		bashCommand = "aws s3 sync --delete temp/persistence "+ getBucketString(bucketName, PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
+		logging.info("chetan1 bashCommand "+ bashCommand)
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
 		if re.match(r'^\s*$', output):
@@ -159,6 +160,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum, bucketName):
 	elif (result == 0):
 		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
 		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(bucketName, PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlockKeys/*' --include 'microBlocks*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'dsCommitteeSnapshot/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txEpochs/*' --include 'txBodies*' --include 'extSeedPubKeys/*' --include 'state_purge/*' --include 'contractTrie_purge/*' "
+		logging.info("chetan2 bashCommand "+ bashCommand)
 		retry = 3
 		while (retry):
 			try:
