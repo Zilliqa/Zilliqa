@@ -3318,7 +3318,16 @@ bool Lookup::ProcessSetTxBlockFromSeed(
 
         LOG_GENERAL(INFO, "Coming to commit tx blocks");
         if (!CommitTxBlocks(txBlocks, isLatestBlk)) {
-          if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
+          // Check if statedeltas is available, if not available just rejoin
+          // Note: should request number of statedeltas available from upperseed
+          // For now just use constants, assuming constants is the same
+
+          if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+            m_rejoinInProgress = true;
+            cv_setRejoinRecovery.notify_all();
+            RejoinNetwork();
+          } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+                     !m_rejoinInProgress) {
             m_rejoinInProgress = true;
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
@@ -3345,7 +3354,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(
                         << (m_rejoinInProgress ? "rejoin already in progress"
                                                : "starting rejoin network"));
         // Should sync from S3
-        if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
+        if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+          m_rejoinInProgress = true;
+          cv_setRejoinRecovery.notify_all();
+          RejoinNetwork();
+        } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
           m_rejoinInProgress = true;
           cv_setRejoinRecovery.notify_all();
           RejoinNetwork();
