@@ -94,7 +94,7 @@ class IsolatedServer : public LookupServer,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
-  bool RetrieveHistory();
+  bool RetrieveHistory(const bool& nonisoload);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_

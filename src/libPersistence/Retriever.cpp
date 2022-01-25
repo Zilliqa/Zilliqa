@@ -89,6 +89,20 @@ bool Retriever::RetrieveTxBlocks() {
     extraStateDeltas.push_back(stateDelta);
   }
 
+  if (!ConstructFromStateDeltas(lastBlockNum, extra_txblocks, extraStateDeltas,
+                                trimIncompletedBlocks)) {
+    return false;
+  }
+
+  m_mediator.m_node->AddBlock(*latestTxBlock);
+
+  return true;
+}
+
+bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
+                                         unsigned int extra_txblocks,
+                                         std::vector<bytes>& extraStateDeltas,
+                                         bool trimIncompletedBlocks) {
   if ((lastBlockNum - extra_txblocks + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
       0) {
@@ -232,8 +246,6 @@ bool Retriever::RetrieveTxBlocks() {
                                                     stateDelta);
     }
   }
-
-  m_mediator.m_node->AddBlock(*latestTxBlock);
 
   return true;
 }

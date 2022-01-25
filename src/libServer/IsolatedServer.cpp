@@ -209,7 +209,7 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-bool IsolatedServer::RetrieveHistory() {
+bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
   m_mediator.m_txBlockChain.Reset();
 
   std::shared_ptr<Retriever> m_retriever;
@@ -228,6 +228,28 @@ bool IsolatedServer::RetrieveHistory() {
     LOG_GENERAL(WARNING, "Could not retrieve latest block num");
     return false;
   }
+
+  if (nonisoload) {  // construct from statedelta for only non isolated server's
+                     // persistence.
+    uint64_t lastBlockNum = txblock->GetHeader().GetBlockNum();
+    unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
+    vector<bytes> stateDeltas;
+
+    for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
+         blockNum <= lastBlockNum; blockNum++) {
+      bytes stateDelta;
+      if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum,
+                                                         stateDelta)) {
+        LOG_GENERAL(INFO,
+                    "Didn't find the state-delta for txBlkNum: " << blockNum);
+      }
+      stateDeltas.emplace_back(stateDelta);
+    }
+
+    m_retriever->ConstructFromStateDeltas(lastBlockNum, extra_txblocks,
+                                          stateDeltas, false);
+  }
+
   m_currEpochGas = 0;
 
   return true;
