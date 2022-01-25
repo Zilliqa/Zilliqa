@@ -17,10 +17,10 @@
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
+#include "ScillaIPCServer.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
-
-#include "ScillaIPCServer.h"
 
 using namespace std;
 using namespace Contract;
@@ -146,10 +146,28 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 }
 
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
-                                          const std::string &,
+                                          const std::string &query_args,
                                           std::string &value) {
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo->getCurBlockNum());
+    return true;
+  } else if (query_name == "TIMESTAMP") {
+    uint64_t blockNum = 0;
+    try {
+      blockNum = stoull(query_args);
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
+      return false;
+    }
+
+    TxBlockSharedPtr txBlockSharedPtr;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
+                                                    txBlockSharedPtr)) {
+      LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
+      return false;
+    }
+
+    value = std::to_string(txBlockSharedPtr->GetTimestamp());
     return true;
   }
 
