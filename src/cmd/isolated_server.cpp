@@ -77,6 +77,7 @@ int main(int argc, const char* argv[]) {
   string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
+  bool nonisoload{false};
   string uuid;
   try {
     po::options_description desc("Options");
@@ -93,6 +94,9 @@ int main(int argc, const char* argv[]) {
         "(Disabled by default)")(
         "load,l", po::bool_switch()->default_value(false),
         "Load from persistence folder (False by default)")(
+        "nonisoload,n", po::bool_switch()->default_value(false),
+        "Load is either of testnet or mainnet having state-deltas (False by "
+        "default)")(
         "uuid,u", po::value<string>(&uuid),
         "unique id to be provided upon startup (can be any string)");
 
@@ -108,6 +112,9 @@ int main(int argc, const char* argv[]) {
       }
       po::notify(vm);
       loadPersistence = vm["load"].as<bool>();
+      if (loadPersistence) {
+        nonisoload = vm["nonisoload"].as<bool>();
+      }
     } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
@@ -181,7 +188,7 @@ int main(int argc, const char* argv[]) {
 
     if (loadPersistence) {
       LOG_GENERAL(INFO, "Trying to load persistence.. ");
-      if (!isolatedServer->RetrieveHistory()) {
+      if (!isolatedServer->RetrieveHistory(nonisoload)) {
         LOG_GENERAL(WARNING, "RetrieveHistory Failed");
         return ERROR_UNHANDLED_EXCEPTION;
       }
