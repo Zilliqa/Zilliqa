@@ -160,7 +160,8 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     LOG_GENERAL(WARNING, "CheckClient failed");
     return false;
   }
-
+  Json::FastWriter fastWriter;
+  LOG_GENERAL(INFO, "k1pool CallRunner = " << fastWriter.write(_json));
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
@@ -196,6 +197,8 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
     LOG_GENERAL(WARNING, "CheckClient failed");
     return false;
   }
+  Json::FastWriter fastWriter;
+  LOG_GENERAL(INFO, "k1pool CallRunner = " << fastWriter.write(_json));
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
