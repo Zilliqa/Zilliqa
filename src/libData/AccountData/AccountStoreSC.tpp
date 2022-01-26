@@ -59,17 +59,18 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
     TransactionReceipt& receipt) {
+  std::stringstream oss;
   bool call_already_finished = false;
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                 &available_gas, &balance, &ret, &receipt,
-                &call_already_finished]() mutable -> void {
+                &call_already_finished, &oss]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
                 version,
                 ScillaUtils::GetContractCheckerJson(m_root_w_version,
                                                     is_library, available_gas),
-                interprinterPrint)) {
+                interprinterPrint, oss)) {
         }
         break;
       case RUNNER_CREATE:
@@ -77,7 +78,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 version,
                 ScillaUtils::GetCreateContractJson(m_root_w_version, is_library,
                                                    available_gas, balance),
-                interprinterPrint)) {
+                interprinterPrint, oss)) {
         }
         break;
       case RUNNER_CALL:
@@ -85,7 +86,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 version,
                 ScillaUtils::GetCallContractJson(m_root_w_version,
                                                  available_gas, balance),
-                interprinterPrint)) {
+                interprinterPrint, oss)) {
         }
         break;
       case DISAMBIGUATE:
@@ -108,6 +109,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
   }
+  LOG_GENERAL(INFO, "K1Pool RPC LOGS = " << oss.str());
 
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");

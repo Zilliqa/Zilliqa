@@ -156,9 +156,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
                                       const ProtoScillaQuery& query, bytes& dst,
                                       unsigned int d_offset, bool& foundVal,
                                       bool getType, string& type) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   lock_guard<mutex> g(m_stateDataMutex);
 
@@ -401,6 +399,7 @@ bool ContractStorage::FetchExternalStateValue(
     const dev::h160& caller, const dev::h160& target, const bytes& src,
     unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
     string& type, uint32_t caller_version) {
+  LOG_MARKER();
   if (s_offset > src.size() || d_offset > dst.size()) {
     LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
     return false;
@@ -976,9 +975,7 @@ void ContractStorage::FetchProofForKey(std::set<string>& proof,
 bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
                                        unsigned int q_offset, const bytes& v,
                                        unsigned int v_offset) {
-  if (LOG_SC) {
-    LOG_MARKER();
-  }
+  LOG_MARKER();
 
   lock_guard<mutex> g(m_stateDataMutex);
 

@@ -78,7 +78,8 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
                         params.toStyledString());
 
   // Call the server method to add the value.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -87,7 +88,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   value.Clear();
@@ -127,7 +128,8 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -136,7 +138,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   value.Clear();
@@ -151,7 +153,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   params["query"] = query.SerializeAsString();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   BOOST_CHECK_EQUAL(result[0].asBool(), false);
@@ -164,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   params["value"] = "";
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -173,7 +175,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   BOOST_CHECK_EQUAL(result[0].asBool(), false);
@@ -209,7 +211,8 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -218,7 +221,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   value.Clear();
@@ -235,7 +238,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   params["value"] = "";
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -244,7 +247,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   BOOST_CHECK_EQUAL(result[0].asBool(), false);
@@ -283,7 +286,8 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -292,7 +296,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   value.Clear();
@@ -316,7 +320,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
                         params.toStyledString());
 
   // Call the server method to add the mapval into "key1b".
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -329,7 +333,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params["query"] = query.SerializeAsString();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   // Parse the fetched result and assert.
@@ -357,7 +361,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params["value"] = "";
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -370,7 +374,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -386,7 +390,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -401,7 +405,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -417,7 +421,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
   // Parse the fetched result and assert.
@@ -441,7 +445,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params["value"] = value.SerializeAsString();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -453,7 +457,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -503,7 +507,8 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -512,7 +517,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -533,7 +538,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -544,7 +549,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -588,7 +593,8 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -599,7 +605,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   params["value"] = "";  // Dummy value
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -609,7 +615,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   params["query"] = query.SerializeAsString();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -652,7 +658,8 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -661,7 +668,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -683,7 +690,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -694,7 +701,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -752,7 +759,8 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -766,7 +774,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
   // Call the server method to add the key/val pair.
-  result = client.CallMethod("updateStateValue", params);
+  result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -778,7 +786,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -864,7 +872,8 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
                         params.toStyledString());
 
   // Call the server method to add the key/val pair.
-  Json::Value result = client.CallMethod("updateStateValue", params);
+  std::stringstream oss;
+  Json::Value result = client.CallMethod("updateStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 
@@ -872,7 +881,7 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
   params.removeMember("value");
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Calling with JSON" +
                         params.toStyledString());
-  result = client.CallMethod("fetchStateValue", params);
+  result = client.CallMethod("fetchStateValue", params, oss);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: Server returned JSON" +
                         result.toStyledString());
 

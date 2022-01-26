@@ -497,7 +497,8 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   try {
     jsonrpc::Client client(*m_httpClient);
-    Json::Value ret = client.CallMethod("zil_requestWork", jsonValue);
+    std::stringstream oss;
+    Json::Value ret = client.CallMethod("zil_requestWork", jsonValue, oss);
     LOG_GENERAL(INFO, "zil_requestWork return: " << ret);
     return ret.asBool();
   } catch (std::exception& e) {
@@ -566,7 +567,9 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
 
     try {
       jsonrpc::Client client(*m_httpClient);
-      Json::Value ret = client.CallMethod("zil_checkWorkStatus", jsonValue);
+      std::stringstream oss;
+      Json::Value ret =
+          client.CallMethod("zil_checkWorkStatus", jsonValue, oss);
       LOG_GENERAL(INFO, "zil_checkWorkStatus return: " << ret);
 
       if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
@@ -657,7 +660,8 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
 
   try {
     jsonrpc::Client client(*m_httpClient);
-    Json::Value ret = client.CallMethod("zil_verifyResult", jsonValue);
+    std::stringstream oss;
+    Json::Value ret = client.CallMethod("zil_verifyResult", jsonValue, oss);
     LOG_GENERAL(INFO, "zil_verifyResult return: " << ret);
     return ret.asBool();
   } catch (std::exception& e) {
