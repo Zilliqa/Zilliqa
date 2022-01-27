@@ -906,6 +906,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
+    Json::FastWriter fastWriter;
+    LOG_GENERAL(INFO,
+                "k1pool INPUT_MESSAGE_JSON = " << fastWriter.write(msgObj));
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
@@ -927,6 +930,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   }
 
   try {
+    Json::FastWriter fastWriter;
+    LOG_GENERAL(INFO, "k1pool ExportCallContractFiles = "
+                          << fastWriter.write(contractData));
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
@@ -1212,6 +1218,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+  Json::FastWriter fastWriter;
+  LOG_GENERAL(
+      INFO, "k1pool ParseCallContractJsonOutput = " << fastWriter.write(_json));
 
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {

@@ -138,6 +138,8 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append("-jsonerrors");
   ret["argv"].append("-pplit");
   ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
+  Json::FastWriter fastWriter;
+  LOG_GENERAL(INFO, "k1pool GetCallContractJson = " << fastWriter.write(ret));
 
   return ret;
 }
