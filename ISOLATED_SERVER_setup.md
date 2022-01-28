@@ -122,7 +122,7 @@ sudo swapon --show
     |          | Link(s) |
     |:---------|:-------|
     | **Official Golang SDK** | https://github.com/Zilliqa/gozilliqa-sdk |
-    | **Official Javascript SDK** | https://github.com/Zilliqa/Zilliqa-JavaScript-Library |
+    | **Official Javascript SDK** | https://github.com/Zilliqa/zilliqa-js |
     | **Community Ruby SDK** | https://github.com/FireStack-Lab/LaksaRuby |
     | **Community Java SDK** | https://github.com/FireStack-Lab/LaksaJ |
     | **Community Python SDK** | https://github.com/deepgully/pyzil |
