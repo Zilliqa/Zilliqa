@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
@@ -67,6 +68,17 @@ void setup() {
   priv1.Deserialize(priv1bytes, 0);
   priv2.Deserialize(priv2bytes, 0);
   priv3.Deserialize(priv3bytes, 0);
+}
+
+TxBlock constructDummyTxBlock(int instanceNum) {
+  // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
+
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
+
+  return TxBlock(
+      TxBlockHeader(1, 1, 1, instanceNum, TxBlockHashSet(), 5, pubKey1.second,
+                    instanceNum, TXBLOCK_VERSION, CommitteeHash(), BlockHash()),
+      vector<MicroBlockInfo>(1), CoSignatures());
 }
 
 BOOST_AUTO_TEST_SUITE(contracttest)
@@ -266,6 +278,104 @@ BOOST_AUTO_TEST_CASE(salarybot) {
 
   BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
                       "multi message failed");
+}
+
+BOOST_AUTO_TEST_CASE(timestamp) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  uint64_t dummyTimestampVal = 123456789;
+  uint64_t blkNum = 100;
+  std::shared_ptr<TxBlock> dummyBlock =
+      std::make_shared<TxBlock>(constructDummyTxBlock(blkNum));
+  dummyBlock->SetTimestamp(dummyTimestampVal);
+
+  bytes serializedTxBlock;
+  dummyBlock->Serialize(serializedTxBlock, 0);
+  BlockStorage::GetBlockStorage().PutTxBlock(blkNum, serializedTxBlock);
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Timestamp Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest timestampTest;
+  if (!ScillaTestUtil::GetScillaTest(timestampTest, "timestamp", 1)) {
+    BOOST_FAIL("Unable to fetch test timestamp.");
+  }
+
+  uint64_t bnumTimestamp =
+      ScillaTestUtil::GetBlockNumberFromJson(timestampTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(timestampTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(timestampTest.init);
+
+  // Transaction to deploy timestamp.
+  std::string initStrTimestamp =
+      JSONUtils::GetInstance().convertJsontoStr(timestampTest.init);
+  bytes dataTimestamp(initStrTimestamp.begin(), initStrTimestamp.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, timestampTest.code,
+                  dataTimestamp);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountTimestamp =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountTimestamp != nullptr,
+                      "Error with creation of timestamp account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(timestampTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value timestampState;
+  BOOST_CHECK_MESSAGE(
+      accountTimestamp->FetchStateJson(timestampState, "", {}, true),
+      "Fetch timestampState failed");
+  uint64_t timestampCount = 0;
+
+  auto result = tr1.GetJsonValue();
+
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value") &&
+      resultParam["value"].isMember("arguments") &&
+      resultParam["value"]["arguments"].isArray() &&
+      resultParam["value"]["arguments"].size() > 0) {
+    LOG_GENERAL(INFO, "Value found");
+    try {
+      timestampCount = stoull(resultParam["value"]["arguments"][0].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert timestamp to uint64");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(dummyTimestampVal == timestampCount,
+                      "Error with timestamp, expect"
+                          << dummyTimestampVal
+                          << ", received: " << timestampCount);
 }
 
 // Scilla Library
