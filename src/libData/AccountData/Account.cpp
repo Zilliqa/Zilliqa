@@ -476,6 +476,19 @@ const bytes Account::GetCode() const {
   return m_codeCache;
 }
 
+bool Account::GetContractCodeHash(dev::h256& contractCodeHash) const {
+  const auto& codeCache = GetCode();
+  if (codeCache.empty()) {
+    return false;
+  }
+
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(codeCache);
+  contractCodeHash = dev::h256(sha2.Finalize());
+
+  return true;
+}
+
 bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                                      std::vector<Address>& extlibs) {
   if (!isContract()) {
