@@ -63,7 +63,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   bool call_already_finished = false;
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                 &available_gas, &balance, &ret, &receipt,
-                &call_already_finished, oss]() mutable -> void {
+                &call_already_finished, &oss]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(

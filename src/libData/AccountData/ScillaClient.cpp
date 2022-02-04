@@ -210,7 +210,8 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
         std::string::npos) {
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallRunner(version, _json, result, counter - 1);
+        std::stringstream oss;
+        return CallRunner(version, _json, result, oss, counter - 1);
       }
     } else {
       result = e.what();
@@ -239,6 +240,7 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
+    std::stringstream oss;
     result = m_clients.at(version)
                  ->CallMethod("disambiguate", _json, oss)
                  .asString();
