@@ -853,6 +853,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   // Reached here, so already at new ds epoch now and safe to remove
   // ipMapping.xml
   m_mediator.m_node->RemoveIpMapping();
+
+  m_mediator.m_lookup->UpdateAllSeedsAndMultipliers();
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(

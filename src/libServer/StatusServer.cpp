@@ -505,7 +505,8 @@ bool StatusServer::RemoveFromFwdTxnExcludedSeeds(const string& ipAddr) {
 string StatusServer::GetFwdTxnExcludedSeeds() {
   try {
     string result;
-    lock_guard<mutex> g(m_mediator.m_lookup->m_mutexFwdTxnExcludedSeeds);
+    shared_lock<shared_timed_mutex> g(
+        m_mediator.m_lookup->m_mutexFwdTxnExcludedSeeds);
     for (const auto& ip : m_mediator.m_lookup->m_fwdTxnExcludedSeeds) {
       result += IPConverter::ToStrFromNumericalIP(ip);
       result += ", ";
