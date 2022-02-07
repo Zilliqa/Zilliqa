@@ -148,7 +148,7 @@ bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
 
 bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
                                std::string& result, uint32_t counter,
-                               stringstream& oss) {
+                               std::stringstream& oss) {
   if (counter == 0) {
     return false;
   }
