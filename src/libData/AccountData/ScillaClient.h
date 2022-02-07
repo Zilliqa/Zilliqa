@@ -49,7 +49,8 @@ class ScillaClient {
   void Init();
 
   bool CallChecker(uint32_t version, const Json::Value& _json,
-                   std::string& result, uint32_t counter = MAXRETRYCONN);
+                   std::string& result, std::stringstream& oss,
+                   uint32_t counter = MAXRETRYCONN);
   bool CallRunner(uint32_t version, const Json::Value& _json,
                   std::string& result, std::stringstream& oss,
                   uint32_t counter = MAXRETRYCONN);

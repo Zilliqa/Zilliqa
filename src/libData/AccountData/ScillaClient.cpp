@@ -147,7 +147,8 @@ bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
 }
 
 bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
-                               std::string& result, uint32_t counter) {
+                               std::string& result, uint32_t counter,
+                               stringstream& oss) {
   if (counter == 0) {
     return false;
   }
@@ -163,7 +164,6 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
   Json::FastWriter fastWriter;
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    std::stringstream oss;
     result = m_clients.at(version)->CallMethod("check", _json, oss).asString();
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
@@ -171,7 +171,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
         std::string::npos) {
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallChecker(version, _json, result, counter - 1);
+        return CallChecker(version, _json, result, oss, counter - 1);
       }
     } else {
       result = e.what();

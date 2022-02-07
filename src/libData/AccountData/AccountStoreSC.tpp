@@ -70,7 +70,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                 version,
                 ScillaUtils::GetContractCheckerJson(m_root_w_version,
                                                     is_library, available_gas),
-                interprinterPrint)) {
+                interprinterPrint, oss)) {
         }
         break;
       case RUNNER_CREATE:
