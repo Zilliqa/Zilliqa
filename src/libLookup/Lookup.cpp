@@ -5319,7 +5319,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
   DequeOfNode newDScomm;
 
-  uint64_t dsblocknumbefore =
+  uint64_t dsBlockNumBefore =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   LOG_GENERAL(INFO, "[DSINFOVERIF]"
                         << "Recvd " << dirBlocks.size() << " from lookup");
@@ -5343,7 +5343,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   uint64_t dsblocknumafter =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  if (dsblocknumafter > dsblocknumbefore) {
+  if (dsblocknumafter > dsBlockNumBefore) {
     if (m_syncType == SyncType::NO_SYNC &&
         m_mediator.m_node->m_stillMiningPrimary) {
       m_fetchedLatestDSBlock = true;
