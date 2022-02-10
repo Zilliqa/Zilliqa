@@ -378,6 +378,86 @@ BOOST_AUTO_TEST_CASE(timestamp) {
                           << ", received: " << timestampCount);
 }
 
+BOOST_AUTO_TEST_CASE(chainid) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Chainid Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest chainidTest;
+  if (!ScillaTestUtil::GetScillaTest(chainidTest, "chainid", 1)) {
+    BOOST_FAIL("Unable to fetch test chainid.");
+  }
+
+  uint64_t bnumChainid =
+      ScillaTestUtil::GetBlockNumberFromJson(chainidTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(chainidTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(chainidTest.init);
+
+  // Transaction to deploy Chainid.
+  std::string initStrChainid =
+      JSONUtils::GetInstance().convertJsontoStr(chainidTest.init);
+
+  bytes dataChainid(initStrChainid.begin(), initStrChainid.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, chainidTest.code, dataChainid);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx0, tr0,
+                                                 error_code);
+  Account* accountChainid =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountChainid != nullptr,
+                      "Error with creation of chainid account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(chainidTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx1, tr1,
+                                                 error_code);
+
+  Json::Value chainidState;
+  BOOST_CHECK_MESSAGE(
+      accountChainid->FetchStateJson(chainidState, "", {}, true),
+      "Fetch chainidState failed");
+
+  uint32_t chainId = 0;
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+
+  if (resultParam.isMember("value")) {
+    try {
+      chainId = std::stoul(resultParam["value"].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert chain id to uint32_t");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(
+      static_cast<uint16_t>(chainId) == CHAIN_ID,
+      "Error with chain id, expect" << CHAIN_ID << ", received: " << chainId);
+}
+
 /*
   codehashOnContract - Have codehash
   codehashOnLibrary - Have codehash
