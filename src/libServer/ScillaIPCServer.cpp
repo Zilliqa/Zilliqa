@@ -170,7 +170,11 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
 
     value = std::to_string(txBlockSharedPtr->GetTimestamp());
     return true;
+  } else if (query_name == "CHAINID") {
+    value = std::to_string(CHAIN_ID);
+    return true;
   }
 
+  LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
   return false;
 }
