@@ -240,6 +240,12 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
 
   m_prevRoot = GetStateRootHash();
 
+  if (LOOKUP_NODE_MODE) {
+    if (m_externalWriters == 0) {
+      GetPrimaryWriteAccessCond().notify_all();
+    }
+  }
+
   return true;
 }
 
