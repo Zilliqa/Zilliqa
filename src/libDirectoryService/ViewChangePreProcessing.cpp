@@ -610,12 +610,13 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 #endif  // VC_TEST_VC_SUSPEND_1
 
 #ifdef VC_TEST_VC_SUSPEND_3
-  if (m_viewChangeCounter < 4) {
-    LOG_EPOCH(
-        WARNING, m_mediator.m_currentEpochNum,
-        "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
-    return false;
-  }
+  // if (m_viewChangeCounter < 4) {
+  //   LOG_EPOCH(
+  //       WARNING, m_mediator.m_currentEpochNum,
+  //       "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
+  //   return false;
+  // }
+  LOG_GENERAL(INFO, "Skip vc6 test here");
 #endif  // VC_TEST_VC_SUSPEND_3
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
