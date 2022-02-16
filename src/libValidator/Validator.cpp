@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <utility>
 #include <vector>
 
 #include "Validator.h"
@@ -431,9 +432,25 @@ bool Validator::CheckDirBlocks(
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }
-  }
 
+    // keep each DSComm, does VCBlock and DSBlock clashes with each other?
+    auto& store = m_mediator.m_lookup->m_dsCommStore;
+    if (typeid(DSBlock) == dirBlock.type()) {
+      const auto& dsblock = get<DSBlock>(dirBlock);
+      const uint64_t index = dsblock.GetHeader().GetBlockNum();
+      if (store.find(index) != store.end()) {
+        store.emplace(index, mutable_ds_comm);
+      }
+    } else if (typeid(VCBlock) == dirBlock.type()) {
+      const auto& vcblock = get<VCBlock>(dirBlock);
+      uint64_t index = vcblock.GetHeader().GetViewChangeDSEpochNo();
+      if (store.find(index) != store.end()) {
+        store.emplace(index, mutable_ds_comm);
+      }
+    }
+  }
   newDSComm = move(mutable_ds_comm);
+
   return ret;
 }
 

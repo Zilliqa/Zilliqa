@@ -3267,9 +3267,21 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     LOG_GENERAL(INFO,
                 "Block link size: " << m_mediator.m_blocklinkchain.GetSize());
 
-    const auto& dsCom = m_mediator.m_blocklinkchain.GetBuiltDSComm();
+    // change back to const auto& ot use reference_wrapper, current copy it
+    auto dsComm = m_mediator.m_blocklinkchain.GetBuiltDSComm();
+    auto dsCommItr = m_dsCommStore.find(highBlockNum);
+    if (dsCommItr != m_dsCommStore.end()) {
+      if (dsCommItr->first == highBlockNum) {
+        dsComm = dsCommItr->second;
+      } else {
+        LOG_GENERAL(
+            WARNING,
+            "Iterator found is the contains the wrong dsComm, iterator found: "
+                << dsCommItr->first << " highBlockNum: " << highBlockNum);
+      }
+    }
 
-    LOG_GENERAL(INFO, "Ds com size: " << dsCom.size());
+    LOG_GENERAL(INFO, "Latest dsComm size: " << dsComm.size());
 
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
       LOG_GENERAL(INFO, "Seed check tx block");
@@ -3295,14 +3307,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         isLatestBlk = obtainedTxBlockDsNum ==
                       std::get<BlockLinkIndex::DSINDEX>(
                           m_mediator.m_blocklinkchain.GetLatestBlockLink());
-        res = m_mediator.m_validator->CheckTxBlocks(
-            txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), blocklink,
-            isLatestBlk);
+        res = m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm, blocklink,
+                                                    isLatestBlk);
       }
     } else {
       res = m_mediator.m_validator->CheckTxBlocks(
-          txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-          m_mediator.m_blocklinkchain.GetLatestBlockLink());
+          txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink());
     }
 
     switch (res) {

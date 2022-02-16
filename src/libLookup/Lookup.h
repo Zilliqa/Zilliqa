@@ -631,6 +631,9 @@ class Lookup : public Executable {
 
   // exit trigger
   std::atomic<bool> m_exitPullThread{};
+
+  // Temporary Storage for DSComm for batching verification
+  std::unordered_map<uint64_t, DequeOfNode> m_dsCommStore;
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
