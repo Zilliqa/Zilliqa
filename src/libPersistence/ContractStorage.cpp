@@ -203,6 +203,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
     // If not interested in the value, exit early.
     if (query.indices().empty() && query.ignoreval()) return true;
   }
+  LOG_GENERAL(INFO, "Kaddr: " << addr.hex() << " vname: " << query.name());
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
@@ -1013,6 +1014,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
 
   string key = addr.hex() + SCILLA_INDEX_SEPARATOR + query.name() +
                SCILLA_INDEX_SEPARATOR;
+  LOG_GENERAL(INFO, "Kaddr: " << addr.hex() << " query: " << query.name());
 
   if (query.ignoreval()) {
     if (query.indices().size() < 1) {
