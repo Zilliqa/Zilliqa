@@ -3342,11 +3342,13 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     }
 
     // Check StateRootHash and One in last TxBlk
-    if (m_prevStateRootHashTemp !=
-        txBlocks.back().GetHeader().GetStateRootHash()) {
+    if (!m_stateRootMismatchFlag ||
+        m_prevStateRootHashTemp !=
+            txBlocks.back().GetHeader().GetStateRootHash()) {
       LOG_CHECK_FAIL("State root hash",
                      txBlocks.back().GetHeader().GetStateRootHash(),
                      m_prevStateRootHashTemp);
+      m_stateRootMismatchFlag = true;
       return false;  // Rejoin in case state root hash failed
     }
   }
