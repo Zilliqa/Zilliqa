@@ -626,6 +626,9 @@ class Lookup : public Executable {
 
   // exit trigger
   std::atomic<bool> m_exitPullThread{};
+  // For test purpose
+  std::mutex m_mutexReproduceIssue;
+  int m_reproduceIssue{0};
 };
 
 #endif  // ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
