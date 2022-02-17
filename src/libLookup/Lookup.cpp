@@ -3721,6 +3721,12 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
   }
   unique_lock<std::mutex> lock(m_mutexSetStateDeltasFromSeed);
 
+  {
+    unique_lock<mutex> lock(m_mutexReproduceIssue);
+    m_reproduceIssue++;
+    LOG_GENERAL(INFO, "NodeRejoin: m_reproduceIssue = " << m_reproduceIssue);
+  }
+
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   vector<bytes> stateDeltas;
@@ -3761,6 +3767,13 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     // trust it.
 
     if (!BlockStorage::GetBlockStorage().GetStateDelta(txBlkNum, tmp)) {
+      if (m_reproduceIssue <= 30) {
+        LOG_GENERAL(
+            INFO,
+            "NodeRejoin AccountStore::GetInstance().DeserializeDelta failed");
+        return false;
+      }
+
       if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");

@@ -624,6 +624,10 @@ class Lookup : public Executable {
   std::condition_variable cv_vcFinalBlockProcessed;
   bool m_vcFinalBlockProcessed = false;
 
+  // For test purpose
+  std::mutex m_mutexReproduceIssue;
+  int m_reproduceIssue{0};
+
   // exit trigger
   std::atomic<bool> m_exitPullThread{};
 };
