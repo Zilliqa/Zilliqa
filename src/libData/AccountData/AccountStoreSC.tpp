@@ -84,7 +84,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
         if (!ScillaClient::GetInstance().CallRunner(
                 version,
                 ScillaUtils::GetCallContractJson(m_root_w_version,
-                                                 available_gas, balance),
+                                                 available_gas, balance, is_library),
                 interprinterPrint, oss)) {
         }
         break;
