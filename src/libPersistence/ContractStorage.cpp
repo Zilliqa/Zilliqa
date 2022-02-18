@@ -268,9 +268,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
     }
 
     value.set_bval(bval.data(), bval.size());
-    if (LOG_SC) {
-      LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
-    }
+    LOG_GENERAL(INFO, "value to fetch 1: " << value.DebugString());
     return SerializeToArray(value, dst, 0);
   }
 
@@ -516,9 +514,7 @@ void ContractStorage::DeleteByIndex(const string& index) {
   p = m_stateDataMap.find(index);
   if (p != m_stateDataMap.end() &&
       m_indexToBeDeleted.find(index) == m_indexToBeDeleted.cend()) {
-    if (LOG_SC) {
-      LOG_GENERAL(INFO, "delete index from m: " << index);
-    }
+    LOG_GENERAL(INFO, "delete index from m: " << index);
     t_indexToBeDeleted.emplace(index);
     return;
   }
@@ -905,10 +901,8 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
 
 void ContractStorage::UpdateStateData(const string& key, const bytes& value,
                                       bool cleanEmpty) {
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "key: " << key << " value: "
-                              << DataConversion::CharArrayToString(value));
-  }
+  LOG_GENERAL(INFO, "key: " << key << " value: "
+                            << DataConversion::CharArrayToString(value));
 
   if (cleanEmpty) {
     CleanEmptyMapPlaceholders(key);
