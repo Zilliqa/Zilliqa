@@ -173,6 +173,12 @@ extern const unsigned int SHARDINGSTRUCTURE_VERSION;
 extern const unsigned int ACCOUNT_VERSION;
 extern const unsigned int CONTRACT_STATE_VERSION;
 
+// upload-download-incr constants
+extern const unsigned int MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS;
+extern const unsigned int MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE;
+extern const unsigned int REQUESTS_CONNECTION_TIMEOUT_IN_SECS;
+extern const unsigned int RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS;
+
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
