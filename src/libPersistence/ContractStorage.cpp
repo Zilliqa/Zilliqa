@@ -515,7 +515,7 @@ bool ContractStorage::FetchExternalStateValue(
       special_query = "\"0x" + target.hex() + "\"";
       type = "ByStr20";
     }
-  } else if (query.name() == "_codehash") {
+  } else if (query.Name == "_codehash") {
     dev::h256 codeHash;
     if (account->GetContractCodeHash(codeHash)) {
       special_query = "\"0x" + codeHash.hex() + "\"";
