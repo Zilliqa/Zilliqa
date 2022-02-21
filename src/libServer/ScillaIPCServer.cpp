@@ -128,9 +128,8 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
-          m_BCInfo->getCurContrAddr(), Address(addr),
-          DataConversion::StringToCharArray(query), 0, destination, 0, found,
-          type)) {
+          Address(addr), DataConversion::StringToCharArray(query),
+          0, destination, 0, found, type)) {
     return false;
   }
 
