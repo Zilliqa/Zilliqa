@@ -56,7 +56,39 @@ ScillaRTL::ScillaParams buildScillaParams(Address toAddr) {
         return Contract::ContractStorage::GetContractStorage()
             .UpdateStateValue(toAddr, query, val);
       };
-  ScillaParams SP(fetchStateValue, fetchRemoteStateValue, updateStateValue);
+  ScillaParams::FetchBCInfo_Type fetchBCInfoValue = 
+      [](const std::string &query_name,
+                         const std::string &query_args, std::string &value){
+         if (query_name == "BLOCKNUMBER") {
+    value = std::to_string(m_curBlockNum);
+    return true;
+  } else if (query_name == "TIMESTAMP") {
+    uint64_t blockNum = 0;
+    try {
+      blockNum = stoull(query_args);
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
+      return false;
+    }
+
+    TxBlockSharedPtr txBlockSharedPtr;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
+                                                    txBlockSharedPtr)) {
+      LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
+      return false;
+    }
+
+    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    return true;
+  } else if (query_name == "CHAINID") {
+    value = std::to_string(CHAIN_ID);
+    return true;
+  }
+
+  LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
+  return false;
+                         }
+  ScillaParams SP(fetchStateValue,fetchBCInfoValue, fetchRemoteStateValue, updateStateValue);
   return SP;
 }
 
