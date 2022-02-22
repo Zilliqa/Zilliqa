@@ -59,7 +59,7 @@ ScillaRTL::ScillaParams buildScillaParams(Address toAddr) {
   ScillaParams::FetchBCInfo_Type fetchBCInfoValue = 
       [](const std::string &query_name,
                          const std::string &query_args, std::string &value){
-         return Contract::ContractStorage::GetContractStorage().FetchBlockchainInfo(query_name,query_value, value);
+         return Contract::ContractStorage::GetContractStorage().FetchBlockchainInfo(query_name,query_args, value);
   }
 
   LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
