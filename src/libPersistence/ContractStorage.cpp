@@ -1293,7 +1293,7 @@ bool FetchBlockchainInfo(const std::string &query_name,
 {
 
  if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(AccountStore::GetInstance().getCurBlockNum());
+    value = std::to_string(100);
     return true;
   } else if (query_name == "TIMESTAMP") {
     uint64_t blockNum = 0;
@@ -1304,14 +1304,14 @@ bool FetchBlockchainInfo(const std::string &query_name,
       return false;
     }
 
-    TxBlockSharedPtr txBlockSharedPtr;
+   /* TxBlockSharedPtr txBlockSharedPtr;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
-    }
+    }*/
 
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    value = std::to_string(10000);
     return true;
   } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);
