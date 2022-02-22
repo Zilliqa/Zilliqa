@@ -1299,11 +1299,12 @@ bool FetchBlockchainInfo(const std::string &query_name,
     uint64_t blockNum = 0;
     try {
       blockNum = stoull(query_args);
+      
     } catch (...) {
       LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
       return false;
     }
-
+    (void) blockNum;
    /* TxBlockSharedPtr txBlockSharedPtr;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
