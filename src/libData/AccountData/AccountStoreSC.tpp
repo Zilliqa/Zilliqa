@@ -399,7 +399,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             auto SP = buildScillaParams(toAddr);
             ScillaRTL::ScillaContrExec SE(SP, SOFile);
             auto initOutput =
-                SE.deploy(toAccount->GetInitJson(), gasRemained, m_curBlockNum);
+                SE.deploy(toAccount->GetInitJson(), gasRemained);
             gasRemained -= std::stoi(initOutput["gas_remaining"].asString());
           } catch (const ScillaRTL::ScillaError& se) {
             LOG_GENERAL(WARNING,
@@ -655,7 +655,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
         Json::Value vmout = SE.execMsg(
             toAccount->GetBalance().convert_to<std::string>(), gasRemained,
-            m_curBlockNum, toAccount->GetInitJson(), msgObj);
+            toAccount->GetInitJson(), msgObj);
         runnerPrint = vmout.toStyledString();
       } catch (const ScillaRTL::ScillaError& se) {
         LOG_GENERAL(WARNING,
@@ -1571,7 +1571,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
         Json::Value vmout = SE.execMsg(
             account->GetBalance().convert_to<std::string>(), gasRemained,
-            m_curBlockNum, account->GetInitJson(), input_message);
+             account->GetInitJson(), input_message);
         runnerPrint = vmout.toStyledString();
       } catch (const ScillaRTL::ScillaError& se) {
         LOG_GENERAL(WARNING,
