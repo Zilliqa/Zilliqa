@@ -151,6 +151,16 @@ const unsigned int ACCOUNT_VERSION{
 const unsigned int CONTRACT_STATE_VERSION{
     ReadConstantNumeric("CONTRACT_STATE_VERSION", "node.version.")};
 
+// upload-download-incr constants
+const unsigned int MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS{ReadConstantNumeric(
+    "MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS", "node.upload_download_incr.")};
+const unsigned int MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE{ReadConstantNumeric(
+    "MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE", "node.upload_download_incr.")};
+const unsigned int REQUESTS_CONNECTION_TIMEOUT_IN_SECS{ReadConstantNumeric(
+    "REQUESTS_CONNECTION_TIMEOUT_IN_SECS", "node.upload_download_incr.")};
+const unsigned int RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS{ReadConstantNumeric(
+    "RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS", "node.upload_download_incr.")};
+
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};

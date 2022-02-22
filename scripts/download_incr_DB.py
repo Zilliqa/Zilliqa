@@ -26,6 +26,7 @@ import time
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Lock
+import xml.etree.cElementTree as xtree
 import hashlib
 from distutils.dir_util import copy_tree
 from pprint import pformat
@@ -42,23 +43,23 @@ MAX_WORKER_JOBS = 50
 S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
 NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
-MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS = 2
-MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE = 2
-MAX_RETRY_DOWNLOAD_OVERALL_PERSISTENCE_ATTEMPT = 4
-MAX_RETRY_DOWNLOAD_PERSISTENCE_FROM_PRIMARY = 2
-
+MAX_RETRY_DOWNLOAD_OVERALL_PERSISTENCE_ATTEMPT = 2
+MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS = 1
+MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE = 1
+REQUESTS_CONNECTION_TIMEOUT_IN_SECS = 1
+RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS = 1
 Exclude_txnBodies = True
 Exclude_microBlocks = True
 Exclude_minerInfo = True
 
 BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 STORAGE_PATH = BASE_PATH
+CONSTANTS_PATH = BASE_PATH+"/constants.xml"
 mutex = Lock()
 
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 CONNECTION_TIMEDOUT_ERRORED_FILE_SET = set()
-REQUESTS_CONNECTION_TIMEOUT_IN_SECS = 2
 
 def getURL(bucketName):
 	return "http://"+bucketName+".s3.amazonaws.com"
@@ -220,6 +221,12 @@ def GetAllObjectsFromS3(url, folderName=""):
 	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
 	return 0
 
+def ChangeBucket(bucket_name):
+	if bucket_name == PRIMARY_BUCKET_NAME:
+		bucket_name = SECONDARY_BUCKET_NAME
+	elif bucket_name == SECONDARY_BUCKET_NAME:
+		bucket_name = PRIMARY_BUCKET_NAME
+	return bucket_name
 
 def GetPersistenceKey(key_url):
 	global DOWNLOADED_LIST
@@ -411,9 +418,7 @@ def run():
 		except Exception as e:
 			print(e)
 			retry_count = retry_count + 1
-			if retry_count >= MAX_RETRY_DOWNLOAD_PERSISTENCE_FROM_PRIMARY:
-				print("Try persistence download persistence from other bucket")
-				bucketName = SECONDARY_BUCKET_NAME
+			bucketName = ChangeBucket(bucketName)
 			if retry_count == MAX_RETRY_DOWNLOAD_OVERALL_PERSISTENCE_ATTEMPT:
 				print("Error downloading from both of the buckets!! Giving up downloading persistence !!!")
 				return False
@@ -425,6 +430,25 @@ def run():
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
 	return True
+
+def ReadConstant(CONSTANTS_PATH):
+	global MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS
+	global MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE
+	global REQUESTS_CONNECTION_TIMEOUT_IN_SECS
+	global RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS
+
+	root = xtree.parse(CONSTANTS_PATH).getroot()
+	upload_download_config = root.find('upload_download_incr')
+
+	MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS = int(upload_download_config.find('MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS').text)
+	MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE = int(upload_download_config.find('MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE').text)
+	REQUESTS_CONNECTION_TIMEOUT_IN_SECS = int(upload_download_config.find('REQUESTS_CONNECTION_TIMEOUT_IN_SECS').text)
+	RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS = int(upload_download_config.find('RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS').text)
+
+	print("MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS = " + str(MAX_FAILED_FILES_RETRY_DOWNLOAD_ATTEMPTS))
+	print("MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE = " + str(MAX_RETRY_DOWNLOAD_INDIVIDUAL_FILE))
+	print("REQUESTS_CONNECTION_TIMEOUT_IN_SECS = " + str(REQUESTS_CONNECTION_TIMEOUT_IN_SECS))
+	print("RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS = " + str(RETRY_FILE_DOWNLOAD_INTERVAL_IN_SECS))
 
 def start():
 	global Exclude_txnBodies
@@ -442,6 +466,7 @@ def start():
 			Exclude_txnBodies = False
 			Exclude_microBlocks = False
 			Exclude_minerInfo = False
+	ReadConstant(CONSTANTS_PATH)
 	return run()
 
 if __name__ == "__main__":
