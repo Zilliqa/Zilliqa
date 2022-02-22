@@ -1287,13 +1287,13 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
   LOG_GENERAL(INFO, "New Hash: " << stateHash);
 }
 
-bool FetchBlockchainInfo(const std::string &query_name,
+bool ContractStorage::FetchBlockchainInfo(const std::string &query_name,
                          const std::string &query_args,
                          std::string &value)
 {
 
  if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(100);
+    value = std::to_string(AccountStore::GetInstance().getCurBlockNum());
     return true;
   } else if (query_name == "TIMESTAMP") {
     uint64_t blockNum = 0;
@@ -1304,13 +1304,12 @@ bool FetchBlockchainInfo(const std::string &query_name,
       LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
       return false;
     }
-    (void) blockNum;
-   /* TxBlockSharedPtr txBlockSharedPtr;
+    TxBlockSharedPtr txBlockSharedPtr;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
-    }*/
+    }
 
     value = std::to_string(10000);
     return true;
