@@ -565,24 +565,25 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
       LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
       return TxBlockValidationMsg::INVALID;
     }
-    latestDSIndex--;
+    --latestDSIndex;
   }
 
   const TxBlock& latestTxBlock = txBlocks.back();
 
-  if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
-    if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
-      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
-                               << latestDSIndex << " "
-                               << latestTxBlock.GetHeader().GetDSBlockNum());
+  auto latestTxBlockDsBlockNum = latestTxBlock.GetHeader().GetDSBlockNum();
+  if (latestTxBlockDsBlockNum != latestDSIndex) {
+    if (latestDSIndex > latestTxBlockDsBlockNum) {
+      LOG_GENERAL(WARNING,
+                  "Latest Tx Block fetched is stale "
+                      << "BlockLink index: " << latestDSIndex
+                      << " LatestTxBlock index: " << latestTxBlockDsBlockNum);
       return TxBlockValidationMsg::STALE;
     }
 
     LOG_GENERAL(WARNING,
                 "The latest DS index does not match that of the latest tx "
                 "block ds num, try fetching Tx and Dir Blocks again "
-                    << latestTxBlock.GetHeader().GetDSBlockNum() << " "
-                    << latestDSIndex);
+                    << latestTxBlockDsBlockNum << " " << latestDSIndex);
     return TxBlockValidationMsg::STALEDSINFO;
   }
 
