@@ -170,6 +170,9 @@ class ContractStorage : public Singleton<ContractStorage> {
                                  const std::string& vname = "",
                                  const std::vector<std::string>& indices = {},
                                  bool temp = true);
+   bool  FetchBlockchainInfo(const std::string &query_name,
+                         const std::string &query_args,
+                         std::string &value);
 
   void FetchUpdatedStateValuesForAddress(
       const dev::h160& address, std::map<std::string, bytes>& states,

@@ -184,8 +184,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
  protected:
   AccountStoreSC();
 
-  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
-
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
       const Account& contract, bool is_library, uint32_t scilla_version,
@@ -240,6 +238,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
+
+  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
+
 };
 
 #include "AccountStoreAtomic.tpp"
