@@ -3346,7 +3346,22 @@ bool Lookup::ProcessSetTxBlockFromSeed(
           // }
 
           // Batching
-          GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
+          if (!isLatestBlk &&
+              m_mediator.m_currentEpochNum >= GetFetchRangeLowerBound()) {
+            GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(),
+                                    0);
+          } else if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+            m_rejoinInProgress = true;
+            cv_setRejoinRecovery.notify_all();
+            RejoinNetwork();
+          } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
+                     !m_rejoinInProgress) {
+            m_rejoinInProgress = true;
+            cv_setRejoinRecovery.notify_all();
+            RejoinNetwork();
+          } else {
+            LOG_GENERAL(WARNING, "CommitTxBlocks failure but no resolution");
+          }
         }
         break;
       }

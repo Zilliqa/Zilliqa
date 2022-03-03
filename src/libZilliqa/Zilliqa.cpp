@@ -177,11 +177,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     // Staking status
     startupInfo += "Staking RPC status  = ";
     startupInfo += ENABLE_STAKING_RPC ? "Enabled" : "Disabled";
+    startupInfo += "\n";
 
     // Fetch range
     startupInfo += "Fetch range (epochs)= ";
     startupInfo += std::to_string(m_lookup.GetFetchRange());
-    startupInfo += "\n";
     LOG_GENERAL(INFO, startupInfo);
   }
 
