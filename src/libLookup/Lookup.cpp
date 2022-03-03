@@ -3348,14 +3348,21 @@ bool Lookup::ProcessSetTxBlockFromSeed(
           // Batching
           if (!isLatestBlk &&
               m_mediator.m_currentEpochNum >= GetFetchRangeLowerBound()) {
+            LOG_GENERAL(INFO, "Getting next batch of TxBlocks");
             GetTxBlockFromSeedNodes(m_mediator.m_txBlockChain.GetBlockCount(),
                                     0);
           } else if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+            LOG_GENERAL(INFO,
+                        "Node is behind fetch range, rejoining network to sync "
+                        "from S3");
             m_rejoinInProgress = true;
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
           } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP &&
                      !m_rejoinInProgress) {
+            LOG_GENERAL(INFO,
+                        "Seed node but not behind fetch range and unable to "
+                        "get next batch of TxBlocks, try rejoining network");
             m_rejoinInProgress = true;
             cv_setRejoinRecovery.notify_all();
             RejoinNetwork();
