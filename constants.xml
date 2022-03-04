@@ -367,6 +367,13 @@
                 <MICROBLOCK>1</MICROBLOCK>
             </entry>
         </exclusion_list>
+        <IGNORE_BLOCKCOSIG_CHECK>false</IGNORE_BLOCKCOSIG_CHECK>
+        <microblock_exclusion_list>
+            <entry>
+                <TXBLOCK>1664279</TXBLOCK>
+                <MICROBLOCK>0</MICROBLOCK>
+            </entry>
+        </microblock_exclusion_list>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>

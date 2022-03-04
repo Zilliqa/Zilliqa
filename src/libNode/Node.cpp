@@ -476,7 +476,8 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
   }
 
   // Check the latest Tx Block
-  if (!m_mediator.m_validator->CheckBlockCosignature(latestTxBlock, dsComm)) {
+  if (!IGNORE_BLOCKCOSIG_CHECK &&
+      !m_mediator.m_validator->CheckBlockCosignature(latestTxBlock, dsComm)) {
     LOG_GENERAL(WARNING, "CheckBlockCosignature failed");
     // Set validation state for StatusServer
     m_mediator.m_validateState = ValidateState::ERROR;
@@ -510,7 +511,7 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
     }
 
     // Check that prevHash field == hash of previous Tx block
-    if (blockNum > 0) {
+    if (blockNum > 0 && !IGNORE_BLOCKCOSIG_CHECK) {
       TxBlockSharedPtr txBlockPrev;
       if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum - 1,
                                                       txBlockPrev)) {
@@ -555,8 +556,16 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
           }
         }
       } else {
-        LOG_GENERAL(WARNING, "FB: " << blockNum << " Missing MB: "
-                                    << mbInfo.m_microBlockHash);
+        LOG_GENERAL(WARNING,
+                    "FB: " << blockNum
+                           << " Missing MB: " << mbInfo.m_microBlockHash
+                           << " Check if MB is in microblock exclusion list");
+        if (find(VERIFIER_MICROBLOCK_EXCLUSION_LIST.begin(),
+                 VERIFIER_MICROBLOCK_EXCLUSION_LIST.end(),
+                 make_pair(blockNum, mbInfo.m_shardId)) !=
+            VERIFIER_MICROBLOCK_EXCLUSION_LIST.end()) {
+          continue;
+        }
         *result = false;
       }
     }
