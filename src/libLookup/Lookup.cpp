@@ -3379,6 +3379,17 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         for (const auto& txBlock : txBlocks) {
           m_txBlockBuffer.emplace_back(txBlock);
         }
+
+        // DS Info not updated
+        if (m_mediator.m_currentEpochNum < GetFetchRangeLowerBound()) {
+          m_rejoinInProgress = true;
+          cv_setRejoinRecovery.notify_all();
+          RejoinNetwork();
+        } else if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !m_rejoinInProgress) {
+          m_rejoinInProgress = true;
+          cv_setRejoinRecovery.notify_all();
+          RejoinNetwork();
+        }
         break;
       case Validator::TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
