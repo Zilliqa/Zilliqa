@@ -331,6 +331,10 @@ bool Validator::CheckDirBlocks(
   for (const auto& dirBlock : dirBlocks) {
     if (typeid(DSBlock) == dirBlock.type()) {
       const auto& dsblock = get<DSBlock>(dirBlock);
+      LOG_GENERAL(INFO,
+                  "DSBlock dsepoch no: " << dsblock.GetHeader().GetBlockNum());
+      LOG_GENERAL(INFO,
+                  "DSBlock epoch no: " << dsblock.GetHeader().GetEpochNum());
       if (dsblock.GetHeader().GetBlockNum() != prevdsblocknum + 1) {
         LOG_GENERAL(WARNING, "DSblocks not in sequence "
                                  << dsblock.GetHeader().GetBlockNum() << " "
@@ -379,6 +383,10 @@ bool Validator::CheckDirBlocks(
       BlockStorage::GetBlockStorage().BatchRemoveOldStateDelta();
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
+      LOG_GENERAL(INFO, "VCBlock dsepoch no: "
+                            << vcblock.GetHeader().GetViewChangeDSEpochNo());
+      LOG_GENERAL(INFO, "VCBlock epoch no: "
+                            << vcblock.GetHeader().GetViewChangeEpochNo());
 
       if (vcblock.GetHeader().GetViewChangeDSEpochNo() != prevdsblocknum + 1) {
         LOG_GENERAL(WARNING,
@@ -580,10 +588,13 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
       return TxBlockValidationMsg::STALE;
     }
 
-    LOG_GENERAL(WARNING,
-                "The latest DS index does not match that of the latest tx "
-                "block ds num, try fetching Tx and Dir Blocks again "
-                    << latestTxBlockDsBlockNum << " " << latestDSIndex);
+    LOG_GENERAL(
+        WARNING,
+        "The latest DS index does not match that of the latest tx "
+        "block ds num, try fetching Tx and Dir Blocks again\nReceived latest "
+        "txBlock DsBlockNum: "
+            << latestTxBlockDsBlockNum
+            << " latest DS index from latestBlockLink: " << latestDSIndex);
     return TxBlockValidationMsg::STALEDSINFO;
   }
 
