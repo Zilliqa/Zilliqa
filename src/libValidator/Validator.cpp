@@ -573,7 +573,9 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
       LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
       return TxBlockValidationMsg::INVALID;
     }
-    --latestDSIndex;
+    // --latestDSIndex;
+    // LOG_GENERAL(INFO, "VCBlock, --latestDSIndex: " << latestDSIndex);
+    LOG_GENERAL(INFO, "VCBlock alert, temporary remove pre decrement");
   }
 
   const TxBlock& latestTxBlock = txBlocks.back();

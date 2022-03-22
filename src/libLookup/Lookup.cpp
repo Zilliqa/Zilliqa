@@ -3262,7 +3262,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(
     auto latestBlockLink = m_mediator.m_blocklinkchain.GetLatestBlockLink();
     LOG_GENERAL(INFO,
                 "Block link latest index is "
-                    << std::get<BlockLinkIndex::INDEX>(latestBlockLink) << ", "
+                    << std::get<BlockLinkIndex::INDEX>(latestBlockLink)
+                    << ", ds index is "
                     << std::get<BlockLinkIndex::DSINDEX>(latestBlockLink));
     LOG_GENERAL(INFO,
                 "Block link size: " << m_mediator.m_blocklinkchain.GetSize());
