@@ -504,6 +504,7 @@ extern const std::vector<std::pair<uint64_t, uint32_t>>
 // DNS
 extern const bool QUERY_DNS_FOR_SEED;
 extern const unsigned int QUERY_DNS_MAX_TRIES;
+extern const std::string LOOKUP_DNS;
 extern const std::string L2L_DATA_PROVIDERS_DNS;
 extern const std::string UPPER_SEED_DNS;
 extern const std::string MULTIPLIER_DNS;

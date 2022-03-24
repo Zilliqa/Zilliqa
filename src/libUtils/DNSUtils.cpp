@@ -246,10 +246,12 @@ void InitDNSCacheList() {
   cacheDataMapOfDNS[DNSListType::UPPER_SEED];
   cacheDataMapOfDNS[DNSListType::L2L_DATA_PROVIDERS];
   cacheDataMapOfDNS[DNSListType::MULTIPLIERS];
+  cacheDataMapOfDNS[DNSListType::LOOKUPS];
 
   addressesOfDNS[DNSListType::UPPER_SEED] = UPPER_SEED_DNS;
   addressesOfDNS[DNSListType::L2L_DATA_PROVIDERS] = L2L_DATA_PROVIDERS_DNS;
   addressesOfDNS[DNSListType::MULTIPLIERS] = MULTIPLIER_DNS;
+  addressesOfDNS[DNSListType::LOOKUPS] = LOOKUP_DNS;
 
   isShuttingDown = false;
 }
@@ -261,6 +263,7 @@ void AttemptPopulateLookupsDNSCache() {
   DetachedFunction(1, QueryDNSList, DNSListType::UPPER_SEED);
   DetachedFunction(1, QueryDNSList, DNSListType::L2L_DATA_PROVIDERS);
   DetachedFunction(1, QueryDNSList, DNSListType::MULTIPLIERS);
+  DetachedFunction(1, QueryDNSList, DNSListType::LOOKUPS);
 }
 
 string GetPubKeyUrl(const std::string &ip, const std::string &url) {

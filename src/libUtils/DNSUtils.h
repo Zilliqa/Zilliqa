@@ -27,7 +27,8 @@ namespace DNSUtils {
 enum class DNSListType : int {
   UPPER_SEED = 0,
   L2L_DATA_PROVIDERS,
-  MULTIPLIERS
+  MULTIPLIERS,
+  LOOKUPS
 };
 
 using IPPubkeyMap = std::unordered_map<uint128_t, bytes>;

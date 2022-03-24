@@ -406,6 +406,7 @@
     <node_discovery>
         <QUERY_DNS_FOR_SEED>true</QUERY_DNS_FOR_SEED>
         <QUERY_DNS_MAX_TRIES>5</QUERY_DNS_MAX_TRIES>
+        <lookup_dns/>
         <l2l_data_providers_dns/>
         <upper_seed_dns/>
         <multiplier_dns/>

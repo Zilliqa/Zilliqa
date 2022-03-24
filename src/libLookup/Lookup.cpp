@@ -292,8 +292,8 @@ void Lookup::SetLookupNodes() {
   m_lookupNodesOffline.clear();
   m_lookupNodes.clear();
 
-  ObtainNodesFromConfig(m_lookupNodesWithoutMultipliers, "node.lookups",
-                        DEFAULT_SEED_PORT);
+  UpdateNodes(m_lookupNodesWithoutMultipliers, DEFAULT_SEED_PORT,
+              DNSUtils::DNSListType::LOOKUPS, "node.lookups");
 
   VectorOfNode multipliers;
 
