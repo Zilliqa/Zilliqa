@@ -214,6 +214,8 @@ void QueryDNSList(DNSListType listType) {
       continue;
     }
 
+    LOG_GENERAL(INFO, "IP Str: " << ipStr << ", IPKey: " << ipKey);
+
     currentIPKeys.emplace_back(ipKey);
 
     if (listOfPubKeys.find(ipKey) != listOfPubKeys.end()) {

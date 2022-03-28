@@ -743,17 +743,22 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     return;
   }
 
+  LOG_GENERAL(INFO, "Self Peer info: " << m_mediator.m_selfPeer);
   LOG_GENERAL(INFO, "Self peer ip: " << m_mediator.m_selfPeer.GetIpAddress());
   LOG_GENERAL(INFO, "Self peer hostname: "
                         << m_mediator.m_selfPeer.GetListenPortHost());
 
   for (auto& p : tmp) {
+    LOG_GENERAL(INFO, "Peer in tmp: " << p.second);
     LOG_GENERAL(INFO, "Peer in tmp IP: " << p.second.GetIpAddress());
     LOG_GENERAL(INFO, "Peer in tmp Hostname: " << p.second.GetListenPortHost());
   }
 
   int index = RandomGenerator::GetRandomInt(tmp.size());
   auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
+
+  LOG_GENERAL(INFO, "Selected: " << tmp[index].second
+                                 << ", resolvedIP: " << resolved_ip);
 
   Blacklist::GetInstance().Whitelist(
       resolved_ip);  // exclude this lookup ip from blacklisting
