@@ -38,7 +38,7 @@ namespace {
 
 // Create a dummy BCInfo provider. The details do not matter for the tests here.
 auto makeBCInfo() {
-  return std::make_unique<ScillaBCInfo>(0, 0, Address(), dev::h256(), 0);
+  return std::make_unique<ScillaBCInfo>(0, 0, Address(), Address(), dev::h256(), 0);
 }
 }  // namespace
 

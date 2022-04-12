@@ -305,8 +305,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       // prepare IPC with current blockchain info provider.
       auto sbcip = std::make_unique<ScillaBCInfo>(m_curBlockNum, m_curDSBlockNum,
-                                                  m_origin, toAddr, toAccount->GetStorageRoot(),
-        scilla_version);
+                                                  m_originAddr, toAddr,
+                                                  toAccount->GetStorageRoot(),
+                                                  scilla_version);
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
       // ************************************************************************
@@ -584,7 +585,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       // prepare IPC with current blockchain info provider.
       auto sbcip = std::make_unique<ScillaBCInfo>(m_curBlockNum, m_curDSBlockNum,
-                                                  m_origin, toAddr, toAccount->GetStorageRoot(),
+                                                  m_originAddr, toAddr,
+                                                  toAccount->GetStorageRoot(),
                                                   scilla_version);
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
@@ -1447,7 +1449,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       auto sbcip = std::make_unique<ScillaBCInfo>(m_curBlockNum, m_curDSBlockNum,
-                                                  m_origin, toAddr, toAccount->GetStorageRoot(),
+                                                  m_originAddr, recipient,
+                                                  account->GetStorageRoot(),
                                                   scilla_version);
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
@@ -1486,7 +1489,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       auto sbcip1 = std::make_unique<ScillaBCInfo>(m_curBlockNum, m_curDSBlockNum,
-                                                   m_origin, recipient, acccount->GetStorageRoot(),
+                                                   m_originAddr, recipient,
+                                                   account->GetStorageRoot(),
                                                    scilla_version);
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip1));
 
