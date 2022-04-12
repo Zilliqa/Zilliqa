@@ -149,6 +149,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
                  const uint32_t& version)
     : AccountBase(balance, nonce, version) {}
 
+// TODO: change this not to assume anything about Scilla in initData parsing
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum) {
   LOG_MARKER();

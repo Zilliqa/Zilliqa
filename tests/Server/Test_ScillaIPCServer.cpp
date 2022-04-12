@@ -34,6 +34,14 @@
 using namespace std;
 using namespace jsonrpc;
 
+namespace {
+
+// Create a dummy BCInfo provider. The details do not matter for the tests here.
+auto makeBCInfo() {
+  return std::make_unique<ScillaBCInfo>(0, 0, Address(), Address(), dev::h256(), 0);
+}
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
 // NOTE: Remember to use unique field names for different tests
