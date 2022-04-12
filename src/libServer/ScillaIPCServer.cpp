@@ -148,32 +148,66 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
-  if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(m_BCInfo->getCurBlockNum());
+  if (query_name == "CHAINID") {
+    value = std::to_string(CHAIN_ID);
     return true;
-  } else if (query_name == "TIMESTAMP") {
-    uint64_t blockNum = 0;
+  }
+
+  if (query_name == "ORIGIN") {
+    value = m_BCInfo->getOriginAddr().hex();
+    return true;
+  }
+
+  // For queries that include the block number.
+  uint64_t blockNum = 0;
+  if (query_name == "BLOCKHASH" || query_name == "TIMESTAMP") {
     try {
       blockNum = stoull(query_args);
     } catch (...) {
       LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
       return false;
     }
+  } else {
+    blockNum = m_BCInfo->getCurBlockNum();
+  }
 
-    TxBlockSharedPtr txBlockSharedPtr;
+  TxBlockSharedPtr txBlockSharedPtr;
+  if (query_name == "BLOCKHASH" || query_name == "TIMESTAMP" ||
+      query_name == "BLOCKCOINBASE" || query_name == "BLOCKTIMESTAMP" || query_name == "BLOCKDIFFICULTY" ||
+      query_name == "BLOCKGASLIMIT" || query_name == "BLOCK_BASE_FEE_PER_GAS") {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
     }
-
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
-    return true;
-  } else if (query_name == "CHAINID") {
-    value = std::to_string(CHAIN_ID);
-    return true;
   }
 
-  LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
-  return false;
+  // TODO: this will always return the value 0 so far, as we need the real DS block.
+  blockNum = m_BCInfo->getCurDSBlockNum();
+  DSBlockSharedPtr dsBlockSharedPtr;
+  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY") {
+    if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
+                                                    dsBlockSharedPtr)) {
+      LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
+      return false;
+    }
+  }
+
+  if (query_name == "BLOCHKASH") {
+    value = std::to_string(txBlockSharedPtr->GetBlockHash());
+  } else if (query_name == "BLOCKNUMBER") {
+    value = std::to_string(blockNum);
+  } else if (query_name == "TIMESTAMP" || query_name == "BLOCKTIMESTAMP") {
+    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+  } else if (query_name == "BLOCKDIFFICULTY") {
+    value = "100"  // TODO: implement the real difficlty from DS block
+  } else if (query_name == "BLOCKGASLIMIT") {
+    value = std::to_string(txBlockSharedPtr->GetGasLimit());
+  } else if (query_name == "BLOCK_BASE_FEE_PER_GAS") {
+    value = "0"  // TODO: implement the real value (from DS block?)
+  } else {
+    LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
+    return false;
+  }
+  return true;
 }
