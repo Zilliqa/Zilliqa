@@ -438,6 +438,22 @@ bool ContractStorage::FetchExternalStateValue(
       special_query = "\"0x" + target.hex() + "\"";
       type = "ByStr20";
     }
+  } else if (query.name() == "_codehash") {
+    dev::h256 codeHash;
+    if (account->GetContractCodeHash(codeHash)) {
+      special_query = "\"0x" + codeHash.hex() + "\"";
+      type = "ByStr32";
+    } else {
+      return false;
+    }
+  } else if (query.name() == "_code") {
+    // Get the code directly from the account storage.
+    bytes code = account->GetCode();
+    ProtoScillaVal value;
+    value.set_bval(&code[0], code.size());
+    SerializeToArray(value, dst, 0);
+    foundVal = true;
+    return true;
   }
 
   if (!special_query.empty()) {
