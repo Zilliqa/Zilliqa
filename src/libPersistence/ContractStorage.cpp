@@ -446,6 +446,14 @@ bool ContractStorage::FetchExternalStateValue(
     } else {
       return false;
     }
+  } else if (query.name() == "_code") {
+    // Get the code directly from the account storage.
+    bytes code = account->GetCode();
+    ProtoScillaVal value;
+    value.set_bval(&code[0], code.size());
+    SerializeToArray(value, dst, 0);
+    foundVal = true;
+    return true;
   }
 
   if (!special_query.empty()) {
