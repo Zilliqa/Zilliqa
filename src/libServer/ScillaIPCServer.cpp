@@ -39,6 +39,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
                              "query", JSON_STRING, "value", JSON_STRING, NULL),
                    &ScillaIPCServer::updateStateValueI);
+  bindAndAddMethod(Procedure("updateExternalStateValue", PARAMS_BY_NAME,
+                             JSON_OBJECT, "addr",  JSON_STRING, "query",
+                             JSON_STRING, "value", JSON_STRING, NULL),
+                   &ScillaIPCServer::updateExternalStateValueI);
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -138,12 +142,22 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
   return true;
 }
+
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(
       m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }
+
+bool ScillaIPCServer::updateExternalStateValue(const std::string &addr,
+                                               const std::string &query,
+                                               const std::string &value) {
+  return ContractStorage::GetContractStorage().UpdateStateValue(
+      Address(addr),  DataConversion::StringToCharArray(query), 0,
+      DataConversion::StringToCharArray(value), 0);
+};
+
 
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,

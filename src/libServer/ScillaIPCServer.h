@@ -63,6 +63,8 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                                Json::Value& response);
   inline virtual void updateStateValueI(const Json::Value& request,
                                         Json::Value& response);
+  inline virtual void updateExternalStateValueI(const Json::Value& request,
+                                                Json::Value& response);
   inline virtual void fetchBlockchainInfoI(const Json::Value& request,
                                            Json::Value& response);
   virtual bool fetchStateValue(const std::string& query, std::string& value,
@@ -73,6 +75,9 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                        std::string& type);
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
+  virtual bool updateExternalStateValue(const std::string &addr,
+                                        const std::string &query,
+                                        const std::string &value);
   virtual bool fetchBlockchainInfo(const std::string& query_name,
                                    const std::string& query_args,
                                    std::string& value);
