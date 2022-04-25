@@ -120,6 +120,20 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
   response.clear();
 }
 
+void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
+                                           Json::Value &response) {
+  std::string value;
+  if (!fetchBlockchainInfo(request["query_name"].asString(),
+                           request["query_args"].asString(), value)) {
+    throw JsonRpcException("Fetching blockchain info failed");
+  }
+
+  // Prepare the result and finish.
+  response.clear();
+  response.append(Json::Value(true));
+  response.append(Json::Value(value));
+}
+
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
   bytes destination;
