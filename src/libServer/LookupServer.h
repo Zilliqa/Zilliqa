@@ -48,7 +48,24 @@ class LookupServer : public Server,
 
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
+ protected:
+  void CheckTxCodeSize(const Transaction& tx);
+  void CheckChainId(const Transaction& tx);
+  void CheckTxVersion(const Transaction& tx);
+  void CheckTxGasPrice(const Transaction& tx, const uint128_t& gasPrice);
+  void CheckTxValidator(const Transaction& tx);
+  void CheckTxMisc(const Transaction& tx, const Address& fromAddr, const Account* sender);
+  void CheckContractCall(const Transaction& tx);
+  void CheckContractCreation(const Transaction& tx);
+  void CheckNonContract(const Transaction& tx);
+  void CheckNonce(const Transaction& tx, const Account* sender);
+  void CheckGasAccounting(const Transaction& tx, const Account* sender);
+  void CheckMicroblockGasLimit(const Transaction& tx);
 
+  virtual void PreTxnChecks();
+  virtual bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
+                           const Account* sender, const uint128_t& gasPrice);
+  
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;

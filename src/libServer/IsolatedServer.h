@@ -37,6 +37,8 @@ class IsolatedServer : public LookupServer,
   bool StartBlocknumIncrement();
   TxBlock GenerateTxBlock();
   void PostTxBlock();
+protected:
+  void PreTxnChecks() override;
 
  public:
   std::string m_uuid;

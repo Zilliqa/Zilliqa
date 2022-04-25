@@ -19,6 +19,7 @@
 
 #include "Account.h"
 #include "common/Messages.h"
+#include "common/Constants.h"
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
