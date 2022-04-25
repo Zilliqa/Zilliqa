@@ -1034,10 +1034,11 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
                SCILLA_INDEX_SEPARATOR;
 
   if (query.ignoreval()) {
-    // TODO(valeryz): change this so that empty indices mean removal of account.
     if (query.indices().size() < 1) {
-      LOG_GENERAL(WARNING, "indices cannot be empty")
-      return false;
+      // ignoreval == true with indices == 0 means remove the whole account.
+      LOG_GENERAL(INFO, "Deleting account: " << addr);
+
+      return true;
     }
     for (int i = 0; i < query.indices().size() - 1; ++i) {
       key += query.indices().Get(i) + SCILLA_INDEX_SEPARATOR;

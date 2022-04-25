@@ -96,6 +96,18 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
   response.clear();
 }
 
+void ScillaIPCServer::updateExternalStateValueI(const Json::Value &request,
+                                        Json::Value &response) {
+  if (!updateStateValue(request["addr"].asString()
+                        request["query"].asString(),
+                        request["value"].asString())) {
+    throw JsonRpcException("Updating state value failed");
+  }
+
+  // We have nothing to return. A null response is expected in the client.
+  response.clear();
+}
+
 void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
                                            Json::Value &response) {
   std::string value;
@@ -156,8 +168,7 @@ bool ScillaIPCServer::updateExternalStateValue(const std::string &addr,
   return ContractStorage::GetContractStorage().UpdateStateValue(
       Address(addr),  DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
-};
-
+}
 
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,

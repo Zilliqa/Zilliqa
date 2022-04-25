@@ -300,6 +300,7 @@ message ProtoAccountBase
     oneof oneof3 { uint64 nonce = 3; } // Added in: v1.0, Deprecated in: N/A
     bytes codehash    = 4; // Added in: v1.0, Deprecated in: N/A
     bytes storageroot = 5; // Added in: v1.0, Deprecated in: N/A
+    bytes evm_codehash = 6;
 }
 
 message ProtoAccount
@@ -316,6 +317,7 @@ message ProtoAccount
     repeated StorageData2 storage2  = 5; // Added in: v1.1, Deprecated in: N/A
     repeated string todelete        = 6; // Added in: v1.1, Deprecated in: N/A
     bytes initdata                  = 7; // Added in: v1.1, Deprecated in: N/A
+    bytes evm_code                  = 9;
 }
 
 message ProtoStateIndex

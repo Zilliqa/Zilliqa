@@ -45,13 +45,13 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual void Init();
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const std::string& src, unsigned int offset);
+  bool Deserialize(const std::string& src, unsigned int offset) override;
 
   virtual Account* GetAccount(const Address& address);
 
