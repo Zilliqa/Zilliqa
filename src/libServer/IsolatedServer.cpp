@@ -17,7 +17,9 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
+#include "common/BaseType.h"
 #include "libPersistence/Retriever.h"
+#include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
 
 using namespace jsonrpc;
@@ -141,18 +143,16 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
 }
 
-bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                                 const Account* sender,
-                                 const uint128_t& gasPrice) {
+bool IsolatedServer::ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) {
   CheckChainId(tx);
   CheckTxCodeSize(tx);
   CheckTxGasPrice(tx, gasPrice);
   CheckTxValidator(tx);
-  CheckTxMisc(tx, fromAddr, sender);
+  CheckTxMisc(tx);
   CheckContractCall(tx);
   CheckContractCreation(tx);
-  CheckNonce(tx, sender);
-  
+  CheckNonce(tx);
+
   return true;
 }
 
@@ -208,162 +208,117 @@ void IsolatedServer::PreTxnChecks() {
     }
 }
 
-Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
-  try {
-    if (!JSONConversion::checkJsonTx(_json)) {
-      throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
-    }
+void IsolatedServer::TxnBasicChecks(const TxDetails& tx) {
 
-    lock_guard<mutex> g(m_blockMutex);
-
-    LOG_GENERAL(INFO, "On the isolated server ");
-
-    Transaction tx = JSONConversion::convertJsontoTx(_json);
-
-    Json::Value ret;
-
-    uint64_t senderNonce;      // >
-    uint128_t senderBalance;   // >
-
-    const Address fromAddr = tx.GetSenderAddr();
-
-    {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
-      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
-        return AccountStore::GetInstance().GetPrimaryWriteAccess();
-      });
-
-      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
-
-      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
-        return ret;
-      }
-
-      senderNonce = sender->GetNonce();
-      senderBalance = sender->GetBalance();
-    }
-
-    if (senderNonce + 1 != tx.GetNonce()) {
+    if (tx.sender->GetNonce() + 1 != tx.tx.GetNonce()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(senderNonce + 1));
+                             "Expected Nonce: " + to_string(tx.sender->GetNonce() + 1));
     }
 
-    if (senderBalance < tx.GetAmount()) {
+    if (tx.sender->GetBalance() < tx.tx.GetAmount()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Insufficient Balance: " + senderBalance.str());
+                             "Insufficient Balance: " + tx.sender->GetBalance().str());
     }
 
-    if (m_gasPrice > tx.GetGasPrice()) {
+    if (m_gasPrice > tx.tx.GetGasPrice()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Minimum gas price greater: " + m_gasPrice.str());
     }
+}
 
-    switch (Transaction::GetTransactionType(tx)) {
-      case Transaction::ContractType::NON_CONTRACT:
-        break;
-      case Transaction::ContractType::CONTRACT_CREATION:
-        if (!ENABLE_SC) {
-          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-        }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
-        break;
-      case Transaction::ContractType::CONTRACT_CALL: {
-        if (!ENABLE_SC) {
-          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-        }
+// Non-contract transactions do nothing in the isolated server.
+void IsolatedServer::CreateNonContractTransaction(const TxDetails&,
+                                                  int,
+                                                  Json::Value*,
+                                                  unsigned int*) {
+}
 
-        {
-          shared_lock<shared_timed_mutex> lock(
-              AccountStore::GetInstance().GetPrimaryMutex());
-          AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
-              lock, [] {
-                return AccountStore::GetInstance().GetPrimaryWriteAccess();
-              });
-
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
-
-          if (account == nullptr) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "To addr is null");
-          }
-
-          else if (!account->isContract()) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "Non - contract address called");
-          }
-        }
-      } break;
-
-      case Transaction::ContractType::ERROR:
-        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                               "Code is empty and To addr is null");
-        break;
-      default:
-        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-    }
-
-    TransactionReceipt txreceipt;
-
-    TxnStatus error_code;
-    bool throwError = false;
-    txreceipt.SetEpochNum(m_blocknum);
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3  // Arbitrary values
-                                                        ,
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
-      throwError = true;
-    }
-
-    AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
-    AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
-
-    AccountStore::GetInstance().SerializeDelta();
-    AccountStore::GetInstance().CommitTemp();
-
-    if (!m_timeDelta) {
-      AccountStore::GetInstance().InitTemp();
-    }
-
-    if (throwError) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Error Code: " + to_string(error_code));
-    }
-
-    TransactionWithReceipt twr(tx, txreceipt);
-
-    bytes twr_ser;
-
-    twr.Serialize(twr_ser, 0);
-
-    m_currEpochGas += txreceipt.GetCumGas();
-
-    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
-                                                   twr_ser)) {
-      LOG_GENERAL(WARNING, "Unable to put tx body");
-    }
-    const auto& txHash = tx.GetTranID();
-    LookupServer::AddToRecentTransactions(txHash);
-    {
-      lock_guard<mutex> g(m_txnBlockNumMapMutex);
-      m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
-    }
-    LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = txHash.hex();
-    ret["Info"] = "Txn processed";
-    WebsocketServer::GetInstance().ParseTxn(twr);
-    return ret;
-
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (exception& e) {
-    LOG_GENERAL(INFO,
-                "[Error]" << e.what() << " Input: " << _json.toStyledString());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+void IsolatedServer::CreateContractCreationTransaction(const TxDetails& tx,
+                                                       [[gnu::unused]] int num_shards,
+                                                       Json::Value* ret,
+                                                       [[gnu::unused]] unsigned int* mapIndex) {
+  if (!ENABLE_SC) {
+    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
   }
+  (*ret)["ContractAddress"] =
+    Account::GetAddressForContract(tx.tx.GetSenderAddr(), tx.sender->GetNonce()).hex();
+
+}
+
+void IsolatedServer::CreateContractCallTransaction(const TxDetails& tx,
+                                                   [[gnu::unused]] int,
+                                                   [[gnu::unused]] Json::Value* ret,
+                                                   [[gnu::unused]] unsigned int* mapIndex) {
+  if (!ENABLE_SC) {
+    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+  }
+
+  if (!tx.recipient.is_initialized()) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
+  } else if (!tx.recipient->isContract()) {
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Non - contract address called");
+  }
+}
+
+bool IsolatedServer::TargetFunction(const Transaction& tx, uint32_t /* shardId */) {
+  TransactionReceipt txreceipt;
+
+  TxnStatus error_code;
+  bool throwError = false;
+  txreceipt.SetEpochNum(m_blocknum);
+  if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
+                                                      3  // Arbitrary values
+                                                      ,
+                                                      true, tx, txreceipt,
+                                                      error_code)) {
+    throwError = true;
+  }
+
+  AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+  AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().CommitTemp();
+
+  if (!m_timeDelta) {
+    AccountStore::GetInstance().InitTemp();
+  }
+
+  if (throwError) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Error Code: " + to_string(error_code));
+  }
+
+  TransactionWithReceipt twr(tx, txreceipt);
+
+  bytes twr_ser;
+
+  twr.Serialize(twr_ser, 0);
+
+  m_currEpochGas += txreceipt.GetCumGas();
+
+  if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
+                                                 twr_ser)) {
+    LOG_GENERAL(WARNING, "Unable to put tx body");
+  }
+  const auto& txHash = tx.GetTranID();
+  LookupServer::AddToRecentTransactions(txHash);
+
+  {
+    lock_guard<mutex> g(m_txnBlockNumMapMutex);
+    m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
+  }
+  LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+  WebsocketServer::GetInstance().ParseTxn(twr);
+  return true;
+}
+
+Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+    lock_guard<mutex> g(m_blockMutex);
+    LOG_GENERAL(INFO, "On the isolated server ");
+    uint128_t gasPrice;
+    CreateTransactionTargetFunc func = boost::bind(&IsolatedServer::TargetFunction, this, _1, _2);
+    return LookupServer::CreateTransaction(_json, 1, gasPrice, func);
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(

@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
+#include <boost/optional.hpp>
+
 #include "Server.h"
 
 class Mediator;
@@ -49,23 +51,43 @@ class LookupServer : public Server,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
  protected:
-  void CheckTxCodeSize(const Transaction& tx);
-  void CheckChainId(const Transaction& tx);
-  void CheckTxVersion(const Transaction& tx);
-  void CheckTxGasPrice(const Transaction& tx, const uint128_t& gasPrice);
-  void CheckTxValidator(const Transaction& tx);
-  void CheckTxMisc(const Transaction& tx, const Address& fromAddr, const Account* sender);
-  void CheckContractCall(const Transaction& tx);
-  void CheckContractCreation(const Transaction& tx);
-  void CheckNonContract(const Transaction& tx);
-  void CheckNonce(const Transaction& tx, const Account* sender);
-  void CheckGasAccounting(const Transaction& tx, const Account* sender);
-  void CheckMicroblockGasLimit(const Transaction& tx);
+
+  struct TxDetails {
+    Transaction tx;
+    // TODO: replace with std::optional with transition to C++20.
+    boost::optional<Account> sender;
+    boost::optional<Account> recipient;
+  };
+
+  void CheckTxCodeSize(const TxDetails& tx);
+  void CheckChainId(const TxDetails& tx);
+  void CheckTxVersion(const TxDetails& tx);
+  void CheckTxGasPrice(const TxDetails& tx, const uint128_t& gasPrice);
+  void CheckTxValidator(const TxDetails& tx);
+  void CheckTxMisc(const TxDetails& tx);
+  void CheckContractCall(const TxDetails& tx);
+  void CheckContractCreation(const TxDetails& tx);
+  void CheckNonContract(const TxDetails& tx);
+  void CheckNonce(const TxDetails& tx);
+  void CheckGasAccounting(const TxDetails& tx);
+  void CheckMicroblockGasLimit(const TxDetails& tx);
 
   virtual void PreTxnChecks();
-  virtual bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                           const Account* sender, const uint128_t& gasPrice);
-  
+  virtual void TxnBasicChecks(const TxDetails& tx);
+  virtual bool ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice);
+  virtual void CreateNonContractTransaction(const TxDetails& tx,
+                                            int num_shards,
+                                            Json::Value* ret,
+                                            unsigned int* mapIndex);
+  virtual void CreateContractCreationTransaction(const TxDetails& tx,
+                                                 int num_shards,
+                                                 Json::Value* ret,
+                                                 unsigned int* mapIndex);
+  virtual void CreateContractCallTransaction(const TxDetails& tx,
+                                             int num_shards,
+                                             Json::Value* ret,
+                                             unsigned int* mapIndex);
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
