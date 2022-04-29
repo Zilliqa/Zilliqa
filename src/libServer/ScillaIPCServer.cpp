@@ -92,21 +92,6 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
   response.clear();
 }
 
-<<<<<<< HEAD
-=======
-void ScillaIPCServer::updateExternalStateValueI(const Json::Value &request,
-                                                Json::Value &response) {
-  if (!updateExternalStateValue(request["addr"].asString(),
-                                request["query"].asString(),
-                                request["value"].asString())) {
-    throw JsonRpcException("Updating external state value failed");
-  }
-
-  // We have nothing to return. A null response is expected in the client.
-  response.clear();
-}
-
->>>>>>> formatting and tidy
 void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
                                            Json::Value &response) {
   std::string value;
@@ -160,17 +145,7 @@ bool ScillaIPCServer::updateStateValue(const string &query,
       DataConversion::StringToCharArray(value), 0);
 }
 
-<<<<<<< HEAD
-=======
-bool ScillaIPCServer::updateExternalStateValue(const std::string &addr,
-                                               const std::string &query,
-                                               const std::string &value) {
-  return ContractStorage::GetContractStorage().UpdateStateValue(
-      Address(addr), DataConversion::StringToCharArray(query), 0,
-      DataConversion::StringToCharArray(value), 0);
-}
 
->>>>>>> formatting and tidy
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
@@ -192,22 +167,6 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
     }
-<<<<<<< HEAD
-=======
-  }
-
-  // TODO: this will always return the value 0 so far, as we need the real DS
-  // block.
-  blockNum = m_BCInfo->getCurDSBlockNum();
-  DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY") {
-    if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
-                                                    dsBlockSharedPtr)) {
-      LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
-      return false;
-    }
-  }
->>>>>>> formatting and tidy
 
     value = std::to_string(txBlockSharedPtr->GetTimestamp());
     return true;
