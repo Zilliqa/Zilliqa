@@ -145,7 +145,6 @@ bool ScillaIPCServer::updateStateValue(const string &query,
       DataConversion::StringToCharArray(value), 0);
 }
 
-
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
