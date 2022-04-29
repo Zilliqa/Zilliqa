@@ -583,12 +583,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       // prepare IPC with current blockchain info provider.
       auto sbcip = std::make_unique<ScillaBCInfo>(
-<<<<<<< HEAD
           m_curBlockNum, toAddr, toAccount->GetStorageRoot(), scilla_version);
-=======
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
-          toAccount->GetStorageRoot(), scilla_version);
->>>>>>> formatting and tidy
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
