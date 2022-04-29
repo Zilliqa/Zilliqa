@@ -62,7 +62,7 @@ struct TransactionCoreInfo {
 class Transaction : public SerializableDataBlock {
   TxnHash m_tranID;
   TransactionCoreInfo m_coreInfo;
-  bool m_priority;
+  bool m_priority{};
   Signature m_signature;
 
  public:

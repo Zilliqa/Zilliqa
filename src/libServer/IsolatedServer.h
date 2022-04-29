@@ -40,20 +40,16 @@ class IsolatedServer : public LookupServer,
   bool TargetFunction(const Transaction& tx, uint32_t shardId);
 
  protected:
-
   void PreTxnChecks() override;
   void TxnBasicChecks(const TxDetails& tx) override;
   bool ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) override;
-  void CreateNonContractTransaction(const TxDetails& tx,
-                                    int num_shards,
+  void CreateNonContractTransaction(const TxDetails& tx, int num_shards,
                                     Json::Value* ret,
                                     unsigned int* mapIndex) override;
-  void CreateContractCreationTransaction(const TxDetails& tx,
-                                         int num_shards,
+  void CreateContractCreationTransaction(const TxDetails& tx, int num_shards,
                                          Json::Value* ret,
                                          unsigned int* mapIndex) override;
-  void CreateContractCallTransaction(const TxDetails& tx,
-                                     int num_shards,
+  void CreateContractCallTransaction(const TxDetails& tx, int num_shards,
                                      Json::Value* ret,
                                      unsigned int* mapIndex) override;
 

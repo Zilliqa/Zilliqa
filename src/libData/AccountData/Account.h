@@ -28,7 +28,6 @@
 #include "depends/libDatabase/OverlayDB.h"
 #pragma GCC diagnostic pop
 
-
 class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version{};

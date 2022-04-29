@@ -50,8 +50,8 @@ class LookupServer : public Server,
 
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
- protected:
 
+ protected:
   struct TxDetails {
     Transaction tx;
     // TODO: replace with std::optional with transition to C++20.
@@ -75,8 +75,7 @@ class LookupServer : public Server,
   virtual void PreTxnChecks();
   virtual void TxnBasicChecks(const TxDetails& tx);
   virtual bool ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice);
-  virtual void CreateNonContractTransaction(const TxDetails& tx,
-                                            int num_shards,
+  virtual void CreateNonContractTransaction(const TxDetails& tx, int num_shards,
                                             Json::Value* ret,
                                             unsigned int* mapIndex);
   virtual void CreateContractCreationTransaction(const TxDetails& tx,
@@ -84,8 +83,7 @@ class LookupServer : public Server,
                                                  Json::Value* ret,
                                                  unsigned int* mapIndex);
   virtual void CreateContractCallTransaction(const TxDetails& tx,
-                                             int num_shards,
-                                             Json::Value* ret,
+                                             int num_shards, Json::Value* ret,
                                              unsigned int* mapIndex);
 
  public:

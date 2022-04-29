@@ -143,7 +143,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
 }
 
-bool IsolatedServer::ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) {
+bool IsolatedServer::ValidateTxn(const TxDetails& tx,
+                                 const uint128_t& gasPrice) {
   CheckChainId(tx);
   CheckTxCodeSize(tx);
   CheckTxGasPrice(tx, gasPrice);
@@ -203,52 +204,49 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 void IsolatedServer::PreTxnChecks() {
-    if (m_pause) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
-    }
+  if (m_pause) {
+    throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
+  }
 }
 
 void IsolatedServer::TxnBasicChecks(const TxDetails& tx) {
+  if (tx.sender->GetNonce() + 1 != tx.tx.GetNonce()) {
+    throw JsonRpcException(
+        RPC_INVALID_PARAMETER,
+        "Expected Nonce: " + to_string(tx.sender->GetNonce() + 1));
+  }
 
-    if (tx.sender->GetNonce() + 1 != tx.tx.GetNonce()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(tx.sender->GetNonce() + 1));
-    }
+  if (tx.sender->GetBalance() < tx.tx.GetAmount()) {
+    throw JsonRpcException(
+        RPC_INVALID_PARAMETER,
+        "Insufficient Balance: " + tx.sender->GetBalance().str());
+  }
 
-    if (tx.sender->GetBalance() < tx.tx.GetAmount()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Insufficient Balance: " + tx.sender->GetBalance().str());
-    }
-
-    if (m_gasPrice > tx.tx.GetGasPrice()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Minimum gas price greater: " + m_gasPrice.str());
-    }
+  if (m_gasPrice > tx.tx.GetGasPrice()) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER,
+                           "Minimum gas price greater: " + m_gasPrice.str());
+  }
 }
 
 // Non-contract transactions do nothing in the isolated server.
-void IsolatedServer::CreateNonContractTransaction(const TxDetails&,
-                                                  int,
-                                                  Json::Value*,
-                                                  unsigned int*) {
+void IsolatedServer::CreateNonContractTransaction(const TxDetails&, int,
+                                                  Json::Value*, unsigned int*) {
 }
 
-void IsolatedServer::CreateContractCreationTransaction(const TxDetails& tx,
-                                                       [[gnu::unused]] int num_shards,
-                                                       Json::Value* ret,
-                                                       [[gnu::unused]] unsigned int* mapIndex) {
+void IsolatedServer::CreateContractCreationTransaction(
+    const TxDetails& tx, [[gnu::unused]] int num_shards, Json::Value* ret,
+    [[gnu::unused]] unsigned int* mapIndex) {
   if (!ENABLE_SC) {
     throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
   }
-  (*ret)["ContractAddress"] =
-    Account::GetAddressForContract(tx.tx.GetSenderAddr(), tx.sender->GetNonce()).hex();
-
+  (*ret)["ContractAddress"] = Account::GetAddressForContract(
+                                  tx.tx.GetSenderAddr(), tx.sender->GetNonce())
+                                  .hex();
 }
 
-void IsolatedServer::CreateContractCallTransaction(const TxDetails& tx,
-                                                   [[gnu::unused]] int,
-                                                   [[gnu::unused]] Json::Value* ret,
-                                                   [[gnu::unused]] unsigned int* mapIndex) {
+void IsolatedServer::CreateContractCallTransaction(
+    const TxDetails& tx, [[gnu::unused]] int, [[gnu::unused]] Json::Value* ret,
+    [[gnu::unused]] unsigned int* mapIndex) {
   if (!ENABLE_SC) {
     throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
   }
@@ -256,11 +254,13 @@ void IsolatedServer::CreateContractCallTransaction(const TxDetails& tx,
   if (!tx.recipient.is_initialized()) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
   } else if (!tx.recipient->isContract()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Non - contract address called");
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Non - contract address called");
   }
 }
 
-bool IsolatedServer::TargetFunction(const Transaction& tx, uint32_t /* shardId */) {
+bool IsolatedServer::TargetFunction(const Transaction& tx,
+                                    uint32_t /* shardId */) {
   TransactionReceipt txreceipt;
 
   TxnStatus error_code;
@@ -314,11 +314,12 @@ bool IsolatedServer::TargetFunction(const Transaction& tx, uint32_t /* shardId *
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
-    lock_guard<mutex> g(m_blockMutex);
-    LOG_GENERAL(INFO, "On the isolated server ");
-    uint128_t gasPrice;
-    CreateTransactionTargetFunc func = boost::bind(&IsolatedServer::TargetFunction, this, _1, _2);
-    return LookupServer::CreateTransaction(_json, 1, gasPrice, func);
+  lock_guard<mutex> g(m_blockMutex);
+  LOG_GENERAL(INFO, "On the isolated server ");
+  uint128_t gasPrice;
+  CreateTransactionTargetFunc func =
+      boost::bind(&IsolatedServer::TargetFunction, this, _1, _2);
+  return LookupServer::CreateTransaction(_json, 1, gasPrice, func);
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(

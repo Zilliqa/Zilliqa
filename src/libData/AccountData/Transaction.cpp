@@ -73,8 +73,7 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const PubKey& senderPubKey, const uint128_t& amount,
                          const uint128_t& gasPrice, const uint64_t& gasLimit,
                          const bytes& code, const bytes& data,
-                         const Signature& signature,
-                         bool priority)
+                         const Signature& signature, bool priority)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
@@ -85,8 +84,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data,
-                         const Signature& signature,
+                         const bytes& data, const Signature& signature,
                          bool priority)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
@@ -113,9 +111,11 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
 Transaction::Transaction(const TxnHash& tranID,
                          const TransactionCoreInfo& coreInfo,
-                         const Signature& signature,
-                         bool priority)
-  : m_tranID(tranID), m_coreInfo(coreInfo), m_priority(priority), m_signature(signature) {}
+                         const Signature& signature, bool priority)
+    : m_tranID(tranID),
+      m_coreInfo(coreInfo),
+      m_priority(priority),
+      m_signature(signature) {}
 
 bool Transaction::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
