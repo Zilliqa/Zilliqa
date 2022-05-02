@@ -78,7 +78,7 @@ class LookupServer : public Server,
   virtual void ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice);
 
   // Actually create the transaction.
-  virtual bool DoCreateTransaction(const Transaction& tx, unsigned int shardId,
+  virtual bool DoCreateTransaction(const Transaction& tx, unsigned int mapIndex,
                                    Json::Value& retValue);
 
  public:
