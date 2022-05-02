@@ -41,17 +41,12 @@ class IsolatedServer : public LookupServer,
 
  protected:
   void PreTxnChecks() override;
-  void TxnBasicChecks(const TxDetails& tx) override;
-  bool ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) override;
-  void CreateNonContractTransaction(const TxDetails& tx, int num_shards,
-                                    Json::Value* ret,
-                                    unsigned int* mapIndex) override;
-  void CreateContractCreationTransaction(const TxDetails& tx, int num_shards,
-                                         Json::Value* ret,
-                                         unsigned int* mapIndex) override;
-  void CreateContractCallTransaction(const TxDetails& tx, int num_shards,
-                                     Json::Value* ret,
-                                     unsigned int* mapIndex) override;
+  void ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) override;
+  bool DoCreateTransaction(const Transaction& tx, unsigned int shardId,
+                           Json::Value& retValue) override;
+
+  void TxnBasicChecks(
+      const TxDetails& tx);  // Some checks done only in the Isolated server.
 
  public:
   std::string m_uuid;

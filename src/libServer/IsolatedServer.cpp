@@ -143,7 +143,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   }
 }
 
-bool IsolatedServer::ValidateTxn(const TxDetails& tx,
+void IsolatedServer::ValidateTxn(const TxDetails& tx,
                                  const uint128_t& gasPrice) {
   CheckChainId(tx);
   CheckTxCodeSize(tx);
@@ -154,7 +154,7 @@ bool IsolatedServer::ValidateTxn(const TxDetails& tx,
   CheckContractCreation(tx);
   CheckNonce(tx);
 
-  return true;
+  TxnBasicChecks(tx);
 }
 
 bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
@@ -228,39 +228,9 @@ void IsolatedServer::TxnBasicChecks(const TxDetails& tx) {
   }
 }
 
-// Non-contract transactions do nothing in the isolated server.
-void IsolatedServer::CreateNonContractTransaction(const TxDetails&, int,
-                                                  Json::Value*, unsigned int*) {
-}
-
-void IsolatedServer::CreateContractCreationTransaction(
-    const TxDetails& tx, [[gnu::unused]] int num_shards, Json::Value* ret,
-    [[gnu::unused]] unsigned int* mapIndex) {
-  if (!ENABLE_SC) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  }
-  (*ret)["ContractAddress"] = Account::GetAddressForContract(
-                                  tx.tx.GetSenderAddr(), tx.sender->GetNonce())
-                                  .hex();
-}
-
-void IsolatedServer::CreateContractCallTransaction(
-    const TxDetails& tx, [[gnu::unused]] int, [[gnu::unused]] Json::Value* ret,
-    [[gnu::unused]] unsigned int* mapIndex) {
-  if (!ENABLE_SC) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  }
-
-  if (!tx.recipient.is_initialized()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
-  } else if (!tx.recipient->isContract()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                           "Non - contract address called");
-  }
-}
-
-bool IsolatedServer::TargetFunction(const Transaction& tx,
-                                    uint32_t /* shardId */) {
+bool IsolatedServer::DoCreateTransaction(const Transaction& tx,
+                                         uint32_t /* mapIndex */,
+                                         Json::Value& retValue) {
   TransactionReceipt txreceipt;
 
   TxnStatus error_code;
@@ -309,6 +279,7 @@ bool IsolatedServer::TargetFunction(const Transaction& tx,
     m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
   }
   LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+  retValue["Info"] = "Txn Processed";
   WebsocketServer::GetInstance().ParseTxn(twr);
   return true;
 }
@@ -316,10 +287,7 @@ bool IsolatedServer::TargetFunction(const Transaction& tx,
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   lock_guard<mutex> g(m_blockMutex);
   LOG_GENERAL(INFO, "On the isolated server ");
-  uint128_t gasPrice;
-  CreateTransactionTargetFunc func =
-      boost::bind(&IsolatedServer::TargetFunction, this, _1, _2);
-  return LookupServer::CreateTransaction(_json, 1, gasPrice, func);
+  return LookupServer::CreateTransaction(_json, 1, m_gasPrice);
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(

@@ -24,9 +24,6 @@
 
 class Mediator;
 
-typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
-    CreateTransactionTargetFunc;
-
 class LookupServer : public Server,
                      public jsonrpc::AbstractServer<LookupServer> {
   std::mutex m_mutexBlockTxPair;
@@ -43,11 +40,6 @@ class LookupServer : public Server,
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
 
-  CreateTransactionTargetFunc m_createTransactionTarget =
-      [this](const Transaction& tx, uint32_t shardId) -> bool {
-    return m_mediator.m_lookup->AddToTxnShardMap(tx, shardId);
-  };
-
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
 
@@ -59,6 +51,7 @@ class LookupServer : public Server,
     boost::optional<Account> recipient;
   };
 
+  // Various checks before the transaction can be forwarded for handling.
   void CheckTxCodeSize(const TxDetails& tx);
   void CheckChainId(const TxDetails& tx);
   void CheckTxVersion(const TxDetails& tx);
@@ -72,19 +65,21 @@ class LookupServer : public Server,
   void CheckGasAccounting(const TxDetails& tx);
   void CheckMicroblockGasLimit(const TxDetails& tx);
 
+  // Determine whether the transaction should be sent to DS.
+  bool SendToDS(const Transaction& tx, unsigned int num_shards);
+
+  // Find an index for the shard -> transactions map.
+  unsigned int FindMapIndex(const Transaction& tx, unsigned int num_shards);
+
+  // Check if the node is able to handle transaction.
   virtual void PreTxnChecks();
-  virtual void TxnBasicChecks(const TxDetails& tx);
-  virtual bool ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice);
-  virtual void CreateNonContractTransaction(const TxDetails& tx, int num_shards,
-                                            Json::Value* ret,
-                                            unsigned int* mapIndex);
-  virtual void CreateContractCreationTransaction(const TxDetails& tx,
-                                                 int num_shards,
-                                                 Json::Value* ret,
-                                                 unsigned int* mapIndex);
-  virtual void CreateContractCallTransaction(const TxDetails& tx,
-                                             int num_shards, Json::Value* ret,
-                                             unsigned int* mapIndex);
+
+  // Validate the transaction before further processing.
+  virtual void ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice);
+
+  // Actually create the transaction.
+  virtual bool DoCreateTransaction(const Transaction& tx, unsigned int shardId,
+                                   Json::Value& retValue);
 
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
@@ -99,8 +94,7 @@ class LookupServer : public Server,
                                          Json::Value& response) {
     response = CreateTransaction(
         request[0u], m_mediator.m_lookup->GetShardPeers().size(),
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
-        m_createTransactionTarget);
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice());
   }
   inline virtual void GetTransactionI(const Json::Value& request,
                                       Json::Value& response) {
@@ -301,8 +295,7 @@ class LookupServer : public Server,
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
-                                const uint128_t& gasPrice,
-                                const CreateTransactionTargetFunc& targetFunc);
+                                const uint128_t& gasPrice);
   Json::Value GetStateProof(const std::string& address,
                             const Json::Value& request,
                             const uint64_t& blockNum);

@@ -160,6 +160,20 @@ class Transaction : public SerializableDataBlock {
   static unsigned int GetShardIndex(const Address& fromAddr,
                                     unsigned int numShards);
 
+  bool isContractCreation() const {
+    return !GetCode().empty() && IsNullAddress(GetToAddr());
+  }
+
+  bool isContractCall() const {
+    return !GetData().empty() && !IsNullAddress(GetToAddr()) &&
+           GetCode().empty();
+  }
+
+  bool isNonContract() const {
+    return GetData().empty() && !IsNullAddress(GetToAddr()) &&
+           GetCode().empty();
+  }
+
   enum ContractType {
     NON_CONTRACT = 0,
     CONTRACT_CREATION,
@@ -168,17 +182,15 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    if (!tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    if (tx.isContractCall()) {
       return CONTRACT_CALL;
     }
 
-    if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
+    if (tx.isContractCreation()) {
       return CONTRACT_CREATION;
     }
 
-    if (tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    if (tx.isNonContract()) {
       return NON_CONTRACT;
     }
 

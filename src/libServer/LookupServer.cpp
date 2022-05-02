@@ -423,8 +423,6 @@ bool LookupServer::StartCollectorThread() {
   return true;
 }
 
-void LookupServer::TxnBasicChecks([[gnu::unused]] const TxDetails& tx) {}
-
 void LookupServer::CheckChainId(const TxDetails& tx) {
   if (DataConversion::UnpackA(tx.tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -480,42 +478,65 @@ void LookupServer::CheckTxMisc(const TxDetails& tx) {
 
 void LookupServer::CheckContractCall(const TxDetails& tx) {
   if (Transaction::GetTransactionType(tx.tx) ==
-          Transaction::ContractType::CONTRACT_CALL &&
-      (tx.tx.GetGasLimit() <
-       max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.tx.GetData().size())))) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
-                               ") lower than minimum for invoking contract (" +
-                               to_string(CONTRACT_INVOKE_GAS) + ")");
+      Transaction::ContractType::CONTRACT_CALL) {
+    if (!ENABLE_SC) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+    }
+
+    if (!tx.recipient.is_initialized()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
+    } else if (!tx.recipient->isContract()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Non - contract address called");
+    }
+
+    if (tx.tx.GetGasLimit() <
+        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.tx.GetData().size()))) {
+      throw JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMETER,
+          "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
+              ") lower than minimum for invoking contract (" +
+              to_string(CONTRACT_INVOKE_GAS) + ")");
+    }
   }
 }
 
 void LookupServer::CheckContractCreation(const TxDetails& tx) {
   if (Transaction::GetTransactionType(tx.tx) ==
-          Transaction::ContractType::CONTRACT_CREATION &&
-      (tx.tx.GetGasLimit() <
-       max(CONTRACT_CREATE_GAS,
-           (unsigned int)(tx.tx.GetCode().size() + tx.tx.GetData().size())))) {
-    throw JsonRpcException(
-        ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
-            ") lower than minimum for creating contract (" +
-            to_string(max(CONTRACT_CREATE_GAS,
-                          (unsigned int)(tx.tx.GetCode().size() +
-                                         tx.tx.GetData().size()))) +
-            ")");
+      Transaction::ContractType::CONTRACT_CREATION) {
+    if (!ENABLE_SC) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+    }
+
+    if (tx.tx.GetGasLimit() <
+        max(CONTRACT_CREATE_GAS,
+            (unsigned int)(tx.tx.GetCode().size() + tx.tx.GetData().size()))) {
+      throw JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMETER,
+          "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
+              ") lower than minimum for creating contract (" +
+              to_string(max(CONTRACT_CREATE_GAS,
+                            (unsigned int)(tx.tx.GetCode().size() +
+                                           tx.tx.GetData().size()))) +
+              ")");
+    }
   }
 }
 
 void LookupServer::CheckNonContract(const TxDetails& tx) {
   if (Transaction::GetTransactionType(tx.tx) ==
-          Transaction::ContractType::NON_CONTRACT &&
-      tx.tx.GetGasLimit() < NORMAL_TRAN_GAS) {
-    throw JsonRpcException(
-        ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
-            ") lower than minimum for payment transaction (" +
-            to_string(NORMAL_TRAN_GAS) + ")");
+      Transaction::ContractType::NON_CONTRACT) {
+    if (tx.tx.GetGasLimit() < NORMAL_TRAN_GAS) {
+      throw JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMETER,
+          "Gas limit (" + to_string(tx.tx.GetGasLimit()) +
+              ") lower than minimum for payment transaction (" +
+              to_string(NORMAL_TRAN_GAS) + ")");
+    }
+    if (tx.recipient.is_initialized() && tx.recipient->isContract()) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "Contract account won't accept normal txn");
+    }
   }
 }
 
@@ -562,7 +583,7 @@ void LookupServer::CheckMicroblockGasLimit(const TxDetails& tx) {
   }
 }
 
-bool LookupServer::ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) {
+void LookupServer::ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) {
   CheckChainId(tx);
   CheckTxVersion(tx);
   CheckTxCodeSize(tx);
@@ -575,8 +596,6 @@ bool LookupServer::ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) {
   CheckNonce(tx);
   CheckGasAccounting(tx);
   CheckMicroblockGasLimit(tx);
-
-  return true;
 }
 
 void LookupServer::PreTxnChecks() {
@@ -590,80 +609,51 @@ void LookupServer::PreTxnChecks() {
   }
 }
 
-void LookupServer::CreateNonContractTransaction(const TxDetails& tx, int,
-                                                Json::Value* ret,
-                                                unsigned int* mapIndex) {
-  if (ARCHIVAL_LOOKUP) {
-    *mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-  }
-
-  if (tx.recipient.is_initialized() && tx.recipient->isContract()) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Contract account won't accept normal txn");
-  }
-
-  (*ret)["Info"] = "Non-contract txn, sent to shard";
+bool LookupServer::DoCreateTransaction(const Transaction& tx,
+                                       unsigned int mapIndex,
+                                       [[gnu::unused]] Json::Value& retValue) {
+  return m_mediator.m_lookup->AddToTxnShardMap(tx, mapIndex);
 }
 
-void LookupServer::CreateContractCreationTransaction(const TxDetails& tx, int,
-                                                     Json::Value* ret,
-                                                     unsigned int* mapIndex) {
-  if (!ENABLE_SC) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+bool LookupServer::SendToDS(const Transaction& tx, unsigned int num_shards) {
+  if (tx.GetPriority()) {
+    return true;
   }
-  if (ARCHIVAL_LOOKUP) {
-    *mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+  if (m_mediator.m_lookup->m_sendAllToDS) {
+    return true;
   }
-  (*ret)["Info"] = "Contract Creation txn, sent to shard";
-  (*ret)["ContractAddress"] = Account::GetAddressForContract(
-                                  tx.tx.GetSenderAddr(), tx.tx.GetNonce() - 1)
-                                  .hex();
+  if (tx.isContractCall()) {
+    if (m_mediator.m_lookup->m_sendSCCallsToDS) {
+      return true;
+    }
+    if (Transaction::GetShardIndex(tx.GetToAddr(), num_shards) !=
+        Transaction::GetShardIndex(tx.GetSenderAddr(), num_shards)) {
+      return true;
+    }
+  }
+  return false;
 }
 
-void LookupServer::CreateContractCallTransaction(const TxDetails& tx,
-                                                 int num_shards,
-                                                 Json::Value* ret,
-                                                 unsigned int* mapIndex) {
-  if (!ENABLE_SC) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  }
-
-  if (!tx.recipient.is_initialized()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
-  } else if (!tx.recipient->isContract()) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                           "Non - contract address called");
-  }
-
-  bool sendToDs = m_mediator.m_lookup->m_sendSCCallsToDS || tx.tx.GetPriority();
-  if ((Transaction::GetShardIndex(tx.tx.GetToAddr(), num_shards) ==
-       Transaction::GetShardIndex(tx.tx.GetSenderAddr(), num_shards)) &&
-      !sendToDs) {
-    if (tx.tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding shard maximum limit");
-    }
+unsigned int LookupServer::FindMapIndex(const Transaction& tx,
+                                        unsigned int num_shards) {
+  if (SendToDS(tx, num_shards)) {
     if (ARCHIVAL_LOOKUP) {
-      *mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
-    (*ret)["Info"] = "Contract Txn, Shards Match of the sender and receiver";
-  } else {
-    if (tx.tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding ds maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      *mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      return SEND_TYPE::ARCHIVAL_SEND_DS;
     } else {
-      *mapIndex = num_shards;
+      return num_shards;
     }
-    (*ret)["Info"] = "Contract Txn, Sent To Ds";
+  } else {
+    if (ARCHIVAL_LOOKUP) {
+      return SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    } else {
+      return Transaction::GetShardIndex(tx.GetSenderAddr(), num_shards);
+    }
   }
 }
 
-Json::Value LookupServer::CreateTransaction(
-    const Json::Value& _json, const unsigned int num_shards,
-    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
+Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
+                                            unsigned int num_shards,
+                                            const uint128_t& gasPrice) {
   LOG_MARKER();
   PreTxnChecks();  // Will throw if some checks fail.
   try {
@@ -681,9 +671,8 @@ Json::Value LookupServer::CreateTransaction(
         return AccountStore::GetInstance().GetPrimaryWriteAccess();
       });
 
-      // Make a local copy of accounts so that we can release the mutex
-      // and never take it back. Account should be a relatively cheap structure
-      // to copy.
+      // Make a local copy of accounts so that we can release the mutex ASAP.
+      // Account should be a relatively cheap structure to copy.
       auto sender =
           AccountStore::GetInstance().GetAccount(tx.tx.GetSenderAddr(), true);
       if (sender != nullptr) tx.sender = *sender;
@@ -693,25 +682,37 @@ Json::Value LookupServer::CreateTransaction(
       if (recipient != nullptr) tx.recipient = *recipient;
     }
 
-    if (!ValidateTxn(tx, gasPrice)) {
-      return Json::nullValue;
-    }
+    ValidateTxn(tx, gasPrice);  // Will throw if checks fail.
 
-    // Will throw if checks fail.
-    TxnBasicChecks(tx);
+    Json::Value retValue(Json::objectValue);
 
-    Json::Value ret;
-    unsigned int mapIndex =
-        Transaction::GetShardIndex(tx.tx.GetSenderAddr(), num_shards);
     switch (Transaction::GetTransactionType(tx.tx)) {
       case Transaction::ContractType::NON_CONTRACT:
-        CreateNonContractTransaction(tx, num_shards, &ret, &mapIndex);
+        retValue["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
-        CreateContractCreationTransaction(tx, num_shards, &ret, &mapIndex);
+        retValue["Info"] = "Contract Creation txn, sent to shard";
+        retValue["ContractAddress"] =
+            Account::GetAddressForContract(tx.tx.GetSenderAddr(),
+                                           tx.sender->GetNonce() - 1)
+                .hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL:
-        CreateContractCallTransaction(tx, num_shards, &ret, &mapIndex);
+        if (SendToDS(tx.tx, num_shards)) {
+          if (tx.tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(RPC_INVALID_PARAMETER,
+                                   "txn gas limit exceeding ds maximum limit");
+          }
+          retValue["Info"] = "Contract Txn, Sent To Ds";
+        } else {
+          if (tx.tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(
+                RPC_INVALID_PARAMETER,
+                "txn gas limit exceeding shard maximum limit");
+          }
+          retValue["Info"] =
+              "Contract Txn, Shards Match of the sender and receiver";
+        }
         break;
       case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -720,20 +721,15 @@ Json::Value LookupServer::CreateTransaction(
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
-    if (m_mediator.m_lookup->m_sendAllToDS) {
-      if (ARCHIVAL_LOOKUP) {
-        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-      } else {
-        mapIndex = num_shards;
-      }
-    }
-    if (!targetFunc(tx.tx, mapIndex)) {
+
+    if (!DoCreateTransaction(tx.tx, FindMapIndex(tx.tx, num_shards),
+                             retValue)) {
       throw JsonRpcException(RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-    ret["TranID"] = tx.tx.GetTranID().hex();
-    return ret;
+    retValue["TranID"] = tx.tx.GetTranID().hex();
+    return retValue;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
