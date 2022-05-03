@@ -694,7 +694,7 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
         retValue["Info"] = "Contract Creation txn, sent to shard";
         retValue["ContractAddress"] =
             Account::GetAddressForContract(tx.tx.GetSenderAddr(),
-                                           tx.sender->GetNonce() - 1)
+                                           tx.tx.GetNonce() - 1)
                 .hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL:
