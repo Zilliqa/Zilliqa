@@ -477,8 +477,7 @@ void LookupServer::CheckTxMisc(const TxDetails& tx) {
 }
 
 void LookupServer::CheckContractCall(const TxDetails& tx) {
-  if (Transaction::GetTransactionType(tx.tx) ==
-      Transaction::ContractType::CONTRACT_CALL) {
+  if (tx.tx.isContractCall()) {
     if (!ENABLE_SC) {
       throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
     }
@@ -502,8 +501,7 @@ void LookupServer::CheckContractCall(const TxDetails& tx) {
 }
 
 void LookupServer::CheckContractCreation(const TxDetails& tx) {
-  if (Transaction::GetTransactionType(tx.tx) ==
-      Transaction::ContractType::CONTRACT_CREATION) {
+  if (tx.tx.isContractCreation()) {
     if (!ENABLE_SC) {
       throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
     }
@@ -524,8 +522,7 @@ void LookupServer::CheckContractCreation(const TxDetails& tx) {
 }
 
 void LookupServer::CheckNonContract(const TxDetails& tx) {
-  if (Transaction::GetTransactionType(tx.tx) ==
-      Transaction::ContractType::NON_CONTRACT) {
+  if (tx.tx.isNonContract()) {
     if (tx.tx.GetGasLimit() < NORMAL_TRAN_GAS) {
       throw JsonRpcException(
           ServerBase::RPC_INVALID_PARAMETER,
@@ -673,12 +670,12 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
 
       // Make a local copy of accounts so that we can release the mutex ASAP.
       // Account should be a relatively cheap structure to copy.
-      auto sender =
-          AccountStore::GetInstance().GetAccount(tx.tx.GetSenderAddr(), true);
+      auto sender = AccountStore::GetInstance().GetAccount(
+          tx.tx.GetSenderAddr(), ResetRootForGetAccount());
       if (sender != nullptr) tx.sender = *sender;
 
-      auto recipient =
-          AccountStore::GetInstance().GetAccount(tx.tx.GetToAddr(), true);
+      auto recipient = AccountStore::GetInstance().GetAccount(
+          tx.tx.GetToAddr(), ResetRootForGetAccount());
       if (recipient != nullptr) tx.recipient = *recipient;
     }
 

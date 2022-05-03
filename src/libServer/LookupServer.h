@@ -51,6 +51,9 @@ class LookupServer : public Server,
     boost::optional<Account> recipient;
   };
 
+  // Whether we should reset root when getting an account by its address.
+  virtual bool ResetRootForGetAccount() const { return true; }
+
   // Various checks before the transaction can be forwarded for handling.
   void CheckTxCodeSize(const TxDetails& tx);
   void CheckChainId(const TxDetails& tx);

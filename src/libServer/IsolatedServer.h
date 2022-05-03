@@ -40,6 +40,7 @@ class IsolatedServer : public LookupServer,
   bool TargetFunction(const Transaction& tx, uint32_t shardId);
 
  protected:
+  bool ResetRootForGetAccount() const override { return false; }
   void PreTxnChecks() override;
   void ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) override;
   bool DoCreateTransaction(const Transaction& tx, unsigned int shardId,
