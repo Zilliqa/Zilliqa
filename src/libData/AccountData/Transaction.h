@@ -62,6 +62,7 @@ struct TransactionCoreInfo {
 class Transaction : public SerializableDataBlock {
   TxnHash m_tranID;
   TransactionCoreInfo m_coreInfo;
+  bool m_priority{};
   Signature m_signature;
 
  public:
@@ -73,25 +74,26 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const PairOfKey& senderKeyPair,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code = {},
-              const bytes& data = {});
+              const bytes& data = {}, bool priority = false);
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
               const uint64_t& nonce, const Address& toAddr,
               const PubKey& senderPubKey, const uint128_t& amount,
               const uint128_t& gasPrice, const uint64_t& gasLimit,
-              const bytes& code, const bytes& data, const Signature& signature);
+              const bytes& code, const bytes& data, const Signature& signature,
+              bool priority = false);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code, const bytes& data,
-              const Signature& signature);
+              const Signature& signature, bool priority = false);
 
   /// Constructor with core information.
   Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,
-              const Signature& signature);
+              const Signature& signature, bool priority = false);
 
   /// Constructor for loading transaction information from a byte stream.
   Transaction(const bytes& src, unsigned int offset);
@@ -143,6 +145,9 @@ class Transaction : public SerializableDataBlock {
   /// Returns the data.
   const bytes& GetData() const;
 
+  /// Returns the priority.
+  bool GetPriority() const;
+
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
 
@@ -155,6 +160,20 @@ class Transaction : public SerializableDataBlock {
   static unsigned int GetShardIndex(const Address& fromAddr,
                                     unsigned int numShards);
 
+  bool isContractCreation() const {
+    return !GetCode().empty() && IsNullAddress(GetToAddr());
+  }
+
+  bool isContractCall() const {
+    return !GetData().empty() && !IsNullAddress(GetToAddr()) &&
+           GetCode().empty();
+  }
+
+  bool isNonContract() const {
+    return GetData().empty() && !IsNullAddress(GetToAddr()) &&
+           GetCode().empty();
+  }
+
   enum ContractType {
     NON_CONTRACT = 0,
     CONTRACT_CREATION,
@@ -163,17 +182,15 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    if (!tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    if (tx.isContractCall()) {
       return CONTRACT_CALL;
     }
 
-    if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
+    if (tx.isContractCreation()) {
       return CONTRACT_CREATION;
     }
 
-    if (tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    if (tx.isNonContract()) {
       return NON_CONTRACT;
     }
 

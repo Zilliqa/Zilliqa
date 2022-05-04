@@ -37,6 +37,17 @@ class IsolatedServer : public LookupServer,
   bool StartBlocknumIncrement();
   TxBlock GenerateTxBlock();
   void PostTxBlock();
+  bool TargetFunction(const Transaction& tx, uint32_t shardId);
+
+ protected:
+  bool ResetRootForGetAccount() const override { return false; }
+  void PreTxnChecks() override;
+  void ValidateTxn(const TxDetails& tx, const uint128_t& gasPrice) override;
+  bool DoCreateTransaction(const Transaction& tx, unsigned int shardId,
+                           Json::Value& retValue) override;
+
+  void TxnBasicChecks(
+      const TxDetails& tx);  // Some checks done only in the Isolated server.
 
  public:
   std::string m_uuid;
@@ -92,8 +103,6 @@ class IsolatedServer : public LookupServer,
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
-  bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
-                   const Account* sender, const uint128_t& gasPrice);
   bool RetrieveHistory(const bool& nonisoload);
 };
 
