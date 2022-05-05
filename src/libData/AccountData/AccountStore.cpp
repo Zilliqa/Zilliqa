@@ -29,6 +29,8 @@
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
+#include "EvmClient.h"
+
 using namespace std;
 using namespace dev;
 using namespace boost::multiprecision;
@@ -47,7 +49,12 @@ AccountStore::AccountStore() : m_externalWriters{0} {
         SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
-    ScillaClient::GetInstance().Init();
+
+    if (ENABLE_EVM)
+      EvmClient::GetInstance().Init();
+    else
+      ScillaClient::GetInstance().Init();
+
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {

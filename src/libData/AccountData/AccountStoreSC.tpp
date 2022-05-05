@@ -21,6 +21,7 @@
 
 #include "ScillaClient.h"
 
+#include "EvmClient.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
@@ -58,10 +59,15 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
     TransactionReceipt& receipt) {
+
   bool call_already_finished = false;
-  auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt,
-                &call_already_finished]() mutable -> void {
+
+  /* Scilla Lambda*/
+
+
+  auto scillaFunc = [this, &interprinterPrint, &invoke_type, &version,
+                     &is_library, &available_gas, &balance, &ret, &receipt,
+                     &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
@@ -97,7 +103,37 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     call_already_finished = true;
     cv_callContract.notify_all();
   };
-  DetachedFunction(1, func2);
+
+  /* Evm Lambda*/
+
+  auto evmFunc = [this, &interprinterPrint, &invoke_type, &version, &is_library,
+                  &available_gas, &balance, &ret, &receipt,
+                  &call_already_finished]() mutable -> void {
+    switch (invoke_type) {
+      case RUNNER_CALL:
+        if (!EvmClient::GetInstance().CallRunner(
+                version,
+                ScillaUtils::GetCallContractJson(
+                    m_root_w_version, available_gas, balance, is_library),
+                interprinterPrint)) {
+        }
+        break;
+      case CHECKER:
+        break;
+      case RUNNER_CREATE:
+        break;
+      case DISAMBIGUATE:
+        break;
+    }
+    call_already_finished = true;
+    cv_callContract.notify_all();
+  };
+  /* Here if EVM_ENABLE is true we will pass it off to EVM */
+  if (not ENABLE_EVM) {
+    DetachedFunction(1, scillaFunc);
+  } else {
+    DetachedFunction(1, evmFunc);
+  }
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);

@@ -4,7 +4,7 @@
     <general>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
         <ENABLE_DO_REJOIN>false</ENABLE_DO_REJOIN>
-        <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
+        <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
         <NETWORK_ID>3</NETWORK_ID>
@@ -199,6 +199,11 @@
         <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
+
+        <ENABLE_EVM>true</ENABLE_EVM>
+        <EVM_ROOT>/home/steve/evm-ds</EVM_ROOT>
+        <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
+        <EVM_SERVER_BINARY>target/release/evm-ds</EVM_SERVER_BINARY>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -291,7 +296,7 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/scilla</SCILLA_ROOT>
+        <SCILLA_ROOT>scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
@@ -306,7 +311,7 @@
         <CONTRACT_FILE_EXTENSION>.scilla</CONTRACT_FILE_EXTENSION>
         <LIBRARY_CODE_EXTENSION>.scillib</LIBRARY_CODE_EXTENSION>
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
-        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
+        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
         <LOG_SC>false</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>

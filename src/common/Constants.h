@@ -312,6 +312,13 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int LOOKUP_RPC_PORT;
 extern const unsigned int STAKING_RPC_PORT;
 extern const unsigned int STATUS_RPC_PORT;
+// EVM
+
+extern const bool ENABLE_EVM;
+extern const std::string EVM_ROOT;
+extern const std::string EVM_SERVER_SOCKET_PATH;
+extern const std::string EVM_SERVER_BINARY;
+
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
 extern const bool ENABLE_STATUS_RPC;
@@ -319,6 +326,8 @@ extern const unsigned int NUM_SHARD_PEER_TO_REVEAL;
 extern const std::string SCILLA_IPC_SOCKET_PATH;
 extern const std::string SCILLA_SERVER_SOCKET_PATH;
 extern const std::string SCILLA_SERVER_BINARY;
+
+
 extern bool ENABLE_WEBSOCKET;
 extern const unsigned int WEBSOCKET_PORT;
 extern const bool ENABLE_GETTXNBODIESFORTXBLOCK;
@@ -509,5 +518,8 @@ extern const std::string UPPER_SEED_DNS;
 extern const std::string MULTIPLIER_DNS;
 
 extern const unsigned int DEFAULT_SEED_PORT;
+
+
+
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

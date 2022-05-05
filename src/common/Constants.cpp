@@ -409,6 +409,7 @@ const unsigned int STAKING_RPC_PORT{
     ReadConstantNumeric("STAKING_RPC_PORT", "node.jsonrpc.")};
 const unsigned int STATUS_RPC_PORT{
     ReadConstantNumeric("STATUS_RPC_PORT", "node.jsonrpc.")};
+
 const std::string IP_TO_BIND{ReadConstantString("IP_TO_BIND", "node.jsonrpc.")};
 const bool ENABLE_STAKING_RPC{
     ReadConstantString("ENABLE_STAKING_RPC", "node.jsonrpc.") == "true"};
@@ -424,6 +425,7 @@ const std::string SCILLA_SERVER_BINARY{
     ReadConstantString("SCILLA_SERVER_BINARY", "node.jsonrpc.")};
 bool ENABLE_WEBSOCKET{ReadConstantString("ENABLE_WEBSOCKET", "node.jsonrpc.") ==
                       "true"};
+
 const unsigned int WEBSOCKET_PORT{
     ReadConstantNumeric("WEBSOCKET_PORT", "node.jsonrpc.")};
 const bool ENABLE_GETTXNBODIESFORTXBLOCK{
@@ -768,3 +770,13 @@ const string MULTIPLIER_DNS{
 
 const unsigned int DEFAULT_SEED_PORT{
     ReadConstantNumeric("default_seed_port", "node.node_discovery.")};
+
+const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") ==
+                     "false"};
+
+const std::string EVM_SERVER_SOCKET_PATH{
+    ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};
+const std::string EVM_SERVER_BINARY{
+    ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
+const std::string EVM_ROOT{
+    ReadConstantString("EVM_ROOT", "node.jsonrpc.")};
