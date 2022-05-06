@@ -20,7 +20,6 @@
 #include <chrono>
 
 #include "ScillaClient.h"
-
 #include "EvmClient.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
@@ -28,6 +27,7 @@
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/SysCommand.h"
 
 // 5mb
@@ -53,6 +53,10 @@ void AccountStoreSC<MAP>::Init() {
   boost::filesystem::create_directories(EXTLIB_FOLDER);
 }
 
+
+/* This code has been quickly hacked ny Stephen to get something through to EVM, this will in no
+ * way stay ion this form, maybe just a few days , maybe expand the invocation type to express where its executed */
+
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
@@ -63,7 +67,6 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   bool call_already_finished = false;
 
   /* Scilla Lambda*/
-
 
   auto scillaFunc = [this, &interprinterPrint, &invoke_type, &version,
                      &is_library, &available_gas, &balance, &ret, &receipt,
@@ -110,29 +113,45 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                   &available_gas, &balance, &ret, &receipt,
                   &call_already_finished]() mutable -> void {
     switch (invoke_type) {
+      case CHECKER:
+        if (!EvmClient::GetInstance().CallChecker(
+                version,
+                EvmUtils::GetContractCheckerJson(m_root_w_version,
+                                                    is_library, available_gas),
+                interprinterPrint)) {
+        }
+        break;
+      case RUNNER_CREATE:
+        if (!EvmClient::GetInstance().CallRunner(
+                version,
+                EvmUtils::GetCreateContractJson(m_root_w_version, is_library,
+                                                   available_gas, balance),
+                interprinterPrint)) {
+        }
+        break;
       case RUNNER_CALL:
         if (!EvmClient::GetInstance().CallRunner(
                 version,
-                ScillaUtils::GetCallContractJson(
+                EvmUtils::GetCallContractJson(
                     m_root_w_version, available_gas, balance, is_library),
                 interprinterPrint)) {
         }
         break;
-      case CHECKER:
-        break;
-      case RUNNER_CREATE:
-        break;
       case DISAMBIGUATE:
+        if (!EvmClient::GetInstance().CallDisambiguate(
+                version, EvmUtils::GetDisambiguateJson(),
+                interprinterPrint)) {
+        }
         break;
     }
     call_already_finished = true;
     cv_callContract.notify_all();
   };
   /* Here if EVM_ENABLE is true we will pass it off to EVM */
-  if (not ENABLE_EVM) {
-    DetachedFunction(1, scillaFunc);
-  } else {
+  if (ENABLE_EVM == true) {
     DetachedFunction(1, evmFunc);
+  } else {
+    DetachedFunction(1, scillaFunc);
   }
 
   {

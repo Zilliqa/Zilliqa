@@ -637,6 +637,9 @@ const string EXTLIB_FOLDER{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
+const bool ENABLE_EVM_MULTI_VERSION{
+    ReadConstantString("ENABLE_EVM_MULTI_VERSION", "node.smart_contract.") ==
+    "true"};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
 const bool DISABLE_SCILLA_LIB{
@@ -771,8 +774,7 @@ const string MULTIPLIER_DNS{
 const unsigned int DEFAULT_SEED_PORT{
     ReadConstantNumeric("default_seed_port", "node.node_discovery.")};
 
-const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") ==
-                     "false"};
+const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") == "true"};
 
 const std::string EVM_SERVER_SOCKET_PATH{
     ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};

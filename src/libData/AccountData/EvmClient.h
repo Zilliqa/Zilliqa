@@ -14,30 +14,35 @@
 #include "common/Constants.h"
 
 class EvmClient {
-  std::shared_ptr<jsonrpc::Client>                      m_client;
-  std::shared_ptr<jsonrpc::UnixDomainSocketClient>      m_connector;
-  bool                                                  m_initialised = {false};
+
+ public:
+   static EvmClient& GetInstance() {
+     static EvmClient evmClient;
+     return evmClient;
+   }
+
+   void Init();
+
+   bool CheckClient(uint32_t version,
+                    __attribute__((unused)) bool enforce = false);
+
+   bool CallChecker(uint32_t version, const Json::Value& _json,
+                    std::string& result, uint32_t counter = MAXRETRYCONN);
+   bool CallRunner(uint32_t version, const Json::Value& _json,
+                   std::string& result, uint32_t counter = MAXRETRYCONN);
+   bool CallDisambiguate(uint32_t version, const Json::Value& _json,
+                         std::string& result, uint32_t counter = MAXRETRYCONN);
+ private:
+
+  EvmClient(){}
+  virtual ~EvmClient(){}
+  bool OpenServer(uint32_t version);
+
+  std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
+  std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>> m_connectors;
 
   std::mutex m_mutexMain;
 
-  EvmClient(){}
-
- public:
-  virtual ~EvmClient(){}
-
- private:
-
- public:
-  static EvmClient& GetInstance() {
-    static EvmClient evmClient;
-    return evmClient;
-  }
-
-  void Init();
-
-  bool CallRunner(uint32_t version, const Json::Value& _json,
-                  std::string& result,
-                  __attribute__((unused)) uint32_t counter = MAXRETRYCONN);
 };
 
 #endif  // ZILLIQA_EVMCLIENT_H

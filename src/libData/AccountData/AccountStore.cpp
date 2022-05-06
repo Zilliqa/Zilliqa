@@ -29,6 +29,7 @@
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
+#include "ScillaClient.h"
 #include "EvmClient.h"
 
 using namespace std;
@@ -50,10 +51,14 @@ AccountStore::AccountStore() : m_externalWriters{0} {
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 
-    if (ENABLE_EVM)
+
+    // Ininitialise the ScillaClient
+    ScillaClient::GetInstance().Init();
+    // Initialise EVM if enabled
+    if (ENABLE_EVM) {
+      LOG_GENERAL(INFO, "EVM enabled");
       EvmClient::GetInstance().Init();
-    else
-      ScillaClient::GetInstance().Init();
+    }
 
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
