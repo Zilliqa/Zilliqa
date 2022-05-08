@@ -91,7 +91,7 @@ class AccountStoreSC : public AccountStoreBase {
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;
   std::condition_variable cv_callContract;
-  std::atomic<bool> m_txnProcessTimeout;
+  std::atomic<bool> m_txnProcessTimeout{};
 
   /// Scilla IPC server
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
