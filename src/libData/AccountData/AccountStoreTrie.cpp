@@ -261,6 +261,7 @@ void AccountStoreTrie::PrintTrie() {
       return;
     }
 
-    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << account);
+    LOG_GENERAL(INFO,
+                "Address: " << address.hex() << " AccountBase: " << account);
   }
 }

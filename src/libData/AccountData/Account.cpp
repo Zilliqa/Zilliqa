@@ -81,12 +81,15 @@ bool AccountBase::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-void Account::SetVersion(const uint32_t& version) { m_accountBase.m_version = version; }
+void Account::SetVersion(const uint32_t& version) {
+  m_accountBase.m_version = version;
+}
 
 const uint32_t& Account::GetVersion() const { return m_accountBase.m_version; }
 
 bool Account::IncreaseBalance(const uint128_t& delta) {
-  return SafeMath<uint128_t>::add(m_accountBase.m_balance, delta, m_accountBase.m_balance);
+  return SafeMath<uint128_t>::add(m_accountBase.m_balance, delta,
+                                  m_accountBase.m_balance);
 }
 
 bool Account::DecreaseBalance(const uint128_t& delta) {
@@ -94,7 +97,8 @@ bool Account::DecreaseBalance(const uint128_t& delta) {
     return false;
   }
 
-  return SafeMath<uint128_t>::sub(m_accountBase.m_balance, delta, m_accountBase.m_balance);
+  return SafeMath<uint128_t>::sub(m_accountBase.m_balance, delta,
+                                  m_accountBase.m_balance);
 }
 
 bool Account::ChangeBalance(const int256_t& delta) {
@@ -102,16 +106,20 @@ bool Account::ChangeBalance(const int256_t& delta) {
                       : DecreaseBalance(uint128_t(-delta));
 }
 
-void Account::SetBalance(const uint128_t& balance) { m_accountBase.m_balance = balance; }
+void Account::SetBalance(const uint128_t& balance) {
+  m_accountBase.m_balance = balance;
+}
 
 const uint128_t& Account::GetBalance() const { return m_accountBase.m_balance; }
 
 bool Account::IncreaseNonce() {
-  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, 1, m_accountBase.m_nonce);
+  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, 1,
+                                 m_accountBase.m_nonce);
 }
 
 bool Account::IncreaseNonceBy(const uint64_t& nonceDelta) {
-  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, nonceDelta, m_accountBase.m_nonce);
+  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, nonceDelta,
+                                 m_accountBase.m_nonce);
 }
 
 void Account::SetNonce(const uint64_t& nonce) { m_accountBase.m_nonce = nonce; }
@@ -126,15 +134,21 @@ void Account::SetAddress(const Address& addr) {
 
 const Address& Account::GetAddress() const { return m_address; }
 
-void Account::SetStorageRoot(const h256& root) { m_accountBase.m_storageRoot = root; }
+void Account::SetStorageRoot(const h256& root) {
+  m_accountBase.m_storageRoot = root;
+}
 
-const dev::h256& Account::GetStorageRoot() const { return m_accountBase.m_storageRoot; }
+const dev::h256& Account::GetStorageRoot() const {
+  return m_accountBase.m_storageRoot;
+}
 
 void Account::SetCodeHash(const dev::h256& codeHash) {
   m_accountBase.m_codeHash = codeHash;
 }
 
-const dev::h256& Account::GetCodeHash() const { return m_accountBase.m_codeHash; }
+const dev::h256& Account::GetCodeHash() const {
+  return m_accountBase.m_codeHash;
+}
 
 bool Account::isContract() const {
   return (m_accountBase.m_codeHash != dev::h256() && !m_is_library);
@@ -171,8 +185,8 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   if (!SetImmutable(code, DataConversion::StringToCharArray(
-                                                            JSONUtils::GetInstance().convertJsontoStr(
-                                                                                                      m_initDataJson)))) {
+                              JSONUtils::GetInstance().convertJsontoStr(
+                                  m_initDataJson)))) {
     LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
@@ -377,8 +391,8 @@ bool Account::UpdateStates(const Address& addr,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
   ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, GetStorageRoot(), t_states, toDeleteIndices, m_accountBase.m_storageRoot, temp,
-      revertible);
+      addr, GetStorageRoot(), t_states, toDeleteIndices,
+      m_accountBase.m_storageRoot, temp, revertible);
 
   if (!m_address) {
     SetAddress(addr);

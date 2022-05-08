@@ -30,7 +30,6 @@
 
 // AccountBase is a POD type
 struct AccountBase : public SerializableDataBlock {
-
   uint32_t m_version{};
   uint128_t m_balance;
   uint64_t m_nonce{};
@@ -50,7 +49,6 @@ struct AccountBase : public SerializableDataBlock {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);
-
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
@@ -82,8 +80,7 @@ class Account : public SerializableDataBlock {
   bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                      bool& is_library, std::vector<Address>& extlibs);
 
-
-public:
+ public:
   Account() {}
 
   /// Constructor for loading account information from a byte stream.
@@ -202,8 +199,7 @@ public:
                                        const uint64_t& nonce);
 };
 
-inline std::ostream& operator<<(std::ostream& out,
-                                Account const& account) {
+inline std::ostream& operator<<(std::ostream& out, Account const& account) {
   out << account.GetBalance() << " " << account.GetNonce() << " "
       << account.GetStorageRoot() << " " << account.GetCodeHash();
   return out;
