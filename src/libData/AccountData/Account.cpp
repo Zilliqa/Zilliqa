@@ -201,6 +201,17 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
+bool Account::Deserialize(const string& src, unsigned int offset) {
+  bytes src_bytes(src.begin(), src.end());
+  // LOG_MARKER(
+  if (!Messenger::GetAccount(src_bytes, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
 bool Account::SerializeBase(bytes& dst, unsigned int offset) const {
   return m_accountBase.Serialize(dst, offset);
 }
