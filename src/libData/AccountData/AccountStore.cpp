@@ -22,8 +22,8 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/ScillaClient.h"
 #include "libMessage/Messenger.h"
-#include "libPersistence/ContractStorage.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"

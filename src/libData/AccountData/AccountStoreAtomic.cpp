@@ -15,16 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "libData/AccountData/AccountStoreSC.h"
 
 AccountStoreAtomic::AccountStoreAtomic(AccountStoreSC& parent)
     : m_parent(parent) {}
 
 Account* AccountStoreAtomic::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase::GetAccount(
-          address);
+  Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
     // LOG_GENERAL(INFO, "Got From Temp");
     return account;

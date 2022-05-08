@@ -18,9 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
+#include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/AccountStoreSC.h"
 #include "libData/DataStructures/TraceableDB.h"
-#include "depends/libTrie/TrieDB.h"
 
 class AccountStoreTrie : public AccountStoreSC {
  protected:

@@ -22,14 +22,11 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-
 AccountStoreBase::AccountStoreBase() {
   m_addressToAccount = std::make_shared<std::unordered_map<Address, Account>>();
 }
 
-void AccountStoreBase::Init() {
-  m_addressToAccount->clear();
-}
+void AccountStoreBase::Init() { m_addressToAccount->clear(); }
 
 bool AccountStoreBase::Serialize(bytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
@@ -51,9 +48,8 @@ bool AccountStoreBase::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-
 bool AccountStoreBase::Deserialize(const std::string& src,
-                                        unsigned int offset) {
+                                   unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -64,8 +60,8 @@ bool AccountStoreBase::Deserialize(const std::string& src,
 }
 
 bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
-                                           TransactionReceipt& receipt,
-                                           TxnStatus& error_code) {
+                                      TransactionReceipt& receipt,
+                                      TxnStatus& error_code) {
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
@@ -151,9 +147,9 @@ bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
 }
 
 bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
-                                               const uint64_t& gasUnit,
-                                               const uint128_t& gasPrice,
-                                               uint128_t& gasRefund) {
+                                          const uint64_t& gasUnit,
+                                          const uint128_t& gasPrice,
+                                          uint128_t& gasRefund) {
   uint128_t gasFee;
   if (!SafeMath<uint128_t>::mul(gasUnit, gasPrice, gasFee)) {
     LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
@@ -175,7 +171,7 @@ bool AccountStoreBase::IsAccountExist(const Address& address) {
 }
 
 bool AccountStoreBase::AddAccount(const Address& address,
-                                       const Account& account, bool toReplace) {
+                                  const Account& account, bool toReplace) {
   // LOG_MARKER();
   if (toReplace || !IsAccountExist(address)) {
     (*m_addressToAccount)[address] = account;
@@ -189,7 +185,7 @@ bool AccountStoreBase::AddAccount(const Address& address,
 }
 
 bool AccountStoreBase::AddAccount(const PubKey& pubKey,
-                                       const Account& account) {
+                                  const Account& account) {
   return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
@@ -213,7 +209,7 @@ size_t AccountStoreBase::GetNumOfAccounts() const {
 }
 
 bool AccountStoreBase::IncreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -233,9 +229,8 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
   return false;
 }
 
-
 bool AccountStoreBase::DecreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -257,9 +252,8 @@ bool AccountStoreBase::DecreaseBalance(const Address& address,
   return true;
 }
 
-bool AccountStoreBase::TransferBalance(const Address& from,
-                                            const Address& to,
-                                            const uint128_t& delta) {
+bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
+                                       const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {

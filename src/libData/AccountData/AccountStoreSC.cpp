@@ -116,11 +116,11 @@ void AccountStoreSC::InvokeInterpreter(
 }
 
 bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
-                                         const unsigned int& numShards,
-                                         const bool& isDS,
-                                         const Transaction& transaction,
-                                         TransactionReceipt& receipt,
-                                         TxnStatus& error_code) {
+                                    const unsigned int& numShards,
+                                    const bool& isDS,
+                                    const Transaction& transaction,
+                                    TransactionReceipt& receipt,
+                                    TxnStatus& error_code) {
   // LOG_MARKER();
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
@@ -161,8 +161,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
-      return AccountStoreBase::UpdateAccounts(transaction, receipt,
-                                                   error_code);
+      return AccountStoreBase::UpdateAccounts(transaction, receipt, error_code);
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
@@ -1044,9 +1043,9 @@ bool AccountStoreSC::ParseContractCheckerOutput(
 }
 
 bool AccountStoreSC::ParseCreateContract(uint64_t& gasRemained,
-                                              const std::string& runnerPrint,
-                                              TransactionReceipt& receipt,
-                                              bool is_library) {
+                                         const std::string& runnerPrint,
+                                         TransactionReceipt& receipt,
+                                         bool is_library) {
   Json::Value jsonOutput;
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
@@ -1055,9 +1054,9 @@ bool AccountStoreSC::ParseCreateContract(uint64_t& gasRemained,
                                        is_library);
 }
 
-bool AccountStoreSC::ParseCreateContractOutput(
-    Json::Value& jsonOutput, const std::string& runnerPrint,
-    TransactionReceipt& receipt) {
+bool AccountStoreSC::ParseCreateContractOutput(Json::Value& jsonOutput,
+                                               const std::string& runnerPrint,
+                                               TransactionReceipt& receipt) {
   // LOG_MARKER();
 
   if (LOG_SC) {
@@ -1079,9 +1078,10 @@ bool AccountStoreSC::ParseCreateContractOutput(
   return true;
 }
 
-bool AccountStoreSC::ParseCreateContractJsonOutput(
-    const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt, bool is_library) {
+bool AccountStoreSC::ParseCreateContractJsonOutput(const Json::Value& _json,
+                                                   uint64_t& gasRemained,
+                                                   TransactionReceipt& receipt,
+                                                   bool is_library) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -1135,10 +1135,10 @@ bool AccountStoreSC::ParseCreateContractJsonOutput(
 }
 
 bool AccountStoreSC::ParseCallContract(uint64_t& gasRemained,
-                                            const std::string& runnerPrint,
-                                            TransactionReceipt& receipt,
-                                            uint32_t tree_depth,
-                                            uint32_t scilla_version) {
+                                       const std::string& runnerPrint,
+                                       TransactionReceipt& receipt,
+                                       uint32_t tree_depth,
+                                       uint32_t scilla_version) {
   Json::Value jsonOutput;
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
@@ -1147,9 +1147,9 @@ bool AccountStoreSC::ParseCallContract(uint64_t& gasRemained,
                                      tree_depth, scilla_version);
 }
 
-bool AccountStoreSC::ParseCallContractOutput(
-    Json::Value& jsonOutput, const std::string& runnerPrint,
-    TransactionReceipt& receipt) {
+bool AccountStoreSC::ParseCallContractOutput(Json::Value& jsonOutput,
+                                             const std::string& runnerPrint,
+                                             TransactionReceipt& receipt) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -1178,10 +1178,11 @@ bool AccountStoreSC::ParseCallContractOutput(
   return true;
 }
 
-bool AccountStoreSC::ParseCallContractJsonOutput(
-    const Json::Value& _json, uint64_t& gasRemained,
-    TransactionReceipt& receipt, uint32_t tree_depth,
-    uint32_t pre_scilla_version) {
+bool AccountStoreSC::ParseCallContractJsonOutput(const Json::Value& _json,
+                                                 uint64_t& gasRemained,
+                                                 TransactionReceipt& receipt,
+                                                 uint32_t tree_depth,
+                                                 uint32_t pre_scilla_version) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -1528,8 +1529,8 @@ void AccountStoreSC::CleanStorageRootUpdateBuffer() {
 }
 
 bool AccountStoreSC::TransferBalanceAtomic(const Address& from,
-                                                const Address& to,
-                                                const uint128_t& delta) {
+                                           const Address& to,
+                                           const uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }

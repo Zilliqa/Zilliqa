@@ -55,8 +55,7 @@ Account* AccountStoreTrie::GetAccount(const Address& address) {
   return this->GetAccount(address, false);
 }
 
-Account* AccountStoreTrie::GetAccount(const Address& address,
-                                           bool resetRoot) {
+Account* AccountStoreTrie::GetAccount(const Address& address, bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
@@ -116,9 +115,8 @@ Account* AccountStoreTrie::GetAccount(const Address& address,
 }
 
 bool AccountStoreTrie::GetProof(const Address& address,
-                                     const dev::h256& rootHash,
-                                     Account& account,
-                                     std::set<std::string>& nodes) {
+                                const dev::h256& rootHash, Account& account,
+                                std::set<std::string>& nodes) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "not lookup node");
     return false;
@@ -172,7 +170,7 @@ bool AccountStoreTrie::GetProof(const Address& address,
 }
 
 bool AccountStoreTrie::UpdateStateTrie(const Address& address,
-                                            const Account& account) {
+                                       const Account& account) {
   bytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");

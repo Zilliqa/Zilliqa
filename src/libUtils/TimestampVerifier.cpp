@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "TimestampVerifier.h"
 #include "Logger.h"
+#include "SafeMath.h"
 #include "TimeUtils.h"
-#include "SafeMath.h"                          
 #include "common/Constants.h"
 
-bool VerifyTimestamp(const uint64_t& timestamp_in_microsec, const uint64_t& timeout_in_sec) {
+bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
+                     const uint64_t& timeout_in_sec) {
   uint64_t loBound, hiBound;
 
   loBound =
