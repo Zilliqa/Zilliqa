@@ -17,6 +17,7 @@
 #ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_
 
+#include <unordered_map>
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Account.h"
@@ -32,11 +33,10 @@ class MessengerAccountStoreTrie {
   // ============================================================================
   // Primitives
   // ============================================================================
-  template <class MAP>
   static bool SetAccountStoreTrie(
       bytes& dst, const unsigned int offset,
       const dev::GenericTrieDB<TraceableDB>& stateTrie,
-      const std::shared_ptr<MAP>& addressToAccount);
+      const std::shared_ptr<std::unordered_map<Address, Account>>& addressToAccount);
 };
 
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_

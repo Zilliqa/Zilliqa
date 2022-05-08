@@ -16,6 +16,7 @@
  */
 
 #include "MessengerAccountStoreTrie.h"
+#include <unordered_map>
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
@@ -30,17 +31,10 @@ bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
-template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
-    std::unordered_map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
-    const dev::GenericTrieDB<TraceableDB>& stateTrie,
-    const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-
-template <class MAP>
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     bytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
-    const shared_ptr<MAP>& addressToAccount) {
+    const shared_ptr<std::unordered_map<Address, Account>>& addressToAccount) {
   ProtoAccountStore result;
 
   for (const auto& i : stateTrie) {

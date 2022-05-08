@@ -18,41 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_
 #define ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_
 
-#include "Logger.h"
-#include "TimeUtils.h"
 #include "common/Constants.h"
 
-static bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
-                            const uint64_t& timeout_in_sec) {
-  uint64_t loBound, hiBound;
-
-  loBound =
-      get_time_as_int() >=
-              (SYS_TIMESTAMP_VARIANCE_IN_SECONDS + timeout_in_sec) * 1000000
-          ? get_time_as_int() -
-                (SYS_TIMESTAMP_VARIANCE_IN_SECONDS + CONSENSUS_OBJECT_TIMEOUT) *
-                    1000000
-          : 0;
-
-  if (!SafeMath<uint64_t>::add(get_time_as_int(),
-                               (SYS_TIMESTAMP_VARIANCE_IN_SECONDS)*1000000,
-                               hiBound)) {
-    hiBound = std::numeric_limits<uint64_t>::max();
-  }
-
-  if (!is_timestamp_in_range(timestamp_in_microsec, loBound, hiBound)) {
-    LOG_CHECK_FAIL("Timestamp",
-                   timestamp_in_microsec
-                       << "("
-                       << microsec_timestamp_to_readable(timestamp_in_microsec)
-                       << ")",
-                   loBound << "(" << microsec_timestamp_to_readable(loBound)
-                           << ") ~ " << hiBound << "("
-                           << microsec_timestamp_to_readable(hiBound) << ")");
-    return false;
-  }
-
-  return true;
-}
+bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
+                     const uint64_t& timeout_in_sec);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_TIMESTAMPVERIFIER_H_

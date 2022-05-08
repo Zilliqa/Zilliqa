@@ -34,6 +34,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
 

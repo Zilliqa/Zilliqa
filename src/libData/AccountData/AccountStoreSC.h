@@ -25,19 +25,18 @@
 #include <mutex>
 
 #include <libServer/ScillaIPCServer.h>
-#include "AccountStoreBase.h"
+#include "libData/AccountData/AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 
-template <class MAP>
+using MAP = std::unordered_map<Address, Account>;
+
 class AccountStoreSC;
 
-template <class MAP>
-class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
-  AccountStoreSC<MAP>& m_parent;
+class AccountStoreAtomic : public AccountStoreBase {
+  AccountStoreSC& m_parent;
 
  public:
-  AccountStoreAtomic(AccountStoreSC<MAP>& parent);
+  AccountStoreAtomic(AccountStoreSC& parent);
 
   Account* GetAccount(const Address& address) override;
 
@@ -47,11 +46,10 @@ class AccountStoreAtomic
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
-template <class MAP>
-class AccountStoreSC : public AccountStoreBase<MAP> {
+class AccountStoreSC : public AccountStoreBase {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
-  std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+  std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
@@ -241,8 +239,5 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
 };
-
-#include "AccountStoreAtomic.tpp"
-#include "AccountStoreSC.tpp"
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

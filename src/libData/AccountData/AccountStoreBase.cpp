@@ -17,22 +17,21 @@
 
 #include <type_traits>
 
+#include "libData/AccountData/AccountStoreBase.h"
 #include "libMessage/MessengerAccountStoreBase.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-template <class MAP>
-AccountStoreBase<MAP>::AccountStoreBase() {
-  m_addressToAccount = std::make_shared<MAP>();
+
+AccountStoreBase::AccountStoreBase() {
+  m_addressToAccount = std::make_shared<std::unordered_map<Address, Account>>();
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::Init() {
+void AccountStoreBase::Init() {
   m_addressToAccount->clear();
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
+bool AccountStoreBase::Serialize(bytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
@@ -42,8 +41,7 @@ bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
+bool AccountStoreBase::Deserialize(const bytes& src, unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -53,8 +51,8 @@ bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const std::string& src,
+
+bool AccountStoreBase::Deserialize(const std::string& src,
                                         unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
@@ -65,8 +63,7 @@ bool AccountStoreBase<MAP>::Deserialize(const std::string& src,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
+bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
                                            TransactionReceipt& receipt,
                                            TxnStatus& error_code) {
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
@@ -153,8 +150,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
+bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
                                                const uint64_t& gasUnit,
                                                const uint128_t& gasPrice,
                                                uint128_t& gasRefund) {
@@ -173,14 +169,12 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
+bool AccountStoreBase::IsAccountExist(const Address& address) {
   // LOG_MARKER();
   return (nullptr != GetAccount(address));
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::AddAccount(const Address& address,
+bool AccountStoreBase::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
   // LOG_MARKER();
   if (toReplace || !IsAccountExist(address)) {
@@ -194,21 +188,18 @@ bool AccountStoreBase<MAP>::AddAccount(const Address& address,
   return false;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
+bool AccountStoreBase::AddAccount(const PubKey& pubKey,
                                        const Account& account) {
   return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::RemoveAccount(const Address& address) {
+void AccountStoreBase::RemoveAccount(const Address& address) {
   if (IsAccountExist(address)) {
     m_addressToAccount->erase(address);
   }
 }
 
-template <class MAP>
-Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
+Account* AccountStoreBase::GetAccount(const Address& address) {
   auto it = m_addressToAccount->find(address);
   if (it != m_addressToAccount->end()) {
     return &it->second;
@@ -216,14 +207,12 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
   return nullptr;
 }
 
-template <class MAP>
-size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
+size_t AccountStoreBase::GetNumOfAccounts() const {
   // LOG_MARKER();
   return m_addressToAccount->size();
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
+bool AccountStoreBase::IncreaseBalance(const Address& address,
                                             const uint128_t& delta) {
   // LOG_MARKER();
 
@@ -244,8 +233,8 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
   return false;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
+
+bool AccountStoreBase::DecreaseBalance(const Address& address,
                                             const uint128_t& delta) {
   // LOG_MARKER();
 
@@ -268,8 +257,7 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
+bool AccountStoreBase::TransferBalance(const Address& from,
                                             const Address& to,
                                             const uint128_t& delta) {
   // LOG_MARKER();
@@ -287,8 +275,7 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
   return false;
 }
 
-template <class MAP>
-uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
+uint128_t AccountStoreBase::GetBalance(const Address& address) {
   // LOG_MARKER();
 
   const Account* account = GetAccount(address);
@@ -300,8 +287,7 @@ uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
   return 0;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
+bool AccountStoreBase::IncreaseNonce(const Address& address) {
   // LOG_MARKER();
 
   Account* account = GetAccount(address);
@@ -324,8 +310,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
   }
 }
 
-template <class MAP>
-uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
+uint64_t AccountStoreBase::GetNonce(const Address& address) {
   // LOG_MARKER();
 
   Account* account = GetAccount(address);
@@ -337,8 +322,7 @@ uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
   return 0;
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::PrintAccountState() {
+void AccountStoreBase::PrintAccountState() {
   LOG_MARKER();
   for (const auto& entry : *m_addressToAccount) {
     LOG_GENERAL(INFO, entry.first << " " << entry.second);

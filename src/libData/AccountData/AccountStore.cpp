@@ -20,7 +20,9 @@
 
 #include "AccountStore.h"
 #include "libCrypto/Sha2.h"
+#include "libData/AccountData/ScillaClient.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/ContractStorage.h"
 #include "libPersistence/BlockStorage.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -84,7 +86,7 @@ void AccountStore::InitSoft() {
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-  AccountStoreTrie<unordered_map<Address, Account>>::Init();
+  AccountStoreTrie::Init();
 
   m_externalWriters = 0;
 
@@ -133,8 +135,7 @@ AccountStore& AccountStore::GetInstance() {
 bool AccountStore::Serialize(bytes& src, unsigned int offset) {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(
-      src, offset);
+  return AccountStoreTrie::Serialize(src, offset);
 }
 
 bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {

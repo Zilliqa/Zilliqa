@@ -28,10 +28,9 @@
 #include "common/TxnStatus.h"
 #include "depends/common/FixedHash.h"
 
-template <class MAP>
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<MAP> m_addressToAccount;
+  std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
 
   AccountStoreBase();
 
@@ -81,7 +80,5 @@ class AccountStoreBase : public SerializableDataBlock {
 
   virtual void PrintAccountState();
 };
-
-#include "AccountStoreBase.tpp"
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_

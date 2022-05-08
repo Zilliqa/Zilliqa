@@ -38,7 +38,9 @@
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;

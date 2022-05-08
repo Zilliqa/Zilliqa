@@ -43,6 +43,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
