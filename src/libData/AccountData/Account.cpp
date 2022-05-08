@@ -81,42 +81,42 @@ bool AccountBase::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
+void Account::SetVersion(const uint32_t& version) { m_accountBase.m_version = version; }
 
-const uint32_t& AccountBase::GetVersion() const { return m_version; }
+const uint32_t& Account::GetVersion() const { return m_accountBase.m_version; }
 
-bool AccountBase::IncreaseBalance(const uint128_t& delta) {
-  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
+bool Account::IncreaseBalance(const uint128_t& delta) {
+  return SafeMath<uint128_t>::add(m_accountBase.m_balance, delta, m_accountBase.m_balance);
 }
 
-bool AccountBase::DecreaseBalance(const uint128_t& delta) {
-  if (m_balance < delta) {
+bool Account::DecreaseBalance(const uint128_t& delta) {
+  if (m_accountBase.m_balance < delta) {
     return false;
   }
 
-  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
+  return SafeMath<uint128_t>::sub(m_accountBase.m_balance, delta, m_accountBase.m_balance);
 }
 
-bool AccountBase::ChangeBalance(const int256_t& delta) {
+bool Account::ChangeBalance(const int256_t& delta) {
   return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
                       : DecreaseBalance(uint128_t(-delta));
 }
 
-void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
+void Account::SetBalance(const uint128_t& balance) { m_accountBase.m_balance = balance; }
 
-const uint128_t& AccountBase::GetBalance() const { return m_balance; }
+const uint128_t& Account::GetBalance() const { return m_accountBase.m_balance; }
 
-bool AccountBase::IncreaseNonce() {
-  return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
+bool Account::IncreaseNonce() {
+  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, 1, m_accountBase.m_nonce);
 }
 
-bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
-  return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
+bool Account::IncreaseNonceBy(const uint64_t& nonceDelta) {
+  return SafeMath<uint64_t>::add(m_accountBase.m_nonce, nonceDelta, m_accountBase.m_nonce);
 }
 
-void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
+void Account::SetNonce(const uint64_t& nonce) { m_accountBase.m_nonce = nonce; }
 
-const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
+const uint64_t& Account::GetNonce() const { return m_accountBase.m_nonce; }
 
 void Account::SetAddress(const Address& addr) {
   if (!m_address) {
@@ -126,22 +126,22 @@ void Account::SetAddress(const Address& addr) {
 
 const Address& Account::GetAddress() const { return m_address; }
 
-void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
+void Account::SetStorageRoot(const h256& root) { m_accountBase.m_storageRoot = root; }
 
-const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
+const dev::h256& Account::GetStorageRoot() const { return m_accountBase.m_storageRoot; }
 
-void AccountBase::SetCodeHash(const dev::h256& codeHash) {
-  m_codeHash = codeHash;
+void Account::SetCodeHash(const dev::h256& codeHash) {
+  m_accountBase.m_codeHash = codeHash;
 }
 
-const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
+const dev::h256& Account::GetCodeHash() const { return m_accountBase.m_codeHash; }
 
 bool Account::isContract() const {
-  return (m_codeHash != dev::h256() && !m_is_library);
+  return (m_accountBase.m_codeHash != dev::h256() && !m_is_library);
 }
 
 bool Account::IsLibrary() const {
-  return (m_codeHash != dev::h256() && m_is_library);
+  return (m_accountBase.m_codeHash != dev::h256() && m_is_library);
 }
 
 // =======================================
@@ -154,7 +154,7 @@ Account::Account(const bytes& src, unsigned int offset) {
 
 Account::Account(const uint128_t& balance, const uint64_t& nonce,
                  const uint32_t& version)
-    : AccountBase(balance, nonce, version) {}
+    : m_accountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const bytes& code, const bytes& initData,
                            const Address& addr, const uint64_t& blockNum) {
@@ -171,8 +171,8 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   }
 
   if (!SetImmutable(code, DataConversion::StringToCharArray(
-                              JSONUtils::GetInstance().convertJsontoStr(
-                                  m_initDataJson)))) {
+                                                            JSONUtils::GetInstance().convertJsontoStr(
+                                                                                                      m_initDataJson)))) {
     LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
@@ -202,13 +202,11 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
 }
 
 bool Account::SerializeBase(bytes& dst, unsigned int offset) const {
-  return AccountBase::Serialize(dst, offset);
+  return m_accountBase.Serialize(dst, offset);
 }
 
 bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
-  // LOG_MARKER();
-
-  return AccountBase::Deserialize(src, offset);
+  return m_accountBase.Deserialize(src, offset);
 }
 
 bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
@@ -368,7 +366,7 @@ bool Account::UpdateStates(const Address& addr,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
   ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-      addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
+      addr, GetStorageRoot(), t_states, toDeleteIndices, m_accountBase.m_storageRoot, temp,
       revertible);
 
   if (!m_address) {

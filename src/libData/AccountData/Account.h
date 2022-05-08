@@ -28,15 +28,15 @@
 #include "depends/libDatabase/OverlayDB.h"
 #pragma GCC diagnostic pop
 
-class AccountBase : public SerializableDataBlock {
- protected:
+// AccountBase is a POD type
+struct AccountBase : public SerializableDataBlock {
+
   uint32_t m_version{};
   uint128_t m_balance;
   uint64_t m_nonce{};
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
 
- public:
   AccountBase() {}
 
   AccountBase(const uint128_t& balance, const uint64_t& nonce,
@@ -50,6 +50,52 @@ class AccountBase : public SerializableDataBlock {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);
+
+
+  friend inline std::ostream& operator<<(std::ostream& out,
+                                         AccountBase const& account);
+};
+
+inline std::ostream& operator<<(std::ostream& out,
+                                AccountBase const& accountbase) {
+  out << accountbase.m_balance << " " << accountbase.m_nonce << " "
+      << accountbase.m_storageRoot << " " << accountbase.m_codeHash;
+  return out;
+}
+
+class Account : public SerializableDataBlock {
+  // The associated code for this account.
+  AccountBase m_accountBase{};
+  bytes m_codeCache;
+  bytes m_initDataCache;
+  Address m_address;  // used by contract account only
+  Json::Value m_initDataJson = Json::nullValue;
+  uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
+  bool m_is_library = false;
+  std::vector<Address> m_extlibs;
+
+  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
+                           const uint64_t& blockNum, Json::Value& root,
+                           uint32_t& scilla_version, bool& is_library,
+                           std::vector<Address>& extlibs);
+
+  bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
+                     bool& is_library, std::vector<Address>& extlibs);
+
+
+public:
+  Account() {}
+
+  /// Constructor for loading account information from a byte stream.
+  Account(const bytes& src, unsigned int offset);
+
+  /// Constructor for a account.
+  Account(const uint128_t& balance, const uint64_t& nonce,
+          const uint32_t& version = ACCOUNT_VERSION);
+
+  AccountBase& GetAccountBase() { return m_accountBase; }
+
+  const AccountBase& GetAccountBase() const { return m_accountBase; }
 
   void SetVersion(const uint32_t& version);
 
@@ -87,46 +133,6 @@ class AccountBase : public SerializableDataBlock {
 
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
-
-  friend inline std::ostream& operator<<(std::ostream& out,
-                                         AccountBase const& account);
-};
-
-inline std::ostream& operator<<(std::ostream& out,
-                                AccountBase const& accountbase) {
-  out << accountbase.GetBalance() << " " << accountbase.GetNonce() << " "
-      << accountbase.GetStorageRoot() << " " << accountbase.GetCodeHash();
-  return out;
-}
-
-class Account : public AccountBase {
-  // The associated code for this account.
-  bytes m_codeCache;
-  bytes m_initDataCache;
-  Address m_address;  // used by contract account only
-  Json::Value m_initDataJson = Json::nullValue;
-  uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();
-  bool m_is_library = false;
-  std::vector<Address> m_extlibs;
-
-  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
-                           const uint64_t& blockNum, Json::Value& root,
-                           uint32_t& scilla_version, bool& is_library,
-                           std::vector<Address>& extlibs);
-
-  bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
-                     bool& is_library, std::vector<Address>& extlibs);
-
- public:
-  Account() {}
-
-  /// Constructor for loading account information from a byte stream.
-  Account(const bytes& src, unsigned int offset);
-
-  /// Constructor for a account.
-  Account(const uint128_t& balance, const uint64_t& nonce,
-          const uint32_t& version = ACCOUNT_VERSION);
-
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum);
@@ -138,6 +144,9 @@ class Account : public AccountBase {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
+
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::string& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
   bool SerializeBase(bytes& dst, unsigned int offset) const;
@@ -192,5 +201,12 @@ class Account : public AccountBase {
   static Address GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce);
 };
+
+inline std::ostream& operator<<(std::ostream& out,
+                                Account const& account) {
+  out << account.GetBalance() << " " << account.GetNonce() << " "
+      << account.GetStorageRoot() << " " << account.GetCodeHash();
+  return out;
+}
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNT_H_

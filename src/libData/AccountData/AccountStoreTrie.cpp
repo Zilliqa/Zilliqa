@@ -255,12 +255,12 @@ void AccountStoreTrie::PrintTrie() {
 
     LOG_GENERAL(INFO, "Address: " << address.hex());
 
-    AccountBase ab;
-    if (!ab.Deserialize(bytes(i.second.begin(), i.second.end()), 0)) {
+    Account account;
+    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       return;
     }
 
-    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
+    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << account);
   }
 }
