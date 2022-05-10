@@ -54,16 +54,11 @@ class AccountStoreTemp : public AccountStoreSC {
   bool DeserializeDelta(const bytes& src, unsigned int offset);
 
   /// Returns the Account associated with the specified address.
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
-  GetAddressToAccount() {
-    return this->m_addressToAccount;
-  }
+  Account* GetTempAccount(const Address& address);
 
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount[address] = account;
   }
 };
 
@@ -202,7 +197,7 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool revertible = false) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount[address] = account;
 
     if (revertible) {
       if (fullCopy) {

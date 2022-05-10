@@ -21,6 +21,7 @@
 #include "common/BaseType.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Account.h"
+#include "libData/AccountData/AccountStoreBase.h"
 #include "libData/DataStructures/TraceableDB.h"
 
 // This class is only used by AccountStoreTrie template class
@@ -36,8 +37,7 @@ class MessengerAccountStoreTrie {
   static bool SetAccountStoreTrie(
       bytes& dst, const unsigned int offset,
       const dev::GenericTrieDB<TraceableDB>& stateTrie,
-      const std::shared_ptr<std::unordered_map<Address, Account>>&
-          addressToAccount);
+      const AccountStoreBase& addressToAccount);
 };
 
 #endif  // ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTORETRIE_H_

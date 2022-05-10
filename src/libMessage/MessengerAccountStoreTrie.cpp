@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libData/AccountData/AccountStoreBase.h"
 #include "MessengerAccountStoreTrie.h"
 #include <unordered_map>
 #include "libMessage/ZilliqaMessage.pb.h"
@@ -34,7 +35,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     bytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
-    const shared_ptr<std::unordered_map<Address, Account>>& addressToAccount) {
+    const AccountStoreBase& accountStore) {
   ProtoAccountStore result;
 
   for (const auto& i : stateTrie) {
@@ -43,10 +44,9 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     protoEntry->set_address(address.data(), address.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
 
-    auto it = addressToAccount->find(address);
-    if (it != addressToAccount->end()) {
-      const Account& account = it->second;
-      if (!AccountToProtobuf(account, *protoEntryAccount)) {
+    const Account* account = accountStore.GetAccount(address);
+    if (account != nullptr) {
+      if (!AccountToProtobuf(*account, *protoEntryAccount)) {
         LOG_GENERAL(WARNING, "AccountToProtobuf failed");
         return false;
       }

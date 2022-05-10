@@ -38,13 +38,13 @@ class AccountStoreTrie : public AccountStoreSC {
   bool RemoveFromTrie(const Address& address);
 
  public:
-  virtual void Init() override;
+  void Init();
 
   void InitTrie();
 
   bool Serialize(bytes& dst, unsigned int offset);
 
-  Account* GetAccount(const Address& address) override;
+  Account* GetAccount(const Address& address);
 
   Account* GetAccount(const Address& address, bool resetRoot);
 
@@ -55,7 +55,7 @@ class AccountStoreTrie : public AccountStoreSC {
   dev::h256 GetPrevRootHash() const;
   bool UpdateStateTrieAll();
 
-  void PrintAccountState() override;
+  void PrintAccountState();
   void PrintTrie();
 };
 

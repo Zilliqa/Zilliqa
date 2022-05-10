@@ -33,14 +33,13 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-AccountStoreSC::AccountStoreSC() {
-  m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
+AccountStoreSC::AccountStoreSC() : m_atomicParent(*this) {
   m_txnProcessTimeout = false;
 }
 
 void AccountStoreSC::Init() {
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  AccountStoreBase::Init();
+  m_accountMap.Init();
   m_curContractAddr.clear();
   m_curSenderAddr.clear();
   m_curAmount = 0;
@@ -152,7 +151,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
       // LOG_GENERAL(INFO, "Normal transaction");
 
       // Disallow normal transaction to contract account
-      Account* toAccount = this->GetAccount(toAddr);
+      Account* toAccount = m_accountMap.GetAccount(toAddr);
       if (toAccount != nullptr) {
         if (toAccount->isContract()) {
           LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
@@ -161,14 +160,14 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
-      return AccountStoreBase::UpdateAccounts(transaction, receipt, error_code);
+      return m_accountMap.UpdateBaseAccounts(transaction, receipt, error_code);
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
 
       // bool validToTransferBalance = true;
 
-      Account* fromAccount = this->GetAccount(fromAddr);
+      Account* fromAccount = m_accountMap.GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
@@ -227,13 +226,13 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
-      if (!this->AddAccount(toAddr, {0, 0})) {
+      if (!m_accountMap.AddAccount(toAddr, {0, 0})) {
         LOG_GENERAL(WARNING,
                     "AddAccount failed for contract address " << toAddr.hex());
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      Account* toAccount = this->GetAccount(toAddr);
+      Account* toAccount = m_accountMap.GetAccount(toAddr);
       if (toAccount == nullptr) {
         LOG_GENERAL(WARNING, "toAccount is null ptr");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
@@ -257,21 +256,21 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
         if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
-          this->RemoveAccount(toAddr);
+          m_accountMap.RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         if (DISABLE_SCILLA_LIB && is_library) {
           LOG_GENERAL(WARNING, "ScillaLib disabled");
-          this->RemoveAccount(toAddr);
+          m_accountMap.RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
-          this->RemoveAccount(toAddr);
+          m_accountMap.RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
@@ -294,7 +293,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (!init) {
-        this->RemoveAccount(toAddr);
+        m_accountMap.RemoveAccount(toAddr);
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
         return false;
       }
@@ -375,7 +374,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
-        this->RemoveAccount(toAddr);
+        m_accountMap.RemoveAccount(toAddr);
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
@@ -383,7 +382,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
       if (!ret || !ret_checker) {
-        this->m_addressToAccount->erase(toAddr);
+        m_accountMap.RemoveAccount(toAddr);
 
         receipt.SetResult(false);
         if (!ret) {
@@ -396,7 +395,6 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
         receipt.update();
 
         if (!this->IncreaseNonce(fromAddr)) {
-          this->RemoveAccount(toAddr);
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
@@ -464,7 +462,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
 
       m_originAddr = fromAddr;
 
-      Account* fromAccount = this->GetAccount(fromAddr);
+      Account* fromAccount = m_accountMap.GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
@@ -512,7 +510,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      Account* toAccount = this->GetAccount(toAddr);
+      Account* toAccount = m_accountMap.GetAccount(toAddr);
       if (toAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
@@ -708,7 +706,7 @@ bool AccountStoreSC::PopulateExtlibsExports(
         continue;
       }
 
-      Account* libAcc = this->GetAccount(libAddr);
+      Account* libAcc = m_accountMap.GetAccount(libAddr);
       if (libAcc == nullptr) {
         LOG_GENERAL(WARNING, "libAcc: " << libAddr << " does not exist");
         return false;
@@ -1253,8 +1251,7 @@ bool AccountStoreSC::ParseCallContractJsonOutput(const Json::Value& _json,
     }
   }
 
-  Account* contractAccount =
-      m_accountStoreAtomic->GetAccount(m_curContractAddr);
+  Account* contractAccount = GetAccountAtomic(m_curContractAddr);
   if (contractAccount == nullptr) {
     LOG_GENERAL(WARNING, "contractAccount is null ptr");
     receipt.AddError(CONTRACT_NOT_EXIST);
@@ -1328,11 +1325,11 @@ bool AccountStoreSC::ParseCallContractJsonOutput(const Json::Value& _json,
         return false;
       }
 
-      account = m_accountStoreAtomic->GetAccount(recipient);
+      account = GetAccountAtomic(recipient);
 
       if (account == nullptr) {
-        AccountStoreBase::AddAccount(recipient, {0, 0});
-        account = m_accountStoreAtomic->GetAccount(recipient);
+        m_accountMap.AddAccount(recipient, {0, 0});
+        account = GetAccountAtomic(recipient);
       }
 
       // Recipient is non-contract
@@ -1509,7 +1506,7 @@ void AccountStoreSC::ProcessStorageRootUpdateBuffer() {
   {
     std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
     for (const auto& addr : m_storageRootUpdateBuffer) {
-      Account* account = this->GetAccount(addr);
+      Account* account = m_accountMap.GetAccount(addr);
       if (account == nullptr) {
         continue;
       }
@@ -1532,26 +1529,26 @@ bool AccountStoreSC::TransferBalanceAtomic(const Address& from,
                                            const Address& to,
                                            const uint128_t& delta) {
   // LOG_MARKER();
-  return m_accountStoreAtomic->TransferBalance(from, to, delta);
+  return m_atomicAccountMap.TransferBalance(from, to, delta);
 }
 
 void AccountStoreSC::CommitAtomics() {
   LOG_MARKER();
-  for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
-    Account* account = this->GetAccount(entry.first);
+  for (const auto& entry : m_atomicAccountMap) {
+    Account* account = m_accountMap.GetAccount(entry.first);
     if (account != nullptr) {
       *account = entry.second;
     } else {
-      // this->m_addressToAccount.emplace(std::make_pair(entry.first,
+      // this->m_accountMap.emplace(std::make_pair(entry.first,
       // entry.second));
-      this->AddAccount(entry.first, entry.second);
+      m_accountMap.AddAccount(entry.first, entry.second);
     }
   }
 }
 
 void AccountStoreSC::DiscardAtomics() {
   LOG_MARKER();
-  m_accountStoreAtomic->Init();
+  m_atomicAccountMap.Init();
 }
 
 void AccountStoreSC::NotifyTimeout() {
@@ -1560,9 +1557,6 @@ void AccountStoreSC::NotifyTimeout() {
   cv_callContract.notify_all();
 }
 
-Account* AccountStoreSC::GetAccountAtomic(const dev::h160& addr) {
-  return m_accountStoreAtomic->GetAccount(addr);
-}
 
 void AccountStoreSC::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
@@ -1576,4 +1570,132 @@ void AccountStoreSC::CleanNewLibrariesCache() {
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
+}
+
+Account* AccountStoreSC::GetAccountAtomic(const Address& address) {
+  Account* account = m_atomicAccountMap.GetAccount(address);
+  if (account != nullptr) {
+    return account;
+  }
+
+  account = m_atomicParent.GetAccount(address);
+  if (account) {
+    m_atomicAccountMap.AddAccount(address, *account, true);
+    return m_atomicAccountMap.GetAccount(address);
+  }
+  return nullptr;
+}
+
+
+size_t AccountStoreSC::GetNumOfAccounts() const {
+  // LOG_MARKER();
+  return m_accountMap.GetNumOfAccounts();
+}
+
+bool AccountStoreSC::IncreaseBalance(const Address& address,
+                                       const uint128_t& delta) {
+  // LOG_MARKER();
+
+  if (delta == 0) {
+    return true;
+  }
+
+  Account* account = GetAccount(address);
+
+  if (account != nullptr && account->IncreaseBalance(delta)) {
+    return true;
+  }
+
+  else if (account == nullptr) {
+    return m_accountMap.AddAccount(address, {delta, 0});
+  }
+
+  return false;
+}
+
+bool AccountStoreSC::DecreaseBalance(const Address& address,
+                                     const uint128_t& delta) {
+  // LOG_MARKER();
+
+  if (delta == 0) {
+    return true;
+  }
+
+  Account* account = GetAccount(address);
+
+  if (nullptr == account) {
+    LOG_GENERAL(WARNING, "Account " << address.hex() << " not exist");
+    return false;
+  }
+
+  if (!account->DecreaseBalance(delta)) {
+    LOG_GENERAL(WARNING, "Failed to decrease " << delta << " for account "
+                                               << address.hex());
+    return false;
+  }
+  return true;
+}
+
+bool AccountStoreSC::TransferBalance(const Address& from, const Address& to,
+                                     const uint128_t& delta) {
+  // LOG_MARKER();
+  // FIXME: Is there any elegent way to implement this atomic change on balance?
+  if (DecreaseBalance(from, delta)) {
+    if (IncreaseBalance(to, delta)) {
+      return true;
+    } else {
+      if (!IncreaseBalance(from, delta)) {
+        LOG_GENERAL(FATAL, "IncreaseBalance failed for delta");
+      }
+    }
+  }
+
+  return false;
+}
+
+uint128_t AccountStoreSC::GetBalance(const Address& address) {
+  // LOG_MARKER();
+
+  const Account* account = GetAccount(address);
+
+  if (account != nullptr) {
+    return account->GetBalance();
+  }
+
+  return 0;
+}
+
+bool AccountStoreSC::IncreaseNonce(const Address& address) {
+  // LOG_MARKER();
+
+  Account* account = GetAccount(address);
+
+  // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
+
+  if (nullptr == account) {
+    LOG_GENERAL(WARNING, "Increase nonce failed");
+
+    return false;
+  }
+
+  if (account->IncreaseNonce()) {
+    // LOG_GENERAL(INFO, "Increase nonce done");
+    // UpdateStateTrie(address, *account);
+    return true;
+  } else {
+    LOG_GENERAL(WARNING, "Increase nonce failed");
+    return false;
+  }
+}
+
+uint64_t AccountStoreSC::GetNonce(const Address& address) {
+  // LOG_MARKER();
+
+  Account* account = GetAccount(address);
+
+  if (account != nullptr) {
+    return account->GetNonce();
+  }
+
+  return 0;
 }

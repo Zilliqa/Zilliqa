@@ -537,9 +537,9 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
 uint128_t AccountStore::GetNonceTemp(const Address& address) {
   lock_guard<mutex> g(m_mutexDelta);
 
-  if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=
-      m_accountStoreTemp->GetAddressToAccount()->end()) {
-    return m_accountStoreTemp->GetNonce(address);
+  Account* account = m_accountStoreTemp->GetAccount(address);
+  if (account != nullptr) {
+    return account->GetNonce();
   } else {
     return this->GetNonce(address);
   }

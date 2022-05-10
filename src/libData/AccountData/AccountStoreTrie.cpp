@@ -43,7 +43,7 @@ bool AccountStoreTrie::Serialize(bytes& dst, unsigned int offset) {
     }
   }
   if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
-          dst, offset, m_state, this->m_addressToAccount)) {
+                                                      dst, offset, m_state, GetAccountMap())) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }
@@ -59,7 +59,7 @@ Account* AccountStoreTrie::GetAccount(const Address& address, bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
-  Account* account = AccountStoreBase::GetAccount(address);
+  Account* account = AccountStoreSC::GetAccount(address);
   if (account != nullptr) {
     return account;
   }

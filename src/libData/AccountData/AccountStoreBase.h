@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 
+#include <boost/iterator/iterator_facade.hpp>
 #include <Schnorr.h>
 #include "Account.h"
 #include "Address.h"
@@ -30,15 +31,10 @@
 
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
-
-  AccountStoreBase();
+  std::unordered_map<Address, Account> m_addressToAccount;
 
   bool CalculateGasRefund(const uint128_t& gasDeposit, const uint64_t& gasUnit,
                           const uint128_t& gasPrice, uint128_t& gasRefund);
-
-  bool UpdateAccounts(const Transaction& transaction,
-                      TransactionReceipt& receipt, TxnStatus& error_code);
 
  public:
   virtual void Init();
@@ -52,7 +48,8 @@ class AccountStoreBase : public SerializableDataBlock {
   /// Implements the Deserialize function inherited from Serializable.
   virtual bool Deserialize(const std::string& src, unsigned int offset);
 
-  virtual Account* GetAccount(const Address& address);
+  Account* GetAccount(const Address& address);
+  const Account* GetAccount(const Address& address) const;
 
   /// Verifies existence of Account in the list.
   bool IsAccountExist(const Address& address);
@@ -64,21 +61,26 @@ class AccountStoreBase : public SerializableDataBlock {
 
   void RemoveAccount(const Address& address);
 
-  size_t GetNumOfAccounts() const;
+  bool UpdateBaseAccounts(const Transaction& transaction,
+                          TransactionReceipt& receipt, TxnStatus& error_code);
 
-  bool IncreaseBalance(const Address& address, const uint128_t& delta);
-  bool DecreaseBalance(const Address& address, const uint128_t& delta);
+  size_t GetNumOfAccounts() const { return m_addressToAccount.size(); }
 
-  /// Updates the source and destination accounts included in the specified
-  /// Transaction.
-  bool TransferBalance(const Address& from, const Address& to,
-                       const uint128_t& delta);
-  uint128_t GetBalance(const Address& address);
+  // Implement a custom iterator: make range for loop work with AccountBase
+  class Iterator : public boost::iterator_facade<Iterator, const std::pair<Address, Account>&, boost::forward_traversal_tag> {
+    using base = std::unordered_map<Address, Account>::iterator;
+    base m_iter;
+  public:
+    Iterator(base iter) : m_iter(iter) {}
+    bool equal(Iterator const& other ) const { return m_iter == other.m_iter; }
+    void increment() { m_iter = ++m_iter; }
+    const std::pair<Address, Account> dereference() const { return *m_iter; }
+  };
 
-  bool IncreaseNonce(const Address& address);
-  uint64_t GetNonce(const Address& address);
+  Iterator begin()  { return Iterator(m_addressToAccount.begin()); }
+  Iterator end()  { return Iterator(m_addressToAccount.end()); }
 
-  virtual void PrintAccountState();
+  void PrintAccountState();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_

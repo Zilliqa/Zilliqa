@@ -24,32 +24,23 @@
 #include <functional>
 #include <mutex>
 
+#include "Account.h"
 #include <libServer/ScillaIPCServer.h>
 #include "libData/AccountData/AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 
-using MAP = std::unordered_map<Address, Account>;
-
-class AccountStoreSC;
-
-class AccountStoreAtomic : public AccountStoreBase {
-  AccountStoreSC& m_parent;
-
- public:
-  AccountStoreAtomic(AccountStoreSC& parent);
-
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
-  GetAddressToAccount();
-};
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
-class AccountStoreSC : public AccountStoreBase {
+class AccountStoreSC {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
-  std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
+
+  AccountStoreBase m_accountMap;
+
+  AccountStoreBase m_atomicAccountMap;
+
+  AccountStoreSC& m_atomicParent;
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
@@ -106,6 +97,8 @@ class AccountStoreSC : public AccountStoreBase {
 
   std::vector<Address> m_newLibrariesCreated;
 
+  Account* GetAccountAtomic(const Address& address);
+  
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
@@ -170,19 +163,21 @@ class AccountStoreSC : public AccountStoreBase {
       const std::string& scillaCodeExtension);
 
   /// Amount Transfer
-  /// add amount transfer to the m_accountStoreAtomic
+  /// add amount transfer to the atomic store
   bool TransferBalanceAtomic(const Address& from, const Address& to,
                              const uint128_t& delta);
-  /// commit the existing transfers in m_accountStoreAtomic to update the
+  /// commit the existing transfers in the atomic store update the
   /// balance of accounts
   void CommitAtomics();
-  /// discard the existing transfers in m_accountStoreAtomic
+  /// discard the existing transfers in the atomic store
   void DiscardAtomics();
 
  protected:
   AccountStoreSC();
 
   const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
+
+  const AccountStoreBase& GetAccountMap() const { return m_accountMap; }
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
@@ -217,8 +212,36 @@ class AccountStoreSC : public AccountStoreBase {
       std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
 
  public:
+
+  Account* GetAccount(const Address& address) {
+    return m_accountMap.GetAccount(address);
+  }
+  
+  /// Get the number of accounts
+  size_t GetNumOfAccounts() const;
+
+  /// Increase balance of address by delta
+  bool IncreaseBalance(const Address& address, const uint128_t& delta);
+
+  /// Decrease balance of address by delta
+  bool DecreaseBalance(const Address& address, const uint128_t& delta);
+
+  /// Updates the source and destination accounts included in the specified
+  /// Transaction.
+  bool TransferBalance(const Address& from, const Address& to,
+                       const uint128_t& delta);
+
+  /// Get balance for the address
+  uint128_t GetBalance(const Address& address);
+
+  /// Increase nonce of the address
+  bool IncreaseNonce(const Address& address);
+
+  /// Get nonce of the address
+  uint64_t GetNonce(const Address& address);
+
   /// Initialize the class
-  void Init() override;
+  void Init();
 
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
@@ -235,9 +258,6 @@ class AccountStoreSC : public AccountStoreBase {
 
   /// Clean cache of newly created contracts in this epoch
   void CleanNewLibrariesCache();
-
-  // Get value from atomic accountstore
-  Account* GetAccountAtomic(const dev::h160& addr);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
