@@ -22,9 +22,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-void AccountStoreBase::Init() {
-  m_addressToAccount.clear();
-}
+void AccountStoreBase::Init() { m_addressToAccount.clear(); }
 
 bool AccountStoreBase::Serialize(bytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
@@ -82,7 +80,7 @@ bool AccountStoreBase::AddAccount(const PubKey& pubKey,
 }
 
 void AccountStoreBase::RemoveAccount(const Address& address) {
-    m_addressToAccount.erase(address);
+  m_addressToAccount.erase(address);
 }
 
 Account* AccountStoreBase::GetAccount(const Address& address) {

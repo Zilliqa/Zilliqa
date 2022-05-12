@@ -42,7 +42,8 @@ bool AccountStoreTrie::Serialize(bytes& dst, unsigned int offset) {
       }
     }
   }
-  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(                                                      dst, offset, m_state, GetAccountMap())) {
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(dst, offset, m_state,
+                                                      GetAccountMap())) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }

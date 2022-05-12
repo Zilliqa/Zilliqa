@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/AccountData/AccountStoreBase.h"
 #include "MessengerAccountStoreTrie.h"
 #include <unordered_map>
+#include "libData/AccountData/AccountStoreBase.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 

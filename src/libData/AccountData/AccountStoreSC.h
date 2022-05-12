@@ -24,11 +24,10 @@
 #include <functional>
 #include <mutex>
 
-#include "Account.h"
 #include <libServer/ScillaIPCServer.h>
+#include "Account.h"
 #include "libData/AccountData/AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
-
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
@@ -178,7 +177,7 @@ class AccountStoreSC {
   const AccountStoreBase& GetAccountMap() const { return m_accountMap; }
 
   Account* GetAccountAtomic(const Address& address);
-  
+
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
       const Account& contract, bool is_library, uint32_t scilla_version,
@@ -204,8 +203,7 @@ class AccountStoreSC {
 
   /// Update basic accounts during processing txn
   bool UpdateBaseAccounts(const Transaction& transaction,
-                          TransactionReceipt& receipt,
-                          TxnStatus& error_code);
+                          TransactionReceipt& receipt, TxnStatus& error_code);
 
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
@@ -217,7 +215,6 @@ class AccountStoreSC {
       std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
 
  public:
-
   AccountStoreBase& GetAccountMap() { return m_accountMap; }
 
   Account* GetAccount(const Address& address) {

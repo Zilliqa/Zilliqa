@@ -134,8 +134,8 @@ static bool CalculateBaseGasRefund(const uint128_t& gasDeposit,
 }
 
 bool AccountStoreSC::UpdateBaseAccounts(const Transaction& transaction,
-                                          TransactionReceipt& receipt,
-                                          TxnStatus& error_code) {
+                                        TransactionReceipt& receipt,
+                                        TxnStatus& error_code) {
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
@@ -1663,7 +1663,6 @@ void AccountStoreSC::NotifyTimeout() {
   cv_callContract.notify_all();
 }
 
-
 void AccountStoreSC::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();
@@ -1691,7 +1690,6 @@ Account* AccountStoreSC::GetAccountAtomic(const Address& address) {
   }
   return nullptr;
 }
-
 
 size_t AccountStoreSC::GetNumOfAccounts() const {
   // LOG_MARKER();
@@ -1733,7 +1731,8 @@ bool AccountStoreSC::IncreaseNonce(const Address& address) {
   }
 }
 
-bool AccountStoreSC::IncreaseBalance(const Address& address, const uint128_t& delta) {
+bool AccountStoreSC::IncreaseBalance(const Address& address,
+                                     const uint128_t& delta) {
   return m_accountMap.IncreaseBalance(address, delta);
 }
 

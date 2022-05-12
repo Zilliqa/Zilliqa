@@ -530,7 +530,8 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
     m_accountStoreTemp->GetAccountMap().AddAccount(rewardee, {0, 0});
   }
-  return m_accountStoreTemp->GetAccountMap().TransferBalance(genesisAddress, rewardee, amount);
+  return m_accountStoreTemp->GetAccountMap().TransferBalance(genesisAddress,
+                                                             rewardee, amount);
   // Should the nonce increase ??
 }
 
@@ -938,16 +939,16 @@ void AccountStore::AddAccountDuringDeserialization(const Address& address,
                                                    const Account& oriAccount,
                                                    const bool fullCopy,
                                                    const bool revertible) {
-    AccountStoreBase& accountMap = GetAccountMap();
-    accountMap.AddAccount(address, account, true);
+  AccountStoreBase& accountMap = GetAccountMap();
+  accountMap.AddAccount(address, account, true);
 
-    if (revertible) {
-      if (fullCopy) {
-        m_addressToAccountRevCreated[address] = account;
-      } else {
-        m_addressToAccountRevChanged[address] = oriAccount;
-      }
+  if (revertible) {
+    if (fullCopy) {
+      m_addressToAccountRevCreated[address] = account;
+    } else {
+      m_addressToAccountRevChanged[address] = oriAccount;
     }
+  }
 
-    UpdateStateTrie(address, account);
+  UpdateStateTrie(address, account);
 }

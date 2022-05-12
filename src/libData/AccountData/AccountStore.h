@@ -101,8 +101,8 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
  public:
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
-  
-  bool Serialize(bytes& dst, unsigned int offset);
+
+  bool Serialize(bytes& src, unsigned int offset);
 
   bool Deserialize(const bytes& src, unsigned int offset);
 
