@@ -31,6 +31,7 @@
 #include "Address.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libDatabase/MemoryDB.h"
@@ -58,7 +59,8 @@ class AccountStoreTemp : public AccountStoreSC {
 
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account) {
-    m_addressToAccount[address] = account;
+    AccountStoreBase& accountMap = GetAccountMap();
+    accountMap.AddAccount(address, account, true);
   }
 };
 
@@ -99,12 +101,12 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
  public:
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
+  
+  bool Serialize(bytes& dst, unsigned int offset);
 
-  bool Serialize(bytes& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
-  bool Deserialize(const bytes& src, unsigned int offset) override;
-
-  bool Deserialize(const std::string& src, unsigned int offset) override;
+  bool Deserialize(const std::string& src, unsigned int offset);
 
   /// generate serialized raw bytes for StateDelta
   bool SerializeDelta();
@@ -120,7 +122,7 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
   bool DeserializeDeltaTemp(const bytes& src, unsigned int offset);
 
   /// empty everything including the persistent storage for account states
-  void Init() override;
+  void Init();
 
   /// empty states data in memory
   void InitSoft();
@@ -157,7 +159,14 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    m_accountStoreTemp->AddAccount(address, account);
+    AccountStoreBase& accountMap = m_accountStoreTemp->GetAccountMap();
+    accountMap.AddAccount(address, account);
+  }
+
+  /// add account
+  void AddAccount(const Address& address, const Account& account) {
+    AccountStoreBase& accountMap = GetAccountMap();
+    accountMap.AddAccount(address, account);
   }
 
   /// increase balance for account in AccountStoreTemp
@@ -196,19 +205,7 @@ class AccountStore : public AccountStoreTrie, Singleton<AccountStore> {
                                        const Account& account,
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
-                                       const bool revertible = false) {
-    m_addressToAccount[address] = account;
-
-    if (revertible) {
-      if (fullCopy) {
-        m_addressToAccountRevCreated[address] = account;
-      } else {
-        m_addressToAccountRevChanged[address] = oriAccount;
-      }
-    }
-
-    UpdateStateTrie(address, account);
-  }
+                                       const bool revertible = false);
 
   /// return the hash of the raw bytes of StateDelta
   StateHash GetStateDeltaHash();

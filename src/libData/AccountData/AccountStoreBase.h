@@ -33,20 +33,17 @@ class AccountStoreBase : public SerializableDataBlock {
  protected:
   std::unordered_map<Address, Account> m_addressToAccount;
 
-  bool CalculateGasRefund(const uint128_t& gasDeposit, const uint64_t& gasUnit,
-                          const uint128_t& gasPrice, uint128_t& gasRefund);
-
  public:
   virtual void Init();
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const std::string& src, unsigned int offset);
+  bool Deserialize(const std::string& src, unsigned int offset) override;
 
   Account* GetAccount(const Address& address);
   const Account* GetAccount(const Address& address) const;
@@ -59,10 +56,18 @@ class AccountStoreBase : public SerializableDataBlock {
                   bool toReplace = false);
   bool AddAccount(const PubKey& pubKey, const Account& account);
 
-  void RemoveAccount(const Address& address);
+  /// Increase balance of address by delta
+  bool IncreaseBalance(const Address& address, const uint128_t& delta);
 
-  bool UpdateBaseAccounts(const Transaction& transaction,
-                          TransactionReceipt& receipt, TxnStatus& error_code);
+  /// Decrease balance of address by delta
+  bool DecreaseBalance(const Address& address, const uint128_t& delta);
+
+  /// Updates the source and destination accounts included in the specified
+  /// Transaction.
+  bool TransferBalance(const Address& from, const Address& to,
+                       const uint128_t& delta);
+
+  void RemoveAccount(const Address& address);
 
   size_t GetNumOfAccounts() const { return m_addressToAccount.size(); }
 

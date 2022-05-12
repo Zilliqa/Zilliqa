@@ -42,8 +42,7 @@ bool AccountStoreTrie::Serialize(bytes& dst, unsigned int offset) {
       }
     }
   }
-  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
-                                                      dst, offset, m_state, GetAccountMap())) {
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(                                                      dst, offset, m_state, GetAccountMap())) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
     return false;
   }
@@ -107,11 +106,11 @@ Account* AccountStoreTrie::GetAccount(const Address& address, bool resetRoot) {
     account->SetAddress(address);
   }
 
-  auto it2 = this->m_addressToAccount->emplace(address, *account);
+  GetAccountMap().AddAccount(address, *account);
 
   delete account;
 
-  return &it2.first->second;
+  return GetAccountMap().GetAccount(address);
 }
 
 bool AccountStoreTrie::GetProof(const Address& address,
@@ -214,7 +213,7 @@ bool AccountStoreTrie::UpdateStateTrieAll() {
       return false;
     }
   }
-  for (auto const& entry : *(this->m_addressToAccount)) {
+  for (auto const& entry : GetAccountMap()) {
     bytes rawBytes;
     if (!entry.second.SerializeBase(rawBytes, 0)) {
       LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
@@ -230,7 +229,7 @@ bool AccountStoreTrie::UpdateStateTrieAll() {
 }
 
 void AccountStoreTrie::PrintAccountState() {
-  AccountStoreBase::PrintAccountState();
+  GetAccountMap().PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
 

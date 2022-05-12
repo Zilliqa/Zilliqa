@@ -43,7 +43,7 @@ int readAccountJsonFromFile(const string& path) {
     for (const auto& i : _json.getMemberNames()) {
       Address addr(i);
       uint128_t balance(_json[i]["amount"].asString());
-      if (AccountStore::GetInstance().AddAccount(
+      if (AccountStore::GetInstance().GetAccountMap().AddAccount(
               addr, {balance, _json[i]["nonce"].asUInt()})) {
         LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
       }

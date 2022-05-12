@@ -2627,7 +2627,7 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
-  for (const auto& entry : accountStoreTemp) {
+  for (const auto& entry : accountStoreTemp.GetAccountMap()) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
@@ -2775,7 +2775,8 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     if (oriAccount == nullptr) {
       Account acc(0, 0);
       LOG_GENERAL(INFO, "Creating new account: " << address);
-      accountStoreTemp.AddAccount(address, acc);
+      AccountStoreBase& accountMap = accountStoreTemp.GetAccountMap();
+      accountMap.AddAccount(address, acc);
       fullCopy = true;
     }
 

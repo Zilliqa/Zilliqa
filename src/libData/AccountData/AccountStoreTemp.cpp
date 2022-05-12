@@ -23,8 +23,8 @@ using namespace boost::multiprecision;
 
 AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
-Account* AccountStoreTemp::GetAccount(const Address& address) {
-  Account* account = AccountStoreBase::GetAccount(address);
+Account* AccountStoreTemp::GetTempAccount(const Address& address) {
+  Account* account = GetAccount(address);
   if (account != nullptr) {
     return account;
   }
@@ -32,8 +32,9 @@ Account* AccountStoreTemp::GetAccount(const Address& address) {
   account = m_parent.GetAccount(address);
   if (account) {
     Account newaccount(*account);
-    m_addressToAccount->insert(make_pair(address, newaccount));
-    return &(m_addressToAccount->find(address))->second;
+    AccountStoreBase& accountMap = GetAccountMap();
+    accountMap.AddAccount(address, newaccount, true);
+    return accountMap.GetAccount(address);
   }
 
   return nullptr;

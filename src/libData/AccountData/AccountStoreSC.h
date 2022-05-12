@@ -97,8 +97,6 @@ class AccountStoreSC {
 
   std::vector<Address> m_newLibrariesCreated;
 
-  Account* GetAccountAtomic(const Address& address);
-  
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,
@@ -179,6 +177,8 @@ class AccountStoreSC {
 
   const AccountStoreBase& GetAccountMap() const { return m_accountMap; }
 
+  Account* GetAccountAtomic(const Address& address);
+  
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
       const Account& contract, bool is_library, uint32_t scilla_version,
@@ -202,6 +202,11 @@ class AccountStoreSC {
                                   uint64_t& gasRemained,
                                   bool is_library = false);
 
+  /// Update basic accounts during processing txn
+  bool UpdateBaseAccounts(const Transaction& transaction,
+                          TransactionReceipt& receipt,
+                          TxnStatus& error_code);
+
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
@@ -213,23 +218,14 @@ class AccountStoreSC {
 
  public:
 
+  AccountStoreBase& GetAccountMap() { return m_accountMap; }
+
   Account* GetAccount(const Address& address) {
     return m_accountMap.GetAccount(address);
   }
-  
+
   /// Get the number of accounts
   size_t GetNumOfAccounts() const;
-
-  /// Increase balance of address by delta
-  bool IncreaseBalance(const Address& address, const uint128_t& delta);
-
-  /// Decrease balance of address by delta
-  bool DecreaseBalance(const Address& address, const uint128_t& delta);
-
-  /// Updates the source and destination accounts included in the specified
-  /// Transaction.
-  bool TransferBalance(const Address& from, const Address& to,
-                       const uint128_t& delta);
 
   /// Get balance for the address
   uint128_t GetBalance(const Address& address);
@@ -239,6 +235,9 @@ class AccountStoreSC {
 
   /// Get nonce of the address
   uint64_t GetNonce(const Address& address);
+
+  /// Increase nonce of the address
+  bool IncreaseBalance(const Address& address, const uint128_t& delta);
 
   /// Initialize the class
   void Init();

@@ -274,7 +274,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
 
-  for (const auto& i : *m_addressToAccount) {
+  for (const auto& i : GetAccountMap()) {
     if (i.second.isContract() || i.second.IsLibrary()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
@@ -336,7 +336,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
     return false;
   }
 
-  m_addressToAccount->clear();
+  GetAccountMap().Init();
 
   return true;
 }
@@ -402,7 +402,7 @@ void AccountStore::DiscardUnsavedUpdates() {
         }
       }
     }
-    m_addressToAccount->clear();
+    GetAccountMap().Init();
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
                              << boost::diagnostic_information(e));
@@ -528,9 +528,9 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
-    m_accountStoreTemp->AddAccount(rewardee, {0, 0});
+    m_accountStoreTemp->GetAccountMap().AddAccount(rewardee, {0, 0});
   }
-  return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee, amount);
+  return m_accountStoreTemp->GetAccountMap().TransferBalance(genesisAddress, rewardee, amount);
   // Should the nonce increase ??
 }
 
@@ -588,12 +588,13 @@ bool AccountStore::RevertCommitTemp() {
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
+  AccountStoreBase accountMap = GetAccountMap();
   for (auto const& entry : m_addressToAccountRevChanged) {
-    (*m_addressToAccount)[entry.first] = entry.second;
+    accountMap.AddAccount(entry.first, entry.second, true);
     UpdateStateTrie(entry.first, entry.second);
   }
   for (auto const& entry : m_addressToAccountRevCreated) {
-    RemoveAccount(entry.first);
+    accountMap.RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
 
@@ -770,7 +771,7 @@ bool AccountStore::MigrateContractStates(
         os_1 << address.hex() << endl;
       }
     } else {
-      this->AddAccount(address, account, true);
+      GetAccountMap().AddAccount(address, account, true);
       if (!normal_address_output_filename.empty()) {
         os_2 << address.hex() << endl;
       }
@@ -876,7 +877,7 @@ bool AccountStore::MigrateContractStates(
     // update storage root hash for this account
     account.SetStorageRoot(rootHash);
 
-    this->AddAccount(address, account, true);
+    GetAccountMap().AddAccount(address, account, true);
 
     Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
         stateAfterMigration, address, "", {}, true);
@@ -930,4 +931,23 @@ bool AccountStore::MigrateContractStates(
   LOG_GENERAL(INFO, "Num contracts with states unchanged = "
                         << numContractUnchangedStates);
   return true;
+}
+
+void AccountStore::AddAccountDuringDeserialization(const Address& address,
+                                                   const Account& account,
+                                                   const Account& oriAccount,
+                                                   const bool fullCopy,
+                                                   const bool revertible) {
+    AccountStoreBase& accountMap = GetAccountMap();
+    accountMap.AddAccount(address, account, true);
+
+    if (revertible) {
+      if (fullCopy) {
+        m_addressToAccountRevCreated[address] = account;
+      } else {
+        m_addressToAccountRevChanged[address] = oriAccount;
+      }
+    }
+
+    UpdateStateTrie(address, account);
 }
