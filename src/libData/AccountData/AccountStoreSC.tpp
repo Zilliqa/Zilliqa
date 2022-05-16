@@ -54,9 +54,6 @@ void AccountStoreSC<MAP>::Init() {
 }
 
 
-/* This code has been quickly hacked ny Stephen to get something through to EVM, this will in no
- * way stay ion this form, maybe just a few days , maybe expand the invocation type to express where its executed */
-
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
@@ -114,34 +111,25 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
                   &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
-        if (!EvmClient::GetInstance().CallChecker(
+        if (!ScillaClient::GetInstance().CallChecker(
                 version,
-                EvmUtils::GetContractCheckerJson(m_root_w_version,
+                ScillaUtils::GetContractCheckerJson(m_root_w_version,
                                                     is_library, available_gas),
                 interprinterPrint)) {
         }
         break;
       case RUNNER_CREATE:
-        if (!EvmClient::GetInstance().CallRunner(
+        if (!ScillaClient::GetInstance().CallRunner(
                 version,
-                EvmUtils::GetCreateContractJson(m_root_w_version, is_library,
-                                                   available_gas, balance),
+                ScillaUtils::GetCreateContractJson(m_root_w_version, is_library,available_gas, balance),
                 interprinterPrint)) {
         }
         break;
       case RUNNER_CALL:
-        if (!EvmClient::GetInstance().CallRunner(
-                version,
-                EvmUtils::GetCallContractJson(
-                    m_root_w_version, available_gas, balance, is_library),
-                interprinterPrint)) {
+        if (!EvmClient::GetInstance().CallRunner(version,EvmUtils::GetCallContractJson(),interprinterPrint)) {
         }
         break;
       case DISAMBIGUATE:
-        if (!EvmClient::GetInstance().CallDisambiguate(
-                version, EvmUtils::GetDisambiguateJson(),
-                interprinterPrint)) {
-        }
         break;
     }
     call_already_finished = true;
@@ -205,6 +193,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     return false;
   }
 
+
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
       // LOG_GENERAL(INFO, "Normal transaction");
@@ -222,6 +211,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
                                                    error_code);
     }
+
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
 
@@ -367,6 +357,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // Undergo scilla checker
       bool ret_checker = true;
       std::string checkerPrint;
+
 
       InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
                         gasRemained, 0, ret_checker, receipt);

@@ -1,6 +1,19 @@
-//
-// Created by steve on 04/05/22.
-//
+/*
+* Copyright (C) 2020 Zilliqa
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #include "EvmClient.h"
 
 
@@ -137,7 +150,10 @@ bool  EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
+    // dump out what we were about to send to evm
+    std::cout << "=====>" << _json << std::endl;
     result = m_clients.at(version)->CallMethod("run", _json).asString();
+    std::cout << "======>" << result << std::endl;
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     if (std::string(e.what()).find(EVM_SERVER_SOCKET_PATH) !=
@@ -145,79 +161,6 @@ bool  EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
       if (!CheckClient(version, true)) {
         LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
         return CallRunner(version, _json, result, counter - 1);
-      }
-    } else {
-      result = e.what();
-    }
-
-    return false;
-  }
-
-  return true;
-}
-
-bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
-                               std::string& result, uint32_t counter) {
-  if (counter == 0) {
-    return false;
-  }
-
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
-    version = 0;
-  }
-
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
-    return false;
-  }
-
-  try {
-    std::lock_guard<std::mutex> g(m_mutexMain);
-    result = m_clients.at(version)->CallMethod("check", _json).asString();
-  } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
-    if (std::string(e.what()).find(EVM_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
-      if (!CheckClient(version, true)) {
-        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallChecker(version, _json, result, counter - 1);
-      }
-    } else {
-      result = e.what();
-    }
-
-    return false;
-  }
-
-  return true;
-}
-
-bool EvmClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
-                                    std::string& result, uint32_t counter) {
-  if (counter == 0) {
-    return false;
-  }
-
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
-    version = 0;
-  }
-
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
-    return false;
-  }
-
-  try {
-    std::lock_guard<std::mutex> g(m_mutexMain);
-    result =
-        m_clients.at(version)->CallMethod("disambiguate", _json).asString();
-  } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what());
-    if (std::string(e.what()).find(EVM_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
-      if (!CheckClient(version, true)) {
-        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallDisambiguate(version, _json, result, counter - 1);
       }
     } else {
       result = e.what();

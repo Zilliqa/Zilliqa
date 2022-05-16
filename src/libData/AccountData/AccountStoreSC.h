@@ -200,7 +200,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
-  /// verify the return from scilla_checker for deployment is valid
+
+   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const Address& addr,
                                   const std::string& checkerPrint,

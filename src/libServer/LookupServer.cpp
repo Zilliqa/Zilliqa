@@ -679,7 +679,13 @@ Json::Value LookupServer::CreateTransaction(const Json::Value& _json,
       if (recipient != nullptr) tx.recipient = *recipient;
     }
 
-    ValidateTxn(tx, gasPrice);  // Will throw if checks fail.
+    // TODO
+    try {
+      ValidateTxn(tx, gasPrice);  // Will throw if checks fail.
+    } catch(...)
+    {
+
+    }
 
     Json::Value retValue(Json::objectValue);
 

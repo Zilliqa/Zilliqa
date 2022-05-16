@@ -40,109 +40,15 @@ bool EvmUtils::PrepareRootPathWVersion(const uint32_t& evm_version,
   return true;
 }
 
-Json::Value EvmUtils::GetContractCheckerJson(const string& root_w_version,
-                                                bool is_library,
-                                                const uint64_t& available_gas) {
-  Json::Value ret;
-  ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INIT_JSON);
-  ret["argv"].append("-libdir");
-  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
-                     EXTLIB_FOLDER);
-  ret["argv"].append(
-      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
-  ret["argv"].append("-gaslimit");
-  ret["argv"].append(to_string(available_gas));
-  ret["argv"].append("-contractinfo");
-  ret["argv"].append("-jsonerrors");
-  return ret;
+Json::Value EvmUtils::GetCallContractJson() {
+  Json::Value arr_ret(Json::arrayValue);
+
+  arr_ret.append("0xa6f9959347430609b0ed3fcb27a3e09de9d08ca3");
+  arr_ret.append("0xa6f9959347430609b0ed3fcb27a3e09de9d08ca3");
+  arr_ret.append("608060405234801561001057600080fd5b50600436106100415760003560e01c80632e64cec11461004657806336b62288146100645780636057361d1461006e575b600080fd5b61004e61008a565b60405161005b91906100d0565b60405180910390f35b61006c610093565b005b6100886004803603810190610083919061011c565b6100ad565b005b60008054905090565b600073ffffffffffffffffffffffffffffffffffffffff16ff5b8060008190555050565b6000819050919050565b6100ca816100b7565b82525050565b60006020820190506100e560008301846100c1565b92915050565b600080fd5b6100f9816100b7565b811461010457600080fd5b50565b600081359050610116816100f0565b92915050565b600060208284031215610132576101316100eb565b5b600061014084828501610107565b9150509291505056fea2646970667358221220c11cc7b07b2f889ced02511e03fe7604a33d010cde91fe1d68869188cf2e3be964736f6c634300080d0033");
+  arr_ret.append("36b62288");
+  arr_ret.append("00");
+  return arr_ret;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(const string& root_w_version,
-                                               bool is_library,
-                                               const uint64_t& available_gas,
-                                               const uint128_t& balance) {
-  Json::Value ret;
-  ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INIT_JSON);
-  ret["argv"].append("-ipcaddress");
-  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
-  ret["argv"].append("-o");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     OUTPUT_JSON);
-  ret["argv"].append("-i");
-  ret["argv"].append(
-      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
-      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
-  ret["argv"].append("-gaslimit");
-  ret["argv"].append(to_string(available_gas));
-  ret["argv"].append("-balance");
-  ret["argv"].append(balance.convert_to<string>());
-  ret["argv"].append("-libdir");
-  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
-                     EXTLIB_FOLDER);
-  ret["argv"].append("-jsonerrors");
 
-  return ret;
-}
-
-Json::Value EvmUtils::GetCallContractJson(const string& root_w_version,
-                                             const uint64_t& available_gas,
-                                             const uint128_t& balance,
-                                             const bool& is_library) {
-  Json::Value ret;
-  ret["argv"].append("-init");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INIT_JSON);
-  ret["argv"].append("-ipcaddress");
-  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
-  ret["argv"].append("-imessage");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INPUT_MESSAGE_JSON);
-  ret["argv"].append("-o");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     OUTPUT_JSON);
-  ret["argv"].append("-i");
-  if (is_library) {
-    ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                       INPUT_CODE + LIBRARY_CODE_EXTENSION);
-  } else {
-    ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                       INPUT_CODE + CONTRACT_FILE_EXTENSION);
-  }
-  ret["argv"].append("-gaslimit");
-  ret["argv"].append(to_string(available_gas));
-  ret["argv"].append("-balance");
-  ret["argv"].append(balance.convert_to<string>());
-  ret["argv"].append("-libdir");
-  ret["argv"].append(root_w_version + '/' + SCILLA_LIB + ":" +
-                     boost::filesystem::current_path().string() + '/' +
-                     EXTLIB_FOLDER);
-  ret["argv"].append("-jsonerrors");
-  ret["argv"].append("-pplit");
-  ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
-
-  return ret;
-}
-
-Json::Value EvmUtils::GetDisambiguateJson() {
-  Json::Value ret;
-  ret["argv"].append("-iinit");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INIT_JSON);
-  ret["argv"].append("-ipcaddress");
-  ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
-  ret["argv"].append("-oinit");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     OUTPUT_JSON);
-  ret["argv"].append("-i");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INPUT_CODE + CONTRACT_FILE_EXTENSION);
-
-  return ret;
-}
