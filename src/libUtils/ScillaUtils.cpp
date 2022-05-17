@@ -128,6 +128,8 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append("-pplit");
   ret["argv"].append(SCILLA_PPLIT_FLAG ? "true" : "false");
 
+  std::cout << "=======>" << ret << std::endl;
+
   return ret;
 }
 
