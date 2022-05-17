@@ -29,6 +29,9 @@
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
 
+#include "ScillaClient.h"
+#include "EvmClient.h"
+
 using namespace std;
 using namespace dev;
 using namespace boost::multiprecision;
@@ -47,7 +50,12 @@ AccountStore::AccountStore() : m_externalWriters{0} {
         SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+
+
+
     ScillaClient::GetInstance().Init();
+    EvmClient::GetInstance().Init();
+
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {
@@ -812,12 +820,21 @@ bool AccountStore::MigrateContractStates(
     m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
     std::string checkerPrint;
+
     bool ret_checker = true;
     TransactionReceipt receipt;
     uint64_t gasRem = UINT64_MAX;
-    InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library, gasRem,
-                      std::numeric_limits<uint128_t>::max(), ret_checker,
-                      receipt);
+    if (not account.isEvmContract())
+      InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
+                        gasRem, std::numeric_limits<uint128_t>::max(),
+                        ret_checker, receipt);
+    else {
+      //RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+
+      //InvokeEvmInterpreter(CHECKER, details, scilla_version, is_library,
+      //                     gasRem, std::numeric_limits<uint128_t>::max(),
+      //                     ret_checker, receipt);
+    }
 
     if (!ret_checker) {
       LOG_GENERAL(WARNING, "InvokeScillaChecker failed");

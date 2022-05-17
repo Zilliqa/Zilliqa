@@ -25,7 +25,7 @@ opam install ./scilla.opam --deps-only --with-test
 make clean; make
 ```
 
-## Steps to Build & Run Node
+## Steps to Build & Run Node + new entries for EVM
 1. `git clone https://github.com/Zilliqa/Zilliqa.git`
 2. cd `Zilliqa`
 3. Edit the `./constants.xml` with the following attributes. Please take note of the directory where you installed scilla.
@@ -34,6 +34,13 @@ make clean; make
 <ENABLE_SC>true</ENABLE_SC>
 <SCILLA_ROOT>/home/ubuntu/scilla</SCILLA_ROOT>
 <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+
+## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
+<ENABLE_EVM>true</ENABLE_EVM>
+<EVM_ROOT>/home/ubuntu/evm-ds</EVM_ROOT>
+<EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
+<EVM_SERVER_BINARY>evm-ds</EVM_SERVER_BINARY>
+<ENABLE_EVM_MULTI_VERSION>false</ENABLE_EVM_MULTI_VERSION>
 ```
 4. Create swapfile
 ```

@@ -212,7 +212,8 @@ int main(int argc, const char* argv[]) {
     }
 
     while (true) {
-      ;  // keep server running
+      // Sleeping is better than working.
+      std::this_thread::sleep_for(chrono::seconds(1));
     }
 
   } catch (std::exception& e) {
