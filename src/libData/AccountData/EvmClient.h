@@ -38,8 +38,14 @@ class EvmClient {
    bool CheckClient(uint32_t version,
                     __attribute__((unused)) bool enforce = false);
 
+   bool CallChecker(uint32_t version, const Json::Value& _json,
+                    std::string& result, uint32_t counter = MAXRETRYCONN);
+
    bool CallRunner(uint32_t version, const Json::Value& _json,
                    std::string& result, uint32_t counter = MAXRETRYCONN);
+
+   bool CallDisambiguate(uint32_t version, const Json::Value& _json,
+                         std::string& result, uint32_t counter = MAXRETRYCONN);
  private:
 
   EvmClient(){}

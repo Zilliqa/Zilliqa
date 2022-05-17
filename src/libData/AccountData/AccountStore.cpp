@@ -52,13 +52,9 @@ AccountStore::AccountStore() : m_externalWriters{0} {
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 
 
-    // Ininitialise the ScillaClient
+
     ScillaClient::GetInstance().Init();
-    // Initialise EVM if enabled
-    if (ENABLE_EVM) {
-      LOG_GENERAL(INFO, "EVM enabled");
-      EvmClient::GetInstance().Init();
-    }
+    EvmClient::GetInstance().Init();
 
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
@@ -824,12 +820,21 @@ bool AccountStore::MigrateContractStates(
     m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
     std::string checkerPrint;
+
     bool ret_checker = true;
     TransactionReceipt receipt;
     uint64_t gasRem = UINT64_MAX;
-    InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library, gasRem,
-                      std::numeric_limits<uint128_t>::max(), ret_checker,
-                      receipt);
+    if (not account.isEvmContract())
+      InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
+                        gasRem, std::numeric_limits<uint128_t>::max(),
+                        ret_checker, receipt);
+    else {
+      //RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+
+      //InvokeEvmInterpreter(CHECKER, details, scilla_version, is_library,
+      //                     gasRem, std::numeric_limits<uint128_t>::max(),
+      //                     ret_checker, receipt);
+    }
 
     if (!ret_checker) {
       LOG_GENERAL(WARNING, "InvokeScillaChecker failed");

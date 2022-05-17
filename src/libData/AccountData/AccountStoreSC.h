@@ -27,6 +27,7 @@
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/RunnerDetails.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -44,6 +45,8 @@ class AccountStoreAtomic
   const std::shared_ptr<std::unordered_map<Address, Account>>&
   GetAddressToAccount();
 };
+
+
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
@@ -200,8 +203,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
+  void InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
+                         const RunnerDetails& details,
+                         const uint32_t& version, bool is_library,
+                         const uint64_t& available_gas,
+                         const boost::multiprecision::uint128_t& balance,
+                         bool& ret, TransactionReceipt& receipt, std::string& result);
 
-   /// verify the return from scilla_checker for deployment is valid
+
+  /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
   bool ParseContractCheckerOutput(const Address& addr,
                                   const std::string& checkerPrint,

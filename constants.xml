@@ -296,8 +296,8 @@
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
         <SCILLA_ROOT>/home/stephen/scilla</SCILLA_ROOT>
-        <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
-        <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
+        <SCILLA_CHECKER>/home/stephen/scilla/bin/scilla-checker</SCILLA_CHECKER>
+        <SCILLA_BINARY>/home/stephen/scilla/bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
         <SCILLA_LIB>src/stdlib</SCILLA_LIB>

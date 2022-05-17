@@ -59,9 +59,6 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
   ret["argv"].append(to_string(available_gas));
   ret["argv"].append("-contractinfo");
   ret["argv"].append("-jsonerrors");
-
-  std::cout << ret << std::endl;
-
   return ret;
 }
 
@@ -91,8 +88,6 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                      boost::filesystem::current_path().string() + '/' +
                      EXTLIB_FOLDER);
   ret["argv"].append("-jsonerrors");
-
-  std::cout << "get create contract json ==>" << ret << std::endl;
 
   return ret;
 }

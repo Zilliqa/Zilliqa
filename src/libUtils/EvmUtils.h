@@ -19,18 +19,20 @@
 
 #include <json/json.h>
 #include <boost/multiprecision/cpp_int.hpp>
+#include "libUtils/RunnerDetails.h"
 
 class EvmUtils {
  public:
-  static bool PrepareRootPathWVersion(const uint32_t& scilla_version,
+  static bool         PrepareRootPathWVersion(const uint32_t& scilla_version,
                                       std::string& root_w_version);
 
+  /// get the command for invoking the evm_runner while deploying
+  static Json::Value GetCreateContractJson(const RunnerDetails& details);
 
+  /// get the command for invoking the evm_runner while calling
+  static Json::Value GetCallContractJson(const RunnerDetails& details);
 
-  /// get the command for invoking the scilla_runner while calling
-  static Json::Value GetCallContractJson();
-
+  static std::string GetDataFromItemData(const std::string& itemData);
 };
-
 
 #endif  // ZILLIQA_EVMUTILS_H

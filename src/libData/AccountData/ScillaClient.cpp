@@ -161,14 +161,9 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  std::cout << _json << std::endl;
-
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
-
-    std::cout << "[" << result << "]" << std::endl;
-
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
     if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
