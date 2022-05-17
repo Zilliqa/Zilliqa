@@ -95,3 +95,6 @@ compile_commands.json
 .idea
 .vscode
 .history
+/cmake-build-debug/
+/debug/
+/persistence/
