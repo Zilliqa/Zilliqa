@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 
 #include <Schnorr.h>
-#include <boost/iterator/iterator_facade.hpp>
 #include "Account.h"
 #include "Address.h"
 #include "Transaction.h"
@@ -71,20 +70,7 @@ class AccountStoreBase : public SerializableDataBlock {
 
   size_t GetNumOfAccounts() const { return m_addressToAccount.size(); }
 
-  // Implement a custom iterator: make range for loop work with AccountBase
-  class Iterator
-      : public boost::iterator_facade<Iterator,
-                                      const std::pair<Address, Account>&,
-                                      boost::forward_traversal_tag> {
-    using base = std::unordered_map<Address, Account>::iterator;
-    base m_iter;
-
-   public:
-    Iterator(base iter) : m_iter(iter) {}
-    bool equal(Iterator const& other) const { return m_iter == other.m_iter; }
-    void increment() { m_iter = ++m_iter; }
-    const std::pair<Address, Account> dereference() const { return *m_iter; }
-  };
+  using Iterator = std::unordered_map<Address, Account>::iterator;
 
   Iterator begin() { return Iterator(m_addressToAccount.begin()); }
   Iterator end() { return Iterator(m_addressToAccount.end()); }
