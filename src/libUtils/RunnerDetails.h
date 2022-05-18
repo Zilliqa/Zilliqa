@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H
-#define ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H
+#ifndef ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
+#define ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
 
 #include <string>
 
@@ -27,4 +27,4 @@ struct RunnerDetails {
   std::string   m_data;
 };
 
-#endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H
+#endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_

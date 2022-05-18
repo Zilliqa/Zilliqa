@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 
 #include <map>
 #include <memory>
@@ -60,4 +60,4 @@ class EvmClient {
 
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
