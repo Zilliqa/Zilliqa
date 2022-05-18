@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string>
 #include <mutex>
+#include <string>
 
-#include "EvmUtils.h"
 #include <boost/filesystem.hpp>
+#include "EvmUtils.h"
 
-#include "Logger.h"
 #include "JsonUtils.h"
+#include "Logger.h"
 #include "common/Constants.h"
 #include "libUtils/RunnerDetails.h"
 
@@ -30,7 +30,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 bool EvmUtils::PrepareRootPathWVersion(const uint32_t& evm_version,
-                                          string& root_w_version) {
+                                       string& root_w_version) {
   root_w_version = EVM_ROOT;
   if (ENABLE_EVM_MULTI_VERSION) {
     root_w_version += '/' + to_string(evm_version);
@@ -45,34 +45,34 @@ bool EvmUtils::PrepareRootPathWVersion(const uint32_t& evm_version,
   return true;
 }
 
-
-std::string
-EvmUtils::GetDataFromItemData(const std::string& itemData){
-  Json::Value  root;
+std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
+  Json::Value root;
   Json::Reader reader;
-  std::string  reply;
+  std::string reply;
   try {
     if (reader.parse(itemData, root)) {
       std::string testString = root[0]["vname"].asString();
-      if ( testString != "_evm_version"){
-        LOG_GENERAL(WARNING, "Init Parameter does not appear to be formatted correctly " << testString);
+      if (testString != "_evm_version") {
+        LOG_GENERAL(WARNING,
+                    "Init Parameter does not appear to be formatted correctly "
+                        << testString);
       }
       reply = root[1]["data"].asString();
     }
-  }  catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " itemData: " << itemData);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught: " << e.what() << " itemData: " << itemData);
   }
   return reply;
 }
 
-Json::Value
-EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
+Json::Value EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
   Json::Value arr_ret(Json::arrayValue);
-
 
   arr_ret.append(details.m_from);
   arr_ret.append(details.m_to);
-  // The next two parameters come directly from the user in the code and init struct
+  // The next two parameters come directly from the user in the code and init
+  // struct
   //
   arr_ret.append(details.m_code);
   arr_ret.append(GetDataFromItemData(details.m_data));
@@ -81,8 +81,7 @@ EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
   return arr_ret;
 }
 
-Json::Value
-EvmUtils::GetCallContractJson(const RunnerDetails& details) {
+Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(details.m_from);
@@ -95,4 +94,3 @@ EvmUtils::GetCallContractJson(const RunnerDetails& details) {
 
   return arr_ret;
 }
-

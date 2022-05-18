@@ -24,7 +24,7 @@
 
 class EvmUtils {
  public:
-  static bool         PrepareRootPathWVersion(const uint32_t& scilla_version,
+  static bool PrepareRootPathWVersion(const uint32_t& evm_version,
                                       std::string& root_w_version);
 
   /// get the command for invoking the evm_runner while deploying

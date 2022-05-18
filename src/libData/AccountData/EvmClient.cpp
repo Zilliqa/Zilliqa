@@ -17,19 +17,14 @@
 
 #include "EvmClient.h"
 
-
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/JsonUtils.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/SysCommand.h"
-
 
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
-
-
-
 
 /* EvmClient Init */
 void EvmClient::Init() {
@@ -37,8 +32,8 @@ void EvmClient::Init() {
   if (ENABLE_EVM_MULTI_VERSION) {
     boost::filesystem::path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
-    for (auto& entry :
-         boost::make_iterator_range(boost::filesystem::directory_iterator(scilla_root_path), {})) {
+    for (auto& entry : boost::make_iterator_range(
+             boost::filesystem::directory_iterator(scilla_root_path), {})) {
       LOG_GENERAL(INFO, "scilla-server path: " << entry.path().string());
       std::string folder_name = entry.path().string();
       folder_name.erase(0, EVM_ROOT.size() + 1);
@@ -72,7 +67,8 @@ bool EvmClient::OpenServer(uint32_t version) {
     return false;
   }
 
-  std::string server_path = root_w_version + "/target/release/" + EVM_SERVER_BINARY;
+  std::string server_path =
+      root_w_version + "/target/release/" + EVM_SERVER_BINARY;
   std::string killStr, executeStr;
 
   if (ENABLE_EVM_MULTI_VERSION) {
@@ -81,8 +77,8 @@ bool EvmClient::OpenServer(uint32_t version) {
              " --socket " + EVM_SERVER_SOCKET_PATH + "." +
              std::to_string(version) + " >/dev/null &";
   } else {
-    cmdStr = "pkill " + EVM_SERVER_BINARY + " ; " + server_path +
-             " --socket " + EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
+    cmdStr = "pkill " + EVM_SERVER_BINARY + " ; " + server_path + " --socket " +
+             EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
   }
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
@@ -109,11 +105,9 @@ bool EvmClient::OpenServer(uint32_t version) {
   return true;
 }
 
-
 bool EvmClient::CheckClient(uint32_t version,
                             __attribute__((unused)) bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
-
 
   if (!OpenServer(version)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
@@ -135,7 +129,7 @@ bool EvmClient::CheckClient(uint32_t version,
 }
 
 bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
-                               std::string& result, uint32_t counter) {
+                            std::string& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
@@ -171,7 +165,7 @@ bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                              std::string& result, uint32_t counter) {
+                           std::string& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
@@ -190,8 +184,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     std::cout << "Sending|" << _json << "| to EVM" << std::endl;
     result = m_clients.at(version)->CallMethod("run", _json).asString();
     //
-    // The result should contain the code that we then need to execute, and also store back into the contract
-    // and probably the chain.
+    // The result should contain the code that we then need to execute, and also
+    // store back into the contract and probably the chain.
     //
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
@@ -201,7 +195,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 }
 
 bool EvmClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
-                                    std::string& result, uint32_t counter) {
+                                 std::string& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }

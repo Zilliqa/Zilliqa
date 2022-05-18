@@ -807,9 +807,11 @@ bool AccountStore::MigrateContractStates(
                         gasRem, std::numeric_limits<uint128_t>::max(),
                         ret_checker, receipt);
     else {
-      //RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+      // RunnerDetails  details = { fromAddr.hex() , toAddr.hex() ,
+      // DataConversion::CharArrayToString(transaction.GetCode())
+      // ,DataConversion::CharArrayToString(transaction.GetData()) };
 
-      //InvokeEvmInterpreter(CHECKER, details, scilla_version, is_library,
+      // InvokeEvmInterpreter(CHECKER, details, scilla_version, is_library,
       //                     gasRem, std::numeric_limits<uint128_t>::max(),
       //                     ret_checker, receipt);
     }

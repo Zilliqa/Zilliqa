@@ -235,13 +235,12 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
         if (found_library && found_extlibs) {
           break;
         }
-      }
-      else if (entry["vname"].asString() == "_evm_version") {
+      } else if (entry["vname"].asString() == "_evm_version") {
         found_evm_version = true;
         SetEvmContract(true);
       }
 
-        if (entry["vname"].asString() == "_library" &&
+      if (entry["vname"].asString() == "_library" &&
           entry["type"].asString() == "Bool") {
         if (found_library) {
           LOG_GENERAL(WARNING, "Got multiple field of \"_library\"");
@@ -309,7 +308,8 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
   }
 
   if (!found_scilla_version && !found_evm_version) {
-    LOG_GENERAL(WARNING, "scilla_version or evm_version not found in init data");
+    LOG_GENERAL(WARNING,
+                "scilla_version or evm_version not found in init data");
     return false;
   }
 

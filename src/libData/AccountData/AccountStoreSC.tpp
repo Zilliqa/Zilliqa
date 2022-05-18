@@ -19,15 +19,15 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 
-#include "ScillaClient.h"
 #include "EvmClient.h"
+#include "ScillaClient.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
-#include "libUtils/EvmUtils.h"
 #include "libUtils/SysCommand.h"
 
 // 5mb
@@ -62,8 +62,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt,
-                &call_already_finished]() mutable -> void {
+               &available_gas, &balance, &ret, &receipt,
+               &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
         if (!ScillaClient::GetInstance().CallChecker(
@@ -123,14 +123,14 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    INVOKE_TYPE invoke_type, const RunnerDetails &details,
+    INVOKE_TYPE invoke_type, const RunnerDetails& details,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt,std::string& result) {
+    TransactionReceipt& receipt, std::string& result) {
   bool call_already_finished = false;
   auto func2 = [this, &details, &invoke_type, &version, &is_library,
                 &available_gas, &balance, &ret, &receipt,
-                &call_already_finished,result]() mutable -> void {
+                &call_already_finished, result]() mutable -> void {
     switch (invoke_type) {
       case RUNNER_CREATE:
         if (!EvmClient::GetInstance().CallRunner(
@@ -277,7 +277,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       bool init = true;
-      bool is_library ;
+      bool is_library;
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
       uint32_t scilla_version;
 
@@ -358,8 +358,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               toAddr, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
-      if (not toAccount->isEvmContract()
-          && !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
+      if (not toAccount->isEvmContract() &&
+          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
                                       gasRemained, is_library)) {
         ret_checker = false;
       }
@@ -387,10 +387,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                               is_library, gasRemained, amount, ret, receipt);
           } else {
             // maybe able to set these once at the top instead of every time.
-            RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+            RunnerDetails details = {
+                fromAddr.hex(), toAddr.hex(),
+                DataConversion::CharArrayToString(transaction.GetCode()),
+                DataConversion::CharArrayToString(transaction.GetData())};
 
-            InvokeEvmInterpreter(RUNNER_CREATE, details , scilla_version, is_library,
-                                 gasRemained, std::numeric_limits<uint128_t>::max(),
+            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version,
+                                 is_library, gasRemained,
+                                 std::numeric_limits<uint128_t>::max(),
                                  ret_checker, receipt, runnerPrint);
           }
 
@@ -633,11 +637,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
       } else {
         // maybe able to set these once at the top instead of every time.
-        RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+        RunnerDetails details = {
+            fromAddr.hex(), toAddr.hex(),
+            DataConversion::CharArrayToString(transaction.GetCode()),
+            DataConversion::CharArrayToString(transaction.GetData())};
 
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, is_library,
                              gasRemained, std::numeric_limits<uint128_t>::max(),
-                             ret, receipt , runnerPrint);
+                             ret, receipt, runnerPrint);
       }
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1522,7 +1529,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       } else {
         // We need to look at this and see where it is retreiving the code
         /*
-        RunnerDetails  details = { fromAddr.hex() , toAddr.hex() , DataConversion::CharArrayToString(transaction.GetCode()) ,DataConversion::CharArrayToString(transaction.GetData()) };
+        RunnerDetails  details = { fromAddr.hex() , toAddr.hex() ,
+        DataConversion::CharArrayToString(transaction.GetCode())
+        ,DataConversion::CharArrayToString(transaction.GetData()) };
 
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, is_library,
                              gasRemained, std::numeric_limits<uint128_t>::max(),

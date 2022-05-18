@@ -21,10 +21,10 @@
 #include <string>
 
 struct RunnerDetails {
-  std::string   m_from;
-  std::string   m_to;
-  std::string   m_code;
-  std::string   m_data;
+  std::string m_from;
+  std::string m_to;
+  std::string m_code;
+  std::string m_data;
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
