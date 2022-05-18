@@ -285,7 +285,7 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/scilla</SCILLA_ROOT>
+        <SCILLA_ROOT>scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
@@ -301,6 +301,7 @@
         <LIBRARY_CODE_EXTENSION>.scillib</LIBRARY_CODE_EXTENSION>
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
+        <ENABLE_EVM_MULTI_VERSION>false</ENABLE_EVM_MULTI_VERSION>
         <LOG_SC>false</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>
