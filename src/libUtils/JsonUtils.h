@@ -23,6 +23,8 @@
 #include <sstream>
 #include <string>
 
+#include "libUtils/Logger.h"
+
 class JSONUtils {
   std::unique_ptr<Json::StreamWriter> m_writer;
   std::unique_ptr<Json::CharReader> m_reader;
