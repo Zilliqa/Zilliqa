@@ -187,20 +187,14 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
+    std::cout << "Sending|" << _json << "| to EVM" << std::endl;
     result = m_clients.at(version)->CallMethod("run", _json).asString();
+    //
+    // The result should contain the code that we then need to execute, and also store back into the contract
+    // and probably the chain.
+    //
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
-      if (!CheckClient(version, true)) {
-        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallRunner(version, _json, result, counter - 1);
-      }
-    } else {
-      result = e.what();
-    }
-
-    return false;
   }
 
   return true;

@@ -68,6 +68,7 @@ Json::Value
 EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
   Json::Value arr_ret(Json::arrayValue);
 
+
   arr_ret.append(details.m_from);
   arr_ret.append(details.m_to);
   // The next two parameters come directly from the user in the code and init struct

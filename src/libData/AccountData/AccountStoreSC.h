@@ -31,6 +31,7 @@
 
 template <class MAP>
 class AccountStoreSC;
+class ScillaIPCServer;
 
 template <class MAP>
 class AccountStoreAtomic
