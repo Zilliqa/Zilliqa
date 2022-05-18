@@ -617,6 +617,9 @@ const string EXTLIB_FOLDER{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
+const bool ENABLE_EVM_MULTI_VERSION{
+    ReadConstantString("ENABLE_EVM_MULTI_VERSION", "node.smart_contract.") ==
+    "true"};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
 const bool DISABLE_SCILLA_LIB{
@@ -729,3 +732,11 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
+const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") == "true"};
+
+const std::string EVM_SERVER_SOCKET_PATH{
+    ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};
+const std::string EVM_SERVER_BINARY{
+    ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
+const std::string EVM_ROOT{
+    ReadConstantString("EVM_ROOT", "node.jsonrpc.")};

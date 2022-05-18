@@ -302,6 +302,13 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int LOOKUP_RPC_PORT;
 extern const unsigned int STAKING_RPC_PORT;
 extern const unsigned int STATUS_RPC_PORT;
+// EVM
+
+extern const bool ENABLE_EVM;
+extern const std::string EVM_ROOT;
+extern const std::string EVM_SERVER_SOCKET_PATH;
+extern const std::string EVM_SERVER_BINARY;
+
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
 extern const bool ENABLE_STATUS_RPC;
@@ -414,6 +421,7 @@ extern const std::string CONTRACT_FILE_EXTENSION;
 extern const std::string LIBRARY_CODE_EXTENSION;
 extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
+extern const bool ENABLE_EVM_MULTI_VERSION;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;

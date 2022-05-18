@@ -32,8 +32,15 @@ make clean; make
 ```
 <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
 <ENABLE_SC>true</ENABLE_SC>
-<SCILLA_ROOT>/home/ubuntu/scilla</SCILLA_ROOT>
+<SCILLA_ROOT>scilla</SCILLA_ROOT>
 <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+
+## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
+<ENABLE_EVM>true</ENABLE_EVM>
+<EVM_ROOT>evm-ds</EVM_ROOT>
+<EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
+<EVM_SERVER_BINARY>evm-ds</EVM_SERVER_BINARY>
+<ENABLE_EVM_MULTI_VERSION>false</ENABLE_EVM_MULTI_VERSION>
 ```
 4. Create swapfile
 ```
