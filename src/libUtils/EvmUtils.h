@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_EVMUTILS_H
-#define ZILLIQA_EVMUTILS_H
+#ifndef ZILLIQA_SRC_LIBUTILS_EVMUTILS_H
+#define ZILLIQA_SRC_LIBUTILS_EVMUTILS_H
 
 #include <json/json.h>
 #include <boost/multiprecision/cpp_int.hpp>
@@ -36,4 +36,4 @@ class EvmUtils {
   static std::string GetDataFromItemData(const std::string& itemData);
 };
 
-#endif  // ZILLIQA_EVMUTILS_H
+#endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H
