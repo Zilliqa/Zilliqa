@@ -21,6 +21,7 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 
 FROM rust:latest as rust_builder
 RUN rustup component add clippy rustfmt
+RUN apt-get install -y protobuf-compiler
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
     cargo build --verbose --release --package evm-ds && \
