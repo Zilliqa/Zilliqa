@@ -25,6 +25,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <thread>
 
 /* EvmClient Init */
 void EvmClient::Init() {
@@ -68,7 +69,7 @@ bool EvmClient::OpenServer(uint32_t version) {
   }
 
   std::string server_path =
-      root_w_version + "/target/release/" + EVM_SERVER_BINARY;
+      root_w_version + EVM_SERVER_PATH + EVM_SERVER_BINARY;
   std::string killStr, executeStr;
 
   if (ENABLE_EVM_MULTI_VERSION) {
@@ -182,6 +183,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     std::cout << "Sending|" << _json << "| to EVM" << std::endl;
+
     result = m_clients.at(version)->CallMethod("run", _json).asString();
     //
     // The result should contain the code that we then need to execute, and also

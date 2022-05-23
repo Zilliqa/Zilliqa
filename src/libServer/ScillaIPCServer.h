@@ -36,6 +36,8 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                                Json::Value& response);
   inline virtual void updateStateValueI(const Json::Value& request,
                                         Json::Value& response);
+  inline virtual void fetchExternalStateValueB64I(const Json::Value& request,
+                                                  Json::Value& response);
   virtual bool fetchStateValue(const std::string& query, std::string& value,
                                bool& found);
   virtual bool fetchExternalStateValue(const std::string& addr,
