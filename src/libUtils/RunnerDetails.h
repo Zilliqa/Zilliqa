@@ -25,6 +25,8 @@ struct RunnerDetails {
   std::string m_to;
   std::string m_code;
   std::string m_data;
+  const uint64_t m_available_gas;
+  const boost::multiprecision::uint128_t m_balance;
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_

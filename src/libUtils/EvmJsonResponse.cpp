@@ -1,0 +1,148 @@
+/*
+* Copyright (C) 2022 Zilliqa
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "nlohmann/json.hpp"
+#include "libUtils/EvmJsonResponse.h"
+
+EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
+  nlohmann::json newJason;
+
+  try {
+    newJason = nlohmann::json::parse(oldJason.toStyledString());
+  } catch(std::exception &e) {
+    std::cout << "Error parsing json from evmds " << e.what() << std::endl;
+    return fo;
+  }
+
+  for (const auto &node : newJason.items()) {
+    if (node.key() == "apply" && node.value().is_array()) {
+
+      for (const auto &ap : node.value()) {
+        for (const auto &map : ap.items()) {
+          EvmOperation op;
+          nlohmann::json arr = map.value();
+          op._operation_type = map.key();
+          try {
+            op._address = arr["address"];
+          } catch (std::exception &e){
+            std::cout << "address : " << e.what() << std::endl;
+          }
+          try {
+            op._balance = arr["balance"];
+          } catch (std::exception &e){
+            std::cout << "balance : " << e.what() << std::endl;
+          }
+          nlohmann::json cobj;
+          try {
+            cobj = arr["code"];
+          } catch (std::exception &e){
+            std::cout << "code : " << e.what() << std::endl;
+          }
+          if (not cobj.is_null()) {
+            if (cobj.is_binary()) {
+              std::cout << "Binary data" << std::endl;
+            } else if (cobj.is_string()) {
+              op._code = cobj.get<std::string>();
+            } else {
+              std::cout << "write some code for " << cobj.type_name() << std::endl;
+            }
+          }
+          try {
+            op._nonce = arr["nonce"];
+          } catch (std::exception &e){
+            std::cout << "nonce : " << e.what() << std::endl;
+          }
+          try {
+            op._reset_storage = arr["reset_storage"];
+          } catch (std::exception &e){
+            std::cout << "reset : " << e.what() << std::endl;
+          }
+          nlohmann::json storageObj;
+          try {
+            storageObj = arr["storage"];
+          } catch (std::exception &e){
+            std::cout << "storage : " << e.what() << std::endl;
+          }
+          if (not storageObj.is_null()) {
+            AddressPair addrs;
+            for (const auto &addr : storageObj.items()) {
+              addrs._first_address = addr.value()[0];
+              addrs._second_address = addr.value()[1];
+            }
+            op._storage.push_back(addrs);
+          }
+          fo._operations.push_back(op);
+        }
+      }
+    } else if (node.key() == "exit_reason") {
+      for (const auto &er : node.value().items()) {
+        fo._exit_reasons.push_back(er.value());
+      }
+    } else if (node.key() == "logs") {
+      for (const auto &lg : node.value().items()) {
+        fo._logs.push_back(lg.value());
+      }
+    } else if (node.key() == "return_value") {
+      nlohmann::json j = node.value();
+      if (j.is_string()) {
+        fo._return = j;
+      } else {
+        std::cout << "invalid node type" << std::endl;
+      }
+    }
+  }
+  return fo;
+}
+
+std::ostream & operator<<(std::ostream& os, AddressPair& c){
+  os << "first address : " <<c._first_address << std::endl;
+  os << "second address : " <<c._second_address << std::endl;
+  return os;
+}
+
+std::ostream & operator<<(std::ostream& os, EvmOperation& c){
+  os << "operation type : " <<c._operation_type << std::endl;
+  os << "address : " <<c._address << std::endl;
+  os << "code : " <<c._code << std::endl;
+  os << "balance : " <<c._balance << std::endl;
+  os << "nonce : " <<c._nonce << std::endl;
+  os << "reset_storage : " << std::boolalpha <<c._reset_storage << std::endl;
+
+  for (const auto& it:c._storage){
+    std::cout << "1 : " << it._first_address << std::endl;
+    std::cout << "2 : " << it._second_address << std::endl;
+  }
+  return os;
+}
+
+std::ostream & operator<<(std::ostream& os, EvmReturn& c) {
+
+  std::cout << "EvmReturn object" << std::endl;
+
+  for (auto it : c._operations) {
+    std::cout << it << std::endl;
+  }
+  for (auto it : c._logs) {
+    std::cout << it << std::endl;
+  }
+  for(auto it: c._exit_reasons){
+    std::cout << it << std::endl;
+  }
+
+  std::cout << "code : " << c._return << std::endl;
+  return os;
+}
