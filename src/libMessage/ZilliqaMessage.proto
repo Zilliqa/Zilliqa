@@ -1248,3 +1248,5 @@ message LookupGetPendingTxnFromL2l
     ByteArray pubkey        = 2;
     ByteArray signature     = 3;
 }
+
+// From DSNode to

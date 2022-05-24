@@ -191,6 +191,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     //
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
+    return false;
   }
 
   return true;

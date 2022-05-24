@@ -395,7 +395,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version,
                                  is_library, gasRemained,
                                  std::numeric_limits<uint128_t>::max(),
-                                 ret_checker, receipt, runnerPrint);
+                                 ret, receipt, runnerPrint);
+
+
+
           }
 
           // parse runner output
@@ -1125,9 +1128,13 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
                            : runnerPrint));
   }
 
+  if (runnerPrint.length() == 0){
+    LOG_GENERAL(INFO,"Empty Json string from createContract");
+    return false;
+  }
+
   if (!JSONUtils::GetInstance().convertStrtoJson(runnerPrint, jsonOutput)) {
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
-
     return false;
   }
   return true;
