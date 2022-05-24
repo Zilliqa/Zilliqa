@@ -131,15 +131,20 @@ void AccountStoreSC<MAP>::InvokeEvmInterpreter(
   auto func2 = [this, &details, &invoke_type, &version, &is_library,
                 &available_gas, &balance, &ret, &receipt,
                 &call_already_finished, result]() mutable -> void {
+
+    Json::Value jval;
     switch (invoke_type) {
       case RUNNER_CREATE:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCreateContractJson(details), result)) {
+                version, EvmUtils::GetCreateContractJson(details), jval)) {
+                std::cout << "returned false from create contract" << std::endl;
+        } else {
+          std::cout << "Gotten(" << jval << ")" << std::endl;
         }
         break;
       case RUNNER_CALL:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCallContractJson(details), result)) {
+                version, EvmUtils::GetCallContractJson(details), jval)) {
         }
         break;
       default:

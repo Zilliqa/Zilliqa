@@ -166,7 +166,7 @@ bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           std::string& result, uint32_t counter) {
+                           Json::Value& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
@@ -184,7 +184,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     std::lock_guard<std::mutex> g(m_mutexMain);
     std::cout << "Sending|" << _json << "| to EVM" << std::endl;
 
-    result = m_clients.at(version)->CallMethod("run", _json).asString();
+    result = m_clients.at(version)->CallMethod("run", _json);
+
     //
     // The result should contain the code that we then need to execute, and also
     // store back into the contract and probably the chain.
