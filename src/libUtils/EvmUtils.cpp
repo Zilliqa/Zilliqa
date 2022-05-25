@@ -77,6 +77,7 @@ Json::Value EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
   arr_ret.append(details.m_code);
   arr_ret.append(GetDataFromItemData(details.m_data));
   arr_ret.append("00");
+  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
   return arr_ret;
 }
@@ -91,6 +92,7 @@ Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
   arr_ret.append(details.m_code);
   arr_ret.append(GetDataFromItemData(details.m_data));
   arr_ret.append("00");
+  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
   return arr_ret;
 }
