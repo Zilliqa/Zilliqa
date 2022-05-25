@@ -188,6 +188,8 @@ class Transaction : public SerializableDataBlock {
 
   /// Greater-than comparison operator.
   bool operator>(const Transaction& tran) const;
+
+  bool _UpdateCode( bytes newValue ) ;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_

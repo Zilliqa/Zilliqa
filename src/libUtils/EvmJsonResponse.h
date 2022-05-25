@@ -46,14 +46,15 @@ struct EvmOperation {
 };
 
 struct EvmReturn {
-  std::vector<EvmOperation>   _operations;
+  std::vector<EvmOperation>  _operations;
   std::vector<std::string> _logs;
   std::vector<std::string> _exit_reasons;
   std::string              _return;
+  uint64_t           _gasRemaing;
   friend std::ostream & operator<<(std::ostream& os, EvmReturn& c);
 };
 
-EvmReturn&GetReturn(const Json::Value &j, EvmReturn&fo);
+EvmReturn&           GetReturn(const Json::Value &j, EvmReturn&fo);
 
 
 

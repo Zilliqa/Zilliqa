@@ -29,6 +29,7 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   }
 
   for (const auto &node : newJason.items()) {
+    std::cout << "key : " << node.key() << std::endl;
     if (node.key() == "apply" && node.value().is_array()) {
 
       for (const auto &ap : node.value()) {
@@ -67,6 +68,11 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
             std::cout << "nonce : " << e.what() << std::endl;
           }
           try {
+            op._nonce = arr["gas"];
+          } catch (std::exception &e){
+            std::cout << "gas : " << e.what() << std::endl;
+          }
+          try {
             op._reset_storage = arr["reset_storage"];
           } catch (std::exception &e){
             std::cout << "reset : " << e.what() << std::endl;
@@ -90,6 +96,7 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
       }
     } else if (node.key() == "exit_reason") {
       for (const auto &er : node.value().items()) {
+        fo._exit_reasons.push_back(er.key());
         fo._exit_reasons.push_back(er.value());
       }
     } else if (node.key() == "logs") {
@@ -103,6 +110,8 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
       } else {
         std::cout << "invalid node type" << std::endl;
       }
+    } else if (node.key() == "remaining_gas" ) {
+      fo._gasRemaing = node.value();
     }
   }
   return fo;
@@ -120,6 +129,7 @@ std::ostream & operator<<(std::ostream& os, EvmOperation& c){
   os << "code : " <<c._code << std::endl;
   os << "balance : " <<c._balance << std::endl;
   os << "nonce : " <<c._nonce << std::endl;
+
   os << "reset_storage : " << std::boolalpha <<c._reset_storage << std::endl;
 
   for (const auto& it:c._storage){
@@ -143,6 +153,7 @@ std::ostream & operator<<(std::ostream& os, EvmReturn& c) {
     std::cout << it << std::endl;
   }
 
+  os << "gasRemaing : " <<c._gasRemaing << std::endl;
   std::cout << "code : " << c._return << std::endl;
   return os;
 }

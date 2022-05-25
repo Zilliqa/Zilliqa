@@ -24,12 +24,12 @@
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
-#include "libUtils/EvmJsonResponse.h"
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
@@ -123,23 +123,27 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 // New Invoker for EVM
 
 template <class MAP>
-void AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    INVOKE_TYPE invoke_type, const RunnerDetails& details,const uint32_t& version,
-    bool& ret,TransactionReceipt& receipt, EvmReturn& result) {
+void AccountStoreSC<MAP>::InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
+                                               const RunnerDetails& details,
+                                               const uint32_t& version,
+                                               bool& ret,
+                                               TransactionReceipt& receipt,
+                                               EvmReturn& result) {
   bool call_already_finished = false;
-  auto func2 = [this, &details, &invoke_type, &ret, &receipt,&version,
+  auto func2 = [this, &details, &invoke_type, &ret, &receipt, &version,
                 &call_already_finished, &result]() mutable -> void {
-
     Json::Value jval;
     switch (invoke_type) {
       case RUNNER_CREATE:
-        if (!EvmClient::GetInstance().CallRunner(version,EvmUtils::GetCreateContractJson(details), result)) {
-                std::cout << "returned false from create contract" << std::endl;
+        if (!EvmClient::GetInstance().CallRunner(
+                version, EvmUtils::GetCreateContractJson(details), result)) {
+          std::cout << "returned false from create contract" << std::endl;
         } else {
         }
         break;
       case RUNNER_CALL:
-        if (!EvmClient::GetInstance().CallRunner(version,EvmUtils::GetCallContractJson(details), result)) {
+        if (!EvmClient::GetInstance().CallRunner(
+                version, EvmUtils::GetCallContractJson(details), result)) {
         }
         break;
       default:
@@ -347,6 +351,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (not toAccount->isEvmContract()) {
         InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
                           gasRemained, 0, ret_checker, receipt);
+
+        std::cout << "checker ==>" << checkerPrint << std::endl;
       }
       // 0xabc._version
       // 0xabc._depth.data1
@@ -386,100 +392,101 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, amount, ret, receipt);
           } else {
-
             RunnerDetails details = {
-                fromAddr.hex(), toAddr.hex(),
+                fromAddr.hex(),
+                toAddr.hex(),
                 DataConversion::CharArrayToString(transaction.GetCode()),
                 DataConversion::CharArrayToString(transaction.GetData()),
                 gasRemained,
-                std::numeric_limits<uint128_t>::max()
-                };
+                std::numeric_limits<uint128_t>::max()};
 
             EvmReturn realValues;
 
-            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version,ret, receipt, realValues);
+            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version, ret,
+                                 receipt, realValues);
 
             std::cout << "Reply==>" << std::endl << realValues << std::endl;
 
-          }
+            // Process all operations in the collection
 
-          // parse runner output
-          try {
-            if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
-                                            is_library)) {
-              ret = false;
+            for (auto op : realValues._operations) {
+              if (op._operation_type == "modify") {
+                try {
+                  gasRemained =
+                      std::min(gasRemained,
+                               boost::lexical_cast<uint64_t>(realValues._gasRemaing));
+                } catch (...) {
+                  LOG_GENERAL(WARNING, "_amount " << realValues._gasRemaing
+                                                  << " is not numeric");
+                }
+                if (gasRemained > CONTRACT_CREATE_GAS) {
+                  gasRemained -= CONTRACT_CREATE_GAS;
+                } else {
+                  gasRemained = 0;
+                  receipt.AddError(NO_GAS_REMAINING_FOUND);
+                  return false;
+                }
+                LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+              }
             }
-            if (!ret) {
-              gasRemained = std::min(
-                  transaction.GetGasLimit() - createGasPenalty, gasRemained);
+
+            // process Exit Reasons
+            if (std::find(std::begin(realValues._exit_reasons),
+                          std::end(realValues._exit_reasons),
+                          "Succeed") == std::end(realValues._exit_reasons)) {
+              LOG_GENERAL(WARNING, "Contract creation failed");
+              receipt.AddError(CREATE_CONTRACT_FAILED);
+              return false;
+            } else {
+              LOG_GENERAL(WARNING, "Contract Registered into EVM-DS O.K.");
             }
-          } catch (const std::exception& e) {
-            LOG_GENERAL(WARNING,
-                        "Exception caught in create account (2): " << e.what());
-            ret = false;
+
+            // Process Logs
+
+            for (auto lg: realValues._logs){
+              LOG_GENERAL(WARNING, lg );
+            }
+
+            // set return value into transaction code
+            // Warning close your eyes for ten lines.
+
+            bytes newCode;
+            std::copy(std::begin(realValues._return),std::end(realValues._return),std::back_inserter(newCode));
+
+            try {
+              const_cast<Transaction*>(&transaction)->_UpdateCode(newCode);
+            } catch( ... ) {
+              LOG_GENERAL(WARNING, "Transaction code updated failed");
+            }
+
           }
+          // Set these correct we are happy
+          ret_checker = true;
+          ret = true;
         }
-      } else {
-        gasRemained =
-            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
-      }
 
-      // *************************************************************************
-      // Summary
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
-        this->RemoveAccount(toAddr);
-        error_code = TxnStatus::MATH_ERROR;
-        return false;
-      }
-      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-        LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
-      }
-      if (!ret || !ret_checker) {
-        this->m_addressToAccount->erase(toAddr);
-
-        receipt.SetResult(false);
-        if (!ret) {
-          receipt.AddError(RUNNER_FAILED);
-        }
-        if (!ret_checker) {
-          receipt.AddError(CHECKER_FAILED);
-        }
-        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-        receipt.update();
-
-        if (!this->IncreaseNonce(fromAddr)) {
+        // *************************************************************************
+        // Summary
+        boost::multiprecision::uint128_t gasRefund;
+        if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+                gasRemained, transaction.GetGasPrice(), gasRefund)) {
           this->RemoveAccount(toAddr);
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
-
-        LOG_GENERAL(
-            INFO,
-            "Create contract failed, but return true in order to change state");
-
-        if (LOG_SC) {
-          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+          LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
         }
+        if (!ret || !ret_checker) {
+          this->m_addressToAccount->erase(toAddr);
 
-        return true;  // Return true because the states already changed
-      }
-
-      if (transaction.GetGasLimit() < gasRemained) {
-        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                 << transaction.GetGasLimit()
-                                 << " gasRemained: " << gasRemained
-                                 << ". Must be something wrong!");
-        error_code = TxnStatus::MATH_ERROR;
-        return false;
-      }
-
-      /*
-      if (validToTransferBalance) {
-        if (!this->TransferBalance(fromAddr, toAddr, amount)) {
           receipt.SetResult(false);
-          receipt.AddError(BALANCE_TRANSFER_FAILED);
+          if (!ret) {
+            receipt.AddError(RUNNER_FAILED);
+          }
+          if (!ret_checker) {
+            receipt.AddError(CHECKER_FAILED);
+          }
           receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
           receipt.update();
 
@@ -488,30 +495,66 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             error_code = TxnStatus::MATH_ERROR;
             return false;
           }
-          return true;
+
+          LOG_GENERAL(INFO,
+                      "Create contract failed, but return true in order to "
+                      "change state");
+
+          if (LOG_SC) {
+            LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+          }
+
+          return true;  // Return true because the states already changed
+        }
+
+        if (transaction.GetGasLimit() < gasRemained) {
+          LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                                   << transaction.GetGasLimit()
+                                   << " gasRemained: " << gasRemained
+                                   << ". Must be something wrong!");
+          error_code = TxnStatus::MATH_ERROR;
+          return false;
+        }
+
+        /*
+        if (validToTransferBalance) {
+          if (!this->TransferBalance(fromAddr, toAddr, amount)) {
+            receipt.SetResult(false);
+            receipt.AddError(BALANCE_TRANSFER_FAILED);
+            receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+            receipt.update();
+
+            if (!this->IncreaseNonce(fromAddr)) {
+              this->RemoveAccount(toAddr);
+              error_code = TxnStatus::MATH_ERROR;
+              return false;
+            }
+            return true;
+          }
+        }
+        */
+
+        /// inserting address to create the uniqueness of the contract merkle
+        /// trie
+        t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
+                               toAddr, CONTRACT_ADDR_INDICATOR, {}),
+                           toAddr.asBytes());
+
+        if (!toAccount->UpdateStates(toAddr, t_metadata, {}, true)) {
+          LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+          return false;
+        }
+
+        /// calculate total gas in receipt
+        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+
+        if (is_library) {
+          m_newLibrariesCreated.emplace_back(toAddr);
         }
       }
-      */
-
-      /// inserting address to create the uniqueness of the contract merkle trie
-      t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
-                             toAddr, CONTRACT_ADDR_INDICATOR, {}),
-                         toAddr.asBytes());
-
-      if (!toAccount->UpdateStates(toAddr, t_metadata, {}, true)) {
-        LOG_GENERAL(WARNING, "Account::UpdateStates failed");
-        return false;
-      }
-
-      /// calculate total gas in receipt
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-
-      if (is_library) {
-        m_newLibrariesCreated.emplace_back(toAddr);
-      }
-
       break;
     }
+
     case Transaction::CONTRACT_CALL: {
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
@@ -642,14 +685,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
       } else {
         RunnerDetails details = {
-            fromAddr.hex(), toAddr.hex(),
+            fromAddr.hex(),
+            toAddr.hex(),
             DataConversion::CharArrayToString(transaction.GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
-            std::numeric_limits<uint128_t>::max()
-        };
+            std::numeric_limits<uint128_t>::max()};
         EvmReturn realValues;
-        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version,ret, receipt, realValues);
+        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
+                             realValues);
       }
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1130,8 +1174,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
                            : runnerPrint));
   }
 
-  if (runnerPrint.length() == 0){
-    LOG_GENERAL(INFO,"Empty Json string from createContract");
+  if (runnerPrint.length() == 0) {
+    LOG_GENERAL(INFO, "Empty Json string from createContract");
     return false;
   }
 
@@ -1205,6 +1249,8 @@ bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                             uint32_t tree_depth,
                                             uint32_t scilla_version) {
   Json::Value jsonOutput;
+  // This just reparses the JSON, probably due to null values in string
+  // screwing up the json
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
@@ -1543,8 +1589,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         ,DataConversion::CharArrayToString(transaction.GetData()) };
 
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, is_library,
-                             gasRemained, std::numeric_limits<uint128_t>::max(),
-                             result, receipt, runnerPrint);
+                             gasRemained,
+        std::numeric_limits<uint128_t>::max(), result, receipt, runnerPrint);
          */
       }
 
