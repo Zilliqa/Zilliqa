@@ -182,8 +182,6 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    std::cout << "Sending|" << _json << "| to EVM" << std::endl;
-
     Json::Value oldJson;
     EvmReturn   reply;
     oldJson = m_clients.at(version)->CallMethod("run", _json);

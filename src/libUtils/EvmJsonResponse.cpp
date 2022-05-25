@@ -29,7 +29,6 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   }
 
   for (const auto &node : newJason.items()) {
-    std::cout << "key : " << node.key() << std::endl;
     if (node.key() == "apply" && node.value().is_array()) {
 
       for (const auto &ap : node.value()) {

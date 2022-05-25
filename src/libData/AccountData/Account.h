@@ -124,6 +124,7 @@ class Account : public AccountBase {
   // The associated code for this account.
   bytes m_codeCache;
   bytes m_initDataCache;
+
   Address m_address;  // used by contract account only
   Json::Value m_initDataJson = Json::nullValue;
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();

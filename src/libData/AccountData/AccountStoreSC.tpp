@@ -406,8 +406,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version, ret,
                                  receipt, realValues);
 
-            std::cout << "Reply==>" << std::endl << realValues << std::endl;
-
             // Process all operations in the collection
 
             for (auto op : realValues._operations) {
@@ -671,6 +669,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         EvmReturn realValues;
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
                              realValues);
+
+        LOG_GENERAL(WARNING , "Executed an EVM Contract call, better save some fun for another day " << r_timer_end(tpStart)  << " microseconds");
+        ret = false;
       }
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -756,7 +757,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       /// since txn succeeded, commit the atomic buffer
       m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                        m_storageRootUpdateBufferAtomic.end());
-      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      LOG_GENERAL(INFO, "Executing contract Call transaction finished");
       break;
     }
     case Transaction::CONTRACT_CREATION: {
