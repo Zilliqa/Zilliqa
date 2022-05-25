@@ -124,7 +124,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                                               const RunnerDetails& details,
+                                               RunnerDetails& details,
                                                const uint32_t& version,
                                                bool& ret,
                                                TransactionReceipt& receipt,
@@ -222,6 +222,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
                                                    error_code);
     }
+
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
 
@@ -447,18 +448,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               LOG_GENERAL(WARNING, lg );
             }
 
-            // set return value into transaction code
-            // Warning close your eyes for ten lines.
+            // This is the magic I have been looking for.
+            // This should work (fingers crossed).
 
-            bytes newCode;
-            std::copy(std::begin(realValues._return),std::end(realValues._return),std::back_inserter(newCode));
-
-            try {
-              const_cast<Transaction*>(&transaction)->_UpdateCode(newCode);
-            } catch( ... ) {
-              LOG_GENERAL(WARNING, "Transaction code updated failed");
-            }
-
+            //toAccount->SetCode(DataConversion::StringToCharArray(realValues._return));
+            //toAccount->SetInitData(transaction.GetData());
+            toAccount->SetImmutable(DataConversion::StringToCharArray(realValues._return),transaction.GetData());
           }
           // Set these correct we are happy
           ret_checker = true;
@@ -515,24 +510,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
-
-        /*
-        if (validToTransferBalance) {
-          if (!this->TransferBalance(fromAddr, toAddr, amount)) {
-            receipt.SetResult(false);
-            receipt.AddError(BALANCE_TRANSFER_FAILED);
-            receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-            receipt.update();
-
-            if (!this->IncreaseNonce(fromAddr)) {
-              this->RemoveAccount(toAddr);
-              error_code = TxnStatus::MATH_ERROR;
-              return false;
-            }
-            return true;
-          }
-        }
-        */
 
         /// inserting address to create the uniqueness of the contract merkle
         /// trie
@@ -687,7 +664,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         RunnerDetails details = {
             fromAddr.hex(),
             toAddr.hex(),
-            DataConversion::CharArrayToString(transaction.GetCode()),
+            DataConversion::CharArrayToString(toAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
             std::numeric_limits<uint128_t>::max()};
@@ -783,7 +760,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       break;
     }
     case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      LOG_GENERAL(INFO, "Executing contract Creation transaction finished");
       break;
     }
     default:
@@ -1039,6 +1016,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
   return true;
 }
+
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(

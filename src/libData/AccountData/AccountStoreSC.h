@@ -197,7 +197,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          bool& ret, TransactionReceipt& receipt);
 
   void InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                            const RunnerDetails& details,
+                            RunnerDetails& details,
                             const uint32_t& version,
                             bool& ret,
                             TransactionReceipt& receipt,

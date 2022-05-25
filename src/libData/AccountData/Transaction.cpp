@@ -210,7 +210,3 @@ bool Transaction::operator>(const Transaction& tran) const {
   return tran < *this;
 }
 
-bool Transaction::_UpdateCode(bytes newValue) {
-  std::swap(m_coreInfo.code,newValue);
-  return true;
-}

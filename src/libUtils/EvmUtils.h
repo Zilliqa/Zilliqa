@@ -28,7 +28,7 @@ class EvmUtils {
                                       std::string& root_w_version);
 
   /// get the command for invoking the evm_runner while deploying
-  static Json::Value GetCreateContractJson(const RunnerDetails& details);
+  static Json::Value GetCreateContractJson(RunnerDetails& details);
 
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetCallContractJson(const RunnerDetails& details);

@@ -15,8 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include <boost/filesystem.hpp>
 #include "EvmUtils.h"
@@ -66,7 +68,7 @@ std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
   return reply;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
+Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(details.m_from);
@@ -79,6 +81,8 @@ Json::Value EvmUtils::GetCreateContractJson(const RunnerDetails& details) {
   arr_ret.append("00");
   arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
+  details.m_data = GetDataFromItemData(details.m_data) ;
+
   return arr_ret;
 }
 
@@ -87,10 +91,8 @@ Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
 
   arr_ret.append(details.m_from);
   arr_ret.append(details.m_to);
-  // code and data here may be different as they are calling the contract with
-  // values returned from the EVM.
   arr_ret.append(details.m_code);
-  arr_ret.append(GetDataFromItemData(details.m_data));
+  arr_ret.append(details.m_data);
   arr_ret.append("00");
   arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
