@@ -807,6 +807,7 @@ bool AccountStore::MigrateContractStates(
                         gasRem, std::numeric_limits<uint128_t>::max(),
                         ret_checker, receipt);
     else {
+      // Must FIX this soon
       // RunnerDetails  details = { fromAddr.hex() , toAddr.hex() ,
       // DataConversion::CharArrayToString(transaction.GetCode())
       // ,DataConversion::CharArrayToString(transaction.GetData()) };

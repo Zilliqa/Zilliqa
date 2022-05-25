@@ -29,6 +29,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
+#include "libUtils/EvmJsonResponse.h"
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
@@ -123,28 +124,22 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    INVOKE_TYPE invoke_type, const RunnerDetails& details,
-    const uint32_t& version, bool is_library, const uint64_t& available_gas,
-    const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt, std::string& result) {
+    INVOKE_TYPE invoke_type, const RunnerDetails& details,const uint32_t& version,
+    bool& ret,TransactionReceipt& receipt, EvmReturn& result) {
   bool call_already_finished = false;
-  auto func2 = [this, &details, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt,
-                &call_already_finished, result]() mutable -> void {
+  auto func2 = [this, &details, &invoke_type, &ret, &receipt,&version,
+                &call_already_finished, &result]() mutable -> void {
 
     Json::Value jval;
     switch (invoke_type) {
       case RUNNER_CREATE:
-        if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCreateContractJson(details), jval)) {
+        if (!EvmClient::GetInstance().CallRunner(version,EvmUtils::GetCreateContractJson(details), result)) {
                 std::cout << "returned false from create contract" << std::endl;
         } else {
-          std::cout << "Gotten(" << jval << ")" << std::endl;
         }
         break;
       case RUNNER_CALL:
-        if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCallContractJson(details), jval)) {
+        if (!EvmClient::GetInstance().CallRunner(version,EvmUtils::GetCallContractJson(details), result)) {
         }
         break;
       default:
@@ -167,7 +162,7 @@ void AccountStoreSC<MAP>::InvokeEvmInterpreter(
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");
 
-    ScillaClient::GetInstance().CheckClient(version, true);
+    ScillaClient::GetInstance().CheckClient(0, true);
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
@@ -391,18 +386,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, amount, ret, receipt);
           } else {
-            // maybe able to set these once at the top instead of every time.
+
             RunnerDetails details = {
                 fromAddr.hex(), toAddr.hex(),
                 DataConversion::CharArrayToString(transaction.GetCode()),
-                DataConversion::CharArrayToString(transaction.GetData())};
+                DataConversion::CharArrayToString(transaction.GetData()),
+                gasRemained,
+                std::numeric_limits<uint128_t>::max()
+                };
 
-            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version,
-                                 is_library, gasRemained,
-                                 std::numeric_limits<uint128_t>::max(),
-                                 ret, receipt, runnerPrint);
+            EvmReturn realValues;
 
+            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version,ret, receipt, realValues);
 
+            std::cout << "Reply==>" << std::endl << realValues << std::endl;
 
           }
 
@@ -644,15 +641,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
       } else {
-        // maybe able to set these once at the top instead of every time.
         RunnerDetails details = {
             fromAddr.hex(), toAddr.hex(),
             DataConversion::CharArrayToString(transaction.GetCode()),
-            DataConversion::CharArrayToString(transaction.GetData())};
-
-        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, is_library,
-                             gasRemained, std::numeric_limits<uint128_t>::max(),
-                             ret, receipt, runnerPrint);
+            DataConversion::CharArrayToString(transaction.GetData()),
+            gasRemained,
+            std::numeric_limits<uint128_t>::max()
+        };
+        EvmReturn realValues;
+        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version,ret, receipt, realValues);
       }
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {

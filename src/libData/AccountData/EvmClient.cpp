@@ -14,18 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include "EvmClient.h"
-
-#include "libUtils/DetachedFunction.h"
-#include "libUtils/EvmUtils.h"
-#include "libUtils/JsonUtils.h"
-#include "libUtils/SysCommand.h"
-
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
 #include <thread>
+
+#include "EvmClient.h"
+#include "libUtils/DetachedFunction.h"
+#include "libUtils/EvmUtils.h"
+#include "libUtils/JsonUtils.h"
+#include "libUtils/SysCommand.h"
+#include "libUtils/EvmJsonResponse.h"
+
 
 /* EvmClient Init */
 void EvmClient::Init() {
@@ -166,7 +166,7 @@ bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           Json::Value& result, uint32_t counter) {
+                           EvmReturn& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
@@ -184,12 +184,11 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     std::lock_guard<std::mutex> g(m_mutexMain);
     std::cout << "Sending|" << _json << "| to EVM" << std::endl;
 
-    result = m_clients.at(version)->CallMethod("run", _json);
-
-    //
-    // The result should contain the code that we then need to execute, and also
-    // store back into the contract and probably the chain.
-    //
+    Json::Value oldJson;
+    EvmReturn   reply;
+    oldJson = m_clients.at(version)->CallMethod("run", _json);
+    // Populate the C++ struct with the return values
+    reply = GetReturn(oldJson,result);
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     return false;
