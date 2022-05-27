@@ -663,7 +663,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             fromAddr.hex(),
             toAddr.hex(),
             DataConversion::CharArrayToString(toAccount->GetCode()),
-            DataConversion::CharArrayToString(transaction.GetData()),
+            // hacked
+            "6057361d0000000000000000000000000000000000000000000000000000000000003039",
             gasRemained,
             std::numeric_limits<uint128_t>::max()};
         EvmReturn realValues;
