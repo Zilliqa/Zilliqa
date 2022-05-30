@@ -116,7 +116,7 @@ if(CLANG_TIDY)
             -clang-tidy-binary ${CLANG_TIDY}
             -quiet
             -config=''
-            -header-filter '.*nlohmann.*'
+            -header-filter ''
             -style='file'
             -warnings-as-errors='*'
             -extra-arg='-Wno-error'
@@ -132,7 +132,7 @@ if(CLANG_TIDY)
                 -fix
                 -format
                 -config=''
-                -header-filter '.*nlohmann.*'
+                -header-filter ''
                 -style='file'
                 -extra-arg='-Wno-error'
                 ${ALL_CXX_SOURCES}

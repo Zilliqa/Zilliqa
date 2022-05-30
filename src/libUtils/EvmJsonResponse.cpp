@@ -18,9 +18,7 @@
 #include "libUtils/EvmJsonResponse.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
 
-// NOLINTBEGIN(readability-identifier-naming,-warnings-as-errors)
 #include "nlohmann/json.hpp"
-// NOLINTEND(readability-identifier-naming,-warnings-as-errors)
 
 using websocketpp::base64_decode;
 
