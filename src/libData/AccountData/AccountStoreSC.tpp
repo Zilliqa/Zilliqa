@@ -409,7 +409,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             // Process all operations in the collection
 
-            for (auto op : realValues._operations) {
+            for (const auto& op : realValues._operations) {
               if (op._operation_type == "modify") {
                 try {
                   gasRemained =
@@ -443,15 +443,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             // Process Logs
 
-            for (auto lg: realValues._logs){
+            for (const auto& lg: realValues._logs){
               LOG_GENERAL(WARNING, lg );
             }
-
-            // This is the magic I have been looking for.
-            // This should work (fingers crossed).
-
-            //toAccount->SetCode(DataConversion::StringToCharArray(realValues._return));
-            //toAccount->SetInitData(transaction.GetData());
+            // TODO do not modify the transaction , save the state somewhere and recall it later, or pass it back to the API for resubmission.
             toAccount->SetImmutable(DataConversion::StringToCharArray(realValues._return),transaction.GetData());
           }
           // Set these correct we are happy
