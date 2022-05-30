@@ -26,7 +26,7 @@
 
 #include "common/Constants.h"
 
-struct EvmReturn ;
+struct EvmReturn;
 
 class EvmClient {
  public:
@@ -43,7 +43,8 @@ class EvmClient {
   bool CallChecker(uint32_t version, const Json::Value& _json,
                    std::string& result, uint32_t counter = MAXRETRYCONN);
 
-  bool CallRunner(uint32_t version, const Json::Value& _json,EvmReturn& result, uint32_t counter = MAXRETRYCONN);
+  bool CallRunner(uint32_t version, const Json::Value& _json, EvmReturn& result,
+                  uint32_t counter = MAXRETRYCONN);
 
   bool CallDisambiguate(uint32_t version, const Json::Value& _json,
                         std::string& result, uint32_t counter = MAXRETRYCONN);

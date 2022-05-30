@@ -123,12 +123,9 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 // New Invoker for EVM
 
 template <class MAP>
-void AccountStoreSC<MAP>::InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                                               RunnerDetails& details,
-                                               const uint32_t& version,
-                                               bool& ret,
-                                               TransactionReceipt& receipt,
-                                               EvmReturn& result) {
+void AccountStoreSC<MAP>::InvokeEvmInterpreter(
+    INVOKE_TYPE invoke_type, RunnerDetails& details, const uint32_t& version,
+    bool& ret, TransactionReceipt& receipt, EvmReturn& result) {
   bool call_already_finished = false;
   auto func2 = [this, &details, &invoke_type, &ret, &receipt, &version,
                 &call_already_finished, &result]() mutable -> void {
@@ -411,9 +408,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             for (auto op : realValues._operations) {
               if (op._operation_type == "modify") {
                 try {
-                  gasRemained =
-                      std::min(gasRemained,
-                               boost::lexical_cast<uint64_t>(realValues._gasRemaing));
+                  gasRemained = std::min(
+                      gasRemained,
+                      boost::lexical_cast<uint64_t>(realValues._gasRemaing));
                 } catch (...) {
                   LOG_GENERAL(WARNING, "_amount " << realValues._gasRemaing
                                                   << " is not numeric");
@@ -442,16 +439,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             // Process Logs
 
-            for (auto lg: realValues._logs){
-              LOG_GENERAL(WARNING, lg );
+            for (auto lg : realValues._logs) {
+              LOG_GENERAL(WARNING, lg);
+
+              // TODO: process logs correctly. - add to transaction receipt.
             }
 
             // This is the magic I have been looking for.
             // This should work (fingers crossed).
 
-            //toAccount->SetCode(DataConversion::StringToCharArray(realValues._return));
-            //toAccount->SetInitData(transaction.GetData());
-            toAccount->SetImmutable(DataConversion::StringToCharArray(realValues._return),transaction.GetData());
+            // toAccount->SetCode(DataConversion::StringToCharArray(realValues._return));
+            // toAccount->SetInitData(transaction.GetData());
+            toAccount->SetImmutable(
+                DataConversion::StringToCharArray(realValues._return),
+                transaction.GetData());
           }
           // Set these correct we are happy
           ret_checker = true;
@@ -670,7 +671,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
                              realValues);
 
-        LOG_GENERAL(WARNING , "Executed an EVM Contract call, better save some fun for another day " << r_timer_end(tpStart)  << " microseconds");
+        LOG_GENERAL(WARNING,
+                    "Executed an EVM Contract call, better save some fun for "
+                    "another day "
+                        << r_timer_end(tpStart) << " microseconds");
         ret = false;
       }
 
@@ -1018,7 +1022,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   return true;
 }
 
-
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const Address& addr, const std::string& checkerPrint,
@@ -1279,6 +1282,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     tpStart = r_timer_start();
   }
 
+  // Find remaining gas.
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
         WARNING,
@@ -1302,6 +1306,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
+  // TODO: ignore messages for EVM
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
@@ -1314,6 +1319,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
+  // TODO: ignore _accepted for the EVM.
   if (!_json.isMember("_accepted")) {
     LOG_GENERAL(WARNING,
                 "The json output of this contract doesn't contain _accepted");
@@ -1334,6 +1340,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
+  // TOOD: ignore this.
   if (tree_depth == 0) {
     // first call in a txn
     receipt.AddAccepted(accepted);
@@ -1344,6 +1351,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
+  // TODO: process all the logs for EVM
   Account* contractAccount =
       m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
@@ -1351,7 +1359,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     receipt.AddError(CONTRACT_NOT_EXIST);
     return false;
   }
-
   try {
     for (const auto& e : _json["events"]) {
       LogEntry entry;
@@ -1366,6 +1373,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
+  // TODO: ignore messages
   bool ret = false;
 
   if (_json["messages"].type() != Json::arrayValue) {
@@ -1381,6 +1389,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
     ret = true;
   }
+
+  // TODO: Ignore the rest.
 
   Address recipient;
   Account* account = nullptr;
@@ -1473,6 +1483,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
       }
 
+      // TODO: ignore this check.
       // check whether the recipient contract is in the same shard with the
       // current contract
       if (!m_curIsDS &&
