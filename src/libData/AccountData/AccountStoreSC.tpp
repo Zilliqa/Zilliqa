@@ -392,6 +392,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             // invoke scilla runner
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, amount, ret, receipt);
+            std::cout << "create ==>" << checkerPrint << std::endl;
           } else {
             RunnerDetails details = {
                 fromAddr.hex(),
@@ -658,6 +659,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (not toAccount->isEvmContract()) {
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
+        std::cout << "Call returned ==>" << runnerPrint << std::endl;
       } else {
         RunnerDetails details = {
             fromAddr.hex(),
@@ -1561,6 +1563,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       if (not account->isEvmContract()) {
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                           gasRemained, account->GetBalance(), result, receipt);
+        std::cout << "acUpdate ==>" << runnerPrint << std::endl;
+
       } else {
         // We need to look at this and see where it is retreiving the code
         /*
