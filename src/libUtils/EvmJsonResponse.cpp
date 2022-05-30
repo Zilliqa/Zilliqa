@@ -17,7 +17,11 @@
 
 #include "libUtils/EvmJsonResponse.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
 #include "nlohmann/json.hpp"
+#pragma GCC diagnostic pop
 
 using websocketpp::base64_decode;
 
@@ -114,42 +118,42 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   return fo;
 }
 
-std::ostream &operator<<(std::ostream &os, KeyValue &c) {
-  os << "key : " << c._key << std::endl;
-  os << "value : " << c._value << std::endl;
+std::ostream &operator<<(std::ostream &os, KeyValue &kv) {
+  os << "key : " << kv._key << std::endl;
+  os << "value : " << kv._value << std::endl;
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, EvmOperation &c) {
-  os << "operation type : " << c._operation_type << std::endl;
-  os << "address : " << c._address << std::endl;
-  os << "code : " << c._code << std::endl;
-  os << "balance : " << c._balance << std::endl;
-  os << "nonce : " << c._nonce << std::endl;
+std::ostream &operator<<(std::ostream &os, EvmOperation &evm) {
+  os << "operation type : " << evm._operation_type << std::endl;
+  os << "address : " << evm._address << std::endl;
+  os << "code : " << evm._code << std::endl;
+  os << "balance : " << evm._balance << std::endl;
+  os << "nonce : " << evm._nonce << std::endl;
 
-  os << "reset_storage : " << std::boolalpha << c._reset_storage << std::endl;
+  os << "reset_storage : " << std::boolalpha << evm._reset_storage << std::endl;
 
-  for (const auto &it : c._storage) {
+  for (const auto &it : evm._storage) {
     std::cout << "k : " << it._key << std::endl;
     std::cout << "v : " << it._value << std::endl;
   }
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, EvmReturn &c) {
+std::ostream &operator<<(std::ostream &os, EvmReturn &evmret) {
   std::cout << "EvmReturn object" << std::endl;
 
-  for (auto it : c._operations) {
+  for (auto it : evmret._operations) {
     std::cout << it << std::endl;
   }
-  for (auto it : c._logs) {
+  for (const auto &it : evmret._logs) {
     std::cout << it << std::endl;
   }
-  for (auto it : c._exit_reasons) {
+  for (const auto &it : evmret._exit_reasons) {
     std::cout << it << std::endl;
   }
 
-  os << "gasRemaing : " << c._gasRemaing << std::endl;
-  std::cout << "code : " << c._return << std::endl;
+  os << "gasRemaing : " << evmret._gasRemaing << std::endl;
+  std::cout << "code : " << evmret._return << std::endl;
   return os;
 }

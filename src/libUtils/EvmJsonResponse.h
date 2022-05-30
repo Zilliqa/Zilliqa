@@ -41,7 +41,7 @@ struct EvmOperation {
   bool _reset_storage;
   std::vector<KeyValue> _storage;
 
-  friend std::ostream& operator<<(std::ostream& os, EvmOperation& c);
+  friend std::ostream& operator<<(std::ostream& os, EvmOperation& evm);
 };
 
 struct EvmReturn {
@@ -49,10 +49,10 @@ struct EvmReturn {
   std::vector<std::string> _logs;
   std::vector<std::string> _exit_reasons;
   std::string _return;
-  uint64_t _gasRemaing;
-  friend std::ostream& operator<<(std::ostream& os, EvmReturn& c);
+  uint64_t _gasRemaing{0};
+  friend std::ostream& operator<<(std::ostream& os, EvmReturn& evmret);
 };
 
-EvmReturn& GetReturn(const Json::Value& j, EvmReturn& fo);
+EvmReturn& GetReturn(const Json::Value& oldJason, EvmReturn& fo);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
