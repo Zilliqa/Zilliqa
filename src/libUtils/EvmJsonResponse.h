@@ -13,11 +13,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+*/
 
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 
+
+#include "libUtils/JsonUtils.h"
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -26,6 +28,7 @@
 
 using byte = unsigned char;
 
+// TODO: look at ScillaIPCServer::updateStateValue how to process these.
 struct KeyValue {
   std::string _key;
   std::string _value;
@@ -33,9 +36,9 @@ struct KeyValue {
 };
 
 struct EvmOperation {
-  std::string _operation_type;
-  std::string _address;
-  std::string _code;
+  std::string _operation_type;  // one of "Modify" or "Delete"
+  std::string _address;  // TODO: check for possible collisions with Scilla.
+  std::string _code;     // Have to save this code.
   std::string _balance;
   std::string _nonce;
   bool _reset_storage;

@@ -30,7 +30,7 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
 
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
-  } catch (std::exception &e) {
+  } catch(std::exception &e) {
     std::cout << "Error parsing json from evmds " << e.what() << std::endl;
     return fo;
   }
