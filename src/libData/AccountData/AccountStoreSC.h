@@ -111,6 +111,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   std::vector<Address> m_newLibrariesCreated;
 
+  // New block of functionality reserved for future use, (a few days time)
+  // store modified transaction code fo created transaction, will keep
+  // transaction untouched.
+  std::map<std::string, std::shared_ptr<struct EvmState>> m_evmStateStore;
+  bool SaveEvmCodeState(const std::string& transactionID, std::string code);
+  bool GetEvmCodeState(const std::string& transactionID, std::string& code);
+  bool RemoveEvmState(const std::string& transactionID);
+  std::mutex m_MutexEvmStateStore;
+
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
   bool ParseCreateContract(uint64_t& gasRemained,

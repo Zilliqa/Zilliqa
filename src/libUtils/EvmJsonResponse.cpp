@@ -18,10 +18,9 @@
 #include "libUtils/EvmJsonResponse.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
+// NOLINTBEGIN(readability-identifier-naming)
 #include "nlohmann/json.hpp"
-#pragma GCC diagnostic pop
+// NOLINTEND(readability-identifier-naming)
 
 using websocketpp::base64_decode;
 
@@ -30,7 +29,7 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
 
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
-  } catch(std::exception &e) {
+  } catch (std::exception &e) {
     std::cout << "Error parsing json from evmds " << e.what() << std::endl;
     return fo;
   }

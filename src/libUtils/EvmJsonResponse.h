@@ -13,13 +13,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 
-
-#include "libUtils/JsonUtils.h"
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -41,7 +39,7 @@ struct EvmOperation {
   std::string _code;     // Have to save this code.
   std::string _balance;
   std::string _nonce;
-  bool _reset_storage;
+  bool _reset_storage{false};
   std::vector<KeyValue> _storage;
 
   friend std::ostream& operator<<(std::ostream& os, EvmOperation& evm);

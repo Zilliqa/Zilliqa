@@ -20,6 +20,11 @@
 
 #include <string>
 
+struct evmState {
+  std::string m_transactionId;
+  std::string m_code;
+};
+
 struct RunnerDetails {
   std::string m_from;
   std::string m_to;
