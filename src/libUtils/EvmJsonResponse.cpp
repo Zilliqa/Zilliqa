@@ -15,8 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "depends/websocketpp/websocketpp/base64/base64.hpp"
 #include "nlohmann/json.hpp"
 #include "libUtils/EvmJsonResponse.h"
+
+using websocketpp::base64_decode;
 
 EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   nlohmann::json newJason;
@@ -78,12 +81,12 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
             std::cout << "storage : " << e.what() << std::endl;
           }
           if (not storageObj.is_null()) {
-            AddressPair addrs;
-            for (const auto &addr : storageObj.items()) {
-              addrs._first_address = addr.value()[0];
-              addrs._second_address = addr.value()[1];
+            KeyValue kvs;
+            for (const auto &kv : storageObj.items()) {
+              kvs._key = base64_decode(kv.value()[0]);
+              kvs._value = base64_decode(kv.value()[1]);
             }
-            op._storage.push_back(addrs);
+            op._storage.push_back(kvs);
           }
           fo._operations.push_back(op);
         }
@@ -111,13 +114,13 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   return fo;
 }
 
-std::ostream & operator<<(std::ostream& os, AddressPair& c){
-  os << "first address : " <<c._first_address << std::endl;
-  os << "second address : " <<c._second_address << std::endl;
+std::ostream & operator<<(std::ostream& os, KeyValue& c) {
+  os << "key : " <<c._key << std::endl;
+  os << "value : " <<c._value << std::endl;
   return os;
 }
 
-std::ostream & operator<<(std::ostream& os, EvmOperation& c){
+std::ostream & operator<<(std::ostream& os, EvmOperation& c) {
   os << "operation type : " <<c._operation_type << std::endl;
   os << "address : " <<c._address << std::endl;
   os << "code : " <<c._code << std::endl;
@@ -127,8 +130,8 @@ std::ostream & operator<<(std::ostream& os, EvmOperation& c){
   os << "reset_storage : " << std::boolalpha <<c._reset_storage << std::endl;
 
   for (const auto& it:c._storage){
-    std::cout << "1 : " << it._first_address << std::endl;
-    std::cout << "2 : " << it._second_address << std::endl;
+    std::cout << "k : " << it._key << std::endl;
+    std::cout << "v : " << it._value << std::endl;
   }
   return os;
 }

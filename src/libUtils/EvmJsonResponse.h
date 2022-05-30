@@ -27,10 +27,10 @@
 
 using byte = unsigned char;
 
-struct AddressPair {
-  std::string _first_address;
-  std::string _second_address;
-  friend std::ostream & operator<<(std::ostream& os, AddressPair& c);
+struct KeyValue {
+  std::string _key;
+  std::string _value;
+  friend std::ostream & operator<<(std::ostream& os, KeyValue& kv);
 };
 
 struct EvmOperation {
@@ -40,7 +40,7 @@ struct EvmOperation {
   std::string _balance;
   std::string _nonce;
   bool _reset_storage;
-  std::vector<AddressPair> _storage;
+  std::vector<KeyValue> _storage;
 
   friend std::ostream & operator<<(std::ostream& os, EvmOperation& c);
 };
