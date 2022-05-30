@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libUtils/EvmJsonResponse.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
 #include "nlohmann/json.hpp"
-#include "libUtils/EvmJsonResponse.h"
 
 using websocketpp::base64_decode;
 
@@ -26,14 +26,13 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
 
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
-  } catch(std::exception &e) {
+  } catch (std::exception &e) {
     std::cout << "Error parsing json from evmds " << e.what() << std::endl;
     return fo;
   }
 
   for (const auto &node : newJason.items()) {
     if (node.key() == "apply" && node.value().is_array()) {
-
       for (const auto &ap : node.value()) {
         for (const auto &map : ap.items()) {
           EvmOperation op;
@@ -41,18 +40,18 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
           op._operation_type = map.key();
           try {
             op._address = arr["address"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "address : " << e.what() << std::endl;
           }
           try {
             op._balance = arr["balance"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "balance : " << e.what() << std::endl;
           }
           nlohmann::json cobj;
           try {
             cobj = arr["code"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "code : " << e.what() << std::endl;
           }
           if (not cobj.is_null()) {
@@ -61,23 +60,24 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
             } else if (cobj.is_string()) {
               op._code = cobj.get<std::string>();
             } else {
-              std::cout << "write some code for " << cobj.type_name() << std::endl;
+              std::cout << "write some code for " << cobj.type_name()
+                        << std::endl;
             }
           }
           try {
             op._nonce = arr["nonce"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "nonce : " << e.what() << std::endl;
           }
           try {
             op._reset_storage = arr["reset_storage"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "reset : " << e.what() << std::endl;
           }
           nlohmann::json storageObj;
           try {
             storageObj = arr["storage"];
-          } catch (std::exception &e){
+          } catch (std::exception &e) {
             std::cout << "storage : " << e.what() << std::endl;
           }
           if (not storageObj.is_null()) {
@@ -107,37 +107,36 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
       } else {
         std::cout << "invalid node type" << std::endl;
       }
-    } else if (node.key() == "remaining_gas" ) {
+    } else if (node.key() == "remaining_gas") {
       fo._gasRemaing = node.value();
     }
   }
   return fo;
 }
 
-std::ostream & operator<<(std::ostream& os, KeyValue& c) {
-  os << "key : " <<c._key << std::endl;
-  os << "value : " <<c._value << std::endl;
+std::ostream &operator<<(std::ostream &os, KeyValue &c) {
+  os << "key : " << c._key << std::endl;
+  os << "value : " << c._value << std::endl;
   return os;
 }
 
-std::ostream & operator<<(std::ostream& os, EvmOperation& c) {
-  os << "operation type : " <<c._operation_type << std::endl;
-  os << "address : " <<c._address << std::endl;
-  os << "code : " <<c._code << std::endl;
-  os << "balance : " <<c._balance << std::endl;
-  os << "nonce : " <<c._nonce << std::endl;
+std::ostream &operator<<(std::ostream &os, EvmOperation &c) {
+  os << "operation type : " << c._operation_type << std::endl;
+  os << "address : " << c._address << std::endl;
+  os << "code : " << c._code << std::endl;
+  os << "balance : " << c._balance << std::endl;
+  os << "nonce : " << c._nonce << std::endl;
 
-  os << "reset_storage : " << std::boolalpha <<c._reset_storage << std::endl;
+  os << "reset_storage : " << std::boolalpha << c._reset_storage << std::endl;
 
-  for (const auto& it:c._storage){
+  for (const auto &it : c._storage) {
     std::cout << "k : " << it._key << std::endl;
     std::cout << "v : " << it._value << std::endl;
   }
   return os;
 }
 
-std::ostream & operator<<(std::ostream& os, EvmReturn& c) {
-
+std::ostream &operator<<(std::ostream &os, EvmReturn &c) {
   std::cout << "EvmReturn object" << std::endl;
 
   for (auto it : c._operations) {
@@ -146,11 +145,11 @@ std::ostream & operator<<(std::ostream& os, EvmReturn& c) {
   for (auto it : c._logs) {
     std::cout << it << std::endl;
   }
-  for(auto it: c._exit_reasons){
+  for (auto it : c._exit_reasons) {
     std::cout << it << std::endl;
   }
 
-  os << "gasRemaing : " <<c._gasRemaing << std::endl;
+  os << "gasRemaing : " << c._gasRemaing << std::endl;
   std::cout << "code : " << c._return << std::endl;
   return os;
 }

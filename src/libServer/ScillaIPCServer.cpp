@@ -93,8 +93,7 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
   std::string value, type;
   bool found;
   string query = base64_decode(request["query"].asString());
-  if (!fetchExternalStateValue(request["addr"].asString(),
-                               query, value, found,
+  if (!fetchExternalStateValue(request["addr"].asString(), query, value, found,
                                type)) {
     throw JsonRpcException("Fetching external state value failed");
   }
@@ -148,7 +147,6 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
   return true;
 }
-
 
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {

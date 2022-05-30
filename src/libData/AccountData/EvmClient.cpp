@@ -21,11 +21,10 @@
 
 #include "EvmClient.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SysCommand.h"
-#include "libUtils/EvmJsonResponse.h"
-
 
 /* EvmClient Init */
 void EvmClient::Init() {
@@ -183,10 +182,10 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     Json::Value oldJson;
-    EvmReturn   reply;
+    EvmReturn reply;
     oldJson = m_clients.at(version)->CallMethod("run", _json);
     // Populate the C++ struct with the return values
-    reply = GetReturn(oldJson,result);
+    reply = GetReturn(oldJson, result);
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     return false;

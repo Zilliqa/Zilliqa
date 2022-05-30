@@ -23,11 +23,8 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include "libUtils/RunnerDetails.h"
 
-
 class EvmUtils {
  public:
-
-
   static bool PrepareRootPathWVersion(const uint32_t& evm_version,
                                       std::string& root_w_version);
 
@@ -38,9 +35,6 @@ class EvmUtils {
   static Json::Value GetCallContractJson(const RunnerDetails& details);
 
   static std::string GetDataFromItemData(const std::string& itemData);
-
-
 };
-
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

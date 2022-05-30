@@ -13,24 +13,23 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 
-
-#include "libUtils/JsonUtils.h"
 #include <fstream>
 #include <iostream>
 #include <ostream>
 #include <vector>
+#include "libUtils/JsonUtils.h"
 
 using byte = unsigned char;
 
 struct KeyValue {
   std::string _key;
   std::string _value;
-  friend std::ostream & operator<<(std::ostream& os, KeyValue& kv);
+  friend std::ostream& operator<<(std::ostream& os, KeyValue& kv);
 };
 
 struct EvmOperation {
@@ -42,20 +41,18 @@ struct EvmOperation {
   bool _reset_storage;
   std::vector<KeyValue> _storage;
 
-  friend std::ostream & operator<<(std::ostream& os, EvmOperation& c);
+  friend std::ostream& operator<<(std::ostream& os, EvmOperation& c);
 };
 
 struct EvmReturn {
-  std::vector<EvmOperation>  _operations;
+  std::vector<EvmOperation> _operations;
   std::vector<std::string> _logs;
   std::vector<std::string> _exit_reasons;
-  std::string              _return;
-  uint64_t           _gasRemaing;
-  friend std::ostream & operator<<(std::ostream& os, EvmReturn& c);
+  std::string _return;
+  uint64_t _gasRemaing;
+  friend std::ostream& operator<<(std::ostream& os, EvmReturn& c);
 };
 
-EvmReturn&           GetReturn(const Json::Value &j, EvmReturn&fo);
-
-
+EvmReturn& GetReturn(const Json::Value& j, EvmReturn& fo);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_

@@ -196,10 +196,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
-  void InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                            RunnerDetails& details,
-                            const uint32_t& version,
-                            bool& ret,
+  void InvokeEvmInterpreter(INVOKE_TYPE invoke_type, RunnerDetails& details,
+                            const uint32_t& version, bool& ret,
                             TransactionReceipt& receipt,
                             struct EvmReturn& result);
 

@@ -81,7 +81,7 @@ Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
   arr_ret.append("00");
   arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
-  details.m_data = GetDataFromItemData(details.m_data) ;
+  details.m_data = GetDataFromItemData(details.m_data);
 
   return arr_ret;
 }

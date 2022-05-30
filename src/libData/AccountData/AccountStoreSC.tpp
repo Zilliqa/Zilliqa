@@ -123,12 +123,9 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 // New Invoker for EVM
 
 template <class MAP>
-void AccountStoreSC<MAP>::InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                                               RunnerDetails& details,
-                                               const uint32_t& version,
-                                               bool& ret,
-                                               TransactionReceipt& receipt,
-                                               EvmReturn& result) {
+void AccountStoreSC<MAP>::InvokeEvmInterpreter(
+    INVOKE_TYPE invoke_type, RunnerDetails& details, const uint32_t& version,
+    bool& ret, TransactionReceipt& receipt, EvmReturn& result) {
   bool call_already_finished = false;
   auto func2 = [this, &details, &invoke_type, &ret, &receipt, &version,
                 &call_already_finished, &result]() mutable -> void {
@@ -412,9 +409,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             for (const auto& op : realValues._operations) {
               if (op._operation_type == "modify") {
                 try {
-                  gasRemained =
-                      std::min(gasRemained,
-                               boost::lexical_cast<uint64_t>(realValues._gasRemaing));
+                  gasRemained = std::min(
+                      gasRemained,
+                      boost::lexical_cast<uint64_t>(realValues._gasRemaing));
                 } catch (...) {
                   LOG_GENERAL(WARNING, "_amount " << realValues._gasRemaing
                                                   << " is not numeric");
@@ -443,11 +440,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             // Process Logs
 
-            for (const auto& lg: realValues._logs){
-              LOG_GENERAL(WARNING, lg );
+            for (const auto& lg : realValues._logs) {
+              LOG_GENERAL(WARNING, lg);
             }
-            // TODO do not modify the transaction , save the state somewhere and recall it later, or pass it back to the API for resubmission.
-            toAccount->SetImmutable(DataConversion::StringToCharArray(realValues._return),transaction.GetData());
+            // TODO do not modify the transaction , save the state somewhere and
+            // recall it later, or pass it back to the API for resubmission.
+            toAccount->SetImmutable(
+                DataConversion::StringToCharArray(realValues._return),
+                transaction.GetData());
           }
           // Set these correct we are happy
           ret_checker = true;
@@ -667,7 +667,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
                              realValues);
 
-        LOG_GENERAL(WARNING , "Executed an EVM Contract call, better save some fun for another day " << r_timer_end(tpStart)  << " microseconds");
+        LOG_GENERAL(WARNING,
+                    "Executed an EVM Contract call, better save some fun for "
+                    "another day "
+                        << r_timer_end(tpStart) << " microseconds");
         ret = false;
       }
 
@@ -1014,7 +1017,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
   return true;
 }
-
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
