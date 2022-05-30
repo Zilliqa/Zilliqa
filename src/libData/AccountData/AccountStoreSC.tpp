@@ -440,7 +440,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             // Process Logs
 
-            for (auto lg : realValues._logs) {
+            for (const auto& lg : realValues._logs) {
               LOG_GENERAL(WARNING, lg);
 
               // TODO: process logs correctly. - add to transaction receipt.
@@ -450,6 +450,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             // TODO do not modify the transaction , save the state somewhere
             // and recall it later, or pass it back to the API for
             // resubmission.
+
             toAccount->SetImmutable(
                 DataConversion::StringToCharArray(realValues._return),
                 transaction.GetData());
@@ -664,7 +665,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         RunnerDetails details = {
             fromAddr.hex(),
             toAddr.hex(),
-            DataConversion::CharArrayToString(toAccount->GetCode()),
+            DataConversion::CharArrayToString(transaction.GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
             std::numeric_limits<uint128_t>::max()};
@@ -1696,26 +1697,4 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::SaveEvmCodeState(const std::string& transactionID,
-                                           std::string code) {
-  LOG_MARKER();
-  std::lock_guard<std::mutex> g(m_MutexEvmStateStore);
-  return true;
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::GetEvmCodeState(const std::string& transactionID,
-                                          std::string& code) {
-  LOG_MARKER();
-  std::lock_guard<std::mutex> g(m_MutexEvmStateStore);
-  return true;
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::RemoveEvmState(const std::string& transactionID) {
-  std::lock_guard<std::mutex> g(m_MutexEvmStateStore);
-  return true;
 }
