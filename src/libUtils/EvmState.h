@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef ZILLIQA_SRC_LIBUTILS_EVMSTATE_H_
+#define ZILLIQA_SRC_LIBUTILS_EVMSTATE_H_
 
 #include <mutex>
 #include <unordered_map>
@@ -61,3 +63,5 @@ class EvmStateMap {
 
   friend std::ostream& operator<<(std::ostream& os, EvmStateMap& evm);
 };
+
+#endif
