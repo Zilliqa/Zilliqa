@@ -28,6 +28,7 @@
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/RunnerDetails.h"
+#include "libUtils/EvmState.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -110,6 +111,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::set<Address> m_storageRootUpdateBufferAtomic;
 
   std::vector<Address> m_newLibrariesCreated;
+
+  EvmStateMap          m_evmStateMap;
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid

@@ -131,26 +131,26 @@ std::ostream &operator<<(std::ostream &os, EvmOperation &evm) {
   os << "reset_storage : " << std::boolalpha << evm._reset_storage << std::endl;
 
   for (const auto &it : evm._storage) {
-    std::cout << "k : " << it._key << std::endl;
-    std::cout << "v : " << it._value << std::endl;
+    os << "k : " << it._key << std::endl;
+    os << "v : " << it._value << std::endl;
   }
   return os;
 }
 
 std::ostream &operator<<(std::ostream &os, EvmReturn &evmret) {
-  std::cout << "EvmReturn object" << std::endl;
+  os << "EvmReturn object" << std::endl;
 
   for (auto it : evmret._operations) {
-    std::cout << it << std::endl;
+    os << it << std::endl;
   }
   for (const auto &it : evmret._logs) {
-    std::cout << it << std::endl;
+    os << it << std::endl;
   }
   for (const auto &it : evmret._exit_reasons) {
-    std::cout << it << std::endl;
+    os << it << std::endl;
   }
 
   os << "gasRemaing : " << evmret._gasRemaing << std::endl;
-  std::cout << "code : " << evmret._return << std::endl;
+  os << "code : " << evmret._return << std::endl;
   return os;
 }
