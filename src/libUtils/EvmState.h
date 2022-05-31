@@ -15,52 +15,49 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
-
-
-#include <unordered_map>
 #include <mutex>
+#include <unordered_map>
 
-class    EvmState {
+
+
+class EvmState {
  public:
   EvmState() = default;
-  EvmState(std::string transactionId,std::string evmOriginalCode,std::string evmNewCode);
+  EvmState(std::string contractAddress, std::string evmOriginalCode,
+           std::string evmNewCode);
   EvmState(const EvmState& other) = default;
-  EvmState(EvmState && other) = default;
-  EvmState& operator=(const EvmState& other) =default;
-  EvmState& operator=(EvmState&& other) =default;
+  EvmState(EvmState&& other) = default;
+  EvmState& operator=(const EvmState& other) = default;
+  EvmState& operator=(EvmState&& other) = default;
   ~EvmState() = default;
 
   const std::string& GetContractAddress() const;
   const std::string& GetOriginalCode() const;
   const std::string& GetModifiedCode() const;
+
  private:
-  std::string   m_contractAddressId;
-  std::string   m_EvmOriginalCode;
-  std::string   m_EvmNewCode;
+  std::string m_contractAddressId;
+  std::string m_EvmOriginalCode;
+  std::string m_EvmNewCode;
 
   friend std::ostream& operator<<(std::ostream& os, EvmState& evm);
 };
 
-class   EvmStateMap{
+class EvmStateMap {
  public:
   EvmStateMap() = default;
   EvmStateMap(const EvmStateMap& other) = delete;
-  EvmStateMap(EvmStateMap && other) = delete;
-  EvmStateMap& operator=(EvmStateMap&& other) =delete;
+  EvmStateMap(EvmStateMap&& other) = delete;
+  EvmStateMap& operator=(EvmStateMap&& other) = delete;
   ~EvmStateMap() = default;
 
-  bool    Add(EvmState other);
-  bool    Get(const std::string& key,EvmState& other);
-  bool    Delete(const std::string& otherKey);
+  bool Add(EvmState other);
+  bool Get(const std::string& key, EvmState& other);
+  bool Delete(const std::string& otherKey);
 
  private:
-  std::unordered_map<std::string,EvmState>    m_map;
-  std::mutex                                  m_mapMutex;
+  std::unordered_map<std::string, EvmState> m_map;
+  std::mutex m_mapMutex;
 
   friend std::ostream& operator<<(std::ostream& os, EvmStateMap& evm);
 };
-
-
-
-

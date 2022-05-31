@@ -34,6 +34,7 @@ template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
 struct EvmReturn;
+class  EvmOperation;
 
 template <class MAP>
 class AccountStoreAtomic
@@ -244,6 +245,19 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
+
+
+  uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
+                     uint64_t gasRemained,
+                     uint64_t createrGas) const;
+
+  bool UpdateEvmState(Account* toAccount, const EvmOperation& op) const;
+
+  bool ProcessEvmCallResponse(uint64_t& gasRemained, uint64_t& callGasPenalty,
+                              const EvmReturn& realValues,
+                              TransactionReceipt& receipt, Account* toAccount,
+                              const Address& fromAddr,
+                              const Transaction& transaction);
 };
 
 #include "AccountStoreAtomic.tpp"

@@ -19,6 +19,7 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 
+#include <vector>
 #include "EvmClient.h"
 #include "ScillaClient.h"
 #include "libPersistence/ContractStorage.h"
@@ -30,7 +31,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
-#include <vector>
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
@@ -408,22 +408,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             for (const auto& op : realValues._operations) {
               if (op._operation_type == "modify") {
-                try {
-                  gasRemained = std::min(
-                      gasRemained,
-                      boost::lexical_cast<uint64_t>(realValues._gasRemaing));
-                } catch (...) {
-                  LOG_GENERAL(WARNING, "_amount " << realValues._gasRemaing
-                                                  << " is not numeric");
-                }
-                if (gasRemained > CONTRACT_CREATE_GAS) {
-                  gasRemained -= CONTRACT_CREATE_GAS;
-                } else {
-                  gasRemained = 0;
-                  receipt.AddError(NO_GAS_REMAINING_FOUND);
-                  return false;
-                }
-                LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+                gasRemained = UpdateGasRemaining(receipt, gasRemained,
+                                                 realValues._gasRemaing);
+                UpdateEvmState(toAccount, op);
               }
             }
 
@@ -442,14 +429,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
             for (const auto& lg : realValues._logs) {
               LOG_GENERAL(WARNING, lg);
-
-              // TODO: process logs correctly. - add to transaction receipt.
-
-              // TODO: transaction errors are simply a code in the receipt
+              LOG_GENERAL(WARNING, lg);
+              Json::Value v = "{ msg =\"" + lg + "\"" + "}";
+              receipt.AddException(v);
             }
-            // store the modified code from the creation call in our evmstate structure for the contract
-            EvmState   newState(toAddr.hex(),DataConversion::CharArrayToString(transaction.GetCode()),realValues._return);
-            m_evmStateMap.Add(newState) ;
+            // store the modified code from the creation call in our evmstate
+            // structure for the contract
+            EvmState newState(
+                toAddr.hex(),
+                DataConversion::CharArrayToString(transaction.GetCode()),
+                realValues._return);
+            m_evmStateMap.Add(newState);
           }
           ret_checker = true;
           ret = true;
@@ -657,11 +647,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
         std::cout << "Call returned ==>" << runnerPrint << std::endl;
       } else {
-
-        EvmState   retState;
+        EvmState retState;
         std::string code;
 
-        if ( m_evmStateMap.Get(toAddr.hex(),retState)){
+        if (m_evmStateMap.Get(toAddr.hex(), retState)) {
           code = retState.GetModifiedCode();
         } else {
           code = DataConversion::CharArrayToString(transaction.GetCode());
@@ -678,129 +667,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
                              realValues);
 
-        LOG_GENERAL(WARNING,
-                    "Executed an EVM Contract call, better save some fun for "
-                    "another day "
-                        << r_timer_end(tpStart) << " microseconds");
-
-        {
-          // Process all operations in the collection
-
-          for (const auto& op : realValues._operations) {
-            if (op._operation_type == "modify") {
-              try {
-                gasRemained = std::min(
-                    gasRemained,
-                    boost::lexical_cast<uint64_t>(realValues._gasRemaing));
-              } catch (...) {
-                LOG_GENERAL(WARNING, "_amount " << realValues._gasRemaing
-                                                << " is not numeric");
-              }
-              if (gasRemained > CONTRACT_CREATE_GAS) {
-                gasRemained -= CONTRACT_CREATE_GAS;
-              } else {
-                gasRemained = 0;
-                receipt.AddError(NO_GAS_REMAINING_FOUND);
-                return false;
-              }
-              LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
-              std::map<std::string,bytes>     stateMap;
-              std::set<std::string>           deletionIndices;
-              bool                            flag;
-
-              toAccount->GetUpdatedStates(stateMap,deletionIndices,flag);
-
-              if (op._reset_storage){
-                stateMap.clear();
-                for (const auto& it: op._storage){
-
-                  // TODO fix this error
-
-                  stateMap.insert(std::pair<std::string,std::vector<unsigned char>(it._key,it._value));
-                }
-              }
-
-
-            }
-          }
-
-          // process Exit Reasons
-          if (std::find(std::begin(realValues._exit_reasons),
-                        std::end(realValues._exit_reasons),
-                        "Succeed") == std::end(realValues._exit_reasons)) {
-            LOG_GENERAL(WARNING, "Contract creation failed");
-            receipt.AddError(CREATE_CONTRACT_FAILED);
-            receipt.RemoveAllTransitions();
-            Contract::ContractStorage::GetContractStorage().RevertPrevState();
-            DiscardAtomics();
-            gasRemained =
-                std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
-            receipt.SetResult(false);
-            receipt.CleanEntry();
-            receipt.update();
-
-            if (!this->IncreaseNonce(fromAddr)) {
-              error_code = TxnStatus::MATH_ERROR;
-              return false;
-            }
-
-            LOG_GENERAL(
-                INFO,
-                "Call contract failed, but return true in order to change state");
-
-            return true;  // Return true because the states already changed
-          } else {
-            LOG_GENERAL(WARNING, "Contract Registered into EVM-DS O.K.");
-            CommitAtomics();
-            boost::multiprecision::uint128_t gasRefund;
-            if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-                    gasRemained, transaction.GetGasPrice(), gasRefund)) {
-              error_code = TxnStatus::MATH_ERROR;
-              return false;
-            }
-            if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-              LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
-            }
-
-            if (transaction.GetGasLimit() < gasRemained) {
-              LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                       << transaction.GetGasLimit()
-                                       << " gasRemained: " << gasRemained
-                                       << ". Must be something wrong!");
-              error_code = TxnStatus::MATH_ERROR;
-              return false;
-            }
-            receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-            if (!this->IncreaseNonce(fromAddr)) {
-                error_code = TxnStatus::MATH_ERROR;
-                return false;
-            }
-            m_storageRootUpdateBuffer.insert(
-                m_storageRootUpdateBufferAtomic.begin(),
-                m_storageRootUpdateBufferAtomic.end());
-            LOG_GENERAL(INFO, "Executing contract Call transaction finished");
-            if (LOG_SC) {
-              LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
-            }
-          }
-          // Process Logs
-          for (const auto& lg : realValues._logs) {
-            LOG_GENERAL(WARNING, lg);
-            Json::Value v = "{ msg =\"" + lg + "\"" + "}" ;
-            receipt.AddException(v);
-          }
-        }
-        receipt.SetResult(true);
-        receipt.CleanEntry();
-        receipt.update();
-
-        return true;
+        return ProcessEvmCallResponse(gasRemained, callGasPenalty, realValues,
+                                      receipt, toAccount, fromAddr,
+                                      transaction);
       }
 
-      if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        LOG_GENERAL(INFO, "Executed root transition in " << r_timer_end(tpStart)
-                                                         << " microseconds");
-      }
+      // If you get to this block of code you are a scilla transaction.
 
       uint32_t tree_depth = 0;
 
@@ -897,6 +769,53 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
+  return true;
+}
+
+template <class MAP>
+uint64_t AccountStoreSC<MAP>::UpdateGasRemaining(TransactionReceipt& receipt,
+                                                 uint64_t gasRemained,
+                                                 uint64_t createrGas) const {
+  try {
+    gasRemained =
+        std::min(gasRemained, boost::lexical_cast<uint64_t>(createrGas));
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << createrGas << " is not numeric");
+  }
+  if (gasRemained > CONTRACT_CREATE_GAS) {
+    gasRemained -= CONTRACT_CREATE_GAS;
+  } else {
+    gasRemained = 0;
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+
+  return gasRemained;
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::UpdateEvmState(Account* toAccount,
+                                         const EvmOperation& op) const {
+  std::map<std::string, bytes> stateMap;
+  std::set<std::string> deletionIndices;
+  bool flag = {true};
+
+  toAccount->GetUpdatedStates(stateMap, deletionIndices, flag);
+
+  if (op._reset_storage) {
+    stateMap.clear();
+    // might need to populate indices for deletion and pass into update states
+  }
+
+  for (auto it : op._storage) {
+    stateMap.insert(
+        std::make_pair(it._key, DataConversion::StringToCharArray(it._value)));
+  }
+
+  if (!toAccount->UpdateStates(Address(op._address), stateMap, {}, false,
+                               true)) {
+    LOG_GENERAL(WARNING, "Account " << op._address << " Update States Failed");
+  }
   return true;
 }
 
@@ -1816,4 +1735,114 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
+}
+
+// TODO -
+// Still needs to process any amounts to be moved to other accounts.
+// Still need to update evm state if EVM gives us some new code for the account.
+
+template <class MAP>
+bool AccountStoreSC<MAP>::ProcessEvmCallResponse(
+    uint64_t& gasRemained, uint64_t& callGasPenalty, const EvmReturn& realValues,
+    TransactionReceipt& receipt, Account* toAccount,const Address& fromAddr,
+    const Transaction& transaction) {
+
+
+  if (realValues._operations.size() > 0) {
+    EvmOperation op = realValues._operations[0];
+
+    if (op._operation_type == "modify") {
+      gasRemained =
+          UpdateGasRemaining(receipt, gasRemained, realValues._gasRemaing);
+
+      UpdateEvmState(toAccount, op);
+
+      // TODO if realValues._code is set update EvmState
+
+    } else if (op._operation_type == "delete") {
+      // TODO process deletion of account
+    }
+
+    // process Exit Reasons
+    if (std::find(std::begin(realValues._exit_reasons),
+                  std::end(realValues._exit_reasons),
+                  "Succeed") == std::end(realValues._exit_reasons)) {
+      //
+      // The Call failed, set up everything we can to inform the end user
+      // of status
+      //
+      LOG_GENERAL(WARNING, "Contract Call failed");
+      receipt.AddError(CALL_CONTRACT_FAILED);
+      receipt.RemoveAllTransitions();
+      Contract::ContractStorage::GetContractStorage().RevertPrevState();
+      DiscardAtomics();
+      gasRemained =
+          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetResult(false);
+      receipt.CleanEntry();
+      receipt.update();
+
+      if (!this->IncreaseNonce(fromAddr)) {
+        return false;
+      }
+
+      LOG_GENERAL(INFO,
+                  "Call contract failed, but return true in order to "
+                  "change state");
+
+      return true;  // Return true because the states already changed
+    } else {
+      //
+      // The Call succeeded, set up everything we can to inform the end
+      // user of status
+      //
+      LOG_GENERAL(WARNING, "Contract Call O.K.");
+      // Not sure why this is here lifted from old logic
+      CommitAtomics();
+      // PROCESS REFUND
+      boost::multiprecision::uint128_t gasRefund;
+      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+        LOG_GENERAL(WARNING, "Math Error IncreaseBalance failed for gasRefund");
+        return false;
+      }
+      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+        LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
+        return false;
+      }
+      if (transaction.GetGasLimit() < gasRemained) {
+        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                                 << transaction.GetGasLimit()
+                                 << " gasRemained: " << gasRemained
+                                 << ". Must be something wrong!");
+        return false;
+      }
+
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      if (!this->IncreaseNonce(fromAddr)) {
+        LOG_GENERAL(WARNING, "Math Error IncreaseNonce failed");
+        return false;
+      }
+      m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                       m_storageRootUpdateBufferAtomic.end());
+      LOG_GENERAL(INFO, "Executing contract Call transaction finished");
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+      }
+    }
+    // Process Logs
+    for (const auto& lg : realValues._logs) {
+      LOG_GENERAL(WARNING, lg);
+      Json::Value v = "{ msg =\"" + lg + "\"" + "}";
+      receipt.AddException(v);
+    }
+  } else {
+    LOG_GENERAL(WARNING, "No operations in response");
+    return false;
+  }
+  receipt.SetResult(true);
+  receipt.CleanEntry();
+  receipt.update();
+  return true;
 }
