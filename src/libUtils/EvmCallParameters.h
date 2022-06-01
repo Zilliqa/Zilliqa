@@ -20,6 +20,8 @@
 
 #include <string>
 
+// input parameters to Json call
+
 struct EvmCallParameters {
   std::string m_from;
   std::string m_to;
