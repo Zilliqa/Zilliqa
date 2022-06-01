@@ -21,8 +21,6 @@
 #include <mutex>
 #include <unordered_map>
 
-
-
 class EvmState {
  public:
   EvmState() = default;
@@ -65,4 +63,4 @@ class EvmStateMap {
   friend std::ostream& operator<<(std::ostream& os, EvmStateMap& evm);
 };
 
-#endif
+#endif  // ZILLIQA_SRC_LIBUTILS_EVMSTATE_H_
