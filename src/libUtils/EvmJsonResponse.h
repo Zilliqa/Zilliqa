@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2019 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
+
 
 #include <iostream>
 #include <ostream>
@@ -57,4 +58,4 @@ CallRespose &GetReturn(const Json::Value &oldJason, CallRespose &fo);
 
 }  // namespace evmproj
 
-#endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H
+#endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
