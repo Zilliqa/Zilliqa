@@ -124,32 +124,37 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    INVOKE_TYPE invoke_type, RunnerDetails& details, const uint32_t& version,
-    bool& ret, TransactionReceipt& receipt, EvmReturn& result) {
+    Account* account, INVOKE_TYPE invoke_type, RunnerDetails& details,
+    const uint32_t& version, bool& ret, TransactionReceipt& receipt) {
+  bool csUpdate{true};
+
+  evmproj::Respose realValues;
+
   bool call_already_finished = false;
-  auto func2 = [this, &details, &invoke_type, &ret, &receipt, &version,
-                &call_already_finished, &result]() mutable -> void {
+
+  auto worker = [this, &details, &invoke_type, &ret, &receipt, &version,
+                 &call_already_finished, &realValues]() mutable -> void {
     Json::Value jval;
     switch (invoke_type) {
       case RUNNER_CREATE:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCreateContractJson(details), result)) {
-          std::cout << "returned false from create contract" << std::endl;
+                version, EvmUtils::GetCreateContractJson(details), realValues)) {
         } else {
         }
         break;
       case RUNNER_CALL:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCallContractJson(details), result)) {
+                version, EvmUtils::GetCallContractJson(details), realValues)) {
         }
         break;
       default:
         break;
     }
+
     call_already_finished = true;
     cv_callContract.notify_all();
   };
-  DetachedFunction(1, func2);
+  DetachedFunction(1, worker);
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
@@ -163,10 +168,62 @@ void AccountStoreSC<MAP>::InvokeEvmInterpreter(
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");
 
-    ScillaClient::GetInstance().CheckClient(0, true);
+    EvmClient::GetInstance().CheckClient(0, true);
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
+
+  if (ret) {
+    csUpdate = EvmUpdateContractStateAndAccount(account, realValues._apply);
+
+    LOG_GENERAL(WARNING, realValues._logs);
+    Json::Value v = "{ msg =\"" + realValues._logs + "\"" + "}";
+    receipt.AddException(v);
+
+    if (invoke_type == RUNNER_CREATE) {
+      account->SetImmutable(
+          DataConversion::StringToCharArray(realValues._return),
+          account->GetInitData());
+    }
+  }
+  if (not csUpdate) {
+    LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
+    ret = false;
+  }
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::EvmUpdateContractStateAndAccount(
+    Account* fromAccount, evmproj::ApplyInstructions& op) const {
+
+  if (op._operation_type == "modify") {
+    if (op._reset_storage) {
+      // TODO :
+    }
+
+    if (op._code.size() > 0)
+      fromAccount->SetCode(DataConversion::StringToCharArray(op._code));
+
+    for (auto it : op._storage) {
+      if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
+              Address(op._address), DataConversion::StringToCharArray(it._key),
+              0, DataConversion::StringToCharArray(it._value), 0)) {
+        return false;
+      }
+    }
+
+    if (op._balance.size()) {
+      fromAccount->SetBalance(uint128_t(op._balance));
+    }
+
+    if (op._nonce.size()) {
+      fromAccount->SetNonce(std::stoull(op._nonce));
+    }
+
+  } else if (op._operation_type == "delete") {
+    // TODO process deletion of account
+  }
+  return true;
 }
 
 template <class MAP>
@@ -391,6 +448,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                               is_library, gasRemained, amount, ret, receipt);
             std::cout << "create ==>" << checkerPrint << std::endl;
           } else {
+            // Invoke evm interpreter
+
             RunnerDetails details = {
                 fromAddr.hex(),
                 toAddr.hex(),
@@ -399,47 +458,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasRemained,
                 std::numeric_limits<uint128_t>::max()};
 
-            EvmReturn realValues;
-
-            InvokeEvmInterpreter(RUNNER_CREATE, details, scilla_version, ret,
-                                 receipt, realValues);
-
-            // Process all operations in the collection
-
-            for (const auto& op : realValues._operations) {
-              if (op._operation_type == "modify") {
-                gasRemained = UpdateGasRemaining(receipt, gasRemained,
-                                                 realValues._gasRemaing);
-                UpdateEvmState(toAccount, op);
-              }
-            }
-
-            // process Exit Reasons
-            if (std::find(std::begin(realValues._exit_reasons),
-                          std::end(realValues._exit_reasons),
-                          "Succeed") == std::end(realValues._exit_reasons)) {
-              LOG_GENERAL(WARNING, "Contract creation failed");
-              receipt.AddError(CREATE_CONTRACT_FAILED);
-              return false;
-            } else {
-              LOG_GENERAL(WARNING, "Contract Registered into EVM-DS O.K.");
-            }
-
-            // Process Logs
-
-            for (const auto& lg : realValues._logs) {
-              LOG_GENERAL(WARNING, lg);
-              LOG_GENERAL(WARNING, lg);
-              Json::Value v = "{ msg =\"" + lg + "\"" + "}";
-              receipt.AddException(v);
-            }
-            // store the modified code from the creation call in our evmstate
-            // structure for the contract
-            EvmState newState(
-                toAddr.hex(),
-                DataConversion::CharArrayToString(transaction.GetCode()),
-                realValues._return);
-            m_evmStateMap.Add(newState);
+            InvokeEvmInterpreter(toAccount, RUNNER_CREATE, details,
+                                 scilla_version, ret, receipt);
           }
           ret_checker = true;
           ret = true;
@@ -647,32 +667,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
         std::cout << "Call returned ==>" << runnerPrint << std::endl;
       } else {
-        EvmState retState;
-        std::string code;
-
-        if (m_evmStateMap.Get(toAddr.hex(), retState)) {
-          code = retState.GetModifiedCode();
-        } else {
-          code = DataConversion::CharArrayToString(transaction.GetCode());
-        }
-
         RunnerDetails details = {
             fromAddr.hex(),
             toAddr.hex(),
-            code,
+            DataConversion::CharArrayToString(fromAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
             std::numeric_limits<uint128_t>::max()};
-        EvmReturn realValues;
-        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, ret, receipt,
-                             realValues);
 
-        return ProcessEvmCallResponse(gasRemained, callGasPenalty, realValues,
-                                      receipt, toAccount, fromAddr,
-                                      transaction);
+        InvokeEvmInterpreter(toAccount, RUNNER_CALL, details, scilla_version,
+                             ret, receipt);
       }
-
-      // If you get to this block of code you are a scilla transaction.
 
       uint32_t tree_depth = 0;
 
@@ -791,32 +796,6 @@ uint64_t AccountStoreSC<MAP>::UpdateGasRemaining(TransactionReceipt& receipt,
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   return gasRemained;
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateEvmState(Account* toAccount,
-                                         const EvmOperation& op) const {
-  std::map<std::string, bytes> stateMap;
-  std::set<std::string> deletionIndices;
-  bool flag = {true};
-
-  toAccount->GetUpdatedStates(stateMap, deletionIndices, flag);
-
-  if (op._reset_storage) {
-    stateMap.clear();
-    // might need to populate indices for deletion and pass into update states
-  }
-
-  for (auto it : op._storage) {
-    stateMap.insert(
-        std::make_pair(it._key, DataConversion::StringToCharArray(it._value)));
-  }
-
-  if (!toAccount->UpdateStates(Address(op._address), stateMap, {}, false,
-                               true)) {
-    LOG_GENERAL(WARNING, "Account " << op._address << " Update States Failed");
-  }
-  return true;
 }
 
 template <class MAP>
@@ -1608,23 +1587,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                                    account->GetStorageRoot());
       std::string runnerPrint;
       bool result = true;
-      if (not account->isEvmContract()) {
-        InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                          gasRemained, account->GetBalance(), result, receipt);
-        std::cout << "acUpdate ==>" << runnerPrint << std::endl;
 
-      } else {
-        // We need to look at this and see where it is retreiving the code
-        /*
-        RunnerDetails  details = { fromAddr.hex() , toAddr.hex() ,
-        DataConversion::CharArrayToString(transaction.GetCode())
-        ,DataConversion::CharArrayToString(transaction.GetData()) };
-
-        InvokeEvmInterpreter(RUNNER_CALL, details, scilla_version, is_library,
-                             gasRemained,
-        std::numeric_limits<uint128_t>::max(), result, receipt, runnerPrint);
-         */
-      }
+      InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
+                        gasRemained, account->GetBalance(), result, receipt);
+      std::cout << "acUpdate ==>" << runnerPrint << std::endl;
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(INFO, "Executed " << input_message["_tag"] << " in "
@@ -1735,114 +1701,4 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
-}
-
-// TODO -
-// Still needs to process any amounts to be moved to other accounts.
-// Still need to update evm state if EVM gives us some new code for the account.
-
-template <class MAP>
-bool AccountStoreSC<MAP>::ProcessEvmCallResponse(
-    uint64_t& gasRemained, uint64_t& callGasPenalty, const EvmReturn& realValues,
-    TransactionReceipt& receipt, Account* toAccount,const Address& fromAddr,
-    const Transaction& transaction) {
-
-
-  if (realValues._operations.size() > 0) {
-    EvmOperation op = realValues._operations[0];
-
-    if (op._operation_type == "modify") {
-      gasRemained =
-          UpdateGasRemaining(receipt, gasRemained, realValues._gasRemaing);
-
-      UpdateEvmState(toAccount, op);
-
-      // TODO if realValues._code is set update EvmState
-
-    } else if (op._operation_type == "delete") {
-      // TODO process deletion of account
-    }
-
-    // process Exit Reasons
-    if (std::find(std::begin(realValues._exit_reasons),
-                  std::end(realValues._exit_reasons),
-                  "Succeed") == std::end(realValues._exit_reasons)) {
-      //
-      // The Call failed, set up everything we can to inform the end user
-      // of status
-      //
-      LOG_GENERAL(WARNING, "Contract Call failed");
-      receipt.AddError(CALL_CONTRACT_FAILED);
-      receipt.RemoveAllTransitions();
-      Contract::ContractStorage::GetContractStorage().RevertPrevState();
-      DiscardAtomics();
-      gasRemained =
-          std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-      receipt.SetResult(false);
-      receipt.CleanEntry();
-      receipt.update();
-
-      if (!this->IncreaseNonce(fromAddr)) {
-        return false;
-      }
-
-      LOG_GENERAL(INFO,
-                  "Call contract failed, but return true in order to "
-                  "change state");
-
-      return true;  // Return true because the states already changed
-    } else {
-      //
-      // The Call succeeded, set up everything we can to inform the end
-      // user of status
-      //
-      LOG_GENERAL(WARNING, "Contract Call O.K.");
-      // Not sure why this is here lifted from old logic
-      CommitAtomics();
-      // PROCESS REFUND
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
-        LOG_GENERAL(WARNING, "Math Error IncreaseBalance failed for gasRefund");
-        return false;
-      }
-      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-        LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
-        return false;
-      }
-      if (transaction.GetGasLimit() < gasRemained) {
-        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                 << transaction.GetGasLimit()
-                                 << " gasRemained: " << gasRemained
-                                 << ". Must be something wrong!");
-        return false;
-      }
-
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-      if (!this->IncreaseNonce(fromAddr)) {
-        LOG_GENERAL(WARNING, "Math Error IncreaseNonce failed");
-        return false;
-      }
-      m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                       m_storageRootUpdateBufferAtomic.end());
-      LOG_GENERAL(INFO, "Executing contract Call transaction finished");
-      if (LOG_SC) {
-        LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
-      }
-    }
-    // Process Logs
-    for (const auto& lg : realValues._logs) {
-      LOG_GENERAL(WARNING, lg);
-      Json::Value v = "{ msg =\"" + lg + "\"" + "}";
-      receipt.AddException(v);
-    }
-  } else {
-    LOG_GENERAL(WARNING, "No operations in response");
-    return false;
-  }
-  receipt.SetResult(true);
-  receipt.CleanEntry();
-  receipt.update();
-  return true;
 }

@@ -17,12 +17,13 @@
 
 #include "libUtils/EvmJsonResponse.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
-
 #include "nlohmann/json.hpp"
 
 using websocketpp::base64_decode;
 
-EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
+namespace evmproj {
+
+evmproj::Respose &GetReturn(const Json::Value &oldJason, evmproj::Respose &fo) {
   nlohmann::json newJason;
 
   try {
@@ -36,16 +37,15 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
     if (node.key() == "apply" && node.value().is_array()) {
       for (const auto &ap : node.value()) {
         for (const auto &map : ap.items()) {
-          EvmOperation op;
           nlohmann::json arr = map.value();
-          op._operation_type = map.key();
+          fo._apply._operation_type = map.key();
           try {
-            op._address = arr["address"];
+            fo._apply._address = arr["address"];
           } catch (std::exception &e) {
             std::cout << "address : " << e.what() << std::endl;
           }
           try {
-            op._balance = arr["balance"];
+            fo._apply._balance = arr["balance"];
           } catch (std::exception &e) {
             std::cout << "balance : " << e.what() << std::endl;
           }
@@ -59,19 +59,19 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
             if (cobj.is_binary()) {
               std::cout << "Binary data" << std::endl;
             } else if (cobj.is_string()) {
-              op._code = cobj.get<std::string>();
+              fo._apply._code = cobj.get<std::string>();
             } else {
               std::cout << "write some code for " << cobj.type_name()
                         << std::endl;
             }
           }
           try {
-            op._nonce = arr["nonce"];
+            fo._apply._nonce = arr["nonce"];
           } catch (std::exception &e) {
             std::cout << "nonce : " << e.what() << std::endl;
           }
           try {
-            op._reset_storage = arr["reset_storage"];
+            fo._apply._reset_storage = arr["reset_storage"];
           } catch (std::exception &e) {
             std::cout << "reset : " << e.what() << std::endl;
           }
@@ -82,14 +82,13 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
             std::cout << "storage : " << e.what() << std::endl;
           }
           if (not storageObj.is_null()) {
-            KeyValue kvs;
+            evmproj::KeyValue kvs;
             for (const auto &kv : storageObj.items()) {
               kvs._key = base64_decode(kv.value()[0]);
               kvs._value = base64_decode(kv.value()[1]);
             }
-            op._storage.push_back(kvs);
+            fo._apply._storage.push_back(kvs);
           }
-          fo._operations.push_back(op);
         }
       }
     } else if (node.key() == "exit_reason") {
@@ -99,7 +98,7 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
       }
     } else if (node.key() == "logs") {
       for (const auto &lg : node.value().items()) {
-        fo._logs.push_back(lg.value());
+        fo._logs = lg.value();
       }
     } else if (node.key() == "return_value") {
       nlohmann::json j = node.value();
@@ -115,13 +114,13 @@ EvmReturn &GetReturn(const Json::Value &oldJason, EvmReturn &fo) {
   return fo;
 }
 
-std::ostream &operator<<(std::ostream &os, KeyValue &kv) {
+std::ostream &operator<<(std::ostream &os, evmproj::KeyValue &kv) {
   os << "key : " << kv._key << std::endl;
   os << "value : " << kv._value << std::endl;
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, EvmOperation &evm) {
+std::ostream &operator<<(std::ostream &os, evmproj::ApplyInstructions &evm) {
   os << "operation type : " << evm._operation_type << std::endl;
   os << "address : " << evm._address << std::endl;
   os << "code : " << evm._code << std::endl;
@@ -137,12 +136,9 @@ std::ostream &operator<<(std::ostream &os, EvmOperation &evm) {
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, EvmReturn &evmret) {
-  os << "EvmReturn object" << std::endl;
+std::ostream &operator<<(std::ostream &os, evmproj::Respose &evmret) {
+  os << evmret._apply << std::endl;
 
-  for (auto it : evmret._operations) {
-    os << it << std::endl;
-  }
   for (const auto &it : evmret._logs) {
     os << it << std::endl;
   }
@@ -154,3 +150,5 @@ std::ostream &operator<<(std::ostream &os, EvmReturn &evmret) {
   os << "code : " << evmret._return << std::endl;
   return os;
 }
+
+}  // namespace evmproj

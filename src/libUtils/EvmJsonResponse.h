@@ -18,42 +18,42 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
 
-#include <fstream>
 #include <iostream>
 #include <ostream>
 #include <vector>
 #include "libUtils/JsonUtils.h"
 
-using byte = unsigned char;
+namespace evmproj {
 
-// TODO: look at ScillaIPCServer::updateStateValue how to process these.
 struct KeyValue {
   std::string _key;
   std::string _value;
   friend std::ostream& operator<<(std::ostream& os, KeyValue& kv);
 };
 
-struct EvmOperation {
-  std::string _operation_type;  // one of "Modify" or "Delete"
+struct ApplyInstructions {
+  std::string _operation_type;
   std::string _address;  // TODO: check for possible collisions with Scilla.
-  std::string _code;     // Have to save this code.
+  std::string _code;
   std::string _balance;
   std::string _nonce;
   bool _reset_storage{false};
   std::vector<KeyValue> _storage;
 
-  friend std::ostream& operator<<(std::ostream& os, EvmOperation& evm);
+  friend std::ostream& operator<<(std::ostream& os, ApplyInstructions& evm);
 };
 
-struct EvmReturn {
-  std::vector<EvmOperation> _operations;
-  std::vector<std::string> _logs;
+struct Respose {
+  ApplyInstructions _apply;
+  std::string       _logs;
   std::vector<std::string> _exit_reasons;
   std::string _return;
   uint64_t _gasRemaing{0};
-  friend std::ostream& operator<<(std::ostream& os, EvmReturn& evmret);
+  friend std::ostream& operator<<(std::ostream& os, Respose& evmret);
 };
 
-EvmReturn& GetReturn(const Json::Value& oldJason, EvmReturn& fo);
+Respose& GetReturn(const Json::Value& oldJason, Respose& fo);
 
-#endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H_
+} // namespace evm
+
+#endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H

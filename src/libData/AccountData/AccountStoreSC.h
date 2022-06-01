@@ -28,13 +28,12 @@
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/RunnerDetails.h"
-#include "libUtils/EvmState.h"
+#include "libUtils/EvmJsonResponse.h"
+
 
 template <class MAP>
-class AccountStoreSC;
-class ScillaIPCServer;
-struct EvmReturn;
-class  EvmOperation;
+class  AccountStoreSC;
+class  ScillaIPCServer;
 
 template <class MAP>
 class AccountStoreAtomic
@@ -112,8 +111,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::set<Address> m_storageRootUpdateBufferAtomic;
 
   std::vector<Address> m_newLibrariesCreated;
-
-  EvmStateMap          m_evmStateMap;
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -200,10 +197,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
-  void InvokeEvmInterpreter(INVOKE_TYPE invoke_type, RunnerDetails& details,
+  void InvokeEvmInterpreter(Account* account,INVOKE_TYPE invoke_type, RunnerDetails& details,
                             const uint32_t& version, bool& ret,
-                            TransactionReceipt& receipt,
-                            struct EvmReturn& result);
+                            TransactionReceipt& receipt);
+
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -246,18 +243,17 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
 
-
-  uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
-                     uint64_t gasRemained,
-                     uint64_t createrGas) const;
-
-  bool UpdateEvmState(Account* toAccount, const EvmOperation& op) const;
+  uint64_t UpdateGasRemaining(TransactionReceipt& receipt, uint64_t gasRemained,
+                              uint64_t createrGas) const;
 
   bool ProcessEvmCallResponse(uint64_t& gasRemained, uint64_t& callGasPenalty,
-                              const EvmReturn& realValues,
+                              const evmproj::Respose& realValues,
                               TransactionReceipt& receipt, Account* toAccount,
                               const Address& fromAddr,
                               const Transaction& transaction);
+
+  bool EvmUpdateContractStateAndAccount(Account* fromAccount,
+                                        evmproj::ApplyInstructions& op) const;
 };
 
 #include "AccountStoreAtomic.tpp"
