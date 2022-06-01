@@ -25,6 +25,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"
@@ -124,7 +125,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account* account, INVOKE_TYPE invoke_type, EvmCallParameter& details,
+    Account* account, INVOKE_TYPE invoke_type, EvmCallParameters& details,
     const uint32_t& version, bool& ret, TransactionReceipt& receipt) {
   bool csUpdate{true};
 
@@ -678,8 +679,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             gasRemained,
             std::numeric_limits<uint128_t>::max()};
 
-        gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CALL, details,
-                                           scilla_version, ret, receipt);
+        uint64_t gasUsed = InvokeEvmInterpreter(toAccount, RUNNER_CALL, details,
+                                                scilla_version, ret, receipt);
+
+        if (gasUsed > 0) gasRemained = gasUsed;
       }
 
       uint32_t tree_depth = 0;
@@ -780,6 +783,31 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   }
 
   return true;
+}
+
+template <class MAP>
+uint64_t AccountStoreSC<MAP>::UpdateGasRemaining(TransactionReceipt& receipt,
+                                                 INVOKE_TYPE invoke_type,
+                                                 uint64_t& oldValue,
+                                                 uint64_t& newValue) const {
+  uint64_t cost{0};
+
+  if (newValue > 0) oldValue = std::min(oldValue, newValue);
+
+  // Create has already been charged before we were invoked.
+  if (invoke_type == RUNNER_CREATE) return oldValue;
+
+  cost = CONTRACT_INVOKE_GAS;
+
+  if (oldValue > cost) {
+    oldValue -= cost;
+  } else {
+    oldValue = 0;
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
+
+  return oldValue;
 }
 
 template <class MAP>
