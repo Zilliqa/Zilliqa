@@ -45,7 +45,7 @@ class EvmClient {
                    std::string& result, uint32_t counter = MAXRETRYCONN);
 
   bool CallRunner(uint32_t version, const Json::Value& _json,
-                  evmproj::Respose& result,
+                  evmproj::CallRespose& result,
                   uint32_t counter = MAXRETRYCONN);
 
   bool CallDisambiguate(uint32_t version, const Json::Value& _json,

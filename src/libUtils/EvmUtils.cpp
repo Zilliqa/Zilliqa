@@ -26,7 +26,7 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
-#include "libUtils/RunnerDetails.h"
+#include "libUtils/EvmCallParameters.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -68,7 +68,7 @@ std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
   return reply;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
+Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& details) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(details.m_from);
@@ -86,7 +86,7 @@ Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
   return arr_ret;
 }
 
-Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
+Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& details) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(details.m_from);

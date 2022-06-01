@@ -15,18 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
-#define ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
+#define ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
 
 #include <string>
 
-struct RunnerDetails {
+struct EvmCallParameters {
   std::string m_from;
   std::string m_to;
   std::string m_code;
   std::string m_data;
-  const uint64_t m_available_gas;
+  uint64_t m_available_gas;
   const boost::multiprecision::uint128_t m_balance;
 };
 
-#endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_

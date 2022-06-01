@@ -21,7 +21,7 @@
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
-#include "libUtils/RunnerDetails.h"
+#include "libUtils/EvmCallParameters.h"
 
 class EvmUtils {
  public:
@@ -29,10 +29,10 @@ class EvmUtils {
                                       std::string& root_w_version);
 
   /// get the command for invoking the evm_runner while deploying
-  static Json::Value GetCreateContractJson(RunnerDetails& details);
+  static Json::Value GetCreateContractJson(EvmCallParameters& details);
 
   /// get the command for invoking the evm_runner while calling
-  static Json::Value GetCallContractJson(const RunnerDetails& details);
+  static Json::Value GetCallContractJson(const EvmCallParameters& details);
 
   static std::string GetDataFromItemData(const std::string& itemData);
 };

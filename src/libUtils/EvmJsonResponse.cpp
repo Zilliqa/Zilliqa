@@ -23,7 +23,8 @@ using websocketpp::base64_decode;
 
 namespace evmproj {
 
-evmproj::Respose &GetReturn(const Json::Value &oldJason, evmproj::Respose &fo) {
+evmproj::CallRespose &GetReturn(const Json::Value &oldJason,
+                                evmproj::CallRespose &fo) {
   nlohmann::json newJason;
 
   try {
@@ -136,7 +137,7 @@ std::ostream &operator<<(std::ostream &os, evmproj::ApplyInstructions &evm) {
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, evmproj::Respose &evmret) {
+std::ostream &operator<<(std::ostream &os, evmproj::CallRespose &evmret) {
   os << evmret._apply << std::endl;
 
   for (const auto &it : evmret._logs) {

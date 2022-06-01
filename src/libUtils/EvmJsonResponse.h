@@ -28,32 +28,33 @@ namespace evmproj {
 struct KeyValue {
   std::string _key;
   std::string _value;
-  friend std::ostream& operator<<(std::ostream& os, KeyValue& kv);
+
+  friend std::ostream &operator<<(std::ostream &os, KeyValue &kv);
 };
 
 struct ApplyInstructions {
   std::string _operation_type;
-  std::string _address;  // TODO: check for possible collisions with Scilla.
+  std::string _address;
   std::string _code;
   std::string _balance;
   std::string _nonce;
   bool _reset_storage{false};
   std::vector<KeyValue> _storage;
 
-  friend std::ostream& operator<<(std::ostream& os, ApplyInstructions& evm);
+  friend std::ostream &operator<<(std::ostream &os, ApplyInstructions &evm);
 };
 
-struct Respose {
+struct CallRespose {
   ApplyInstructions _apply;
-  std::string       _logs;
+  std::string _logs;
   std::vector<std::string> _exit_reasons;
   std::string _return;
   uint64_t _gasRemaing{0};
-  friend std::ostream& operator<<(std::ostream& os, Respose& evmret);
+  friend std::ostream &operator<<(std::ostream &os, CallRespose &evmret);
 };
 
-Respose& GetReturn(const Json::Value& oldJason, Respose& fo);
+CallRespose &GetReturn(const Json::Value &oldJason, CallRespose &fo);
 
-} // namespace evm
+}  // namespace evmproj
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMJSONRESPONSE_H
