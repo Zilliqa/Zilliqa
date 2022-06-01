@@ -57,10 +57,10 @@ void AccountStoreSC<MAP>::Init() {
 
 template <class MAP>
 void AccountStoreSC<MAP>::InvokeInterpreter(
-    INVOKE_TYPE invoke_type, std::string &interprinterPrint,
-    const uint32_t &version, bool is_library, const uint64_t &available_gas,
-    const boost::multiprecision::uint128_t &balance, bool &ret,
-    TransactionReceipt &receipt) {
+    INVOKE_TYPE invoke_type, std::string& interprinterPrint,
+    const uint32_t& version, bool is_library, const uint64_t& available_gas,
+    const boost::multiprecision::uint128_t& balance, bool& ret,
+    TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                &available_gas, &balance, &ret, &receipt,
@@ -124,8 +124,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account *account, INVOKE_TYPE invoke_type, EvmCallParameters &details,
-    const uint32_t &version, bool &ret, TransactionReceipt &receipt) {
+    Account* account, INVOKE_TYPE invoke_type, EvmCallParameter& details,
+    const uint32_t& version, bool& ret, TransactionReceipt& receipt) {
   bool csUpdate{true};
 
   evmproj::CallRespose realValues;
@@ -151,7 +151,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       default:
         break;
     }
-
     call_already_finished = true;
     cv_callContract.notify_all();
   };
@@ -198,7 +197,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::EvmUpdateContractStateAndAccount(
-    Account *fromAccount, evmproj::ApplyInstructions &op) const {
+    Account* fromAccount, evmproj::ApplyInstructions& op) const {
   if (op._operation_type == "modify") {
     if (op._reset_storage) {
       // TODO :
@@ -230,12 +229,12 @@ bool AccountStoreSC<MAP>::EvmUpdateContractStateAndAccount(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
-                                         const unsigned int &numShards,
-                                         const bool &isDS,
-                                         const Transaction &transaction,
-                                         TransactionReceipt &receipt,
-                                         TxnStatus &error_code) {
+bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
+                                         const unsigned int& numShards,
+                                         const bool& isDS,
+                                         const Transaction& transaction,
+                                         TransactionReceipt& receipt,
+                                         TxnStatus& error_code) {
   // LOG_MARKER();
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
@@ -245,11 +244,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
 
   error_code = TxnStatus::NOT_PRESENT;
 
-  const PubKey &senderPubKey = transaction.GetSenderPubKey();
+  const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const uint128_t &amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmount();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
@@ -267,7 +266,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
       // LOG_GENERAL(INFO, "Normal transaction");
 
       // Disallow normal transaction to contract account
-      Account *toAccount = this->GetAccount(toAddr);
+      Account* toAccount = this->GetAccount(toAddr);
       if (toAccount != nullptr) {
         if (toAccount->isContract()) {
           LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
@@ -285,7 +284,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
 
       // bool validToTransferBalance = true;
 
-      Account *fromAccount = this->GetAccount(fromAddr);
+      Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
@@ -331,7 +330,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      Account *toAccount = this->GetAccount(toAddr);
+      Account* toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
         LOG_GENERAL(WARNING, "toAccount is null ptr");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
@@ -385,7 +384,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
         if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
           init = false;
         }
-      } catch (const std::exception &e) {
+      } catch (const std::exception& e) {
         LOG_GENERAL(WARNING,
                     "Exception caught in create account (1): " << e.what());
         init = false;
@@ -547,7 +546,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
 
       m_originAddr = fromAddr;
 
-      Account *fromAccount = this->GetAccount(fromAddr);
+      Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
@@ -595,7 +594,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      Account *toAccount = this->GetAccount(toAddr);
+      Account* toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
@@ -784,52 +783,24 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t &blockNum,
 }
 
 template <class MAP>
-uint64_t AccountStoreSC<MAP>::UpdateGasRemaining(TransactionReceipt &receipt,
-                                                 INVOKE_TYPE invoke_type,
-                                                 uint64_t &oldValue,
-                                                 uint64_t &newValue) const {
-  uint64_t cost{0};
-
-  if (invoke_type == RUNNER_CREATE)
-    cost = CONTRACT_CREATE_GAS;
-  else
-    cost = CONTRACT_INVOKE_GAS;
-
-  try {
-    oldValue = std::min(oldValue, newValue);
-  } catch (...) {
-    LOG_GENERAL(WARNING, "_amount " << newValue << " is not numeric");
-  }
-  if (oldValue > cost) {
-    oldValue -= cost;
-  } else {
-    oldValue = 0;
-    receipt.AddError(NO_GAS_REMAINING_FOUND);
-  }
-  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
-
-  return oldValue;
-}
-
-template <class MAP>
 bool AccountStoreSC<MAP>::PopulateExtlibsExports(
-    uint32_t scilla_version, const std::vector<Address> &extlibs,
-    std::map<Address, std::pair<std::string, std::string>> &extlibs_exports) {
+    uint32_t scilla_version, const std::vector<Address>& extlibs,
+    std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
   LOG_MARKER();
-  std::function<bool(const std::vector<Address> &,
-                     std::map<Address, std::pair<std::string, std::string>> &)>
+  std::function<bool(const std::vector<Address>&,
+                     std::map<Address, std::pair<std::string, std::string>>&)>
       extlibsExporter;
   extlibsExporter = [this, &scilla_version, &extlibsExporter](
-                        const std::vector<Address> &extlibs,
-                        std::map<Address, std::pair<std::string, std::string>>
-                            &extlibs_exports) -> bool {
+                        const std::vector<Address>& extlibs,
+                        std::map<Address, std::pair<std::string, std::string>>&
+                            extlibs_exports) -> bool {
     // export extlibs
-    for (const auto &libAddr : extlibs) {
+    for (const auto& libAddr : extlibs) {
       if (extlibs_exports.find(libAddr) != extlibs_exports.end()) {
         continue;
       }
 
-      Account *libAcc = this->GetAccount(libAddr);
+      Account* libAcc = this->GetAccount(libAddr);
       if (libAcc == nullptr) {
         LOG_GENERAL(WARNING, "libAcc: " << libAddr << " does not exist");
         return false;
@@ -882,9 +853,9 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCreateContractFiles(
-    const Account &contract, bool is_library, uint32_t scilla_version,
-    const std::map<Address, std::pair<std::string, std::string>>
-        &extlibs_exports) {
+    const Account& contract, bool is_library, uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -907,7 +878,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
     os.close();
 
     ExportCommonFiles(os, contract, extlibs_exports);
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
@@ -917,9 +888,9 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ExportCommonFiles(
-    std::ofstream &os, const Account &contract,
-    const std::map<Address, std::pair<std::string, std::string>>
-        &extlibs_exports) {
+    std::ofstream& os, const Account& contract,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
   os.open(INIT_JSON);
   if (LOG_SC) {
     LOG_GENERAL(
@@ -929,7 +900,7 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
   os << DataConversion::CharArrayToString(contract.GetInitData());
   os.close();
 
-  for (const auto &extlib_export : extlibs_exports) {
+  for (const auto& extlib_export : extlibs_exports) {
     std::string code_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
     code_path += LIBRARY_CODE_EXTENSION;
@@ -955,9 +926,9 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportContractFiles(
-    Account &contract, uint32_t scilla_version,
-    const std::map<Address, std::pair<std::string, std::string>>
-        &extlibs_exports) {
+    Account& contract, uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
@@ -988,7 +959,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       LOG_GENERAL(INFO, "LDB Read (microsec) = " << r_timer_end(tpStart));
     }
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
@@ -998,9 +969,9 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    Account &contract, const Transaction &transaction, uint32_t scilla_version,
-    const std::map<Address, std::pair<std::string, std::string>>
-        &extlibs_exports) {
+    Account& contract, const Transaction& transaction, uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
   LOG_MARKER();
 
   if (!ExportContractFiles(contract, scilla_version, extlibs_exports)) {
@@ -1024,7 +995,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
@@ -1034,9 +1005,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    Account &contract, const Json::Value &contractData, uint32_t scilla_version,
-    const std::map<Address, std::pair<std::string, std::string>>
-        &extlibs_exports) {
+    Account& contract, const Json::Value& contractData, uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>&
+        extlibs_exports) {
   LOG_MARKER();
 
   if (!ExportContractFiles(contract, scilla_version, extlibs_exports)) {
@@ -1046,7 +1017,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
   try {
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
@@ -1056,9 +1027,9 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
-    const Address &addr, const std::string &checkerPrint,
-    TransactionReceipt &receipt, std::map<std::string, bytes> &metadata,
-    uint64_t &gasRemained, bool is_library) {
+    const Address& addr, const std::string& checkerPrint,
+    TransactionReceipt& receipt, std::map<std::string, bytes>& metadata,
+    uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 
   LOG_GENERAL(
@@ -1113,13 +1084,13 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 
       bool hasMap = false;
 
-      auto handleTypeForStateVar = [&](const Json::Value &stateVars) {
+      auto handleTypeForStateVar = [&](const Json::Value& stateVars) {
         if (!stateVars.isArray()) {
           LOG_GENERAL(WARNING, "An array of state variables expected."
                                    << stateVars.toStyledString());
           return false;
         }
-        for (const auto &field : stateVars) {
+        for (const auto& field : stateVars) {
           if (field.isMember("vname") && field.isMember("depth") &&
               field["depth"].isNumeric() && field.isMember("type")) {
             metadata.emplace(
@@ -1149,7 +1120,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
         }
       }
     }
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
                                               << checkerPrint);
     return false;
@@ -1159,9 +1130,9 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t &gasRemained,
-                                              const std::string &runnerPrint,
-                                              TransactionReceipt &receipt,
+bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
+                                              const std::string& runnerPrint,
+                                              TransactionReceipt& receipt,
                                               bool is_library) {
   Json::Value jsonOutput;
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
@@ -1173,8 +1144,8 @@ bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t &gasRemained,
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractOutput(
-    Json::Value &jsonOutput, const std::string &runnerPrint,
-    TransactionReceipt &receipt) {
+    Json::Value& jsonOutput, const std::string& runnerPrint,
+    TransactionReceipt& receipt) {
   // LOG_MARKER();
 
   if (LOG_SC) {
@@ -1202,8 +1173,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
-    const Json::Value &_json, uint64_t &gasRemained,
-    TransactionReceipt &receipt, bool is_library) {
+    const Json::Value& _json, uint64_t& gasRemained,
+    TransactionReceipt& receipt, bool is_library) {
   // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
@@ -1257,9 +1228,9 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ParseCallContract(uint64_t &gasRemained,
-                                            const std::string &runnerPrint,
-                                            TransactionReceipt &receipt,
+bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
+                                            const std::string& runnerPrint,
+                                            TransactionReceipt& receipt,
                                             uint32_t tree_depth,
                                             uint32_t scilla_version) {
   Json::Value jsonOutput;
@@ -1274,8 +1245,8 @@ bool AccountStoreSC<MAP>::ParseCallContract(uint64_t &gasRemained,
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
-    Json::Value &jsonOutput, const std::string &runnerPrint,
-    TransactionReceipt &receipt) {
+    Json::Value& jsonOutput, const std::string& runnerPrint,
+    TransactionReceipt& receipt) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
@@ -1306,8 +1277,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
-    const Json::Value &_json, uint64_t &gasRemained,
-    TransactionReceipt &receipt, uint32_t tree_depth,
+    const Json::Value& _json, uint64_t& gasRemained,
+    TransactionReceipt& receipt, uint32_t tree_depth,
     uint32_t pre_scilla_version) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -1384,7 +1355,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   }
 
   // TODO: process all the logs for EVM
-  Account *contractAccount =
+  Account* contractAccount =
       m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
     LOG_GENERAL(WARNING, "contractAccount is null ptr");
@@ -1392,7 +1363,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
   try {
-    for (const auto &e : _json["events"]) {
+    for (const auto& e : _json["events"]) {
       LogEntry entry;
       if (!entry.Install(e, m_curContractAddr)) {
         receipt.AddError(LOG_ENTRY_INSTALL_FAILED);
@@ -1400,7 +1371,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
       receipt.AddEntry(entry);
     }
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
     return false;
   }
@@ -1425,12 +1396,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   // TODO: Ignore the rest.
 
   Address recipient;
-  Account *account = nullptr;
+  Account* account = nullptr;
 
   if (!ret) {
     // Buffer the Addr for current caller
     Address curContractAddr = m_curContractAddr;
-    for (const auto &msg : _json["messages"]) {
+    for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
 
       // a buffer for `ret` flag to be reset per loop
@@ -1638,8 +1609,8 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
   LOG_MARKER();
   {
     std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-    for (const auto &addr : m_storageRootUpdateBuffer) {
-      Account *account = this->GetAccount(addr);
+    for (const auto& addr : m_storageRootUpdateBuffer) {
+      Account* account = this->GetAccount(addr);
       if (account == nullptr) {
         continue;
       }
@@ -1660,9 +1631,9 @@ void AccountStoreSC<MAP>::CleanStorageRootUpdateBuffer() {
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address &from,
-                                                const Address &to,
-                                                const uint128_t &delta) {
+bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
+                                                const Address& to,
+                                                const uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
@@ -1670,8 +1641,8 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address &from,
 template <class MAP>
 void AccountStoreSC<MAP>::CommitAtomics() {
   LOG_MARKER();
-  for (const auto &entry : *m_accountStoreAtomic->GetAddressToAccount()) {
-    Account *account = this->GetAccount(entry.first);
+  for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
+    Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
       *account = entry.second;
     } else {
@@ -1696,7 +1667,7 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 }
 
 template <class MAP>
-Account *AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160 &addr) {
+Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
   return m_accountStoreAtomic->GetAccount(addr);
 }
 
@@ -1709,7 +1680,7 @@ void AccountStoreSC<MAP>::SetScillaIPCServer(
 
 template <class MAP>
 void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
-  for (const auto &addr : m_newLibrariesCreated) {
+  for (const auto& addr : m_newLibrariesCreated) {
     boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
     boost::filesystem::remove(addr.hex() + ".json");
   }

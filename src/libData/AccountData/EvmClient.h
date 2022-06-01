@@ -25,9 +25,12 @@
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 
 #include "common/Constants.h"
-#include "libUtils/EvmJsonResponse.h"
 
-struct EvmRespose;
+namespace evmproj {
+
+struct CallRespose;
+
+}
 
 class EvmClient {
  public:

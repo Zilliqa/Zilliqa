@@ -28,25 +28,27 @@
 #include "AccountStoreBase.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
-#include "libUtils/EvmJsonResponse.h"
 
 template <class MAP>
 class AccountStoreSC;
-
 class ScillaIPCServer;
+
+namespace evmproj {
+struct ApplyInstructions;
+}
 
 template <class MAP>
 class AccountStoreAtomic
     : public AccountStoreBase<std::unordered_map<Address, Account>> {
-  AccountStoreSC<MAP> &m_parent;
+  AccountStoreSC<MAP>& m_parent;
 
  public:
-  AccountStoreAtomic(AccountStoreSC<MAP> &parent);
+  AccountStoreAtomic(AccountStoreSC<MAP>& parent);
 
-  Account *GetAccount(const Address &address) override;
+  Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::unordered_map<Address, Account>>
-      &GetAddressToAccount();
+  const std::shared_ptr<std::unordered_map<Address, Account>>&
+  GetAddressToAccount();
 };
 
 enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
@@ -114,77 +116,69 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
-  bool ParseCreateContract(uint64_t &gasRemained,
-                           const std::string &runnerPrint,
-                           TransactionReceipt &receipt, bool is_library);
-
+  bool ParseCreateContract(uint64_t& gasRemained,
+                           const std::string& runnerPrint,
+                           TransactionReceipt& receipt, bool is_library);
   /// convert the interpreter output into parsable json object for deployment
-  bool ParseCreateContractOutput(Json::Value &jsonOutput,
-                                 const std::string &runnerPrint,
-                                 TransactionReceipt &receipt);
-
+  bool ParseCreateContractOutput(Json::Value& jsonOutput,
+                                 const std::string& runnerPrint,
+                                 TransactionReceipt& receipt);
   /// parse the output from interpreter for deployment
-  bool ParseCreateContractJsonOutput(const Json::Value &_json,
-                                     uint64_t &gasRemained,
-                                     TransactionReceipt &receipt,
+  bool ParseCreateContractJsonOutput(const Json::Value& _json,
+                                     uint64_t& gasRemained,
+                                     TransactionReceipt& receipt,
                                      bool is_library);
 
   /// Contract Calling
   /// verify the return from scilla_runner for calling is valid
-  bool ParseCallContract(uint64_t &gasRemained, const std::string &runnerPrint,
-                         TransactionReceipt &receipt, uint32_t tree_depth,
+  bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint,
+                         TransactionReceipt& receipt, uint32_t tree_depth,
                          uint32_t scilla_version);
-
   /// convert the interpreter output into parsable json object for calling
-  bool ParseCallContractOutput(Json::Value &jsonOutput,
-                               const std::string &runnerPrint,
-                               TransactionReceipt &receipt);
-
+  bool ParseCallContractOutput(Json::Value& jsonOutput,
+                               const std::string& runnerPrint,
+                               TransactionReceipt& receipt);
   /// parse the output from interpreter for calling and update states
-  bool ParseCallContractJsonOutput(const Json::Value &_json,
-                                   uint64_t &gasRemained,
-                                   TransactionReceipt &receipt,
+  bool ParseCallContractJsonOutput(const Json::Value& _json,
+                                   uint64_t& gasRemained,
+                                   TransactionReceipt& receipt,
                                    uint32_t tree_depth,
                                    uint32_t pre_scilla_version);
 
   /// export files that ExportCreateContractFiles and ExportContractFiles
   /// both needs
   void ExportCommonFiles(
-      std::ofstream &os, const Account &contract,
-      const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_exports);
+      std::ofstream& os, const Account& contract,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
 
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
   bool ExportContractFiles(
-      Account &contract, uint32_t scilla_version,
-      const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_exports);
-
+      Account& contract, uint32_t scilla_version,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
   /// generate the files for message from txn for interpreter to call contract
   bool ExportCallContractFiles(
-      Account &contract, const Transaction &transaction,
+      Account& contract, const Transaction& transaction,
       uint32_t scilla_version,
-      const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_exports);
-
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
   /// generate the files for message from previous contract output for
   /// interpreter to call another contract
   bool ExportCallContractFiles(
-      Account &contract, const Json::Value &contractData,
+      Account& contract, const Json::Value& contractData,
       uint32_t scilla_version,
-      const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_exports);
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
-  bool TransferBalanceAtomic(const Address &from, const Address &to,
-                             const uint128_t &delta);
-
+  bool TransferBalanceAtomic(const Address& from, const Address& to,
+                             const uint128_t& delta);
   /// commit the existing transfers in m_accountStoreAtomic to update the
   /// balance of accounts
   void CommitAtomics();
-
   /// discard the existing transfers in m_accountStoreAtomic
   void DiscardAtomics();
 
@@ -193,40 +187,40 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
-      const Account &contract, bool is_library, uint32_t scilla_version,
-      const std::map<Address, std::pair<std::string, std::string>>
-          &extlibs_export);
+      const Account& contract, bool is_library, uint32_t scilla_version,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_export);
 
   /// invoke scilla interpreter
   void InvokeInterpreter(INVOKE_TYPE invoke_type,
-                         std::string &interprinterPrint,
-                         const uint32_t &version, bool is_library,
-                         const uint64_t &available_gas,
-                         const boost::multiprecision::uint128_t &balance,
-                         bool &ret, TransactionReceipt &receipt);
+                         std::string& interprinterPrint,
+                         const uint32_t& version, bool is_library,
+                         const uint64_t& available_gas,
+                         const boost::multiprecision::uint128_t& balance,
+                         bool& ret, TransactionReceipt& receipt);
 
-  uint64_t InvokeEvmInterpreter(Account *account, INVOKE_TYPE invoke_type,
-                                EvmCallParameters &details,
-                                const uint32_t &version, bool &ret,
-                                TransactionReceipt &receipt);
+  uint64_t InvokeEvmInterpreter(Account* account, INVOKE_TYPE invoke_type,
+                                EvmCallParameters& details,
+                                const uint32_t& version, bool& ret,
+                                TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
-  bool ParseContractCheckerOutput(const Address &addr,
-                                  const std::string &checkerPrint,
-                                  TransactionReceipt &receipt,
-                                  std::map<std::string, bytes> &metadata,
-                                  uint64_t &gasRemained,
+  bool ParseContractCheckerOutput(const Address& addr,
+                                  const std::string& checkerPrint,
+                                  TransactionReceipt& receipt,
+                                  std::map<std::string, bytes>& metadata,
+                                  uint64_t& gasRemained,
                                   bool is_library = false);
 
   /// external interface for processing txn
-  bool UpdateAccounts(const uint64_t &blockNum, const unsigned int &numShards,
-                      const bool &isDS, const Transaction &transaction,
-                      TransactionReceipt &receipt, TxnStatus &error_code);
+  bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
+                      const bool& isDS, const Transaction& transaction,
+                      TransactionReceipt& receipt, TxnStatus& error_code);
 
   bool PopulateExtlibsExports(
-      uint32_t scilla_version, const std::vector<Address> &extlibs,
-      std::map<Address, std::pair<std::string, std::string>> &extlibs_exports);
+      uint32_t scilla_version, const std::vector<Address>& extlibs,
+      std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
 
  public:
   /// Initialize the class
@@ -249,20 +243,14 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   void CleanNewLibrariesCache();
 
   // Get value from atomic accountstore
-  Account *GetAccountAtomic(const dev::h160 &addr);
+  Account* GetAccountAtomic(const dev::h160& addr);
 
-  uint64_t UpdateGasRemaining(TransactionReceipt &receipt,
-                              INVOKE_TYPE invoke_type, uint64_t &oldValue,
-                              uint64_t &newValue) const;
+  uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
+                              INVOKE_TYPE invoke_type, uint64_t& oldValue,
+                              uint64_t& newValue) const;
 
-  bool ProcessEvmCallResponse(uint64_t &gasRemained, uint64_t &callGasPenalty,
-                              const evmproj::CallRespose &realValues,
-                              TransactionReceipt &receipt, Account *toAccount,
-                              const Address &fromAddr,
-                              const Transaction &transaction);
-
-  bool EvmUpdateContractStateAndAccount(Account *fromAccount,
-                                        evmproj::ApplyInstructions &op) const;
+  bool EvmUpdateContractStateAndAccount(Account* fromAccount,
+                                        evmproj::ApplyInstructions& op) const;
 };
 
 #include "AccountStoreAtomic.tpp"
