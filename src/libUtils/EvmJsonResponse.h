@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 202 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
