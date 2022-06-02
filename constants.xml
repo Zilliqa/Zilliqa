@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- format guideline: non-tab four-space indentation  -->
+<!-- format guideline: non-tab four-space indentation -->
 <node>
     <general>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
@@ -286,7 +286,7 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/scilla</SCILLA_ROOT> 
+        <SCILLA_ROOT>/scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
