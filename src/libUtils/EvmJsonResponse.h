@@ -29,7 +29,7 @@ struct KeyValue {
   std::string _key;
   std::string _value;
 
-  friend std::ostream& operator<<(std::ostream &os, KeyValue &kv);
+  friend std::ostream& operator<<(std::ostream& os, KeyValue& kv);
 };
 
 struct ApplyInstructions {
@@ -41,7 +41,7 @@ struct ApplyInstructions {
   bool _reset_storage{false};
   std::vector<KeyValue> _storage;
 
-  friend std::ostream& operator<<(std::ostream &os, ApplyInstructions &evm);
+  friend std::ostream& operator<<(std::ostream& os, ApplyInstructions& evm);
 };
 
 struct CallRespose {
@@ -50,10 +50,10 @@ struct CallRespose {
   std::vector<std::string> _exit_reasons;
   std::string _return;
   uint64_t _gasRemaing{0};
-  friend std::ostream& operator<<(std::ostream &os, CallRespose &evmret);
+  friend std::ostream& operator<<(std::ostream& os, CallRespose& evmret);
 };
 
-CallRespose &GetReturn(const Json::Value &oldJason, CallRespose &fo);
+CallRespose& GetReturn(const Json::Value& oldJason, CallRespose& fo);
 
 }  // namespace evmproj
 
