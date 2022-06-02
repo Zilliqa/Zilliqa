@@ -26,6 +26,7 @@
 
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
+#include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
 
@@ -50,8 +51,6 @@ class AccountStoreAtomic
   const std::shared_ptr<std::unordered_map<Address, Account>>&
   GetAddressToAccount();
 };
-
-enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
@@ -244,13 +243,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
-
-  uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
-                              INVOKE_TYPE invoke_type, uint64_t& oldValue,
-                              uint64_t& newValue) const;
-
-  bool EvmUpdateContractStateAndAccount(Account* fromAccount,
-                                        evmproj::ApplyInstructions& op) const;
 };
 
 #include "AccountStoreAtomic.tpp"

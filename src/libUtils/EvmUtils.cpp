@@ -26,7 +26,11 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
+#include "libUtils/EvmJsonResponse.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -97,4 +101,60 @@ Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& details) {
   arr_ret.append(Json::Value::UInt64(details.m_available_gas));
 
   return arr_ret;
+}
+
+bool EvmUtils::EvmUpdateContractStateAndAccount(
+    Account* fromAccount, evmproj::ApplyInstructions& op) {
+  if (op.OperationType() == "modify") {
+    if (op.isResetStorage()) {
+      // add code once we have figured out how :
+    }
+
+    if (op.Code().size() > 0)
+      fromAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
+
+    for (const auto& it : op.Storage()) {
+      if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
+              Address(op.Address()),
+              DataConversion::StringToCharArray(it.Key()), 0,
+              DataConversion::StringToCharArray(it.Value()), 0)) {
+        return false;
+      }
+    }
+
+    if (op.Balance().size()) {
+      fromAccount->SetBalance(uint128_t(op.Balance()));
+    }
+
+    if (op.Nonce().size()) {
+      fromAccount->SetNonce(std::stoull(op.Nonce()));
+    }
+
+  } else if (op.OperationType() == "delete") {
+    // TODO process deletion of account
+  }
+  return true;
+}
+
+uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
+                                      INVOKE_TYPE invoke_type,
+                                      uint64_t& oldValue, uint64_t newValue) {
+  uint64_t cost{0};
+
+  if (newValue > 0) oldValue = std::min(oldValue, newValue);
+
+  // Create has already been charged before we were invoked.
+  if (invoke_type == RUNNER_CREATE) return oldValue;
+
+  cost = CONTRACT_INVOKE_GAS;
+
+  if (oldValue > cost) {
+    oldValue -= cost;
+  } else {
+    oldValue = 0;
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
+
+  return oldValue;
 }

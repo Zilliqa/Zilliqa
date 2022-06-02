@@ -174,18 +174,19 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     ret = false;
   }
 
-  UpdateGasRemaining(receipt, invoke_type, gas, realValues._gasRemaing);
+  EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas, realValues.Gas());
 
   if (ret) {
-    csUpdate = EvmUpdateContractStateAndAccount(account, realValues._apply);
+    csUpdate =
+        EvmUtils::EvmUpdateContractStateAndAccount(account, realValues.m_apply);
 
-    LOG_GENERAL(WARNING, realValues._logs);
-    Json::Value v = "{ msg =\"" + realValues._logs + "\"" + "}";
+    LOG_GENERAL(WARNING, realValues.Logs());
+    Json::Value v = "{ msg =\"" + realValues.Logs() + "\"" + "}";
     receipt.AddException(v);
 
     if (invoke_type == RUNNER_CREATE) {
       account->SetImmutable(
-          DataConversion::StringToCharArray(realValues._return),
+          DataConversion::StringToCharArray(realValues.ReturnedBytes()),
           account->GetInitData());
     }
   }
@@ -194,39 +195,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     ret = false;
   }
   return gas;
-}
-
-template <class MAP>
-bool AccountStoreSC<MAP>::EvmUpdateContractStateAndAccount(
-    Account* fromAccount, evmproj::ApplyInstructions& op) const {
-  if (op._operation_type == "modify") {
-    if (op._reset_storage) {
-      // TODO :
-    }
-
-    if (op._code.size() > 0)
-      fromAccount->SetCode(DataConversion::StringToCharArray(op._code));
-
-    for (auto it : op._storage) {
-      if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
-              Address(op._address), DataConversion::StringToCharArray(it._key),
-              0, DataConversion::StringToCharArray(it._value), 0)) {
-        return false;
-      }
-    }
-
-    if (op._balance.size()) {
-      fromAccount->SetBalance(uint128_t(op._balance));
-    }
-
-    if (op._nonce.size()) {
-      fromAccount->SetNonce(std::stoull(op._nonce));
-    }
-
-  } else if (op._operation_type == "delete") {
-    // TODO process deletion of account
-  }
-  return true;
 }
 
 template <class MAP>
@@ -783,31 +751,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   }
 
   return true;
-}
-
-template <class MAP>
-uint64_t AccountStoreSC<MAP>::UpdateGasRemaining(TransactionReceipt& receipt,
-                                                 INVOKE_TYPE invoke_type,
-                                                 uint64_t& oldValue,
-                                                 uint64_t& newValue) const {
-  uint64_t cost{0};
-
-  if (newValue > 0) oldValue = std::min(oldValue, newValue);
-
-  // Create has already been charged before we were invoked.
-  if (invoke_type == RUNNER_CREATE) return oldValue;
-
-  cost = CONTRACT_INVOKE_GAS;
-
-  if (oldValue > cost) {
-    oldValue -= cost;
-  } else {
-    oldValue = 0;
-    receipt.AddError(NO_GAS_REMAINING_FOUND);
-  }
-  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
-
-  return oldValue;
 }
 
 template <class MAP>

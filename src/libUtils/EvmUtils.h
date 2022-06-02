@@ -21,7 +21,17 @@
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include "libData/AccountData/InvokeType.h"
 #include "libUtils/EvmCallParameters.h"
+
+// fwd decls
+
+class TransactionReceipt;
+class Account;
+
+namespace evmproj {
+struct ApplyInstructions;
+}
 
 class EvmUtils {
  public:
@@ -35,6 +45,13 @@ class EvmUtils {
   static Json::Value GetCallContractJson(const EvmCallParameters& details);
 
   static std::string GetDataFromItemData(const std::string& itemData);
+
+  static uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
+                                     INVOKE_TYPE invoke_type,
+                                     uint64_t& oldValue, uint64_t newValue);
+
+  static bool EvmUpdateContractStateAndAccount(Account* fromAccount,
+                                               evmproj::ApplyInstructions& op);
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

@@ -30,7 +30,7 @@
 class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
  public:
   AbstractStubServer(
-      jsonrpc::AbstractServerConnector &conn,
+      jsonrpc::AbstractServerConnector& conn,
       jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V1V2)
       : jsonrpc::AbstractServer<AbstractStubServer>(conn, type) {
     // ETH getWork
@@ -58,32 +58,32 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
         &AbstractStubServer::submitWorkI);
   }
 
-  inline virtual void getWorkI(const Json::Value &request,
-                               Json::Value &response) {
+  inline virtual void getWorkI(const Json::Value& request,
+                               Json::Value& response) {
     (void)request;
     response = this->getWork();
   }
-  inline virtual void submitHashrateI(const Json::Value &request,
-                                      Json::Value &response) {
+  inline virtual void submitHashrateI(const Json::Value& request,
+                                      Json::Value& response) {
     response = this->submitHashrate(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
-  inline virtual void submitWorkI(const Json::Value &request,
-                                  Json::Value &response) {
+  inline virtual void submitWorkI(const Json::Value& request,
+                                  Json::Value& response) {
     response = this->submitWork(request[0u].asString(), request[1u].asString(),
                                 request[2u].asString(), request[3u].asString(),
                                 request[4u].asString(), request[5u].asString());
   }
 
   virtual Json::Value getWork() = 0;
-  virtual bool submitHashrate(const std::string &hashrate,
-                              const std::string &miner_wallet,
-                              const std::string &worker) = 0;
-  virtual bool submitWork(const std::string &nonce, const std::string &header,
-                          const std::string &mixdigest,
-                          const std::string &boundary,
-                          const std::string &miner_wallet,
-                          const std::string &worker) = 0;
+  virtual bool submitHashrate(const std::string& hashrate,
+                              const std::string& miner_wallet,
+                              const std::string& worker) = 0;
+  virtual bool submitWork(const std::string& nonce, const std::string& header,
+                          const std::string& mixdigest,
+                          const std::string& boundary,
+                          const std::string& miner_wallet,
+                          const std::string& worker) = 0;
 };
 
 struct PoWWorkPackage {
@@ -100,13 +100,13 @@ struct PoWWorkPackage {
 // Implement AbstractStubServer
 class GetWorkServer : public AbstractStubServer {
   // Constructor
-  GetWorkServer(jsonrpc::AbstractServerConnector &conn)
+  GetWorkServer(jsonrpc::AbstractServerConnector& conn)
       : AbstractStubServer(conn) {}
 
   ~GetWorkServer() {}
 
-  GetWorkServer(GetWorkServer const &) = delete;
-  void operator=(GetWorkServer const &) = delete;
+  GetWorkServer(GetWorkServer const&) = delete;
+  void operator=(GetWorkServer const&) = delete;
 
   // Mining
   std::atomic<bool> m_isMining{false};
@@ -126,7 +126,7 @@ class GetWorkServer : public AbstractStubServer {
 
  public:
   // Returns the singleton instance.
-  static GetWorkServer &GetInstance();
+  static GetWorkServer& GetInstance();
 
   // Server methods
   bool StartServer();
@@ -136,32 +136,32 @@ class GetWorkServer : public AbstractStubServer {
   };
 
   // Mining methods
-  void SetNextPoWTime(const std::chrono::system_clock::time_point &tp);
+  void SetNextPoWTime(const std::chrono::system_clock::time_point& tp);
   int GetSecondsToNextPoW();
 
-  bool StartMining(const PoWWorkPackage &wp);
+  bool StartMining(const PoWWorkPackage& wp);
   void StopMining();
-  ethash_mining_result_t VerifySubmit(const std::string &nonce,
-                                      const std::string &header,
-                                      const std::string &mixdigest,
-                                      const std::string &boundary);
+  ethash_mining_result_t VerifySubmit(const std::string& nonce,
+                                      const std::string& header,
+                                      const std::string& mixdigest,
+                                      const std::string& boundary);
 
   // Protocol for GetResult
   ethash_mining_result_t GetResult(int waitTime);
 
-  bool UpdateCurrentResult(const ethash_mining_result_t &newResult,
+  bool UpdateCurrentResult(const ethash_mining_result_t& newResult,
                            const uint8_t difficulty);
 
   // RPC methods
   virtual Json::Value getWork();
-  virtual bool submitHashrate(const std::string &hashrate,
-                              const std::string &miner_wallet,
-                              const std::string &worker);
-  virtual bool submitWork(const std::string &nonce, const std::string &header,
-                          const std::string &mixdigest,
-                          const std::string &boundary,
-                          const std::string &miner_wallet,
-                          const std::string &worker);
+  virtual bool submitHashrate(const std::string& hashrate,
+                              const std::string& miner_wallet,
+                              const std::string& worker);
+  virtual bool submitWork(const std::string& nonce, const std::string& header,
+                          const std::string& mixdigest,
+                          const std::string& boundary,
+                          const std::string& miner_wallet,
+                          const std::string& worker);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_GETWORKSERVER_H_
