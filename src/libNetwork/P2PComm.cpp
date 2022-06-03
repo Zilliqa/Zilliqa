@@ -1312,7 +1312,7 @@ void P2PComm::StartMessagePump(Dispatcher dispatcher) {
       while (m_sendQueue.pop(job)) {
         ProcessSendJob(job);
       }
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
   DetachedFunction(1, funcCheckSendQueue);

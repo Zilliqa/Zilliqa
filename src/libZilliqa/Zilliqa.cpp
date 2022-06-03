@@ -158,7 +158,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         m_queuePool.AddJob(
             [this, message]() mutable -> void { ProcessMessage(message); });
       }
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
   DetachedFunction(1, funcCheckMsgQueue);
