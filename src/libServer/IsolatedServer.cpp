@@ -162,6 +162,14 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 
   std::shared_ptr<Retriever> m_retriever;
 
+  bool ds_result = m_retriever->RetrieveBlockLink();
+
+  if (!ds_result) {
+    LOG_GENERAL(INFO, "Coud not retrieve ds");
+  }
+
+  return false;  // remove
+
   bool st_result = m_retriever->RetrieveStates();
 
   if (!(st_result)) {
