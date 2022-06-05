@@ -27,7 +27,7 @@ struct EvmCallParameters {
   std::string m_to;
   std::string m_code;
   std::string m_data;
-  uint64_t m_available_gas;
+  const uint64_t& m_available_gas;
   const boost::multiprecision::uint128_t m_balance;
 };
 

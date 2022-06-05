@@ -199,9 +199,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          bool& ret, TransactionReceipt& receipt);
 
   uint64_t InvokeEvmInterpreter(Account* account, INVOKE_TYPE invoke_type,
-                                EvmCallParameters& details,
-                                const uint32_t& version, bool& ret,
-                                TransactionReceipt& receipt);
+                                EvmCallParameters& ecp, const uint32_t& version,
+                                bool& ret, TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

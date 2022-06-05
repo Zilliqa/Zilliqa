@@ -125,28 +125,28 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
 
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account* account, INVOKE_TYPE invoke_type, EvmCallParameters& details,
+    Account* account, INVOKE_TYPE invoke_type, EvmCallParameters& ecp,
     const uint32_t& version, bool& ret, TransactionReceipt& receipt) {
   bool csUpdate{true};
 
-  evmproj::CallRespose realValues;
-  uint64_t gas = details.m_available_gas;
+  evmproj::CallRespose evmReturnValues;
+  uint64_t gas = ecp.m_available_gas;
 
   bool call_already_finished = false;
 
-  auto worker = [this, &details, &invoke_type, &ret, &receipt, &version,
-                 &call_already_finished, &realValues]() mutable -> void {
+  auto worker = [this, &ecp, &invoke_type, &ret, &receipt, &version,
+                 &call_already_finished, &evmReturnValues]() mutable -> void {
     Json::Value jval;
     switch (invoke_type) {
       case RUNNER_CREATE:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCreateContractJson(details),
-                realValues)) {
+                version, EvmUtils::GetCreateContractJson(ecp),
+                evmReturnValues)) {
         }
         break;
       case RUNNER_CALL:
         if (!EvmClient::GetInstance().CallRunner(
-                version, EvmUtils::GetCallContractJson(details), realValues)) {
+                version, EvmUtils::GetCallContractJson(ecp), evmReturnValues)) {
         }
         break;
       default:
@@ -174,19 +174,20 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     ret = false;
   }
 
-  EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas, realValues.Gas());
+  gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
+                                     evmReturnValues.Gas());
 
   if (ret) {
-    csUpdate =
-        EvmUtils::EvmUpdateContractStateAndAccount(account, realValues.m_apply);
+    csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
+        account, evmReturnValues.m_apply);
 
-    LOG_GENERAL(WARNING, realValues.Logs());
-    Json::Value v = "{ msg =\"" + realValues.Logs() + "\"" + "}";
+    LOG_GENERAL(WARNING, evmReturnValues.Logs());
+    Json::Value v = "{ msg =\"" + evmReturnValues.Logs() + "\"" + "}";
     receipt.AddException(v);
 
     if (invoke_type == RUNNER_CREATE) {
       account->SetImmutable(
-          DataConversion::StringToCharArray(realValues.ReturnedBytes()),
+          DataConversion::StringToCharArray(evmReturnValues.ReturnedBytes()),
           account->GetInitData());
     }
   }
