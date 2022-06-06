@@ -21,7 +21,17 @@
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
-#include "libUtils/RunnerDetails.h"
+#include "libData/AccountData/InvokeType.h"
+#include "libUtils/EvmCallParameters.h"
+
+// fwd decls
+
+class TransactionReceipt;
+class Account;
+
+namespace evmproj {
+struct ApplyInstructions;
+}
 
 class EvmUtils {
  public:
@@ -29,12 +39,19 @@ class EvmUtils {
                                       std::string& root_w_version);
 
   /// get the command for invoking the evm_runner while deploying
-  static Json::Value GetCreateContractJson(RunnerDetails& details);
+  static Json::Value GetCreateContractJson(EvmCallParameters& params);
 
   /// get the command for invoking the evm_runner while calling
-  static Json::Value GetCallContractJson(const RunnerDetails& details);
+  static Json::Value GetCallContractJson(const EvmCallParameters& params);
 
   static std::string GetDataFromItemData(const std::string& itemData);
+
+  static uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
+                                     INVOKE_TYPE invoke_type,
+                                     uint64_t& oldValue, uint64_t newValue);
+
+  static bool EvmUpdateContractStateAndAccount(Account* contractAccount,
+                                               evmproj::ApplyInstructions& op);
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

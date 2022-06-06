@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
@@ -165,12 +166,12 @@ bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           EvmReturn& result, uint32_t counter) {
+                           evmproj::CallRespose& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
 
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
+  if (!ENABLE_EVM_MULTI_VERSION) {
     version = 0;
   }
 
@@ -182,10 +183,10 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     Json::Value oldJson;
-    EvmReturn reply;
+    evmproj::CallRespose reply;
     oldJson = m_clients.at(version)->CallMethod("run", _json);
     // Populate the C++ struct with the return values
-    reply = GetReturn(oldJson, result);
+    reply = evmproj::GetReturn(oldJson, result);
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     return false;
@@ -200,7 +201,7 @@ bool EvmClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
+  if (!ENABLE_EVM_MULTI_VERSION) {
     version = 0;
   }
 
