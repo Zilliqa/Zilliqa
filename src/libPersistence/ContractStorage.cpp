@@ -192,7 +192,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       LOG_GENERAL(WARNING, "Failed to fetch type for addr: "
                                << addr.hex() << " vname: " << query.name());
       foundVal = false;
-      return true;
+      return false;
     }
     try {
       type = DataConversion::CharArrayToString(t_type[type_key]);

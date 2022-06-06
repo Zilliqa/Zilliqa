@@ -210,8 +210,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
-  // LOG_MARKER();
-  LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  LOG_MARKER();
+
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -424,7 +424,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             // invoke scilla runner
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, amount, ret, receipt);
-            std::cout << "create ==>" << checkerPrint << std::endl;
           } else {
             // Invoke evm interpreter
 
@@ -649,7 +648,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (not toAccount->isEvmContract()) {
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
-        std::cout << "Call returned ==>" << runnerPrint << std::endl;
+
       } else {
         EvmCallParameters params = {
             fromAddr.hex(),
@@ -1018,8 +1017,6 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     TransactionReceipt& receipt, std::map<std::string, bytes>& metadata,
     uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
-
-  std::cout << "input " << checkerPrint << std::endl;
 
   LOG_GENERAL(
       INFO,
@@ -1563,7 +1560,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                         gasRemained, account->GetBalance(), result, receipt);
-      std::cout << "acUpdate ==>" << runnerPrint << std::endl;
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         LOG_GENERAL(INFO, "Executed " << input_message["_tag"] << " in "
