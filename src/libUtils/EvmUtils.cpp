@@ -72,43 +72,65 @@ std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
   return reply;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& details) {
+Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
+  arr_ret.append(params.m_owner);
+  arr_ret.append(params.m_contract);
   // The next two parameters come directly from the user in the code and init
   // struct
   //
-  arr_ret.append(details.m_code);
-  arr_ret.append(GetDataFromItemData(details.m_data));
+  arr_ret.append(params.m_code);
+  arr_ret.append(GetDataFromItemData(params.m_data));
   arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
+  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
-  details.m_data = GetDataFromItemData(details.m_data);
+  params.m_data = GetDataFromItemData(params.m_data);
 
   return arr_ret;
 }
 
-Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& details) {
+Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
-  arr_ret.append(details.m_code);
-  arr_ret.append(details.m_data);
+  arr_ret.append(params.m_owner);
+  arr_ret.append(params.m_contract);
+  arr_ret.append(params.m_code);
+  arr_ret.append(params.m_data);
   arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
+  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
 }
 
 bool EvmUtils::EvmUpdateContractStateAndAccount(
     Account* fromAccount, evmproj::ApplyInstructions& op) {
+  std::map<std::string, bytes> myMap;
+  std::set<std::string> myIndices;
+
   if (op.OperationType() == "modify") {
     if (op.isResetStorage()) {
       // add code once we have figured out how :
     }
+
+  Contract::ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(Address(op.Address()),myMap,myIndices,false);
+
+  std::cout << "map for address " << op.Address() << " has " << myMap.size() << " entries " << std::endl;
+  for (const auto& iter:myMap){
+    std::cout << "key " << iter.first << " value " << DataConversion::CharArrayToString(iter.second) << endl;
+
+  }
+
+  myMap.clear();
+
+  Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(myMap,
+                                 Address(op.Address()));
+
+  std::cout << "map for address " << op.Address() << " has " << myMap.size() << " entries " << std::endl;
+  for (const auto& iter:myMap){
+    std::cout << "key " << iter.first << " value " << DataConversion::CharArrayToString(iter.second) << endl;
+
+  }
 
     if (op.Code().size() > 0)
       fromAccount->SetCode(DataConversion::StringToCharArray(op.Code()));

@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2022 Zilliqa
  *
@@ -170,7 +171,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
+  if (!ENABLE_EVM_MULTI_VERSION) {
     version = 0;
   }
 
@@ -200,7 +201,7 @@ bool EvmClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
+  if (!ENABLE_EVM_MULTI_VERSION) {
     version = 0;
   }
 
