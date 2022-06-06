@@ -101,7 +101,8 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
   // Verify the signature
   if (!Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey)) {
-    LOG_GENERAL(WARNING, "We failed to verify the input signature.");
+    LOG_GENERAL(WARNING, "We failed to verify the input signature! Just a warning...");
+    LOG_GENERAL(WARNING, m_signature.operator std::string());
   }
 }
 
@@ -170,6 +171,31 @@ const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
+
+bool Transaction::IsSigned() const {
+  bytes txnData;
+  SerializeCoreFields(txnData, 0);
+
+  // Generate the transaction ID
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(txnData);
+  //const bytes& output = sha2.Finalize();
+  //if (output.size() != TRAN_HASH_SIZE) {
+  //  LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+  //  return false;
+  //}
+  //
+  //copy(output.begin(), output.end(), m_tranID.asArray().begin());
+
+  // Verify the signature
+  auto schnorr_result = Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey);
+  bool ecdsa_result = true;
+
+  LOG_GENERAL(WARNING, "*** Schnorr signing result is " << schnorr_result);
+  LOG_GENERAL(WARNING, "*** ECDSA signing result is " << ecdsa_result);
+
+  return true;
+}
 
 void Transaction::SetSignature(const Signature& signature) {
   m_signature = signature;

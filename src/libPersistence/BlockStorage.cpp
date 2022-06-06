@@ -1569,7 +1569,7 @@ bool BlockStorage::ResetDB(DBTYPE type) {
 }
 
 bool BlockStorage::RefreshDB(DBTYPE type) {
-  LOG_MARKER();
+  //LOG_MARKER();
   bool ret = false;
   switch (type) {
     case META: {

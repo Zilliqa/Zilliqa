@@ -249,6 +249,7 @@ find_package(Protobuf CONFIG REQUIRED)
 include_directories(${PROTOBUF_INSTALL_DIR}/include)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
+include_directories(${CMAKE_SOURCE_DIR}/src/depends/jsonrpc/include/)
 
 include_directories(${G3LOG_INCLUDE_DIR})
 

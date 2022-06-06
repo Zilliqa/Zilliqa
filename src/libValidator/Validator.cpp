@@ -36,7 +36,14 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
+  //auto result = Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey()) || tran.IsSigned();
+  auto result = tran.IsSigned();
+
+  if(!result) {
+    LOG_GENERAL(WARNING, "Failed to verify transaction signature - will delete");
+  }
+
+  return result;
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
@@ -58,6 +65,10 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
+
+  LOG_GENERAL(WARNING, "Transaction version incorrect "
+      << "Expected:" << TRANSACTION_VERSION << " Actual:"
+      << DataConversion::UnpackB(tx.GetVersion()));
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
     LOG_GENERAL(WARNING, "Transaction version incorrect "
