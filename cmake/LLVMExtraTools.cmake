@@ -117,6 +117,7 @@ if(CLANG_TIDY)
             -quiet
             -config=''
             -header-filter ${HEADER_DIR_REGEX}
+            -line-filter=[{"name":"json.hpp","lines":[[9999999,9999999]]}
             -style='file'
             -warnings-as-errors='*'
             -extra-arg='-Wno-error'
@@ -133,6 +134,7 @@ if(CLANG_TIDY)
                 -format
                 -config=''
                 -header-filter ${HEADER_DIR_REGEX}
+                -line-filter=[{"name":"json.hpp","lines":[[9999999,9999999]]}
                 -style='file'
                 -extra-arg='-Wno-error'
                 ${ALL_CXX_SOURCES}

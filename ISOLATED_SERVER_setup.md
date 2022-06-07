@@ -16,7 +16,7 @@ git clone https://github.com/Zilliqa/scilla.git
 sudo add-apt-repository ppa:tah83/secp256k1 -y //Ignore this line if you are building on Ubuntu 18
 sudo add-apt-repository -y ppa:avsm/ppa
 sudo apt-get update
-sudo apt-get install -y curl build-essential m4 ocaml opam pkg-config zlib1g-dev libgmp-dev libffi-dev libssl-dev libboost-system-dev libsecp256k1-dev libpcre3-dev
+sudo apt-get install -y curl build-essential m4 ocaml opam pkg-config zlib1g-dev libgmp-dev libffi-dev libssl-dev libboost-system-dev libsecp256k1-dev libpcre3-dev lcov libxml2-utils
 
 opam init --compiler=4.06.1 --yes
 eval $(opam env)
