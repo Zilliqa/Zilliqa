@@ -26,7 +26,7 @@ int64_t DisplayPhysicalMemoryStats(const std::string& str,
 int64_t display_PhysicalMemoryStats(const std::string& str,
                                    int64_t startMem = 0);
 
-template<typename ...Ts> struct make_void   // NOLINT
+template<typename ...Ts> struct make_void
 {
     using type = void;
 };
