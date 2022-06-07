@@ -44,20 +44,14 @@ class EvmClient {
   bool CheckClient(uint32_t version,
                    __attribute__((unused)) bool enforce = false);
 
-  bool CallChecker(uint32_t version, const Json::Value& _json,
-                   std::string& result, uint32_t counter = MAXRETRYCONN);
-
   bool CallRunner(uint32_t version, const Json::Value& _json,
                   evmproj::CallRespose& result,
                   uint32_t counter = MAXRETRYCONN);
 
-  bool CallDisambiguate(uint32_t version, const Json::Value& _json,
-                        std::string& result, uint32_t counter = MAXRETRYCONN);
-
  private:
   EvmClient() {}
   virtual ~EvmClient() {}
-  bool OpenServer(uint32_t version);
+  bool OpenServer();
 
   std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
   std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>

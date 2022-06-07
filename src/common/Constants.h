@@ -422,7 +422,7 @@ extern const std::string CONTRACT_FILE_EXTENSION;
 extern const std::string LIBRARY_CODE_EXTENSION;
 extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
-extern const bool ENABLE_EVM_MULTI_VERSION;
+
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;

@@ -40,7 +40,6 @@ make clean; make
 <EVM_ROOT>evm-ds</EVM_ROOT>
 <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
 <EVM_SERVER_BINARY>evm-ds</EVM_SERVER_BINARY>
-<ENABLE_EVM_MULTI_VERSION>false</ENABLE_EVM_MULTI_VERSION>
 ```
 4. Create swapfile
 ```

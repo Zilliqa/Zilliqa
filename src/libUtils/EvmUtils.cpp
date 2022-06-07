@@ -35,12 +35,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool EvmUtils::PrepareRootPathWVersion(const uint32_t& evm_version,
-                                       string& root_w_version) {
+bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
   root_w_version = EVM_ROOT;
-  if (ENABLE_EVM_MULTI_VERSION) {
-    root_w_version += '/' + to_string(evm_version);
-  }
 
   if (!boost::filesystem::exists(root_w_version)) {
     LOG_GENERAL(WARNING, "Folder for desired version (" << root_w_version
@@ -82,7 +78,7 @@ Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
   //
   arr_ret.append(params.m_code);
   arr_ret.append(GetDataFromItemData(params.m_data));
-  arr_ret.append("00");
+  arr_ret.append(std::to_string(params.m_available_gas));
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   params.m_data = GetDataFromItemData(params.m_data);
@@ -97,7 +93,7 @@ Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_contract);
   arr_ret.append(params.m_code);
   arr_ret.append(params.m_data);
-  arr_ret.append("00");
+  arr_ret.append(std::to_string(params.m_available_gas));
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
@@ -109,32 +105,6 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
     if (op.isResetStorage()) {
       contractAccount->SetStorageRoot(dev::h256());
     }
-
-    /* useful for debug
-    std::map<std::string, bytes> myMap;
-    std::set<std::string> myIndices;
-    Contract::ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(Address(op.Address()),myMap,myIndices,false);
-
-    std::cout << "map for address " << op.Address() << " has " << myMap.size()
-    << " entries " << std::endl; for (const auto& iter:myMap){ std::cout << "key
-    " << iter.first << " value " <<
-    DataConversion::CharArrayToString(iter.second) << endl;
-
-    }
-
-    myMap.clear();
-
-    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(myMap,
-                                   Address(op.Address()));
-
-    std::cout << "map for address " << op.Address() << " has " << myMap.size()
-    << " entries " << std::endl; for (const auto& iter:myMap){ std::cout << "key
-    " << iter.first << " value " <<
-    DataConversion::CharArrayToString(iter.second) << endl;
-
-    }
-    */
-
     if (op.Code().size() > 0)
       contractAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
 
@@ -156,7 +126,7 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
     }
 
   } else if (op.OperationType() == "delete") {
-    // TODO process deletion of account
+    // deletions handled by caller as need access to AccountStore Context
   }
   return true;
 }

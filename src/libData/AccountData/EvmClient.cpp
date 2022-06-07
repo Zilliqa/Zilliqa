@@ -30,41 +30,18 @@
 /* EvmClient Init */
 void EvmClient::Init() {
   LOG_MARKER();
-  if (ENABLE_EVM_MULTI_VERSION) {
-    boost::filesystem::path scilla_root_path(SCILLA_ROOT);
-    // scan existing versions
-    for (auto& entry : boost::make_iterator_range(
-             boost::filesystem::directory_iterator(scilla_root_path), {})) {
-      LOG_GENERAL(INFO, "scilla-server path: " << entry.path().string());
-      std::string folder_name = entry.path().string();
-      folder_name.erase(0, EVM_ROOT.size() + 1);
-      LOG_GENERAL(INFO, "folder_name: " << folder_name);
-      uint32_t version = 0;
-      try {
-        version = boost::lexical_cast<uint32_t>(folder_name);
-        if (!CheckClient(version)) {
-          LOG_GENERAL(WARNING,
-                      "OpenServer for version " << version << "failed");
-          continue;
-        }
-      } catch (...) {
-        LOG_GENERAL(WARNING, "Not valid folder name");
-        continue;
-      }
-    }
-  } else {
-    CheckClient(0, false);
-  }
+
+  CheckClient(0, false);
 }
 
-bool EvmClient::OpenServer(uint32_t version) {
+bool EvmClient::OpenServer() {
   LOG_MARKER();
 
   std::string cmdStr;
   std::string root_w_version;
 
-  if (!EvmUtils::PrepareRootPathWVersion(version, root_w_version)) {
-    LOG_GENERAL(WARNING, "ScillaUtils::PrepareRootPathWVersion failed");
+  if (!EvmUtils::PrepareRootPathWVersion(root_w_version)) {
+    LOG_GENERAL(WARNING, "EvmUtils::PrepareRootPathWVersion failed");
     return false;
   }
 
@@ -72,15 +49,8 @@ bool EvmClient::OpenServer(uint32_t version) {
       root_w_version + EVM_SERVER_PATH + EVM_SERVER_BINARY;
   std::string killStr, executeStr;
 
-  if (ENABLE_EVM_MULTI_VERSION) {
-    cmdStr = "ps aux | awk '{print $2\"\\t\"$11}' | grep \"" + server_path +
-             "\" | awk '{print $1}' | xargs kill -SIGTERM ; " + server_path +
-             " --socket " + EVM_SERVER_SOCKET_PATH + "." +
-             std::to_string(version) + " >/dev/null &";
-  } else {
-    cmdStr = "pkill " + EVM_SERVER_BINARY + " ; " + server_path + " --socket " +
-             EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
-  }
+  cmdStr = "pkill " + EVM_SERVER_BINARY + " ; " + server_path + " --socket " +
+           EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
@@ -110,15 +80,13 @@ bool EvmClient::CheckClient(uint32_t version,
                             __attribute__((unused)) bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (!OpenServer(version)) {
+  if (!OpenServer()) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
 
   std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
-      std::make_shared<jsonrpc::UnixDomainSocketClient>(
-          EVM_SERVER_SOCKET_PATH +
-          (ENABLE_EVM_MULTI_VERSION ? ("." + std::to_string(version)) : ""));
+      std::make_shared<jsonrpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
 
   m_connectors[version] = conn;
 
@@ -129,51 +97,13 @@ bool EvmClient::CheckClient(uint32_t version,
   return true;
 }
 
-bool EvmClient::CallChecker(uint32_t version, const Json::Value& _json,
-                            std::string& result, uint32_t counter) {
-  if (counter == 0) {
-    return false;
-  }
-
-  if (!ENABLE_SCILLA_MULTI_VERSION) {
-    version = 0;
-  }
-
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
-    return false;
-  }
-
-  try {
-    std::lock_guard<std::mutex> g(m_mutexMain);
-    result = m_clients.at(version)->CallMethod("check", _json).asString();
-  } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallChecker failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
-      if (!CheckClient(version, true)) {
-        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallChecker(version, _json, result, counter - 1);
-      }
-    } else {
-      result = e.what();
-    }
-
-    return false;
-  }
-
-  return true;
-}
-
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                            evmproj::CallRespose& result, uint32_t counter) {
   if (counter == 0) {
     return false;
   }
 
-  if (!ENABLE_EVM_MULTI_VERSION) {
-    version = 0;
-  }
+  version = 0;
 
   if (!CheckClient(version)) {
     LOG_GENERAL(WARNING, "CheckClient failed");
@@ -189,43 +119,6 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     reply = evmproj::GetReturn(oldJson, result);
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
-    return false;
-  }
-
-  return true;
-}
-
-bool EvmClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
-                                 std::string& result, uint32_t counter) {
-  if (counter == 0) {
-    return false;
-  }
-
-  if (!ENABLE_EVM_MULTI_VERSION) {
-    version = 0;
-  }
-
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
-    return false;
-  }
-
-  try {
-    std::lock_guard<std::mutex> g(m_mutexMain);
-    result =
-        m_clients.at(version)->CallMethod("disambiguate", _json).asString();
-  } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallDisambiguate failed: " << e.what());
-    if (std::string(e.what()).find(SCILLA_SERVER_SOCKET_PATH) !=
-        std::string::npos) {
-      if (!CheckClient(version, true)) {
-        LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
-        return CallDisambiguate(version, _json, result, counter - 1);
-      }
-    } else {
-      result = e.what();
-    }
-
     return false;
   }
 
