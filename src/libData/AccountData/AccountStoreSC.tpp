@@ -178,7 +178,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                        evmReturnValues.Gas());
 
-    if (ret) {
+    if (evmReturnValues.m_apply.OperationType() == "delete") {
+      // This needs testing, a bit brute force.
+      this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
+    } else {
       csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
           contractAccount, evmReturnValues.m_apply);
 
@@ -187,15 +190,15 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         Json::Value v = "{ msg =\"" + evmReturnValues.Logs() + "\"" + "}";
         receipt.AddException(v);
       }
-
-      if (invoke_type == RUNNER_CREATE) {
-        // Update the binary code on the Account.
-        contractAccount->SetImmutable(
-            DataConversion::StringToCharArray(evmReturnValues.ReturnedBytes()),
-            contractAccount->GetInitData());
-      }
     }
-    if (ret && not csUpdate) {
+
+    if (invoke_type == RUNNER_CREATE) {
+      // Update the binary code on the Account.
+      contractAccount->SetImmutable(
+          DataConversion::StringToCharArray(evmReturnValues.ReturnedBytes()),
+          contractAccount->GetInitData());
+    }
+    if (not csUpdate) {
       LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
       ret = false;
     }
