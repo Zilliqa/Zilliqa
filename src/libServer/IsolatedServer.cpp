@@ -269,6 +269,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     LOG_GENERAL(INFO, "On the isolated server ");
 
+    string json_as_string = _json.toStyledString();
+
+    cout << "json string: " << json_as_string << endl;
+
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     Json::Value ret;
@@ -343,7 +347,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
       case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                               "Code is empty and To addr is null");
+                               "The code is empty and To addr is null");
         break;
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");

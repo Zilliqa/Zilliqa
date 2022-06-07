@@ -284,10 +284,13 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
 
   string toAddr_str = _json["toAddr"].asString();
   string lower_case_addr;
+
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "To Address checksum does not match");
+    LOG_GENERAL(WARNING, "do not throw here!!!");
+    //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    //"To Address checksum does not match");
   }
+
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
@@ -349,13 +352,22 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     ret = ret && _json.isMember("priority");
   }
   ret = ret && _json.isMember("nonce");
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("toAddr");
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("amount");
-  ret = ret && _json.isMember("pubKey");
+  std::cout << ret << std::endl;
+  //ret = ret && _json.isMember("pubKey");
+  std::cout << ": " << _json.isMember("pubKey") << std::endl;
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("signature");
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("version");
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("code");
+  std::cout << ret << std::endl;
   ret = ret && _json.isMember("data");
+  std::cout << ret << std::endl;
 
   if (ret) {
     if (!_json["nonce"].isIntegral()) {
@@ -381,12 +393,18 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Version not integral");
     }
+
+    std::cout << "we are here9" << std::endl;
+
     if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
       LOG_GENERAL(INFO,
                   "PubKey size wrong " << _json["pubKey"].asString().size());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Invalid PubKey Size");
+      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      //"Invalid PubKey Size");
     }
+
+    std::cout << "we are here1" << std::endl;
+
     if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
@@ -394,13 +412,15 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                                       "Invalid Signature size");
     }
     string lower_case_addr;
+
     if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
                                                 lower_case_addr)) {
       LOG_GENERAL(INFO,
-                  "To Address checksum wrong " << _json["toAddr"].asString());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "To Addr checksum wrong");
+                  "To Address checksum wrong (not throwing) " << _json["toAddr"].asString());
+      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+      //                                "To Addr checksum wrong");
     }
+
     if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
         !_json["priority"].isBool()) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,

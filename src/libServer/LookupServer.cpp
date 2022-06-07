@@ -854,6 +854,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
+    std::cout << "getting fing balance1" << endl;
 
     Json::Value ret;
     if (account != nullptr) {
@@ -862,14 +863,18 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
+      LOG_GENERAL(INFO, "Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");
     }
 
+    std::cout << "getting fing balance2" << endl;
+    std::cout << ret << endl;
+
     return ret;
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
