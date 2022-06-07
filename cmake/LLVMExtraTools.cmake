@@ -117,29 +117,27 @@ if(CLANG_TIDY)
             -quiet
             -config=''
             -header-filter ${HEADER_DIR_REGEX}
-            -line-filter=[{"name":"json.hpp","lines":[[9999999,9999999]]}
             -style='file'
             -warnings-as-errors='*'
             -extra-arg='-Wno-error'
             ${ALL_CXX_SOURCES}
         )
-        if(CLANG_APPLY_REPLACEMENTS)
-            add_custom_target(
-                clang-tidy-fix
-                COMMAND "${RUN_CLANG_TIDY}"
-                -clang-tidy-binary ${CLANG_TIDY}
-                -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS}
-                -quiet
-                -fix
-                -format
-                -config=''
-                -header-filter ${HEADER_DIR_REGEX}
-                -line-filter=[{"name":"json.hpp","lines":[[9999999,9999999]]}
-                -style='file'
-                -extra-arg='-Wno-error'
-                ${ALL_CXX_SOURCES}
-            )
-        endif()
+        #if(CLANG_APPLY_REPLACEMENTS)
+        #    add_custom_target(
+        #        clang-tidy-fix
+        #        COMMAND "${RUN_CLANG_TIDY}"
+        #        -clang-tidy-binary ${CLANG_TIDY}
+        #        -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS}
+        #        -quiet
+        #        -fix
+        #        -format
+        #        -config=''
+        #        -header-filter ${HEADER_DIR_REGEX}
+        #        -style='file'
+        #        -extra-arg='-Wno-error'
+        #        ${ALL_CXX_SOURCES}
+        #    )
+        #endif()
     else()
         message(AUTHOR_WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=7.0.0)")
     endif()
