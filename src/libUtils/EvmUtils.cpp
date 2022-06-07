@@ -26,7 +26,11 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
-#include "libUtils/RunnerDetails.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/ContractStorage.h"
+#include "libUtils/EvmCallParameters.h"
+#include "libUtils/EvmJsonResponse.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -68,33 +72,114 @@ std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
   return reply;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
+Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
+  arr_ret.append(params.m_owner);
+  arr_ret.append(params.m_contract);
   // The next two parameters come directly from the user in the code and init
   // struct
   //
-  arr_ret.append(details.m_code);
-  arr_ret.append(GetDataFromItemData(details.m_data));
+  arr_ret.append(params.m_code);
+  arr_ret.append(GetDataFromItemData(params.m_data));
   arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
+  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
-  details.m_data = GetDataFromItemData(details.m_data);
+  params.m_data = GetDataFromItemData(params.m_data);
 
   return arr_ret;
 }
 
-Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
+Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
-  arr_ret.append(details.m_code);
-  arr_ret.append(details.m_data);
+  arr_ret.append(params.m_owner);
+  arr_ret.append(params.m_contract);
+  arr_ret.append(params.m_code);
+  arr_ret.append(params.m_data);
   arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
+  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
+}
+
+bool EvmUtils::EvmUpdateContractStateAndAccount(
+    Account* contractAccount, evmproj::ApplyInstructions& op) {
+  if (op.OperationType() == "modify") {
+    if (op.isResetStorage()) {
+      contractAccount->SetStorageRoot(dev::h256());
+    }
+
+    /* useful for debug
+    std::map<std::string, bytes> myMap;
+    std::set<std::string> myIndices;
+    Contract::ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(Address(op.Address()),myMap,myIndices,false);
+
+    std::cout << "map for address " << op.Address() << " has " << myMap.size()
+    << " entries " << std::endl; for (const auto& iter:myMap){ std::cout << "key
+    " << iter.first << " value " <<
+    DataConversion::CharArrayToString(iter.second) << endl;
+
+    }
+
+    myMap.clear();
+
+    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(myMap,
+                                   Address(op.Address()));
+
+    std::cout << "map for address " << op.Address() << " has " << myMap.size()
+    << " entries " << std::endl; for (const auto& iter:myMap){ std::cout << "key
+    " << iter.first << " value " <<
+    DataConversion::CharArrayToString(iter.second) << endl;
+
+    }
+    */
+
+    if (op.Code().size() > 0)
+      contractAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
+
+    for (const auto& it : op.Storage()) {
+      if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
+              Address(op.Address()),
+              DataConversion::StringToCharArray(it.Key()), 0,
+              DataConversion::StringToCharArray(it.Value()), 0)) {
+        return false;
+      }
+    }
+
+    if (op.Balance().size()) {
+      contractAccount->SetBalance(uint128_t(op.Balance()));
+    }
+
+    if (op.Nonce().size()) {
+      contractAccount->SetNonce(std::stoull(op.Nonce()));
+    }
+
+  } else if (op.OperationType() == "delete") {
+    // TODO process deletion of account
+  }
+  return true;
+}
+
+uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
+                                      INVOKE_TYPE invoke_type,
+                                      uint64_t& oldValue, uint64_t newValue) {
+  uint64_t cost{0};
+
+  if (newValue > 0) oldValue = std::min(oldValue, newValue);
+
+  // Create has already been charged before we were invoked.
+  if (invoke_type == RUNNER_CREATE) return oldValue;
+
+  cost = CONTRACT_INVOKE_GAS;
+
+  if (oldValue > cost) {
+    oldValue -= cost;
+  } else {
+    oldValue = 0;
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
+
+  return oldValue;
 }
