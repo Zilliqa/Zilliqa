@@ -331,8 +331,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
 
         std::vector<Address> extlibs;
-        if (isScilla && !toAccount->GetContractAuxiliaries(is_library, scilla_version,
-                                               extlibs)) {
+        if (isScilla && !toAccount->GetContractAuxiliaries(
+                            is_library, scilla_version, extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
           this->RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -346,7 +346,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
-        if (isScilla && !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+        if (isScilla &&
+            !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
           this->RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -399,7 +400,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
       if (isScilla &&
-        !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
+          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
                                       gasRemained, is_library)) {
         ret_checker = false;
       }
@@ -430,7 +431,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 DataConversion::CharArrayToString(transaction.GetCode()),
                 DataConversion::CharArrayToString(transaction.GetData()),
                 gasRemained,
-                fromAccount->GetBalance()};
+                amount};
 
             gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CREATE, params,
                                                evm_version, ret, receipt);
@@ -575,8 +576,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       uint32_t evm_version;
 
       std::vector<Address> extlibs;
-      if (isScilla && !toAccount->GetContractAuxiliaries(is_library, scilla_version,
-                                             extlibs)) {
+      if (isScilla && !toAccount->GetContractAuxiliaries(
+                          is_library, scilla_version, extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
@@ -595,14 +596,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-      if (isScilla && !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+      if (isScilla &&
+          !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
         LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
 
       m_curBlockNum = blockNum;
-      if (isScilla && !ExportCallContractFiles(*toAccount, transaction, scilla_version,
+      if (isScilla &&
+          !ExportCallContractFiles(*toAccount, transaction, scilla_version,
                                    extlibs_exports)) {
         LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -647,7 +650,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             DataConversion::CharArrayToString(fromAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
-            fromAccount->GetBalance()};
+            this->GetBalance(toAddr)};
 
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                     << " owner account is "

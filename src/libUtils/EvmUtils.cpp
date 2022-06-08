@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <array>
 #include <iostream>
 #include <mutex>
 #include <string>
-#include <array>
 #include <unordered_map>
 
 #include <boost/filesystem.hpp>
@@ -48,7 +48,6 @@ bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
   return true;
 }
 
-
 Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
@@ -60,7 +59,7 @@ Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
     std::copy(params.m_code.begin() + 3, params.m_code.end(),
               std::back_inserter(code));
     arr_ret.append(params.m_code);
-  } catch(std::exception &e){
+  } catch (std::exception& e) {
     arr_ret.append(params.m_code);
   }
   arr_ret.append(params.m_data);
@@ -81,7 +80,7 @@ Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
     std::copy(params.m_code.begin() + 3, params.m_code.end(),
               std::back_inserter(code));
     arr_ret.append(params.m_code);
-  } catch(std::exception &e){
+  } catch (std::exception& e) {
     arr_ret.append(params.m_code);
   }
   arr_ret.append(params.m_data);

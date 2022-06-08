@@ -160,21 +160,22 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     return false;
   }
 
-  if (isScilla && !PrepareInitDataJson(initData, addr, blockNum, m_initDataJson,
+  if (isScilla &&
+      !PrepareInitDataJson(initData, addr, blockNum, m_initDataJson,
                            m_scilla_version, m_is_library, m_extlibs)) {
     LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
   }
 
-  if(isScilla) {
+  if (isScilla) {
     if (!SetImmutable(code, DataConversion::StringToCharArray(
                                 JSONUtils::GetInstance().convertJsontoStr(
                                     m_initDataJson)))) {
       LOG_GENERAL(WARNING, "SetImmutable failed");
     }
   } else {
-      if (!SetImmutable(code, initData))
-          LOG_GENERAL(WARNING, "SetImmutable failed");
+    if (!SetImmutable(code, initData))
+      LOG_GENERAL(WARNING, "SetImmutable failed");
   }
 
   SetAddress(addr);
@@ -310,9 +311,8 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
     }
   }
 
-  if (!found_scilla_version ) {
-    LOG_GENERAL(WARNING,
-                "scilla_version not found in init data");
+  if (!found_scilla_version) {
+    LOG_GENERAL(WARNING, "scilla_version not found in init data");
     return false;
   }
 

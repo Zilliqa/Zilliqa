@@ -29,7 +29,6 @@
 class TransactionReceipt;
 class Account;
 
-
 namespace evmproj {
 struct ApplyInstructions;
 }
@@ -53,13 +52,12 @@ class EvmUtils {
 
   using bytes = std::vector<uint8_t>;
 
-  static bool isEvm(const bytes& code) ;
+  static bool isEvm(const bytes& code);
 };
-
 
 inline bool EvmUtils::isEvm(const bytes& code) {
   if (code.empty()) return false;
-  if (code.size() < 3 ) return false;
+  if (code.size() < 3) return false;
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
 
