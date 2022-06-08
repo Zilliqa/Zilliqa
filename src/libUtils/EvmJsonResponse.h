@@ -63,6 +63,7 @@ struct CallRespose {
   const std::vector<std::string> ExitReasons() const { return m_exitReasons; }
   uint64_t Gas() const { return m_gasRemaing; }
   const std::string& ReturnedBytes() const { return m_return; }
+  bool isSuccess();
   ApplyInstructions m_apply;
   std::string m_logs;
   std::vector<std::string> m_exitReasons;
@@ -71,6 +72,11 @@ struct CallRespose {
 
   friend std::ostream& operator<<(std::ostream& os, CallRespose& evmRet);
 };
+
+inline bool CallRespose::isSuccess() {
+  return (m_exitReasons.end() !=
+          std::find(m_exitReasons.begin(), m_exitReasons.end(), "Succeed"));
+}
 
 CallRespose& GetReturn(const Json::Value& oldJason, CallRespose& fo);
 
