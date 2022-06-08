@@ -226,8 +226,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const uint128_t& amount = transaction.GetAmount();
-
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
@@ -423,7 +421,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
           if (isScilla)
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
-                              is_library, gasRemained, amount, ret, receipt);
+                              is_library, gasRemained, transaction.GetAmount(),
+                              ret, receipt);
           else {
             EvmCallParameters params = {
                 fromAddr.hex(),
@@ -431,7 +430,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 DataConversion::CharArrayToString(transaction.GetCode()),
                 DataConversion::CharArrayToString(transaction.GetData()),
                 gasRemained,
-                amount};
+                transaction.GetAmount()};
 
             gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CREATE, params,
                                                evm_version, ret, receipt);
@@ -536,7 +535,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      if (fromAccount->GetBalance() < gasDeposit + amount) {
+      if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccount->GetBalance()
                                  << ") "
@@ -545,7 +544,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                  << gasDeposit
                                  << ") "
                                     "and transfer the amount ("
-                                 << amount
+                                 << transaction.GetAmount()
                                  << ") in the txn, "
                                     "rejected");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -623,7 +622,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       m_curGasLimit = transaction.GetGasLimit();
       m_curGasPrice = transaction.GetGasPrice();
       m_curContractAddr = toAddr;
-      m_curAmount = amount;
+      m_curAmount = transaction.GetAmount();
       m_curNumShards = numShards;
 
       std::chrono::system_clock::time_point tpStart;
