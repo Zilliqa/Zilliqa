@@ -51,6 +51,9 @@ bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
+
+  std::cout << "value :" <<  params.m_code << std::endl;
+
   arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
   std::string code;
@@ -65,6 +68,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
+
+  std::cout << arr_ret << std::endl;
 
   return arr_ret;
 }

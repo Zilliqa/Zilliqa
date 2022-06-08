@@ -53,7 +53,10 @@ class EvmUtils {
 };
 
 inline bool EvmUtils::isEvm(const bytes& code) {
-  if (code.empty()) return false;
+  // Scilla always has code set, EVM it is blank and Data is set on calls
+  // we could pass in Data and check the pattern at the start to confirm it is
+  // EVM.
+  if (code.empty()) return true;
   if (code.size() < 3) return false;
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
