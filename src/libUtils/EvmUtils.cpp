@@ -53,12 +53,12 @@ Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
 
   arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
-  std::vector<unsigned char> code;
+  std::string code;
   try {
     // take off the EVM prefix
     std::copy(params.m_code.begin() + 3, params.m_code.end(),
               std::back_inserter(code));
-    arr_ret.append(params.m_code);
+    arr_ret.append(code);
   } catch (std::exception& e) {
     arr_ret.append(params.m_code);
   }
@@ -74,12 +74,12 @@ Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
 
   arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
-  std::vector<unsigned char> code;
+  std::string code;
   try {
     // take off the EVM prefix
     std::copy(params.m_code.begin() + 3, params.m_code.end(),
               std::back_inserter(code));
-    arr_ret.append(params.m_code);
+    arr_ret.append(code);
   } catch (std::exception& e) {
     arr_ret.append(params.m_code);
   }
