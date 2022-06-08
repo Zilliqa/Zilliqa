@@ -2260,7 +2260,7 @@ namespace nlohmann
 {
 namespace detail
 {
-template<typename ...Ts> struct make_void
+template<typename ...Ts> struct make_void   // NOLINT
 {
     using type = void;
 };
@@ -2274,7 +2274,7 @@ namespace nlohmann
 {
 namespace detail
 {
-struct nonesuch
+struct nonesuch    // NOLINT
 {
     nonesuch() = delete;
     ~nonesuch() = delete;
@@ -2288,7 +2288,7 @@ template<class Default,
          class AlwaysVoid,
          template<class...> class Op,
          class... Args>
-struct detector
+struct detector    // NOLINT
 {
     using value_t = std::false_type;
     using type = Default;
@@ -2305,7 +2305,7 @@ template<template<class...> class Op, class... Args>
 using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t;
 
 template<template<class...> class Op, class... Args>
-struct is_detected_lazy : is_detected<Op, Args...> { };
+struct is_detected_lazy : is_detected<Op, Args...> { };    // NOLINT
 
 template<template<class...> class Op, class... Args>
 using detected_t = typename detector<nonesuch, void, Op, Args...>::type;
@@ -2825,7 +2825,7 @@ namespace nlohmann
 namespace detail
 {
 /// struct to capture the start position of the current token
-struct position_t
+struct position_t    // NOLINT
 {
     /// the total number of characters read
     std::size_t chars_read_total = 0;
@@ -2987,12 +2987,12 @@ using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
 #endif
 
 // dispatch utility (taken from ranges-v3)
-template<unsigned N> struct priority_tag : priority_tag < N - 1 > {};
+template<unsigned N> struct priority_tag : priority_tag < N - 1 > {};    // NOLINT
 template<> struct priority_tag<0> {};
 
 // taken from ranges-v3
 template<typename T>
-struct static_const
+struct static_const    // NOLINT
 {
     static constexpr T value{};
 };
@@ -3033,7 +3033,7 @@ namespace nlohmann
 namespace detail
 {
 template<typename It, typename = void>
-struct iterator_types {};
+struct iterator_types {};    // NOLINT
 
 template<typename It>
 struct iterator_types <
@@ -3051,7 +3051,7 @@ struct iterator_types <
 // This is required as some compilers implement std::iterator_traits in a way that
 // doesn't work with SFINAE. See https://github.com/nlohmann/json/issues/1341.
 template<typename T, typename = void>
-struct iterator_traits
+struct iterator_traits    // NOLINT
 {
 };
 
@@ -3191,7 +3191,7 @@ namespace detail
 // In this case, T has to be properly CV-qualified to constraint the function arguments
 // (e.g. to_json(BasicJsonType&, const T&))
 
-template<typename> struct is_basic_json : std::false_type {};
+template<typename> struct is_basic_json : std::false_type {};    // NOLINT
 
 NLOHMANN_BASIC_JSON_TPL_DECLARATION
 struct is_basic_json<NLOHMANN_BASIC_JSON_TPL> : std::true_type {};
@@ -3200,7 +3200,7 @@ struct is_basic_json<NLOHMANN_BASIC_JSON_TPL> : std::true_type {};
 // true_type for pointer to possibly cv-qualified basic_json or std::nullptr_t
 // false_type otherwise
 template<typename BasicJsonContext>
-struct is_basic_json_context :
+struct is_basic_json_context :    // NOLINT
     std::integral_constant < bool,
     is_basic_json<typename std::remove_cv<typename std::remove_pointer<BasicJsonContext>::type>::type>::value
     || std::is_same<BasicJsonContext, std::nullptr_t>::value >
@@ -3214,7 +3214,7 @@ template<typename>
 class json_ref;
 
 template<typename>
-struct is_json_ref : std::false_type {};
+struct is_json_ref : std::false_type {};    // NOLINT
 
 template<typename T>
 struct is_json_ref<json_ref<T>> : std::true_type {};
@@ -3255,14 +3255,14 @@ using get_template_function = decltype(std::declval<T>().template get<U>());
 
 // trait checking if JSONSerializer<T>::from_json(json const&, udt&) exists
 template<typename BasicJsonType, typename T, typename = void>
-struct has_from_json : std::false_type {};
+struct has_from_json : std::false_type {};    // NOLINT
 
 // trait checking if j.get<T> is valid
 // use this trait instead of std::is_constructible or std::is_convertible,
 // both rely on, or make use of implicit conversions, and thus fail when T
 // has several constructors/operator= (see https://github.com/nlohmann/json/issues/958)
 template <typename BasicJsonType, typename T>
-struct is_getable
+struct is_getable    // NOLINT
 {
     static constexpr bool value = is_detected<get_template_function, const BasicJsonType&, T>::value;
 };
@@ -3280,7 +3280,7 @@ struct has_from_json < BasicJsonType, T, enable_if_t < !is_basic_json<T>::value 
 // This trait checks if JSONSerializer<T>::from_json(json const&) exists
 // this overload is used for non-default-constructible user-defined-types
 template<typename BasicJsonType, typename T, typename = void>
-struct has_non_default_from_json : std::false_type {};
+struct has_non_default_from_json : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename T>
 struct has_non_default_from_json < BasicJsonType, T, enable_if_t < !is_basic_json<T>::value >>
@@ -3295,7 +3295,7 @@ struct has_non_default_from_json < BasicJsonType, T, enable_if_t < !is_basic_jso
 // This trait checks if BasicJsonType::json_serializer<T>::to_json exists
 // Do not evaluate the trait when T is a basic_json type, to avoid template instantiation infinite recursion.
 template<typename BasicJsonType, typename T, typename = void>
-struct has_to_json : std::false_type {};
+struct has_to_json : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename T>
 struct has_to_json < BasicJsonType, T, enable_if_t < !is_basic_json<T>::value >>
@@ -3311,11 +3311,11 @@ template<typename T>
 using detect_key_compare = typename T::key_compare;
 
 template<typename T>
-struct has_key_compare : std::integral_constant<bool, is_detected<detect_key_compare, T>::value> {};
+struct has_key_compare : std::integral_constant<bool, is_detected<detect_key_compare, T>::value> {};    // NOLINT
 
 // obtains the actual object key comparator
 template<typename BasicJsonType>
-struct actual_object_comparator
+struct actual_object_comparator    // NOLINT
 {
     using object_t = typename BasicJsonType::object_t;
     using object_comparator_t = typename BasicJsonType::default_object_comparator_t;
@@ -3331,20 +3331,20 @@ using actual_object_comparator_t = typename actual_object_comparator<BasicJsonTy
 ///////////////////
 
 // https://en.cppreference.com/w/cpp/types/conjunction
-template<class...> struct conjunction : std::true_type { };
+template<class...> struct conjunction : std::true_type { };    // NOLINT
 template<class B> struct conjunction<B> : B { };
 template<class B, class... Bn>
 struct conjunction<B, Bn...>
 : std::conditional<bool(B::value), conjunction<Bn...>, B>::type {};
 
 // https://en.cppreference.com/w/cpp/types/negation
-template<class B> struct negation : std::integral_constant < bool, !B::value > { };
+template<class B> struct negation : std::integral_constant < bool, !B::value > { };    // NOLINT
 
 // Reimplementation of is_constructible and is_default_constructible, due to them being broken for
 // std::pair and std::tuple until LWG 2367 fix (see https://cplusplus.github.io/LWG/lwg-defects.html#2367).
 // This causes compile errors in e.g. clang 3.5 or gcc 4.9.
 template <typename T>
-struct is_default_constructible : std::is_default_constructible<T> {};
+struct is_default_constructible : std::is_default_constructible<T> {};    // NOLINT
 
 template <typename T1, typename T2>
 struct is_default_constructible<std::pair<T1, T2>>
@@ -3364,7 +3364,7 @@ struct is_default_constructible<const std::tuple<Ts...>>
 
 
 template <typename T, typename... Args>
-struct is_constructible : std::is_constructible<T, Args...> {};
+struct is_constructible : std::is_constructible<T, Args...> {};    // NOLINT
 
 template <typename T1, typename T2>
 struct is_constructible<std::pair<T1, T2>> : is_default_constructible<std::pair<T1, T2>> {};
@@ -3380,7 +3380,7 @@ struct is_constructible<const std::tuple<Ts...>> : is_default_constructible<cons
 
 
 template<typename T, typename = void>
-struct is_iterator_traits : std::false_type {};
+struct is_iterator_traits : std::false_type {};    // NOLINT
 
 template<typename T>
 struct is_iterator_traits<iterator_traits<T>>
@@ -3398,7 +3398,7 @@ struct is_iterator_traits<iterator_traits<T>>
 };
 
 template<typename T>
-struct is_range
+struct is_range    // NOLINT
 {
   private:
     using t_ref = typename std::add_lvalue_reference<T>::type;
@@ -3427,14 +3427,14 @@ using range_value_t = value_type_t<iterator_traits<iterator_t<T>>>;
 // and is written by Xiang Fan who agreed to using it in this library.
 
 template<typename T, typename = void>
-struct is_complete_type : std::false_type {};
+struct is_complete_type : std::false_type {};    // NOLINT
 
 template<typename T>
 struct is_complete_type<T, decltype(void(sizeof(T)))> : std::true_type {};
 
 template<typename BasicJsonType, typename CompatibleObjectType,
          typename = void>
-struct is_compatible_object_type_impl : std::false_type {};
+struct is_compatible_object_type_impl : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename CompatibleObjectType>
 struct is_compatible_object_type_impl <
@@ -3453,12 +3453,12 @@ struct is_compatible_object_type_impl <
 };
 
 template<typename BasicJsonType, typename CompatibleObjectType>
-struct is_compatible_object_type
+struct is_compatible_object_type    // NOLINT
     : is_compatible_object_type_impl<BasicJsonType, CompatibleObjectType> {};
 
 template<typename BasicJsonType, typename ConstructibleObjectType,
          typename = void>
-struct is_constructible_object_type_impl : std::false_type {};
+struct is_constructible_object_type_impl : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename ConstructibleObjectType>
 struct is_constructible_object_type_impl <
@@ -3485,19 +3485,19 @@ struct is_constructible_object_type_impl <
 };
 
 template<typename BasicJsonType, typename ConstructibleObjectType>
-struct is_constructible_object_type
+struct is_constructible_object_type    // NOLINT
     : is_constructible_object_type_impl<BasicJsonType,
       ConstructibleObjectType> {};
 
 template<typename BasicJsonType, typename CompatibleStringType>
-struct is_compatible_string_type
+struct is_compatible_string_type    // NOLINT
 {
     static constexpr auto value =
         is_constructible<typename BasicJsonType::string_t, CompatibleStringType>::value;
 };
 
 template<typename BasicJsonType, typename ConstructibleStringType>
-struct is_constructible_string_type
+struct is_constructible_string_type    // NOLINT
 {
     // launder type through decltype() to fix compilation failure on ICPC
 #ifdef __INTEL_COMPILER
@@ -3512,7 +3512,7 @@ struct is_constructible_string_type
 };
 
 template<typename BasicJsonType, typename CompatibleArrayType, typename = void>
-struct is_compatible_array_type_impl : std::false_type {};
+struct is_compatible_array_type_impl : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename CompatibleArrayType>
 struct is_compatible_array_type_impl <
@@ -3530,11 +3530,11 @@ struct is_compatible_array_type_impl <
 };
 
 template<typename BasicJsonType, typename CompatibleArrayType>
-struct is_compatible_array_type
+struct is_compatible_array_type    // NOLINT
     : is_compatible_array_type_impl<BasicJsonType, CompatibleArrayType> {};
 
 template<typename BasicJsonType, typename ConstructibleArrayType, typename = void>
-struct is_constructible_array_type_impl : std::false_type {};
+struct is_constructible_array_type_impl : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename ConstructibleArrayType>
 struct is_constructible_array_type_impl <
@@ -3574,12 +3574,12 @@ is_detected<range_value_t, ConstructibleArrayType>::value&&
 };
 
 template<typename BasicJsonType, typename ConstructibleArrayType>
-struct is_constructible_array_type
+struct is_constructible_array_type    // NOLINT
     : is_constructible_array_type_impl<BasicJsonType, ConstructibleArrayType> {};
 
 template<typename RealIntegerType, typename CompatibleNumberIntegerType,
          typename = void>
-struct is_compatible_integer_type_impl : std::false_type {};
+struct is_compatible_integer_type_impl : std::false_type {};    // NOLINT
 
 template<typename RealIntegerType, typename CompatibleNumberIntegerType>
 struct is_compatible_integer_type_impl <
@@ -3600,12 +3600,12 @@ struct is_compatible_integer_type_impl <
 };
 
 template<typename RealIntegerType, typename CompatibleNumberIntegerType>
-struct is_compatible_integer_type
+struct is_compatible_integer_type    // NOLINT
     : is_compatible_integer_type_impl<RealIntegerType,
       CompatibleNumberIntegerType> {};
 
 template<typename BasicJsonType, typename CompatibleType, typename = void>
-struct is_compatible_type_impl: std::false_type {};
+struct is_compatible_type_impl: std::false_type {};    // NOLINT
 
 template<typename BasicJsonType, typename CompatibleType>
 struct is_compatible_type_impl <
@@ -3617,17 +3617,17 @@ struct is_compatible_type_impl <
 };
 
 template<typename BasicJsonType, typename CompatibleType>
-struct is_compatible_type
+struct is_compatible_type    // NOLINT
     : is_compatible_type_impl<BasicJsonType, CompatibleType> {};
 
 template<typename T1, typename T2>
-struct is_constructible_tuple : std::false_type {};
+struct is_constructible_tuple : std::false_type {};    // NOLINT
 
 template<typename T1, typename... Args>
 struct is_constructible_tuple<T1, std::tuple<Args...>> : conjunction<is_constructible<T1, Args>...> {};
 
 template<typename BasicJsonType, typename T>
-struct is_json_iterator_of : std::false_type {};
+struct is_json_iterator_of : std::false_type {};    // NOLINT
 
 template<typename BasicJsonType>
 struct is_json_iterator_of<BasicJsonType, typename BasicJsonType::iterator> : std::true_type {};
@@ -3638,7 +3638,7 @@ struct is_json_iterator_of<BasicJsonType, typename BasicJsonType::const_iterator
 
 // checks if a given type T is a template specialization of Primary
 template<template <typename...> class Primary, typename T>
-struct is_specialization_of : std::false_type {};
+struct is_specialization_of : std::false_type {};    // NOLINT
 
 template<template <typename...> class Primary, typename... Args>
 struct is_specialization_of<Primary, Primary<Args...>> : std::true_type {};
@@ -3648,7 +3648,7 @@ using is_json_pointer = is_specialization_of<::nlohmann::json_pointer, uncvref_t
 
 // checks if A and B are comparable using Compare functor
 template<typename Compare, typename A, typename B, typename = void>
-struct is_comparable : std::false_type {};
+struct is_comparable : std::false_type {};    // NOLINT
 
 template<typename Compare, typename A, typename B>
 struct is_comparable<Compare, A, B, void_t<
@@ -3701,11 +3701,11 @@ using has_erase_with_key_type = typename std::conditional <
 // a naive helper to check if a type is an ordered_map (exploits the fact that
 // ordered_map inherits capacity() from std::vector)
 template <typename T>
-struct is_ordered_map
+struct is_ordered_map    // NOLINT
 {
     using one = char;
 
-    struct two
+    struct two    // NOLINT
     {
         char x[2]; // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     };
@@ -3887,7 +3887,7 @@ namespace detail
 
 /// @brief general exception of the @ref basic_json class
 /// @sa https://json.nlohmann.me/api/basic_json/exception/
-class exception : public std::exception
+class exception : public std::exception    // NOLINT
 {
   public:
     /// returns the explanatory string
@@ -4090,7 +4090,7 @@ class out_of_range : public exception
 
 /// @brief exception indicating other library errors
 /// @sa https://json.nlohmann.me/api/basic_json/other_error/
-class other_error : public exception
+class other_error : public exception    // NOLINT
 {
   public:
     template<typename BasicJsonContext, enable_if_t<is_basic_json_context<BasicJsonContext>::value, int> = 0>
@@ -4120,7 +4120,7 @@ namespace nlohmann
 namespace detail
 {
 // dispatching helper struct
-template <class T> struct identity_tag {};
+template <class T> struct identity_tag {};    // NOLINT
 }  // namespace detail
 }  // namespace nlohmann
 
@@ -4581,7 +4581,7 @@ void from_json(const BasicJsonType& j, std_fs::path& p)
 }
 #endif
 
-struct from_json_fn
+struct from_json_fn    // NOLINT
 {
     template<typename BasicJsonType, typename T>
     auto operator()(const BasicJsonType& j, T&& val) const
@@ -4641,7 +4641,7 @@ void int_to_string( string_type& target, std::size_t value )
     using std::to_string;
     target = to_string(value);
 }
-template<typename IteratorType> class iteration_proxy_value
+template<typename IteratorType> class iteration_proxy_value    // NOLINT
 {
   public:
     using difference_type = std::ptrdiff_t;
@@ -4739,7 +4739,7 @@ template<typename IteratorType> class iteration_proxy_value
 };
 
 /// proxy class for the items() function
-template<typename IteratorType> class iteration_proxy
+template<typename IteratorType> class iteration_proxy    // NOLINT
 {
   private:
     /// the container to iterate
@@ -5210,7 +5210,7 @@ void to_json(BasicJsonType& j, const std_fs::path& p)
 }
 #endif
 
-struct to_json_fn
+struct to_json_fn    // NOLINT
 {
     template<typename BasicJsonType, typename T>
     auto operator()(BasicJsonType& j, T&& val) const noexcept(noexcept(to_json(j, std::forward<T>(val))))
@@ -5287,7 +5287,7 @@ namespace nlohmann
 /// @brief an internal type for a backed binary type
 /// @sa https://json.nlohmann.me/api/byte_container_with_subtype/
 template<typename BinaryType>
-class byte_container_with_subtype : public BinaryType
+class byte_container_with_subtype : public BinaryType    // NOLINT
 {
   public:
     using container_type = BinaryType;
@@ -5560,7 +5560,7 @@ enum class input_format_t { json, cbor, msgpack, ubjson, bson, bjdata };
 Input adapter for stdio file access. This adapter read only 1 byte and do not use any
  buffer. This adapter is a very low level adapter.
 */
-class file_input_adapter
+class file_input_adapter    // NOLINT
 {
   public:
     using char_type = char;
@@ -5597,7 +5597,7 @@ characters following those used in parsing the JSON input.  Clears the
 std::istream flags; any input errors (e.g., EOF) will be detected by the first
 subsequent call for input from the std::istream.
 */
-class input_stream_adapter
+class input_stream_adapter    // NOLINT
 {
   public:
     using char_type = char;
@@ -5652,7 +5652,7 @@ class input_stream_adapter
 // General-purpose iterator-based adapter. It might not be as fast as
 // theoretically possible for some containers, but it is extremely versatile.
 template<typename IteratorType>
-class iterator_input_adapter
+class iterator_input_adapter    // NOLINT
 {
   public:
     using char_type = typename std::iterator_traits<IteratorType>::value_type;
@@ -5812,7 +5812,7 @@ struct wide_string_input_helper<BaseInputAdapter, 2>
 
 // Wraps another input apdater to convert wide character types into individual bytes.
 template<typename BaseInputAdapter, typename WideCharType>
-class wide_string_input_adapter
+class wide_string_input_adapter    // NOLINT
 {
   public:
     using char_type = char;
@@ -5857,7 +5857,7 @@ class wide_string_input_adapter
 
 
 template<typename IteratorType, typename Enable = void>
-struct iterator_input_adapter_factory
+struct iterator_input_adapter_factory    // NOLINT
 {
     using iterator_type = IteratorType;
     using char_type = typename std::iterator_traits<iterator_type>::value_type;
@@ -5870,7 +5870,7 @@ struct iterator_input_adapter_factory
 };
 
 template<typename T>
-struct is_iterator_of_multibyte
+struct is_iterator_of_multibyte    // NOLINT
 {
     using value_type = typename std::iterator_traits<T>::value_type;
     enum
@@ -5912,7 +5912,7 @@ using std::begin;
 using std::end;
 
 template<typename ContainerType, typename Enable = void>
-struct container_input_adapter_factory {};
+struct container_input_adapter_factory {};    // NOLINT
 
 template<typename ContainerType>
 struct container_input_adapter_factory< ContainerType,
@@ -5978,7 +5978,7 @@ auto input_adapter(T (&array)[N]) -> decltype(input_adapter(array, array + N)) /
 // This class only handles inputs of input_buffer_adapter type.
 // It's required so that expressions like {ptr, len} can be implicitly cast
 // to the correct adapter.
-class span_input_adapter
+class span_input_adapter    // NOLINT
 {
   public:
     template < typename CharT,
@@ -6035,7 +6035,7 @@ boolean return value informs the parser whether to continue processing the
 input.
 */
 template<typename BasicJsonType>
-struct json_sax
+struct json_sax    // NOLINT
 {
     using number_integer_t = typename BasicJsonType::number_integer_t;
     using number_unsigned_t = typename BasicJsonType::number_unsigned_t;
@@ -6166,7 +6166,7 @@ constructor contains the parsed value.
 @tparam BasicJsonType  the JSON type
 */
 template<typename BasicJsonType>
-class json_sax_dom_parser
+class json_sax_dom_parser    // NOLINT
 {
   public:
     using number_integer_t = typename BasicJsonType::number_integer_t;
@@ -6349,7 +6349,7 @@ class json_sax_dom_parser
 };
 
 template<typename BasicJsonType>
-class json_sax_dom_callback_parser
+class json_sax_dom_callback_parser    // NOLINT
 {
   public:
     using number_integer_t = typename BasicJsonType::number_integer_t;
@@ -6656,7 +6656,7 @@ class json_sax_dom_callback_parser
 };
 
 template<typename BasicJsonType>
-class json_sax_acceptor
+class json_sax_acceptor    // NOLINT
 {
   public:
     using number_integer_t = typename BasicJsonType::number_integer_t;
@@ -6763,7 +6763,7 @@ namespace detail
 ///////////
 
 template<typename BasicJsonType>
-class lexer_base
+class lexer_base    // NOLINT
 {
   public:
     /// token types for the parser
@@ -6840,7 +6840,7 @@ class lexer_base
 This class organizes the lexical analysis during JSON deserialization.
 */
 template<typename BasicJsonType, typename InputAdapterType>
-class lexer : public lexer_base<BasicJsonType>
+class lexer : public lexer_base<BasicJsonType>    // NOLINT
 {
     using number_integer_t = typename BasicJsonType::number_integer_t;
     using number_unsigned_t = typename BasicJsonType::number_unsigned_t;
@@ -8431,7 +8431,7 @@ using parse_error_function_t = decltype(std::declval<T&>().parse_error(
         std::declval<const Exception&>()));
 
 template<typename SAX, typename BasicJsonType>
-struct is_sax
+struct is_sax    // NOLINT
 {
   private:
     static_assert(is_basic_json<BasicJsonType>::value,
@@ -8462,7 +8462,7 @@ struct is_sax
 };
 
 template<typename SAX, typename BasicJsonType>
-struct is_sax_static_asserts
+struct is_sax_static_asserts    // NOLINT
 {
   private:
     static_assert(is_basic_json<BasicJsonType>::value,
@@ -8558,7 +8558,7 @@ static inline bool little_endianness(int num = 1) noexcept
 @brief deserialization of CBOR, MessagePack, and UBJSON values
 */
 template<typename BasicJsonType, typename InputAdapterType, typename SAX = json_sax_dom_parser<BasicJsonType>>
-class binary_reader
+class binary_reader    // NOLINT
 {
     using number_integer_t = typename BasicJsonType::number_integer_t;
     using number_unsigned_t = typename BasicJsonType::number_unsigned_t;
@@ -11510,7 +11510,7 @@ using parser_callback_t =
 This class implements a recursive descent parser.
 */
 template<typename BasicJsonType, typename InputAdapterType>
-class parser
+class parser    // NOLINT
 {
     using number_integer_t = typename BasicJsonType::number_integer_t;
     using number_unsigned_t = typename BasicJsonType::number_unsigned_t;
@@ -11984,7 +11984,7 @@ to "iterate" over primitive values. Internally, the iterator is modeled by
 a `difference_type` variable. Value begin_value (`0`) models the begin,
 end_value (`1`) models past the end.
 */
-class primitive_iterator_t
+class primitive_iterator_t    // NOLINT
 {
   private:
     using difference_type = std::ptrdiff_t;
@@ -12099,7 +12099,7 @@ namespace detail
 @note This structure could easily be a union, but MSVC currently does not allow
 unions members with complex constructors, see https://github.com/nlohmann/json/pull/105.
 */
-template<typename BasicJsonType> struct internal_iterator
+template<typename BasicJsonType> struct internal_iterator    // NOLINT
 {
     /// iterator for JSON objects
     typename BasicJsonType::object_t::iterator object_iterator {};
@@ -12137,8 +12137,8 @@ namespace nlohmann
 namespace detail
 {
 // forward declare, to be able to friend it later on
-template<typename IteratorType> class iteration_proxy;
-template<typename IteratorType> class iteration_proxy_value;
+template<typename IteratorType> class iteration_proxy;    // NOLINT
+template<typename IteratorType> class iteration_proxy_value;    // NOLINT
 
 /*!
 @brief a template for a bidirectional iterator for the @ref basic_json class
@@ -12157,7 +12157,7 @@ This class implements a both iterators (iterator and const_iterator) for the
        iterators in version 3.0.0 (see https://github.com/nlohmann/json/issues/593)
 */
 template<typename BasicJsonType>
-class iter_impl // NOLINT(cppcoreguidelines-special-member-functions,hicpp-special-member-functions)
+class iter_impl // NOLINT
 {
     /// the iterator with BasicJsonType of different const-ness
     using other_iter_impl = iter_impl<typename std::conditional<std::is_const<BasicJsonType>::value, typename std::remove_const<BasicJsonType>::type, const BasicJsonType>::type>;
@@ -12895,7 +12895,7 @@ create @ref const_reverse_iterator).
 @since version 1.0.0
 */
 template<typename Base>
-class json_reverse_iterator : public std::reverse_iterator<Base>
+class json_reverse_iterator : public std::reverse_iterator<Base>    // NOLINT
 {
   public:
     using difference_type = std::ptrdiff_t;
@@ -13024,7 +13024,7 @@ class json_pointer
     friend class json_pointer;
 
     template<typename T>
-    struct string_t_helper
+    struct string_t_helper    // NOLINT
     {
         using type = T;
     };
@@ -13991,7 +13991,7 @@ namespace nlohmann
 namespace detail
 {
 /// abstract output adapter interface
-template<typename CharType> struct output_adapter_protocol
+template<typename CharType> struct output_adapter_protocol    // NOLINT
 {
     virtual void write_character(CharType c) = 0;
     virtual void write_characters(const CharType* s, std::size_t length) = 0;
@@ -14010,7 +14010,7 @@ using output_adapter_t = std::shared_ptr<output_adapter_protocol<CharType>>;
 
 /// output adapter for byte vectors
 template<typename CharType, typename AllocatorType = std::allocator<CharType>>
-class output_vector_adapter : public output_adapter_protocol<CharType>
+class output_vector_adapter : public output_adapter_protocol<CharType>    // NOLINT
 {
   public:
     explicit output_vector_adapter(std::vector<CharType, AllocatorType>& vec) noexcept
@@ -14035,7 +14035,7 @@ class output_vector_adapter : public output_adapter_protocol<CharType>
 #ifndef JSON_NO_IO
 /// output adapter for output streams
 template<typename CharType>
-class output_stream_adapter : public output_adapter_protocol<CharType>
+class output_stream_adapter : public output_adapter_protocol<CharType>    // NOLINT
 {
   public:
     explicit output_stream_adapter(std::basic_ostream<CharType>& s) noexcept
@@ -14060,7 +14060,7 @@ class output_stream_adapter : public output_adapter_protocol<CharType>
 
 /// output adapter for basic_string
 template<typename CharType, typename StringType = std::basic_string<CharType>>
-class output_string_adapter : public output_adapter_protocol<CharType>
+class output_string_adapter : public output_adapter_protocol<CharType>    // NOLINT
 {
   public:
     explicit output_string_adapter(StringType& s) noexcept
@@ -14083,7 +14083,7 @@ class output_string_adapter : public output_adapter_protocol<CharType>
 };
 
 template<typename CharType, typename StringType = std::basic_string<CharType>>
-class output_adapter
+class output_adapter    // NOLINT
 {
   public:
     template<typename AllocatorType = std::allocator<CharType>>
@@ -14124,7 +14124,7 @@ namespace detail
 @brief serialization to CBOR and MessagePack values
 */
 template<typename BasicJsonType, typename CharType>
-class binary_writer
+class binary_writer    // NOLINT
 {
     using string_t = typename BasicJsonType::string_t;
     using binary_t = typename BasicJsonType::binary_t;
@@ -15992,7 +15992,7 @@ Target reinterpret_bits(const Source source)
     return target;
 }
 
-struct diyfp // f * 2^e
+struct diyfp // f * 2^e    // NOLINT
 {
     static constexpr int kPrecision = 64; // = q
 
@@ -16110,7 +16110,7 @@ struct diyfp // f * 2^e
     }
 };
 
-struct boundaries
+struct boundaries    // NOLINT
 {
     diyfp w;
     diyfp minus;
@@ -16249,7 +16249,7 @@ boundaries compute_boundaries(FloatType value)
 constexpr int kAlpha = -60;
 constexpr int kGamma = -32;
 
-struct cached_power // c = f * 2^e ~= 10^k
+struct cached_power // c = f * 2^e ~= 10^k    // NOLINT
 {
     std::uint64_t f;
     int e;
@@ -17087,7 +17087,7 @@ enum class error_handler_t
 };
 
 template<typename BasicJsonType>
-class serializer
+class serializer    // NOLINT
 {
     using string_t = typename BasicJsonType::string_t;
     using number_float_t = typename BasicJsonType::number_float_t;
@@ -18314,18 +18314,18 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     // friend ::nlohmann::json_pointer<StringType>;
 
     template<typename BasicJsonType, typename InputType>
-    friend class ::nlohmann::detail::parser;
+    friend class ::nlohmann::detail::parser;    // NOLINT
     friend ::nlohmann::detail::serializer<basic_json>;
     template<typename BasicJsonType>
-    friend class ::nlohmann::detail::iter_impl;
+    friend class ::nlohmann::detail::iter_impl;    // NOLINT
     template<typename BasicJsonType, typename CharType>
-    friend class ::nlohmann::detail::binary_writer;
+    friend class ::nlohmann::detail::binary_writer;    // NOLINT
     template<typename BasicJsonType, typename InputType, typename SAX>
-    friend class ::nlohmann::detail::binary_reader;
+    friend class ::nlohmann::detail::binary_reader;    // NOLINT
     template<typename BasicJsonType>
-    friend class ::nlohmann::detail::json_sax_dom_parser;
+    friend class ::nlohmann::detail::json_sax_dom_parser;    // NOLINT
     template<typename BasicJsonType>
-    friend class ::nlohmann::detail::json_sax_dom_callback_parser;
+    friend class ::nlohmann::detail::json_sax_dom_callback_parser;    // NOLINT
     friend class ::nlohmann::detail::exception;
 
     /// workaround type for MSVC
