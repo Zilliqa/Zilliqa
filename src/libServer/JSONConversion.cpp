@@ -321,8 +321,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   bytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for Signature");
+    //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+    //                                "Invalid Hex Str for Signature");
   }
 
   bytes code, data;
@@ -408,8 +408,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "Invalid Signature size");
+      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+      //                                "Invalid Signature size");
     }
     string lower_case_addr;
 

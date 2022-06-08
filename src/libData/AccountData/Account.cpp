@@ -430,6 +430,8 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 
   copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
+  cout << "Sender ADDR: " << address <<  endl;
+
   return address;
 }
 

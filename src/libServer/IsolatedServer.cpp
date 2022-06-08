@@ -271,9 +271,13 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     string json_as_string = _json.toStyledString();
 
-    cout << "json string: " << json_as_string << endl;
+    cout << "json string of tx: " << json_as_string << endl;
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
+
+    auto pk = std::string(tx.GetSenderPubKey());
+
+    cout << "PK string is " << pk << endl;
 
     Json::Value ret;
 
@@ -297,8 +301,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     if (senderNonce + 1 != tx.GetNonce()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(senderNonce + 1));
+      cout  << "Expected Nonce: " + to_string(senderNonce + 1) << std::endl;
+      //throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             //"Expected Nonce: " + to_string(senderNonce + 1));
     }
 
     if (senderBalance < tx.GetAmount()) {
