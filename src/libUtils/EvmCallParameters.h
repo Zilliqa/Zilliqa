@@ -20,6 +20,8 @@
 
 #include <string>
 
+#include "boost/multiprecision/cpp_int.hpp"
+
 // input parameters to Json call
 
 struct EvmCallParameters {
@@ -28,7 +30,7 @@ struct EvmCallParameters {
   std::string m_code;
   std::string m_data;
   uint64_t m_available_gas = {0};
-  boost::multiprecision::uint128_t m_balance = {0};
+  boost::multiprecision::uint128_t m_apparent_value = {0};
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
