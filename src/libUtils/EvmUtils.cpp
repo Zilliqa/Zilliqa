@@ -18,6 +18,7 @@
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <array>
 #include <unordered_map>
 
 #include <boost/filesystem.hpp>
@@ -47,41 +48,24 @@ bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
   return true;
 }
 
-std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
-  Json::Value root;
-  Json::Reader reader;
-  std::string reply;
-  try {
-    if (reader.parse(itemData, root)) {
-      std::string testString = root[0]["vname"].asString();
-      if (testString != "_evm_version") {
-        LOG_GENERAL(WARNING,
-                    "Init Parameter does not appear to be formatted correctly "
-                        << testString);
-      }
-      reply = root[1]["data"].asString();
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught: " << e.what() << " itemData: " << itemData);
-  }
-  return reply;
-}
 
 Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
-  // The next two parameters come directly from the user in the code and init
-  // struct
-  //
-  arr_ret.append(params.m_code);
-  arr_ret.append(GetDataFromItemData(params.m_data));
-  arr_ret.append(std::to_string(params.m_available_gas));
+  std::vector<unsigned char> code;
+  try {
+    // take off the EVM prefix
+    std::copy(params.m_code.begin() + 3, params.m_code.end(),
+              std::back_inserter(code));
+    arr_ret.append(params.m_code);
+  } catch(std::exception &e){
+    arr_ret.append(params.m_code);
+  }
+  arr_ret.append(params.m_data);
+  arr_ret.append(params.m_balance.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
-
-  params.m_data = GetDataFromItemData(params.m_data);
 
   return arr_ret;
 }
@@ -91,9 +75,17 @@ Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
 
   arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
-  arr_ret.append(params.m_code);
+  std::vector<unsigned char> code;
+  try {
+    // take off the EVM prefix
+    std::copy(params.m_code.begin() + 3, params.m_code.end(),
+              std::back_inserter(code));
+    arr_ret.append(params.m_code);
+  } catch(std::exception &e){
+    arr_ret.append(params.m_code);
+  }
   arr_ret.append(params.m_data);
-  arr_ret.append(std::to_string(params.m_available_gas));
+  arr_ret.append(params.m_balance.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
@@ -124,9 +116,6 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
     if (op.Nonce().size()) {
       contractAccount->SetNonce(std::stoull(op.Nonce()));
     }
-
-  } else if (op.OperationType() == "delete") {
-    // deletions handled by caller as need access to AccountStore Context
   }
   return true;
 }

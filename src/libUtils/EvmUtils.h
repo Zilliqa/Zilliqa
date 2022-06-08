@@ -29,6 +29,7 @@
 class TransactionReceipt;
 class Account;
 
+
 namespace evmproj {
 struct ApplyInstructions;
 }
@@ -43,14 +44,23 @@ class EvmUtils {
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetCallContractJson(const EvmCallParameters& params);
 
-  static std::string GetDataFromItemData(const std::string& itemData);
-
   static uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
                                      INVOKE_TYPE invoke_type,
                                      uint64_t& oldValue, uint64_t newValue);
 
   static bool EvmUpdateContractStateAndAccount(Account* contractAccount,
                                                evmproj::ApplyInstructions& op);
+
+  using bytes = std::vector<uint8_t>;
+
+  static bool isEvm(const bytes& code) ;
 };
+
+
+inline bool EvmUtils::isEvm(const bytes& code) {
+  if (code.empty()) return false;
+  if (code.size() < 3 ) return false;
+  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+}
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

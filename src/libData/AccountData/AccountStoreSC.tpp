@@ -216,9 +216,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   LOG_MARKER();
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
+  bool isScilla = !EvmUtils::isEvm(transaction.GetCode());
 
   error_code = TxnStatus::NOT_PRESENT;
 
@@ -329,8 +329,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
+
         std::vector<Address> extlibs;
-        if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
+        if (isScilla && !toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                                extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
           this->RemoveAccount(toAddr);
@@ -338,14 +339,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
-        if (DISABLE_SCILLA_LIB && is_library) {
+        if (isScilla && DISABLE_SCILLA_LIB && is_library) {
           LOG_GENERAL(WARNING, "ScillaLib disabled");
           this->RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
-        if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+        if (isScilla && !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
           this->RemoveAccount(toAddr);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -353,7 +354,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
 
         m_curBlockNum = blockNum;
-        if (init &&
+        if (isScilla && init &&
             !ExportCreateContractFiles(*toAccount, is_library, scilla_version,
                                        extlibs_exports)) {
           LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
@@ -384,10 +385,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       bool ret_checker = true;
       std::string checkerPrint;
 
-      if (not toAccount->isEvmContract()) {
+      if (isScilla)
         InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
                           gasRemained, 0, ret_checker, receipt);
-      }
       // 0xabc._version
       // 0xabc._depth.data1
       // 0xabc._type.data1
@@ -398,14 +398,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               toAddr, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
-      if (not toAccount->isEvmContract() &&
-          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
+      if (isScilla &&
+        !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
                                       gasRemained, is_library)) {
         ret_checker = false;
-      } else {
-        // maybe we do this in invoke
       }
-
       // *************************************************************************
       // Undergo a runner
       bool ret = true;
@@ -423,13 +420,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (ret) {
           std::string runnerPrint;
 
-          if (not toAccount->isEvmContract()) {
-            // invoke scilla runner
+          if (isScilla)
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, amount, ret, receipt);
-          } else {
-            // Invoke evm interpreter
-
+          else {
             EvmCallParameters params = {
                 fromAddr.hex(),
                 toAddr.hex(),
@@ -438,17 +432,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasRemained,
                 fromAccount->GetBalance()};
 
-            LOG_GENERAL(WARNING, "contract address is " << params.m_contract
-                                                        << " owner account is "
-                                                        << params.m_owner);
-
             gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CREATE, params,
                                                evm_version, ret, receipt);
           }
           ret_checker = true;
-          ret = true;
         }
-
         // *************************************************************************
         // Summary
         boost::multiprecision::uint128_t gasRefund;
@@ -514,7 +502,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         /// calculate total gas in receipt
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
 
-        if (is_library) {
+        if (isScilla && is_library) {
           m_newLibrariesCreated.emplace_back(toAddr);
         }
       }
@@ -587,34 +575,34 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       uint32_t evm_version;
 
       std::vector<Address> extlibs;
-      if (!toAccount->GetContractAuxiliaries(is_library, scilla_version,
+      if (isScilla && !toAccount->GetContractAuxiliaries(is_library, scilla_version,
                                              extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
 
-      if (is_library) {
+      if (isScilla && is_library) {
         LOG_GENERAL(WARNING, "Library being called");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
 
-      if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
+      if (isScilla && DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
 
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-      if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
+      if (isScilla && !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
         LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
       }
 
       m_curBlockNum = blockNum;
-      if (!ExportCallContractFiles(*toAccount, transaction, scilla_version,
+      if (isScilla && !ExportCallContractFiles(*toAccount, transaction, scilla_version,
                                    extlibs_exports)) {
         LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -648,7 +636,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::string runnerPrint;
       bool ret = true;
 
-      if (not toAccount->isEvmContract()) {
+      if (isScilla) {
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
                           gasRemained, this->GetBalance(toAddr), ret, receipt);
 
@@ -673,7 +661,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       uint32_t tree_depth = 0;
 
-      if (!toAccount->isEvmContract()) {
+      if (isScilla) {
         if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt,
                                       tree_depth, scilla_version)) {
           receipt.RemoveAllTransitions();
