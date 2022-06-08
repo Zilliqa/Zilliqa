@@ -48,28 +48,7 @@ bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
   return true;
 }
 
-Json::Value EvmUtils::GetCreateContractJson(EvmCallParameters& params) {
-  Json::Value arr_ret(Json::arrayValue);
-
-  arr_ret.append(params.m_owner);
-  arr_ret.append(params.m_contract);
-  std::string code;
-  try {
-    // take off the EVM prefix
-    std::copy(params.m_code.begin() + 3, params.m_code.end(),
-              std::back_inserter(code));
-    arr_ret.append(code);
-  } catch (std::exception& e) {
-    arr_ret.append(params.m_code);
-  }
-  arr_ret.append(params.m_data);
-  arr_ret.append(params.m_apparent_value.str());
-  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
-
-  return arr_ret;
-}
-
-Json::Value EvmUtils::GetCallContractJson(const EvmCallParameters& params) {
+Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
   arr_ret.append(params.m_owner);

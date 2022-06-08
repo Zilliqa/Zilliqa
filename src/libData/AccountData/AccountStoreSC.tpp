@@ -138,17 +138,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
     Json::Value jval;
-    switch (invoke_type) {
-      case RUNNER_CREATE:
-        ret = EvmClient::GetInstance().CallRunner(
-            version, EvmUtils::GetCreateContractJson(params), evmReturnValues);
-        break;
-      case RUNNER_CALL:
-        ret = EvmClient::GetInstance().CallRunner(
-            version, EvmUtils::GetCallContractJson(params), evmReturnValues);
-        break;
-      default:
-        break;
+    if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
+      ret = EvmClient::GetInstance().CallRunner(
+            version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
     }
 
     call_already_finished = true;

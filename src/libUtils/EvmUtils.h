@@ -37,11 +37,8 @@ class EvmUtils {
  public:
   static bool PrepareRootPathWVersion(std::string& root_w_version);
 
-  /// get the command for invoking the evm_runner while deploying
-  static Json::Value GetCreateContractJson(EvmCallParameters& params);
-
   /// get the command for invoking the evm_runner while calling
-  static Json::Value GetCallContractJson(const EvmCallParameters& params);
+  static Json::Value GetEvmCallJson(const EvmCallParameters& params);
 
   static uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
                                      INVOKE_TYPE invoke_type,
