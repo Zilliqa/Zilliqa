@@ -167,10 +167,14 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     ret = false;
   }
 
+  if (not evmReturnValues.isSuccess()){
+      LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
+  }
+
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (evmReturnValues.Logs().size() > 0) {
-    LOG_GENERAL(WARNING, evmReturnValues.Logs());
+    LOG_GENERAL(WARNING, "Logs:" << evmReturnValues.Logs());
     Json::Value v = "{ msg =\"" + evmReturnValues.Logs() + "\"" + "}";
     receipt.AddException(v);
   }
@@ -430,10 +434,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                               std::numeric_limits<uint128_t>::max(), ret,
                               receipt);
           else {
-            boost::multiprecision::uint128_t val = transaction.GetAmount();
-
             LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
-                                  << gasRemained << " alleged " << val.str()
+                                  << gasRemained << " alleged " << transaction.GetAmount()
                                   << " limit " << transaction.GetGasLimit());
 
             EvmCallParameters params = {
@@ -463,6 +465,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
         }
         if (!ret || !ret_checker) {
+
           this->m_addressToAccount->erase(contractAddress);
 
           receipt.SetResult(false);
@@ -489,6 +492,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
           }
 
+          if (!isScilla){
+              LOG_GENERAL(INFO,
+                          "Create contract failed, we have erased your contract"
+                          );
+              return false;
+          }
           return true;  // Return true because the states already changed
         }
 
