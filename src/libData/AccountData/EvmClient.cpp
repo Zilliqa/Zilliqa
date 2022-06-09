@@ -18,6 +18,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <boost/filesystem.hpp>
 #include <thread>
 
 #include "EvmClient.h"
@@ -37,19 +38,8 @@ void EvmClient::Init() {
 bool EvmClient::OpenServer() {
   LOG_MARKER();
 
-  std::string cmdStr;
-  std::string root_w_version;
-
-  if (!EvmUtils::PrepareRootPathWVersion(root_w_version)) {
-    LOG_GENERAL(WARNING, "EvmUtils::PrepareRootPathWVersion failed");
-    return false;
-  }
-
-  std::string server_path =
-      root_w_version + EVM_SERVER_PATH + EVM_SERVER_BINARY;
-  std::string killStr, executeStr;
-
-  cmdStr = "pkill " + EVM_SERVER_BINARY + " ; " + server_path + " --socket " +
+  std::string programName = boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
+  std::string cmdStr = "pkill " + programName + " ; " + EVM_SERVER_BINARY + " --socket " +
            EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);

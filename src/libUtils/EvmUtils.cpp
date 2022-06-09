@@ -36,18 +36,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
-  root_w_version = EVM_ROOT;
-
-  if (!boost::filesystem::exists(root_w_version)) {
-    LOG_GENERAL(WARNING, "Folder for desired version (" << root_w_version
-                                                        << ") doesn't exists");
-    return false;
-  }
-
-  return true;
-}
-
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 

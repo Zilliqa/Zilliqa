@@ -35,8 +35,6 @@ struct ApplyInstructions;
 
 class EvmUtils {
  public:
-  static bool PrepareRootPathWVersion(std::string& root_w_version);
-
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetEvmCallJson(const EvmCallParameters& params);
 
