@@ -189,11 +189,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
     if (invoke_type == RUNNER_CREATE) {
       // Update the binary code on the Account.
-      std::string code;
+      std::string code = { "EVM"};
       std::string original_code = evmReturnValues.ReturnedBytes();
 
       try {
-        code = "EVM";
         boost::algorithm::hex(original_code.begin(), original_code.end(),
                               back_inserter(code));
       } catch (std::exception& e) {
@@ -442,6 +441,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             } catch (std::exception& e) {
               std::cout << "Error transforimg to hex" << std::endl;
             }
+            std::cout << "Gas " << gasRemained << " " << "alleged value " << this->GetBalance(toAddr) << "sent to interpreter" << std::endl;
 
             EvmCallParameters params = {
                 fromAddr.hex(),
@@ -449,7 +449,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 code,
                 DataConversion::CharArrayToString(transaction.GetData()),
                 gasRemained,
-                std::numeric_limits<uint128_t>::max()};
+                this->GetBalance(toAddr)};
 
             gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CREATE, params,
                                                evm_version, ret, receipt);

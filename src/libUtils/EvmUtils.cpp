@@ -63,7 +63,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     arr_ret.append(params.m_code);
   }
   arr_ret.append(params.m_data);
-  arr_ret.append(params.m_apparent_value.str());
+  //arr_ret.append(params.m_apparent_value.str());
+  arr_ret.append("00");
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
@@ -119,4 +120,14 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
   LOG_GENERAL(INFO, "gasRemained: " << oldValue);
 
   return oldValue;
+}
+
+bool EvmUtils::isEvm(const bytes& code) {
+    // Scilla always has code set, EVM it is blank and Data is set on calls
+    // we could pass in Data and check the pattern at the start to confirm it is
+    // EVM.
+    if (not ENABLE_EVM) return false;
+    if (code.empty()) return true;
+    if (code.size() < 3) return false;
+    return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
