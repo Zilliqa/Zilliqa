@@ -27,6 +27,7 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
+#include "depends/websocketpp/websocketpp/base64/base64.hpp"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/ContractStorage.h"
@@ -79,12 +80,12 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
     }
     if (op.Code().size() > 0)
       contractAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
-
+    using websocketpp::base64_decode;
     for (const auto& it : op.Storage()) {
       if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
               Address(op.Address()),
-              DataConversion::StringToCharArray(it.Key()), 0,
-              DataConversion::StringToCharArray(it.Value()), 0)) {
+              DataConversion::StringToCharArray(base64_decode(it.Key())), 0,
+              DataConversion::StringToCharArray(base64_decode(it.Value())), 0)) {
         return false;
       }
     }
