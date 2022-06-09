@@ -66,7 +66,7 @@ struct CallRespose {
   bool isSuccess();
   ApplyInstructions m_apply;
   std::string m_logs;
-  bool        m_ok{false};
+  bool m_ok{false};
   std::string m_exitReason;
   std::string m_return;
   uint64_t m_gasRemaing{0};
@@ -74,9 +74,7 @@ struct CallRespose {
   friend std::ostream& operator<<(std::ostream& os, CallRespose& evmRet);
 };
 
-inline bool CallRespose::isSuccess() {
-  return m_ok;
-}
+inline bool CallRespose::isSuccess() { return m_ok; }
 
 CallRespose& GetReturn(const Json::Value& oldJason, CallRespose& fo);
 
