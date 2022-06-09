@@ -75,11 +75,13 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
 bool EvmUtils::EvmUpdateContractStateAndAccount(
     Account* contractAccount, evmproj::ApplyInstructions& op) {
   if (op.OperationType() == "modify") {
-    if (op.isResetStorage()) {
-      contractAccount->SetStorageRoot(dev::h256());
-    }
+    if (op.isResetStorage()) contractAccount->SetStorageRoot(dev::h256());
+
     if (op.Code().size() > 0)
-      contractAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
+      contractAccount->SetImmutable(
+          DataConversion::StringToCharArray("EVM" + op.Code()),
+          contractAccount->GetInitData());
+
     using websocketpp::base64_decode;
     for (const auto& it : op.Storage()) {
       if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
@@ -91,13 +93,10 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
       }
     }
 
-    if (op.Balance().size()) {
+    if (op.Balance().size())
       contractAccount->SetBalance(uint128_t(op.Balance()));
-    }
 
-    if (op.Nonce().size()) {
-      contractAccount->SetNonce(std::stoull(op.Nonce()));
-    }
+    if (op.Nonce().size()) contractAccount->SetNonce(std::stoull(op.Nonce()));
   }
   return true;
 }
@@ -109,7 +108,6 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
 
   if (newValue > 0) oldValue = std::min(oldValue, newValue);
 
-  // Create has already been charged before we were invoked.
   if (invoke_type == RUNNER_CREATE) return oldValue;
 
   cost = CONTRACT_INVOKE_GAS;

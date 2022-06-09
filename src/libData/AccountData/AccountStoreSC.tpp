@@ -183,28 +183,16 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                      evmReturnValues.Gas());
 
   if (evmReturnValues.m_apply.OperationType() == "delete") {
-    // This needs testing, a bit brute force.
     this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
   } else {
     csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
         contractAccount, evmReturnValues.m_apply);
   }
 
-  if (invoke_type == RUNNER_CREATE) {
-    // Update the binary code on the Account.
-    std::string code = {"EVM"};
-    std::string original_code = evmReturnValues.ReturnedBytes();
-
-    try {
-      boost::algorithm::hex(original_code.begin(), original_code.end(),
-                            back_inserter(code));
-    } catch (std::exception& e) {
-      std::cout << "Error transformimg to hex" << std::endl;
-    }
-
-    contractAccount->SetImmutable(DataConversion::StringToCharArray(code),
+  if (invoke_type == RUNNER_CREATE)
+    contractAccount->SetImmutable(DataConversion::StringToCharArray("EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
-  }
+
   if (not csUpdate) {
     LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
     ret = false;
@@ -483,9 +471,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
           }
 
-          LOG_GENERAL(INFO,
-                      "Create contract failed, but return true in order to "
-                      "change state");
+          if (isScilla)
+            LOG_GENERAL(INFO,
+                        "Create contract failed, but return true in order to "
+                        "change state");
 
           if (LOG_SC) {
             LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
@@ -493,7 +482,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
           if (!isScilla) {
             LOG_GENERAL(INFO,
-                        "Create contract failed, we have erased your contract");
+                        "Executing contract Creation transaction finished "
+                        "unsuccessfully");
             return false;
           }
           return true;  // Return true because the states already changed
