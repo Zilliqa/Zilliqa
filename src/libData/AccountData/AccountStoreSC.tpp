@@ -190,7 +190,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   }
 
   if (invoke_type == RUNNER_CREATE)
-    contractAccount->SetImmutable(DataConversion::StringToCharArray("EVM" + evmReturnValues.ReturnedBytes()),
+    contractAccount->SetImmutable(DataConversion::StringToCharArray(
+                                      "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
 
   if (not csUpdate) {
