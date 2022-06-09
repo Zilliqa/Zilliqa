@@ -34,6 +34,8 @@ evmproj::CallRespose &GetReturn(const Json::Value &oldJason,
     return fo;
   }
 
+  std::cout << "Response from EVM-DS " << std::endl << newJason << std::endl;
+
   for (const auto &node : newJason.items()) {
     if (node.key() == "apply" && node.value().is_array()) {
       for (const auto &ap : node.value()) {

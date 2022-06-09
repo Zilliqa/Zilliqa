@@ -66,6 +66,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
+  std::cout << "Sending to EVM-DS" << arr_ret << std::endl;
+
   return arr_ret;
 }
 

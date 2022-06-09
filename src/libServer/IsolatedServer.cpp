@@ -256,6 +256,9 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+
+    std::cout << _json << std::endl;
+
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
