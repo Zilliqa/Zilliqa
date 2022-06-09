@@ -63,8 +63,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     arr_ret.append(params.m_code);
   }
   arr_ret.append(params.m_data);
-  //arr_ret.append(params.m_apparent_value.str());
-  arr_ret.append("00");
+  arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
   return arr_ret;
