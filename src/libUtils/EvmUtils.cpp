@@ -51,8 +51,8 @@ bool EvmUtils::PrepareRootPathWVersion(string& root_w_version) {
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
+  arr_ret.append(params.m_caller);
   std::string code;
   try {
     // take off the EVM prefix
@@ -124,11 +124,11 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
 }
 
 bool EvmUtils::isEvm(const bytes& code) {
-    // Scilla always has code set, EVM it is blank and Data is set on calls
-    // we could pass in Data and check the pattern at the start to confirm it is
-    // EVM.
-    if (not ENABLE_EVM) return false;
-    if (code.empty()) return true;
-    if (code.size() < 3) return false;
-    return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+  // Scilla always has code set, EVM it is blank and Data is set on calls
+  // we could pass in Data and check the pattern at the start to confirm it is
+  // EVM.
+  if (not ENABLE_EVM) return false;
+  if (code.empty()) return true;
+  if (code.size() < 3) return false;
+  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }

@@ -25,8 +25,8 @@
 // input parameters to Json call
 
 struct EvmCallParameters {
-  std::string m_owner;
   std::string m_contract;
+  std::string m_caller;
   std::string m_code;
   std::string m_data;
   uint64_t m_available_gas = {0};

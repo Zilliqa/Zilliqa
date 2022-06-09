@@ -52,5 +52,4 @@ class EvmUtils {
   static bool isEvm(const bytes& code);
 };
 
-
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_
