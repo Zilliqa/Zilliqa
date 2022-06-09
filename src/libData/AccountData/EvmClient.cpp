@@ -18,7 +18,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
-#include <boost/filesystem.hpp>
 #include <thread>
 
 #include "EvmClient.h"
@@ -38,9 +37,11 @@ void EvmClient::Init() {
 bool EvmClient::OpenServer() {
   LOG_MARKER();
 
-  std::string programName = boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  std::string cmdStr = "pkill " + programName + " ; " + EVM_SERVER_BINARY + " --socket " +
-           EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
+  std::string programName =
+      boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
+  std::string cmdStr = "pkill " + programName + " ; " + EVM_SERVER_BINARY +
+                       " --socket " + EVM_SERVER_SOCKET_PATH +
+                       " --tracing >/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
