@@ -26,6 +26,8 @@
 #include <openssl/ec.h>      // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/ecdsa.h>   // for ECDSA_do_sign, ECDSA_do_verify
 #include <openssl/obj_mac.h> // for NID_secp192k1
+#include <openssl/evp.h> //for all other OpenSSL function calls
+#include <openssl/sha.h> //for SHA512_DIGEST_LENGTH
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -36,9 +38,10 @@ unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
 ///////////////////////////////////////////////////////////////////////
+// https://stackoverflow.com/questions/57385412/ecdsa-do-verify-fails-to-verify-for-some-hash-only
 bool verify_signature(const unsigned char* hash, const ECDSA_SIG* signature, EC_KEY* eckey)
 {
-    int verify_status = ECDSA_do_verify(hash, strlen((const char*)hash), signature, eckey);
+    int verify_status = ECDSA_do_verify(hash, SHA256_DIGEST_LENGTH, signature, eckey);
     if (1 != verify_status)
     {
         printf("Failed to verify EC Signature\n");
@@ -80,34 +83,85 @@ bool SetOpensslPublicKey(const std::string& sPublicKeyInHex, EC_KEY* pKey)
     std::unique_ptr< BIGNUM, std::function<void(BIGNUM*)>> gy(NULL, [](BIGNUM* b) { BN_free(b); });
 
     BIGNUM* gx_ptr = gx.get();
-    BIGNUM* gy_ptr = gy.get();
+    //BIGNUM* gy_ptr = gy.get();
 
     EC_KEY_set_asn1_flag(pKey, OPENSSL_EC_NAMED_CURVE);
     memcpy(cx, sPubKeyString, 64);
     cx[64] = 0;
+    int y_chooser_bit = 0;
 
     if (!BN_hex2bn(&gx_ptr, cx)) {
-        std::cout << "Error getting to binary format" << std::endl;
+        std::cout << "***** Error getting to x binary format" << std::endl;
     }
 
-    if (!BN_hex2bn(&gy_ptr, &sPubKeyString[64])) {
-        std::cout << "Error getting to binary format" << std::endl;
-    }
+    // Create a new
+    EC_GROUP *curve_group = EC_GROUP_new_by_curve_name(NID_secp256k1);
+    auto point = EC_POINT_new(curve_group);
 
-    if (!EC_KEY_set_public_key_affine_coordinates(pKey, gx_ptr, gy_ptr)) {
-        std::cout << "setting public key attributes" << std::endl;
+    auto results = EC_POINT_set_compressed_coordinates_GFp(curve_group, point,
+                                                  gx_ptr,
+                                                  y_chooser_bit, NULL);
+
+    cout << "RES " << results << endl;
+
+
+    //if (!EC_KEY_set_public_key_affine_coordinates(pKey, gx_ptr, nullptr)) {
+    //    std::cout << "****** ERROR setting public key attributes" << std::endl;
+    //}
+
+    if (!EC_KEY_set_public_key(pKey, point)) {
+        std::cout << "****** ERROR! setting public key attributes" << std::endl;
     }
 
     if (EC_KEY_check_key(pKey) == 1)
     {
-        printf("EC Key valid.\n");
+        cout << "ec key valid " << endl;
         return true;
     }
     else {
-        printf("EC Key Invalid!\n");
+        cout << "ec key INvalid " << endl;
         return false;
     }
 }
+
+//bool SetOpensslPublicKey(const std::string& sPublicKeyInHex, EC_KEY* pKey)
+//{
+//    const char* sPubKeyString = sPublicKeyInHex.c_str();
+//
+//    char cx[65];
+//
+//    std::unique_ptr< BIGNUM, std::function<void(BIGNUM*)>> gx(NULL, [](BIGNUM* b) { BN_free(b); });
+//    std::unique_ptr< BIGNUM, std::function<void(BIGNUM*)>> gy(NULL, [](BIGNUM* b) { BN_free(b); });
+//
+//    BIGNUM* gx_ptr = gx.get();
+//    BIGNUM* gy_ptr = gy.get();
+//
+//    EC_KEY_set_asn1_flag(pKey, OPENSSL_EC_NAMED_CURVE);
+//    memcpy(cx, sPubKeyString, 64);
+//    cx[64] = 0;
+//
+//    if (!BN_hex2bn(&gx_ptr, cx)) {
+//        std::cout << "***** Error getting to x binary format" << std::endl;
+//    }
+//
+//    if (!BN_hex2bn(&gy_ptr, &sPubKeyString[64])) {
+//        std::cout << "***** Error getting to y binary format" << std::endl;
+//    }
+//
+//    if (!EC_KEY_set_public_key_affine_coordinates(pKey, gx_ptr, nullptr)) {
+//        std::cout << "****** ERROR setting public key attributes" << std::endl;
+//    }
+//
+//    if (EC_KEY_check_key(pKey) == 1)
+//    {
+//        cout << "ec key valid " << endl;
+//        return true;
+//    }
+//    else {
+//        cout << "ec key INvalid " << endl;
+//        return false;
+//    }
+//}
 
 std::string sha256(const std::string str)
 {
@@ -124,6 +178,35 @@ std::string sha256(const std::string str)
     return ss.str();
 }
 
+//helper function to print the digest bytes as a hex string
+std::string bytes_to_hex_string(const std::vector<uint8_t>& bytes)
+{
+  std::ostringstream stream;
+  for (uint8_t b : bytes)
+  {
+    stream << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(b);
+  }
+  return stream.str();
+}
+
+//perform the SHA3-512 hash
+// https://stackoverflow.com/questions/51144505/generate-sha-3-hash-in-c-using-openssl-library
+std::string keccak(const std::string input)
+{
+  uint32_t digest_length = SHA512_DIGEST_LENGTH;
+  const EVP_MD* algorithm = EVP_sha3_512();
+  uint8_t* digest = static_cast<uint8_t*>(OPENSSL_malloc(digest_length));
+  EVP_MD_CTX* context = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(context, algorithm, nullptr);
+  EVP_DigestUpdate(context, input.c_str(), input.size());
+  EVP_DigestFinal_ex(context, digest, &digest_length);
+  EVP_MD_CTX_destroy(context);
+  std::string output = bytes_to_hex_string(std::vector<uint8_t>(digest, digest + digest_length));
+  OPENSSL_free(digest);
+  return output;
+}
+
+
 
 bool Verify(const std::string& sRandomNumber, const std::string& sSignature, const std::string& sDevicePubKeyInHex)
 {
@@ -131,25 +214,41 @@ bool Verify(const std::string& sRandomNumber, const std::string& sSignature, con
     // Set up the signature...
     SetOpensslSignature(sSignature, zSignature.get());
 
-    std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1), [](EC_KEY* b) { EC_KEY_free(b); });
-    if (!SetOpensslPublicKey(sDevicePubKeyInHex, zPublicKey.get()))
-        std::cout << "Failed to get the public key from the hex input" << std::endl;
+    std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(EC_KEY_new_by_curve_name(NID_secp256k1), [](EC_KEY* b) { EC_KEY_free(b); });
+    //std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1), [](EC_KEY* b) { EC_KEY_free(b); });
 
-    std::string sHash = sha256(sRandomNumber);
+    if (!SetOpensslPublicKey(sDevicePubKeyInHex, zPublicKey.get())) {
+      std::cout << "Failed to get the public key from the hex input" << std::endl;
+    }
+
+    std::string sha256Hash = sha256(sRandomNumber);
+    std::string sHash = keccak(sRandomNumber);
+
+    sHash = "5f35dce98ba4fba25530a026ed80b2cecdaa31091ba4958b99b52ea1d068adad"; // Expected - 64 hex chars = 256 bits
+    std::string bytes;
+
+    for (unsigned int i = 0; i < sHash.length(); i += 2) {
+      std::string byteString = sHash.substr(i, 2);
+      char byte = (char) strtol(byteString.c_str(), NULL, 16);
+      bytes.push_back(byte);
+    }
+
+    sHash = bytes;
+
+    //sHash = "2d44da53f305ab94b6365837b9803627ab098c41a6013694f9b468bccb9c13e95b3900365eb58924de7158a54467e984efcfdabdbcc9af9a940d49c51455b04c"; // Actual - 128 chars
+
+    cout << "sha256 output: " << sha256Hash << endl;
+    cout << "keccak output: " << sHash << endl;
+    cout << "sha256 output length: " << sha256Hash.size() << endl;
+    cout << "keccak output length: " << sHash.size() << endl;
 
     return verify_signature((const unsigned char*)sHash.c_str(), zSignature.get(), zPublicKey.get());
+    //return verify_signature((const unsigned char*)sha256Hash.c_str(), zSignature.get(), zPublicKey.get()); // test NID way
 }
 
 
 int VerifyEcdsaSecp256k1(std::string const &sRandomNumber, std::string const &sSignatureInHex, std::string const &sPublicKeyInHex)
 {
-    //std::string sSignatureInHex = "228B756444CFF74453ABA22BF1FD052965682FDFDC915647F8B07068636BE6827938ED61B6C388551A6D4CCF3397858E14F5EA648FE13454C13292364BB40C1C";
-    //std::string sPublicKeyInHex = "94E62E0C77A2955B1FB3EE98AEAA99AACAD742F20E45B727EACDD10487C2F7D0D8257C6102921880ABE953245D573D7E33EC88A67E2BA930980CB9C3D6722F8A";
-    //std::string sRandomNumber = "65560886818773090201885807838738706912015073749623293202319529";
-
-    //sRandomNumber = "65560886818773090201885807838738706912015073749623293202319529";
-    //sSignatureInHex = "D506D976EC17DD3717C40329E28FD8DB4F32D6A3773454A6427FD12E69728157508086B661D91E07ADF5B57E787EA1EEA526A84500436E430E89B1C1F8532A41";
-
     int ret = 0;
 
     if (!Verify(sRandomNumber, sSignatureInHex, sPublicKeyInHex))
@@ -332,18 +431,35 @@ bool Transaction::IsSigned() const {
 
   std::string pubKeyStr = std::string(m_coreInfo.senderPubKey);
   std::string sigString = std::string(m_signature);
+  std::string toHash = "0";
 
-  cout << "Verifying transaction with... " << endl << res << endl <<  m_signature << endl << pubKeyStr << endl;
+  // Example of successful tx sign/verify
+  if(false) { // NID verify
+    // Successful example given here
+    pubKeyStr = "94E62E0C77A2955B1FB3EE98AEAA99AACAD742F20E45B727EACDD10487C2F7D0D8257C6102921880ABE953245D573D7E33EC88A67E2BA930980CB9C3D6722F8A"; // 128 hex = 512
+    sigString = "D506D976EC17DD3717C40329E28FD8DB4F32D6A3773454A6427FD12E69728157508086B661D91E07ADF5B57E787EA1EEA526A84500436E430E89B1C1F8532A41"; // 128 hex = 512
+    toHash = "65560886818773090201885807838738706912015073749623293202319529"; // irrelevant
+  } else {
+    // Remove '0x' at beginning of string
+    sigString = sigString.substr(2);
+
+    pubKeyStr = "021815bee5679a42f3f38c8b77b99356517407603491c101ee221c7545861d12d4"; // compressed pubkey example
+    pubKeyStr = pubKeyStr.substr(2);
+
+    //pubKeyStr = "1815bee5679a42f3f38c8b77b99356517407603491c101ee221c7545861d12d433ff5ead040fd94860a53518509c2e6f3b1582aa1bd724144e99f38ca770ffbc"; // full length pubkey example
+  }
+
+  cout << "Verifying transaction with... " << endl << "toHash " << toHash << endl <<  "sig: " << sigString << endl << "pubKey: " << pubKeyStr << endl;
 
   // Verify the signature
   auto schnorr_result = Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey);
 
-  std::string const toHash = "0";
-
-  bool ecdsa_result = VerifyEcdsaSecp256k1(toHash, sigString, pubKeyStr);
+  if (!schnorr_result) {
+    bool ecdsa_result = VerifyEcdsaSecp256k1(toHash, sigString, pubKeyStr);
+    LOG_GENERAL(WARNING, "*** ECDSA signing result is " << ecdsa_result);
+  }
 
   LOG_GENERAL(WARNING, "*** Schnorr signing result is " << schnorr_result);
-  LOG_GENERAL(WARNING, "*** ECDSA signing result is " << ecdsa_result);
 
   return true;
 }
