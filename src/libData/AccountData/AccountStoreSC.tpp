@@ -214,9 +214,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
-  bool isScilla { true  };
-
-  !EvmUtils::isEvm(transaction.GetCode());
+  bool isScilla{true};
 
   error_code = TxnStatus::NOT_PRESENT;
 
@@ -310,8 +308,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      if (transaction.GetCode().empty()){
-        LOG_GENERAL(WARNING, "Creating a contract with empty code is not feasible.");
+      if (transaction.GetCode().empty()) {
+        LOG_GENERAL(WARNING,
+                    "Creating a contract with empty code is not feasible.");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
@@ -589,8 +588,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         return false;
       }
-      if (toAccount->GetCode().empty()){
-        LOG_GENERAL(WARNING, "Trying to call a smart contract that has no code will fail");
+      if (toAccount->GetCode().empty()) {
+        LOG_GENERAL(
+            WARNING,
+            "Trying to call a smart contract that has no code will fail");
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }

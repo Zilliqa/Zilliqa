@@ -54,7 +54,9 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
-  std::cout << "Sending to EVM-DS" << arr_ret << std::endl;
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING, "Sending to EVM-DS" << arr_ret);
+  }
 
   return arr_ret;
 }
@@ -112,7 +114,11 @@ bool EvmUtils::isEvm(const bytes& code) {
   if (not ENABLE_EVM) return false;
 
   // If this ever happens then someone has taken out checks before us
-
+  if (code.empty()) {
+    LOG_GENERAL(WARNING, "Logic error code cannot be empty");
+    // Decide what we should really do here.
+    std::terminate();
+  }
 
   if (code.size() < 4) return false;
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');

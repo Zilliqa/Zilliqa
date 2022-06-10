@@ -16,6 +16,7 @@
  */
 
 #include "libUtils/EvmJsonResponse.h"
+#include "common/Constants.h"
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
 #include "nlohmann/json.hpp"  // NOLINT(readability-redundant-declaration)
 
@@ -30,11 +31,13 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
   } catch (std::exception& e) {
-    std::cout << "Error parsing json from evmds " << e.what() << std::endl;
+    LOG_GENERAL(WARNING, "Error parsing json from evmds " << e.what());
     return fo;
   }
 
-  std::cout << "Response from EVM-DS " << std::endl << newJason << std::endl;
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING, "Response from EVM-DS " << std::endl << newJason);
+  }
 
   try {
     for (const auto& node : newJason.items()) {
