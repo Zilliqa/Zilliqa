@@ -113,8 +113,7 @@ bool EvmUtils::isEvm(const bytes& code) {
 
   // If this ever happens then someone has taken out checks before us
 
-  assert(code.empty());
 
-  if (code.size() < 3) return false;
+  if (code.size() < 4) return false;
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
