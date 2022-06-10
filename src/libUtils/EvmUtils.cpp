@@ -121,11 +121,12 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
 }
 
 bool EvmUtils::isEvm(const bytes& code) {
-  // Scilla always has code set, EVM it is blank and Data is set on calls
-  // we could pass in Data and check the pattern at the start to confirm it is
-  // EVM.
   if (not ENABLE_EVM) return false;
-  if (code.empty()) return true;
+
+  // If this ever happens then someone has taken out checks before us
+  // halt for now.
+  assert(code.empty());
+
   if (code.size() < 3) return false;
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
