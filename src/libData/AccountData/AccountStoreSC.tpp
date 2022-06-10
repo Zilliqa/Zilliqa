@@ -442,6 +442,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasRemained,
                 transaction.GetAmount()};
 
+            std::map<std::string, bytes> t_newmetadata;
+
+            t_newmetadata.emplace(
+                Contract::ContractStorage::GenerateStorageKey(
+                    contractAddress, CONTRACT_ADDR_INDICATOR, {}),
+                contractAddress.asBytes());
+
+            if (!contractAccount->UpdateStates(contractAddress, t_newmetadata,
+                                               {}, true)) {
+              LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+              return false;
+            }
+
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
                                      evm_version, ret, receipt);
@@ -508,12 +521,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         /// inserting address to create the uniqueness of the contract merkle
         /// trie
-        t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
-                               contractAddress, CONTRACT_ADDR_INDICATOR, {}),
-                           contractAddress.asBytes());
+        if (isScilla)
+          t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
+                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),
+                             contractAddress.asBytes());
 
-        if (!contractAccount->UpdateStates(contractAddress, t_metadata, {},
-                                           true)) {
+        if (isScilla && !contractAccount->UpdateStates(contractAddress,
+                                                       t_metadata, {}, true)) {
           LOG_GENERAL(WARNING, "Account::UpdateStates failed");
           return false;
         }
