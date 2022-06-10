@@ -280,7 +280,6 @@ bool Verify(const std::string& sRandomNumber, const std::string& sSignature, con
     //return verify_signature((const unsigned char*)sha256Hash.c_str(), zSignature.get(), zPublicKey.get()); // test NID way
 }
 
-
 int VerifyEcdsaSecp256k1(std::string const &sRandomNumber, std::string const &sSignatureInHex, std::string const &sPublicKeyInHex)
 {
     int ret = 0;

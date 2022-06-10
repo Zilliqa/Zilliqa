@@ -51,18 +51,18 @@ addons:
       - python3-dev
       - libsecp256k1-dev
 
-install:
-  - wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
-  - mkdir -p "${HOME}"/.local
-  - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
-  - cmake --version
-  - rm cmake-3.19.3-Linux-x86_64.sh
-  - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
-  - ls /scilla/0/
-
-script:
-  - ./scripts/ci_build.sh;
-
-# Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
-after_success:
-  - ./scripts/ci_report_coverage.sh
+        #install:
+        #  - wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+        #  - mkdir -p "${HOME}"/.local
+        #  - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+        #  - cmake --version
+        #  - rm cmake-3.19.3-Linux-x86_64.sh
+        #  - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
+        #  - ls /scilla/0/
+        #
+        #script:
+        #  - ./scripts/ci_build.sh;
+        #
+        ## Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
+        #after_success:
+        #  - ./scripts/ci_report_coverage.sh
