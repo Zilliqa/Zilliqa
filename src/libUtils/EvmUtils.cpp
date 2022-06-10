@@ -63,7 +63,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
 }
 
 bool EvmUtils::EvmUpdateContractStateAndAccount(
-    std::shared_ptr<ScillaIPCServer> ipcServer, Account* contractAccount,
+    const std::shared_ptr<ScillaIPCServer>& ipcServer, Account* contractAccount,
     evmproj::ApplyInstructions& op) {
   if (op.OperationType() == "modify") {
     if (op.isResetStorage()) contractAccount->SetStorageRoot(dev::h256());

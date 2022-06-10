@@ -44,8 +44,8 @@ class EvmUtils {
                                      uint64_t& oldValue, uint64_t newValue);
 
   static bool EvmUpdateContractStateAndAccount(
-      std::shared_ptr<ScillaIPCServer> ipcServer, Account* contractAccount,
-      evmproj::ApplyInstructions& op);
+      const std::shared_ptr<ScillaIPCServer>& ipcServer,
+      Account* contractAccount, evmproj::ApplyInstructions& op);
 
   using bytes = std::vector<uint8_t>;
 
