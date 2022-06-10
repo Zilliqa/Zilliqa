@@ -27,8 +27,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
-message(STATUS "Building and installing mongo driver. This could take longer 1")
-
 # generate build directory
 execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -45,8 +43,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
-message(STATUS "Building and installing mongo driver. This could take longer 2")
-
 # build and install mongo-c-driver
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} -- -j${N}
@@ -59,8 +55,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
-message(STATUS "Building and installing mongo driver. This could take longer 3")
-
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} --target install
     RESULT_VARIABLE INSTALL_MONGO_RET
@@ -71,8 +65,6 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
-
-message(STATUS "Building and installing mongo driver. This could take longer 4")
 
 
 # update submodule to the locked commit
@@ -87,8 +79,6 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongocxx, see more in log ${INSTALL_MONGO_LOG}")
 endif()
-
-message(STATUS "Building and installing mongo driver. This could take longer 4")
 
 # generate build directory
 execute_process(
@@ -106,8 +96,6 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongocxx, see more in log ${INSTALL_MONGO_LOG}")
 endif()
-
-message(STATUS "Building and installing mongo driver. This could take longer 4")
 
 # build and install mongo-cxx-driver
 execute_process(
