@@ -167,47 +167,38 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     ret = false;
   }
 
+  if (not evmReturnValues.isSuccess()) {
+    LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
+  }
+
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (evmReturnValues.Logs().size() > 0) {
-    LOG_GENERAL(WARNING, evmReturnValues.Logs());
+    LOG_GENERAL(WARNING, "Logs:" << evmReturnValues.Logs());
     Json::Value v = "{ msg =\"" + evmReturnValues.Logs() + "\"" + "}";
     receipt.AddException(v);
   }
 
-  if (ret) {
-    gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
-                                       evmReturnValues.Gas());
+  gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
+                                     evmReturnValues.Gas());
 
-    if (evmReturnValues.m_apply.OperationType() == "delete") {
-      // This needs testing, a bit brute force.
-      this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
-    } else {
-      csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
-          contractAccount, evmReturnValues.m_apply);
-    }
-
-    if (invoke_type == RUNNER_CREATE) {
-      // Update the binary code on the Account.
-      std::string code;
-      std::string original_code = evmReturnValues.ReturnedBytes();
-
-      try {
-        code = "EVM";
-        boost::algorithm::hex(original_code.begin(), original_code.end(),
-                              back_inserter(code));
-      } catch (std::exception& e) {
-        std::cout << "Error transformimg to hex" << std::endl;
-      }
-
-      contractAccount->SetImmutable(DataConversion::StringToCharArray(code),
-                                    contractAccount->GetInitData());
-    }
-    if (not csUpdate) {
-      LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
-      ret = false;
-    }
+  if (evmReturnValues.m_apply.OperationType() == "delete") {
+    this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
+  } else {
+    csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
+        contractAccount, evmReturnValues.m_apply);
   }
+
+  if (invoke_type == RUNNER_CREATE)
+    contractAccount->SetImmutable(DataConversion::StringToCharArray(
+                                      "EVM" + evmReturnValues.ReturnedBytes()),
+                                  contractAccount->GetInitData());
+
+  if (not csUpdate) {
+    LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
+    ret = false;
+  }
+
   return gas;
 }
 
@@ -301,19 +292,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // generate address for new contract account
-      toAddr =
+      Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
-      if (!this->AddAccount(toAddr, {0, 0})) {
-        LOG_GENERAL(WARNING,
-                    "AddAccount failed for contract address " << toAddr.hex());
+      if (!this->AddAccount(contractAddress, {0, 0})) {
+        LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+                                 << contractAddress.hex());
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      Account* toAccount = this->GetAccount(toAddr);
-      if (toAccount == nullptr) {
-        LOG_GENERAL(WARNING, "toAccount is null ptr");
+      Account* contractAccount = this->GetAccount(contractAddress);
+      if (contractAccount == nullptr) {
+        LOG_GENERAL(WARNING, "contractAccount is null ptr");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
@@ -327,24 +318,25 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       try {
         // Initiate the contract account, including setting the contract code
         // store the immutable states
-        if (!toAccount->InitContract(transaction.GetCode(),
-                                     transaction.GetData(), toAddr, blockNum)) {
+        if (!contractAccount->InitContract(transaction.GetCode(),
+                                           transaction.GetData(), toAddr,
+                                           blockNum)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
 
         std::vector<Address> extlibs;
-        if (isScilla && !toAccount->GetContractAuxiliaries(
+        if (isScilla && !contractAccount->GetContractAuxiliaries(
                             is_library, scilla_version, extlibs)) {
           LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
-          this->RemoveAccount(toAddr);
+          this->RemoveAccount(contractAddress);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         if (isScilla && DISABLE_SCILLA_LIB && is_library) {
           LOG_GENERAL(WARNING, "ScillaLib disabled");
-          this->RemoveAccount(toAddr);
+          this->RemoveAccount(contractAddress);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
@@ -352,15 +344,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (isScilla &&
             !PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
           LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
-          this->RemoveAccount(toAddr);
+          this->RemoveAccount(contractAddress);
           error_code = TxnStatus::FAIL_SCILLA_LIB;
           return false;
         }
 
         m_curBlockNum = blockNum;
         if (isScilla && init &&
-            !ExportCreateContractFiles(*toAccount, is_library, scilla_version,
-                                       extlibs_exports)) {
+            !ExportCreateContractFiles(*contractAccount, is_library,
+                                       scilla_version, extlibs_exports)) {
           LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
           init = false;
         }
@@ -375,14 +367,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (!init) {
-        this->RemoveAccount(toAddr);
+        this->RemoveAccount(contractAddress);
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
         return false;
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
-                                                   toAccount->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(
+          contractAddress, scilla_version, contractAccount->GetStorageRoot());
 
       // ************************************************************************
       // Undergo scilla checker
@@ -403,8 +395,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
       if (isScilla &&
-          !ParseContractCheckerOutput(toAddr, checkerPrint, receipt, t_metadata,
-                                      gasRemained, is_library)) {
+          !ParseContractCheckerOutput(contractAddress, checkerPrint, receipt,
+                                      t_metadata, gasRemained, is_library)) {
         ret_checker = false;
       }
       // *************************************************************************
@@ -423,36 +415,29 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         if (ret) {
           std::string runnerPrint;
-          // TODO put in the transaction.GetAmount() for now its strapped up to
-          // pass gas checks
+
           if (isScilla)
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained,
                               std::numeric_limits<uint128_t>::max(), ret,
                               receipt);
           else {
-            std::string code;
-            std::string original_code =
-                DataConversion::CharArrayToString(transaction.GetCode());
-
-            try {
-              code = "EVM";
-              boost::algorithm::hex(original_code.begin() + 3,
-                                    original_code.end(), back_inserter(code));
-            } catch (std::exception& e) {
-              std::cout << "Error transforimg to hex" << std::endl;
-            }
+            LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
+                                  << gasRemained << " alleged "
+                                  << transaction.GetAmount() << " limit "
+                                  << transaction.GetGasLimit());
 
             EvmCallParameters params = {
+                contractAddress.hex(),
                 fromAddr.hex(),
-                toAddr.hex(),
-                code,
+                DataConversion::CharArrayToString(transaction.GetCode()),
                 DataConversion::CharArrayToString(transaction.GetData()),
                 gasRemained,
-                std::numeric_limits<uint128_t>::max()};
+                transaction.GetAmount()};
 
-            gasRemained = InvokeEvmInterpreter(toAccount, RUNNER_CREATE, params,
-                                               evm_version, ret, receipt);
+            gasRemained =
+                InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+                                     evm_version, ret, receipt);
           }
           ret_checker = true;
         }
@@ -461,7 +446,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         boost::multiprecision::uint128_t gasRefund;
         if (!SafeMath<boost::multiprecision::uint128_t>::mul(
                 gasRemained, transaction.GetGasPrice(), gasRefund)) {
-          this->RemoveAccount(toAddr);
+          this->RemoveAccount(contractAddress);
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
@@ -469,7 +454,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
         }
         if (!ret || !ret_checker) {
-          this->m_addressToAccount->erase(toAddr);
+          this->m_addressToAccount->erase(contractAddress);
 
           receipt.SetResult(false);
           if (!ret) {
@@ -482,19 +467,26 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           receipt.update();
 
           if (!this->IncreaseNonce(fromAddr)) {
-            this->RemoveAccount(toAddr);
+            this->RemoveAccount(contractAddress);
             error_code = TxnStatus::MATH_ERROR;
             return false;
           }
 
-          LOG_GENERAL(INFO,
-                      "Create contract failed, but return true in order to "
-                      "change state");
+          if (isScilla)
+            LOG_GENERAL(INFO,
+                        "Create contract failed, but return true in order to "
+                        "change state");
 
           if (LOG_SC) {
             LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
           }
 
+          if (!isScilla) {
+            LOG_GENERAL(INFO,
+                        "Executing contract Creation transaction finished "
+                        "unsuccessfully");
+            return false;
+          }
           return true;  // Return true because the states already changed
         }
 
@@ -510,10 +502,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         /// inserting address to create the uniqueness of the contract merkle
         /// trie
         t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
-                               toAddr, CONTRACT_ADDR_INDICATOR, {}),
-                           toAddr.asBytes());
+                               contractAddress, CONTRACT_ADDR_INDICATOR, {}),
+                           contractAddress.asBytes());
 
-        if (!toAccount->UpdateStates(toAddr, t_metadata, {}, true)) {
+        if (!contractAccount->UpdateStates(contractAddress, t_metadata, {},
+                                           true)) {
           LOG_GENERAL(WARNING, "Account::UpdateStates failed");
           return false;
         }
@@ -522,7 +515,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
 
         if (isScilla && is_library) {
-          m_newLibrariesCreated.emplace_back(toAddr);
+          m_newLibrariesCreated.emplace_back(contractAddress);
         }
       }
       break;
@@ -668,11 +661,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             DataConversion::CharArrayToString(toAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
-            this->GetBalance(toAddr)};
+            transaction.GetAmount()};
 
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract
-                                                    << " owner account is "
-                                                    << params.m_owner);
+                                                    << " caller account is "
+                                                    << params.m_caller);
 
         uint64_t gasUsed = InvokeEvmInterpreter(toAccount, RUNNER_CALL, params,
                                                 evm_version, ret, receipt);
@@ -728,15 +721,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
-        LOG_GENERAL(
-            INFO,
-            "Call contract failed, but return true in order to change state");
+        if (isScilla) {
+          LOG_GENERAL(
+              INFO,
+              "Call contract failed, but return true in order to change state");
 
-        if (LOG_SC) {
-          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+          if (LOG_SC) {
+            LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+          }
+
+          return true;  // Return true because the states already changed
+        } else {
+          return false;
         }
-
-        return true;  // Return true because the states already changed
       }
       break;
     }

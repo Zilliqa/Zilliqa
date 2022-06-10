@@ -60,23 +60,21 @@ struct ApplyInstructions {
 struct CallRespose {
   const ApplyInstructions& Apply() const { return m_apply; }
   const std::string& Logs() const { return m_logs; }
-  const std::vector<std::string> ExitReasons() const { return m_exitReasons; }
+  const std::string& ExitReason() const { return m_exitReason; }
   uint64_t Gas() const { return m_gasRemaing; }
   const std::string& ReturnedBytes() const { return m_return; }
   bool isSuccess();
   ApplyInstructions m_apply;
   std::string m_logs;
-  std::vector<std::string> m_exitReasons;
+  bool m_ok{false};
+  std::string m_exitReason;
   std::string m_return;
   uint64_t m_gasRemaing{0};
 
   friend std::ostream& operator<<(std::ostream& os, CallRespose& evmRet);
 };
 
-inline bool CallRespose::isSuccess() {
-  return (m_exitReasons.end() !=
-          std::find(m_exitReasons.begin(), m_exitReasons.end(), "Succeed"));
-}
+inline bool CallRespose::isSuccess() { return m_ok; }
 
 CallRespose& GetReturn(const Json::Value& oldJason, CallRespose& fo);
 

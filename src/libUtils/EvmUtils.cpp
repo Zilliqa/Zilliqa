@@ -39,8 +39,8 @@ using namespace boost::multiprecision;
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);
 
-  arr_ret.append(params.m_owner);
   arr_ret.append(params.m_contract);
+  arr_ret.append(params.m_caller);
   std::string code;
   try {
     // take off the EVM prefix
@@ -54,17 +54,20 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
+  std::cout << "Sending to EVM-DS" << arr_ret << std::endl;
+
   return arr_ret;
 }
 
 bool EvmUtils::EvmUpdateContractStateAndAccount(
     Account* contractAccount, evmproj::ApplyInstructions& op) {
   if (op.OperationType() == "modify") {
-    if (op.isResetStorage()) {
-      contractAccount->SetStorageRoot(dev::h256());
-    }
+    if (op.isResetStorage()) contractAccount->SetStorageRoot(dev::h256());
+
     if (op.Code().size() > 0)
-      contractAccount->SetCode(DataConversion::StringToCharArray(op.Code()));
+      contractAccount->SetImmutable(
+          DataConversion::StringToCharArray("EVM" + op.Code()),
+          contractAccount->GetInitData());
 
     for (const auto& it : op.Storage()) {
       if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
@@ -75,13 +78,10 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
       }
     }
 
-    if (op.Balance().size()) {
+    if (op.Balance().size())
       contractAccount->SetBalance(uint128_t(op.Balance()));
-    }
 
-    if (op.Nonce().size()) {
-      contractAccount->SetNonce(std::stoull(op.Nonce()));
-    }
+    if (op.Nonce().size()) contractAccount->SetNonce(std::stoull(op.Nonce()));
   }
   return true;
 }
@@ -93,7 +93,6 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
 
   if (newValue > 0) oldValue = std::min(oldValue, newValue);
 
-  // Create has already been charged before we were invoked.
   if (invoke_type == RUNNER_CREATE) return oldValue;
 
   cost = CONTRACT_INVOKE_GAS;
@@ -107,4 +106,14 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
   LOG_GENERAL(INFO, "gasRemained: " << oldValue);
 
   return oldValue;
+}
+
+bool EvmUtils::isEvm(const bytes& code) {
+  // Scilla always has code set, EVM it is blank and Data is set on calls
+  // we could pass in Data and check the pattern at the start to confirm it is
+  // EVM.
+  if (not ENABLE_EVM) return false;
+  if (code.empty()) return true;
+  if (code.size() < 3) return false;
+  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }

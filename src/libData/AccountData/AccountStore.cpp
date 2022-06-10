@@ -49,7 +49,7 @@ AccountStore::AccountStore() {
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 
     ScillaClient::GetInstance().Init();
-    EvmClient::GetInstance().Init();
+    if (ENABLE_EVM) EvmClient::GetInstance().Init();
 
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
