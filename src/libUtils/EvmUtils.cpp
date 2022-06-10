@@ -113,10 +113,8 @@ uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
 bool EvmUtils::isEvm(const bytes& code) {
   if (not ENABLE_EVM) return false;
 
-  // If this ever happens then someone has taken out checks before us
   if (code.empty()) {
     LOG_GENERAL(WARNING, "Logic error code cannot be empty");
-    // Decide what we should really do here.
     std::terminate();
   }
 
