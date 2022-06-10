@@ -112,7 +112,7 @@ bool EvmUtils::isEvm(const bytes& code) {
   if (not ENABLE_EVM) return false;
 
   // If this ever happens then someone has taken out checks before us
-  // halt for now.
+
   assert(code.empty());
 
   if (code.size() < 3) return false;
