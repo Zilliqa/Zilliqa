@@ -670,8 +670,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       } else {
         EvmCallParameters params = {
+            m_curContractAddr.hex(),
             fromAddr.hex(),
-            toAddr.hex(),
             DataConversion::CharArrayToString(toAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
