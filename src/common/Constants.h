@@ -305,10 +305,8 @@ extern const unsigned int STATUS_RPC_PORT;
 // EVM
 
 extern const bool ENABLE_EVM;
-extern const std::string EVM_ROOT;
 extern const std::string EVM_SERVER_SOCKET_PATH;
 extern const std::string EVM_SERVER_BINARY;
-extern const std::string EVM_SERVER_PATH;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;

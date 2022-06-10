@@ -37,10 +37,16 @@ make clean; make
 
 ## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
 <ENABLE_EVM>true</ENABLE_EVM>
-<EVM_ROOT>evm-ds</EVM_ROOT>
+<EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
 <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
-<EVM_SERVER_BINARY>evm-ds</EVM_SERVER_BINARY>
 ```
+
+Create a symlink to evm-ds at `/usr/local/bin/evm-ds`:
+
+```
+sudo ln -s ~/evm-ds/target/debug/evm-ds /usr/local/bin/evm-ds
+```
+
 4. Create swapfile
 ```
 // Recommended to have at least 4GB of free memory
