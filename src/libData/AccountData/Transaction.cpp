@@ -18,6 +18,9 @@
 #include "Transaction.h"
 #include <algorithm>
 #include "Account.h"
+//#include "keccak.h"
+//#include "keccak.h"
+#include <ethash/keccak.hpp>
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
@@ -41,6 +44,9 @@ unsigned char TX_COND = 0x2;
 // https://stackoverflow.com/questions/57385412/ecdsa-do-verify-fails-to-verify-for-some-hash-only
 bool verify_signature(const unsigned char* hash, const ECDSA_SIG* signature, EC_KEY* eckey)
 {
+    cout << "First bytes " << hash[0] << endl;
+    cout << "First bytes " << hash[1] << endl;
+
     int verify_status = ECDSA_do_verify(hash, SHA256_DIGEST_LENGTH, signature, eckey);
     if (1 != verify_status)
     {
@@ -98,13 +104,11 @@ bool SetOpensslPublicKey(const std::string& sPublicKeyInHex, EC_KEY* pKey)
     EC_GROUP *curve_group = EC_GROUP_new_by_curve_name(NID_secp256k1);
     auto point = EC_POINT_new(curve_group);
 
-    auto results = EC_POINT_set_compressed_coordinates_GFp(curve_group, point,
+    EC_POINT_set_compressed_coordinates_GFp(curve_group, point,
                                                   gx_ptr,
                                                   y_chooser_bit, NULL);
 
-    cout << "RES " << results << endl;
-
-
+    //cout << "RES " << results << endl;
     //if (!EC_KEY_set_public_key_affine_coordinates(pKey, gx_ptr, nullptr)) {
     //    std::cout << "****** ERROR setting public key attributes" << std::endl;
     //}
@@ -178,7 +182,6 @@ std::string sha256(const std::string str)
     return ss.str();
 }
 
-//helper function to print the digest bytes as a hex string
 std::string bytes_to_hex_string(const std::vector<uint8_t>& bytes)
 {
   std::ostringstream stream;
@@ -191,10 +194,10 @@ std::string bytes_to_hex_string(const std::vector<uint8_t>& bytes)
 
 //perform the SHA3-512 hash
 // https://stackoverflow.com/questions/51144505/generate-sha-3-hash-in-c-using-openssl-library
-std::string keccak(const std::string input)
+std::string keccak_old(const std::string input)
 {
-  uint32_t digest_length = SHA512_DIGEST_LENGTH;
-  const EVP_MD* algorithm = EVP_sha3_512();
+  uint32_t digest_length = SHA256_DIGEST_LENGTH;
+  const EVP_MD* algorithm = EVP_sha3_256();
   uint8_t* digest = static_cast<uint8_t*>(OPENSSL_malloc(digest_length));
   EVP_MD_CTX* context = EVP_MD_CTX_new();
   EVP_DigestInit_ex(context, algorithm, nullptr);
@@ -202,11 +205,19 @@ std::string keccak(const std::string input)
   EVP_DigestFinal_ex(context, digest, &digest_length);
   EVP_MD_CTX_destroy(context);
   std::string output = bytes_to_hex_string(std::vector<uint8_t>(digest, digest + digest_length));
+  cout << "OUTPUT KEK  " << output << endl;
+
+  std::stringstream ss;
+  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+  {
+    ss << digest[i];
+  }
+  //return ss.str();
+
   OPENSSL_free(digest);
-  return output;
+  //return output;
+  return ss.str();
 }
-
-
 
 bool Verify(const std::string& sRandomNumber, const std::string& sSignature, const std::string& sDevicePubKeyInHex)
 {
@@ -222,7 +233,25 @@ bool Verify(const std::string& sRandomNumber, const std::string& sSignature, con
     }
 
     std::string sha256Hash = sha256(sRandomNumber);
-    std::string sHash = keccak(sRandomNumber);
+    //uint8_t *out = nullptr;
+    //auto result = shake256(out, 256, reinterpret_cast<const uint8_t*>(sRandomNumber.c_str()), sRandomNumber.size());
+
+    auto result_empty = ethash::keccak256(reinterpret_cast<const uint8_t*>(sRandomNumber.c_str()), 0);
+
+    uint8_t prelude[] = { 25, 69, 116, 104, 101, 114, 101, 117, 109, 32, 83, 105, 103, 110, 101, 100, 32, 77, 101, 115, 115, 97, 103, 101, 58, 10, 48 };
+    auto result = ethash::keccak256(reinterpret_cast<const uint8_t*>(sRandomNumber.c_str()), 27);
+    auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
+
+    cout << result_prelude.bytes[0] << endl;
+    cout << sizeof(prelude) << endl;
+
+    std::string sHash = reinterpret_cast<char *>(result.bytes);
+
+    cout << "keccak output empty: " << std::string(reinterpret_cast<char *>(result_empty.bytes)) << endl;
+    cout << "keccak output pre: " << sHash << endl;
+    cout << "keccak output size pre: " << sHash.size() << endl;
+    ///cout << "keccak output XX pre: " << result << endl;
+
 
     sHash = "5f35dce98ba4fba25530a026ed80b2cecdaa31091ba4958b99b52ea1d068adad"; // Expected - 64 hex chars = 256 bits
     std::string bytes;
@@ -237,12 +266,17 @@ bool Verify(const std::string& sRandomNumber, const std::string& sSignature, con
 
     //sHash = "2d44da53f305ab94b6365837b9803627ab098c41a6013694f9b468bccb9c13e95b3900365eb58924de7158a54467e984efcfdabdbcc9af9a940d49c51455b04c"; // Actual - 128 chars
 
-    cout << "sha256 output: " << sha256Hash << endl;
-    cout << "keccak output: " << sHash << endl;
-    cout << "sha256 output length: " << sha256Hash.size() << endl;
-    cout << "keccak output length: " << sHash.size() << endl;
+    cout << "real deal keccak output: " << sHash << endl;
+    cout << "real deal keccak output length: " << sHash.size() << endl;
 
-    return verify_signature((const unsigned char*)sHash.c_str(), zSignature.get(), zPublicKey.get());
+    auto res = verify_signature(result.bytes, zSignature.get(), zPublicKey.get());
+    res = verify_signature(result_prelude.bytes, zSignature.get(), zPublicKey.get());
+    res = verify_signature(reinterpret_cast<const unsigned char*>(result_prelude.bytes), zSignature.get(), zPublicKey.get());
+    res = verify_signature(reinterpret_cast<const unsigned char*>(sHash.c_str()), zSignature.get(), zPublicKey.get());
+
+    cout << "RES " << res << endl;
+
+    return res;
     //return verify_signature((const unsigned char*)sha256Hash.c_str(), zSignature.get(), zPublicKey.get()); // test NID way
 }
 
@@ -431,7 +465,8 @@ bool Transaction::IsSigned() const {
 
   std::string pubKeyStr = std::string(m_coreInfo.senderPubKey);
   std::string sigString = std::string(m_signature);
-  std::string toHash = "0";
+  int prelude[] = { 25, 69, 116, 104, 101, 114, 101, 117, 109, 32, 83, 105, 103, 110, 101, 100, 32, 77, 101, 115, 115, 97, 103, 101, 58, 10, 48 };
+  std::string toHash(reinterpret_cast<const char*>(prelude), sizeof(prelude));
 
   // Example of successful tx sign/verify
   if(false) { // NID verify
@@ -450,6 +485,7 @@ bool Transaction::IsSigned() const {
   }
 
   cout << "Verifying transaction with... " << endl << "toHash " << toHash << endl <<  "sig: " << sigString << endl << "pubKey: " << pubKeyStr << endl;
+  cout << "Note: size of toHash is " << toHash.size() << endl;
 
   // Verify the signature
   auto schnorr_result = Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey);
