@@ -34,13 +34,10 @@ bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
 
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   try {
-    cout << "HEX INPUT SIZE IS " << hex_input.size() << endl;
-    cout << "HEX INPUT IS " << hex_input << endl;
     out.clear();
     boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
-    std::cout << hex_input << std::endl;
     LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: " << e.what());
     return false;
   }

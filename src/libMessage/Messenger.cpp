@@ -1261,12 +1261,6 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  //// Verify signature
-  //if (!Schnorr::Verify(txnData, signature, txnCoreInfo.senderPubKey)) {
-  //  LOG_GENERAL(WARNING, "Signature verification failed when converting tx to protobuf");
-  //  //return false;
-  //}
-
   return true;
 }
 

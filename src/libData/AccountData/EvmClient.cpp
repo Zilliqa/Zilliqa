@@ -29,7 +29,6 @@
 
 /* EvmClient Init */
 void EvmClient::Init() {
-  LOG_MARKER();
   if (ENABLE_EVM_MULTI_VERSION) {
     boost::filesystem::path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
@@ -58,8 +57,6 @@ void EvmClient::Init() {
 }
 
 bool EvmClient::OpenServer(uint32_t version) {
-  LOG_MARKER();
-
   std::string cmdStr;
   std::string root_w_version;
 

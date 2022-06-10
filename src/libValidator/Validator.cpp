@@ -36,7 +36,6 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  //auto result = Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey()) || tran.IsSigned();
   auto result = tran.IsSigned();
 
   if(!result) {
@@ -56,9 +55,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     return true;
   }
   error_code = TxnStatus::NOT_PRESENT;
-  // LOG_MARKER();
-
-  // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     LOG_GENERAL(WARNING, "CHAIN_ID incorrect");

@@ -83,8 +83,6 @@ void AccountStore::Init() {
 }
 
 void AccountStore::InitSoft() {
-  LOG_MARKER();
-
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   AccountStoreTrie<unordered_map<Address, Account>>::Init();
@@ -95,7 +93,6 @@ void AccountStore::InitSoft() {
 }
 
 bool AccountStore::RefreshDB() {
-  LOG_MARKER();
   bool ret = true;
   {
     lock_guard<mutex> g(m_mutexDB);
@@ -105,8 +102,6 @@ bool AccountStore::RefreshDB() {
 }
 
 void AccountStore::InitTemp() {
-  LOG_MARKER();
-
   lock_guard<mutex> g(m_mutexDelta);
 
   m_accountStoreTemp->Init();
@@ -116,8 +111,6 @@ void AccountStore::InitTemp() {
 }
 
 void AccountStore::InitRevertibles() {
-  LOG_MARKER();
-
   lock_guard<mutex> g(m_mutexRevertibles);
 
   m_addressToAccountRevChanged.clear();
@@ -199,7 +192,6 @@ void AccountStore::GetSerializedDelta(bytes& dst) {
 
 bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
                                     bool revertible) {
-  LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -398,8 +390,6 @@ void AccountStore::DiscardUnsavedUpdates() {
 }
 
 bool AccountStore::RetrieveFromDisk() {
-  LOG_MARKER();
-
   InitSoft();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -446,8 +436,6 @@ bool AccountStore::RetrieveFromDisk() {
 
 bool AccountStore::RetrieveFromDiskOld() {
   // Only For migration
-  LOG_MARKER();
-
   InitSoft();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
@@ -498,7 +486,6 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction,
                                       TransactionReceipt& receipt,
                                       TxnStatus& error_code) {
-  // LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
@@ -511,7 +498,6 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
                                       const uint128_t& amount) {
-  // LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDelta);
 
@@ -555,7 +541,6 @@ StateHash AccountStore::GetStateDeltaHash() {
 }
 
 void AccountStore::CommitTemp() {
-  LOG_MARKER();
   if (!DeserializeDelta(m_stateDeltaSerialized, 0)) {
     LOG_GENERAL(WARNING, "DeserializeDelta failed.");
   }

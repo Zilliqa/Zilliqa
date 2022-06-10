@@ -842,8 +842,6 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
-  LOG_MARKER();
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -854,7 +852,6 @@ Json::Value LookupServer::GetBalance(const string& address) {
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
-    std::cout << "getting fing balance1" << endl;
 
     Json::Value ret;
     if (account != nullptr) {
@@ -863,14 +860,11 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO, "Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
+      LOG_GENERAL(INFO, "DEBUG: Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");
     }
-
-    std::cout << "getting fing balance2" << endl;
-    std::cout << ret << endl;
 
     return ret;
   } catch (const JsonRpcException& je) {
