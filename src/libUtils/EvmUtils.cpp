@@ -85,8 +85,7 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
       if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
               Address(op.Address()),
               DataConversion::StringToCharArray(it.Key()), 0,
-              DataConversion::StringToCharArray(it.Value()),
-              0)) {
+              DataConversion::StringToCharArray(it.Value()), 0)) {
         return false;
       }
     }
