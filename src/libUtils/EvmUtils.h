@@ -27,6 +27,7 @@
 // fwd decls
 
 class TransactionReceipt;
+class ScillaIPCServer;
 class Account;
 
 namespace evmproj {
@@ -42,8 +43,9 @@ class EvmUtils {
                                      INVOKE_TYPE invoke_type,
                                      uint64_t& oldValue, uint64_t newValue);
 
-  static bool EvmUpdateContractStateAndAccount(Account* contractAccount,
-                                               evmproj::ApplyInstructions& op);
+  static bool EvmUpdateContractStateAndAccount(
+      std::shared_ptr<ScillaIPCServer> ipcServer, Account* contractAccount,
+      evmproj::ApplyInstructions& op);
 
   using bytes = std::vector<uint8_t>;
 

@@ -30,6 +30,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/ContractStorage.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 
@@ -62,7 +63,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
 }
 
 bool EvmUtils::EvmUpdateContractStateAndAccount(
-    Account* contractAccount, evmproj::ApplyInstructions& op) {
+    std::shared_ptr<ScillaIPCServer> ipcServer, Account* contractAccount,
+    evmproj::ApplyInstructions& op) {
   if (op.OperationType() == "modify") {
     if (op.isResetStorage()) contractAccount->SetStorageRoot(dev::h256());
 
@@ -70,15 +72,10 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
       contractAccount->SetImmutable(
           DataConversion::StringToCharArray("EVM" + op.Code()),
           contractAccount->GetInitData());
-
-    for (const auto& it : op.Storage()) {
-      if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
-              Address(op.Address()),
-              DataConversion::StringToCharArray(it.Key()), 0,
-              DataConversion::StringToCharArray(it.Value()), 0)) {
-        return false;
-      }
-    }
+    if (ipcServer)
+      for (const auto& it : op.Storage())
+        if (!ipcServer->updateStateValue(it.Key(), it.Value()))
+          LOG_GENERAL(INFO, "Updated State and Value for " << it.Key());
 
     if (op.Balance().size())
       contractAccount->SetBalance(uint128_t(op.Balance()));
