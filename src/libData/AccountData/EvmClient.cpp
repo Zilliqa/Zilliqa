@@ -32,9 +32,11 @@ void EvmClient::Init() {
   LOG_MARKER();
 
   CheckClient(0, false);
+
+  m_initialised = true;
 }
 
-bool EvmClient::OpenServer() {
+bool EvmClient::OpenServer(bool force) {
   LOG_MARKER();
 
   std::string programName =
@@ -64,14 +66,23 @@ bool EvmClient::OpenServer() {
   std::this_thread::sleep_for(
       std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS));
 
+  if (force) {
+    m_initialised = false;
+    CheckClient(0, false);
+    m_initialised = true;
+  }
+
   return true;
 }
 
 bool EvmClient::CheckClient(uint32_t version,
-                            __attribute__((unused)) bool enforce) {
+                            bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (!OpenServer()) {
+  if (m_initialised)
+    return true;
+
+  if (!OpenServer(enforce)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
@@ -110,6 +121,11 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     reply = evmproj::GetReturn(oldJson, result);
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
+    m_initialised = false;
+    if (!CheckClient(version,true)){
+      LOG_GENERAL(WARNING, "Restart OpenServer for version " << version << "failed");
+    }
+    result.m_ok = false;
     return false;
   }
 

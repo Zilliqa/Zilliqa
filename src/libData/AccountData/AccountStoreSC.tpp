@@ -186,7 +186,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
   } else {
     csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
-        m_scillaIPCServer, contractAccount, evmReturnValues.m_apply);
+        contractAccount, evmReturnValues.m_apply);
   }
 
   if (invoke_type == RUNNER_CREATE)

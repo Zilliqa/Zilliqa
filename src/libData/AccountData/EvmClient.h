@@ -51,13 +51,14 @@ class EvmClient {
  private:
   EvmClient() {}
   virtual ~EvmClient() {}
-  bool OpenServer();
+  bool OpenServer(bool force = false);
 
   std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
   std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
       m_connectors;
 
   std::mutex m_mutexMain;
+  bool       m_initialised {false};
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
