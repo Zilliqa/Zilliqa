@@ -144,7 +144,9 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
+
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    cout << "BAD VERSION" << endl;
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
   }
@@ -256,6 +258,10 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+
+  string json_as_string = _json.toStyledString();
+  cout << "json string of tx: " << json_as_string << endl;
+
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -268,9 +274,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     lock_guard<mutex> g(m_blockMutex);
 
     LOG_GENERAL(INFO, "On the isolated server ");
-
-    string json_as_string = _json.toStyledString();
-    cout << "json string of tx: " << json_as_string << endl;
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 

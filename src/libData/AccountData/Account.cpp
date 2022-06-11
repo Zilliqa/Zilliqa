@@ -16,6 +16,7 @@
  */
 
 #include <boost/lexical_cast.hpp>
+#include <ethash/keccak.hpp>
 
 #include "Account.h"
 #include "common/Messages.h"
@@ -432,6 +433,27 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 
   return address;
 }
+
+Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
+  Address address;
+
+  // The address must be uncompressed!
+
+  bytes vec;
+  pubKey.Serialize(vec, 0);
+
+  auto result = ethash::keccak256(&vec[0], vec.size());
+
+  std::string res;
+  boost::algorithm::hex(&result.bytes[0], &result.bytes[ACC_ADDR_SIZE+1], back_inserter(res));
+
+  cout << "ADDR is " << res << endl;
+
+  copy(&result.bytes[0], &result.bytes[ACC_ADDR_SIZE+1], address.asArray().begin());
+
+  return address;
+}
+
 
 Address Account::GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce) {

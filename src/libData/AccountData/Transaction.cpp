@@ -273,6 +273,12 @@ const PubKey& Transaction::GetSenderPubKey() const {
 }
 
 Address Transaction::GetSenderAddr() const {
+
+  if (GetVersion() == 65538) {
+    LOG_GENERAL(WARNING, "Getting eth style address from pub key");
+    return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
+  }
+
   return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
