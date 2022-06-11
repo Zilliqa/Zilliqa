@@ -58,7 +58,7 @@ class EvmClient {
       m_connectors;
 
   std::mutex m_mutexMain;
-  bool       m_initialised {false};
+  bool m_initialised{false};
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_

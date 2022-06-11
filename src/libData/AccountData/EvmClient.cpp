@@ -75,12 +75,10 @@ bool EvmClient::OpenServer(bool force) {
   return true;
 }
 
-bool EvmClient::CheckClient(uint32_t version,
-                            bool enforce) {
+bool EvmClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (m_initialised)
-    return true;
+  if (m_initialised) return true;
 
   if (!OpenServer(enforce)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
@@ -122,8 +120,9 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
     m_initialised = false;
-    if (!CheckClient(version,true)){
-      LOG_GENERAL(WARNING, "Restart OpenServer for version " << version << "failed");
+    if (!CheckClient(version, true)) {
+      LOG_GENERAL(WARNING,
+                  "Restart OpenServer for version " << version << "failed");
     }
     result.m_ok = false;
     return false;
