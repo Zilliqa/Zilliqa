@@ -75,8 +75,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   }
 
   // Check if from account is sharded here
-  const PubKey& senderPubKey = tx.GetSenderPubKey();
-  Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  Address fromAddr = tx.GetSenderAddr();
 
   if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");

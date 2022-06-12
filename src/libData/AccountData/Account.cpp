@@ -16,7 +16,7 @@
  */
 
 #include <boost/lexical_cast.hpp>
-#include <ethash/keccak.hpp>
+#include "libCrypto/EthCrypto.h"
 
 #include "Account.h"
 #include "common/Messages.h"
@@ -437,19 +437,21 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   Address address;
 
-  // The address must be uncompressed!
+  // The public key must be uncompressed!
+  auto const publicKey = toUncompressedPubKey(std::string(pubKey));
 
-  bytes vec;
-  pubKey.Serialize(vec, 0);
-
-  auto result = ethash::keccak256(&vec[0], vec.size());
+  // Do not hash the first byte, as they specify the encoding
+  auto result = ethash::keccak256(
+      reinterpret_cast<const uint8_t*>(&publicKey[1]), publicKey.size()-1);
 
   std::string res;
-  boost::algorithm::hex(&result.bytes[0], &result.bytes[ACC_ADDR_SIZE+1], back_inserter(res));
+  boost::algorithm::hex(publicKey.begin(), publicKey.end(), back_inserter(res));
 
-  cout << "ADDR is " << res << endl;
+  res = std::string();
+  boost::algorithm::hex(&result.bytes[12], &result.bytes[32], back_inserter(res));
 
-  copy(&result.bytes[0], &result.bytes[ACC_ADDR_SIZE+1], address.asArray().begin());
+  // Want the last 20 bytes of the result
+  copy(&result.bytes[12], &result.bytes[32], address.asArray().begin());
 
   return address;
 }

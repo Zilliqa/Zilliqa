@@ -188,8 +188,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   error_code = TxnStatus::NOT_PRESENT;
 
-  const PubKey& senderPubKey = transaction.GetSenderPubKey();
-  const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
 
   const uint128_t& amount = transaction.GetAmount();
@@ -984,7 +983,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     std::string prepend = "0x";
     msgObj["_sender"] =
         prepend +
-        Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+        transaction.GetSenderAddr().hex();
     msgObj["_origin"] = prepend + m_originAddr.hex();
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
