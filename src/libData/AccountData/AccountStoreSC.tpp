@@ -187,6 +187,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   } else {
     csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
         contractAccount, evmReturnValues.m_apply);
+    // TODO: when EvmUpdateContractstateandaccount is fixed to apply for
+    // every account in all applications, the line below should go inside each
+    // the loop for each modified address.
+    m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
   }
 
   if (invoke_type == RUNNER_CREATE)
@@ -782,21 +786,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   receipt.SetResult(true);
   receipt.update();
 
-  switch (Transaction::GetTransactionType(transaction)) {
-    case Transaction::CONTRACT_CALL: {
-      /// since txn succeeded, commit the atomic buffer
-      m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                       m_storageRootUpdateBufferAtomic.end());
-      LOG_GENERAL(INFO, "Executing contract Call transaction finished");
-      break;
-    }
-    case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Executing contract Creation transaction finished");
-      break;
-    }
-    default:
-      break;
-  }
+  // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+  m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                   m_storageRootUpdateBufferAtomic.end());
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
