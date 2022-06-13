@@ -64,6 +64,9 @@ class Transaction : public SerializableDataBlock {
   TransactionCoreInfo m_coreInfo;
   Signature m_signature;
 
+  bool IsSignedSchnorr() const;
+  bool IsSignedECDSA() const;
+
  public:
   /// Default constructor.
   Transaction();

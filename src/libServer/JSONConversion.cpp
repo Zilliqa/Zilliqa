@@ -286,9 +286,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string lower_case_addr;
 
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
-    LOG_GENERAL(WARNING, "***** Checksum address check has failed");
-    //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    //"To Address checksum does not match");
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "To Address checksum does not match");
   }
 
   bytes toAddr_ser;
@@ -321,8 +320,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   bytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
     LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
-    //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-    //                                "Invalid Hex Str for Signature");
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Invalid Hex Str for Signature");
   }
 
   bytes code, data;
@@ -387,16 +386,17 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
       LOG_GENERAL(INFO,
                   "PubKey size wrong " << _json["pubKey"].asString().size());
-      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      //"Invalid PubKey Size");
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Invalid PubKey Size");
     }
 
-    if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2) {
+    if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2 &&
+        _json["signature"].asString().size() != TRAN_SIG_SIZE_UNCOMPRESSED *2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
       LOG_GENERAL(INFO, "***** Invalid signature size");
-      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-      //                                "Invalid Signature size");
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Invalid Signature size");
     }
     string lower_case_addr;
 
@@ -404,8 +404,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                                                 lower_case_addr)) {
       LOG_GENERAL(INFO,
                   "***** To Address checksum wrong" << _json["toAddr"].asString());
-      //throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-      //                                "To Addr checksum wrong");
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "To Addr checksum wrong");
     }
 
     if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&

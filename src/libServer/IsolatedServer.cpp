@@ -146,7 +146,6 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const uint128_t& gasPrice) {
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    cout << "BAD VERSION" << endl;
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
   }
@@ -259,9 +258,6 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
-  string json_as_string = _json.toStyledString();
-  cout << "json string of tx: " << json_as_string << endl;
-
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -272,8 +268,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     lock_guard<mutex> g(m_blockMutex);
-
-    LOG_GENERAL(INFO, "On the isolated server ");
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
@@ -299,9 +293,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     if (senderNonce + 1 != tx.GetNonce()) {
-      cout  << "******* Expected Nonce: " + to_string(senderNonce + 1) << std::endl;
-      //throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             //"Expected Nonce: " + to_string(senderNonce + 1));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
     if (senderBalance < tx.GetAmount()) {

@@ -179,16 +179,9 @@ const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
-//// convenience fn
-//bool IsSignedSchnorr() {
-//
-//  return
-//}
-
-// Function to return whether the TX is signed
-bool Transaction::IsSigned() const {
+bool Transaction::IsSignedSchnorr() const {
   bytes txnData;
-  SerializeCoreFields(txnData, 0);
+  Messenger::SetTransactionCoreInfo(txnData, 0, GetCoreInfo());
 
   // Generate the transaction ID
   SHA2<HashType::HASH_VARIANT_256> sha2;
@@ -197,32 +190,33 @@ bool Transaction::IsSigned() const {
   std::string res;
   boost::algorithm::hex(txnData.begin(), txnData.end(), back_inserter(res));
 
-  std::string pubKeyStr = std::string(m_coreInfo.senderPubKey);
-  std::string sigString = std::string(m_signature);
+  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
+}
 
-  int prelude[] = { 25, 69, 116, 104, 101, 114, 101, 117, 109, 32, 83, 105, 103, 110, 101, 100, 32, 77, 101, 115, 115, 97, 103, 101, 58, 10, 48 };
+bool Transaction::IsSignedECDSA() const {
+  std::string pubKeyStr = std::string(GetCoreInfo().senderPubKey);
+  std::string sigString = std::string(GetSignature());
+
+  // Hash of the TXn data (for now just eth-style prelude)
   std::string toHash(reinterpret_cast<const char*>(prelude), sizeof(prelude));
 
-  // Remove '0x' at beginning of string
+  // Remove '0x' at beginning of hex strings before calling
   sigString = sigString.substr(2);
+  pubKeyStr = pubKeyStr.substr(2);
 
-  pubKeyStr = "021815bee5679a42f3f38c8b77b99356517407603491c101ee221c7545861d12d4"; // compressed pubkey example
-  //pubKeyStr = pubKeyStr.substr(2);
+  return VerifyEcdsaSecp256k1(toHash, sigString, pubKeyStr);
+}
 
-  cout << "Verifying transaction with... " << endl << "toHash " << toHash << endl <<  "sig: " << sigString << endl << "pubKey: " << pubKeyStr << endl;
-  cout << "Note: size of toHash is " << toHash.size() << endl;
+// Function to return whether the TX is signed
+bool Transaction::IsSigned() const {
 
-  // Verify the signature
-  auto schnorr_result = Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey);
-
-  if (!schnorr_result) {
-    bool ecdsa_result = VerifyEcdsaSecp256k1(toHash, sigString, pubKeyStr);
-    LOG_GENERAL(WARNING, "*** ECDSA signing result is " << ecdsa_result);
+  // Use the version number to tell which signature scheme it is using
+  if (GetVersion() == 65538) {
+    LOG_GENERAL(WARNING, "Getting eth style address from pub key");
+    return IsSignedECDSA();
   }
 
-  LOG_GENERAL(WARNING, "*** Schnorr signing result is " << schnorr_result);
-
-  return true;
+  return IsSignedSchnorr();
 }
 
 void Transaction::SetSignature(const Signature& signature) {
