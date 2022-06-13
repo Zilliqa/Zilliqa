@@ -192,7 +192,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       LOG_GENERAL(WARNING, "Failed to fetch type for addr: "
                                << addr.hex() << " vname: " << query.name());
       foundVal = false;
-      return true;
+      return false;
     }
     try {
       type = DataConversion::CharArrayToString(t_type[type_key]);
@@ -448,26 +448,37 @@ bool ContractStorage::FetchExternalStateValue(
     return true;
   }
 
-  // External state queries don't have map depth set. Get it from the database.
-  map<string, bytes> map_depth;
-  string map_depth_key =
-      GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
-  FetchStateDataForKey(map_depth, map_depth_key, true);
+  // For _evm_storage, we know the type, so we don't have to query it.
+  bool fetchType;
+  if (query.name() == "_evm_storage") {
+    type = "ByStr32";
+    fetchType = false;
+  } else {
+    fetchType = true;
+    // External state queries don't have map depth set. Get it from the
+    // database.
+    map<string, bytes> map_depth;
+    string map_depth_key =
+        GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
+    FetchStateDataForKey(map_depth, map_depth_key, true);
 
-  int map_depth_val;
-  try {
-    map_depth_val = !map_depth.empty()
-                        ? std::stoi(DataConversion::CharArrayToString(
-                              map_depth[map_depth_key]))
-                        : -1;
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
-    return false;
+    int map_depth_val;
+    try {
+      map_depth_val = !map_depth.empty()
+                          ? std::stoi(DataConversion::CharArrayToString(
+                                map_depth[map_depth_key]))
+                          : -1;
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
+      return false;
+    }
+    query.set_mapdepth(map_depth_val);
+    fetchType = true;
   }
-  query.set_mapdepth(map_depth_val);
 
   // get value
-  return FetchStateValue(target, query, dst, d_offset, foundVal, true, type);
+  return FetchStateValue(target, query, dst, d_offset, foundVal, fetchType,
+                         type);
 }
 
 void ContractStorage::DeleteByPrefix(const string& prefix) {
@@ -906,8 +917,11 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
 void ContractStorage::UpdateStateData(const string& key, const bytes& value,
                                       bool cleanEmpty) {
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "key: " << key << " value: "
-                              << DataConversion::CharArrayToString(value));
+    LOG_GENERAL(INFO, "key: " << key);
+    string hex;
+    DataConversion::StringToHexStr(DataConversion::CharArrayToString(value),
+                                   hex);
+    LOG_GENERAL(INFO, " value: " << hex);
   }
 
   if (cleanEmpty) {

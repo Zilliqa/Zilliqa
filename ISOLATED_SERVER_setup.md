@@ -16,7 +16,7 @@ git clone https://github.com/Zilliqa/scilla.git
 sudo add-apt-repository ppa:tah83/secp256k1 -y //Ignore this line if you are building on Ubuntu 18
 sudo add-apt-repository -y ppa:avsm/ppa
 sudo apt-get update
-sudo apt-get install -y curl build-essential m4 ocaml opam pkg-config zlib1g-dev libgmp-dev libffi-dev libssl-dev libboost-system-dev libsecp256k1-dev libpcre3-dev
+sudo apt-get install -y curl build-essential m4 ocaml opam pkg-config zlib1g-dev libgmp-dev libffi-dev libssl-dev libboost-system-dev libsecp256k1-dev libpcre3-dev lcov libxml2-utils
 
 opam init --compiler=4.06.1 --yes
 eval $(opam env)
@@ -41,11 +41,16 @@ Install the evm from the repo: https://github.com/Zilliqa/evm-ds
 
 ## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
 <ENABLE_EVM>true</ENABLE_EVM>
-<EVM_ROOT>evm-ds</EVM_ROOT>
+<EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
 <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
-<EVM_SERVER_BINARY>evm-ds</EVM_SERVER_BINARY>
-<ENABLE_EVM_MULTI_VERSION>false</ENABLE_EVM_MULTI_VERSION>
 ```
+
+Create a symlink to evm-ds at `/usr/local/bin/evm-ds`:
+
+```
+sudo ln -s ~/evm-ds/target/debug/evm-ds /usr/local/bin/evm-ds
+```
+
 5. Create swapfile
 ```
 // Recommended to have at least 4GB of free memory

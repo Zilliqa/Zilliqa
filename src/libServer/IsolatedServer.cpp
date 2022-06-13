@@ -361,7 +361,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                                                         error_code)) {
       throwError = true;
     }
-
+    LOG_GENERAL(INFO, "Processing On the isolated server ");
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
@@ -399,6 +399,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
+    LOG_GENERAL(INFO, "Processing On the isolated server completed");
     return ret;
 
   } catch (const JsonRpcException& je) {

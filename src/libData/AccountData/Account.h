@@ -48,9 +48,6 @@ class AccountBase : public SerializableDataBlock {
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
 
- private:
-  bool m_evm{false};
-
  public:
   AccountBase() {}
 
@@ -104,10 +101,6 @@ class AccountBase : public SerializableDataBlock {
   const dev::h256& GetCodeHash() const;
 
   bool isContract() const;
-
-  bool isEvmContract() const { return m_evm; }
-
-  void SetEvmContract(const bool& state) { m_evm = state; }
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);

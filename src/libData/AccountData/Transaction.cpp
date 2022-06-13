@@ -255,4 +255,3 @@ bool Transaction::operator<(const Transaction& tran) const {
 bool Transaction::operator>(const Transaction& tran) const {
   return tran < *this;
 }
-
