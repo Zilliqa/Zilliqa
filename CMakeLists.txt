@@ -45,9 +45,6 @@ find_package(g3logger CONFIG REQUIRED)
 
 include(InstallCryptoUtils)
 
-include(InstallMongo)
-find_package(mongocxx CONFIG REQUIRED)
- 
 include(InstallWebsocketpp)
 find_package(websocketpp CONFIG REQUIRED)
 
@@ -55,6 +52,9 @@ include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
 find_package(PythonLibs REQUIRED)
+
+include(InstallMongo)
+find_package(mongocxx CONFIG REQUIRED)
 
 string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
 list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
