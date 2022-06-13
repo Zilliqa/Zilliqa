@@ -31,8 +31,6 @@
 // https://stackoverflow.com/questions/57385412/
 // https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
 
-using namespace std;
-
 // Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed Message:\n32" + Keccak256(message))
 constexpr uint8_t prelude[] = { 25, 69, 116, 104, 101, 114,
                            101, 117, 109, 32, 83, 105,
@@ -67,34 +65,33 @@ inline void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* p
 inline bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey)
 {
   // X co-ordinate
-  std::unique_ptr< BIGNUM, std::function<void(BIGNUM*)>> gx(NULL, [](BIGNUM* b) { BN_free(b); });
+  std::unique_ptr< BIGNUM, std::function<void(BIGNUM*)>>
+      gx(NULL, [](BIGNUM* b) { BN_free(b); });
 
   BIGNUM* gx_ptr = gx.get();
 
   EC_KEY_set_asn1_flag(pKey, OPENSSL_EC_NAMED_CURVE);
 
   // From https://www.oreilly.com/library/view/mastering-ethereum/9781491971932/ch04.html
+  // The first byte indicates whether the y coordinate is odd or even
   int y_chooser_bit = 0;
 
-  if (sPubKeyString[0] == '2') {
+  if (sPubKeyString[1] == '2') {
     y_chooser_bit = 0;
-  } else if (sPubKeyString[0] == '3') {
+  } else if (sPubKeyString[1] == '3') {
     y_chooser_bit = 1;
   } else {
     std::cout << "Received badly set signature bit! Should be 2 or 3 and got: "
-              << sPubKeyString[0] << std::endl;
+              << sPubKeyString[1] << std::endl;
   }
 
   // Don't want the first byte
-  if (!BN_hex2bn(&gx_ptr, sPubKeyString+1)) {
+  if (!BN_hex2bn(&gx_ptr, sPubKeyString+2)) {
     std::cout << "***** Error getting to x binary format" << std::endl;
   }
 
   // Create a new curve group
-  // Could just
-  //auto curve_group = ;
-  //auto point = EC_POINT_new(curve_group);
-
+  // Refactor: probably can have static/constexpr curve, need to check
   std::unique_ptr< EC_GROUP , std::function<void(EC_GROUP*)>>
       curve_group(EC_GROUP_new_by_curve_name(NID_secp256k1),
                   [](EC_GROUP * g) { EC_GROUP_free(g); });
@@ -103,8 +100,9 @@ inline bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey)
       point(EC_POINT_new(curve_group.get()),
                   [](EC_POINT * g) { EC_POINT_free(g); });
 
-  EC_POINT_set_compressed_coordinates_GFp(curve_group.get(), point.get(),
-                                          gx_ptr,
+  // This performs the decompression at the same time as setting the pubKey
+  EC_POINT_set_compressed_coordinates_GFp(curve_group.get(),
+                                          point.get(), gx_ptr,
                                           y_chooser_bit, NULL);
 
   if (!EC_KEY_set_public_key(pKey, point.get())) {
@@ -121,65 +119,74 @@ inline bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey)
   }
 }
 
-inline bool Verify(const std::string& /*sRandomNumber*/, const std::string& sSignature, const std::string& sDevicePubKeyInHex)
+inline bool VerifyEcdsaSecp256k1(const std::string& /*sRandomNumber*/,
+                   const std::string& sSignature,
+                   const std::string& sDevicePubKeyInHex)
 {
-  std::unique_ptr< ECDSA_SIG, std::function<void(ECDSA_SIG*)>> zSignature(ECDSA_SIG_new(), [](ECDSA_SIG* b) { ECDSA_SIG_free(b); });
-  // Set up the signature...
+  std::unique_ptr< ECDSA_SIG, std::function<void(ECDSA_SIG*)>>
+      zSignature(ECDSA_SIG_new(),
+                 [](ECDSA_SIG* b) { ECDSA_SIG_free(b); });
+
   SetOpensslSignature(sSignature, zSignature.get());
 
-  std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(EC_KEY_new_by_curve_name(NID_secp256k1), [](EC_KEY* b) { EC_KEY_free(b); });
+  std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>>
+      zPublicKey(EC_KEY_new_by_curve_name(NID_secp256k1),
+                 [](EC_KEY* b) { EC_KEY_free(b); });
 
-  if (!SetOpensslPublicKey(sDevicePubKeyInHex.c_str()+1, zPublicKey.get())) {
+  if (!SetOpensslPublicKey(sDevicePubKeyInHex.c_str(),
+                           zPublicKey.get())) {
     std::cout << "Failed to get the public key from the hex input" << std::endl;
   }
 
-  auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
+  auto result_prelude = ethash::keccak256(prelude,
+                                          sizeof(prelude));
 
-  return ECDSA_do_verify(result_prelude.bytes, SHA256_DIGEST_LENGTH, zSignature.get(), zPublicKey.get());
+  return ECDSA_do_verify(result_prelude.bytes,
+                         SHA256_DIGEST_LENGTH,
+                         zSignature.get(), zPublicKey.get());
 }
 
-inline int VerifyEcdsaSecp256k1(std::string const &sRandomNumber, std::string const &sSignatureInHex, std::string const &sPublicKeyInHex)
-{
-  int ret = 0;
-
-  if (!Verify(sRandomNumber, sSignatureInHex, sPublicKeyInHex))
-    std::cout << "ECDSA Verification failed!" << std::endl;
-  else {
-    ret = 1;
-  }
-
-  return ret;
-}
-
-// Given a hex string representing the pubkey (secp256k1), return the hex representation of the pubkey
-// in uncompressed format. The input will have the '02' prefix, and the output will have
-// the '04' prefix per the 'Standards for Efficient Cryptography' specification
+// Given a hex string representing the pubkey (secp256k1), return the hex
+// representation of the pubkey in uncompressed format.
+// The input will have the '02' prefix, and the output will have the '04' prefix
+// per the 'Standards for Efficient Cryptography' specification
 inline std::string toUncompressedPubKey(std::string const &pubKey){
 
   // Create public key pointer
-  std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(EC_KEY_new_by_curve_name(NID_secp256k1), [](EC_KEY* b) { EC_KEY_free(b); });
+  std::unique_ptr< EC_KEY, std::function<void(EC_KEY*)>>
+      zPublicKey(EC_KEY_new_by_curve_name(NID_secp256k1),
+                 [](EC_KEY* b) { EC_KEY_free(b); });
 
-  if (!SetOpensslPublicKey(pubKey.c_str()+3, zPublicKey.get())) {
-    std::cout << "Failed to get the public key from the hex input when getting uncompressed form" << std::endl;
+  // The +2 removes '0x' at the beginning of the string
+  if (!SetOpensslPublicKey(pubKey.c_str()+2,
+                           zPublicKey.get())) {
+    std::cout << "Failed to get the public key from"
+                 " the hex input when getting uncompressed form" << std::endl;
   }
 
   // Get the size of the key
   int pubSize = i2o_ECPublicKey(zPublicKey.get(), NULL);
 
   if(!(pubSize == UNCOMPRESSED_SIGNATURE_SIZE)){
-    cout << "pub key to data incorrect size " << pubSize << std::endl;
+    std::cout << "pub key to data incorrect size " << pubSize << std::endl;
   }
 
-  // pubKey = malloc(pubSize);
-  u_int8_t *pubKeyOut = new u_int8_t[UNCOMPRESSED_SIGNATURE_SIZE];
-  u_int8_t * pubKeyOut2 = pubKeyOut; // Will end up pointing to end of memory
+  u_int8_t pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE];
+  u_int8_t *pubKeyOut2 = &pubKeyOut[0]; // Will end up pointing to end of memory
 
   if(i2o_ECPublicKey(zPublicKey.get(), &pubKeyOut2) != pubSize){
     printf("pub key to data fail\n");
   }
 
-  std::string ret(reinterpret_cast<const char*>(pubKeyOut), UNCOMPRESSED_SIGNATURE_SIZE);
-  delete[] pubKeyOut;
+  std::string ret{};
+
+  if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
+    std::cout << "Pubkey size incorrect after decompressing: "
+              << pubKeyOut2 - &pubKeyOut[0] << std::endl;
+  } else {
+    ret = std::string(reinterpret_cast<const char*>(pubKeyOut),
+                    UNCOMPRESSED_SIGNATURE_SIZE);
+  }
 
   return ret;
 }
