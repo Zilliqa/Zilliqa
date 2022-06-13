@@ -198,13 +198,11 @@ bool Transaction::IsSignedECDSA() const {
   std::string sigString = std::string(GetSignature());
 
   // Hash of the TXn data (for now just eth-style prelude)
-  std::string toHash(reinterpret_cast<const char*>(prelude), sizeof(prelude));
-
   // Remove '0x' at beginning of hex strings before calling
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
-  return VerifyEcdsaSecp256k1(toHash, sigString, pubKeyStr);
+  return VerifyEcdsaSecp256k1("", sigString, pubKeyStr);
 }
 
 // Function to return whether the TX is signed
