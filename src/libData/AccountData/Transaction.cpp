@@ -179,6 +179,13 @@ const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
+//// convenience fn
+//bool IsSignedSchnorr() {
+//
+//  return
+//}
+
+// Function to return whether the TX is signed
 bool Transaction::IsSigned() const {
   bytes txnData;
   SerializeCoreFields(txnData, 0);
