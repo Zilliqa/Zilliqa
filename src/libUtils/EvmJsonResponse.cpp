@@ -117,7 +117,7 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
         }
       } else if (node.key() == "logs") {
         for (const auto& lg : node.value().items()) {
-          fo.m_logs = lg.value();
+          fo.m_logs.push_back(lg.value());
         }
       } else if (node.key() == "return_value") {
         nlohmann::json j = node.value();

@@ -521,13 +521,6 @@ bool Account::RetrieveContractAuxiliaries() {
 
 bool Account::SetInitData(const bytes& initData) {
   // LOG_MARKER();
-
-  if (initData.size() == 0) {
-    LOG_GENERAL(WARNING, "InitData for this contract is empty");
-    // return false; // change by steve
-    return true;
-  }
-
   m_initDataCache = initData;
   return true;
 }

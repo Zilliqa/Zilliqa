@@ -174,9 +174,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (evmReturnValues.Logs().size() > 0) {
-    LOG_GENERAL(WARNING, "Logs:" << evmReturnValues.Logs());
-    Json::Value v = "{ msg =\"" + evmReturnValues.Logs() + "\"" + "}";
-    receipt.AddException(v);
+    for (const auto& lval : evmReturnValues.Logs()) {
+      LOG_GENERAL(WARNING, "Logs:" << lval);
+      Json::Value v = "{ msg =\"" + lval + "\"" + "}";
+      receipt.AddException(lval);
+    }
   }
 
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
