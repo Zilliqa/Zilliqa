@@ -298,6 +298,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // generate address for new contract account
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
+      toAddr = contractAddress;
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
       if (!this->AddAccount(contractAddress, {0, 0})) {
