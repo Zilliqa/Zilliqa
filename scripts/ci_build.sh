@@ -37,7 +37,7 @@ echo "n_parallel=${n_parallel}"
 
 echo "ccache configuration"
 ccache --version
-#ccache -M 5G
+ccache -M 5G
 ccache -p
 
 echo "ccache status"
