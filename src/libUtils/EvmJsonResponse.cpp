@@ -41,8 +41,9 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
   } catch (std::exception& e) {
-    LOG_GENERAL(WARNING, "Error parsing json from evmds " << e.what())
-    return fo;
+    LOG_GENERAL(WARNING,
+                "Exception JSONRPC parser to nlohman parser " << e.what())
+    throw e;
   }
 
   if (LOG_SC)
