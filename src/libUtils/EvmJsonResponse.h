@@ -58,13 +58,13 @@ struct ApplyInstructions {
 };
 
 struct CallRespose {
-  const ApplyInstructions& Apply() const { return m_apply; }
+  const std::vector<std::shared_ptr<ApplyInstructions>>& Apply() const { return m_apply; }
   const std::string& Logs() const { return m_logs; }
   const std::string& ExitReason() const { return m_exitReason; }
   uint64_t Gas() const { return m_gasRemaing; }
   const std::string& ReturnedBytes() const { return m_return; }
   bool isSuccess();
-  ApplyInstructions m_apply;
+  std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
   std::string m_logs;
   bool m_ok{false};
   std::string m_exitReason;

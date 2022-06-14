@@ -42,9 +42,6 @@ class EvmUtils {
                                      INVOKE_TYPE invoke_type,
                                      uint64_t& oldValue, uint64_t newValue);
 
-  static bool EvmUpdateContractStateAndAccount(Account* contractAccount,
-                                               evmproj::ApplyInstructions& op);
-
   using bytes = std::vector<uint8_t>;
 
   static bool isEvm(const bytes& code);

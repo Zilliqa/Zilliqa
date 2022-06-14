@@ -182,15 +182,100 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                      evmReturnValues.Gas());
 
-  if (evmReturnValues.m_apply.OperationType() == "delete") {
-    this->RemoveAccount(Address(evmReturnValues.m_apply.Address()));
-  } else {
-    csUpdate = EvmUtils::EvmUpdateContractStateAndAccount(
-        contractAccount, evmReturnValues.m_apply);
-    // TODO: when EvmUpdateContractstateandaccount is fixed to apply for
-    // every account in all applications, the line below should go inside each
-    // the loop for each modified address.
-    m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
+  for (const auto& it : evmReturnValues.m_apply) {
+    if (it->OperationType() == "delete") {
+      // be careful with this call needs further testing
+      this->RemoveAccount(Address(it->Address()));
+    } else {
+      Account* targetAccount = this->GetAccount(Address(it->Address()));
+      if (targetAccount == nullptr) {
+        LOG_GENERAL(
+            WARNING,
+            "Cannot find account for address given in ooperation instructions"
+            " ");
+      }
+      if (it->OperationType() == "modify") {
+        // Reset State for this contract
+        try {
+          //
+          // Reset Storage for the target account
+          //
+          if (it->isResetStorage()) {
+            std::map<std::string, bytes> states;
+            std::vector<std::string> toDeletes;
+            Contract::ContractStorage::GetContractStorage()
+                .FetchStateDataForContract(states, Address(it->Address()), "",
+                                           {}, true);
+            for (const auto& x : states) {
+              toDeletes.emplace_back(x.first);
+            }
+            if (!targetAccount->UpdateStates(Address(it->Address()), {},
+                                             toDeletes, true)) {
+            }
+          }
+        } catch (std::exception& e) {
+          // for now catch any generic exceptions and report them
+          // will exmine exact possibilities and catch specific exceptions.
+          LOG_GENERAL(WARNING,
+                      "Exception thrown trying to reset storage " << e.what());
+        }
+        // If Instructed to reset the Code do so and call SetImmutable to reset
+        // the hash
+        try {
+          if (it->Code().size() > 0)
+            targetAccount->SetImmutable(
+                DataConversion::StringToCharArray("EVM" + it->Code()),
+                contractAccount->GetInitData());
+        } catch (std::exception& e) {
+          // for now catch any generic exceptions and report them
+          // will exmine exact possibilities and catch specific exceptions.
+          LOG_GENERAL(
+              WARNING,
+              "Exception thrown trying to update Contract code " << e.what());
+        }
+        // Actually Update the state for the contract
+        try {
+          for (const auto& sit : it->Storage()) {
+            if (!Contract::ContractStorage::GetContractStorage()
+                     .UpdateStateValue(
+                         Address(it->Address()),
+                         DataConversion::StringToCharArray(sit.Key()), 0,
+                         DataConversion::StringToCharArray(sit.Value()), 0)) {
+              return false;
+            }
+          }
+        } catch (std::exception& e) {
+          // for now catch any generic exceptions and report them
+          // will exmine exact possibilities and catch specific exceptions.
+          LOG_GENERAL(WARNING,
+                      "Exception thrown trying to update state on the contract "
+                          << e.what());
+        }
+        try {
+          if (it->Balance().size())
+            targetAccount->SetBalance(uint128_t(it->Balance()));
+        } catch (std::exception& e) {
+          // for now catch any generic exceptions and report them
+          // will exmine exact possibilities and catch specific exceptions.
+          LOG_GENERAL(
+              WARNING,
+              "Exception thrown trying to update balance on contract Account "
+                  << e.what());
+        }
+        try {
+          if (it->Nonce().size())
+            targetAccount->SetNonce(std::stoull(it->Nonce()));
+        } catch (std::exception& e) {
+          // for now catch any generic exceptions and report them
+          // will exmine exact possibilities and catch specific exceptions.
+          LOG_GENERAL(
+              WARNING,
+              "Exception thrown trying to set Nonce on contract Account "
+                  << e.what());
+        }
+        m_storageRootUpdateBufferAtomic.emplace(it->Address());
+      }
+    }
   }
 
   if (invoke_type == RUNNER_CREATE)

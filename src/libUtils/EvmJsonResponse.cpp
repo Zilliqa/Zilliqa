@@ -45,14 +45,16 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
         for (const auto& ap : node.value()) {
           for (const auto& map : ap.items()) {
             nlohmann::json arr = map.value();
-            fo.m_apply.m_operation_type = map.key();
+            std::shared_ptr<ApplyInstructions> apply = std::make_shared<ApplyInstructions>();
+
+            apply->m_operation_type = map.key();
             try {
-              fo.m_apply.m_address = arr["address"];
+              apply->m_address = arr["address"];
             } catch (std::exception& e) {
               std::cout << "address : " << e.what() << std::endl;
             }
             try {
-              fo.m_apply.m_balance = arr["balance"];
+              apply->m_balance = arr["balance"];
             } catch (std::exception& e) {
               std::cout << "balance : " << e.what() << std::endl;
             }
@@ -66,19 +68,19 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
               if (cobj.is_binary()) {
                 std::cout << "Binary data" << std::endl;
               } else if (cobj.is_string()) {
-                fo.m_apply.m_code = cobj.get<std::string>();
+                apply->m_code = cobj.get<std::string>();
               } else {
                 std::cout << "write some code for " << cobj.type_name()
                           << std::endl;
               }
             }
             try {
-              fo.m_apply.m_nonce = arr["nonce"];
+              apply->m_nonce = arr["nonce"];
             } catch (std::exception& e) {
               std::cout << "nonce : " << e.what() << std::endl;
             }
             try {
-              fo.m_apply.m_resetStorage = arr["reset_storage"];
+              apply->m_resetStorage = arr["reset_storage"];
             } catch (std::exception& e) {
               std::cout << "reset : " << e.what() << std::endl;
             }
@@ -94,7 +96,8 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
                 kvs.m_key = base64_decode(kv.value()[0]);
                 kvs.m_value = base64_decode(kv.value()[1]);
               }
-              fo.m_apply.m_storage.push_back(kvs);
+              apply->m_storage.push_back(kvs);
+              fo.m_apply.push_back(apply);
             }
           }
         }
@@ -157,7 +160,12 @@ std::ostream& operator<<(std::ostream& os, evmproj::ApplyInstructions& evm) {
 }
 
 std::ostream& operator<<(std::ostream& os, evmproj::CallRespose& evmRet) {
-  os << evmRet.m_apply << std::endl;
+
+  const std::shared_ptr<ApplyInstructions> ap;
+
+  for (const auto& it:evmRet.m_apply){
+    os << it << std::endl;;
+  }
 
   for (const auto& it : evmRet.Logs()) {
     os << it << std::endl;
