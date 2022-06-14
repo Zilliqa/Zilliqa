@@ -420,8 +420,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         // Initiate the contract account, including setting the contract code
         // store the immutable states
         if (!contractAccount->InitContract(transaction.GetCode(),
-                                           transaction.GetData(), contractAddress,
-                                           blockNum)) {
+                                           transaction.GetData(),
+                                           contractAddress, blockNum)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
         }
@@ -738,8 +738,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       m_curBlockNum = blockNum;
       if (isScilla &&
-          !ExportCallContractFiles(*contractAccount, transaction, scilla_version,
-                                   extlibs_exports)) {
+          !ExportCallContractFiles(*contractAccount, transaction,
+                                   scilla_version, extlibs_exports)) {
         LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
         return false;
@@ -765,16 +765,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVerRoot(transaction.GetToAddr(), scilla_version,
-                                                   contractAccount->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(
+          transaction.GetToAddr(), scilla_version,
+          contractAccount->GetStorageRoot());
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
       std::string runnerPrint;
       bool ret = true;
 
       if (isScilla) {
-        InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                          gasRemained, this->GetBalance(transaction.GetToAddr()), ret, receipt);
+        InvokeInterpreter(
+            RUNNER_CALL, runnerPrint, scilla_version, is_library, gasRemained,
+            this->GetBalance(transaction.GetToAddr()), ret, receipt);
 
       } else {
         EvmCallParameters params = {
@@ -789,8 +791,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                                     << " caller account is "
                                                     << params.m_caller);
 
-        uint64_t gasUsed = InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
-                                                evm_version, ret, receipt);
+        uint64_t gasUsed = InvokeEvmInterpreter(
+            contractAccount, RUNNER_CALL, params, evm_version, ret, receipt);
 
         if (gasUsed > 0) gasRemained = gasUsed;
       }
