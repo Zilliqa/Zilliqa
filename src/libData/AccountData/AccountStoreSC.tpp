@@ -129,8 +129,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt) {
-  bool csUpdate{true};
-
   evmproj::CallRespose evmReturnValues;
   uint64_t gas = params.m_available_gas;
 
@@ -147,9 +145,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     call_already_finished = true;
     cv_callContract.notify_all();
   };
-
+  // Run the Lambda on a detached thread and then wait for it to complete.
+  // means it cannot crash us if it dies.
   DetachedFunction(1, worker);
-
+  // Wait for the worker to finish
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     if (!call_already_finished) {
@@ -158,7 +157,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
   }
-
+  // not sure how timeout can be set - investigate
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");
 
@@ -166,11 +165,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
-
   if (not evmReturnValues.isSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
-
+  // switch ret to reflect our overall success
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (evmReturnValues.Logs().size() > 0) {
@@ -180,31 +178,32 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       receipt.AddException(lval);
     }
   }
-
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                      evmReturnValues.Gas());
-
+  std::map<std::string, bytes> states;
+  std::vector<std::string> toDeletes;
+  // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.m_apply) {
     if (it->OperationType() == "delete") {
       // be careful with this call needs further testing
       this->RemoveAccount(Address(it->Address()));
     } else {
+      // Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccount(Address(it->Address()));
       if (targetAccount == nullptr) {
         LOG_GENERAL(
             WARNING,
-            "Cannot find account for address given in ooperation instructions"
+            "Cannot find account for address given in  Apply operation from "
+            "EVM-DS"
             " ");
+        return gas;
       }
       if (it->OperationType() == "modify") {
-        // Reset State for this contract
         try {
-          //
-          // Reset Storage for the target account
-          //
           if (it->isResetStorage()) {
-            std::map<std::string, bytes> states;
-            std::vector<std::string> toDeletes;
+            states.clear();
+            toDeletes.clear();
+
             Contract::ContractStorage::GetContractStorage()
                 .FetchStateDataForContract(states, Address(it->Address()), "",
                                            {}, true);
@@ -213,6 +212,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             }
             if (!targetAccount->UpdateStates(Address(it->Address()), {},
                                              toDeletes, true)) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Failed to update states hby setting indices for deletion "
+                  "for "
+                      << it->Address());
             }
           }
         } catch (std::exception& e) {
@@ -224,7 +228,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         // If Instructed to reset the Code do so and call SetImmutable to reset
         // the hash
         try {
-          if (it->Code().size() > 0)
+          if (it->hasCode() && it->Code().size() > 0)
             targetAccount->SetImmutable(
                 DataConversion::StringToCharArray("EVM" + it->Code()),
                 contractAccount->GetInitData());
@@ -238,12 +242,16 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         // Actually Update the state for the contract
         try {
           for (const auto& sit : it->Storage()) {
-            if (!Contract::ContractStorage::GetContractStorage()
-                     .UpdateStateValue(
-                         Address(it->Address()),
-                         DataConversion::StringToCharArray(sit.Key()), 0,
-                         DataConversion::StringToCharArray(sit.Value()), 0)) {
-              return false;
+            if (not Contract::ContractStorage::GetContractStorage()
+                        .UpdateStateValue(
+                            Address(it->Address()),
+                            DataConversion::StringToCharArray(sit.Key()), 0,
+                            DataConversion::StringToCharArray(sit.Value()),
+                            0)) {
+              LOG_GENERAL(WARNING,
+                          "Exception thrown trying to update state in Contract "
+                          "storage "
+                              << it->Address());
             }
           }
         } catch (std::exception& e) {
@@ -254,27 +262,27 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                           << e.what());
         }
         try {
-          if (it->Balance().size())
+          if (it->hasBalance() && it->Balance().size())
             targetAccount->SetBalance(uint128_t(it->Balance()));
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will exmine exact possibilities and catch specific exceptions.
           LOG_GENERAL(
               WARNING,
-              "Exception thrown trying to update balance on contract Account "
+              "Exception thrown trying to update balance on target Account "
                   << e.what());
         }
         try {
-          if (it->Nonce().size())
+          if (it->hasNonce() && it->Nonce().size())
             targetAccount->SetNonce(std::stoull(it->Nonce()));
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will exmine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(
-              WARNING,
-              "Exception thrown trying to set Nonce on contract Account "
-                  << e.what());
+          LOG_GENERAL(WARNING,
+                      "Exception thrown trying to set Nonce on target Account "
+                          << e.what());
         }
+        // Mark the Address as updated
         m_storageRootUpdateBufferAtomic.emplace(it->Address());
       }
     }
@@ -284,12 +292,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     contractAccount->SetImmutable(DataConversion::StringToCharArray(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
-
-  if (not csUpdate) {
-    LOG_GENERAL(WARNING, "EvmUpdateContractStateAndAccount did not succeed");
-    ret = false;
-  }
-
   return gas;
 }
 
@@ -301,6 +303,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
   LOG_MARKER();
+
+  if (LOG_SC) LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
@@ -876,6 +880,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
   m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                    m_storageRootUpdateBufferAtomic.end());
+  if (LOG_SC) LOG_GENERAL(INFO, "Executing contract transaction finished");
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());

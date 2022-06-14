@@ -175,7 +175,9 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     }
   } else {
     if (!SetImmutable(code, initData))
-      LOG_GENERAL(WARNING, "SetImmutable failed");
+      LOG_GENERAL(WARNING,
+                  "EVM SetImmutable warned us that code or data is "
+                  "empty");
   }
 
   SetAddress(addr);

@@ -34,6 +34,9 @@ struct KeyValue {
   std::string m_key;
   std::string m_value;
 
+  bool m_hasKey{false};
+  bool m_hasValue{false};
+
   friend std::ostream& operator<<(std::ostream& os, KeyValue& kv);
 };
 
@@ -51,6 +54,19 @@ struct ApplyInstructions {
   std::string m_code;
   std::string m_balance;
   std::string m_nonce;
+
+  bool m_hasBalance{false};
+  bool m_hasGas{false};
+  bool m_hasNonce{false};
+  bool m_hasCode{false};
+  bool m_hasAddress{false};
+
+  const bool& hasBalance() { return m_hasBalance; }
+  const bool& hasGas() { return m_hasGas; }
+  const bool& hasNonce() { return m_hasNonce; }
+  const bool& hasCode() { return m_hasCode; }
+  const bool& hasAddress() { return m_hasAddress; }
+
   bool m_resetStorage{false};
   std::vector<KeyValue> m_storage;
 
@@ -58,7 +74,9 @@ struct ApplyInstructions {
 };
 
 struct CallRespose {
-  const std::vector<std::shared_ptr<ApplyInstructions>>& Apply() const { return m_apply; }
+  const std::vector<std::shared_ptr<ApplyInstructions>>& Apply() const {
+    return m_apply;
+  }
   const std::vector<std::string>& Logs() const { return m_logs; }
   const std::string& ExitReason() const { return m_exitReason; }
   uint64_t Gas() const { return m_gasRemaing; }
