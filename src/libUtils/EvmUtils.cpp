@@ -44,11 +44,23 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   std::string code;
   try {
     // take off the EVM prefix
-    std::copy(params.m_code.begin() + 3, params.m_code.end(),
-              std::back_inserter(code));
-    arr_ret.append(code);
+    if ((not params.m_code.empty()) && params.m_code.size() >= 3 &&
+        params.m_code[0] == 'E' && params.m_code[1] == 'V' && params.m_code[2]) {
+      std::copy(params.m_code.begin() + 3, params.m_code.end(),
+                std::back_inserter(code));
+      arr_ret.append(code);
+    } else {
+      LOG_GENERAL(WARNING, "Sending to EVM-DS code without a standard prefix,"
+                  " is this intended ? re-evalute this warning" << arr_ret);
+      arr_ret.append(params.m_code);
+    }
   } catch (std::exception& e) {
-    arr_ret.append(params.m_code);
+    LOG_GENERAL(WARNING, "Exception caught attempting to slice off prefix of "
+                "code"
+                " is this intended ? re-evalute this warning" << arr_ret);
+    LOG_GENERAL(WARNING, "Sending a blank code array for continuation purposes"
+                             << arr_ret);
+    arr_ret.append("");
   }
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());

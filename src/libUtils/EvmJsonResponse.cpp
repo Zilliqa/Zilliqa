@@ -95,13 +95,17 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
             if (not cobj.is_null()) {
               if (cobj.is_binary()) {
                 LOG_GENERAL(WARNING, "Code sent as Binary type ignored");
-                throw std::exception();
+                throw std::runtime_error(
+                    "unhandled DataType Binary used in "
+                    "Code ");
               } else if (cobj.is_string()) {
                 apply->m_code = cobj.get<std::string>();
                 apply->m_hasCode = true;
               } else {
                 LOG_GENERAL(WARNING, "Code sent as Unexpected type ignored");
-                throw std::exception();
+                throw std::runtime_error(
+                    "unhandled DataType used in Code "
+                    "value");
               }
             }
             // get the nonce for the account specified in the address
@@ -202,7 +206,8 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
           fo.m_return = j;
         } else {
           LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
-          throw std::exception();
+          throw std::runtime_error("Exception assigning code as a string from"
+              " value");
         }
       } else if (node.key() == "remaining_gas") {
         try {
