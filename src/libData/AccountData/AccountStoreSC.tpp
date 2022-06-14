@@ -315,7 +315,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-  Address toAddr = transaction.GetToAddr();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
@@ -333,7 +332,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // LOG_GENERAL(INFO, "Normal transaction");
 
       // Disallow normal transaction to contract account
-      Account* toAccount = this->GetAccount(toAddr);
+      Account* toAccount = this->GetAccount(transaction.GetToAddr());
       if (toAccount != nullptr) {
         if (toAccount->isContract()) {
           LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
@@ -421,7 +420,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         // Initiate the contract account, including setting the contract code
         // store the immutable states
         if (!contractAccount->InitContract(transaction.GetCode(),
-                                           transaction.GetData(), toAddr,
+                                           transaction.GetData(), contractAddress,
                                            blockNum)) {
           LOG_GENERAL(WARNING, "InitContract failed");
           init = false;
@@ -493,7 +492,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
-              toAddr, SCILLA_VERSION_INDICATOR, {}),
+              contractAddress, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
       if (isScilla &&
@@ -691,26 +690,26 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      Account* toAccount = this->GetAccount(toAddr);
-      if (toAccount == nullptr) {
+      Account* contractAccount = this->GetAccount(transaction.GetToAddr());
+      if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         return false;
       }
-      if (toAccount->GetCode().empty()) {
+      if (contractAccount->GetCode().empty()) {
         LOG_GENERAL(
             WARNING,
             "Trying to call a smart contract that has no code will fail");
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }
-      isScilla = !EvmUtils::isEvm(toAccount->GetCode());
+      isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
       bool is_library;
       uint32_t scilla_version;
       uint32_t evm_version;
 
       std::vector<Address> extlibs;
-      if (isScilla && !toAccount->GetContractAuxiliaries(
+      if (isScilla && !contractAccount->GetContractAuxiliaries(
                           is_library, scilla_version, extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -739,7 +738,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       m_curBlockNum = blockNum;
       if (isScilla &&
-          !ExportCallContractFiles(*toAccount, transaction, scilla_version,
+          !ExportCallContractFiles(*contractAccount, transaction, scilla_version,
                                    extlibs_exports)) {
         LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
         error_code = TxnStatus::FAIL_SCILLA_LIB;
@@ -756,7 +755,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       m_curGasLimit = transaction.GetGasLimit();
       m_curGasPrice = transaction.GetGasPrice();
-      m_curContractAddr = toAddr;
+      m_curContractAddr = transaction.GetToAddr();
       m_curAmount = transaction.GetAmount();
       m_curNumShards = numShards;
 
@@ -766,8 +765,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current contract address
-      m_scillaIPCServer->setContractAddressVerRoot(toAddr, scilla_version,
-                                                   toAccount->GetStorageRoot());
+      m_scillaIPCServer->setContractAddressVerRoot(transaction.GetToAddr(), scilla_version,
+                                                   contractAccount->GetStorageRoot());
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
       std::string runnerPrint;
@@ -775,13 +774,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (isScilla) {
         InvokeInterpreter(RUNNER_CALL, runnerPrint, scilla_version, is_library,
-                          gasRemained, this->GetBalance(toAddr), ret, receipt);
+                          gasRemained, this->GetBalance(transaction.GetToAddr()), ret, receipt);
 
       } else {
         EvmCallParameters params = {
             m_curContractAddr.hex(),
             fromAddr.hex(),
-            DataConversion::CharArrayToString(toAccount->GetCode()),
+            DataConversion::CharArrayToString(contractAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
             gasRemained,
             transaction.GetAmount()};
@@ -790,7 +789,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                                     << " caller account is "
                                                     << params.m_caller);
 
-        uint64_t gasUsed = InvokeEvmInterpreter(toAccount, RUNNER_CALL, params,
+        uint64_t gasUsed = InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
                                                 evm_version, ret, receipt);
 
         if (gasUsed > 0) gasRemained = gasUsed;
