@@ -129,8 +129,10 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
       result.m_ok = false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "RPC Exception calling EVM-DS : attempting server "
-                "restart " << e.what());
+    LOG_GENERAL(WARNING,
+                "RPC Exception calling EVM-DS : attempting server "
+                "restart "
+                    << e.what());
     m_initialised = false;
     if (!CheckClient(version, true)) {
       LOG_GENERAL(WARNING,

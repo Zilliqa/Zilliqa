@@ -206,7 +206,8 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
           fo.m_return = j;
         } else {
           LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
-          throw std::runtime_error("Exception assigning code as a string from"
+          throw std::runtime_error(
+              "Exception assigning code as a string from"
               " value");
         }
       } else if (node.key() == "remaining_gas") {
