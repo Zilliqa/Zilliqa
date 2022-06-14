@@ -10,7 +10,7 @@ include(ProcessorCount)
 ProcessorCount(N)
 
 
-message(STATUS "Building and installing mongo driver. This could take longer. Downloading git repo.")
+message(STATUS "Building and installing mongo driver. This could take longer")
 
 set(INSTALL_MONGO_LOG ${CMAKE_BINARY_DIR}/src/depends/install_mongo.log)
 
@@ -28,7 +28,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
 endif()
 
 # generate build directory
-message(STATUS "Generating build directory")
 execute_process(
     COMMAND ${CMAKE_COMMAND}
         -H${MONGO_C_SOURCE_DIR}
@@ -45,7 +44,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
 endif()
 
 # build and install mongo-c-driver
-message(STATUS "Build and install c driver")
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} -- -j${N}
     RESULT_VARIABLE INSTALL_MONGO_RET
@@ -57,7 +55,6 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
-message(STATUS "Running ${CMAKE_COMMAND}")
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} --target install
     RESULT_VARIABLE INSTALL_MONGO_RET
