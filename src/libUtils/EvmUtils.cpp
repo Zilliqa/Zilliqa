@@ -71,15 +71,16 @@ bool EvmUtils::EvmUpdateContractStateAndAccount(
         // Reset Meta Data for this Address effectively clears down the contract
         // storage for this Contract
         //
-        std::map<std::string, bytes> t_metadata;
-
-        t_metadata.emplace(
-            Contract::ContractStorage::GenerateStorageKey(
-                Address(op.Address()), CONTRACT_ADDR_INDICATOR, {}),
-            Address(op.Address()).asBytes());
-
-        if (!contractAccount->UpdateStates(Address(op.Address()), t_metadata,
-                                           {}, true)) {
+        std::map<std::string, bytes> states;
+        std::vector<std::string> toDeletes;
+        Contract::ContractStorage::GetContractStorage()
+            .FetchStateDataForContract(states, Address(op.Address()), "", {},
+                                       true);
+        for (const auto& x : states) {
+          toDeletes.emplace_back(x.first);
+        }
+        if (!contractAccount->UpdateStates(Address(op.Address()), {}, toDeletes,
+                                           true)) {
           LOG_GENERAL(WARNING,
                       "Account::UpdateStates reset metaData and Merkyle tree");
         }
