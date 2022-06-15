@@ -568,89 +568,90 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
                                      evm_version, ret, receipt);
+
+            ret_checker = true;
           }
-          ret_checker = true;
-        } else {
-          gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
-                                 gasRemained);
         }
-        // *************************************************************************
-        // Summary
-        boost::multiprecision::uint128_t gasRefund;
-        if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-                gasRemained, transaction.GetGasPrice(), gasRefund)) {
+      } else {
+        gasRemained =
+            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
+      }
+      // *************************************************************************
+      // Summary
+      boost::multiprecision::uint128_t gasRefund;
+      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+        this->RemoveAccount(contractAddress);
+        error_code = TxnStatus::MATH_ERROR;
+        return false;
+      }
+      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+        LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
+      }
+      if (!ret || !ret_checker) {
+        this->m_addressToAccount->erase(contractAddress);
+
+        receipt.SetResult(false);
+        if (!ret) {
+          receipt.AddError(RUNNER_FAILED);
+        }
+        if (!ret_checker) {
+          receipt.AddError(CHECKER_FAILED);
+        }
+        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+        receipt.update();
+
+        if (!this->IncreaseNonce(fromAddr)) {
           this->RemoveAccount(contractAddress);
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
-        if (!this->IncreaseBalance(fromAddr, gasRefund)) {
-          LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
-        }
-        if (!ret || !ret_checker) {
-          this->m_addressToAccount->erase(contractAddress);
 
-          receipt.SetResult(false);
-          if (!ret) {
-            receipt.AddError(RUNNER_FAILED);
-          }
-          if (!ret_checker) {
-            receipt.AddError(CHECKER_FAILED);
-          }
-          receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
-          receipt.update();
-
-          if (!this->IncreaseNonce(fromAddr)) {
-            this->RemoveAccount(contractAddress);
-            error_code = TxnStatus::MATH_ERROR;
-            return false;
-          }
-
-          if (isScilla)
-            LOG_GENERAL(INFO,
-                        "Create contract failed, but return true in order to "
-                        "change state");
-
-          if (LOG_SC) {
-            LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
-          }
-
-          if (!isScilla) {
-            LOG_GENERAL(INFO,
-                        "Executing contract Creation transaction finished "
-                        "unsuccessfully");
-            return false;
-          }
-          return true;  // Return true because the states already changed
-        }
-
-        if (transaction.GetGasLimit() < gasRemained) {
-          LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                   << transaction.GetGasLimit()
-                                   << " gasRemained: " << gasRemained
-                                   << ". Must be something wrong!");
-          error_code = TxnStatus::MATH_ERROR;
-          return false;
-        }
-
-        /// inserting address to create the uniqueness of the contract merkle
-        /// trie
         if (isScilla)
-          t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
-                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),
-                             contractAddress.asBytes());
+          LOG_GENERAL(INFO,
+                      "Create contract failed, but return true in order to "
+                      "change state");
 
-        if (isScilla && !contractAccount->UpdateStates(contractAddress,
-                                                       t_metadata, {}, true)) {
-          LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+        }
+
+        if (!isScilla) {
+          LOG_GENERAL(INFO,
+                      "Executing contract Creation transaction finished "
+                      "unsuccessfully");
           return false;
         }
+        return true;  // Return true because the states already changed
+      }
 
-        /// calculate total gas in receipt
-        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      if (transaction.GetGasLimit() < gasRemained) {
+        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                                 << transaction.GetGasLimit()
+                                 << " gasRemained: " << gasRemained
+                                 << ". Must be something wrong!");
+        error_code = TxnStatus::MATH_ERROR;
+        return false;
+      }
 
-        if (isScilla && is_library) {
-          m_newLibrariesCreated.emplace_back(contractAddress);
-        }
+      /// inserting address to create the uniqueness of the contract merkle
+      /// trie
+      if (isScilla)
+        t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
+                               contractAddress, CONTRACT_ADDR_INDICATOR, {}),
+                           contractAddress.asBytes());
+
+      if (isScilla && !contractAccount->UpdateStates(contractAddress,
+                                                     t_metadata, {}, true)) {
+        LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+        return false;
+      }
+
+      /// calculate total gas in receipt
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+
+      if (isScilla && is_library) {
+        m_newLibrariesCreated.emplace_back(contractAddress);
       }
       break;
     }
