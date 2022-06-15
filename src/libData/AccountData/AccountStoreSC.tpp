@@ -517,11 +517,26 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (ret) {
           std::string runnerPrint;
 
-          if (isScilla)
+          if (isScilla) {
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, transaction.GetAmount(),
                               ret, receipt);
-          else {
+
+            try {
+              if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
+                                              is_library)) {
+                ret = false;
+              }
+              if (!ret) {
+                gasRemained = std::min(
+                    transaction.GetGasLimit() - createGasPenalty, gasRemained);
+              }
+            } catch (const std::exception& e) {
+              LOG_GENERAL(WARNING, "Exception caught in create account (2): "
+                                       << e.what());
+              ret = false;
+            }
+          } else {
             LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
                                   << gasRemained << " alleged "
                                   << transaction.GetAmount() << " limit "
