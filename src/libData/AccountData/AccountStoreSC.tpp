@@ -521,7 +521,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, transaction.GetAmount(),
                               ret, receipt);
-
+            // parse runner output
             try {
               if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
                                               is_library)) {
@@ -550,6 +550,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasRemained,
                 transaction.GetAmount()};
 
+            // The code leading up to the call to InvokeEVMInterpreter is
+            // likely not required.
             std::map<std::string, bytes> t_newmetadata;
 
             t_newmetadata.emplace(
@@ -568,6 +570,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                      evm_version, ret, receipt);
           }
           ret_checker = true;
+        } else {
+          gasRemained = std::min(transaction.GetGasLimit() - createGasPenalty,
+                                 gasRemained);
         }
         // *************************************************************************
         // Summary
