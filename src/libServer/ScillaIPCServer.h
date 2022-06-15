@@ -75,9 +75,6 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                        std::string& type);
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
-  virtual bool updateExternalStateValue(const std::string &addr,
-                                        const std::string &query,
-                                        const std::string &value);
   virtual bool fetchBlockchainInfo(const std::string& query_name,
                                    const std::string& query_args,
                                    std::string& value);
@@ -86,11 +83,8 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
-
  private:
-  Address m_contrAddr = Address();
-  uint32_t m_version = std::numeric_limits<uint32_t>::max();
-  dev::h256 m_rootHash = dev::h256();
+  std::unique_ptr<const ScillaBCInfo> m_BCInfo;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_

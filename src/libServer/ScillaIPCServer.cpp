@@ -18,6 +18,7 @@
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 #include "depends/websocketpp/websocketpp/base64/base64.hpp"
 
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 
@@ -43,22 +44,15 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
                              "query", JSON_STRING, "value", JSON_STRING, NULL),
                    &ScillaIPCServer::updateStateValueI);
-  bindAndAddMethod(Procedure("updateExternalStateValue", PARAMS_BY_NAME,
-                             JSON_OBJECT, "addr",  JSON_STRING, "query",
-                             JSON_STRING, "value", JSON_STRING, NULL),
-                   &ScillaIPCServer::updateExternalStateValueI);
   bindAndAddMethod(
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
 }
 
-void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
-                                                uint32_t version,
-                                                const dev::h256 &rootHash) {
-  m_contrAddr = address;
-  m_version = version;
-  m_rootHash = rootHash;
+void ScillaIPCServer::setBCInfoProvider(
+    std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
+  m_BCInfo = std::move(bcInfo);
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -139,8 +133,8 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
-          m_contrAddr, DataConversion::StringToCharArray(query), 0, destination,
-          0, found)) {
+          m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query),
+          0, destination, 0, found)) {
     return false;
   }
 
@@ -156,8 +150,9 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
-          m_contrAddr, Address(addr), DataConversion::StringToCharArray(query),
-          0, destination, 0, found, type)) {
+          m_BCInfo->getCurContrAddr(), Address(addr),
+          DataConversion::StringToCharArray(query), 0, destination, 0, found,
+          type)) {
     return false;
   }
 
@@ -169,28 +164,38 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(
-      m_contrAddr, DataConversion::StringToCharArray(query), 0,
+      m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }
-
-bool ScillaIPCServer::updateExternalStateValue(const std::string &addr,
-                                               const std::string &query,
-                                               const std::string &value) {
-  return ContractStorage::GetContractStorage().UpdateStateValue(
-      Address(addr),  DataConversion::StringToCharArray(query), 0,
-      DataConversion::StringToCharArray(value), 0);
-};
-
 
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
-  if (query_name == "CHAINID") {
+  if (query_name == "BLOCKNUMBER") {
+    value = std::to_string(m_BCInfo->getCurBlockNum());
+    return true;
+  } else if (query_name == "TIMESTAMP") {
+    uint64_t blockNum = 0;
+    try {
+      blockNum = stoull(query_args);
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
+      return false;
+    }
+
+    TxBlockSharedPtr txBlockSharedPtr;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
+                                                    txBlockSharedPtr)) {
+      LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
+      return false;
+    }
+
+    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    return true;
+  } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);
     return true;
-  }
-
-  if (query_name == "ORIGIN") {
+  } else if (query_name == "ORIGIN") {
     value = m_BCInfo->getOriginAddr().hex();
     return true;
   }
@@ -218,7 +223,8 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     }
   }
 
-  // TODO: this will always return the value 0 so far, as we need the real DS block.
+  // TODO: this will always return the value 0 so far, as we need the real DS
+  // block.
   blockNum = m_BCInfo->getCurDSBlockNum();
   DSBlockSharedPtr dsBlockSharedPtr;
   if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY") {
@@ -245,4 +251,3 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   }
   return true;
 }
-

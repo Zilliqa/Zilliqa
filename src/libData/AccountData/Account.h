@@ -35,6 +35,8 @@
 #include "depends/libTrie/TrieDB.h"
 
 /// DB storing trie storage information for all accounts.
+template <class KeyType, class DB>
+using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class AccountBase : public SerializableDataBlock {
  protected:
