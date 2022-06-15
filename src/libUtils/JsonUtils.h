@@ -59,6 +59,12 @@ class JSONUtils {
       std::lock_guard<std::mutex> g(m_mutexReader);
       if (!m_reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
                            &errors)) {
+        errors.erase(std::remove_if(errors.begin(), errors.end(),
+                                    [&](char ch) {
+                                      return std::iscntrl(
+                                          static_cast<unsigned char>(ch));
+                                    }),
+                     errors.end());
         LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
         result = false;
       }

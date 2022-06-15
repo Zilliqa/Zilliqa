@@ -73,13 +73,13 @@ struct ApplyInstructions {
   friend std::ostream& operator<<(std::ostream& os, ApplyInstructions& evm);
 };
 
-struct CallRespose {
+struct CallResponse {
   const std::vector<std::shared_ptr<ApplyInstructions>>& Apply() const {
     return m_apply;
   }
   const std::vector<std::string>& Logs() const { return m_logs; }
   const std::string& ExitReason() const { return m_exitReason; }
-  uint64_t Gas() const { return m_gasRemaing; }
+  uint64_t Gas() const { return m_gasRemaining; }
   const std::string& ReturnedBytes() const { return m_return; }
   bool isSuccess();
   std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
@@ -87,14 +87,14 @@ struct CallRespose {
   bool m_ok{false};
   std::string m_exitReason;
   std::string m_return;
-  uint64_t m_gasRemaing{0};
+  uint64_t m_gasRemaining{0};
 
-  friend std::ostream& operator<<(std::ostream& os, CallRespose& evmRet);
+  friend std::ostream& operator<<(std::ostream& os, CallResponse& evmRet);
 };
 
-inline bool CallRespose::isSuccess() { return m_ok; }
+inline bool CallResponse::isSuccess() { return m_ok; }
 
-CallRespose& GetReturn(const Json::Value& oldJason, CallRespose& fo);
+CallResponse& GetReturn(const Json::Value& oldJason, CallResponse& fo);
 
 }  // namespace evmproj
 

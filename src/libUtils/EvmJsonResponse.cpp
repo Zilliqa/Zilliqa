@@ -34,8 +34,8 @@ namespace evmproj {
  * throws std::exception or the original exception is passed up to the caller.
  * */
 
-evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
-                                evmproj::CallRespose& fo) {
+evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
+                                 evmproj::CallResponse& fo) {
   nlohmann::json newJason;
 
   try {
@@ -212,7 +212,7 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
         }
       } else if (node.key() == "remaining_gas") {
         try {
-          fo.m_gasRemaing = node.value();
+          fo.m_gasRemaining = node.value();
         } catch (std::exception& e) {
           LOG_GENERAL(WARNING,
                       "Exception reading remaining_gas : " << e.what());
@@ -254,7 +254,7 @@ std::ostream& operator<<(std::ostream& os, evmproj::ApplyInstructions& evm) {
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, evmproj::CallRespose& evmRet) {
+std::ostream& operator<<(std::ostream& os, evmproj::CallResponse& evmRet) {
   const std::shared_ptr<ApplyInstructions> ap;
 
   for (const auto& it : evmRet.m_apply) {

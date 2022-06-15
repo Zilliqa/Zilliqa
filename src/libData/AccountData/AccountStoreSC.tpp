@@ -129,7 +129,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt) {
-  evmproj::CallRespose evmReturnValues;
+  evmproj::CallResponse evmReturnValues;
   uint64_t gas = params.m_available_gas;
 
   bool call_already_finished = false;
@@ -519,9 +519,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
           if (isScilla)
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
-                              is_library, gasRemained,
-                              std::numeric_limits<uint128_t>::max(), ret,
-                              receipt);
+                              is_library, gasRemained, transaction.GetAmount(),
+                              ret, receipt);
           else {
             LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
                                   << gasRemained << " alleged "

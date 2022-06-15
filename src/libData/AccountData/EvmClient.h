@@ -28,7 +28,7 @@
 
 namespace evmproj {
 
-struct CallRespose;
+struct CallResponse;
 
 }
 
@@ -45,7 +45,7 @@ class EvmClient {
                    __attribute__((unused)) bool enforce = false);
 
   bool CallRunner(uint32_t version, const Json::Value& _json,
-                  evmproj::CallRespose& result,
+                  evmproj::CallResponse& result,
                   uint32_t counter = MAXRETRYCONN);
 
  private:
