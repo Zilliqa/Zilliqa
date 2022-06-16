@@ -19,8 +19,7 @@ FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-FROM rust:latest as rust_builder
-RUN rustup component add clippy rustfmt
+FROM ubuntu:18.04 as rust_builder
 RUN apt-get update && apt-get install -y protobuf-compiler
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
