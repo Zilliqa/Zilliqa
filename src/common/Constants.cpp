@@ -729,3 +729,10 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
+const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") ==
+                      "true"};
+
+const std::string EVM_SERVER_SOCKET_PATH{
+    ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};
+const std::string EVM_SERVER_BINARY{
+    ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};

@@ -100,7 +100,6 @@ class AccountBase : public SerializableDataBlock {
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
-  /// Returns true if account is a contract account
   bool isContract() const;
 
   friend inline std::ostream& operator<<(std::ostream& out,
@@ -118,6 +117,7 @@ class Account : public AccountBase {
   // The associated code for this account.
   bytes m_codeCache;
   bytes m_initDataCache;
+
   Address m_address;  // used by contract account only
   Json::Value m_initDataJson = Json::nullValue;
   uint32_t m_scilla_version = std::numeric_limits<uint32_t>::max();

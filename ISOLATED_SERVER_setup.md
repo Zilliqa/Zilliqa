@@ -32,9 +32,21 @@ make clean; make
 ```
 <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
 <ENABLE_SC>true</ENABLE_SC>
-<SCILLA_ROOT>/home/ubuntu/scilla</SCILLA_ROOT>
+<SCILLA_ROOT>scilla</SCILLA_ROOT>
 <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+
+## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
+<ENABLE_EVM>true</ENABLE_EVM>
+<EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
+<EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
 ```
+
+Create a symlink to evm-ds at `/usr/local/bin/evm-ds`:
+
+```
+sudo ln -s ~/evm-ds/target/debug/evm-ds /usr/local/bin/evm-ds
+```
+
 4. Create swapfile
 ```
 // Recommended to have at least 4GB of free memory

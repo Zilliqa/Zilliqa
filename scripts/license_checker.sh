@@ -45,6 +45,9 @@ scope=$(find . -type f \( \
             -o -name "*.sh" \) \
             ! -name "run-clang-*.py" \
             ! -path "./build/*" \
+            ! -path "./scilla/*" \
+            ! -path "./cmake-build-debug/*" \
+            ! -path "./evm-ds/*" \
             ! -path "./src/depends/*" \
             ! -path "./scripts/depends/*")
 

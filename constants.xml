@@ -189,6 +189,9 @@
         <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
+        <ENABLE_EVM>false</ENABLE_EVM>
+        <EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
+        <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

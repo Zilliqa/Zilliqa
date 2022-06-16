@@ -16,6 +16,7 @@
  */
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
+#include "depends/websocketpp/websocketpp/base64/base64.hpp"
 
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -25,6 +26,9 @@
 using namespace std;
 using namespace Contract;
 using namespace jsonrpc;
+
+using websocketpp::base64_decode;
+using websocketpp::base64_encode;
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
@@ -39,6 +43,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
                              "query", JSON_STRING, "value", JSON_STRING, NULL),
                    &ScillaIPCServer::updateStateValueI);
+  bindAndAddMethod(
+      Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
+                "addr", JSON_STRING, "query", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchExternalStateValueB64I);
 }
 
 void ScillaIPCServer::setContractAddressVerRoot(const Address &address,
@@ -69,6 +77,23 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
   bool found;
   if (!fetchExternalStateValue(request["addr"].asString(),
                                request["query"].asString(), value, found,
+                               type)) {
+    throw JsonRpcException("Fetching external state value failed");
+  }
+
+  // Prepare the result and finish.
+  response.clear();
+  response.append(Json::Value(found));
+  response.append(Json::Value(value));
+  response.append(Json::Value(type));
+}
+
+void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
+                                                  Json::Value &response) {
+  std::string value, type;
+  bool found;
+  string query = base64_decode(request["query"].asString());
+  if (!fetchExternalStateValue(request["addr"].asString(), query, value, found,
                                type)) {
     throw JsonRpcException("Fetching external state value failed");
   }
@@ -122,6 +147,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
   return true;
 }
+
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(

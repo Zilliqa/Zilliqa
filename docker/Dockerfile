@@ -19,6 +19,14 @@ FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
+FROM rust:latest as rust_builder
+RUN rustup component add clippy rustfmt
+RUN apt-get update && apt-get install -y protobuf-compiler
+RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
+    cd /evm-ds && \
+    cargo build --verbose --release --package evm-ds && \
+    cargo test --verbose --release --package evm-ds
+
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
 FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -183,6 +191,7 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
+COPY --from=rust_builder /evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
