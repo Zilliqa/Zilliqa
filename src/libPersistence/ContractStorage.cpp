@@ -1045,7 +1045,6 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
                SCILLA_INDEX_SEPARATOR;
 
   if (query.ignoreval()) {
-    // TODO(valeryz): change this so that empty indices mean removal of account.
     if (query.indices().size() < 1) {
       LOG_GENERAL(WARNING, "indices cannot be empty")
       return false;
