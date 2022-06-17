@@ -36,6 +36,7 @@ bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
+
     return false;
   }
 
@@ -47,6 +48,7 @@ bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+
     return false;
   }
 
@@ -79,6 +81,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   if (fromAccount == nullptr) {
     LOG_GENERAL(WARNING, "sender " << fromAddr.hex() << " not exist");
     error_code = TxnStatus::INVALID_FROM_ACCOUNT;
+
     return false;
   }
 
@@ -89,6 +92,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                     << " should be larger than the normal transaction gas ("
                     << NORMAL_TRAN_GAS << ")");
     error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
+
     return false;
   }
 
@@ -99,6 +103,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
         WARNING,
         "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
     error_code = TxnStatus::MATH_ERROR;
+
     return false;
   }
 
@@ -113,11 +118,13 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                        "with amount ("
                     << transaction.GetAmount() << ") in the transaction");
     error_code = TxnStatus::INSUFFICIENT_BALANCE;
+
     return false;
   }
 
   if (!DecreaseBalance(fromAddr, gasDeposit)) {
     error_code = TxnStatus::MATH_ERROR;
+
     return false;
   }
 
@@ -126,6 +133,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
       LOG_GENERAL(FATAL, "IncreaseBalance failed for gasDeposit");
     }
     error_code = TxnStatus::MATH_ERROR;
+
     return false;
   }
 
@@ -133,6 +141,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
                           transaction.GetGasPrice(), gasRefund)) {
     error_code = TxnStatus::MATH_ERROR;
+
     return false;
   }
 
@@ -143,6 +152,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
   if (!IncreaseNonce(fromAddr)) {
     error_code = TxnStatus::MATH_ERROR;
+
     return false;
   }
 
@@ -169,21 +179,17 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
     return false;
   }
 
-  // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
   return true;
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
-  // LOG_MARKER();
   return (nullptr != GetAccount(address));
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
-  // LOG_MARKER();
-
   if (toReplace || !IsAccountExist(address)) {
     (*m_addressToAccount)[address] = account;
 
@@ -219,15 +225,12 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
 
 template <class MAP>
 size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
-  // LOG_MARKER();
   return m_addressToAccount->size();
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-
   if (delta == 0) {
     return true;
   }
@@ -236,9 +239,7 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 
   if (account != nullptr && account->IncreaseBalance(delta)) {
     return true;
-  }
-
-  else if (account == nullptr) {
+  } else if (account == nullptr) {
     return AddAccount(address, {delta, 0});
   }
 
@@ -248,8 +249,6 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 template <class MAP>
 bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-
   if (delta == 0) {
     return true;
   }
@@ -273,8 +272,6 @@ template <class MAP>
 bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
                                             const Address& to,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-  // FIXME: Is there any elegent way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {
     if (IncreaseBalance(to, delta)) {
       return true;
@@ -290,8 +287,6 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
 
 template <class MAP>
 uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
-  // LOG_MARKER();
-
   const Account* account = GetAccount(address);
 
   if (account != nullptr) {
@@ -303,21 +298,14 @@ uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
-  // LOG_MARKER();
-
   Account* account = GetAccount(address);
-
-  // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
   if (nullptr == account) {
     LOG_GENERAL(WARNING, "Increase nonce failed");
-
     return false;
   }
 
   if (account->IncreaseNonce()) {
-    // LOG_GENERAL(INFO, "Increase nonce done");
-    // UpdateStateTrie(address, *account);
     return true;
   } else {
     LOG_GENERAL(WARNING, "Increase nonce failed");
@@ -327,8 +315,6 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
 
 template <class MAP>
 uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
-  // LOG_MARKER();
-
   Account* account = GetAccount(address);
 
   if (account != nullptr) {

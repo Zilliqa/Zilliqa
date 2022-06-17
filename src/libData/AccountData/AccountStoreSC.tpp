@@ -33,7 +33,7 @@
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
-// 5mb
+/// 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 template <class MAP>
@@ -122,7 +122,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   }
 }
 
-// New Invoker for EVM returns the gas, maybe change this
+/// New Invoker for EVM returns the gas, maybe change this
 
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
@@ -131,9 +131,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     TransactionReceipt& receipt) {
   evmproj::CallResponse evmReturnValues;
   uint64_t gas = params.m_available_gas;
-
   bool call_already_finished = false;
-
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
     Json::Value jval;
@@ -145,10 +143,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     call_already_finished = true;
     cv_callContract.notify_all();
   };
-  // Run the Lambda on a detached thread and then wait for it to complete.
-  // means it cannot crash us if it dies.
+
+  /// Run the Lambda on a detached thread and then wait for it to complete.
+  /// means it cannot crash us if it dies.
   DetachedFunction(1, worker);
-  // Wait for the worker to finish
+
+  /// Wait for the worker to finish
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     if (!call_already_finished) {
@@ -157,7 +157,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
   }
-  // not sure how timeout can be set - investigate
+
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");
 
@@ -165,30 +165,33 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
+
   if (not evmReturnValues.isSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
-  // switch ret to reflect our overall success
+
+  /// switch ret to reflect our overall success
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (evmReturnValues.Logs().size() > 0) {
     for (const auto& lval : evmReturnValues.Logs()) {
       LOG_GENERAL(WARNING, "Logs:" << lval);
-      Json::Value v = "{ msg =\"" + lval + "\"" + "}";
       receipt.AddException(lval);
     }
   }
+
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                      evmReturnValues.Gas());
   std::map<std::string, bytes> states;
   std::vector<std::string> toDeletes;
-  // parse the return values from the call to evm.
+
+  /// parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.m_apply) {
     if (it->OperationType() == "delete") {
-      // be careful with this call needs further testing
+      /// be careful with this call needs further testing
       this->RemoveAccount(Address(it->Address()));
     } else {
-      // Get the account that this apply instruction applies to
+      /// Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccount(Address(it->Address()));
       if (targetAccount == nullptr) {
         LOG_GENERAL(
@@ -198,6 +201,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             " ");
         return gas;
       }
+
       if (it->OperationType() == "modify") {
         try {
           if (it->isResetStorage()) {
@@ -207,9 +211,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             Contract::ContractStorage::GetContractStorage()
                 .FetchStateDataForContract(states, Address(it->Address()), "",
                                            {}, true);
+
             for (const auto& x : states) {
               toDeletes.emplace_back(x.first);
             }
+
             if (!targetAccount->UpdateStates(Address(it->Address()), {},
                                              toDeletes, true)) {
               LOG_GENERAL(
@@ -220,26 +226,28 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             }
           }
         } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          /// for now catch any generic exceptions and report them
+          /// will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to reset storage " << e.what());
         }
-        // If Instructed to reset the Code do so and call SetImmutable to reset
-        // the hash
+
+        /// If Instructed to reset the Code do so and call SetImmutable to reset
+        /// the hash
         try {
           if (it->hasCode() && it->Code().size() > 0)
             targetAccount->SetImmutable(
                 DataConversion::StringToCharArray("EVM" + it->Code()),
                 contractAccount->GetInitData());
         } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          /// For now catch any generic exceptions and report them
+          /// will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(
               WARNING,
               "Exception thrown trying to update Contract code " << e.what());
         }
-        // Actually Update the state for the contract
+
+        /// Actually Update the state for the contract
         try {
           for (const auto& sit : it->Storage()) {
             if (not Contract::ContractStorage::GetContractStorage()
@@ -255,34 +263,36 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             }
           }
         } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          /// For now catch any generic exceptions and report them
+          /// will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to update state on the contract "
                           << e.what());
         }
+
         try {
           if (it->hasBalance() && it->Balance().size())
             targetAccount->SetBalance(uint128_t(it->Balance()));
         } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          /// For now catch any generic exceptions and report them
+          /// will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(
               WARNING,
               "Exception thrown trying to update balance on target Account "
                   << e.what());
         }
+
         try {
           if (it->hasNonce() && it->Nonce().size())
             targetAccount->SetNonce(std::stoull(it->Nonce()));
         } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          /// For now catch any generic exceptions and report them
+          /// will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to set Nonce on target Account "
                           << e.what());
         }
-        // Mark the Address as updated
+        /// Mark the Address as updated
         m_storageRootUpdateBufferAtomic.emplace(it->Address());
       }
     }
@@ -304,7 +314,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TxnStatus& error_code) {
   LOG_MARKER();
 
-  if (LOG_SC) LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
@@ -316,10 +328,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   const PubKey& senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
 
-  // Initiate gasRemained
+  /// Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
-  // Get the amount of deposit for running this txn
+  /// Get the amount of deposit for running this txn
   uint128_t gasDeposit;
   if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
                                 gasDeposit)) {
@@ -329,9 +341,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
-      // LOG_GENERAL(INFO, "Normal transaction");
-
-      // Disallow normal transaction to contract account
+      /// Disallow normal transaction to 'contract account'
       Account* toAccount = this->GetAccount(transaction.GetToAddr());
       if (toAccount != nullptr) {
         if (toAccount->isContract()) {
@@ -344,11 +354,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
                                                    error_code);
     }
-
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
-
-      // bool validToTransferBalance = true;
 
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
@@ -357,11 +364,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      uint64_t createGasPenalty = std::max(
+      const uint64_t createGasPenalty = std::max(
           CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
                                               transaction.GetData().size()));
 
-      // Check if gaslimit meets the minimum requirement for contract deployment
+      /// Check if gaslimit meets the minimum requirement for contract
+      /// deployment
       if (transaction.GetGasLimit() < createGasPenalty) {
         LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
                                           << " less than " << createGasPenalty);
@@ -369,14 +377,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      // Check if the sender has enough balance to pay gasDeposit
+      /// Check if the sender has enough balance to pay gasDeposit
       if (fromAccount->GetBalance() < gasDeposit) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
-      // deduct scilla checker invoke gas
+
+      /// Deduct scilla checker invoke gas
       if (gasRemained < SCILLA_CHECKER_INVOKE_GAS) {
         LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla checker");
         error_code = TxnStatus::INSUFFICIENT_GAS;
@@ -385,40 +394,43 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
       }
 
-      // generate address for new contract account
+      /// Generate address for new contract account
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
-      // instantiate the object for contract account
-      // ** Remeber to call RemoveAccount if deployment failed halfway
+
+      /// Instantiate the object for contract account
       if (!this->AddAccount(contractAddress, {0, 0})) {
         LOG_GENERAL(WARNING, "AddAccount failed for contract address "
                                  << contractAddress.hex());
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
+
       Account* contractAccount = this->GetAccount(contractAddress);
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "contractAccount is null ptr");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
+
       if (transaction.GetCode().empty()) {
         LOG_GENERAL(WARNING,
                     "Creating a contract with empty code is not feasible.");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
+
       isScilla = !EvmUtils::isEvm(transaction.GetCode());
 
-      bool init = true;
-      bool is_library;
+      bool init{true};
+      bool is_library{false};
       std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-      uint32_t scilla_version;
+      uint32_t scilla_version{0};
       uint32_t evm_version{0};
 
       try {
-        // Initiate the contract account, including setting the contract code
-        // store the immutable states
+        /// Initiate the contract account, including setting the contract code
+        /// store the immutable states
         if (!contractAccount->InitContract(transaction.GetCode(),
                                            transaction.GetData(),
                                            contractAddress, blockNum)) {
@@ -473,21 +485,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      // prepare IPC with current contract address
+      /// Prepare IPC with current contract address
       m_scillaIPCServer->setContractAddressVerRoot(
           contractAddress, scilla_version, contractAccount->GetStorageRoot());
 
-      // ************************************************************************
-      // Undergo scilla checker
+      /// Undergo scilla checker
       bool ret_checker = true;
       std::string checkerPrint;
 
-      if (isScilla)
+      if (isScilla) {
         InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library,
                           gasRemained, 0, ret_checker, receipt);
-      // 0xabc._version
-      // 0xabc._depth.data1
-      // 0xabc._type.data1
+      }
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
@@ -500,12 +509,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                       t_metadata, gasRemained, is_library)) {
         ret_checker = false;
       }
-      // *************************************************************************
-      // Undergo a runner
-      bool ret = true;
+
+      /// Undergo a runner
+      bool ret{true};
 
       if (ret_checker) {
-        // deduct scilla runner invoke gas
+        /// deduct scilla runner invoke gas
         if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
           LOG_GENERAL(WARNING, "Not enough gas to invoke the runner");
           receipt.AddError(GAS_NOT_SUFFICIENT);
@@ -521,12 +530,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeInterpreter(RUNNER_CREATE, runnerPrint, scilla_version,
                               is_library, gasRemained, transaction.GetAmount(),
                               ret, receipt);
-            // parse runner output
+            /// parse runner output
             try {
               if (ret && !ParseCreateContract(gasRemained, runnerPrint, receipt,
                                               is_library)) {
                 ret = false;
               }
+
               if (!ret) {
                 gasRemained = std::min(
                     transaction.GetGasLimit() - createGasPenalty, gasRemained);
@@ -550,8 +560,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasRemained,
                 transaction.GetAmount()};
 
-            // The code leading up to the call to InvokeEVMInterpreter is
-            // likely not required.
+            /// The code leading up to the call to InvokeEVMInterpreter is
+            /// likely not required.
             std::map<std::string, bytes> t_newmetadata;
 
             t_newmetadata.emplace(
@@ -576,8 +586,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         gasRemained =
             std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
       }
-      // *************************************************************************
-      // Summary
+      /// *************************************************************************
+      /// Summary
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
@@ -585,9 +595,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
+
       if (!this->IncreaseBalance(fromAddr, gasRefund)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
+
       if (!ret || !ret_checker) {
         this->m_addressToAccount->erase(contractAddress);
 
@@ -595,9 +607,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (!ret) {
           receipt.AddError(RUNNER_FAILED);
         }
+
         if (!ret_checker) {
           receipt.AddError(CHECKER_FAILED);
         }
+
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
 
@@ -622,7 +636,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                       "unsuccessfully");
           return false;
         }
-        return true;  // Return true because the states already changed
+        return true;  /// Return true because the states already changed
       }
 
       if (transaction.GetGasLimit() < gasRemained) {
@@ -634,12 +648,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      /// inserting address to create the uniqueness of the contract merkle
-      /// trie
-      if (isScilla)
+      //// Inserting address to create the uniqueness of the contract
+      /// 'Merkle Tree'
+      if (isScilla) {
         t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                contractAddress, CONTRACT_ADDR_INDICATOR, {}),
                            contractAddress.asBytes());
+      }
 
       if (isScilla && !contractAccount->UpdateStates(contractAddress,
                                                      t_metadata, {}, true)) {
@@ -647,7 +662,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      /// calculate total gas in receipt
+      //// Calculate total gas in receipt
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
 
       if (isScilla && is_library) {
@@ -657,7 +672,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     case Transaction::CONTRACT_CALL: {
-      // reset the storageroot update buffer atomic per transaction
+      /// Reset the storage root update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
       m_originAddr = fromAddr;
@@ -698,7 +713,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      // deduct scilla checker invoke gas
+      //// Deduct scilla checker invoke gas
       if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
         LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
         error_code = TxnStatus::INSUFFICIENT_GAS;
@@ -716,6 +731,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         return false;
       }
+
       if (contractAccount->GetCode().empty()) {
         LOG_GENERAL(
             WARNING,
@@ -723,12 +739,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }
-      isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
-      bool is_library;
-      uint32_t scilla_version;
-      uint32_t evm_version;
 
+      isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
+
+      bool is_library{false};
+      uint32_t scilla_version{};
+      uint32_t evm_version{};
       std::vector<Address> extlibs;
+
       if (isScilla && !contractAccount->GetContractAuxiliaries(
                           is_library, scilla_version, extlibs)) {
         LOG_GENERAL(WARNING, "GetContractAuxiliaries failed");
@@ -784,7 +802,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         tpStart = r_timer_start();
       }
 
-      // prepare IPC with current contract address
+      //// Prepare IPC with current contract address
       m_scillaIPCServer->setContractAddressVerRoot(
           transaction.GetToAddr(), scilla_version,
           contractAccount->GetStorageRoot());
@@ -797,7 +815,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         InvokeInterpreter(
             RUNNER_CALL, runnerPrint, scilla_version, is_library, gasRemained,
             this->GetBalance(transaction.GetToAddr()), ret, receipt);
-
       } else {
         EvmCallParameters params = {
             m_curContractAddr.hex(),
@@ -814,18 +831,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         uint64_t gasUsed = InvokeEvmInterpreter(
             contractAccount, RUNNER_CALL, params, evm_version, ret, receipt);
 
-        if (gasUsed > 0) gasRemained = gasUsed;
+        if (gasUsed > 0) {
+          gasRemained = gasUsed;
+        }
       }
 
       uint32_t tree_depth = 0;
 
-      if (isScilla) {
-        if (ret && !ParseCallContract(gasRemained, runnerPrint, receipt,
-                                      tree_depth, scilla_version)) {
-          receipt.RemoveAllTransitions();
-          ret = false;
-        }
+      if (isScilla && ret &&
+          !ParseCallContract(gasRemained, runnerPrint, receipt, tree_depth,
+                             scilla_version)) {
+        receipt.RemoveAllTransitions();
+        ret = false;
       }
+
       if (!ret) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
         DiscardAtomics();
@@ -834,6 +853,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       } else {
         CommitAtomics();
       }
+
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
@@ -855,6 +875,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+
       if (!ret) {
         receipt.SetResult(false);
         receipt.CleanEntry();
@@ -874,7 +895,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
           }
 
-          return true;  // Return true because the states already changed
+          return true;  /// Return true because the states already changed
         } else {
           return false;
         }
@@ -898,12 +919,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   receipt.SetResult(true);
   receipt.update();
 
-  // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+  /// since txn succeeded, commit the atomic buffer. If no updates, it is a
+  /// noop.
   m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                    m_storageRootUpdateBufferAtomic.end());
-  if (LOG_SC) LOG_GENERAL(INFO, "Executing contract transaction finished");
-
   if (LOG_SC) {
+    LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
@@ -915,14 +936,16 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
     uint32_t scilla_version, const std::vector<Address>& extlibs,
     std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
   LOG_MARKER();
+
   std::function<bool(const std::vector<Address>&,
                      std::map<Address, std::pair<std::string, std::string>>&)>
       extlibsExporter;
+
   extlibsExporter = [this, &scilla_version, &extlibsExporter](
                         const std::vector<Address>& extlibs,
                         std::map<Address, std::pair<std::string, std::string>>&
                             extlibs_exports) -> bool {
-    // export extlibs
+    //// Export extlibs
     for (const auto& libAddr : extlibs) {
       if (extlibs_exports.find(libAddr) != extlibs_exports.end()) {
         continue;
@@ -934,17 +957,18 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
         return false;
       }
 
-      /// Check whether there are caches
+      //// Check whether there are caches
       std::string code_path = EXTLIB_FOLDER + '/' + libAddr.hex();
       code_path += LIBRARY_CODE_EXTENSION;
       std::string json_path = EXTLIB_FOLDER + '/' + libAddr.hex() + ".json";
+
       if (boost::filesystem::exists(code_path) &&
           boost::filesystem::exists(json_path)) {
         continue;
       }
 
-      uint32_t ext_scilla_version;
-      bool ext_is_lib = false;
+      uint32_t ext_scilla_version{};
+      bool ext_is_lib{false};
       std::vector<Address> ext_extlibs;
 
       if (!libAcc->GetContractAuxiliaries(ext_is_lib, ext_scilla_version,
@@ -999,7 +1023,7 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
   }
 
   try {
-    // Scilla code
+    /// Scilla code
     std::ofstream os(INPUT_CODE + (is_library ? LIBRARY_CODE_EXTENSION
                                               : CONTRACT_FILE_EXTENSION));
     os << DataConversion::CharArrayToString(contract.GetCode());
@@ -1019,12 +1043,13 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     std::ofstream& os, const Account& contract,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
-  os.open(INIT_JSON);
   if (LOG_SC) {
     LOG_GENERAL(
-        INFO, "init data to export: "
+        INFO, "Init data to export: "
                   << DataConversion::CharArrayToString(contract.GetInitData()));
   }
+
+  os.open(INIT_JSON);
   os << DataConversion::CharArrayToString(contract.GetInitData());
   os.close();
 
@@ -1038,7 +1063,7 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     os << extlib_export.second.first;
     os.close();
 
-    std::string init_path =
+    const std::string init_path =
         EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
     boost::filesystem::remove(init_path);
 
@@ -1047,7 +1072,7 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     os.close();
   }
 
-  // Block Json
+  /// Block Json
   JSONUtils::GetInstance().writeJsontoFile(
       INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(m_curBlockNum));
 }
@@ -1058,6 +1083,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
   LOG_MARKER();
+
   std::chrono::system_clock::time_point tpStart;
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -1077,7 +1103,7 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   }
 
   try {
-    // Scilla code
+    /// Scilla code
     std::ofstream os(INPUT_CODE + CONTRACT_FILE_EXTENSION);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
@@ -1108,7 +1134,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   }
 
   try {
-    // Message Json
+    /// Message Json
     std::string dataStr(transaction.GetData().begin(),
                         transaction.GetData().end());
     Json::Value msgObj;
@@ -1180,14 +1206,17 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
       LOG_GENERAL(
           WARNING,
           "The json output of this contract didn't contain gas_remaining");
+
       if (gasRemained > CONTRACT_CREATE_GAS) {
         gasRemained -= CONTRACT_CREATE_GAS;
       } else {
         gasRemained = 0;
       }
+
       receipt.AddError(NO_GAS_REMAINING_FOUND);
       return false;
     }
+
     try {
       gasRemained = std::min(
           gasRemained,
@@ -1197,6 +1226,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
                                       << " is not numeric");
       return false;
     }
+
     LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
     if (!is_library) {
@@ -1218,6 +1248,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
                                    << stateVars.toStyledString());
           return false;
         }
+
         for (const auto& field : stateVars) {
           if (field.isMember("vname") && field.isMember("depth") &&
               field["depth"].isNumeric() && field.isMember("type")) {
@@ -1226,9 +1257,11 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
                     .GenerateStorageKey(addr, MAP_DEPTH_INDICATOR,
                                         {field["vname"].asString()}),
                 DataConversion::StringToCharArray(field["depth"].asString()));
+
             if (!hasMap && field["depth"].asInt() > 0) {
               hasMap = true;
             }
+
             metadata.emplace(
                 Contract::ContractStorage::GetContractStorage()
                     .GenerateStorageKey(addr, TYPE_INDICATOR,
@@ -1242,6 +1275,7 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
         }
         return true;
       };
+
       if (root["contract_info"].isMember("fields")) {
         if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
           return false;
@@ -1263,9 +1297,11 @@ bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
                                               TransactionReceipt& receipt,
                                               bool is_library) {
   Json::Value jsonOutput;
+
   if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
+
   return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt,
                                        is_library);
 }
@@ -1274,8 +1310,6 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
-  // LOG_MARKER();
-
   if (LOG_SC) {
     LOG_GENERAL(
         INFO,
@@ -1303,19 +1337,21 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
     TransactionReceipt& receipt, bool is_library) {
-  // LOG_MARKER();
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
         WARNING,
         "The json output of this contract didn't contain gas_remaining");
+
     if (gasRemained > CONTRACT_CREATE_GAS) {
       gasRemained -= CONTRACT_CREATE_GAS;
     } else {
       gasRemained = 0;
     }
+
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return false;
   }
+
   try {
     gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
                                             _json["gas_remaining"].asString()));
@@ -1324,6 +1360,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
                                     << " is not numeric");
     return false;
   }
+
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!is_library) {
@@ -1362,11 +1399,12 @@ bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                             uint32_t tree_depth,
                                             uint32_t scilla_version) {
   Json::Value jsonOutput;
-  // This just reparses the JSON, probably due to null values in string
-  // screwing up the json
+  /// This just re-parses the JSON, probably due to null values in string
+  /// screwing up the json
   if (!ParseCallContractOutput(jsonOutput, runnerPrint, receipt)) {
     return false;
   }
+
   return ParseCallContractJsonOutput(jsonOutput, gasRemained, receipt,
                                      tree_depth, scilla_version);
 }
@@ -1376,6 +1414,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
   std::chrono::system_clock::time_point tpStart;
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
   }
@@ -1395,6 +1434,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
     receipt.AddError(JSON_OUTPUT_CORRUPTED);
     return false;
   }
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(INFO, "Parse scilla-runner output (microseconds) = "
                           << r_timer_end(tpStart));
@@ -1409,23 +1449,27 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     TransactionReceipt& receipt, uint32_t tree_depth,
     uint32_t pre_scilla_version) {
   std::chrono::system_clock::time_point tpStart;
+
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
   }
 
-  // Find remaining gas.
+  /// Find remaining gas.
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
         WARNING,
         "The json output of this contract didn't contain gas_remaining");
+
     if (gasRemained > CONTRACT_INVOKE_GAS) {
       gasRemained -= CONTRACT_INVOKE_GAS;
     } else {
       gasRemained = 0;
     }
+
     receipt.AddError(NO_GAS_REMAINING_FOUND);
     return false;
   }
+
   uint64_t startGas = gasRemained;
   try {
     gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
@@ -1435,9 +1479,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                                     << " is not numeric");
     return false;
   }
+
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  // TODO: ignore messages for EVM
+  /// TODO: ignore messages for EVM
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
@@ -1450,7 +1495,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  // TODO: ignore _accepted for the EVM.
+  /// TODO: ignore _accepted for the EVM.
   if (!_json.isMember("_accepted")) {
     LOG_GENERAL(WARNING,
                 "The json output of this contract doesn't contain _accepted");
@@ -1460,7 +1505,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   bool accepted = (_json["_accepted"].asString() == "true");
   if (accepted) {
-    // LOG_GENERAL(INFO, "Contract accept amount transfer");
     if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                m_curAmount)) {
       LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
@@ -1471,9 +1515,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
-  // TOOD: ignore this.
   if (tree_depth == 0) {
-    // first call in a txn
+    /// first call in a txn
     receipt.AddAccepted(accepted);
   } else {
     if (!receipt.AddAcceptedForLastTransition(accepted)) {
@@ -1482,7 +1525,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  // TODO: process all the logs for EVM
+  /// TODO: process all the logs for EVM
   Account* contractAccount =
       m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
@@ -1504,7 +1547,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  // TODO: ignore messages
+  /// TODO: ignore messages
   bool ret = false;
 
   if (_json["messages"].type() != Json::arrayValue) {
@@ -1512,7 +1555,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  // If output message is null
+  /// If output message is null
   if (_json["messages"].empty()) {
     LOG_GENERAL(INFO,
                 "empty message in scilla output when invoking a "
@@ -1521,21 +1564,19 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     ret = true;
   }
 
-  // TODO: Ignore the rest.
-
   Address recipient;
   Account* account = nullptr;
 
   if (!ret) {
-    // Buffer the Addr for current caller
+    /// Buffer the Addr for current caller
     Address curContractAddr = m_curContractAddr;
     for (const auto& msg : _json["messages"]) {
       LOG_GENERAL(INFO, "Process new message");
 
-      // a buffer for `ret` flag to be reset per loop
+      /// A buffer for `ret` flag to be reset per loop
       bool t_ret = ret;
 
-      // Non-null messages must have few mandatory fields.
+      /// Non-null messages must have few mandatory fields.
       if (!msg.isMember("_tag") || !msg.isMember("_amount") ||
           !msg.isMember("params") || !msg.isMember("_recipient")) {
         LOG_GENERAL(
@@ -1554,6 +1595,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       recipient = Address(msg["_recipient"].asString());
+
       if (IsNullAddress(recipient)) {
         LOG_GENERAL(WARNING, "The recipient can't be null address");
         receipt.AddError(RECEIPT_IS_NULL);
@@ -1567,7 +1609,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         account = m_accountStoreAtomic->GetAccount(recipient);
       }
 
-      // Recipient is non-contract
+      /// Recipient is non-contract
       if (!account->isContract()) {
         LOG_GENERAL(INFO, "The recipient is non-contract");
         if (!TransferBalanceAtomic(curContractAddr, recipient, m_curAmount)) {
@@ -1578,8 +1620,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         }
       }
 
-      // Recipient is contract
-      // _tag field is empty
+      /// Recipient is contract
+      /// _tag field is empty
       if (msg["_tag"].asString().empty()) {
         LOG_GENERAL(INFO,
                     "_tag in the scilla output is empty when invoking a "
@@ -1597,7 +1639,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       if (t_ret) {
-        // return true;
         continue;
       }
 
@@ -1605,7 +1646,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       receipt.AddEdge();
       ++m_curEdges;
 
-      // deduct scilla runner invoke gas
+      /// Deduct scilla runner invoke gas
       if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
         LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
         receipt.AddError(GAS_NOT_SUFFICIENT);
@@ -1614,9 +1655,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
       }
 
-      // TODO: ignore this check.
-      // check whether the recipient contract is in the same shard with the
-      // current contract
+      /// Check whether the recipient contract is in the same shard with the
+      /// current contract
       if (!m_curIsDS &&
           (Transaction::GetShardIndex(curContractAddr, m_curNumShards) !=
            Transaction::GetShardIndex(recipient, m_curNumShards))) {
@@ -1648,10 +1688,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      // prepare IPC with the recipient contract address
-      bool is_library;
+      /// prepare IPC with the recipient contract address
+      bool is_library{false};
       std::vector<Address> extlibs;
-      uint32_t scilla_version;
+      uint32_t scilla_version{};
 
       if (!account->GetContractAuxiliaries(is_library, scilla_version,
                                            extlibs)) {
@@ -1694,7 +1734,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         return false;
       }
 
-      // prepare IPC with the recipient contract address
+      /// prepare IPC with the recipient contract address
       m_scillaIPCServer->setContractAddressVerRoot(recipient, scilla_version,
                                                    account->GetStorageRoot());
       std::string runnerPrint;
@@ -1743,8 +1783,8 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
       }
       LOG_GENERAL(INFO, "Address: " << addr.hex());
 
-      // *** IMPORTANT ***
-      // Setting storageRoot to empty to represent the states get changed
+      /// *** IMPORTANT ***
+      /// Setting storageRoot to empty to represent the states get changed
       account->SetStorageRoot(dev::h256());
     }
   }
@@ -1761,20 +1801,18 @@ template <class MAP>
 bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
                                                 const Address& to,
                                                 const uint128_t& delta) {
-  // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 
 template <class MAP>
 void AccountStoreSC<MAP>::CommitAtomics() {
   LOG_MARKER();
+
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
     Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
       *account = entry.second;
     } else {
-      // this->m_addressToAccount.emplace(std::make_pair(entry.first,
-      // entry.second));
       this->AddAccount(entry.first, entry.second);
     }
   }
