@@ -34,7 +34,7 @@
 #include "libUtils/SysCommand.h"
 
 /// 5mb
-const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
+constexpr unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES{5'120U};
 
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {
@@ -63,7 +63,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
     TransactionReceipt& receipt) {
-  bool call_already_finished = false;
+  auto call_already_finished{false};
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                &available_gas, &balance, &ret, &receipt,
                &call_already_finished]() mutable -> void {
@@ -102,6 +102,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     call_already_finished = true;
     cv_callContract.notify_all();
   };
+
   DetachedFunction(1, func);
 
   {
@@ -193,6 +194,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     } else {
       /// Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccount(Address(it->Address()));
+
       if (targetAccount == nullptr) {
         LOG_GENERAL(
             WARNING,
@@ -235,10 +237,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         /// If Instructed to reset the Code do so and call SetImmutable to reset
         /// the hash
         try {
-          if (it->hasCode() && it->Code().size() > 0)
+          if (it->hasCode() && it->Code().size() > 0) {
             targetAccount->SetImmutable(
                 DataConversion::StringToCharArray("EVM" + it->Code()),
                 contractAccount->GetInitData());
+          }
         } catch (std::exception& e) {
           /// For now catch any generic exceptions and report them
           /// will examine exact possibilities and catch specific exceptions.
@@ -271,8 +274,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasBalance() && it->Balance().size())
+          if (it->hasBalance() && it->Balance().size()) {
             targetAccount->SetBalance(uint128_t(it->Balance()));
+          }
         } catch (std::exception& e) {
           /// For now catch any generic exceptions and report them
           /// will examine exact possibilities and catch specific exceptions.
@@ -283,8 +287,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasNonce() && it->Nonce().size())
+          if (it->hasNonce() && it->Nonce().size()) {
             targetAccount->SetNonce(std::stoull(it->Nonce()));
+          }
         } catch (std::exception& e) {
           /// For now catch any generic exceptions and report them
           /// will examine exact possibilities and catch specific exceptions.
@@ -298,10 +303,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     }
   }
 
-  if (invoke_type == RUNNER_CREATE)
+  if (invoke_type == RUNNER_CREATE) {
     contractAccount->SetImmutable(DataConversion::StringToCharArray(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
+  }
   return gas;
 }
 
@@ -343,12 +349,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     case Transaction::NON_CONTRACT: {
       /// Disallow normal transaction to 'contract account'
       Account* toAccount = this->GetAccount(transaction.GetToAddr());
-      if (toAccount != nullptr) {
-        if (toAccount->isContract()) {
-          LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
-          error_code = TxnStatus::INVALID_TO_ACCOUNT;
-          return false;
-        }
+      if (toAccount && toAccount->isContract()) {
+        LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
+        error_code = TxnStatus::INVALID_TO_ACCOUNT;
+        return false;
       }
 
       return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
@@ -621,10 +625,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
 
-        if (isScilla)
+        if (isScilla) {
           LOG_GENERAL(INFO,
                       "Create contract failed, but return true in order to "
                       "change state");
+        }
 
         if (LOG_SC) {
           LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
@@ -648,7 +653,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      //// Inserting address to create the uniqueness of the contract
+      /// Inserting address to create the uniqueness of the contract
       /// 'Merkle Tree'
       if (isScilla) {
         t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
@@ -1276,10 +1281,9 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
         return true;
       };
 
-      if (root["contract_info"].isMember("fields")) {
-        if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
-          return false;
-        }
+      if (root["contract_info"].isMember("fields") &&
+          (!handleTypeForStateVar(root["contract_info"]["fields"]))) {
+        return false;
       }
     }
   } catch (const std::exception& e) {
@@ -1482,7 +1486,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
-  /// TODO: ignore messages for EVM
   if (!_json.isMember("messages") || !_json.isMember("events")) {
     if (_json.isMember("errors")) {
       LOG_GENERAL(WARNING, "Call contract failed");
@@ -1495,7 +1498,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  /// TODO: ignore _accepted for the EVM.
   if (!_json.isMember("_accepted")) {
     LOG_GENERAL(WARNING,
                 "The json output of this contract doesn't contain _accepted");
@@ -1525,7 +1527,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     }
   }
 
-  /// TODO: process all the logs for EVM
   Account* contractAccount =
       m_accountStoreAtomic->GetAccount(m_curContractAddr);
   if (contractAccount == nullptr) {
@@ -1547,7 +1548,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  /// TODO: ignore messages
   bool ret = false;
 
   if (_json["messages"].type() != Json::arrayValue) {
