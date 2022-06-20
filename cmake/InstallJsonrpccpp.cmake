@@ -68,6 +68,7 @@ endif()
 
 set(JSONRPC_INCLUDE_DIR ${INSTALL_DIR}/include)
 file(MAKE_DIRECTORY ${JSONRPC_INCLUDE_DIR})  # Must exist.
+include_directories(${JSONRPC_INCLUDE_DIR})
 
 add_library(jsonrpc::common STATIC IMPORTED)
 set_property(TARGET jsonrpc::common PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-common${CMAKE_STATIC_LIBRARY_SUFFIX})
