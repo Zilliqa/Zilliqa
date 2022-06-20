@@ -23,6 +23,43 @@
 using namespace jsonrpc;
 using namespace std;
 
+// temporary functions to add Eth style functions to the isolated server
+void IsolatedServer::AddJSONRpc() {
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetChainIdI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetBlocknumEthI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetNetVersionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
+                             jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
+                         NULL),
+      &IsolatedServer::GetBalanceEth);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
+                         NULL),
+      &IsolatedServer::GetBlockByNumber);
+
+  //AbstractServer<IsolatedServer>::bindAndAddMethod(
+  //    jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
+  //                       jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+  //                       NULL),
+  //    &LookupServer::GetTransactionI);
+}
+
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
@@ -38,6 +75,9 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &IsolatedServer::CreateTransactionI);
+
+  AddJSONRpc();
+
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("IncreaseBlocknum", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
@@ -487,7 +527,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   return m_gasPrice.str();
 }
 
-string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
+string IsolatedServer::GetMinimumGasPrice() { cout << "..." << std::endl; return m_gasPrice.str(); }
 
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);

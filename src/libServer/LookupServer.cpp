@@ -78,6 +78,13 @@ LookupServer::LookupServer(Mediator& mediator,
     : Server(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
+
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &Server::GetNodeTypeI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -800,6 +807,8 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
 }
 
 string LookupServer::GetMinimumGasPrice() {
+
+  std::cout << "GetMinGasPrice! " << std::endl;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -842,6 +851,9 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
+
+  std::cout << "Getting balance!" << std::endl;
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
