@@ -876,7 +876,42 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
-
+string LookupServer::EthGetCall(const Json::Value& _json) {
+  LOG_MARKER();
+  const auto& addr = JSONConversion::checkJsonEthGetCall(_json);
+  // Add mutex
+  uint64_t gasRemained =
+      2 * DS_MICROBLOCK_GAS_LIMIT;  // for now set total gas as twice the ds gas
+                                    // limit
+  Account* contractAccount = AccountStore::GetInstance().GetAccount(addr, true);
+  Address fromAddr;
+  string result;
+  uint64_t amount{0};
+  if (_json.isMember("fromAddr")) {
+    // set FromAddr
+  }
+  if (_json.isMember("amount")) {
+    // set amount
+  }
+  if (_json.isMember("gas_limit")) {
+    // set gas limit
+  }
+  EvmCallParameters params = {
+      addr.hex(),
+      fromAddr.hex(),
+      DataConversion::CharArrayToString(contractAccount->GetCode()),
+      _json["data"].asString(),
+      gasRemained,
+      amount};
+  bool ret = false;
+  AccountStore::GetInstance().ViewAccounts(contractAccount, params, ret,
+                                           result);
+  if (!ret) {
+    throw JsonRpcException(RPC_MISC_ERROR, "EthGetCall failed");
+  }
+  result = "0x" + result;
+  return result;
+}
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {

@@ -415,6 +415,30 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   return ret;
 }
 
+// if successfull returns lower-case to zil address
+Address JSONConversion::checkJsonEthGetCall(const Json::Value& _json) {
+  if (!_json.isMember("toAddr")) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "must contain toAddr");
+  }
+  string lower_case_addr;
+  if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
+                                              lower_case_addr)) {
+    LOG_GENERAL(INFO,
+                "To Address checksum wrong " << _json["toAddr"].asString());
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "To Addr checksum wrong");
+  }
+  bytes toAddr_ser;
+  if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
+    LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Invalid Hex Str for toAddr");
+  }
+
+  return Address(toAddr_ser);
+}
+
 const vector<string> JSONConversion::convertJsonArrayToVector(
     const Json::Value& _json) {
   if (!_json.isArray()) {

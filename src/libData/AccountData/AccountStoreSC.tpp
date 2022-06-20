@@ -128,8 +128,7 @@ template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
     EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt) {
-  evmproj::CallResponse evmReturnValues;
+    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   uint64_t gas = params.m_available_gas;
 
   bool call_already_finished = false;
@@ -293,6 +292,21 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
   return gas;
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::ViewAccounts(Account* contractAccount,
+                                       EvmCallParameters& params, bool& ret,
+                                       std::string& result) {
+  TransactionReceipt rcpt;
+  uint32_t evm_version{0};
+  evmproj::CallResponse response;
+  InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params, evm_version, ret,
+                       rcpt, response);
+  result = response.m_return;
+  if (LOG_SC) LOG_GENERAL(INFO, response);
+
+  return ret;
 }
 
 template <class MAP>
@@ -566,10 +580,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               LOG_GENERAL(WARNING, "Account::UpdateStates failed");
               return false;
             }
-
+            evmproj::CallResponse response;
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
-                                     evm_version, ret, receipt);
+                                     evm_version, ret, receipt, response);
 
             ret_checker = true;
           }
@@ -728,7 +742,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
       bool is_library;
       uint32_t scilla_version;
-      uint32_t evm_version;
+      uint32_t evm_version{0};
 
       std::vector<Address> extlibs;
       if (isScilla && !contractAccount->GetContractAuxiliaries(
@@ -814,9 +828,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                     << " caller account is "
                                                     << params.m_caller);
-
-        uint64_t gasUsed = InvokeEvmInterpreter(
-            contractAccount, RUNNER_CALL, params, evm_version, ret, receipt);
+        evmproj::CallResponse response;
+        uint64_t gasUsed =
+            InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+                                 evm_version, ret, receipt, response);
 
         if (gasUsed > 0) gasRemained = gasUsed;
       }

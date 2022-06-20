@@ -255,6 +255,10 @@ class LookupServer : public Server,
     response = this->GetStateProof(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
+  inline virtual void EthGetCallI(const Json::Value& request,
+                                  Json::Value& response) {
+    response = this->EthGetCall(request[0u]);
+  }
 
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -287,6 +291,7 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
+  std::string EthGetCall(const Json::Value& _json);
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();

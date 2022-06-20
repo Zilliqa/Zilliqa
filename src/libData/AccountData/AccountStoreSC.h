@@ -36,7 +36,8 @@ class ScillaIPCServer;
 
 namespace evmproj {
 struct ApplyInstructions;
-}
+struct CallResponse;
+}  // namespace evmproj
 
 template <class MAP>
 class AccountStoreAtomic
@@ -209,7 +210,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                 INVOKE_TYPE invoke_type,
                                 EvmCallParameters& params,
                                 const uint32_t& version, bool& ret,
-                                TransactionReceipt& receipt);
+                                TransactionReceipt& receipt,
+                                evmproj::CallResponse& evmReturnValues);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -251,6 +253,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
+
+  bool ViewAccounts(Account* contractAccount, EvmCallParameters& params,
+                    bool& ret, std::string& result);
 };
 
 #include "AccountStoreAtomic.tpp"
