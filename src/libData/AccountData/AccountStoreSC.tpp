@@ -656,7 +656,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       /// Inserting address to create the uniqueness of the contract
-      /// 'Merkle Tree'
+      /// 'Merkle Trie'
       if (isScilla) {
         t_metadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                contractAddress, CONTRACT_ADDR_INDICATOR, {}),
