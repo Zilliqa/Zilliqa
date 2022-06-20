@@ -35,8 +35,6 @@
 #include "depends/libTrie/TrieDB.h"
 
 /// DB storing trie storage information for all accounts.
-// static OverlayDB contractStatesDB("contractStates");
-
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
@@ -47,9 +45,6 @@ class AccountBase : public SerializableDataBlock {
   uint64_t m_nonce{};
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
-
- private:
-  bool m_evm{false};
 
  public:
   AccountBase() {}
@@ -104,10 +99,6 @@ class AccountBase : public SerializableDataBlock {
   const dev::h256& GetCodeHash() const;
 
   bool isContract() const;
-
-  bool isEvmContract() const { return m_evm; }
-
-  void SetEvmContract(const bool& state) { m_evm = state; }
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);

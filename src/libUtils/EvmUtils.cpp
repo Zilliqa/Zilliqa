@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <array>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -26,75 +27,89 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
-#include "libUtils/RunnerDetails.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/ContractStorage.h"
+#include "libUtils/EvmCallParameters.h"
+#include "libUtils/EvmJsonResponse.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-bool EvmUtils::PrepareRootPathWVersion(const uint32_t& evm_version,
-                                       string& root_w_version) {
-  root_w_version = EVM_ROOT;
-  if (ENABLE_EVM_MULTI_VERSION) {
-    root_w_version += '/' + to_string(evm_version);
+Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
+  Json::Value arr_ret(Json::arrayValue);
+
+  arr_ret.append(params.m_contract);
+  arr_ret.append(params.m_caller);
+  std::string code;
+  try {
+    // take off the EVM prefix
+    if ((not params.m_code.empty()) && params.m_code.size() >= 3 &&
+        params.m_code[0] == 'E' && params.m_code[1] == 'V' &&
+        params.m_code[2]) {
+      std::copy(params.m_code.begin() + 3, params.m_code.end(),
+                std::back_inserter(code));
+      arr_ret.append(code);
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Sending to EVM-DS code without a standard prefix,"
+                  " is this intended ? re-evalute this warning"
+                      << arr_ret);
+      arr_ret.append(params.m_code);
+    }
+  } catch (std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught attempting to slice off prefix of "
+                "code"
+                " is this intended ? re-evalute this warning"
+                    << arr_ret);
+    LOG_GENERAL(WARNING, "Sending a blank code array for continuation purposes"
+                             << arr_ret);
+    arr_ret.append("");
+  }
+  arr_ret.append(params.m_data);
+  arr_ret.append(params.m_apparent_value.str());
+  arr_ret.append(Json::Value::UInt64(params.m_available_gas));
+
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING, "Sending to EVM-DS" << arr_ret);
   }
 
-  if (!boost::filesystem::exists(root_w_version)) {
-    LOG_GENERAL(WARNING, "Folder for desired version (" << root_w_version
-                                                        << ") doesn't exists");
+  return arr_ret;
+}
+
+uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
+                                      INVOKE_TYPE invoke_type,
+                                      uint64_t& oldValue, uint64_t newValue) {
+  uint64_t cost{0};
+
+  if (newValue > 0) oldValue = std::min(oldValue, newValue);
+
+  if (invoke_type == RUNNER_CREATE) return oldValue;
+
+  cost = CONTRACT_INVOKE_GAS;
+
+  if (oldValue > cost) {
+    oldValue -= cost;
+  } else {
+    oldValue = 0;
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
+
+  return oldValue;
+}
+
+bool EvmUtils::isEvm(const bytes& code) {
+  if (not ENABLE_EVM) return false;
+
+  if (code.empty()) {
+    LOG_GENERAL(WARNING, "EVM is set and Code is empty, logic error");
+    // returning false which means it will behave as if it was a scilla only
+    // TODO : handle this third state
     return false;
   }
 
-  return true;
-}
-
-std::string EvmUtils::GetDataFromItemData(const std::string& itemData) {
-  Json::Value root;
-  Json::Reader reader;
-  std::string reply;
-  try {
-    if (reader.parse(itemData, root)) {
-      std::string testString = root[0]["vname"].asString();
-      if (testString != "_evm_version") {
-        LOG_GENERAL(WARNING,
-                    "Init Parameter does not appear to be formatted correctly "
-                        << testString);
-      }
-      reply = root[1]["data"].asString();
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught: " << e.what() << " itemData: " << itemData);
-  }
-  return reply;
-}
-
-Json::Value EvmUtils::GetCreateContractJson(RunnerDetails& details) {
-  Json::Value arr_ret(Json::arrayValue);
-
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
-  // The next two parameters come directly from the user in the code and init
-  // struct
-  //
-  arr_ret.append(details.m_code);
-  arr_ret.append(GetDataFromItemData(details.m_data));
-  arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
-
-  details.m_data = GetDataFromItemData(details.m_data) ;
-
-  return arr_ret;
-}
-
-Json::Value EvmUtils::GetCallContractJson(const RunnerDetails& details) {
-  Json::Value arr_ret(Json::arrayValue);
-
-  arr_ret.append(details.m_from);
-  arr_ret.append(details.m_to);
-  arr_ret.append(details.m_code);
-  arr_ret.append(details.m_data);
-  arr_ret.append("00");
-  arr_ret.append(Json::Value::UInt64(details.m_available_gas));
-
-  return arr_ret;
+  if (code.size() < 4) return false;
+  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }

@@ -26,13 +26,17 @@
 
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
+#include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/RunnerDetails.h"
+#include "libUtils/EvmCallParameters.h"
 
 template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
-struct EvmReturn;
+
+namespace evmproj {
+struct ApplyInstructions;
+}
 
 template <class MAP>
 class AccountStoreAtomic
@@ -48,8 +52,6 @@ class AccountStoreAtomic
   GetAddressToAccount();
 };
 
-enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
-
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the amount transfers happened within the current txn will only commit when
@@ -61,6 +63,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// the blocknum while executing each txn
   uint64_t m_curBlockNum{0};
+
+  /// the DS blocknum
+  uint64_t m_curDSBlockNum{0};
 
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
@@ -182,6 +187,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
  protected:
   AccountStoreSC();
 
+  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
+
+  const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
+
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
       const Account& contract, bool is_library, uint32_t scilla_version,
@@ -196,12 +205,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const boost::multiprecision::uint128_t& balance,
                          bool& ret, TransactionReceipt& receipt);
 
-  void InvokeEvmInterpreter(INVOKE_TYPE invoke_type,
-                            RunnerDetails& details,
-                            const uint32_t& version,
-                            bool& ret,
-                            TransactionReceipt& receipt,
-                            struct EvmReturn& result);
+  uint64_t InvokeEvmInterpreter(Account* contractAccount,
+                                INVOKE_TYPE invoke_type,
+                                EvmCallParameters& params,
+                                const uint32_t& version, bool& ret,
+                                TransactionReceipt& receipt);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

@@ -1249,4 +1249,3 @@ message LookupGetPendingTxnFromL2l
     ByteArray signature     = 3;
 }
 
-// From DSNode to

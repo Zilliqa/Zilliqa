@@ -15,18 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
-#define ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_INVOKETYPE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_INVOKETYPE_H_
 
-#include <string>
+enum INVOKE_TYPE { CHECKER, RUNNER_CREATE, RUNNER_CALL, DISAMBIGUATE };
 
-struct RunnerDetails {
-  std::string m_from;
-  std::string m_to;
-  std::string m_code;
-  std::string m_data;
-  const uint64_t m_available_gas;
-  const boost::multiprecision::uint128_t m_balance;
-};
-
-#endif  // ZILLIQA_SRC_LIBUTILS_RUNNERDETAILS_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_INVOKETYPE_H_
