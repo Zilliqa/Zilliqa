@@ -64,6 +64,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// the blocknum while executing each txn
   uint64_t m_curBlockNum{0};
 
+  /// the DS blocknum
+  uint64_t m_curDSBlockNum{0};
+
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
 
@@ -183,6 +186,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
  protected:
   AccountStoreSC();
+
+  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
+
+  const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
