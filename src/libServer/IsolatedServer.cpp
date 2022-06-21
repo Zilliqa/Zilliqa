@@ -108,10 +108,10 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("EthGetCall", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::EthGetCallI);
+      &LookupServer::GetEthCallI);
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",

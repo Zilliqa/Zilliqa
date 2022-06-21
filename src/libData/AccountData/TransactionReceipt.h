@@ -78,6 +78,7 @@ class TransactionReceipt : public SerializableDataBlock {
   void SetCumGas(const uint64_t& cumGas);
   void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
+  void AddJsonEntry(const Json::Value& obj);
   void AddTransition(const Address& addr, const Json::Value& transition,
                      uint32_t tree_depth);
   void AddAccepted(bool accepted);

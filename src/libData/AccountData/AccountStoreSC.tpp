@@ -122,15 +122,11 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   }
 }
 
-// New Invoker for EVM returns the gas, maybe change this
-
 template <class MAP>
-uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
-  uint64_t gas = params.m_available_gas;
-
+void AccountStoreSC<MAP>::EvmCallRunner(
+    INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
+    bool& ret, TransactionReceipt& receipt,
+    evmproj::CallResponse& evmReturnValues) {
   bool call_already_finished = false;
 
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
@@ -164,18 +160,36 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
+}
+
+// New Invoker for EVM returns the gas, maybe change this
+template <class MAP>
+uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
+    Account* contractAccount, INVOKE_TYPE invoke_type,
+    EvmCallParameters& params, const uint32_t& version, bool& ret,
+    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+  EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
+  uint64_t gas = params.m_available_gas;
   if (not evmReturnValues.isSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
   // switch ret to reflect our overall success
   ret = evmReturnValues.isSuccess() ? ret : false;
 
-  if (evmReturnValues.Logs().size() > 0) {
-    for (const auto& lval : evmReturnValues.Logs()) {
-      LOG_GENERAL(WARNING, "Logs:" << lval);
-      Json::Value v = "{ msg =\"" + lval + "\"" + "}";
-      receipt.AddException(lval);
+  if (!evmReturnValues.Logs().empty()) {
+    LOG_GENERAL(WARNING, evmReturnValues.Logs());
+    Json::Value _json;
+    Json::Reader _reader;
+    bool success = true;
+    try {
+      success = _reader.parse(evmReturnValues.Logs(), _json);
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Caught Exception: " << e.what());
     }
+    if (!success) {
+      LOG_GENERAL(WARNING, "Parsing json unsuccessuful");
+    }
+    receipt.AddJsonEntry(_json);
   }
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                      evmReturnValues.Gas());
@@ -295,14 +309,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(Account* contractAccount,
-                                       EvmCallParameters& params, bool& ret,
+bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
                                        std::string& result) {
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
-  InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params, evm_version, ret,
-                       rcpt, response);
+  EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
   result = response.m_return;
   if (LOG_SC) LOG_GENERAL(INFO, response);
 

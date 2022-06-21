@@ -300,6 +300,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthCallI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -876,38 +881,54 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
-string LookupServer::EthGetCall(const Json::Value& _json) {
+string LookupServer::GetEthCall(const Json::Value& _json) {
   LOG_MARKER();
-  const auto& addr = JSONConversion::checkJsonEthGetCall(_json);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
   // Add mutex
   uint64_t gasRemained =
       2 * DS_MICROBLOCK_GAS_LIMIT;  // for now set total gas as twice the ds gas
                                     // limit
-  Account* contractAccount = AccountStore::GetInstance().GetAccount(addr, true);
+  bytes code{};
+  bool ret = false;
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    Account* contractAccount =
+        AccountStore::GetInstance().GetAccount(addr, true);
+    if (contractAccount == nullptr) {
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
+    }
+    code = contractAccount->GetCode();
+  }
   Address fromAddr;
   string result;
   uint64_t amount{0};
-  if (_json.isMember("fromAddr")) {
-    // set FromAddr
+  try {
+    if (_json.isMember("fromAddr")) {
+      fromAddr = Address(_json["fromAddr"].asString());
+    }
+    if (_json.isMember("amount")) {
+      const auto& amount_str = _json["amount"].asString();
+      amount = strtoull(amount_str.c_str(), NULL, 0);
+    }
+    if (_json.isMember("gasLimit")) {
+      const auto& gasLimit_str = _json["gasLimit"].asString();
+      gasRemained = strtoull(gasLimit_str.c_str(), NULL, 0);
+    }
+    EvmCallParameters params = {addr.hex(),
+                                fromAddr.hex(),
+                                DataConversion::CharArrayToString(code),
+                                _json["data"].asString(),
+                                gasRemained,
+                                amount};
+
+    AccountStore::GetInstance().ViewAccounts(params, ret, result);
+  } catch (const exception& e) {
+    LOG_GENERAL(WARNING, "Error: " << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
-  if (_json.isMember("amount")) {
-    // set amount
-  }
-  if (_json.isMember("gas_limit")) {
-    // set gas limit
-  }
-  EvmCallParameters params = {
-      addr.hex(),
-      fromAddr.hex(),
-      DataConversion::CharArrayToString(contractAccount->GetCode()),
-      _json["data"].asString(),
-      gasRemained,
-      amount};
-  bool ret = false;
-  AccountStore::GetInstance().ViewAccounts(contractAccount, params, ret,
-                                           result);
   if (!ret) {
-    throw JsonRpcException(RPC_MISC_ERROR, "EthGetCall failed");
+    throw JsonRpcException(RPC_MISC_ERROR, "GetEthCall failed");
   }
   result = "0x" + result;
   return result;

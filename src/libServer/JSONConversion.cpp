@@ -416,7 +416,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
 }
 
 // if successfull returns lower-case to zil address
-Address JSONConversion::checkJsonEthGetCall(const Json::Value& _json) {
+Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
   if (!_json.isMember("toAddr")) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "must contain toAddr");
