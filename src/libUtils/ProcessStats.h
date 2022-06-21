@@ -15,11 +15,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_MEMORYSTATS_H_
-#define ZILLIQA_SRC_LIBUTILS_MEMORYSTATS_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_PROCESSSTATS_H_
+#define ZILLIQA_SRC_LIBUTILS_PROCESSSTATS_H_
 
 #include <string>
-void DisplayVirtualMemoryStats();
-int64_t DisplayPhysicalMemoryStats(const std::string& str,
-                                   int64_t startMem = 0);
-#endif  // ZILLIQA_SRC_LIBUTILS_MEMORYSTATS_H_
+class ProcessStats {
+ public:
+  int64_t DisplayPhysicalMemoryStats(const std::string& str,
+                                     int64_t startMem = 0);
+  void DisplayVirtualMemoryStats();
+  double GetCurrentCpuPercent();
+  static ProcessStats& GetInstance();
+
+ private:
+  clock_t lastCPU, lastSysCPU, lastUserCPU;
+  int numProcessors{};
+  ProcessStats();
+  ~ProcessStats();
+  int parseLine(char* line);
+  int GetProcessVirtualMemoryStats();
+  int GetProcessPhysicalMemoryStats();
+  void init();
+};
+#endif  // ZILLIQA_SRC_LIBUTILS_PROCESSSTATS_H_

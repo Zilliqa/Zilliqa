@@ -28,6 +28,7 @@
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/FileSystem.h"
+#include "libUtils/ProcessStats.h"
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
@@ -310,12 +311,17 @@ bool Retriever::RetrieveBlockLink() {
               "time)...");
 
   std::list<BlockLink>::iterator blocklinkItr;
+  uint32_t count = 0;
   for (blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
        ++blocklinkItr) {
     const auto& blocklink = *blocklinkItr;
+    if (++count % 100 == 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 
     if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
       DSBlockSharedPtr dsblock;
+
       if (!BlockStorage::GetBlockStorage().GetDSBlock(
               std::get<BlockLinkIndex::DSINDEX>(blocklink), dsblock)) {
         LOG_GENERAL(WARNING,
@@ -323,7 +329,6 @@ bool Retriever::RetrieveBlockLink() {
                         << std::get<BlockLinkIndex::DSINDEX>(blocklink));
         return false;
       }
-
       m_mediator.m_node->UpdateDSCommitteeComposition(dsComm, *dsblock, false);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 

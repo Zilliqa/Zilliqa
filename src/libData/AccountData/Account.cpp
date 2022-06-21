@@ -29,7 +29,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/MemoryStats.h"
+#include "libUtils/ProcessStats.h"
 #include "libUtils/SafeMath.h"
 
 using namespace std;
@@ -382,7 +382,8 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
   }
   int64_t startMem = 0;
   if (ENABLE_MEMORY_STATS) {
-    startMem = DisplayPhysicalMemoryStats("Before FetchStateJson", 0);
+    startMem = ProcessStats::GetInstance().DisplayPhysicalMemoryStats(
+        "Before FetchStateJson", 0);
   }
 
   if (vname != "_balance") {
@@ -392,7 +393,8 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
       return false;
     }
     if (ENABLE_MEMORY_STATS) {
-      startMem = DisplayPhysicalMemoryStats("After FetchStateJson", startMem);
+      startMem = ProcessStats::GetInstance().DisplayPhysicalMemoryStats(
+          "After FetchStateJson", startMem);
     }
     // Clear STL memory cache
     DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);

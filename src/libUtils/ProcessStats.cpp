@@ -14,15 +14,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "MemoryStats.h"
+#include "ProcessStats.h"
 #include <errno.h>
+#include <sys/times.h>
 #include <cstring>
 #include "libUtils/Logger.h"
 #include "sys/sysinfo.h"
 #include "sys/types.h"
 
 using namespace std;
-int parseLine(char* line) {
+
+ProcessStats& ProcessStats ::GetInstance() {
+  static ProcessStats pstats;
+  return pstats;
+}
+
+ProcessStats::ProcessStats() {
+  tms timeSample{};
+  lastCPU = times(&timeSample);
+  lastSysCPU = timeSample.tms_stime;
+  lastUserCPU = timeSample.tms_utime;
+  init();
+}
+
+ProcessStats::~ProcessStats() {}
+
+int ProcessStats ::parseLine(char* line) {
   // This assumes that a digit will be found and the line ends in " Kb".
   int i = strlen(line);
   const char* p = line;
@@ -32,7 +49,8 @@ int parseLine(char* line) {
   return i;
 }
 
-int GetProcessPhysicalMemoryStats() {  // Note: this value is in KB!
+int ProcessStats::GetProcessPhysicalMemoryStats() {  // Note: this value is in
+                                                     // KB!
   FILE* file = fopen("/proc/self/status", "r");
   if (file == NULL) {
     LOG_GENERAL(WARNING, "Failed to open file " << std::strerror(errno));
@@ -51,7 +69,8 @@ int GetProcessPhysicalMemoryStats() {  // Note: this value is in KB!
   return result;
 }
 
-int GetProcessVirtualMemoryStats() {  // Note: this value is in KB!
+int ProcessStats::GetProcessVirtualMemoryStats() {  // Note: this value is in
+                                                    // KB!
   FILE* file = fopen("/proc/self/status", "r");
   if (file == NULL) {
     LOG_GENERAL(WARNING, "Failed to open file " << std::strerror(errno));
@@ -70,7 +89,7 @@ int GetProcessVirtualMemoryStats() {  // Note: this value is in KB!
   return result;
 }
 
-void DisplayVirtualMemoryStats() {
+void ProcessStats::DisplayVirtualMemoryStats() {
   struct sysinfo memInfo = {};
   sysinfo(&memInfo);
   long long totalVirtualMem = memInfo.totalram;
@@ -92,7 +111,8 @@ void DisplayVirtualMemoryStats() {
                                              << " pid=" << Logger::GetPid());
 }
 
-int64_t DisplayPhysicalMemoryStats(const string& str, int64_t startMem) {
+int64_t ProcessStats::DisplayPhysicalMemoryStats(const string& str,
+                                                 int64_t startMem) {
   struct sysinfo memInfo = {};
   sysinfo(&memInfo);
   int processPhysMemUsed = GetProcessPhysicalMemoryStats();
@@ -105,4 +125,38 @@ int64_t DisplayPhysicalMemoryStats(const string& str, int64_t startMem) {
     LOG_GENERAL(INFO, "PM diff = " << diff << " " << str);
   }
   return processPhysMemUsedMB;
+}
+
+void ProcessStats::init() {
+  FILE* file;
+  char line[128];
+  file = fopen("/proc/cpuinfo", "r");
+  numProcessors = 0;
+  while (fgets(line, 128, file) != NULL) {
+    if (strncmp(line, "processor", 9) == 0) numProcessors++;
+  }
+  fclose(file);
+}
+
+double ProcessStats::GetCurrentCpuPercent() {
+  tms timeSample{};
+  clock_t now;
+  double percent;
+
+  now = times(&timeSample);
+  if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
+      timeSample.tms_utime < lastUserCPU) {
+    // Overflow detection. Just skip this value.
+    percent = -1.0;
+  } else {
+    percent = (timeSample.tms_stime - lastSysCPU) +
+              (timeSample.tms_utime - lastUserCPU);
+    percent /= (now - lastCPU);
+    percent *= 100;
+  }
+  lastCPU = now;
+  lastSysCPU = timeSample.tms_stime;
+  lastUserCPU = timeSample.tms_utime;
+
+  return percent;
 }
