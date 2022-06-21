@@ -177,17 +177,21 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (!evmReturnValues.Logs().empty()) {
-    LOG_GENERAL(WARNING, evmReturnValues.Logs());
-    Json::Value _json;
-    Json::Reader _reader;
+    Json::Value _json = Json::arrayValue;
     bool success = true;
-    try {
-      success = _reader.parse(evmReturnValues.Logs(), _json);
-    } catch (std::exception& e) {
-      LOG_GENERAL(WARNING, "Caught Exception: " << e.what());
-    }
-    if (!success) {
-      LOG_GENERAL(WARNING, "Parsing json unsuccessuful");
+    for (const auto& lval : evmReturnValues.Logs()) {
+      LOG_GENERAL(INFO, "Logs: " << lval);
+      Json::Reader _reader;
+      Json::Value tmp;
+      try {
+        success = _reader.parse(lval, tmp);
+      } catch (std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception: " << e.what());
+      }
+      if (!success) {
+        LOG_GENERAL(WARNING, "Parsing json unsuccessful " << lval)
+      }
+      _json.append(tmp);
     }
     receipt.AddJsonEntry(_json);
   }

@@ -77,13 +77,13 @@ struct CallResponse {
   const std::vector<std::shared_ptr<ApplyInstructions>>& Apply() const {
     return m_apply;
   }
-  const std::string Logs() const { return m_logs; }
+  const std::vector<std::string>& Logs() const { return m_logs; }
   const std::string& ExitReason() const { return m_exitReason; }
   uint64_t Gas() const { return m_gasRemaining; }
   const std::string& ReturnedBytes() const { return m_return; }
   bool isSuccess();
   std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
-  std::string m_logs;
+  std::vector<std::string> m_logs;
   bool m_ok{false};
   std::string m_exitReason;
   std::string m_return;

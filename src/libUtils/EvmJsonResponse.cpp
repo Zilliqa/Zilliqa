@@ -192,7 +192,14 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
           }
         }
       } else if (node.key() == "logs") {
-        fo.m_logs = to_string(node.value());
+        for (const auto& lg : node.value().items()) {
+          try {
+            fo.m_logs.push_back(to_string(lg.value()));
+          } catch (std::exception& e) {
+            LOG_GENERAL(WARNING, "Exception reading logs : " << e.what());
+            throw e;
+          }
+        }
       } else if (node.key() == "return_value") {
         nlohmann::json j = node.value();
         if (j.is_string()) {

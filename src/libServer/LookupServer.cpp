@@ -884,7 +884,6 @@ Json::Value LookupServer::GetBalance(const string& address) {
 string LookupServer::GetEthCall(const Json::Value& _json) {
   LOG_MARKER();
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
-  // Add mutex
   uint64_t gasRemained =
       2 * DS_MICROBLOCK_GAS_LIMIT;  // for now set total gas as twice the ds gas
                                     // limit
@@ -913,7 +912,8 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
     }
     if (_json.isMember("gasLimit")) {
       const auto& gasLimit_str = _json["gasLimit"].asString();
-      gasRemained = strtoull(gasLimit_str.c_str(), NULL, 0);
+      gasRemained =
+          min(gasRemained, (uint64_t)strtoull(gasLimit_str.c_str(), NULL, 0));
     }
     EvmCallParameters params = {addr.hex(),
                                 fromAddr.hex(),
