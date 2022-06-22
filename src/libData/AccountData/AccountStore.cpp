@@ -62,7 +62,9 @@ AccountStore::AccountStore() {
     }
   }
   // EVM required to run on Lookup nodes too for view calls
-  if (ENABLE_EVM) EvmClient::GetInstance().Init();
+  if (ENABLE_EVM) {
+    EvmClient::GetInstance().Init();
+  }
 }
 
 AccountStore::~AccountStore() {

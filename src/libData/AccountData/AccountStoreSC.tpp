@@ -190,6 +190,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       }
       if (!success) {
         LOG_GENERAL(WARNING, "Parsing json unsuccessful " << lval)
+        break;
       }
       _json.append(tmp);
     }
@@ -320,7 +321,9 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   evmproj::CallResponse response;
   EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
   result = response.m_return;
-  if (LOG_SC) LOG_GENERAL(INFO, response);
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, response);
+  }
 
   return ret;
 }
@@ -849,7 +852,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
                                  evm_version, ret, receipt, response);
 
-        if (gasUsed > 0) gasRemained = gasUsed;
+        if (gasUsed > 0) {
+          gasRemained = gasUsed;
+        }
       }
 
       uint32_t tree_depth = 0;
