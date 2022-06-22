@@ -912,8 +912,7 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
     }
     if (_json.isMember("gasLimit")) {
       const auto& gasLimit_str = _json["gasLimit"].asString();
-      gasRemained =
-          min(gasRemained, (uint64_t)strtoull(gasLimit_str.c_str(), NULL, 0));
+      gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
     EvmCallParameters params = {addr.hex(),
                                 fromAddr.hex(),
