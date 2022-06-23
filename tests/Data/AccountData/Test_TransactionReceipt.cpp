@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(transactionreceipt) {
   BOOST_CHECK_EQUAL(true, tr.GetString().compare(tranReceiptStr) == 0);
 
   LogEntry entry;
-  tr.AddEntry(entry);
+  tr.AddLogEntry(entry);
 
   tr.InstallError();
 

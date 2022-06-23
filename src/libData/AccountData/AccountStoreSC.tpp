@@ -169,35 +169,38 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
-  uint64_t gas = params.m_available_gas;
+
   if (not evmReturnValues.isSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
+
   // switch ret to reflect our overall success
   ret = evmReturnValues.isSuccess() ? ret : false;
 
   if (!evmReturnValues.Logs().empty()) {
     Json::Value _json = Json::arrayValue;
-    bool success = true;
-    for (const auto& lval : evmReturnValues.Logs()) {
-      LOG_GENERAL(INFO, "Logs: " << lval);
-      Json::Reader _reader;
-      Json::Value tmp;
+
+    for (const auto& logJsonString : evmReturnValues.Logs()) {
+      LOG_GENERAL(INFO, "Evm return value logs: " << logJsonString);
+
       try {
-        success = _reader.parse(lval, tmp);
+        Json::Value tmp;
+        Json::Reader _reader;
+        if (_reader.parse(logJsonString, tmp)) {
+          _json.append(tmp);
+        } else {
+          LOG_GENERAL(WARNING, "Parsing json unsuccessful " << logJsonString);
+        }
       } catch (std::exception& e) {
         LOG_GENERAL(WARNING, "Exception: " << e.what());
       }
-      if (!success) {
-        LOG_GENERAL(WARNING, "Parsing json unsuccessful " << lval)
-        break;
-      }
-      _json.append(tmp);
     }
     receipt.AddJsonEntry(_json);
   }
-  gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
-                                     evmReturnValues.Gas());
+
+  auto gas = EvmUtils::UpdateGasRemaining(
+      receipt, invoke_type, params.m_available_gas, evmReturnValues.Gas());
+
   std::map<std::string, bytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
@@ -216,6 +219,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             " ");
         return gas;
       }
+
       if (it->OperationType() == "modify") {
         try {
           if (it->isResetStorage()) {
@@ -228,6 +232,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             for (const auto& x : states) {
               toDeletes.emplace_back(x.first);
             }
+
             if (!targetAccount->UpdateStates(Address(it->Address()), {},
                                              toDeletes, true)) {
               LOG_GENERAL(
@@ -243,6 +248,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to reset storage " << e.what());
         }
+
         // If Instructed to reset the Code do so and call SetImmutable to reset
         // the hash
         try {
@@ -257,6 +263,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
               WARNING,
               "Exception thrown trying to update Contract code " << e.what());
         }
+
         // Actually Update the state for the contract
         try {
           for (const auto& sit : it->Storage()) {
@@ -279,6 +286,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                       "Exception thrown trying to update state on the contract "
                           << e.what());
         }
+
         try {
           if (it->hasBalance() && it->Balance().size())
             targetAccount->SetBalance(uint128_t(it->Balance()));
@@ -337,7 +345,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TxnStatus& error_code) {
   LOG_MARKER();
 
-  if (LOG_SC) LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
@@ -941,9 +951,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
   m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                    m_storageRootUpdateBufferAtomic.end());
-  if (LOG_SC) LOG_GENERAL(INFO, "Executing contract transaction finished");
 
   if (LOG_SC) {
+    LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
@@ -1314,8 +1324,6 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
-  // LOG_MARKER();
-
   if (LOG_SC) {
     LOG_GENERAL(
         INFO,
@@ -1537,7 +1545,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
         receipt.AddError(LOG_ENTRY_INSTALL_FAILED);
         return false;
       }
-      receipt.AddEntry(entry);
+      receipt.AddLogEntry(entry);
     }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught: " << e.what());
