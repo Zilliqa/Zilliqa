@@ -194,7 +194,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
       } else if (node.key() == "logs") {
         for (const auto& lg : node.value().items()) {
           try {
-            fo.m_logs.push_back(lg.value());
+            fo.m_logs.push_back(to_string(lg.value()));
           } catch (std::exception& e) {
             LOG_GENERAL(WARNING, "Exception reading logs : " << e.what());
             throw e;

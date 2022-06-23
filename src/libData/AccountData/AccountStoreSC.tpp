@@ -122,16 +122,11 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   }
 }
 
-// New Invoker for EVM returns the gas, maybe change this
-
 template <class MAP>
-uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt) {
-  evmproj::CallResponse evmReturnValues;
-  uint64_t gas = params.m_available_gas;
-
+void AccountStoreSC<MAP>::EvmCallRunner(
+    INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
+    bool& ret, TransactionReceipt& receipt,
+    evmproj::CallResponse& evmReturnValues) {
   bool call_already_finished = false;
 
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
@@ -165,18 +160,41 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }
+}
+
+// New Invoker for EVM returns the gas, maybe change this
+template <class MAP>
+uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
+    Account* contractAccount, INVOKE_TYPE invoke_type,
+    EvmCallParameters& params, const uint32_t& version, bool& ret,
+    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+  EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
+  uint64_t gas = params.m_available_gas;
   if (not evmReturnValues.isSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
   // switch ret to reflect our overall success
   ret = evmReturnValues.isSuccess() ? ret : false;
 
-  if (evmReturnValues.Logs().size() > 0) {
+  if (!evmReturnValues.Logs().empty()) {
+    Json::Value _json = Json::arrayValue;
+    bool success = true;
     for (const auto& lval : evmReturnValues.Logs()) {
-      LOG_GENERAL(WARNING, "Logs:" << lval);
-      Json::Value v = "{ msg =\"" + lval + "\"" + "}";
-      receipt.AddException(lval);
+      LOG_GENERAL(INFO, "Logs: " << lval);
+      Json::Reader _reader;
+      Json::Value tmp;
+      try {
+        success = _reader.parse(lval, tmp);
+      } catch (std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception: " << e.what());
+      }
+      if (!success) {
+        LOG_GENERAL(WARNING, "Parsing json unsuccessful " << lval)
+        break;
+      }
+      _json.append(tmp);
     }
+    receipt.AddJsonEntry(_json);
   }
   gas = EvmUtils::UpdateGasRemaining(receipt, invoke_type, gas,
                                      evmReturnValues.Gas());
@@ -293,6 +311,21 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
   return gas;
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
+                                       std::string& result) {
+  TransactionReceipt rcpt;
+  uint32_t evm_version{0};
+  evmproj::CallResponse response;
+  EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
+  result = response.m_return;
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, response);
+  }
+
+  return ret;
 }
 
 template <class MAP>
@@ -566,10 +599,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
               LOG_GENERAL(WARNING, "Account::UpdateStates failed");
               return false;
             }
-
+            evmproj::CallResponse response;
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
-                                     evm_version, ret, receipt);
+                                     evm_version, ret, receipt, response);
 
             ret_checker = true;
           }
@@ -728,7 +761,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
       bool is_library;
       uint32_t scilla_version;
-      uint32_t evm_version;
+      uint32_t evm_version{0};
 
       std::vector<Address> extlibs;
       if (isScilla && !contractAccount->GetContractAuxiliaries(
@@ -814,11 +847,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                     << " caller account is "
                                                     << params.m_caller);
+        evmproj::CallResponse response;
+        uint64_t gasUsed =
+            InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+                                 evm_version, ret, receipt, response);
 
-        uint64_t gasUsed = InvokeEvmInterpreter(
-            contractAccount, RUNNER_CALL, params, evm_version, ret, receipt);
-
-        if (gasUsed > 0) gasRemained = gasUsed;
+        if (gasUsed > 0) {
+          gasRemained = gasUsed;
+        }
       }
 
       uint32_t tree_depth = 0;

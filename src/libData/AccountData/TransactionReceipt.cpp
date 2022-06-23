@@ -130,6 +130,10 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
+void TransactionReceipt::AddJsonEntry(const Json::Value& obj) {
+  m_tranReceiptObj["event_logs"] = obj;
+}
+
 void TransactionReceipt::AddTransition(const Address& addr,
                                        const Json::Value& transition,
                                        uint32_t tree_depth) {
