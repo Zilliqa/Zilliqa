@@ -126,7 +126,7 @@ void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
   m_tranReceiptStr = tranReceiptStr;
 }
 
-void TransactionReceipt::AddEntry(const LogEntry& entry) {
+void TransactionReceipt::AddLogEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
