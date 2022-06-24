@@ -38,6 +38,8 @@ class IsolatedServer : public LookupServer,
   TxBlock GenerateTxBlock();
   void PostTxBlock();
 
+  void AddJSONRpc();
+
  public:
   std::string m_uuid;
   IsolatedServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server,
@@ -66,6 +68,15 @@ class IsolatedServer : public LookupServer,
                                    Json::Value& response) {
     (void)request;
     response = this->GetBlocknum();
+    //static uint64_t block_number = 9;
+    //block_number++;
+
+    //std::stringstream stream;
+    //stream << "0x" << std::hex << block_number;
+    //std::string result( stream.str() );
+    //std::cout << stream.str() << std::endl;
+
+    //response = stream.str();
   }
 
   inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
