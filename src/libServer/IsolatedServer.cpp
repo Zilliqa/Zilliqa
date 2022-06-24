@@ -23,6 +23,43 @@
 using namespace jsonrpc;
 using namespace std;
 
+// temporary functions to add Eth style functions to the isolated server
+void IsolatedServer::AddJSONRpc() {
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetChainIdI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetBlocknumEthI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &IsolatedServer::GetNetVersionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
+                             jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
+                         NULL),
+      &IsolatedServer::GetBalanceEth);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
+                         NULL),
+      &IsolatedServer::GetBlockByNumber);
+
+  //AbstractServer<IsolatedServer>::bindAndAddMethod(
+  //    jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
+  //                       jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+  //                       NULL),
+  //    &LookupServer::GetTransactionI);
+}
+
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
@@ -38,6 +75,9 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &IsolatedServer::CreateTransactionI);
+
+  AddJSONRpc();
+
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("IncreaseBlocknum", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
@@ -107,11 +147,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallI);
+
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",
@@ -148,6 +184,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
+
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -260,6 +297,7 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -270,8 +308,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     lock_guard<mutex> g(m_blockMutex);
-
-    LOG_GENERAL(INFO, "On the isolated server ");
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
@@ -347,7 +383,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
       case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                               "Code is empty and To addr is null");
+                               "The code is empty and To addr is null");
         break;
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
@@ -492,7 +528,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   return m_gasPrice.str();
 }
 
-string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
+string IsolatedServer::GetMinimumGasPrice() { cout << "..." << std::endl; return m_gasPrice.str(); }
 
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);

@@ -78,6 +78,13 @@ LookupServer::LookupServer(Mediator& mediator,
     : Server(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
+
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &Server::GetNodeTypeI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -300,11 +307,6 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -805,6 +807,8 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
 }
 
 string LookupServer::GetMinimumGasPrice() {
+
+  std::cout << "GetMinGasPrice! " << std::endl;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -847,7 +851,8 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
-  LOG_MARKER();
+
+  std::cout << "Getting balance!" << std::endl;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -867,7 +872,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
+      LOG_GENERAL(INFO, "DEBUG: Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");
@@ -875,63 +880,14 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
     return ret;
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error] getting balance" << je.GetMessage());
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
-string LookupServer::GetEthCall(const Json::Value& _json) {
-  LOG_MARKER();
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
-  bytes code{};
-  bool ret = false;
-  {
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-    Account* contractAccount =
-        AccountStore::GetInstance().GetAccount(addr, true);
-    if (contractAccount == nullptr) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
-    }
-    code = contractAccount->GetCode();
-  }
-  Address fromAddr;
-  string result;
-  uint64_t amount{0};
-  uint64_t gasRemained =
-      2 * DS_MICROBLOCK_GAS_LIMIT;  // for now set total gas as twice the ds gas
-                                    // limit
-  try {
-    if (_json.isMember("fromAddr")) {
-      fromAddr = Address(_json["fromAddr"].asString());
-    }
-    if (_json.isMember("amount")) {
-      const auto amount_str = _json["amount"].asString();
-      amount = strtoull(amount_str.c_str(), NULL, 0);
-    }
-    if (_json.isMember("gasLimit")) {
-      const auto gasLimit_str = _json["gasLimit"].asString();
-      gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
-    }
-    EvmCallParameters params = {addr.hex(),
-                                fromAddr.hex(),
-                                DataConversion::CharArrayToString(code),
-                                _json["data"].asString(),
-                                gasRemained,
-                                amount};
 
-    AccountStore::GetInstance().ViewAccounts(params, ret, result);
-  } catch (const exception& e) {
-    LOG_GENERAL(WARNING, "Error: " << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
-  }
-  if (!ret) {
-    throw JsonRpcException(RPC_MISC_ERROR, "GetEthCall failed");
-  }
-  result = "0x" + result;
-  return result;
-}
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
