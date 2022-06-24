@@ -881,10 +881,8 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
-
 string LookupServer::GetEthCall(const Json::Value& _json) {
   LOG_MARKER();
-  LOG_GENERAL(INFO, "eth call param request " << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
   bytes code{};
   bool ret = false;
