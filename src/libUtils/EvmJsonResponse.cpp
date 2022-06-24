@@ -179,10 +179,10 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
         for (const auto& er : node.value().items()) {
           try {
             if (er.key() == "Succeed") {
-              fo.m_ok = true;
+              fo.SetSuccess(true);
               fo.m_exitReason = er.value();
             } else if (er.key() == "Fatal") {
-              fo.m_ok = false;
+              fo.SetSuccess(false);
               fo.m_exitReason = to_string(er.value());
             }
           } catch (std::exception& e) {
@@ -267,7 +267,7 @@ std::ostream& operator<<(std::ostream& os, evmproj::CallResponse& evmRet) {
   }
 
   os << evmRet.m_exitReason << std::endl;
-  os << "success" << std::boolalpha << evmRet.isSuccess();
+  os << "success" << std::boolalpha << evmRet.GetSuccess();
 
   os << "gasRemaining : " << evmRet.Gas() << std::endl;
   os << "code : " << evmRet.ReturnedBytes() << std::endl;

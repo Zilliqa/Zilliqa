@@ -2,7 +2,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "libData/EvmClient.h"
+#include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 
@@ -31,8 +31,9 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   values["toAddr"] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
   paramsRequest[0u] = values;
 
-  // Accounts::GetInstance().AddAcc
-  AccountStore::GetInstance().AddAccount();
+  Address accountAddress{"0xa744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
 
   Json::Value response;
   LookupServer lookupServer(mediator, abstractServerConnector);

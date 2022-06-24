@@ -127,11 +127,12 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
     bool& ret, TransactionReceipt& receipt,
     evmproj::CallResponse& evmReturnValues) {
-  bool call_already_finished = false;
+  auto call_already_finished{false};
 
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
     Json::Value jval;
+
     if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
       ret = EvmClient::GetInstance().CallRunner(
           version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
@@ -170,11 +171,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
   uint64_t gas = params.m_available_gas;
-  if (not evmReturnValues.isSuccess()) {
+  if (not evmReturnValues.GetSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
   // switch ret to reflect our overall success
-  ret = evmReturnValues.isSuccess() ? ret : false;
+  ret = evmReturnValues.GetSuccess() ? ret : false;
 
   if (!evmReturnValues.Logs().empty()) {
     Json::Value _json = Json::arrayValue;

@@ -47,7 +47,7 @@ struct ApplyInstructions {
   const std::string& Balance() const { return m_balance; }
   const std::string& Nonce() const { return m_nonce; }
   bool isResetStorage() const { return m_resetStorage; }
-  const std::vector<KeyValue> Storage() const { return m_storage; }
+  const std::vector<KeyValue>& Storage() const { return m_storage; }
 
   std::string m_operation_type;
   std::string m_address;
@@ -61,11 +61,11 @@ struct ApplyInstructions {
   bool m_hasCode{false};
   bool m_hasAddress{false};
 
-  const bool& hasBalance() { return m_hasBalance; }
-  const bool& hasGas() { return m_hasGas; }
-  const bool& hasNonce() { return m_hasNonce; }
-  const bool& hasCode() { return m_hasCode; }
-  const bool& hasAddress() { return m_hasAddress; }
+  bool hasBalance() const { return m_hasBalance; }
+  bool hasGas() const { return m_hasGas; }
+  bool hasNonce() const { return m_hasNonce; }
+  bool hasCode() const { return m_hasCode; }
+  bool hasAddress() const { return m_hasAddress; }
 
   bool m_resetStorage{false};
   std::vector<KeyValue> m_storage;
@@ -81,18 +81,22 @@ struct CallResponse {
   const std::string& ExitReason() const { return m_exitReason; }
   uint64_t Gas() const { return m_gasRemaining; }
   const std::string& ReturnedBytes() const { return m_return; }
-  bool isSuccess();
+
+  inline bool GetSuccess() const { return m_success; }
+  inline void SetSuccess(const bool _ok) { m_success = _ok; }
+
   std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
   std::vector<std::string> m_logs;
-  bool m_ok{false};
+
   std::string m_exitReason;
   std::string m_return;
   uint64_t m_gasRemaining{0};
 
   friend std::ostream& operator<<(std::ostream& os, CallResponse& evmRet);
-};
 
-inline bool CallResponse::isSuccess() { return m_ok; }
+ private:
+  bool m_success{false};
+};
 
 CallResponse& GetReturn(const Json::Value& oldJason, CallResponse& fo);
 

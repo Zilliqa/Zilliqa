@@ -119,14 +119,14 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     // Populate the C++ struct with the return values
     try {
       reply = evmproj::GetReturn(oldJson, result);
-      if (reply.isSuccess()) {
+      if (reply.GetSuccess()) {
         if (LOG_SC) LOG_GENERAL(INFO, "Parsed Json response correctly");
       }
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "detected an Error in decoding json response " << e.what());
-      result.m_ok = false;
+      result.SetSuccess(false);
     }
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING,
@@ -137,7 +137,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     if (!CheckClient(version, true)) {
       LOG_GENERAL(WARNING,
                   "Restart OpenServer for version " << version << "failed");
-      result.m_ok = false;
+      result.SetSuccess(false);
     }
   }
   return false;
