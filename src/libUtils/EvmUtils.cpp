@@ -78,28 +78,6 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   return arr_ret;
 }
 
-uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,
-                                      INVOKE_TYPE invoke_type,
-                                      uint64_t& oldValue, uint64_t newValue) {
-  uint64_t cost{0};
-
-  if (newValue > 0) oldValue = std::min(oldValue, newValue);
-
-  if (invoke_type == RUNNER_CREATE) return oldValue;
-
-  cost = CONTRACT_INVOKE_GAS;
-
-  if (oldValue > cost) {
-    oldValue -= cost;
-  } else {
-    oldValue = 0;
-    receipt.AddError(NO_GAS_REMAINING_FOUND);
-  }
-  LOG_GENERAL(INFO, "gasRemained: " << oldValue);
-
-  return oldValue;
-}
-
 bool EvmUtils::isEvm(const bytes& code) {
   if (not ENABLE_EVM) return false;
 
