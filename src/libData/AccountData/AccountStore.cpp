@@ -195,7 +195,6 @@ void AccountStore::GetSerializedDelta(bytes& dst) {
 
 bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
                                     bool revertible) {
-
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
     if (m_prevRoot != dev::h256()) {
@@ -489,7 +488,6 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction,
                                       TransactionReceipt& receipt,
                                       TxnStatus& error_code) {
-
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
@@ -501,7 +499,6 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
                                       const uint128_t& amount) {
-
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {

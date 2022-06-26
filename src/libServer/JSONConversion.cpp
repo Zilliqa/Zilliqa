@@ -391,7 +391,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     }
 
     if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2 &&
-        _json["signature"].asString().size() != TRAN_SIG_SIZE_UNCOMPRESSED *2) {
+        _json["signature"].asString().size() !=
+            TRAN_SIG_SIZE_UNCOMPRESSED * 2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
       LOG_GENERAL(INFO, "***** Invalid signature size");
@@ -402,8 +403,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
 
     if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
                                                 lower_case_addr)) {
-      LOG_GENERAL(INFO,
-                  "***** To Address checksum wrong" << _json["toAddr"].asString());
+      LOG_GENERAL(INFO, "***** To Address checksum wrong"
+                            << _json["toAddr"].asString());
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "To Addr checksum wrong");
     }

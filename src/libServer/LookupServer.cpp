@@ -865,7 +865,9 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO, "DEBUG: Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
+      LOG_GENERAL(INFO,
+                  "DEBUG: Addr: " << address << " balance: " << balance.str()
+                                  << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");

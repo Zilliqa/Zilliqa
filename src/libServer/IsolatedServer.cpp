@@ -148,7 +148,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
-
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -261,7 +260,6 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
-
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");

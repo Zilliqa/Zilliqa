@@ -1257,7 +1257,8 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
       txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
 
   if (!transaction.IsSigned()) {
-    LOG_GENERAL(WARNING, "Signature verification failed when converting tx to protobuf");
+    LOG_GENERAL(WARNING,
+                "Signature verification failed when converting tx to protobuf");
     return false;
   }
 

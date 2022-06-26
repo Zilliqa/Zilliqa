@@ -453,17 +453,17 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
 
   // Do not hash the first byte, as it specifies the encoding
   auto result = ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(&publicKey[1]), publicKey.size()-1);
+      reinterpret_cast<const uint8_t*>(&publicKey[1]), publicKey.size() - 1);
 
   std::string res;
-  boost::algorithm::hex(&result.bytes[12], &result.bytes[32], back_inserter(res));
+  boost::algorithm::hex(&result.bytes[12], &result.bytes[32],
+                        back_inserter(res));
 
   // Want the last 20 bytes of the result
   copy(&result.bytes[12], &result.bytes[32], address.asArray().begin());
 
   return address;
 }
-
 
 Address Account::GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce) {

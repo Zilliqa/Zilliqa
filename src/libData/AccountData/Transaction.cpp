@@ -102,7 +102,8 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
   // Verify the signature
   if (!Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey)) {
-    LOG_GENERAL(WARNING, "We failed to verify the input signature! Just a warning...");
+    LOG_GENERAL(WARNING,
+                "We failed to verify the input signature! Just a warning...");
     LOG_GENERAL(WARNING, m_signature.operator std::string());
   }
 }
@@ -156,7 +157,6 @@ const PubKey& Transaction::GetSenderPubKey() const {
 }
 
 Address Transaction::GetSenderAddr() const {
-
   if (GetVersion() == 65538) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
@@ -207,7 +207,6 @@ bool Transaction::IsSignedECDSA() const {
 
 // Function to return whether the TX is signed
 bool Transaction::IsSigned() const {
-
   // Use the version number to tell which signature scheme it is using
   if (GetVersion() == 65538) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");

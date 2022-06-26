@@ -38,8 +38,9 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
 
   auto result = tran.IsSigned();
 
-  if(!result) {
-    LOG_GENERAL(WARNING, "Failed to verify transaction signature - will delete");
+  if (!result) {
+    LOG_GENERAL(WARNING,
+                "Failed to verify transaction signature - will delete");
   }
 
   return result;
@@ -63,8 +64,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   }
 
   LOG_GENERAL(WARNING, "Transaction version incorrect "
-      << "Expected:" << TRANSACTION_VERSION << " Actual:"
-      << DataConversion::UnpackB(tx.GetVersion()));
+                           << "Expected:" << TRANSACTION_VERSION << " Actual:"
+                           << DataConversion::UnpackB(tx.GetVersion()));
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
     LOG_GENERAL(WARNING, "Transaction version incorrect "
