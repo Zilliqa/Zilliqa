@@ -19,12 +19,20 @@ FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-FROM rust:latest as rust_builder
-RUN rustup component add clippy rustfmt
-RUN apt-get update && apt-get install -y protobuf-compiler
+FROM ubuntu:18.04 as rust_builder
+RUN apt-get update && apt-get install -y protobuf-compiler && \
+apt-get install -y git && \
+apt-get install -y curl && \
+apt-get install -y build-essential && \
+apt-get install -y pkg-config && \
+apt-get install -y libssl-dev && \
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
+sh install_script.sh -y 
+ENV PATH="/root/.cargo/bin:${PATH}"
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
     cargo build --verbose --release --package evm-ds && cargo test --verbose --release --package evm-ds
+
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
 FROM ubuntu:18.04 AS builder

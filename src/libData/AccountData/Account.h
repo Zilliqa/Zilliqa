@@ -35,8 +35,6 @@
 #include "depends/libTrie/TrieDB.h"
 
 /// DB storing trie storage information for all accounts.
-// static OverlayDB contractStatesDB("contractStates");
-
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 

@@ -36,7 +36,8 @@ class ScillaIPCServer;
 
 namespace evmproj {
 struct ApplyInstructions;
-}
+struct CallResponse;
+}  // namespace evmproj
 
 template <class MAP>
 class AccountStoreAtomic
@@ -63,6 +64,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// the blocknum while executing each txn
   uint64_t m_curBlockNum{0};
+
+  /// the DS blocknum
+  uint64_t m_curDSBlockNum{0};
 
   /// the current contract address for each hop of invoking
   Address m_curContractAddr;
@@ -170,6 +174,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
+  void EvmCallRunner(INVOKE_TYPE invoke_type, EvmCallParameters& params,
+                     const uint32_t& version, bool& ret,
+                     TransactionReceipt& receipt,
+                     evmproj::CallResponse& evmReturnValues);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
@@ -183,6 +191,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
  protected:
   AccountStoreSC();
+
+  const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
+
+  const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
@@ -202,7 +214,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                 INVOKE_TYPE invoke_type,
                                 EvmCallParameters& params,
                                 const uint32_t& version, bool& ret,
-                                TransactionReceipt& receipt);
+                                TransactionReceipt& receipt,
+                                evmproj::CallResponse& evmReturnValues);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -244,6 +257,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
+
+  bool ViewAccounts(EvmCallParameters& params, bool& ret, std::string& result);
 };
 
 #include "AccountStoreAtomic.tpp"

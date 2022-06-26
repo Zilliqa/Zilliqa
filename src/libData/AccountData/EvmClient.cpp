@@ -15,16 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "EvmClient.h"
 #include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
 #include <thread>
-
-#include "EvmClient.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/JsonUtils.h"
 #include "libUtils/SysCommand.h"
 
 /* EvmClient Init */
@@ -98,8 +95,12 @@ bool EvmClient::CheckClient(uint32_t version, bool enforce) {
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           evmproj::CallRespose& result, uint32_t counter) {
+                           evmproj::CallResponse& result, uint32_t counter) {
+  //
+  // Fail the call if counter is zero
+  //
   if (counter == 0) {
+    if (LOG_SC) LOG_GENERAL(INFO, "Call counter was zero returning");
     return false;
   }
 
@@ -113,20 +114,31 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     Json::Value oldJson;
-    evmproj::CallRespose reply;
+    evmproj::CallResponse reply;
     oldJson = m_clients.at(version)->CallMethod("run", _json);
     // Populate the C++ struct with the return values
-    reply = evmproj::GetReturn(oldJson, result);
+    try {
+      reply = evmproj::GetReturn(oldJson, result);
+      if (reply.isSuccess()) {
+        if (LOG_SC) LOG_GENERAL(INFO, "Parsed Json response correctly");
+      }
+      return true;
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "detected an Error in decoding json response " << e.what());
+      result.m_ok = false;
+    }
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING, "CallRunner failed: " << e.what());
+    LOG_GENERAL(WARNING,
+                "RPC Exception calling EVM-DS : attempting server "
+                "restart "
+                    << e.what());
     m_initialised = false;
     if (!CheckClient(version, true)) {
       LOG_GENERAL(WARNING,
                   "Restart OpenServer for version " << version << "failed");
+      result.m_ok = false;
     }
-    result.m_ok = false;
-    return false;
   }
-
-  return true;
+  return false;
 }

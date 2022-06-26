@@ -176,7 +176,9 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
     }
   } else {
     if (!SetImmutable(code, initData))
-      LOG_GENERAL(WARNING, "SetImmutable failed");
+      LOG_GENERAL(WARNING,
+                  "EVM SetImmutable warned us that code or data is "
+                  "empty");
   }
 
   SetAddress(addr);
@@ -548,13 +550,6 @@ bool Account::RetrieveContractAuxiliaries() {
 
 bool Account::SetInitData(const bytes& initData) {
   // LOG_MARKER();
-
-  if (initData.size() == 0) {
-    LOG_GENERAL(WARNING, "InitData for this contract is empty");
-    // return false; // change by steve
-    return true;
-  }
-
   m_initDataCache = initData;
   return true;
 }

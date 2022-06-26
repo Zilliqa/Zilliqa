@@ -24,20 +24,30 @@ using websocketpp::base64_decode;
 
 namespace evmproj {
 
-evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
-                                evmproj::CallRespose& fo) {
+/* GetReturn
+ * This method converts a Json message into a C++ response tree
+ * the onjective of this layer is to seperate the concern of JSON from the
+ * application code
+ *
+ * returns a populated CallResponse object
+ *
+ * throws std::exception or the original exception is passed up to the caller.
+ * */
+
+evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
+                                 evmproj::CallResponse& fo) {
   nlohmann::json newJason;
 
   try {
     newJason = nlohmann::json::parse(oldJason.toStyledString());
   } catch (std::exception& e) {
-    LOG_GENERAL(WARNING, "Error parsing json from evmds " << e.what());
-    return fo;
+    LOG_GENERAL(WARNING,
+                "Exception JSONRPC parser to nlohman parser " << e.what())
+    throw e;
   }
 
-  if (LOG_SC) {
+  if (LOG_SC)
     LOG_GENERAL(WARNING, "Response from EVM-DS " << std::endl << newJason);
-  }
 
   try {
     for (const auto& node : newJason.items()) {
@@ -45,56 +55,123 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
         for (const auto& ap : node.value()) {
           for (const auto& map : ap.items()) {
             nlohmann::json arr = map.value();
-            fo.m_apply.m_operation_type = map.key();
+            std::shared_ptr<ApplyInstructions> apply =
+                std::make_shared<ApplyInstructions>();
+            // Read the apply type oneof modify or delete
             try {
-              fo.m_apply.m_address = arr["address"];
+              apply->m_operation_type = map.key();
             } catch (std::exception& e) {
-              std::cout << "address : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
+              throw e;
             }
+            // Read the address this is the address of the account we wish to
+            // operate on.
             try {
-              fo.m_apply.m_balance = arr["balance"];
+              apply->m_address = arr["address"];
+              apply->m_hasAddress = true;
             } catch (std::exception& e) {
-              std::cout << "balance : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
+              throw e;
             }
+            // The new balance for this account
+            try {
+              apply->m_balance = arr["balance"];
+              apply->m_hasBalance = true;
+            } catch (std::exception& e) {
+              LOG_GENERAL(WARNING, "Exception reading Balance : " << e.what());
+              throw e;
+            }
+            // The new binary code that should be associated with the account
             nlohmann::json cobj;
             try {
               cobj = arr["code"];
             } catch (std::exception& e) {
-              std::cout << "code : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING, "Exception reading Code : " << e.what());
+              throw e;
             }
+            // check the type, we only support strings in this version
+            // we expect it t have been encoded into ascii hex, other
+            // components are not happy with nulls in the contents.
             if (not cobj.is_null()) {
               if (cobj.is_binary()) {
-                std::cout << "Binary data" << std::endl;
+                LOG_GENERAL(WARNING, "Code sent as Binary type ignored");
+                throw std::runtime_error(
+                    "unhandled DataType Binary used in "
+                    "Code ");
               } else if (cobj.is_string()) {
-                fo.m_apply.m_code = cobj.get<std::string>();
+                apply->m_code = cobj.get<std::string>();
+                apply->m_hasCode = true;
               } else {
-                std::cout << "write some code for " << cobj.type_name()
-                          << std::endl;
+                LOG_GENERAL(WARNING, "Code sent as Unexpected type ignored");
+                throw std::runtime_error(
+                    "unhandled DataType used in Code "
+                    "value");
               }
             }
+            // get the nonce for the account specified in the address
             try {
-              fo.m_apply.m_nonce = arr["nonce"];
+              apply->m_nonce = arr["nonce"];
+              apply->m_hasNonce = true;
             } catch (std::exception& e) {
-              std::cout << "nonce : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING, "Exception reading Nonce : " << e.what());
+              throw e;
             }
+            // whether the storage values for this account should be reset
             try {
-              fo.m_apply.m_resetStorage = arr["reset_storage"];
+              apply->m_resetStorage = arr["reset_storage"];
             } catch (std::exception& e) {
-              std::cout << "reset : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING,
+                          "Exception reading reset_storage : " << e.what());
+              throw e;
             }
+            // The storage object associated with this address
+            // the storage object contains an array of key value pairs.
             nlohmann::json storageObj;
             try {
               storageObj = arr["storage"];
             } catch (std::exception& e) {
-              std::cout << "storage : " << e.what() << std::endl;
+              LOG_GENERAL(WARNING, "Exception reading storage : " << e.what());
+              throw e;
             }
             if (not storageObj.is_null()) {
               evmproj::KeyValue kvs;
               for (const auto& kv : storageObj.items()) {
-                kvs.m_key = base64_decode(kv.value()[0]);
-                kvs.m_value = base64_decode(kv.value()[1]);
+                try {
+                  kvs.m_key = base64_decode(kv.value()[0]);
+                  kvs.m_hasKey = true;
+                } catch (std::exception& e) {
+                  LOG_GENERAL(WARNING,
+                              "Exception reading storage key : " << e.what());
+                  throw e;
+                }
+                try {
+                  kvs.m_value = base64_decode(kv.value()[1]);
+                  kvs.m_hasValue = true;
+                } catch (std::exception& e) {
+                  LOG_GENERAL(WARNING,
+                              "Exception reading storage value : " << e.what());
+                  throw e;
+                }
+                // store the keys and values within the storage
+                try {
+                  apply->m_storage.push_back(kvs);
+                } catch (std::exception& e) {
+                  LOG_GENERAL(WARNING,
+                              "Exception adding key/value pair to storage : "
+                                  << e.what());
+                  throw e;
+                }
               }
-              fo.m_apply.m_storage.push_back(kvs);
+              //
+              // store the apply instructiion within the response.
+              //
+              try {
+                fo.m_apply.push_back(apply);
+              } catch (std::exception& e) {
+                LOG_GENERAL(WARNING, "Exception adding apply to response : "
+                                         << e.what());
+                throw e;
+              }
             }
           }
         }
@@ -109,30 +186,51 @@ evmproj::CallRespose& GetReturn(const Json::Value& oldJason,
               fo.m_exitReason = to_string(er.value());
             }
           } catch (std::exception& e) {
-            std::cout << "Exception caught on exit_reason" << std::endl;
+            LOG_GENERAL(WARNING,
+                        "Exception reading exit_reason : " << e.what());
+            throw e;
           }
         }
       } else if (node.key() == "logs") {
         for (const auto& lg : node.value().items()) {
-          fo.m_logs = lg.value();
+          try {
+            fo.m_logs.push_back(to_string(lg.value()));
+          } catch (std::exception& e) {
+            LOG_GENERAL(WARNING, "Exception reading logs : " << e.what());
+            throw e;
+          }
         }
       } else if (node.key() == "return_value") {
         nlohmann::json j = node.value();
         if (j.is_string()) {
           fo.m_return = j;
         } else {
-          std::cout << "invalid node type" << std::endl;
+          LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
+          throw std::runtime_error(
+              "Exception assigning code as a string from"
+              " value");
         }
       } else if (node.key() == "remaining_gas") {
-        fo.m_gasRemaing = node.value();
+        try {
+          fo.m_gasRemaining = node.value();
+        } catch (std::exception& e) {
+          LOG_GENERAL(WARNING,
+                      "Exception reading remaining_gas : " << e.what());
+          throw e;
+        }
       }
     }
   } catch (std::exception& e) {
-    std::cout << "exception caught in parsing EVM-DS return value : "
-              << e.what() << std::endl;
+    LOG_GENERAL(WARNING, "Exception reading remaining_gas : " << e.what());
+    throw e;
   }
   return fo;
 }
+
+//
+// Debugging routines, alllows developer to dump each object directly onto
+// the output stream.
+//
 
 std::ostream& operator<<(std::ostream& os, evmproj::KeyValue& kv) {
   os << "key : " << kv.m_key << std::endl;
@@ -156,8 +254,13 @@ std::ostream& operator<<(std::ostream& os, evmproj::ApplyInstructions& evm) {
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, evmproj::CallRespose& evmRet) {
-  os << evmRet.m_apply << std::endl;
+std::ostream& operator<<(std::ostream& os, evmproj::CallResponse& evmRet) {
+  const std::shared_ptr<ApplyInstructions> ap;
+
+  for (const auto& it : evmRet.m_apply) {
+    os << it << std::endl;
+    ;
+  }
 
   for (const auto& it : evmRet.Logs()) {
     os << it << std::endl;
@@ -166,7 +269,7 @@ std::ostream& operator<<(std::ostream& os, evmproj::CallRespose& evmRet) {
   os << evmRet.m_exitReason << std::endl;
   os << "success" << std::boolalpha << evmRet.isSuccess();
 
-  os << "gasRemaing : " << evmRet.Gas() << std::endl;
+  os << "gasRemaining : " << evmRet.Gas() << std::endl;
   os << "code : " << evmRet.ReturnedBytes() << std::endl;
   return os;
 }

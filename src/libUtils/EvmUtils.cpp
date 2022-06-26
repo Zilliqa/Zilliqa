@@ -44,11 +44,28 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   std::string code;
   try {
     // take off the EVM prefix
-    std::copy(params.m_code.begin() + 3, params.m_code.end(),
-              std::back_inserter(code));
-    arr_ret.append(code);
+    if ((not params.m_code.empty()) && params.m_code.size() >= 3 &&
+        params.m_code[0] == 'E' && params.m_code[1] == 'V' &&
+        params.m_code[2]) {
+      std::copy(params.m_code.begin() + 3, params.m_code.end(),
+                std::back_inserter(code));
+      arr_ret.append(code);
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Sending to EVM-DS code without a standard prefix,"
+                  " is this intended ? re-evalute this warning"
+                      << arr_ret);
+      arr_ret.append(params.m_code);
+    }
   } catch (std::exception& e) {
-    arr_ret.append(params.m_code);
+    LOG_GENERAL(WARNING,
+                "Exception caught attempting to slice off prefix of "
+                "code"
+                " is this intended ? re-evalute this warning"
+                    << arr_ret);
+    LOG_GENERAL(WARNING, "Sending a blank code array for continuation purposes"
+                             << arr_ret);
+    arr_ret.append("");
   }
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
@@ -59,90 +76,6 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   }
 
   return arr_ret;
-}
-
-bool EvmUtils::EvmUpdateContractStateAndAccount(
-    Account* contractAccount, evmproj::ApplyInstructions& op) {
-  if (op.OperationType() == "modify") {
-    // Reset State for this contract
-    try {
-      if (op.isResetStorage()) {
-        //
-        // Reset Meta Data for this Address effectively clears down the contract
-        // storage for this Contract
-        //
-        std::map<std::string, bytes> t_metadata;
-
-        t_metadata.emplace(
-            Contract::ContractStorage::GenerateStorageKey(
-                Address(op.Address()), CONTRACT_ADDR_INDICATOR, {}),
-            Address(op.Address()).asBytes());
-
-        if (!contractAccount->UpdateStates(Address(op.Address()), t_metadata,
-                                           {}, true)) {
-          LOG_GENERAL(WARNING,
-                      "Account::UpdateStates reset metaData and Merkyle tree");
-        }
-        contractAccount->SetStorageRoot(dev::h256());
-      }
-    } catch (std::exception& e) {
-      // for now catch any generic exceptions and report them
-      // will exmine exact possibilities and catch specific exceptions.
-      LOG_GENERAL(WARNING,
-                  "Exception thrown trying to reset storage " << e.what());
-    }
-    // If Instructed to reset the Code do so and call SetImmutable to reset
-    // the hash
-    try {
-      if (op.Code().size() > 0)
-        contractAccount->SetImmutable(
-            DataConversion::StringToCharArray("EVM" + op.Code()),
-            contractAccount->GetInitData());
-    } catch (std::exception& e) {
-      // for now catch any generic exceptions and report them
-      // will exmine exact possibilities and catch specific exceptions.
-      LOG_GENERAL(WARNING, "Exception thrown trying to update Contract code "
-                               << e.what());
-    }
-    // Actually Update the state for the contract
-    try {
-      for (const auto& it : op.Storage()) {
-        if (!Contract::ContractStorage::GetContractStorage().UpdateStateValue(
-                Address(op.Address()),
-                DataConversion::StringToCharArray(it.Key()), 0,
-                DataConversion::StringToCharArray(it.Value()), 0)) {
-          return false;
-        }
-      }
-    } catch (std::exception& e) {
-      // for now catch any generic exceptions and report them
-      // will exmine exact possibilities and catch specific exceptions.
-      LOG_GENERAL(WARNING,
-                  "Exception thrown trying to update state on the contract "
-                      << e.what());
-    }
-    try {
-      if (op.Balance().size())
-        contractAccount->SetBalance(uint128_t(op.Balance()));
-    } catch (std::exception& e) {
-      // for now catch any generic exceptions and report them
-      // will exmine exact possibilities and catch specific exceptions.
-      LOG_GENERAL(
-          WARNING,
-          "Exception thrown trying to update balance on contract Account "
-              << e.what());
-    }
-    try {
-      if (op.Nonce().size()) contractAccount->SetNonce(std::stoull(op.Nonce()));
-    } catch (std::exception& e) {
-      // for now catch any generic exceptions and report them
-      // will exmine exact possibilities and catch specific exceptions.
-      LOG_GENERAL(WARNING,
-                  "Exception thrown trying to set Nonce on contract Account "
-                      << e.what());
-    }
-  }
-  return true;
 }
 
 uint64_t EvmUtils::UpdateGasRemaining(TransactionReceipt& receipt,

@@ -37,9 +37,10 @@ echo "n_parallel=${n_parallel}"
 
 echo "ccache configuration"
 ccache --version
-#ccache -M 5G
+ccache -M 5G
 ccache -p
 
+ccache -z
 echo "ccache status"
 ccache -s
 
@@ -53,10 +54,7 @@ then
 fi
 
 # assume that it is run from project root directory
-echo "+++++++++++++++++++++ RUNNING CMAKE CONFIGURE +++++++++++++++++++++"
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
-
-echo "+++++++++++++++++++++ RUNNING BUILD +++++++++++++++++++++"
 cmake --build ${dir} -- -j${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else
@@ -66,13 +64,8 @@ then
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1
     ./scripts/depends/check_guard.sh || exit 1
-    echo "+++++++++++++++++++++ RUNNING CLANG FORMAT +++++++++++++++++++++"
     cmake --build ${dir} --target clang-format || exit 1
-
-    echo "+++++++++++++++++++++ RUNNING CLANG TIDY +++++++++++++++++++++"
     cmake --build ${dir} --target clang-tidy || exit 1
-
-    echo "+++++++++++++++++++++ RUNNING COVERAGE +++++++++++++++++++++"
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1
 else

@@ -34,6 +34,15 @@
 using namespace std;
 using namespace jsonrpc;
 
+namespace {
+
+// Create a dummy BCInfo provider. The details do not matter for the tests here.
+auto makeBCInfo() {
+  return std::make_unique<ScillaBCInfo>(0, 0, Address(), Address(), dev::h256(),
+                                        0);
+}
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
 // NOTE: Remember to use unique field names for different tests
@@ -46,6 +55,7 @@ BOOST_AUTO_TEST_CASE(test_connection) {
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   ScillaIPCServer server(s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");
   server.StopListening();
@@ -61,6 +71,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a query to "set field foo with value".
@@ -109,6 +120,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -191,6 +203,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -262,6 +275,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -485,6 +499,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -570,6 +585,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -634,6 +650,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -724,6 +741,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -810,6 +828,7 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
   UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
 
   // Prepare a map key insertion query.
@@ -919,6 +938,7 @@ BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
+  server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: server is now listening.");
 
