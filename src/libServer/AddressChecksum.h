@@ -96,7 +96,7 @@ class AddressChecksum {
     }
 
     const auto& toCompare = GetCheckSumedAddress(address);
-    if (toCompare != address && false) {
+    if (toCompare != address) {
       LOG_GENERAL(WARNING, "Checksum does not compare correctly "
                                << toCompare << " to " << address);
       lower_case_address = "";
