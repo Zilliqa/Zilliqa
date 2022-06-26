@@ -97,6 +97,6 @@ target_link_libraries (Test_SafeMath_Exhaustive PUBLIC Utils)
 add_test(NAME Test_SafeMath_Exhaustive COMMAND Test_SafeMath_Exhaustive)
 
 add_executable (Test_EvmJsonResponse Test_EvmJsonResponse.cpp)
-target_include_directories (Test_EvmJsonResponse PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_include_directories (Test_EvmJsonResponse PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/libUtils)
 target_link_libraries (Test_EvmJsonResponse PUBLIC Utils Common AccountData)
 add_test(NAME Test_EvmJsonResponse COMMAND Test_EvmJsonResponse)
