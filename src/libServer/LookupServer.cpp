@@ -847,9 +847,9 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
+  //if (!LOOKUP_NODE_MODE) {
+  //  throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  //}
 
   try {
     Address addr{ToBase16AddrHelper(address)};
