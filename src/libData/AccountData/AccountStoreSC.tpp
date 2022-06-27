@@ -198,8 +198,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     receipt.AddJsonEntry(_json);
   }
 
-  auto gas = EvmUtils::UpdateGasRemaining(
-      receipt, invoke_type, params.m_available_gas, evmReturnValues.Gas());
+  auto gas = evmReturnValues.Gas();
 
   std::map<std::string, bytes> states;
   std::vector<std::string> toDeletes;
@@ -520,7 +519,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       auto sbcip = std::make_unique<ScillaBCInfo>(
           m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
           contractAccount->GetStorageRoot(), scilla_version);
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+
+      if (m_scillaIPCServer) {
+        m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      } else {
+        LOG_GENERAL(
+            WARNING,
+            "Scilla IPC server is not setup correctly - detected null object");
+      }
 
       // ************************************************************************
       // Undergo scilla checker
@@ -592,7 +598,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 fromAddr.hex(),
                 DataConversion::CharArrayToString(transaction.GetCode()),
                 DataConversion::CharArrayToString(transaction.GetData()),
-                gasRemained,
+                transaction.GetGasLimit(),
                 transaction.GetAmount()};
 
             // The code leading up to the call to InvokeEVMInterpreter is
@@ -833,7 +839,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       auto sbcip = std::make_unique<ScillaBCInfo>(
           m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
           contractAccount->GetStorageRoot(), scilla_version);
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      if (m_scillaIPCServer) {
+        m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      } else {
+        LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
+      }
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
@@ -851,7 +861,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             fromAddr.hex(),
             DataConversion::CharArrayToString(contractAccount->GetCode()),
             DataConversion::CharArrayToString(transaction.GetData()),
-            gasRemained,
+            transaction.GetGasLimit(),
             transaction.GetAmount()};
 
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract

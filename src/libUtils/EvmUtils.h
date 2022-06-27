@@ -38,10 +38,6 @@ class EvmUtils {
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetEvmCallJson(const EvmCallParameters& params);
 
-  static uint64_t UpdateGasRemaining(TransactionReceipt& receipt,
-                                     INVOKE_TYPE invoke_type,
-                                     uint64_t& oldValue, uint64_t newValue);
-
   using bytes = std::vector<uint8_t>;
 
   static bool isEvm(const bytes& code);
