@@ -101,10 +101,9 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
   // Verify the signature
-  if (!Schnorr::Verify(txnData, m_signature, m_coreInfo.senderPubKey)) {
+  if (!IsSigned()) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
-    LOG_GENERAL(WARNING, m_signature.operator std::string());
   }
 }
 
@@ -209,11 +208,24 @@ bool Transaction::IsSignedECDSA() const {
 bool Transaction::IsSigned() const {
   // Use the version number to tell which signature scheme it is using
   if (GetVersion() == 65538) {
-    LOG_GENERAL(WARNING, "Getting eth style address from pub key");
+    LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
 
   return IsSignedSchnorr();
+}
+
+// Function to return whether the TX is signed
+bool Transaction::IsCorrectlyFormed() const {
+  auto const version = GetVersion();
+
+  if (version != 65538 && version != 65537) {
+    LOG_GENERAL(WARNING, "Transaction has incorrect chain ID/version");
+  }
+
+  std::cout << "ADDRXXXXXXXX: " << this->m_coreInfo.toAddr << std::endl;
+
+  return true;
 }
 
 void Transaction::SetSignature(const Signature& signature) {

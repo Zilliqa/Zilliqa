@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
 #include <string>
 #include <vector>
 
@@ -283,11 +282,14 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
+  //toAddr_str = toAddr_str.substr(2); // Remove '0x'
   string lower_case_addr;
 
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
+    if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str, lower_case_addr)) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "To Address checksum does not match");
+    }
   }
 
   bytes toAddr_ser;
@@ -399,14 +401,18 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Invalid Signature size");
     }
+    string toAddr = _json["toAddr"].asString();
     string lower_case_addr;
 
-    if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
+    if (!AddressChecksum::VerifyChecksumAddress(toAddr,
                                                 lower_case_addr)) {
-      LOG_GENERAL(INFO, "***** To Address checksum wrong"
+      if (!AddressChecksum::VerifyChecksumAddressEth(toAddr,
+                                                  lower_case_addr)) {
+      LOG_GENERAL(INFO, "***** To Address checksum wrong "
                             << _json["toAddr"].asString());
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "To Addr checksum wrong");
+      }
     }
 
     if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
@@ -429,14 +435,9 @@ Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "must contain toAddr");
   }
-  string lower_case_addr;
-  if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
-                                              lower_case_addr)) {
-    LOG_GENERAL(INFO,
-                "To Address checksum wrong " << _json["toAddr"].asString());
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "To Addr checksum wrong");
-  }
+
+  string lower_case_addr = boost::to_lower_copy(_json["toAddr"].asString());
+
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
