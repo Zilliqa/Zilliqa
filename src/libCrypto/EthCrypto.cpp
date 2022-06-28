@@ -38,8 +38,6 @@ constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                32,  83,  105, 103, 110, 101, 100, 32,  77,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
 
-
-
 // https://stackoverflow.com/questions/57385412/
 void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign) {
   // Openssl uses raw pointers and macros for freeing but can force it into
