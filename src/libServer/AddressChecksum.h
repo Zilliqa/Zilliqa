@@ -80,8 +80,8 @@ class AddressChecksum {
   //  convert the address to hex, but if the ith digit is a letter (ie. it’s one
   //  of abcdef) print it in uppercase if the 4*ith bit of the hash of the
   //  lowercase hexadecimal address is 1 otherwise print it in lowercase.
+  // Note: the keccak is of the ** ASCII ** of the hex values
   static const std::string GetChecksummedAddressEth(std::string origAddress) {
-
     if (!(origAddress.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(origAddress.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");
@@ -97,37 +97,31 @@ class AddressChecksum {
     }
 
     // Get lower case address
-    std::string lower_case_address = boost::to_lower_copy(origAddress);
-    auto lowrr_case_address = origAddress;
+    origAddress = boost::to_lower_copy(origAddress);
 
-    // Convert to byte array
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(origAddress, tmpaddr)) {
-      LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
-      return "";
-    }
+    // Get keccak of this lowercased address
+    auto hash_of_address =
+        ethash::keccak256(reinterpret_cast<const uint8_t*>(origAddress.c_str()),
+                          origAddress.size());
 
-    // Get keccak of this
-    auto hash_of_address = ethash::keccak256(reinterpret_cast<const uint8_t*>(lower_case_address.c_str()), lower_case_address.size());
-
-    for (std::size_t i = 0; i < lower_case_address.size(); i++) {
+    for (std::size_t i = 0; i < origAddress.size(); i++) {
       // If the address could be uppercased
-      if (lower_case_address.at(i) >= 'a' && lower_case_address.at(i) <= 'f') {
+      if (origAddress.at(i) >= 'a' && origAddress.at(i) <= 'f') {
         // i*4th bit, so 0, 4, 8...
         // i/2 selects each byte twice, then bit 0 or 4 is selected.
-        char atPoint = lower_case_address.at(i);
+        char atPoint = origAddress.at(i);
         uint8_t byte_check = hash_of_address.bytes[i / 2];
         uint8_t bit_check = (i % 2) == 0 ? 0x80 : 0x08;
         uint8_t res = byte_check & bit_check;
 
         // Lower -> upper according to bits
         if (res) {
-          lower_case_address[i] = std::toupper(atPoint);
+          origAddress[i] = std::toupper(atPoint);
         }
       }
     }
 
-    return lower_case_address;
+    return origAddress;
   }
 
   static bool VerifyChecksumAddressEth(std::string address,
