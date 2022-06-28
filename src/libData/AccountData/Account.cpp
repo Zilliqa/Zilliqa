@@ -17,9 +17,11 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <ethash/keccak.hpp>
 #include "Account.h"
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
+#include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
@@ -29,8 +31,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
 #include "libUtils/SafeMath.h"
-#include "libCrypto/EthCrypto.h"
-#include <ethash/keccak.hpp>
 
 using namespace std;
 using namespace boost::multiprecision;

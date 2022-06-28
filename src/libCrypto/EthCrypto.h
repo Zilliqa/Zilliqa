@@ -18,15 +18,14 @@
 #ifndef ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 #define ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 
-#include <openssl/ecdsa.h>    // for ECDSA_do_sign, ECDSA_do_verify
+#include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
 
 #include <string>
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
 // https://stackoverflow.com/questions/57385412/
-void SetOpensslSignature(const std::string& sSignatureInHex,
-                                ECDSA_SIG* pSign);
+void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign);
 
 // This function needs to set the key but also needs to decomprss the
 // coordinates using EC_POINT_set_compressed_coordinates_GFp sPubKeyString
@@ -34,13 +33,13 @@ void SetOpensslSignature(const std::string& sSignatureInHex,
 bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey);
 
 bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
-                                 const std::string& sSignature,
-                                 const std::string& sDevicePubKeyInHex);
+                          const std::string& sSignature,
+                          const std::string& sDevicePubKeyInHex);
 
 // Given a hex string representing the pubkey (secp256k1), return the hex
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string toUncompressedPubKey(const std::string &pubKey);
+std::string toUncompressedPubKey(const std::string& pubKey);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

@@ -37,12 +37,12 @@ echo "n_parallel=${n_parallel}"
 
 echo "ccache configuration"
 ccache --version
-#ccache -M 5G
-#ccache -p
+ccache -M 5G
+ccache -p
 
-#ccache -z
+ccache -z
 echo "ccache status"
-#ccache -s
+ccache -s
 
 dir=build
 

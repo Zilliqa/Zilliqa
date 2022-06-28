@@ -19,10 +19,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <ethash/keccak.hpp>
 #include "common/Constants.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/HashUtils.h"
-#include <ethash/keccak.hpp>
 
 class AddressChecksum {
  public:
@@ -108,9 +108,7 @@ class AddressChecksum {
     }
 
     // Get keccak of this
-    auto hash_of_address = ethash::keccak256(
-        &tmpaddr[0],
-        tmpaddr.size());
+    auto hash_of_address = ethash::keccak256(&tmpaddr[0], tmpaddr.size());
 
     for (std::size_t i = 0; i < lower_case_address.size(); i++) {
       // If the address could be uppercased
@@ -154,7 +152,7 @@ class AddressChecksum {
     const auto& toCompare = GetChecksummedAddressEth(address);
     if (toCompare != address) {
       LOG_GENERAL(WARNING, "Checksum does not compare correctly (eth) "
-          << toCompare << " to " << address);
+                               << toCompare << " to " << address);
       lower_case_address = "";
       return false;
     } else {
@@ -165,7 +163,7 @@ class AddressChecksum {
 
   // lower_case_address is empty if fail checksum
   static bool VerifyChecksumAddress(std::string address,
-                                    std::string& lower_case_address) {
+                                       std::string& lower_case_address) {
     if (!(address.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(address.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");

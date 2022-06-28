@@ -21,10 +21,10 @@
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
 #include <ethash/keccak.hpp>
-#include <iostream>
-#include <string>
-#include <memory>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
 
 using namespace std;
 
@@ -40,8 +40,7 @@ constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
 
 // https://stackoverflow.com/questions/57385412/
-void SetOpensslSignature(const std::string& sSignatureInHex,
-                                ECDSA_SIG* pSign) {
+void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign) {
   // Openssl uses raw pointers and macros for freeing but can force it into
   // smart pointers methodology
   std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>> rr(
@@ -117,9 +116,9 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   }
 }
 
-bool VerifyEcdsaSecp256k1(const std::string& /*sRandomNumber*/,
-                                 const std::string& sSignature,
-                                 const std::string& sDevicePubKeyInHex) {
+bool VerifyEcdsaSecp256k1(const std::string&,
+                          const std::string& sSignature,
+                          const std::string& sDevicePubKeyInHex) {
   std::unique_ptr<ECDSA_SIG, std::function<void(ECDSA_SIG*)>> zSignature(
       ECDSA_SIG_new(), [](ECDSA_SIG* b) { ECDSA_SIG_free(b); });
 

@@ -285,9 +285,10 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string lower_case_addr;
 
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
-    if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str, lower_case_addr)) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "To Address checksum does not match");
+    if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str,
+                                                   lower_case_addr)) {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "To Address checksum does not match");
     }
   }
 
@@ -403,14 +404,12 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     string toAddr = _json["toAddr"].asString();
     string lower_case_addr;
 
-    if (!AddressChecksum::VerifyChecksumAddress(toAddr,
-                                                lower_case_addr)) {
-      if (!AddressChecksum::VerifyChecksumAddressEth(toAddr,
-                                                  lower_case_addr)) {
-      LOG_GENERAL(INFO, "***** To Address checksum wrong "
-                            << _json["toAddr"].asString());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "To Addr checksum wrong");
+    if (!AddressChecksum::VerifyChecksumAddress(toAddr, lower_case_addr)) {
+      if (!AddressChecksum::VerifyChecksumAddressEth(toAddr, lower_case_addr)) {
+        LOG_GENERAL(INFO, "***** To Address checksum wrong "
+                              << _json["toAddr"].asString());
+        throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                        "To Addr checksum wrong");
       }
     }
 
