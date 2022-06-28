@@ -81,7 +81,6 @@ class AddressChecksum {
   //  of abcdef) print it in uppercase if the 4*ith bit of the hash of the
   //  lowercase hexadecimal address is 1 otherwise print it in lowercase.
   static const std::string GetChecksummedAddressEth(std::string origAddress) {
-
     if (!(origAddress.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(origAddress.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");
@@ -131,7 +130,7 @@ class AddressChecksum {
   }
 
   static bool VerifyChecksumAddressEth(std::string address,
-                                    std::string& lower_case_address) {
+                                       std::string& lower_case_address) {
     if (!(address.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(address.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");
@@ -163,7 +162,7 @@ class AddressChecksum {
 
   // lower_case_address is empty if fail checksum
   static bool VerifyChecksumAddress(std::string address,
-                                       std::string& lower_case_address) {
+                                    std::string& lower_case_address) {
     if (!(address.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(address.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");

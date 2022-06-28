@@ -116,8 +116,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   }
 }
 
-bool VerifyEcdsaSecp256k1(const std::string&,
-                          const std::string& sSignature,
+bool VerifyEcdsaSecp256k1(const std::string&, const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex) {
   std::unique_ptr<ECDSA_SIG, std::function<void(ECDSA_SIG*)>> zSignature(
       ECDSA_SIG_new(), [](ECDSA_SIG* b) { ECDSA_SIG_free(b); });
