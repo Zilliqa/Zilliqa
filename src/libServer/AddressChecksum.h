@@ -82,9 +82,6 @@ class AddressChecksum {
   //  lowercase hexadecimal address is 1 otherwise print it in lowercase.
   static const std::string GetChecksummedAddressEth(std::string origAddress) {
 
-    origAddress = "5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
-    //origAddress = "5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
-
     if (!(origAddress.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(origAddress.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");
@@ -112,12 +109,6 @@ class AddressChecksum {
 
     // Get keccak of this
     auto hash_of_address = ethash::keccak256(reinterpret_cast<const uint8_t*>(lower_case_address.c_str()), lower_case_address.size());
-
-    for(int i = 0;i < 32;i++) {
-      std::cout << std::hex << std::setfill('0') << std::setw(2) << int(hash_of_address.bytes[i]) << " ";
-    }
-
-    std::cout << std::endl;
 
     for (std::size_t i = 0; i < lower_case_address.size(); i++) {
       // If the address could be uppercased
