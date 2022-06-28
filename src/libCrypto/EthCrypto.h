@@ -24,14 +24,6 @@
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
-// https://stackoverflow.com/questions/57385412/
-void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign);
-
-// This function needs to set the key but also needs to decomprss the
-// coordinates using EC_POINT_set_compressed_coordinates_GFp sPubKeyString
-// should be hex \0 terminated string with no compression bit on it
-bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey);
-
 bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex);
@@ -40,6 +32,6 @@ bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string toUncompressedPubKey(const std::string& pubKey);
+std::string ToUncompressedPubKey(const std::string& pubKey);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

@@ -448,7 +448,7 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   Address address;
 
   // The public key must be uncompressed!
-  auto const publicKey = toUncompressedPubKey(std::string(pubKey));
+  auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
   // Do not hash the first byte, as it specifies the encoding
   auto result = ethash::keccak256(

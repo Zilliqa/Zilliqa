@@ -27,8 +27,6 @@
 #include <memory>
 #include <string>
 
-using namespace std;
-
 // Inspiration from:
 // https://stackoverflow.com/questions/10906524
 // https://stackoverflow.com/questions/57385412/
@@ -39,6 +37,8 @@ using namespace std;
 constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                32,  83,  105, 103, 110, 101, 100, 32,  77,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
+
+
 
 // https://stackoverflow.com/questions/57385412/
 void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign) {
@@ -77,6 +77,13 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   // https://www.oreilly.com/library/view/mastering-ethereum/9781491971932/ch04.html
   // The first byte indicates whether the y coordinate is odd or even
   int y_chooser_bit = 0;
+
+  if (sPubKeyString[0] != '0') {
+    LOG_GENERAL(WARNING,
+                "Received badly set signature bit! Should be 0 and got: "
+                    << sPubKeyString[0]);
+    return false;
+  }
 
   if (sPubKeyString[1] == '2') {
     y_chooser_bit = 0;
@@ -143,7 +150,7 @@ bool VerifyEcdsaSecp256k1(const std::string&, const std::string& sSignature,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string toUncompressedPubKey(std::string const& pubKey) {
+std::string ToUncompressedPubKey(std::string const& pubKey) {
   // Create public key pointer
   std::unique_ptr<EC_KEY, std::function<void(EC_KEY*)>> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1),

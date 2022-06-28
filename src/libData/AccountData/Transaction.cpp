@@ -156,7 +156,8 @@ const PubKey& Transaction::GetSenderPubKey() const {
 }
 
 Address Transaction::GetSenderAddr() const {
-  if (GetVersion() == 65538) {
+  // If a V2 Tx
+  if ((GetVersion() & 0xffff) == 0x2) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
   }
@@ -207,7 +208,8 @@ bool Transaction::IsSignedECDSA() const {
 // Function to return whether the TX is signed
 bool Transaction::IsSigned() const {
   // Use the version number to tell which signature scheme it is using
-  if (GetVersion() == 65538) {
+  // If a V2 TX
+  if ((GetVersion() & 0xffff) == 0x2) {
     LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
