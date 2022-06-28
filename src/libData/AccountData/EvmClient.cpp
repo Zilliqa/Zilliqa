@@ -36,11 +36,11 @@ void EvmClient::Init() {
 bool EvmClient::OpenServer(bool force) {
   LOG_MARKER();
 
-  std::string programName =
+  const std::string programName =
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  std::string cmdStr = "pkill " + programName + " ; " + EVM_SERVER_BINARY +
-                       " --socket " + EVM_SERVER_SOCKET_PATH +
-                       " --tracing >/dev/null &";
+  const std::string cmdStr = "pkill " + programName + " ; " +
+                             EVM_SERVER_BINARY + " --socket " +
+                             EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
@@ -75,21 +75,20 @@ bool EvmClient::OpenServer(bool force) {
 bool EvmClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (m_initialised) return true;
+  if (m_initialised) {
+    return true;
+  }
 
   if (!OpenServer(enforce)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
 
-  std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
+  m_connectors[version] =
       std::make_shared<jsonrpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
 
-  m_connectors[version] = conn;
-
-  std::shared_ptr<jsonrpc::Client> c = std::make_shared<jsonrpc::Client>(
+  m_clients[version] = std::make_shared<jsonrpc::Client>(
       *m_connectors.at(version), jsonrpc::JSONRPC_CLIENT_V2);
-  m_clients[version] = c;
 
   return true;
 }
@@ -99,8 +98,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   //
   // Fail the call if counter is zero
   //
-  if (counter == 0) {
-    if (LOG_SC) LOG_GENERAL(INFO, "Call counter was zero returning");
+  if (counter == 0 && LOG_SC) {
+    LOG_GENERAL(INFO, "Call counter was zero returning");
     return false;
   }
 
@@ -113,14 +112,14 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    Json::Value oldJson;
-    evmproj::CallResponse reply;
-    oldJson = m_clients.at(version)->CallMethod("run", _json);
+    LOG_GENERAL(DEBUG, "Call evem with request:" << _json);
+    const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
+
     // Populate the C++ struct with the return values
     try {
-      reply = evmproj::GetReturn(oldJson, result);
-      if (reply.GetSuccess()) {
-        if (LOG_SC) LOG_GENERAL(INFO, "Parsed Json response correctly");
+      const auto reply = evmproj::GetReturn(oldJson, result);
+      if (reply.GetSuccess() && LOG_SC) {
+        LOG_GENERAL(INFO, "Parsed Json response correctly");
       }
       return true;
     } catch (std::exception& e) {
@@ -133,6 +132,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                 "RPC Exception calling EVM-DS : attempting server "
                 "restart "
                     << e.what());
+
     m_initialised = false;
     if (!CheckClient(version, true)) {
       LOG_GENERAL(WARNING,

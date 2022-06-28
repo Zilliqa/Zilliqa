@@ -131,8 +131,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
-    Json::Value jval;
-
     if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
       ret = EvmClient::GetInstance().CallRunner(
           version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
@@ -215,7 +213,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       if (targetAccount == nullptr) {
         LOG_GENERAL(
             WARNING,
-            "Cannot find account for address given in  Apply operation from "
+            "Cannot find account for address given in Apply operation from "
             "EVM-DS"
             " ");
         return gas;
@@ -331,7 +329,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
   result = response.m_return;
   if (LOG_SC) {
-    LOG_GENERAL(INFO, response);
+    LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
 
   return ret;

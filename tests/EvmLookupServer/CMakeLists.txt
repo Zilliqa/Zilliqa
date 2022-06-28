@@ -1,5 +1,5 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
-# For this test we have an adapted constrant.xml
+# For this test we have an adapted constants.xml
 # copy from evm lookup server dir to binary dir
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
