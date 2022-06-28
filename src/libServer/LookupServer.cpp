@@ -78,8 +78,6 @@ LookupServer::LookupServer(Mediator& mediator,
     : Server(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
-
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -807,7 +805,6 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
 }
 
 string LookupServer::GetMinimumGasPrice() {
-
   std::cout << "GetMinGasPrice! " << std::endl;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -851,7 +848,6 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
-
   std::cout << "Getting balance!" << std::endl;
 
   if (!LOOKUP_NODE_MODE) {
@@ -872,7 +868,9 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
       ret["balance"] = balance.str();
       ret["nonce"] = static_cast<unsigned int>(nonce);
-      LOG_GENERAL(INFO, "DEBUG: Addr: " << address << " balance: " << balance.str() << " nonce: " << nonce << " " << account);
+      LOG_GENERAL(INFO,
+                  "DEBUG: Addr: " << address << " balance: " << balance.str()
+                                  << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");

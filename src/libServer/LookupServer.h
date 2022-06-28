@@ -257,23 +257,22 @@ class LookupServer : public Server,
   }
 
   // Eth style functions here
-  inline virtual void GetChainIdI(const Json::Value&,
-                                          Json::Value& response) {
+  inline virtual void GetChainIdI(const Json::Value&, Json::Value& response) {
     //(void)request;
     std::cout << "REQ" << std::endl;
-    response = "0x666"; // 1638 decimal - mainnet is reserved for chainId 1
+    response = "0x666";  // 1638 decimal - mainnet is reserved for chainId 1
   }
 
   inline virtual void GetBlocknumEthI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
-    //response = this->GetBlocknum();
+    // response = this->GetBlocknum();
     static uint64_t block_number = 9;
     block_number++;
 
     std::stringstream stream;
     stream << "0x" << std::hex << block_number;
-    std::string result( stream.str() );
+    std::string result(stream.str());
     std::cout << stream.str() << std::endl;
 
     response = stream.str();
@@ -284,26 +283,34 @@ class LookupServer : public Server,
   //      "extraData": "0x476574682f76312e302e302f6c696e75782f676f312e342e32",
   //      "gasLimit": "0x1388",
   //      "gasUsed": "0x0",
-  //      "hash": "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6",
-  //      "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  //      "hash":
+  //      "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6",
+  //      "logsBloom":
+  //      "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
   //      "miner": "0x05a56e2d52c817161883f50c441c3228cfe54d9f",
-  //      "mixHash": "0x969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59",
+  //      "mixHash":
+  //      "0x969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59",
   //      "nonce": "0x539bd4979fef1ec4",
   //      "number": "0x1",
-  //      "parentHash": "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
-  //      "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-  //      "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+  //      "parentHash":
+  //      "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+  //      "receiptsRoot":
+  //      "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+  //      "sha3Uncles":
+  //      "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
   //      "size": "0x219",
-  //      "stateRoot": "0xd67e4d450343046425ae4271474353857ab860dbc0a1dde64b41b5cd3a532bf3",
+  //      "stateRoot":
+  //      "0xd67e4d450343046425ae4271474353857ab860dbc0a1dde64b41b5cd3a532bf3",
   //      "timestamp": "0x55ba4224",
   //      "totalDifficulty": "0x7ff800000",
   //      "transactions": [],
-  //      "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+  //      "transactionsRoot":
+  //      "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
   //      "uncles": []
   //},
 
   inline virtual void GetBlockByNumber(const Json::Value& request,
-                                      Json::Value& response) {
+                                       Json::Value& response) {
     (void)request;
     std::cout << "GBBN " << request[0u].asString() << std::endl;
     std::cout << "GBBN2 " << request[1u].asString() << std::endl;
@@ -314,35 +321,49 @@ class LookupServer : public Server,
     ret["extraData"] = "0x476574682f76312e302e302f6c696e75782f676f312e342e32";
     ret["gasLimit"] = "0x1388";
     ret["gasUsed"] = "0x0";
-    ret["hash"] = "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6";
-    ret["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+    ret["hash"] =
+        "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6";
+    ret["logsBloom"] =
+        "0x00000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000000000000000";
     ret["miner"] = "0x05a56e2d52c817161883f50c441c3228cfe54d9f";
-    ret["mixHash"] = "0x969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59";
+    ret["mixHash"] =
+        "0x969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59";
     ret["nonce"] = "0x539bd4979fef1ec4";
     ret["number"] = "0x1";
-    ret["parentHash"] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    ret["receiptsRoot"] = "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
-    ret["sha3Uncles"] = "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
+    ret["parentHash"] =
+        "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+    ret["receiptsRoot"] =
+        "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
+    ret["sha3Uncles"] =
+        "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
     ret["size"] = "0x219";
-    ret["stateRoot"] = "0xd67e4d450343046425ae4271474353857ab860dbc0a1dde64b41b5cd3a532bf3";
+    ret["stateRoot"] =
+        "0xd67e4d450343046425ae4271474353857ab860dbc0a1dde64b41b5cd3a532bf3";
     ret["timestamp"] = "0x55ba4224";
     ret["totalDifficulty"] = "0x7ff800000";
     ret["transactions"] = Json::arrayValue;
-    ret["transactionsRoot"] = "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
+    ret["transactionsRoot"] =
+        "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
     ret["uncles"] = Json::arrayValue;
 
     response = ret;
   }
 
   inline virtual void GetNetVersionI(const Json::Value& request,
-                                      Json::Value& response) {
+                                     Json::Value& response) {
     (void)request;
-    response = "0x666"; // 1638 decimal - mainnet is reserved for chainId 1
+    response = "0x666";  // 1638 decimal - mainnet is reserved for chainId 1
   }
 
   inline virtual void GetBalanceEth(const Json::Value& request,
-                                     Json::Value& response) {
-
+                                    Json::Value& response) {
     std::cout << "GETB " << request[0u].asString() << std::endl;
     (void)request;
     response = "0x1010000000000000000000000";

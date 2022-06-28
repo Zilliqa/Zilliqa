@@ -25,7 +25,6 @@ using namespace std;
 
 // temporary functions to add Eth style functions to the isolated server
 void IsolatedServer::AddJSONRpc() {
-
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -43,20 +42,20 @@ void IsolatedServer::AddJSONRpc() {
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-                             jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
-                         NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &IsolatedServer::GetBalanceEth);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
-                         NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &IsolatedServer::GetBlockByNumber);
 
-  //AbstractServer<IsolatedServer>::bindAndAddMethod(
+  // AbstractServer<IsolatedServer>::bindAndAddMethod(
   //    jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
-  //                       jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-  //                       NULL),
+  //                       jsonrpc::JSON_OBJECT, "param01",
+  //                       jsonrpc::JSON_STRING, NULL),
   //    &LookupServer::GetTransactionI);
 }
 
@@ -184,7 +183,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
-
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -297,7 +295,6 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
-
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -528,7 +525,10 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   return m_gasPrice.str();
 }
 
-string IsolatedServer::GetMinimumGasPrice() { cout << "..." << std::endl; return m_gasPrice.str(); }
+string IsolatedServer::GetMinimumGasPrice() {
+  cout << "..." << std::endl;
+  return m_gasPrice.str();
+}
 
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
