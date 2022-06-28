@@ -16,6 +16,7 @@
  */
 
 #include "EthCrypto.h"
+#include "libUtils/Logger.h"
 
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
@@ -82,13 +83,14 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   } else if (sPubKeyString[1] == '3') {
     y_chooser_bit = 1;
   } else {
-    std::cout << "Received badly set signature bit! Should be 2 or 3 and got: "
-              << sPubKeyString[1] << std::endl;
+    LOG_GENERAL(WARNING,
+                "Received badly set signature bit! Should be 2 or 3 and got: "
+                    << sPubKeyString[1]);
   }
 
   // Don't want the first byte
   if (!BN_hex2bn(&gx_ptr, sPubKeyString + 2)) {
-    std::cout << "***** Error getting to x binary format" << std::endl;
+    LOG_GENERAL(WARNING, "Error getting to x binary format");
   }
 
   // Create a new curve group
@@ -105,13 +107,13 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
                                           gx_ptr, y_chooser_bit, NULL);
 
   if (!EC_KEY_set_public_key(pKey, point.get())) {
-    std::cout << "****** ERROR! setting public key attributes" << std::endl;
+    LOG_GENERAL(WARNING, "ERROR! setting public key attributes");
   }
 
   if (EC_KEY_check_key(pKey) == 1) {
     return true;
   } else {
-    std::cout << "ec key invalid " << std::endl;
+    LOG_GENERAL(WARNING, "ec key invalid ");
     return false;
   }
 }
@@ -128,7 +130,7 @@ bool VerifyEcdsaSecp256k1(const std::string&, const std::string& sSignature,
       [](EC_KEY* b) { EC_KEY_free(b); });
 
   if (!SetOpensslPublicKey(sDevicePubKeyInHex.c_str(), zPublicKey.get())) {
-    std::cout << "Failed to get the public key from the hex input" << std::endl;
+    LOG_GENERAL(WARNING, "Failed to get the public key from the hex input");
   }
 
   auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
@@ -149,16 +151,16 @@ std::string toUncompressedPubKey(std::string const& pubKey) {
 
   // The +2 removes '0x' at the beginning of the string
   if (!SetOpensslPublicKey(pubKey.c_str() + 2, zPublicKey.get())) {
-    std::cout << "Failed to get the public key from"
-                 " the hex input when getting uncompressed form"
-              << std::endl;
+    LOG_GENERAL(WARNING,
+                "Failed to get the public key from the hex input when getting "
+                "uncompressed form");
   }
 
   // Get the size of the key
   int pubSize = i2o_ECPublicKey(zPublicKey.get(), NULL);
 
   if (!(pubSize == UNCOMPRESSED_SIGNATURE_SIZE)) {
-    std::cout << "pub key to data incorrect size " << pubSize << std::endl;
+    LOG_GENERAL(WARNING, "pub key to data incorrect size ");
   }
 
   u_int8_t pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE];
@@ -172,8 +174,9 @@ std::string toUncompressedPubKey(std::string const& pubKey) {
   std::string ret{};
 
   if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
-    std::cout << "Pubkey size incorrect after decompressing: "
-              << pubKeyOut2 - &pubKeyOut[0] << std::endl;
+    LOG_GENERAL(WARNING,
+                "Pubkey size incorrect after decompressing: << pubKeyOut2 - "
+                "&pubKeyOut[0]");
   } else {
     ret = std::string(reinterpret_cast<const char*>(pubKeyOut),
                       UNCOMPRESSED_SIGNATURE_SIZE);
