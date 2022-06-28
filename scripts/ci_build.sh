@@ -37,7 +37,6 @@ echo "n_parallel=${n_parallel}"
 
 echo "ccache configuration"
 ccache --version
-ccache -M 5G
 ccache -p
 
 ccache -z
@@ -54,18 +53,34 @@ then
 fi
 
 # assume that it is run from project root directory
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
-cmake --build ${dir} -- -j${n_parallel}
+echo "configuring..."
+time cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
+
+echo "building..."
+time cmake --build ${dir} -- -j${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
 then
-    ./scripts/ci_xml_checker.sh constants.xml || exit 1
-    ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
-    ./scripts/license_checker.sh || exit 1
-    ./scripts/depends/check_guard.sh || exit 1
-    cmake --build ${dir} --target clang-format || exit 1
-    cmake --build ${dir} --target clang-tidy || exit 1
+    echo "constants.xml"
+    time ./scripts/ci_xml_checker.sh constants.xml || exit 1
+
+    echo "constants_local.xml"
+    time ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
+
+    echo "licence check"
+    time ./scripts/license_checker.sh || exit 1
+
+    echo "check guard"
+    time ./scripts/depends/check_guard.sh || exit 1
+
+    echo "format"
+    time cmake --build ${dir} --target clang-format || exit 1
+
+    echo "tidy"
+    time cmake --build ${dir} --target clang-tidy || exit 1
+
+    echo "coverage and test"
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1
 else
